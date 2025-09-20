@@ -1,1 +1,559 @@
-<html>hello</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computer Science Learning Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-btn {
+            flex: 1;
+            max-width: 300px;
+            padding: 15px 25px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .course-title {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .course-title::after {
+            content: '';
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            display: block;
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+
+        .progress-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            color: #6c757d;
+            border: 2px solid #e9ecef;
+        }
+
+        .progress-step.completed {
+            background: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .progress-step.current {
+            background: #fff3cd;
+            color: #856404;
+            border-color: #ffc107;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 3px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            transform: translateX(10px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -32px;
+            top: 30px;
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 3px #007bff;
+        }
+
+        .timeline-item.completed::before {
+            background: #28a745;
+            box-shadow: 0 0 0 3px #28a745;
+        }
+
+        .timeline-item.current::before {
+            background: #ffc107;
+            box-shadow: 0 0 0 3px #ffc107;
+            animation: glow 2s infinite;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 0 3px #ffc107; }
+            50% { box-shadow: 0 0 0 8px rgba(255, 193, 7, 0.4); }
+            100% { box-shadow: 0 0 0 3px #ffc107; }
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .game-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .game-description {
+            color: #6c757d;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .game-embed {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .game-embed img {
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .game-embed img:hover {
+            transform: scale(1.05);
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .difficulty-beginner { background: #d4edda; color: #155724; }
+        .difficulty-intermediate { background: #fff3cd; color: #856404; }
+        .difficulty-advanced { background: #f8d7da; color: #721c24; }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .tabs {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .tab-btn {
+                max-width: none;
+            }
+
+            .timeline {
+                padding-left: 20px;
+            }
+
+            .timeline::before {
+                left: 10px;
+            }
+
+            .timeline-item::before {
+                left: -22px;
+                width: 15px;
+                height: 15px;
+            }
+
+            .timeline-item {
+                padding: 20px;
+            }
+
+            .course-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Computer Science Learning Hub</h1>
+            <p>Interactive exercises and games for mastering programming concepts</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab(event, 'python-tab')">Python I</button>
+            <button class="tab-btn" onclick="openTab(event, 'computing-tab')">Introduction to Computing</button>
+        </div>
+
+        <div id="python-tab" class="tab-content active">
+            <h2 class="course-title">Python I</h2>
+            
+            <div class="progress-indicator">
+                <div class="progress-step completed">Variables & Data Types</div>
+                <div class="progress-step current">Control Structures</div>
+                <div class="progress-step">Functions</div>
+                <div class="progress-step">Data Structures</div>
+                <div class="progress-step">File Operations</div>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item completed">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-beginner">Beginner</span>
+                        <h3 class="game-title">Python Variables & Data Types</h3>
+                        <p class="game-description">Learn the fundamentals of Python variables, strings, numbers, and basic data types through interactive exercises.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="https://wordwall.net/play/34261/906/34898">
+                                <img src="https://screens.cdn.wordwall.net/200/7663334d83f64da5986a4dd5d0e7b7a0_23b" width="200" height="150" style="border:1px solid grey;display:block;margin:0 auto" />
+                                <span>Python Variables Quiz Game</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item current">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-beginner">Beginner</span>
+                        <h3 class="game-title">If Statements & Loops</h3>
+                        <p class="game-description">Master conditional statements and loops with hands-on coding challenges and pattern recognition games.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
+                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
+                                    <span>Coming Soon!</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-intermediate">Intermediate</span>
+                        <h3 class="game-title">Functions & Parameters</h3>
+                        <p class="game-description">Build and use functions with parameters, return values, and scope understanding through practical exercises.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
+                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
+                                    <span>Coming Soon!</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-intermediate">Intermediate</span>
+                        <h3 class="game-title">Lists & Dictionaries</h3>
+                        <p class="game-description">Explore Python's powerful data structures with interactive manipulation and search challenges.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
+                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
+                                    <span>Coming Soon!</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-advanced">Advanced</span>
+                        <h3 class="game-title">File Input/Output</h3>
+                        <p class="game-description">Learn to read from and write to files, handle CSV data, and manage file operations safely.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
+                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
+                                    <span>Coming Soon!</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="computing-tab" class="tab-content">
+            <h2 class="course-title">Introduction to Computing & Problem Solving</h2>
+            
+            <div class="progress-indicator">
+                <div class="progress-step completed">Computer Systems</div>
+                <div class="progress-step current">Problem Solving</div>
+                <div class="progress-step">Algorithms</div>
+                <div class="progress-step">Data Representation</div>
+                <div class="progress-step">Networks & Internet</div>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item completed">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-beginner">Beginner</span>
+                        <h3 class="game-title">Computer Systems & Hardware</h3>
+                        <p class="game-description">Identify and understand the main components of computer systems, from CPU to storage devices.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="https://wordwall.net/play/34261/906/34898">
+                                <img src="https://screens.cdn.wordwall.net/200/7663334d83f64da5986a4dd5d0e7b7a0_23b" width="200" height="150" style="border:1px solid grey;display:block;margin:0 auto" />
+                                <span>Computer Parts Identification Game</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item current">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-beginner">Beginner</span>
+                        <h3 class="game-title">Problem Solving Strategies</h3>
+                        <p class="game-description">Learn systematic approaches to breaking down complex problems into manageable steps.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
+                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
+                                    <span>Coming Soon!</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-intermediate">Intermediate</span>
+                        <h3 class="game-title">Algorithm Design</h3>
+                        <p class="game-description">Create step-by-step solutions using flowcharts and pseudocode for common computing problems.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
+                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
+                                    <span>Coming Soon!</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-intermediate">Intermediate</span>
+                        <h3 class="game-title">Binary & Data Representation</h3>
+                        <p class="game-description">Understand how computers store and process different types of data using binary systems.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
+                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
+                                    <span>Coming Soon!</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="game-card">
+                        <span class="difficulty-badge difficulty-advanced">Advanced</span>
+                        <h3 class="game-title">Networks & Internet Protocols</h3>
+                        <p class="game-description">Explore how computers communicate over networks and the protocols that power the internet.</p>
+                        <div class="game-embed">
+                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
+                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
+                                    <span>Coming Soon!</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>🎯 Track your progress and master computer science concepts through engaging, interactive games!</p>
+            <p style="margin-top: 10px; opacity: 0.8;">Built with ❤️ for Computer Science Education</p>
+        </footer>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabContent, tabBtn;
+            
+            // Hide all tab contents
+            tabContent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabContent.length; i++) {
+                tabContent[i].classList.remove("active");
+            }
+            
+            // Remove active class from all tab buttons
+            tabBtn = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tabBtn.length; i++) {
+                tabBtn[i].classList.remove("active");
+            }
+            
+            // Show selected tab and mark button as active
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add scroll animations
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            // Observe timeline items
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(30px)';
+                item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(item);
+            });
+        });
+    </script>
+</body>
+</html>
