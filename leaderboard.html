@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard</title>
+  <style>
+    body { font-family: Segoe UI, Tahoma, sans-serif; background: #f5f6fa; margin:0; color:#2b2b2b; }
+    header { background: linear-gradient(135deg, #667eea, #764ba2); color:#fff; padding:28px 20px; text-align:center; }
+    .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    .card { background:#fff; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.08); padding:20px; margin-bottom:18px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .leaderboard-item { display:flex; align-items:center; padding:16px; margin-bottom:12px; border-radius:12px; background:#f8f9fa; }
+    .rank { font-size:1.5rem; font-weight:bold; width:60px; text-align:center; }
+    .rank.gold { color:#ffd700; }
+    .rank.silver { color:#c0c0c0; }
+    .rank.bronze { color:#cd7f32; }
+    .user-info { flex:1; margin-left:16px; }
+    .user-email { font-weight:600; margin-bottom:4px; }
+    .user-stats { font-size:0.9rem; opacity:0.8; }
+    .score { font-size:1.2rem; font-weight:bold; color:#0d6efd; }
+    .filters { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+    .filters select, .filters input { padding:8px 12px; border:1px solid #e3e6ef; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏆 Leaderboard</h1>
+    <p>See how you rank among your classmates</p>
+  </header>
+  <div class="wrap">
+    <div class="card" id="auth">
+      <div class="row" id="auth-row">
+        <!-- Populated by JS -->
+      </div>
+      <div id="auth-msg" style="margin-top:8px; opacity:0.8;"></div>
+    </div>
+
+    <div class="card" id="leaderboard-card" style="display:none;">
+      <div class="filters">
+        <select id="filter-course">
+          <option value="">All Courses</option>
+          <option value="python">Python</option>
+          <option value="computing">Computing</option>
+          <option value="algorithm">Algorithm</option>
+          <option value="general">General</option>
+        </select>
+        <select id="filter-period">
+          <option value="all">All Time</option>
+          <option value="month">This Month</option>
+          <option value="week">This Week</option>
+        </select>
+        <input type="search" id="search-user" placeholder="Search by email..." style="min-width:200px;">
+        <button id="refresh-btn" style="padding:8px 16px;background:#0d6efd;color:white;border:none;border-radius:8px;cursor:pointer;">Refresh</button>
+      </div>
+      
+      <div id="leaderboard-list">
+        <!-- Populated by JS -->
+      </div>
+      
+      <div id="your-rank" style="margin-top:20px;padding:16px;background:#e7f3ff;border-radius:12px;display:none;">
+        <strong>Your Ranking:</strong>
+        <div id="your-rank-details"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/leaderboard.js"></script>
+</body>
+</html>

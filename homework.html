@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Homework Submissions</title>
+  <style>
+    body { font-family: Segoe UI, Tahoma, sans-serif; background: #f5f6fa; margin:0; color:#2b2b2b; }
+    header { background: linear-gradient(135deg, #667eea, #764ba2); color:#fff; padding:28px 20px; text-align:center; }
+    .wrap { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .card { background:#fff; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.08); padding:20px; margin-bottom:18px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .homework-item { border:1px solid #e3e6ef; border-radius:12px; padding:16px; margin-bottom:16px; }
+    .item-header { display:flex; justify-content:space-between; align-items:start; margin-bottom:12px; }
+    .item-title { font-size:1.2rem; font-weight:600; margin:0; }
+    .item-due-date { font-size:0.9rem; opacity:0.8; }
+    .submission-area { margin-top:12px; padding-top:12px; border-top:1px solid #eee; }
+    .status-tag { padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.8rem; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-submitted { background: #d4edda; color: #155724; }
+    .status-graded { background: #cce5ff; color: #004085; }
+    .status-locked { background: #e9ecef; color: #495057; }
+    .btn { cursor:pointer; border:none; border-radius:8px; padding:10px 14px; font-weight:600; text-decoration:none; display:inline-block; }
+    .btn-primary { background:#0d6efd; color:#fff; }
+    .progress-bar { width: 100%; background-color: #e9ecef; border-radius: 4px; overflow: hidden; height: 8px; margin-top: 8px; display: none; }
+    .progress-bar-fill { width: 0%; height: 100%; background-color: #0d6efd; transition: width 0.2s; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Homework Submissions</h1>
+    <p>Upload and track your assignments</p>
+  </header>
+  <div class="wrap">
+    <div class="card" id="auth">
+      <div class="row" id="auth-row">
+        <!-- Populated by JS -->
+      </div>
+      <div id="auth-msg" style="margin-top:8px; opacity:0.8;"></div>
+    </div>
+
+    <div class="card" id="homework-card" style="display:none;">
+      <h2>Your Assignments</h2>
+      <div id="homework-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/homework.js"></script>
+</body>
+</html>

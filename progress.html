@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Progress</title>
+  <style>
+    body { font-family: Segoe UI, Tahoma, sans-serif; background: #f5f6fa; margin:0; color:#2b2b2b; }
+    header { background: linear-gradient(135deg, #667eea, #764ba2); color:#fff; padding:28px 20px; text-align:center; }
+    .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    .card { background:#fff; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.08); padding:20px; margin-bottom:18px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .progress-item { border:1px solid #e3e6ef; border-radius:12px; padding:16px; margin-bottom:12px; }
+    .completed { background:#d4edda; border-color:#c3e6cb; }
+    .overdue { background:#f8d7da; border-color:#f5c6cb; }
+    .upcoming { background:#fff3cd; border-color:#ffeaa7; }
+    .btn { cursor:pointer; border:none; border-radius:10px; padding:12px 16px; font-weight:600; text-decoration:none; display:inline-block; }
+    .btn-primary { background:#0d6efd; color:#fff; }
+    .btn-success { background:#198754; color:#fff; }
+    .btn-warning { background:#ffc107; color:#000; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:20px; }
+    .stat-card { text-align:center; padding:20px; background:#f8f9fa; border-radius:12px; }
+    .stat-number { font-size:2rem; font-weight:bold; color:#0d6efd; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>My Progress</h1>
+    <p>Track your completed activities and upcoming deadlines</p>
+  </header>
+  <div class="wrap">
+    <div class="card" id="auth">
+      <div class="row" id="auth-row">
+        <!-- Populated by JS -->
+      </div>
+      <div id="auth-msg" style="margin-top:8px; opacity:0.8;"></div>
+    </div>
+
+    <div class="card" id="stats-card" style="display:none;">
+      <h2>Your Statistics</h2>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-number" id="stat-completed">0</div>
+          <div>Completed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="stat-total-score">0/0</div>
+          <div>Total Score</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="stat-attempts">0</div>
+          <div>Total Attempts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="stat-pending">0</div>
+          <div>Pending</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="progress-card" style="display:none;">
+      <h2>Activities Progress</h2>
+      <div class="row" style="margin-bottom:16px;">
+        <select id="filter-status">
+          <option value="">All Activities</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
+          <option value="overdue">Overdue</option>
+        </select>
+        <select id="filter-course">
+          <option value="">All Courses</option>
+          <option value="python">Python</option>
+          <option value="computing">Computing</option>
+          <option value="algorithm">Algorithm</option>
+          <option value="general">General</option>
+        </select>
+      </div>
+      <div id="activities-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/progress.js"></script>
+</body>
+</html>

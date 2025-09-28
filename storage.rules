@@ -1,0 +1,49 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && request.auth.token.admin == true; }
+
+    // Chat attachments (e.g. chats/global/... or chats/{uidA__uidB}/...)
+    match /chats/{path=**} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Submissions: each user can only read/write their own files
+    // Files stored like: submissions/{uid}/{activityId}/{filename}
+    match /submissions/{userId}/{activityId}/{fileName} {
+      // Only the authenticated user can upload to their own path.
+      allow create: if isSignedIn() && request.auth.uid == userId
+                    // Enforce file size limit (5MB)
+                    && request.resource.size < 5 * 1024 * 1024
+                    // Enforce file types
+                    && request.resource.contentType.matches('application/zip|application/x-rar-compressed|application/pdf|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+
+      // User can read their own files. Admins can read any file.
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+
+      // User can delete their own submission file (e.g., to replace it before grading).
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Avatars: user can write their own; public read (change to isSignedIn() to make private)
+    // Files stored like: avatars/{uid}/{filename}
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Activity assets (if you upload any to Storage)
+    match /activities/{activityId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default deny for everything else
+    match /{allPaths=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}

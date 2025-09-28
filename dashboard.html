@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instructor Dashboard</title>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/ui-lightness/jquery-ui.css">
+  <style>
+    body { font-family: Segoe UI, Tahoma, sans-serif; background: #f5f6fa; margin:0; color:#2b2b2b; }
+    header { background: linear-gradient(135deg, #667eea, #764ba2); color:#fff; padding:28px 20px; text-align:center; }
+    .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    .card { background:#fff; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.08); padding:20px; margin-bottom:18px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    input, select, textarea { padding:12px; border:1px solid #e3e6ef; border-radius:10px; outline:none; transition: box-shadow .2s, border-color .2s; background:#fff; }
+    input:focus, select:focus, textarea:focus { border-color:#8aa0ff; box-shadow:0 0 0 3px rgba(102,126,234,.15); }
+    button { cursor:pointer; border:none; border-radius:10px; padding:12px 16px; font-weight:600; }
+    .btn-primary { background:#0d6efd; color:#fff; box-shadow:0 6px 16px rgba(13,110,253,.25); }
+    .btn-secondary { background:#6c757d; color:#fff; }
+    .btn-danger { background:#dc3545; color:#fff; }
+    .btn-primary:hover, .btn-secondary:hover, .btn-danger:hover { filter: brightness(0.95); }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:12px; border-bottom:1px solid #eee; text-align:left; }
+    th { background:#f8f9fa; }
+    .badge { padding:4px 10px; border-radius:12px; background:#eef; font-weight:600; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Instructor Dashboard</h1>
+    <p>View students, progress, and mark reviews</p>
+  </header>
+  <div class="wrap">
+    <div class="card" id="auth">
+      <div class="row" id="auth-row">
+        <!-- Populated by JS -->
+      </div>
+
+      <div id="activities-tab" class="tab-content" style="display:none;">
+        <h2>Activities Editor</h2>
+        <p>Create or update activities shown to students.</p>
+        <div class="row" style="flex-wrap:wrap;gap:12px;">
+          <input id="act-id" placeholder="id (unique)" />
+          <select id="act-course">
+            <option value="python">python</option>
+            <option value="computing">computing</option>
+            <option value="algorithm">algorithm</option>
+            <option value="general">general</option>
+          </select>
+          <select id="act-type">
+            <option value="quiz">quiz</option>
+            <option value="homework">homework</option>
+            <option value="training">training</option>
+          </select>
+          <select id="act-difficulty">
+            <option value="beginner">beginner</option>
+            <option value="intermediate">intermediate</option>
+            <option value="advanced">advanced</option>
+          </select>
+          <input id="act-url" placeholder="URL" style="min-width:280px;" />
+          <input id="act-image" placeholder="Image URL" style="min-width:220px;" />
+          <input id="act-order" type="number" placeholder="order" style="width:120px;" />
+          <input id="act-due-date" placeholder="Due date" />
+          <input id="act-due-time" type="time" step="60" />
+          <label><input id="act-show" type="checkbox" checked /> Show</label>
+          <label><input id="act-allowRetake" type="checkbox" /> allowRetake</label>
+        </div>
+        <div class="row" style="margin-top:8px;gap:12px;">
+          <textarea id="act-title-en" rows="2" placeholder="title_en" style="flex:1;"></textarea>
+          <textarea id="act-title-ar" rows="2" placeholder="title_ar" style="flex:1;"></textarea>
+        </div>
+        <div class="row" style="margin-top:8px;gap:12px;">
+          <textarea id="act-desc-en" rows="4" placeholder="description_en" style="flex:1;"></textarea>
+          <textarea id="act-desc-ar" rows="4" placeholder="description_ar" style="flex:1;"></textarea>
+        </div>
+        <div class="row" style="margin-top:8px;gap:8px;">
+          <button class="btn-primary" id="save-activity">Save Activity</button>
+          <button class="btn-secondary" id="duplicate-activity">Duplicate</button>
+          <span id="act-msg" style="opacity:0.8;"></span>
+        </div>
+
+        <hr style="margin:16px 0; border:none; border-top:1px solid #eee;" />
+        <h3>Activities List</h3>
+        <div class="row" style="gap:10px; margin:8px 0;">
+          <input id="flt-search" placeholder="Search by id/title/url" style="min-width:240px;"/>
+          <select id="flt-course">
+            <option value="">All courses</option>
+            <option value="python">python</option>
+            <option value="computing">computing</option>
+            <option value="algorithm">algorithm</option>
+            <option value="general">general</option>
+          </select>
+          <select id="flt-type">
+            <option value="">All types</option>
+            <option value="quiz">quiz</option>
+            <option value="homework">homework</option>
+            <option value="training">training</option>
+          </select>
+          <select id="flt-diff">
+            <option value="">All difficulties</option>
+            <option value="beginner">beginner</option>
+            <option value="intermediate">intermediate</option>
+            <option value="advanced">advanced</option>
+          </select>
+          <select id="flt-sort">
+            <option value="order">Sort: order</option>
+            <option value="title_en">Sort: title_en</option>
+            <option value="course">Sort: course</option>
+            <option value="type">Sort: type</option>
+            <option value="difficulty">Sort: difficulty</option>
+          </select>
+        </div>
+        <div style="overflow:auto;">
+          <table id="acts-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Course</th>
+                <th>Type</th>
+                <th>Diff</th>
+                <th>Order</th>
+                <th>Due</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px;">
+          <button class="btn-secondary" id="acts-prev">Prev</button>
+          <span id="acts-page" style="opacity:.8;">1</span>
+          <button class="btn-secondary" id="acts-next">Next</button>
+        </div>
+      </div>
+
+      <div id="resources-tab" class="tab-content" style="display:none;">
+        <h2>Resources</h2>
+        <p>Add links or HTML blocks for your team (like Blackboard).</p>
+        <div class="row" style="gap:8px;flex-wrap:wrap;">
+          <input id="res-id" placeholder="id (unique)" />
+          <input id="res-title" placeholder="Title" />
+          <input id="res-link" placeholder="Link (optional)" style="min-width:280px;" />
+          <input id="res-order" type="number" placeholder="order" style="width:120px;" />
+          <label><input id="res-visible" type="checkbox" checked /> Visible</label>
+        </div>
+        <textarea id="res-html" rows="6" placeholder="HTML content (optional)" style="width:100%;margin-top:8px;"></textarea>
+        <div class="row" style="margin-top:8px;gap:8px;">
+          <button class="btn-primary" id="save-resource">Save Resource</button>
+          <span id="res-msg" style="opacity:0.8;"></span>
+        </div>
+      </div>
+      <div id="auth-msg" style="margin-top:8px; opacity:0.8;"></div>
+    </div>
+
+    <div class="card" id="admin-note">
+      <strong>Admin access</strong>
+      <p>Only emails listed under Firestore <code>config/allowlist</code> → <code>adminEmails</code> can access this dashboard.</p>
+      <div class="row" style="margin-top:8px;">
+        <button id="admin-recheck" class="btn-secondary">Recheck Admin Access</button>
+        <span id="admin-recheck-msg" style="opacity:.8;"></span>
+      </div>
+    </div>
+
+    <div class="card" id="visitor-card" style="display:none;">
+      <h2>Your Summary</h2>
+      <div id="visitor-summary">Sign in to see your progress.</div>
+    </div>
+
+    <div class="card" id="main-card" style="display:none;">
+        <div id="admin-dashboard-content"></div>
+      <div class="row" style="margin-bottom:16px;">
+        <button class="btn-primary tab-btn" data-tab="users">Users</button>
+        <button class="btn-primary tab-btn" data-tab="allowlist">Allowlist</button>
+        <button class="btn-primary tab-btn" data-tab="activities">Activities</button>
+        <button class="btn-primary tab-btn" data-tab="resources">Resources</button>
+        <button class="btn-primary tab-btn" data-tab="tracking">Activity Tracking</button>
+        <button class="btn-primary tab-btn" data-tab="classes">Classes</button>
+        <button class="btn-primary tab-btn" data-tab="enrollments">Enrollments</button>
+        <button class="btn-primary tab-btn" data-tab="submissions">Submissions</button>
+        <button class="btn-primary tab-btn" data-tab="announcements">Announcements</button>
+      </div>
+      
+      <div id="users-tab" class="tab-content">
+        <h2>Users</h2>
+        <div class="row" style="margin:8px 0;">
+          <input id="search" type="search" placeholder="Search email" style="flex:1; min-width:220px;" />
+          <button class="btn-primary" id="refresh">Refresh</button>
+        </div>
+        <div style="overflow:auto;">
+          <table id="users-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Total Score</th>
+                <th>Progress</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="allowlist-tab" class="tab-content" style="display:none;">
+        <h2>Allowlist Management</h2>
+        <div class="row" style="margin:8px 0;">
+          <button class="btn-primary" id="save-allowlist">Save Changes</button>
+          <span id="allowlist-msg" style="margin-left:8px;opacity:0.8;"></span>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <h3>Allowed Emails (can register)</h3>
+            <textarea id="allowed-emails" rows="10" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;" placeholder="student1@example.edu&#10;student2@example.edu"></textarea>
+          </div>
+          <div>
+            <h3>Admin Emails (dashboard access)</h3>
+            <textarea id="admin-emails" rows="10" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;" placeholder="instructor@example.edu"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div id="announcements-tab" class="tab-content" style="display:none;">
+        <h2>Create Announcement</h2>
+        <p>Send announcements to all users or a specific class.</p>
+        <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+          <div>
+            <h3>New Announcement</h3>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <input id="ann-title" placeholder="Title">
+              <textarea id="ann-content" rows="5" placeholder="Announcement content..."></textarea>
+              <select id="ann-target">
+                <option value="global">Global (All Users)</option>
+                <!-- Class options will be populated here -->
+              </select>
+              <button id="send-announcement" class="btn-primary">Send Announcement</button>
+            </div>
+          </div>
+          <div>
+            <h3>Recent Announcements</h3>
+            <div id="recent-announcements-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 8px; border-radius: 8px;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="submissions-tab" class="tab-content" style="display:none;">
+        <h2>Submissions Review</h2>
+        <p>Review and grade student homework submissions.</p>
+        <div class="row" style="margin-bottom: 16px;">
+          <select id="sub-class-filter"></select>
+          <select id="sub-activity-filter"></select>
+          <select id="sub-status-filter">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending Review</option>
+            <option value="graded">Graded</option>
+          </select>
+        </div>
+        <div style="overflow:auto;">
+          <table id="submissions-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Activity</th>
+                <th>Submitted At</th>
+                <th>File</th>
+                <th>Grade</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="enrollments-tab" class="tab-content" style="display:none;">
+        <h2>Enrollment Management</h2>
+        <p>Assign students to classes.</p>
+        <div class="row" style="margin-bottom: 16px;">
+          <label for="enroll-class-select">Select Class:</label>
+          <select id="enroll-class-select"></select>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div>
+            <h3>Enrolled Students</h3>
+            <div id="enrolled-students-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 8px; border-radius: 8px;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+          <div>
+            <h3>Available Students</h3>
+            <div id="available-students-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; padding: 8px; border-radius: 8px;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="classes-tab" class="tab-content" style="display:none;">
+        <h2>Class Management</h2>
+        <p>Create, edit, and manage classes/subjects.</p>
+        <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+          <div>
+            <h3>Create / Edit Class</h3>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <input id="class-id" placeholder="Class ID (e.g., CS101)">
+              <input id="class-name" placeholder="Class Name (e.g., Intro to Python)">
+              <textarea id="class-desc" rows="4" placeholder="Description"></textarea>
+              <div class="row">
+                <button id="save-class" class="btn-primary">Save Class</button>
+                <button id="clear-class-form" class="btn-secondary">Clear</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3>Existing Classes</h3>
+            <div style="overflow:auto; max-height: 400px;">
+              <table id="classes-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tracking-tab" class="tab-content" style="display:none;">
+        <h2>Activity Tracking</h2>
+        <p>Monitor which students have completed which activities</p>
+        <div class="row" style="margin:8px 0;">
+          <select id="track-activity">
+            <option value="">Select Activity</option>
+          </select>
+          <select id="track-status">
+            <option value="">All Status</option>
+            <option value="completed">Completed</option>
+            <option value="pending">Pending</option>
+            <option value="graded">Graded</option>
+          </select>
+          <button class="btn-primary" id="track-refresh">Refresh</button>
+        </div>
+        <div style="overflow:auto;">
+          <table id="tracking-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Activity</th>
+                <th>Status</th>
+                <th>Completed</th>
+                <th>Attempts</th>
+                <th>Grade</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <script>
+    // Initialize jQuery UI widgets
+    document.addEventListener('DOMContentLoaded', function(){
+      // jQuery UI kept for other widgets if needed
+    });
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script type="module" src="assets/js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+name: Firebase Deploy
+
+on:
+  push:
+    branches: [ "main" ]  # change if your default branch is different
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Firebase CLI
+        run: npm i -g firebase-tools
+
+      - name: Install Functions dependencies (with lockfile fallback)
+        working-directory: functions
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Configure Firebase project
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase use main-one-32026 --token "$FIREBASE_TOKEN"
+
+      - name: Deploy Firestore Rules & Storage Rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase deploy --only "firestore:rules,storage" --token "$FIREBASE_TOKEN"
+
+      - name: Deploy Cloud Functions
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase deploy --only functions --token "$FIREBASE_TOKEN"
