@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Admin check using custom claim instead of hardcoded email
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Activities — documents (not files)
+    match /activities/{id} {
+      allow read: if true;        // anyone can read activities
+      allow write: if isAdmin();  // only admin can create/update/delete
+    }
+
+    // Announcements: admin write, user can read global or their own class announcements
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn() && 
+        (resource.data.target == 'global' || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.enrolledClasses.hasAny([resource.data.target]) || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Users collection:    // Users can read/write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow authenticated users to read user documents for leaderboard
+      allow read: if request.auth != null;
+    }
+
+    // Leaderboard: public read; only signed-in can write
+    match /leaderboard/{doc} {
+      allow write: if isSignedIn();
+    }
+
+    // Resources (like Blackboard): public read, admin write
+    match /resources/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Videos list: public read, admin write
+    match /videos/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Chats
+    // Global chat room (everyone signed-in can read/write)
+    match /chats/global {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+    match /chats/global/messages/{messageId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Class-based chats
+    match /chats/{classId}/messages/{messageId} {
+      // User must be enrolled in the class to read/write.
+      allow read, write: if isSignedIn() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.enrolledClasses.hasAny([classId]) || isAdmin());
+    }
+
+    // Direct messages: chatId format is `${uidA}__uidB}`
+    // (We can tighten later to verify participants explicitly.)
+    match /chats/{chatId} {
+      allow read, write: if isSignedIn();
+    }
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Classes/Subjects: Admin write, authenticated read
+    match /classes/{classId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Enrollments: Admin write, user can read their own enrollment
+    match /enrollments/{enrollmentId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow write: if isAdmin();
+    }
+
+    // Homework Submissions: tracks metadata about uploaded files
+    match /submissions/{submissionId} {
+      // User can create their own submission record.
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+
+      // User can read their own submissions, admin can read all.
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+
+      // User can update if not reviewed; Admin can always update.
+      allow update: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId && !resource.data.reviewedAt);
+
+      // Only admin can delete.
+      allow delete: if isAdmin();
+    }
+  }
+}

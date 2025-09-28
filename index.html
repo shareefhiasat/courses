@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Computer Science Learning Hub</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💻</text></svg>">
     <style>
         * {
             margin: 0;
@@ -317,9 +318,33 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1>Computer Science Learning Hub</h1>
-            <p>Interactive exercises and games for mastering programming concepts</p>
+            <h1 id="main-title">Computer Science Learning Hub</h1>
+            <p id="main-subtitle">Interactive exercises and games for mastering programming concepts</p>
         </header>
+
+        <!-- Auth bar (login / signup / email link) -->
+        <div id="auth-bar" style="display:flex;gap:12px;align-items:center;justify-content:center;background:white;border-radius:12px;padding:12px;margin:0 auto 16px auto;max-width:1100px;box-shadow:0 4px 12px rgba(0,0,0,0.08);flex-wrap:wrap;position:relative;">
+            <!-- Global controls (persist across auth state changes) -->
+            <div id="global-controls" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <div style="display:flex;gap:8px;align-items:center;">            
+                    <select id="lang-select" style="padding:8px;border:1px solid #ddd;border-radius:6px;">
+                        <option value="en" selected>English</option>
+                        <option value="ar">العربية</option>
+                    </select>
+                </div>
+                <button id="inbox-btn" title="Announcements" style="padding:8px 12px;border:none;border-radius:6px;background:#6f42c1;color:#fff;cursor:pointer;font-weight:600;">🔔 <span id="inbox-count" style="background:#fff;color:#6f42c1;border-radius:10px;padding:2px 6px;margin-left:4px;">0</span></button>
+            </div>
+            <!-- Auth controls mount point (will be replaced per auth state) -->
+            <div id="auth-controls" style="display:flex;gap:8px;align-items:center;flex:1;justify-content:center;flex-wrap:wrap;"></div>
+            <!-- Inbox dropdown -->
+            <div id="inbox-panel" style="display:none;position:absolute;z-index:999;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.15);max-width:520px;width:92%;padding:12px;top:56px;right:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <strong>Announcements</strong>
+                    <button id="inbox-close" style="border:none;background:#eee;padding:6px 10px;border-radius:6px;cursor:pointer;">Close</button>
+                </div>
+                <div id="inbox-items" style="max-height:320px;overflow:auto;"></div>
+            </div>
+        </div>
 
         <div class="tabs">
             <button class="tab-btn active" onclick="openTab(event, 'python-tab')">Python I</button>
@@ -336,82 +361,19 @@
                 <div class="progress-step">Data Structures</div>
                 <div class="progress-step">File Operations</div>
             </div>
-
-            <div class="timeline">
-                <div class="timeline-item completed">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-beginner">Beginner</span>
-                        <h3 class="game-title">Python Variables & Data Types</h3>
-                        <p class="game-description">Learn the fundamentals of Python variables, strings, numbers, and basic data types through interactive exercises.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="https://wordwall.net/play/34261/906/34898">
-                                <img src="https://screens.cdn.wordwall.net/200/7663334d83f64da5986a4dd5d0e7b7a0_23b" width="200" height="150" style="border:1px solid grey;display:block;margin:0 auto" />
-                                <span>Python Variables Quiz Game</span>
-                            </a>
-                        </div>
-                    </div>
+            <nav style="display: none;" id="main-nav">
+                <a href="#" onclick="showSection('activities')">Activities</a>
+                <a href="progress.html" class="auth-required" style="display: none;">My Progress</a>
+                <a href="chat.html" class="auth-required" style="display: none;">Chat</a>
+                <a href="#" onclick="showSection('leaderboard')" class="auth-required" style="display: none;">Leaderboard</a>
+                <a href="#" onclick="showSection('announcements')">Announcements</a>
+                <div class="notification-bell" id="notification-bell" style="position:relative;cursor:pointer;">
+                    🔔
+                    <span class="notification-count" id="notification-count" style="display:none;position:absolute;top:-8px;right:-8px;background:#dc3545;color:white;border-radius:50%;width:20px;height:20px;font-size:12px;text-align:center;line-height:20px;">0</span>
                 </div>
-
-                <div class="timeline-item current">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-beginner">Beginner</span>
-                        <h3 class="game-title">If Statements & Loops</h3>
-                        <p class="game-description">Master conditional statements and loops with hands-on coding challenges and pattern recognition games.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
-                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
-                                    <span>Coming Soon!</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline-item">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-intermediate">Intermediate</span>
-                        <h3 class="game-title">Functions & Parameters</h3>
-                        <p class="game-description">Build and use functions with parameters, return values, and scope understanding through practical exercises.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
-                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
-                                    <span>Coming Soon!</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline-item">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-intermediate">Intermediate</span>
-                        <h3 class="game-title">Lists & Dictionaries</h3>
-                        <p class="game-description">Explore Python's powerful data structures with interactive manipulation and search challenges.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
-                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
-                                    <span>Coming Soon!</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline-item">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-advanced">Advanced</span>
-                        <h3 class="game-title">File Input/Output</h3>
-                        <p class="game-description">Learn to read from and write to files, handle CSV data, and manage file operations safely.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
-                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
-                                    <span>Coming Soon!</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                <a href="dashboard.html">Admin</a>
+            </nav>
+            <div id="python-activities"></div>
         </div>
 
         <div id="computing-tab" class="tab-content">
@@ -424,87 +386,15 @@
                 <div class="progress-step">Data Representation</div>
                 <div class="progress-step">Networks & Internet</div>
             </div>
-
-            <div class="timeline">
-                <div class="timeline-item completed">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-beginner">Beginner</span>
-                        <h3 class="game-title">Computer Systems & Hardware</h3>
-                        <p class="game-description">Identify and understand the main components of computer systems, from CPU to storage devices.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="https://wordwall.net/play/34261/906/34898">
-                                <img src="https://screens.cdn.wordwall.net/200/7663334d83f64da5986a4dd5d0e7b7a0_23b" width="200" height="150" style="border:1px solid grey;display:block;margin:0 auto" />
-                                <span>Computer Parts Identification Game</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline-item current">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-beginner">Beginner</span>
-                        <h3 class="game-title">Problem Solving Strategies</h3>
-                        <p class="game-description">Learn systematic approaches to breaking down complex problems into manageable steps.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
-                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
-                                    <span>Coming Soon!</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline-item">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-intermediate">Intermediate</span>
-                        <h3 class="game-title">Algorithm Design</h3>
-                        <p class="game-description">Create step-by-step solutions using flowcharts and pseudocode for common computing problems.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
-                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
-                                    <span>Coming Soon!</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline-item">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-intermediate">Intermediate</span>
-                        <h3 class="game-title">Binary & Data Representation</h3>
-                        <p class="game-description">Understand how computers store and process different types of data using binary systems.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
-                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
-                                    <span>Coming Soon!</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="timeline-item">
-                    <div class="game-card">
-                        <span class="difficulty-badge difficulty-advanced">Advanced</span>
-                        <h3 class="game-title">Networks & Internet Protocols</h3>
-                        <p class="game-description">Explore how computers communicate over networks and the protocols that power the internet.</p>
-                        <div class="game-embed">
-                            <a target="_blank" href="#" style="color: #6c757d; text-decoration: none;">
-                                <div style="width:200px;height:150px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:8px;">
-                                    <span>Coming Soon!</span>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="computing-activities"></div>
         </div>
 
         <footer class="footer">
             <p>🎯 Track your progress and master computer science concepts through engaging, interactive games!</p>
             <p style="margin-top: 10px; opacity: 0.8;">Built with ❤️ for Computer Science Education</p>
+            <p style="margin-top: 10px;">
+                <a href="https://www.youtube.com/watch?v=YOUR_TUTORIAL_ID" target="_blank" style="color: white; text-decoration: underline;">📺 How to Use This Site - Video Guide</a>
+            </p>
         </footer>
     </div>
 
@@ -555,5 +445,6 @@
             });
         });
     </script>
+    <script type="module" src="assets/js/main.js"></script>
 </body>
 </html>
