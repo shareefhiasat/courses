@@ -39,6 +39,30 @@ service firebase.storage {
       allow read: if true;
       allow write: if isAdmin();
     }
+    
+    // Voice messages for chat
+    match /voice-messages/{messageId} {
+      // Any signed-in user can read voice messages
+      allow read: if isSignedIn();
+      
+      // Any signed-in user can upload voice messages
+      allow write: if isSignedIn()
+                   // Enforce 5MB limit for voice messages
+                   && request.resource.size < 5 * 1024 * 1024
+                   // Only allow audio formats
+                   && request.resource.contentType.matches('audio/.*');
+    }
+    
+    // Chat file attachments
+    match /chat-attachments/{fileName} {
+      // Any signed-in user can read attachments
+      allow read: if isSignedIn();
+      
+      // Any signed-in user can upload files
+      allow write: if isSignedIn()
+                   // Enforce 5MB limit
+                   && request.resource.size < 5 * 1024 * 1024;
+    }
 
     // Default deny for everything else
     match /{allPaths=**} {

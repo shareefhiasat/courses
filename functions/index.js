@@ -1,5 +1,6 @@
 const { beforeUserCreated, beforeUserSignedIn } = require('firebase-functions/v2/identity');
 const { onCall } = require('firebase-functions/v2/https');
+const { onRequest } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { onDocumentCreated, onDocumentDeleted } = require('firebase-functions/v2/firestore');
@@ -7,17 +8,140 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineString } = require('firebase-functions/params');
 const nodemailer = require('nodemailer');
 
-// Environment variables for Gmail SMTP
+// Environment variables for Gmail SMTP and site URL
 const gmailEmail = defineString('GMAIL_EMAIL');
 const gmailPassword = defineString('GMAIL_PASSWORD');
+const siteUrlParam = defineString('SITE_URL');
 
 const { getAuth } = require('firebase-admin/auth');
 
 // Initialize Nodemailer transporter once the params are loaded
 let mailTransport;
 
-function initializeMailTransport() {
-  if (mailTransport) return;
+async function initializeMailTransport() {
+  if (mailTransport) return mailTransport;
+  
+  // Try to get SMTP config from Firestore first
+  try {
+    const smtpDoc = await db.collection('config').doc('smtp').get();
+    if (smtpDoc.exists) {
+      const smtpConfig = smtpDoc.data();
+      mailTransport = nodemailer.createTransport({
+        host: smtpConfig.host || 'smtp.gmail.com',
+        port: smtpConfig.port || 587,
+        secure: smtpConfig.secure || false,
+        auth: {
+          user: smtpConfig.user || gmailEmail.value(),
+          pass: smtpConfig.password || gmailPassword.value(),
+        },
+      });
+
+// HTTP wrapper for curl/testing: Authorization: Bearer <Firebase ID token>
+exports.sendEmailHttp = onRequest(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    if (!token) return res.status(401).json({ error: 'Missing Authorization Bearer token' });
+
+    const { getAuth } = require('firebase-admin/auth');
+    let decoded;
+    try {
+      decoded = await getAuth().verifyIdToken(token);
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid ID token' });
+    }
+
+    // Admin check: custom claim OR allowlist adminEmails
+    let isAdminUser = !!decoded.admin;
+    if (!isAdminUser) {
+      try {
+        const allowlistDoc = await db.collection('config').doc('allowlist').get();
+        if (allowlistDoc.exists) {
+          const { adminEmails = [] } = allowlistDoc.data();
+          const email = (decoded.email || '').toLowerCase();
+          isAdminUser = adminEmails.some(e => (e || '').toLowerCase() === email);
+        }
+      } catch {}
+    }
+    if (!isAdminUser) return res.status(403).json({ error: 'Admin access required' });
+
+    const data = req.body?.data || req.body || {};
+    const { to, cc, bcc, subject, body, html, text, type } = data;
+    const recipients = Array.isArray(to) ? to : (to ? [to] : []);
+    if (recipients.length === 0) return res.status(400).json({ error: 'At least one recipient is required' });
+    if (!subject) return res.status(400).json({ error: 'Subject is required' });
+    if (!body && !html && !text) return res.status(400).json({ error: 'Email content (body, html, or text) is required' });
+
+    const transporter = await initializeMailTransport();
+    const smtpDoc = await db.collection('config').doc('smtp').get();
+    const senderName = smtpDoc.exists ? smtpDoc.data().senderName || 'CS Learning Hub' : 'CS Learning Hub';
+    const senderEmail = smtpDoc.exists ? smtpDoc.data().user : gmailEmail.value();
+
+    const emailHtml = html || `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">💻 CS Learning Hub</h1>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <div style="background: white; padding: 20px; border-radius: 8px;">
+            ${(body || text || '').replace(/\n/g, '<br>')}
+          </div>
+        </div>
+        <div style="padding: 20px; text-align: center; color: #666; font-size: 12px;">
+          <p>This email was sent from CS Learning Hub</p>
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `${'${'}senderName}` + ` <${'${'}senderEmail}>`,
+      to: recipients.join(', '),
+      cc: cc && (Array.isArray(cc) ? cc.join(', ') : cc) || undefined,
+      bcc: bcc && (Array.isArray(bcc) ? bcc.join(', ') : bcc) || undefined,
+      subject,
+      html: emailHtml,
+      text: text || body,
+    });
+
+    await db.collection('emailLogs').add({
+      sentBy: decoded.uid,
+      sentAt: FieldValue.serverTimestamp(),
+      to: recipients,
+      cc: cc || [],
+      bcc: bcc || [],
+      subject,
+      type: type || 'custom',
+      status: 'sent',
+      recipientCount: recipients.length,
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('sendEmailHttp error:', error);
+    try {
+      await db.collection('emailLogs').add({
+        sentBy: 'unknown',
+        sentAt: FieldValue.serverTimestamp(),
+        to: [],
+        subject: 'unknown',
+        type: 'custom',
+        status: 'failed',
+        error: error.message,
+      });
+    } catch {}
+    return res.status(500).json({ error: error.message || 'Internal error' });
+  }
+});
+      return mailTransport;
+    }
+  } catch (error) {
+    console.warn('Could not load SMTP config from Firestore, using environment variables');
+  }
+  
+  // Fallback to environment variables
   mailTransport = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -25,6 +149,7 @@ function initializeMailTransport() {
       pass: gmailPassword.value(),
     },
   });
+  return mailTransport;
 }
 
 initializeApp();
@@ -45,21 +170,23 @@ exports.beforeUserCreated = beforeUserCreated(async (event) => {
     
     const allowlist = allowlistDoc.data();
     const allowedEmails = allowlist.allowedEmails || [];
+    const adminEmails = allowlist.adminEmails || [];
     
-    // Check if email is in allowlist (case-insensitive)
-    const isAllowed = allowedEmails.some(allowed => 
+    // Check if email is in allowlist OR adminEmails (case-insensitive)
+    const isAllowed = [...allowedEmails, ...adminEmails].some(allowed => 
       allowed.toLowerCase() === email.toLowerCase()
     );
     
     if (!isAllowed) {
       console.log(`Blocked signup attempt for: ${email}`);
+      console.log(`Allowed emails:`, allowedEmails);
+      console.log(`Admin emails:`, adminEmails);
       throw new Error('This email is not authorized to register');
     }
     
     console.log(`Approved signup for: ${email}`);
     
     // Set admin custom claim if email is in adminEmails
-    const adminEmails = allowlist.adminEmails || [];
     const isAdmin = adminEmails.some(admin => 
       admin.toLowerCase() === email.toLowerCase()
     );
@@ -139,53 +266,10 @@ exports.onEnrollmentDeleted = onDocumentDeleted("enrollments/{enrollmentId}", (e
   });
 });
 
-// Function to send email on new announcement
-exports.sendAnnouncementEmail = onDocumentCreated("announcements/{announcementId}", async (event) => {
-  initializeMailTransport(); // Ensure transporter is ready
-  const snapshot = event.data;
-  if (!snapshot) {
-    console.log("No data associated with the event");
-    return;
-  }
-  const ann = snapshot.data();
-
-  let userEmails = [];
-
-  // Get target user emails
-  if (ann.target === 'global') {
-    const usersSnapshot = await db.collection('users').get();
-    usersSnapshot.forEach(doc => userEmails.push(doc.data().email));
-  } else {
-    // It's a class-based announcement
-    const enrollmentsSnapshot = await db.collection('enrollments').where('classId', '==', ann.target).get();
-    enrollmentsSnapshot.forEach(doc => userEmails.push(doc.data().userEmail));
-  }
-
-  if (userEmails.length === 0) {
-    console.log('No users to notify for this announcement.');
-    return;
-  }
-
-  // Email content
-  const mailOptions = {
-    from: `"LMS Platform" <${gmailEmail.value()}>`,
-    to: userEmails.join(','),
-    subject: `New Announcement: ${ann.title}`,
-    html: `<h1>${ann.title}</h1><p>${ann.content}</p>`,
-  };
-
-  try {
-    await mailTransport.sendMail(mailOptions);
-    console.log(`Announcement email sent to: ${userEmails.join(', ')}`);
-  } catch (error) {
-    console.error('There was an error while sending the email:', error);
-  }
-});
-
 // Scheduled function to check for unread chats and send notifications
 exports.sendUnreadChatNotifications = onSchedule("every 24 hours", async (event) => {
   initializeMailTransport(); // Ensure transporter is ready
-
+  const SITE_URL = process.env.SITE_URL || 'https://cs-learning-hub.web.app';
   const usersSnapshot = await db.collection('users').get();
   if (usersSnapshot.empty) {
     console.log("No users found.");
@@ -287,26 +371,118 @@ exports.getActivitiesPaginated = onCall(async (request) => {
   }
 });
 
-// Require verified email before sign-in (admins bypass)
+// Allow sign-in for all users (email verification disabled)
+// Users are manually added to allowlist, so verification is not required
 exports.beforeUserSignedIn = beforeUserSignedIn(async (event) => {
-  const { email, emailVerified } = event.data || {};
+  const { email } = event.data || {};
 
   try {
-    // Load adminEmails for bypass
-    const allowlistDoc = await db.collection('config').doc('allowlist').get();
-    const adminEmails = allowlistDoc.exists ? (allowlistDoc.data().adminEmails || []) : [];
-    const isAdmin = !!email && adminEmails.some(a => a.toLowerCase() === email.toLowerCase());
-
-    // If not verified and not admin, block sign-in
-    if (!isAdmin && emailVerified === false) {
-      throw new Error('Email not verified. Please verify your email to sign in.');
-    }
-
-    // Allow sign-in (no token changes here)
+    console.log(`User signing in: ${email}`);
+    // Allow all sign-ins - no email verification required
     return {};
   } catch (err) {
     console.error('beforeSignIn error:', err);
     throw err;
+  }
+});
+
+// Callable function to send emails (admin only)
+exports.sendEmail = onCall(async (request) => {
+  const { auth, data } = request;
+  
+  if (!auth) {
+    throw new Error('Authentication required');
+  }
+  
+  // Check if user has admin claim
+  if (!auth.token.admin) {
+    throw new Error('Admin access required');
+  }
+  
+  const { to, cc, bcc, subject, body, html, text, type } = data;
+  
+  // Support both array and string for 'to'
+  const recipients = Array.isArray(to) ? to : [to];
+  
+  if (!recipients || recipients.length === 0) {
+    throw new Error('At least one recipient is required');
+  }
+  
+  if (!subject) {
+    throw new Error('Subject is required');
+  }
+  
+  if (!body && !html && !text) {
+    throw new Error('Email content (body, html, or text) is required');
+  }
+  
+  try {
+    const transporter = await initializeMailTransport();
+    
+    // Get sender info from SMTP config or use default
+    const smtpDoc = await db.collection('config').doc('smtp').get();
+    const senderName = smtpDoc.exists ? smtpDoc.data().senderName || 'CS Learning Hub' : 'CS Learning Hub';
+    const senderEmail = smtpDoc.exists ? smtpDoc.data().user : gmailEmail.value();
+    
+    // Use provided HTML or wrap body in template
+    const emailHtml = html || `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">💻 CS Learning Hub</h1>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <div style="background: white; padding: 20px; border-radius: 8px;">
+            ${(body || text || '').replace(/\n/g, '<br>')}
+          </div>
+        </div>
+        <div style="padding: 20px; text-align: center; color: #666; font-size: 12px;">
+          <p>This email was sent from CS Learning Hub</p>
+        </div>
+      </div>
+    `;
+    
+    const mailOptions = {
+      from: `${senderName} <${senderEmail}>`,
+      to: recipients.join(', '),
+      cc: cc && cc.length > 0 ? (Array.isArray(cc) ? cc.join(', ') : cc) : undefined,
+      bcc: bcc && bcc.length > 0 ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : undefined,
+      subject: subject,
+      html: emailHtml,
+      text: text || body
+    };
+    
+    await transporter.sendMail(mailOptions);
+    
+    // Log email sent
+    await db.collection('emailLogs').add({
+      sentBy: auth.uid,
+      sentAt: FieldValue.serverTimestamp(),
+      to: recipients,
+      cc: cc || [],
+      bcc: bcc || [],
+      subject: subject,
+      type: type || 'custom',
+      status: 'sent',
+      recipientCount: recipients.length
+    });
+    
+    return { success: true, message: 'Email sent successfully' };
+  } catch (error) {
+    console.error('Error sending email:', error);
+    
+    // Log failed email
+    await db.collection('emailLogs').add({
+      sentBy: auth.uid,
+      sentAt: FieldValue.serverTimestamp(),
+      to: recipients,
+      subject: subject,
+      type: type || 'custom',
+      status: 'failed',
+      error: error.message,
+      recipientCount: recipients.length
+    });
+    
+    throw new Error('Failed to send email: ' + error.message);
   }
 });
 
@@ -337,5 +513,943 @@ exports.updateAllowlist = onCall(async (request) => {
   } catch (error) {
     console.error('Error updating allowlist:', error);
     throw new Error('Failed to update allowlist');
+  }
+});
+
+// Admin send password reset email (admin only) - SIMPLE VERSION
+exports.adminSendPasswordReset = onCall(async (request) => {
+  const { auth, data } = request;
+  
+  if (!auth) {
+    throw new Error('Authentication required');
+  }
+  
+  // Check admin
+  let isAdmin = false;
+  try {
+    const allowlistDoc = await db.collection('config').doc('allowlist').get();
+    if (allowlistDoc.exists) {
+      const { adminEmails = [] } = allowlistDoc.data();
+      const email = (auth.token.email || '').toLowerCase();
+      isAdmin = adminEmails.some(e => (e || '').toLowerCase() === email);
+    }
+  } catch (err) {
+    console.error('Error checking admin:', err);
+  }
+  
+  if (!isAdmin) {
+    throw new Error('Admin access required');
+  }
+  
+  const { email } = data;
+  if (!email) {
+    throw new Error('Email is required');
+  }
+  
+  try {
+    // Generate reset link using Admin SDK
+    const resetLink = await getAuth().generatePasswordResetLink(email);
+    
+    console.log('Password reset link generated for:', email);
+    return { success: true, message: 'Password reset link generated', resetLink };
+  } catch (error) {
+    console.error('Error generating reset link:', error);
+    throw new Error('Failed to generate reset link: ' + error.message);
+  }
+});
+
+// Send welcome email on signup
+exports.sendWelcomeEmail = onCall(async (request) => {
+  const { data } = request;
+  const { email, displayName, userId } = data;
+  
+  if (!email) {
+    throw new Error('Email is required');
+  }
+  
+  try {
+    console.log('Sending welcome email to:', email);
+    
+    const emailEnabled = await isEmailEnabled(db, 'welcomeSignup');
+    if (!emailEnabled) {
+      console.log('Welcome emails are disabled');
+      return { success: true, message: 'Welcome emails are disabled' };
+    }
+    
+    const settingsDoc = await db.collection('config').doc('emailSettings').get();
+    const templateId = settingsDoc.exists 
+      ? settingsDoc.data().templates?.welcomeSignup || 'welcome_signup_default'
+      : 'welcome_signup_default';
+    
+    await sendTemplatedEmail(
+      templateId,
+      email,
+      {
+        recipientName: displayName || email.split('@')[0],
+        userEmail: email,
+        displayName: displayName || email.split('@')[0],
+        platformUrl: 'https://main-one-32026.web.app',
+        siteName: 'CS Learning Hub',
+        currentDate: new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Qatar' })
+      },
+      'welcomeSignup',
+      { userId: userId || null }
+    );
+    
+    console.log('Welcome email sent successfully');
+    return { success: true, message: 'Welcome email sent' };
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw new Error('Failed to send welcome email: ' + error.message);
+  }
+});
+
+// Test SMTP configuration (admin only)
+exports.testSMTP = onCall(async (request) => {
+  const { auth, data } = request;
+  
+  if (!auth) {
+    throw new Error('Authentication required');
+  }
+  
+  // Check admin via claim or allowlist
+  let isAdminUser = !!auth.token.admin;
+  if (!isAdminUser) {
+    try {
+      const allowlistDoc = await db.collection('config').doc('allowlist').get();
+      if (allowlistDoc.exists) {
+        const { adminEmails = [] } = allowlistDoc.data();
+        const email = (auth.token.email || '').toLowerCase();
+        isAdminUser = adminEmails.some(e => (e || '').toLowerCase() === email);
+      }
+    } catch {}
+  }
+  
+  if (!isAdminUser) {
+    throw new Error('Admin access required');
+  }
+  
+  const { to } = data;
+  const recipient = to || auth.token.email;
+  
+  if (!recipient) {
+    throw new Error('Recipient email is required');
+  }
+  
+  try {
+    const transporter = await initializeMailTransport();
+    const smtpDoc = await db.collection('config').doc('smtp').get();
+    const senderName = smtpDoc.exists ? smtpDoc.data().senderName || 'CS Learning Hub' : 'CS Learning Hub';
+    const senderEmail = smtpDoc.exists ? smtpDoc.data().user : gmailEmail.value();
+    
+    await transporter.sendMail({
+      from: `${senderName} <${senderEmail}>`,
+      to: recipient,
+      subject: '✅ SMTP Test - Configuration Working!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">✅ SMTP Test Successful!</h1>
+          </div>
+          <div style="padding: 30px; background: #f9f9f9;">
+            <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h2 style="color: #667eea; margin-top: 0;">Your SMTP configuration is working correctly!</h2>
+              <p style="color: #555; line-height: 1.6;">This is a test email sent from your CS Learning Hub dashboard to verify that your SMTP settings are configured properly.</p>
+              <div style="background: #f0f8ff; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0;">
+                <p style="margin: 0; color: #333;"><strong>Configuration Details:</strong></p>
+                <p style="margin: 5px 0; color: #666;">Sender: ${senderName}</p>
+                <p style="margin: 5px 0; color: #666;">Email: ${senderEmail}</p>
+                <p style="margin: 5px 0; color: #666;">Recipient: ${recipient}</p>
+              </div>
+              <p style="color: #555;">You can now send emails to your students with confidence! 🎉</p>
+            </div>
+          </div>
+          <div style="padding: 20px; text-align: center; color: #999; font-size: 12px;">
+            <p>This is an automated test email from CS Learning Hub</p>
+            <p>Sent at ${new Date().toLocaleString('en-GB')}</p>
+          </div>
+        </div>
+      `
+    });
+    
+    return { success: true, message: 'Test email sent successfully!' };
+  } catch (error) {
+    console.error('SMTP test error:', error);
+    return { success: false, error: error.message || 'Failed to send test email' };
+  }
+});
+
+// Import email rendering utilities
+const { renderEmailTemplate, getEmailTemplate, isEmailEnabled, logEmail } = require('./emailRenderer');
+
+/**
+ * Send templated email with variable replacement
+ * @param {string} templateId - Template ID from emailTemplates collection
+ * @param {string|string[]} recipients - Email address(es)
+ * @param {object} variables - Variables to replace in template
+ * @param {string} triggerType - Type of trigger (for logging)
+ * @param {object} metadata - Additional metadata for logging
+ */
+async function sendTemplatedEmail(templateId, recipients, variables = {}, triggerType = 'custom', metadata = {}) {
+  try {
+    // Get template
+    const template = await getEmailTemplate(db, templateId);
+    
+    // Render HTML with variables
+    const htmlBody = renderEmailTemplate(template.html, variables);
+    const subject = renderEmailTemplate(template.subject, variables);
+    
+    // Get SMTP config
+    const transporter = await initializeMailTransport();
+    const smtpDoc = await db.collection('config').doc('smtp').get();
+    const senderName = smtpDoc.exists ? smtpDoc.data().senderName || 'CS Learning Hub' : 'CS Learning Hub';
+    const senderEmail = smtpDoc.exists ? smtpDoc.data().user : gmailEmail.value();
+    
+    // Prepare recipients
+    const recipientList = Array.isArray(recipients) ? recipients : [recipients];
+    
+    // Send email
+    await transporter.sendMail({
+      from: `${senderName} <${senderEmail}>`,
+      to: recipientList.join(', '),
+      subject: subject,
+      html: htmlBody
+    });
+    
+    // Log email
+    await logEmail(db, {
+      type: triggerType,
+      templateId: templateId,
+      subject: subject,
+      to: recipientList,
+      from: senderEmail,
+      senderName: senderName,
+      variables: variables,
+      htmlBody: htmlBody,
+      status: 'sent',
+      metadata: metadata
+    });
+    
+    console.log(`Email sent successfully to ${recipientList.length} recipient(s)`);
+    return { success: true, recipients: recipientList.length };
+    
+  } catch (error) {
+    console.error('Error sending templated email:', error);
+    
+    // Log failed email
+    try {
+      await logEmail(db, {
+        type: triggerType,
+        templateId: templateId,
+        to: Array.isArray(recipients) ? recipients : [recipients],
+        status: 'failed',
+        error: error.message,
+        metadata: metadata
+      });
+    } catch (logError) {
+      console.error('Error logging failed email:', logError);
+    }
+    
+    throw error;
+  }
+}
+
+// Export for use in other functions
+module.exports.sendTemplatedEmail = sendTemplatedEmail;
+
+// Send a test email for a specific template to the authenticated user's email
+exports.sendTestEmailTemplate = onCall(async (request) => {
+  const { auth, data } = request;
+  if (!auth) {
+    throw new Error('Authentication required');
+  }
+
+  const toEmail = auth.token.email;
+  if (!toEmail) {
+    throw new Error('User email not found');
+  }
+
+  const { templateId, variables } = data || {};
+  if (!templateId) {
+    throw new Error('templateId is required');
+  }
+
+  try {
+    await sendTemplatedEmail(
+      templateId,
+      toEmail,
+      variables || {},
+      'test',
+      { by: auth.uid || null }
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    throw new Error('Failed to send test email: ' + error.message);
+  }
+});
+
+// ============================================================================
+// EMAIL TRIGGERS
+// ============================================================================
+
+// Trigger: When announcement is created
+exports.onAnnouncementCreated = onDocumentCreated('announcements/{announcementId}', async (event) => {
+  const announcement = event.data.data();
+  const announcementId = event.params.announcementId;
+  
+  try {
+    // Check if email notifications are enabled
+    const emailEnabled = await isEmailEnabled(db, 'announcements');
+    if (!emailEnabled) {
+      console.log('Announcement emails are disabled');
+      return;
+    }
+    
+    // Get email settings to find template ID
+    const settingsDoc = await db.collection('config').doc('emailSettings').get();
+    const templateId = settingsDoc.exists 
+      ? settingsDoc.data().announcements?.template || 'announcement_default'
+      : 'announcement_default';
+    
+    // Get all users to send email to
+    const usersSnapshot = await db.collection('users').get();
+    const recipients = [];
+    
+    usersSnapshot.forEach(doc => {
+      const userData = doc.data();
+      if (userData.email) {
+        recipients.push(userData.email);
+      }
+    });
+    
+    if (recipients.length === 0) {
+      console.log('No recipients found');
+      return;
+    }
+    
+    // Prepare variables for template
+    // Prefer Firestore-configured base URL, then functions param, then default
+    let siteUrl = 'https://main-one-32026.web.app';
+    try {
+      const siteDoc = await db.collection('config').doc('site').get();
+      if (siteDoc.exists && siteDoc.data()?.baseUrl) {
+        siteUrl = siteDoc.data().baseUrl;
+      } else if (siteUrlParam.value()) {
+        siteUrl = siteUrlParam.value();
+      }
+    } catch {}
+    const variables = {
+      title: announcement.title_en || announcement.title || 'New Announcement',
+      title_ar: announcement.title_ar || announcement.title || 'إعلان جديد',
+      content: announcement.content_en || announcement.content || '',
+      content_ar: announcement.content_ar || announcement.content || '',
+      dateTime: announcement.createdAt || new Date(),
+      link: `${siteUrl}/`,
+      platformUrl: `${siteUrl}/`,
+      siteUrl: `${siteUrl}/`
+    };
+    
+    // Send email to all recipients (in batches to avoid rate limits)
+    const batchSize = 50;
+    for (let i = 0; i < recipients.length; i += batchSize) {
+      const batch = recipients.slice(i, i + batchSize);
+      
+      for (const recipient of batch) {
+        try {
+          await sendTemplatedEmail(
+            templateId,
+            recipient,
+            {
+              ...variables,
+              recipientName: recipient.split('@')[0] // Extract name from email
+            },
+            'announcement',
+            { announcementId: announcementId }
+          );
+        } catch (error) {
+          console.error(`Failed to send to ${recipient}:`, error);
+          // Continue with other recipients
+        }
+      }
+      
+      // Small delay between batches
+      if (i + batchSize < recipients.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.log(`Announcement emails sent to ${recipients.length} recipients`);
+    
+  } catch (error) {
+    console.error('Error in onAnnouncementCreated:', error);
+  }
+});
+
+// Trigger: When activity is created
+exports.onActivityCreated = onDocumentCreated('activities/{activityId}', async (event) => {
+  const activity = event.data.data();
+  const activityId = event.params.activityId;
+  
+  try {
+    // Check if email notifications are enabled
+    const emailEnabled = await isEmailEnabled(db, 'activities');
+    if (!emailEnabled) {
+      console.log('Activity emails are disabled');
+      return;
+    }
+    
+    // Get email settings
+    const settingsDoc = await db.collection('config').doc('emailSettings').get();
+    const templateId = settingsDoc.exists 
+      ? settingsDoc.data().activities?.template || 'activity_default'
+      : 'activity_default';
+    
+    // Get all users (or filter by class if needed)
+    const usersSnapshot = await db.collection('users').get();
+    const recipients = [];
+    
+    usersSnapshot.forEach(doc => {
+      const userData = doc.data();
+      if (userData.email && userData.role !== 'admin') {
+        recipients.push({
+          email: userData.email,
+          name: userData.displayName || userData.email.split('@')[0]
+        });
+      }
+    });
+    
+    if (recipients.length === 0) {
+      console.log('No recipients found');
+      return;
+    }
+    
+    // Get course name
+    let courseName = activity.course || 'General';
+    let courseName_ar = activity.course || 'عام';
+    
+    try {
+      const courseDoc = await db.collection('courses').doc(activity.course).get();
+      if (courseDoc.exists) {
+        courseName = courseDoc.data().name_en || courseName;
+        courseName_ar = courseDoc.data().name_ar || courseName_ar;
+      }
+    } catch (e) {
+      console.log('Could not fetch course name:', e);
+    }
+    
+    // Prepare variables
+    const variables = {
+      activityTitle: activity.title_en || activity.title || 'New Activity',
+      activityTitle_ar: activity.title_ar || activity.title || 'نشاط جديد',
+      activityType: activity.type || 'activity',
+      course: courseName,
+      course_ar: courseName_ar,
+      description: activity.description_en || activity.description || '',
+      description_ar: activity.description_ar || activity.description || '',
+      dueDateTime: activity.dueDate || null,
+      maxScore: activity.maxScore || 100,
+      difficulty: activity.difficulty || 'intermediate',
+      link: `${process.env.SITE_URL || 'https://your-domain.com'}/activities`
+    };
+    
+    // Send emails in batches
+    const batchSize = 50;
+    for (let i = 0; i < recipients.length; i += batchSize) {
+      const batch = recipients.slice(i, i + batchSize);
+      
+      for (const recipient of batch) {
+        try {
+          await sendTemplatedEmail(
+            templateId,
+            recipient.email,
+            {
+              ...variables,
+              recipientName: recipient.name
+            },
+            'activity',
+            { activityId: activityId }
+          );
+        } catch (error) {
+          console.error(`Failed to send to ${recipient.email}:`, error);
+        }
+      }
+      
+      if (i + batchSize < recipients.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.log(`Activity emails sent to ${recipients.length} recipients`);
+    
+  } catch (error) {
+    console.error('Error in onActivityCreated:', error);
+  }
+});
+
+// Callable function: Grade activity and send email
+exports.gradeActivityWithEmail = onCall(async (request) => {
+  const { auth, data } = request;
+  
+  if (!auth) {
+    throw new Error('Authentication required');
+  }
+  
+  // Check admin
+  let isAdminUser = !!auth.token.admin;
+  if (!isAdminUser) {
+    try {
+      const allowlistDoc = await db.collection('config').doc('allowlist').get();
+      if (allowlistDoc.exists) {
+        const { adminEmails = [] } = allowlistDoc.data();
+        const email = (auth.token.email || '').toLowerCase();
+        isAdminUser = adminEmails.some(e => (e || '').toLowerCase() === email);
+      }
+    } catch {}
+  }
+  
+  if (!isAdminUser) {
+    throw new Error('Admin access required');
+  }
+  
+  const { submissionId, score, feedback, feedback_ar, sendEmail = true } = data;
+  
+  if (!submissionId || score === undefined) {
+    throw new Error('submissionId and score are required');
+  }
+  
+  try {
+    // Update submission with grade
+    const submissionRef = db.collection('submissions').doc(submissionId);
+    const submissionDoc = await submissionRef.get();
+    
+    if (!submissionDoc.exists) {
+      throw new Error('Submission not found');
+    }
+    
+    const submission = submissionDoc.data();
+    
+    await submissionRef.update({
+      score: score,
+      feedback: feedback || '',
+      feedback_ar: feedback_ar || feedback || '',
+      reviewedAt: FieldValue.serverTimestamp(),
+      reviewedBy: auth.uid
+    });
+    
+    // Send email if requested and enabled
+    if (sendEmail) {
+      const emailEnabled = await isEmailEnabled(db, 'activityGraded');
+      
+      if (emailEnabled) {
+        // Get student info
+        const userDoc = await db.collection('users').doc(submission.userId).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        
+        // Get activity info
+        const activityDoc = await db.collection('activities').doc(submission.activityId).get();
+        const activity = activityDoc.exists ? activityDoc.data() : {};
+        
+        // Get template
+        const settingsDoc = await db.collection('config').doc('emailSettings').get();
+        const templateId = settingsDoc.exists 
+          ? settingsDoc.data().activityGraded?.template || 'activity_graded_default'
+          : 'activity_graded_default';
+        
+        // Prepare variables
+        const variables = {
+          studentName: userData.displayName || userData.email?.split('@')[0] || 'Student',
+          activityTitle: activity.title_en || activity.title || 'Activity',
+          activityTitle_ar: activity.title_ar || activity.title || 'نشاط',
+          score: score,
+          maxScore: activity.maxScore || 100,
+          feedback: feedback || 'Good work!',
+          feedback_ar: feedback_ar || feedback || 'عمل جيد!',
+          dateTime: new Date(),
+          link: `${process.env.SITE_URL || 'https://your-domain.com'}/progress`
+        };
+        
+        // Send email
+        if (userData.email) {
+          await sendTemplatedEmail(
+            templateId,
+            userData.email,
+            variables,
+            'activity_graded',
+            { 
+              submissionId: submissionId,
+              activityId: submission.activityId,
+              userId: submission.userId
+            }
+          );
+        }
+      }
+    }
+    
+    return { 
+      success: true, 
+      message: sendEmail ? 'Grade saved and email sent!' : 'Grade saved successfully!' 
+    };
+    
+  } catch (error) {
+    console.error('Error in gradeActivityWithEmail:', error);
+    throw new Error('Failed to grade activity: ' + error.message);
+  }
+});
+
+// Trigger: When submission is created (student marks activity complete)
+exports.onSubmissionCreated = onDocumentCreated('submissions/{submissionId}', async (event) => {
+  const submission = event.data.data();
+  const submissionId = event.params.submissionId;
+  
+  try {
+    // Log activity
+    try {
+      await db.collection('activityLogs').add({
+        type: 'submission',
+        userId: submission.userId,
+        when: admin.firestore.FieldValue.serverTimestamp(),
+        metadata: {
+          submissionId: submissionId,
+          activityId: submission.activityId
+        }
+      });
+    } catch (logError) {
+      console.error('Error logging submission activity:', logError);
+    }
+    
+  } catch (error) {
+    console.error('Error in onSubmissionCreated:', error);
+  }
+  
+  try {
+    // Check if email notifications are enabled
+    const emailEnabled = await isEmailEnabled(db, 'activityComplete');
+    if (!emailEnabled) {
+      console.log('Activity completion emails are disabled');
+      return;
+    }
+    
+    // Get email settings
+    const settingsDoc = await db.collection('config').doc('emailSettings').get();
+    const templateId = settingsDoc.exists 
+      ? settingsDoc.data().activityComplete?.template || 'activity_complete_default'
+      : 'activity_complete_default';
+    
+    // Get student info
+    const userDoc = await db.collection('users').doc(submission.userId).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    
+    // Get activity info
+    const activityDoc = await db.collection('activities').doc(submission.activityId).get();
+    const activity = activityDoc.exists ? activityDoc.data() : {};
+    
+    // Get all admin emails
+    const allowlistDoc = await db.collection('config').doc('allowlist').get();
+    const adminEmails = allowlistDoc.exists ? allowlistDoc.data().adminEmails || [] : [];
+    
+    if (adminEmails.length === 0) {
+      console.log('No admin emails found');
+      return;
+    }
+    
+    // Prepare variables
+    const variables = {
+      studentName: userData.displayName || userData.email?.split('@')[0] || 'Student',
+      studentEmail: userData.email || '',
+      militaryNumber: userData.militaryNumber || 'N/A',
+      activityTitle: activity.title_en || activity.title || 'Activity',
+      dateTime: submission.submittedAt || new Date(),
+      link: `${process.env.SITE_URL || 'https://your-domain.com'}/dashboard?tab=submissions`
+    };
+    
+    // Send email to all admins
+    for (const adminEmail of adminEmails) {
+      try {
+        await sendTemplatedEmail(
+          templateId,
+          adminEmail,
+          variables,
+          'activity_complete',
+          { 
+            submissionId: submissionId,
+            activityId: submission.activityId,
+            userId: submission.userId
+          }
+        );
+      } catch (error) {
+        console.error(`Failed to send to ${adminEmail}:`, error);
+      }
+    }
+    
+    console.log(`Activity completion emails sent to ${adminEmails.length} admins`);
+    
+  } catch (error) {
+    console.error('Error in onSubmissionCreated:', error);
+  }
+});
+
+// Trigger: When enrollment is created
+exports.onEnrollmentCreated = onDocumentCreated('enrollments/{enrollmentId}', async (event) => {
+  const enrollment = event.data.data();
+  const enrollmentId = event.params.enrollmentId;
+  
+  try {
+    // Check if email notifications are enabled
+    const emailEnabled = await isEmailEnabled(db, 'enrollments');
+    if (!emailEnabled) {
+      console.log('Enrollment emails are disabled');
+      return;
+    }
+    
+    // Get email settings
+    const settingsDoc = await db.collection('config').doc('emailSettings').get();
+    const templateId = settingsDoc.exists 
+      ? settingsDoc.data().enrollments?.template || 'enrollment_default'
+      : 'enrollment_default';
+    
+    // Get student info
+    const userDoc = await db.collection('users').doc(enrollment.userId).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    
+    if (!userData.email) {
+      console.log('No email found for user');
+      return;
+    }
+    
+    // Get class info
+    const classDoc = await db.collection('classes').doc(enrollment.classId).get();
+    const classData = classDoc.exists ? classDoc.data() : {};
+    
+    // Get instructor info if available
+    let instructorName = 'Instructor';
+    let instructorEmail = '';
+    if (classData.instructorId) {
+      const instructorDoc = await db.collection('users').doc(classData.instructorId).get();
+      if (instructorDoc.exists) {
+        const instructorData = instructorDoc.data();
+        instructorName = instructorData.displayName || instructorData.email?.split('@')[0] || 'Instructor';
+        instructorEmail = instructorData.email || '';
+      }
+    }
+    
+    // Prepare variables
+    const variables = {
+      studentName: userData.displayName || userData.email.split('@')[0],
+      className: classData.name || 'Class',
+      classCode: classData.code || 'N/A',
+      term: classData.term || 'Current Term',
+      instructorName: instructorName,
+      instructorEmail: instructorEmail
+    };
+    
+    // Send welcome email
+    await sendTemplatedEmail(
+      templateId,
+      userData.email,
+      variables,
+      'enrollment',
+      { 
+        enrollmentId: enrollmentId,
+        classId: enrollment.classId,
+        userId: enrollment.userId
+      }
+    );
+    
+    console.log(`Enrollment welcome email sent to ${userData.email}`);
+    
+  } catch (error) {
+    console.error('Error in onEnrollmentCreated:', error);
+  }
+});
+
+// Trigger: When resource is created
+exports.onResourceCreated = onDocumentCreated('resources/{resourceId}', async (event) => {
+  const resource = event.data.data();
+  const resourceId = event.params.resourceId;
+  
+  try {
+    // Check if email notifications are enabled
+    const emailEnabled = await isEmailEnabled(db, 'resources');
+    if (!emailEnabled) {
+      console.log('Resource emails are disabled');
+      return;
+    }
+    
+    // Get email settings
+    const settingsDoc = await db.collection('config').doc('emailSettings').get();
+    const templateId = settingsDoc.exists 
+      ? settingsDoc.data().resources?.template || 'resource_default'
+      : 'resource_default';
+    
+    // Get all users (or filter by class if classId exists)
+    const usersSnapshot = await db.collection('users').get();
+    const recipients = [];
+    
+    usersSnapshot.forEach(doc => {
+      const userData = doc.data();
+      if (userData.email && userData.role !== 'admin') {
+        recipients.push({
+          email: userData.email,
+          name: userData.displayName || userData.email.split('@')[0]
+        });
+      }
+    });
+    
+    if (recipients.length === 0) {
+      console.log('No recipients found');
+      return;
+    }
+    
+    // Prepare variables
+    const variables = {
+      resourceTitle: resource.title || 'New Resource',
+      resourceType: resource.type || 'document',
+      description: resource.description || '',
+      link: resource.url || `${process.env.SITE_URL || 'https://your-domain.com'}/resources`
+    };
+    
+    // Send emails in batches
+    const batchSize = 50;
+    for (let i = 0; i < recipients.length; i += batchSize) {
+      const batch = recipients.slice(i, i + batchSize);
+      
+      for (const recipient of batch) {
+        try {
+          await sendTemplatedEmail(
+            templateId,
+            recipient.email,
+            {
+              ...variables,
+              recipientName: recipient.name
+            },
+            'resource',
+            { resourceId: resourceId }
+          );
+        } catch (error) {
+          console.error(`Failed to send to ${recipient.email}:`, error);
+        }
+      }
+      
+      if (i + batchSize < recipients.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    console.log(`Resource emails sent to ${recipients.length} recipients`);
+    
+  } catch (error) {
+    console.error('Error in onResourceCreated:', error);
+  }
+});
+
+// Scheduled function: Chat digest (runs every 3 hours)
+exports.sendChatDigest = onSchedule('every 3 hours', async (event) => {
+  try {
+    console.log('Starting chat digest job...');
+    
+    // Check if chat digest is enabled
+    const emailEnabled = await isEmailEnabled(db, 'chatDigest');
+    if (!emailEnabled) {
+      console.log('Chat digest emails are disabled');
+      return;
+    }
+    
+    // Get email settings
+    const settingsDoc = await db.collection('config').doc('emailSettings').get();
+    const templateId = settingsDoc.exists 
+      ? settingsDoc.data().chatDigest?.template || 'chat_digest_default'
+      : 'chat_digest_default';
+    
+    // Get all users
+    const usersSnapshot = await db.collection('users').get();
+    const users = [];
+    usersSnapshot.forEach(doc => {
+      const userData = doc.data();
+      if (userData.email) {
+        users.push({
+          id: doc.id,
+          email: userData.email,
+          name: userData.displayName || userData.email.split('@')[0]
+        });
+      }
+    });
+    
+    // Get unread messages from the last 3 hours
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    
+    let digestsSent = 0;
+    
+    // Process each user
+    for (const user of users) {
+      try {
+        // Query messages where user is NOT in readBy array and message is recent
+        const messagesSnapshot = await db.collection('messages')
+          .where('timestamp', '>', threeHoursAgo)
+          .orderBy('timestamp', 'desc')
+          .limit(100)
+          .get();
+        
+        const unreadMessages = [];
+        messagesSnapshot.forEach(doc => {
+          const msg = doc.data();
+          const readBy = msg.readBy || [];
+          
+          // Check if user hasn't read this message and it's not their own message
+          if (!readBy.includes(user.id) && msg.senderId !== user.id) {
+            unreadMessages.push({
+              senderName: msg.senderName || 'Unknown',
+              text: msg.text || '',
+              time: msg.timestamp?.toDate?.() || new Date(),
+              type: msg.type || 'global'
+            });
+          }
+        });
+        
+        // If user has unread messages, send digest
+        if (unreadMessages.length > 0) {
+          // Build message summary HTML
+          const messageSummary = unreadMessages.slice(0, 10).map(msg => `
+            <div style="padding: 12px; background: white; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #667eea;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <strong style="color: #333;">${msg.senderName}</strong>
+                <span style="color: #999; font-size: 0.85rem;">${msg.time.toLocaleString('en-GB', { 
+                  day: '2-digit', 
+                  month: '2-digit', 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}</span>
+              </div>
+              <p style="margin: 0; color: #555;">${msg.text.substring(0, 100)}${msg.text.length > 100 ? '...' : ''}</p>
+            </div>
+          `).join('');
+          
+          const variables = {
+            recipientName: user.name,
+            unreadCount: unreadMessages.length.toString(),
+            messageSummary: messageSummary,
+            chatLink: `${process.env.SITE_URL || 'https://your-domain.com'}/chat`
+          };
+          
+          await sendTemplatedEmail(
+            templateId,
+            user.email,
+            variables,
+            'chat_digest',
+            { userId: user.id, messageCount: unreadMessages.length }
+          );
+          
+          digestsSent++;
+        }
+      } catch (error) {
+        console.error(`Error processing digest for ${user.email}:`, error);
+      }
+    }
+    
+    console.log(`Chat digest job completed. Sent ${digestsSent} digests.`);
+    
+  } catch (error) {
+    console.error('Error in sendChatDigest:', error);
   }
 });

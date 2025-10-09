@@ -1,0 +1,29 @@
+{
+  "name": "cs-learning-hub",
+  "version": "1.0.0",
+  "description": "Computer Science Learning Hub - React + Firebase",
+  "scripts": {
+    "dev": "cd client && npm run dev",
+    "dev:prod": "cd client && npm run dev",
+    "dev:emulator": "cross-env VITE_USE_EMULATOR=true cd client && npm run dev",
+    "emulator": "firebase emulators:start --only functions",
+    "build": "cd client && npm run build",
+    "preview": "cd client && npm run preview",
+    "deploy": "npm run build && firebase deploy",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:firestore": "firebase deploy --only firestore",
+    "deploy:all": "npm run build && firebase deploy --only hosting,functions,firestore"
+  },
+  "keywords": [
+    "react",
+    "firebase",
+    "education",
+    "learning"
+  ],
+  "author": "CS Learning Hub Team",
+  "license": "MIT",
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  }
+}
