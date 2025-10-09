@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "grapesjs": "^0.21.0",
+    "grapesjs-preset-newsletter": "^1.0.3",
+    "moment-timezone": "^0.5.43",
+    "dompurify": "^3.0.6"
+  }
+}

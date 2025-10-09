@@ -1,0 +1,26 @@
+{
+  "name": "client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "cs-learning-hub": "file:..",
+    "dompurify": "^3.2.7",
+    "firebase": "^12.3.0",
+    "grapesjs": "^0.22.13",
+    "grapesjs-preset-newsletter": "^1.0.2",
+    "moment-timezone": "^0.6.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0"
+  }
+}

@@ -1,0 +1,28 @@
+.email-composer {
+  min-width: 600px;
+}
+
+.email-composer label {
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.email-composer input,
+.email-composer textarea,
+.email-composer select {
+  font-size: 1rem;
+  outline: none;
+}
+
+.email-composer input:focus,
+.email-composer textarea:focus,
+.email-composer select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+@media (max-width: 768px) {
+  .email-composer {
+    min-width: 100%;
+  }
+}
