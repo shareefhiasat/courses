@@ -9,7 +9,7 @@ const ToggleSwitch = ({ checked, onChange, label, disabled = false }) => {
           position: 'relative',
           width: 44,
           height: 24,
-          background: checked ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#ccc',
+          background: checked ? 'linear-gradient(135deg, #800020, #600018)' : '#ccc',
           borderRadius: 12,
           transition: 'background 0.3s',
           cursor: disabled ? 'not-allowed' : 'pointer'

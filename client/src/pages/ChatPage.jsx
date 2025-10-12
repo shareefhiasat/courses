@@ -1189,7 +1189,7 @@ const ChatPage = () => {
   // Avoid redirect on refresh while auth is still resolving
   if (authLoading) return <Loading />;
   if (!user) return <Navigate to="/login" />;
-  if (loading) return <Loading />;
+  if (loading || !messages) return <Loading />;
 
   return (
     <>
@@ -1247,7 +1247,7 @@ const ChatPage = () => {
               })}
             </div>
             <div style={{ padding:'0.75rem 1.25rem', textAlign:'right', borderTop:'1px solid var(--border)' }}>
-              <button onClick={()=>setReceiptsFor(null)} style={{ padding:'0.6rem 1.2rem', background:'linear-gradient(135deg, #667eea, #764ba2)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}>{t('close')||'Close'}</button>
+              <button onClick={()=>setReceiptsFor(null)} style={{ padding:'0.6rem 1.2rem', background:'linear-gradient(135deg, #800020, #600018)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}>{t('close')||'Close'}</button>
             </div>
           </div>
         </div>
@@ -1405,7 +1405,7 @@ const ChatPage = () => {
               const bTime = (b.lastMessageAt?.toDate?.() || b.createdAt?.toDate?.() || 0);
               return bTime - aTime;
             });
-            return filtered;
+            return filtered || [];
           })().map(room => {
             const otherId = (room.participants || []).find(p => p !== user.uid);
             const other = allUsers.find(u => u.docId === otherId);
@@ -1559,9 +1559,9 @@ const ChatPage = () => {
           {(() => {
             const q = (msgQuery || '').trim().toLowerCase();
             const list = q
-              ? messages.filter(m => (m.content || '').toLowerCase().includes(q) || (m.fileName || '').toLowerCase().includes(q))
-              : messages;
-            if (list.length === 0) {
+              ? (messages || []).filter(m => (m.content || '').toLowerCase().includes(q) || (m.fileName || '').toLowerCase().includes(q))
+              : (messages || []);
+            if (!list || list.length === 0) {
               return (
                 <div style={{
                   textAlign: 'center',
@@ -1604,9 +1604,9 @@ const ChatPage = () => {
               const isOwnMessage = msg.senderId === user.uid;
               const senderUser = allUsers.find(u => u.docId === msg.senderId);
               const isHighlighted = highlightedMsgId === msg.id;
-              const bubbleColor = isOwnMessage ? (senderUser?.messageColor || '#667eea') : 'var(--panel)';
+              const bubbleColor = isOwnMessage ? (senderUser?.messageColor || '#667eea') : '#ffffff';
               // Smart contrast: if highlighted, force dark readable text
-              const textColor = isHighlighted ? '#1e293b' : (isOwnMessage ? 'white' : 'var(--text)');
+              const textColor = isHighlighted ? '#1e293b' : (isOwnMessage ? 'white' : '#000000');
               
               return (
                 <div
@@ -1840,7 +1840,14 @@ const ChatPage = () => {
                         const readCount = recipients.filter(id => memberReads[id] && memberReads[id] >= msgTime).length;
                         const allRead = recipients.length > 0 && readCount === recipients.length;
                         const anyRead = readCount > 0;
-                        const style = { marginLeft: 6, fontWeight: 700, color: allRead ? '#3aa0ff' : (anyRead ? '#999' : '#999'), cursor: 'pointer' };
+                        const style = { 
+                          marginLeft: 8, 
+                          fontSize: '1.1rem',
+                          fontWeight: 700, 
+                          color: allRead ? '#0088cc' : (anyRead ? '#999' : '#ccc'), 
+                          cursor: 'pointer',
+                          transition: 'color 0.2s'
+                        };
                         const tooltip = `Seen by ${readCount} of ${recipients.length}`;
                         return (
                           <span
@@ -2111,9 +2118,12 @@ const ChatPage = () => {
 
         {/* Input Area */}
         <div style={{
+          position: 'sticky',
+          bottom: 0,
           padding: '1rem',
           background: 'var(--panel)',
-          borderTop: '1px solid var(--border)'
+          borderTop: '1px solid var(--border)',
+          zIndex: 10
         }}>
           {/* Recording Preview */}
           {audioBlob && (
@@ -2364,7 +2374,7 @@ const ChatPage = () => {
               className={!newMessage.trim() && !audioBlob && !attachedFile && isRecording ? 'recording-blink' : ''}
               style={{
                 marginLeft: '0.5rem',
-                background: (newMessage.trim() || audioBlob || attachedFile) ? 'linear-gradient(135deg, #667eea, #764ba2)' : (isRecording ? '#f44336' : 'linear-gradient(135deg, #efefef, #ddd)'),
+                background: (newMessage.trim() || audioBlob || attachedFile) ? 'linear-gradient(135deg, #800020, #600018)' : (isRecording ? '#f44336' : 'linear-gradient(135deg, #efefef, #ddd)'),
                 color: (newMessage.trim() || audioBlob || attachedFile) ? '#fff' : (isRecording ? '#fff' : '#555'),
                 border: 'none',
                 borderRadius: '50%',
@@ -2542,7 +2552,7 @@ const ChatPage = () => {
                   toast?.showError('Failed to create poll');
                 }
               }}
-              style={{ padding:'0.5rem 1rem', background:'linear-gradient(135deg, #667eea, #764ba2)', color:'white', border:'none', borderRadius:8, cursor:'pointer' }}
+              style={{ padding:'0.5rem 1rem', background:'linear-gradient(135deg, #800020, #600018)', color:'white', border:'none', borderRadius:8, cursor:'pointer' }}
             >
               {t('create')||'Create'}
             </button>
@@ -2559,7 +2569,7 @@ const ChatPage = () => {
           <textarea rows={5} value={editingMsg.content} onChange={(e)=>setEditingMsg({ ...editingMsg, content: e.target.value })} style={{ width:'100%', background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:8 }} />
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:10 }}>
             <button onClick={()=>setEditingMsg(null)} style={{ background:'transparent', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('cancel')||'Cancel'}</button>
-            <button onClick={handleSaveEdit} style={{ background:'linear-gradient(135deg, #667eea, #764ba2)', color:'#fff', border:'none', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('save')||'Save'}</button>
+            <button onClick={handleSaveEdit} style={{ background:'linear-gradient(135deg, #800020, #600018)', color:'#fff', border:'none', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('save')||'Save'}</button>
           </div>
         </div>
       </div>
@@ -2614,13 +2624,13 @@ const ChatPage = () => {
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                       {m.displayName || m.email}
                       {m.role === 'admin' && (
-                        <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Admin</span>
+                        <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Admin</span>
                       )}
                     </div>
                     <div style={{ fontSize: 12, color: '#666' }}>{m.email}</div>
                   </div>
                 </div>
-                <button onClick={()=>openDMWith(m)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', cursor: 'pointer' }}>Start DM</button>
+                <button onClick={()=>openDMWith(m)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', cursor: 'pointer' }}>Start DM</button>
               </div>
             ))}
           </div>

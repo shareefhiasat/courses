@@ -79,10 +79,10 @@
 }
 
 .filter-btn.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #800020, #600018);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(128, 0, 32, 0.3);
 }
 
 .resources-grid {
@@ -210,7 +210,7 @@
 .resource-link {
   flex: 1;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #800020, #600018);
   color: white;
   text-decoration: none;
   border-radius: 6px;
@@ -221,7 +221,7 @@
 
 .resource-link:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(128, 0, 32, 0.3);
   color: white;
   text-decoration: none;
 }
@@ -243,7 +243,7 @@
 }
 
 .completion-btn.pending:hover {
-  background: #667eea;
+  background: #800020;
   color: white;
 }
 

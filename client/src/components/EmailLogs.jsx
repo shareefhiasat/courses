@@ -3,13 +3,13 @@ import { useToast } from './ToastProvider';
 import Modal from './Modal';
 import { useLang } from '../contexts/LangContext';
 
-const EmailLogs = () => {
+const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
   const toast = useToast();
   const { t } = useLang();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    type: 'all',
+    type: defaultTypeFilter,
     status: 'all',
     search: '',
     dateRange: 'last7days'
@@ -76,6 +76,7 @@ const EmailLogs = () => {
 
   const getTypeIcon = (type) => {
     const icons = {
+      newsletter: '📧',
       announcement: '📢',
       activity: '📝',
       activity_complete: '✅',
@@ -139,6 +140,7 @@ const EmailLogs = () => {
               style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: 6 }}
             >
               <option value="all">All Types</option>
+              <option value="newsletter">📧 Newsletter</option>
               <option value="announcement">📢 Announcements</option>
               <option value="activity">📝 Activities</option>
               <option value="activity_graded">🎯 Grading</option>

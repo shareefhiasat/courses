@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.lang = state.lang;
     document.body.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
     const translations = {
-      'main-title': { en: 'Computer Science Learning Hub', ar: 'مركز تعلم علوم الحاسوب' },
+      'main-title': { en: 'Learning Hub', ar: 'مركز تعلم' },
       'main-subtitle': { en: 'Interactive exercises and games for mastering programming concepts', ar: 'تمارين وألعاب تفاعلية لإتقان مفاهيم البرمجة' },
     };
     Object.keys(translations).forEach(id => {
