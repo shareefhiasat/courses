@@ -11,7 +11,7 @@ import { useToast } from '../components/ToastProvider';
 import './HomePage.css';
 
 const ActivitiesPage = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t, lang } = useLang();
   const location = useLocation();
   const toast = useToast();
@@ -23,6 +23,9 @@ const ActivitiesPage = () => {
   const [levelFilter, setLevelFilter] = useState('all');
   const [bookmarkFilter, setBookmarkFilter] = useState(false);
   const [featuredFilter, setFeaturedFilter] = useState(false);
+  const [retakeFilter, setRetakeFilter] = useState(false);
+  const [gradedFilter, setGradedFilter] = useState('all'); // 'all', 'graded', 'not_graded'
+  const [completedFilter, setCompletedFilter] = useState(false);
   const [bookmarks, setBookmarks] = useState({}); // { [activityId]: true }
   const [enrolledClasses, setEnrolledClasses] = useState([]);
 
@@ -129,12 +132,23 @@ const ActivitiesPage = () => {
   };
 
   const filteredActivities = activities.filter(activity => {
+    const activityId = activity.docId || activity.id;
+    const submission = submissions[activityId];
+    
     const typeMatch = typeFilter === 'all' || activity.type === typeFilter;
     const levelMatch = levelFilter === 'all' || activity.level === levelFilter;
-    const bookmarkMatch = !bookmarkFilter || !!bookmarks[(activity.docId || activity.id)];
+    const bookmarkMatch = !bookmarkFilter || !!bookmarks[activityId];
     const featuredMatch = !featuredFilter || !!activity.featured;
     const enrolledGate = !activity.classId || (enrolledClasses || []).includes(activity.classId);
-    return typeMatch && levelMatch && bookmarkMatch && featuredMatch && (activity.show || false) && enrolledGate;
+    
+    // New filters
+    const retakeMatch = !retakeFilter || activity.allowRetake;
+    const gradedMatch = gradedFilter === 'all' || 
+      (gradedFilter === 'graded' && submission?.status === 'graded') ||
+      (gradedFilter === 'not_graded' && (!submission || submission?.status !== 'graded'));
+    const completedMatch = !completedFilter || submission?.status === 'graded';
+    
+    return typeMatch && levelMatch && bookmarkMatch && featuredMatch && retakeMatch && gradedMatch && completedMatch && (activity.show || false) && enrolledGate;
   });
 
   if (!user) return <Navigate to="/login" />;
@@ -145,7 +159,7 @@ const ActivitiesPage = () => {
     <div className="activities-page">
       {/* Header */}
       <div className="page-header" style={{ 
-        background: 'linear-gradient(135deg, #667eea, #764ba2)',
+        background: 'linear-gradient(135deg, #800020, #600018)',
         padding: '1.25rem 1.5rem',
         color: 'white',
         textAlign: 'left',
@@ -177,7 +191,7 @@ const ActivitiesPage = () => {
                   padding: '0.5rem 1rem',
                   borderRadius: '20px',
                   border: 'none',
-                  background: typeFilter === 'all' ? '#667eea' : '#f0f0f0',
+                  background: typeFilter === 'all' ? '#800020' : '#f0f0f0',
                   color: typeFilter === 'all' ? 'white' : '#666',
                   cursor: 'pointer',
                   transition: 'all 0.3s'
@@ -192,7 +206,7 @@ const ActivitiesPage = () => {
                   padding: '0.5rem 1rem',
                   borderRadius: '20px',
                   border: 'none',
-                  background: typeFilter === 'training' ? '#667eea' : '#f0f0f0',
+                  background: typeFilter === 'training' ? '#800020' : '#f0f0f0',
                   color: typeFilter === 'training' ? 'white' : '#666',
                   cursor: 'pointer'
                 }}
@@ -206,7 +220,7 @@ const ActivitiesPage = () => {
                   padding: '0.5rem 1rem',
                   borderRadius: '20px',
                   border: 'none',
-                  background: typeFilter === 'homework' ? '#667eea' : '#f0f0f0',
+                  background: typeFilter === 'homework' ? '#800020' : '#f0f0f0',
                   color: typeFilter === 'homework' ? 'white' : '#666',
                   cursor: 'pointer'
                 }}
@@ -220,7 +234,7 @@ const ActivitiesPage = () => {
                   padding: '0.5rem 1rem',
                   borderRadius: '20px',
                   border: 'none',
-                  background: typeFilter === 'quiz' ? '#667eea' : '#f0f0f0',
+                  background: typeFilter === 'quiz' ? '#800020' : '#f0f0f0',
                   color: typeFilter === 'quiz' ? 'white' : '#666',
                   cursor: 'pointer'
                 }}
@@ -242,7 +256,7 @@ const ActivitiesPage = () => {
                   padding: '0.5rem 1rem',
                   borderRadius: '20px',
                   border: 'none',
-                  background: levelFilter === 'all' ? '#667eea' : '#f0f0f0',
+                  background: levelFilter === 'all' ? '#800020' : '#f0f0f0',
                   color: levelFilter === 'all' ? 'white' : '#666',
                   cursor: 'pointer'
                 }}
@@ -256,7 +270,7 @@ const ActivitiesPage = () => {
                   padding: '0.5rem 1rem',
                   borderRadius: '20px',
                   border: 'none',
-                  background: levelFilter === 'beginner' ? '#667eea' : '#f0f0f0',
+                  background: levelFilter === 'beginner' ? '#800020' : '#f0f0f0',
                   color: levelFilter === 'beginner' ? 'white' : '#666',
                   cursor: 'pointer'
                 }}
@@ -270,7 +284,7 @@ const ActivitiesPage = () => {
                   padding: '0.5rem 1rem',
                   borderRadius: '20px',
                   border: 'none',
-                  background: levelFilter === 'intermediate' ? '#667eea' : '#f0f0f0',
+                  background: levelFilter === 'intermediate' ? '#800020' : '#f0f0f0',
                   color: levelFilter === 'intermediate' ? 'white' : '#666',
                   cursor: 'pointer'
                 }}
@@ -284,7 +298,7 @@ const ActivitiesPage = () => {
                   padding: '0.5rem 1rem',
                   borderRadius: '20px',
                   border: 'none',
-                  background: levelFilter === 'advanced' ? '#667eea' : '#f0f0f0',
+                  background: levelFilter === 'advanced' ? '#800020' : '#f0f0f0',
                   color: levelFilter === 'advanced' ? 'white' : '#666',
                   cursor: 'pointer'
                 }}
@@ -334,6 +348,101 @@ const ActivitiesPage = () => {
                 }}
               >
                 {featuredFilter ? (t('featured') || 'Featured') : t('all')}
+              </button>
+            </div>
+          </div>
+
+          {/* New Filters */}
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+              🔄 {t('retake') || 'Retake'}
+            </label>
+            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                onClick={() => setRetakeFilter(!retakeFilter)}
+                className={`filter-pill ${retakeFilter ? 'active' : ''}`}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: retakeFilter ? '#17a2b8' : '#f0f0f0',
+                  color: retakeFilter ? 'white' : '#666',
+                  cursor: 'pointer'
+                }}
+              >
+                {retakeFilter ? (t('retake_allowed') || 'Retake Allowed') : t('all')}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+              ✅ {t('grading_status') || 'Grading'}
+            </label>
+            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                onClick={() => setGradedFilter('all')}
+                className={`filter-pill ${gradedFilter === 'all' ? 'active' : ''}`}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: gradedFilter === 'all' ? '#800020' : '#f0f0f0',
+                  color: gradedFilter === 'all' ? 'white' : '#666',
+                  cursor: 'pointer'
+                }}
+              >
+                {t('all')}
+              </button>
+              <button 
+                onClick={() => setGradedFilter('graded')}
+                className={`filter-pill ${gradedFilter === 'graded' ? 'active' : ''}`}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: gradedFilter === 'graded' ? '#28a745' : '#f0f0f0',
+                  color: gradedFilter === 'graded' ? 'white' : '#666',
+                  cursor: 'pointer'
+                }}
+              >
+                {t('graded') || 'Graded'}
+              </button>
+              <button 
+                onClick={() => setGradedFilter('not_graded')}
+                className={`filter-pill ${gradedFilter === 'not_graded' ? 'active' : ''}`}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: gradedFilter === 'not_graded' ? '#ffc107' : '#f0f0f0',
+                  color: gradedFilter === 'not_graded' ? 'white' : '#666',
+                  cursor: 'pointer'
+                }}
+              >
+                {t('not_graded') || 'Not Graded'}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+              ✔️ {t('completion') || 'Completion'}
+            </label>
+            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                onClick={() => setCompletedFilter(!completedFilter)}
+                className={`filter-pill ${completedFilter ? 'active' : ''}`}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: completedFilter ? '#28a745' : '#f0f0f0',
+                  color: completedFilter ? 'white' : '#666',
+                  cursor: 'pointer'
+                }}
+              >
+                {completedFilter ? (t('completed') || 'Completed Only') : t('all')}
               </button>
             </div>
           </div>
@@ -400,8 +509,20 @@ const ActivitiesPage = () => {
                 )}
                 {/* Activity Header */}
                 <div style={{ marginBottom: '1rem' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0' }}>
-                    {lang === 'ar' ? (activity.title_ar || activity.title_en || activity.id) : (activity.title_en || activity.title_ar || activity.id)}
+                  <h3 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span>{lang === 'ar' ? (activity.title_ar || activity.title_en || activity.id) : (activity.title_en || activity.title_ar || activity.id)}</span>
+                    {activity.allowRetake && (
+                      <span style={{
+                        fontSize: '0.75rem',
+                        background: '#17a2b8',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        fontWeight: '600'
+                      }}>
+                        🔄 Retake Allowed
+                      </span>
+                    )}
                   </h3>
                   <p style={{ color: '#666', fontSize: '0.9rem' }}>
                     {lang === 'ar' ? (activity.description_ar || activity.description_en || '—') : (activity.description_en || activity.description_ar || '—')}
@@ -454,7 +575,7 @@ const ActivitiesPage = () => {
                   lineHeight: '1.6'
                 }}>
                   {activity.dueDate && (
-                    <div>📅 {t('due_date_label')}: {new Date(activity.dueDate).toLocaleDateString()}</div>
+                    <div>📅 {t('due_date_label')}: {new Date(activity.dueDate).toLocaleDateString('en-GB')}</div>
                   )}
                   {activity.allowRetakes && (
                     <div>🔄 {t('retakes_allowed')}: ✅</div>
@@ -463,6 +584,44 @@ const ActivitiesPage = () => {
                     <div>❓ {t('total_questions')}: {activity.totalQuestions}</div>
                   )}
                 </div>
+
+                {/* Grading Details for Students */}
+                {submission && (
+                  <div style={{
+                    background: isGraded ? '#e8f5e9' : '#fff3e0',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    marginBottom: '1rem',
+                    fontSize: '0.85rem',
+                    border: `1px solid ${isGraded ? '#c8e6c9' : '#ffe0b2'}`
+                  }}>
+                    <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: isGraded ? '#2e7d32' : '#f57c00' }}>
+                      {isGraded ? '✅ ' + (t('graded') || 'Graded') : '⏳ ' + (t('pending') || 'Pending')}
+                    </div>
+                    
+                    {submission.submittedAt && (
+                      <div style={{ color: '#666', marginBottom: '0.25rem' }}>
+                        📤 {t('submitted_at') || 'Submitted'}: {new Date(submission.submittedAt?.seconds ? submission.submittedAt.seconds * 1000 : submission.submittedAt).toLocaleDateString('en-GB')} {new Date(submission.submittedAt?.seconds ? submission.submittedAt.seconds * 1000 : submission.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
+                    
+                    {isGraded && (
+                      <>
+                        <div style={{ color: '#666', marginBottom: '0.25rem' }}>
+                          📝 {t('graded_on') || 'Graded On'}: {submission.gradedAt ? new Date(submission.gradedAt?.seconds ? submission.gradedAt.seconds * 1000 : submission.gradedAt).toLocaleDateString('en-GB') + ' ' + new Date(submission.gradedAt?.seconds ? submission.gradedAt.seconds * 1000 : submission.gradedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : (t('unknown') || 'Unknown')}
+                        </div>
+                        <div style={{ fontWeight: '700', fontSize: '1rem', color: '#2e7d32', marginTop: '0.5rem' }}>
+                          🎯 {t('score') || 'Score'}: {submission.score}/{activity.maxScore || 100}
+                        </div>
+                        {submission.feedback && (
+                          <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'white', borderRadius: '4px', color: '#555', fontStyle: 'italic' }}>
+                            💬 {submission.feedback}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Status/Featured Badge */}
                 {isGraded && (
@@ -513,7 +672,7 @@ const ActivitiesPage = () => {
                     style={{
                       flex: 1,
                       padding: '0.75rem',
-                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                      background: 'linear-gradient(135deg, #800020, #600018)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -526,13 +685,13 @@ const ActivitiesPage = () => {
                       e.target.style.transform = 'translateY(-2px)';
                     }}
                     onMouseLeave={e => {
-                      e.target.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+                      e.target.style.background = 'linear-gradient(135deg, #800020, #600018)';
                       e.target.style.transform = 'translateY(0)';
                     }}
                   >
                     {t('start_activity')}
                   </button>
-                  {!isCompleted && (
+                  {!isCompleted && !isAdmin && (
                     <button
                       onClick={() => handleMarkComplete(activity)}
                       style={{
@@ -554,7 +713,7 @@ const ActivitiesPage = () => {
                         e.target.style.color = '#667eea';
                       }}
                     >
-                      ⭕ {t('mark_complete')}
+                      {t('mark_complete')}
                     </button>
                   )}
                 </div>

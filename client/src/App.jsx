@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LangProvider } from './contexts/LangContext';
 import Navbar from './components/Navbar';
+import ErrorBoundary from './components/ErrorBoundary';
 import useRealTimeUpdates from './hooks/useRealTimeUpdates';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
@@ -16,6 +17,7 @@ import EnrollmentsPage from './pages/EnrollmentsPage';
 import ResourcesPage from './pages/ResourcesPage';
 import SMTPConfigPage from './pages/SMTPConfigPage';
 import './App.css';
+import './styles/colors.css';
 
 const AppContent = () => {
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
@@ -44,13 +46,17 @@ const AppContent = () => {
 
 function App() {
   return (
-    <LangProvider>
-      <AuthProvider>
-        <Router>
-          <AppContent />
-        </Router>
-      </AuthProvider>
-    </LangProvider>
+    <ErrorBoundary>
+      <LangProvider>
+        <AuthProvider>
+          <Router>
+            <ErrorBoundary>
+              <AppContent />
+            </ErrorBoundary>
+          </Router>
+        </AuthProvider>
+      </LangProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -239,7 +239,7 @@ const SMTPConfigPage = () => {
                   style={{
                     flex: 1,
                     padding: '1rem',
-                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                    background: 'linear-gradient(135deg, #800020, #600018)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
@@ -258,8 +258,8 @@ const SMTPConfigPage = () => {
                   style={{
                     padding: '1rem 2rem',
                     background: 'white',
-                    color: '#667eea',
-                    border: '2px solid #667eea',
+                    color: '#800020',
+                    border: '2px solid #800020',
                     borderRadius: '8px',
                     fontSize: '1rem',
                     fontWeight: '600',

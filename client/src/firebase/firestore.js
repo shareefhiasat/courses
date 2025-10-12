@@ -434,6 +434,14 @@ export const gradeSubmission = async (id, update) => {
   catch (error) { return { success: false, error: error.message }; }
 };
 
+export const deleteSubmission = async (id) => {
+  try { 
+    await deleteDoc(doc(db, 'submissions', id)); 
+    return { success: true }; 
+  }
+  catch (error) { return { success: false, error: error.message }; }
+};
+
 // ===== Email Functions =====
 export const sendEmail = async (emailData) => {
   try {

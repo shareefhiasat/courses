@@ -10,7 +10,7 @@ export const defaultTemplates = [
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+  <div style="background: linear-gradient(135deg, #800020 0%, #600018 100%); padding: 30px; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px;">📢 New Announcement | إعلان جديد</h1>
   </div>
   
@@ -20,8 +20,8 @@ export const defaultTemplates = [
     <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{recipientName}},</p>
     
     <!-- English Content -->
-    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #667eea;">
-      <h2 style="color: #667eea; margin-top: 0; font-size: 22px;">{{title}}</h2>
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #800020;">
+      <h2 style="color: #800020; margin-top: 0; font-size: 22px;">{{title}}</h2>
       <div style="color: #555; line-height: 1.8; font-size: 15px;">{{content}}</div>
       <p style="color: #999; font-size: 13px; margin-top: 15px; margin-bottom: 0;">
         📅 {{dateTime}} (Qatar Time UTC+3)
@@ -29,8 +29,8 @@ export const defaultTemplates = [
     </div>
     
     <!-- Arabic Content -->
-    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #764ba2;">
-      <h2 style="color: #764ba2; margin-top: 0; font-size: 22px;">{{title_ar}}</h2>
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #600018;">
+      <h2 style="color: #600018; margin-top: 0; font-size: 22px;">{{title_ar}}</h2>
       <div style="color: #555; line-height: 1.8; font-size: 15px;">{{content_ar}}</div>
       <p style="color: #999; font-size: 13px; margin-top: 15px; margin-bottom: 0;">
         📅 {{dateTime}} (توقيت قطر UTC+3)
@@ -39,7 +39,7 @@ export const defaultTemplates = [
     
     <!-- Call to Action -->
     <div style="text-align: center; margin-top: 30px;">
-      <a href="{{link}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+      <a href="{{link}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #800020, #600018); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
         View Announcement | عرض الإعلان
       </a>
     </div>
@@ -185,7 +185,7 @@ export const defaultTemplates = [
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center;">
+  <div style="background: linear-gradient(135deg, #800020 0%, #600018 100%); padding: 40px; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 32px;">🎓 Welcome!</h1>
     <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">مرحباً بك</p>
   </div>
@@ -195,8 +195,8 @@ export const defaultTemplates = [
     <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{studentName}},</p>
     
     <!-- English Content -->
-    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #667eea;">
-      <h2 style="color: #667eea; margin-top: 0;">Welcome to {{className}}!</h2>
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #800020;">
+      <h2 style="color: #800020; margin-top: 0;">Welcome to {{className}}!</h2>
       <p style="color: #555; line-height: 1.8; font-size: 15px;">
         You have been successfully enrolled in <strong>{{className}}</strong> for the <strong>{{term}}</strong> term.
       </p>
@@ -212,8 +212,8 @@ export const defaultTemplates = [
     </div>
     
     <!-- Arabic Content -->
-    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #764ba2;">
-      <h2 style="color: #764ba2; margin-top: 0;">مرحباً بك في {{className}}!</h2>
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #600018;">
+      <h2 style="color: #600018; margin-top: 0;">مرحباً بك في {{className}}!</h2>
       <p style="color: #555; line-height: 1.8; font-size: 15px;">
         تم تسجيلك بنجاح في <strong>{{className}}</strong> للفصل الدراسي <strong>{{term}}</strong>.
       </p>
@@ -230,7 +230,7 @@ export const defaultTemplates = [
     
     <!-- Call to Action -->
     <div style="text-align: center; margin-top: 30px;">
-      <a href="{{siteUrl}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+      <a href="{{siteUrl}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #800020, #600018); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
         Go to Platform | انتقل إلى المنصة
       </a>
     </div>
@@ -357,7 +357,7 @@ export const defaultTemplates = [
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+  <div style="background: linear-gradient(135deg, #800020 0%, #600018 100%); padding: 30px; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px;">💬 Unread Messages</h1>
     <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">You have {{unreadCount}} unread messages</p>
   </div>
@@ -376,7 +376,7 @@ export const defaultTemplates = [
     
     <!-- Call to Action -->
     <div style="text-align: center; margin-top: 30px;">
-      <a href="{{chatLink}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+      <a href="{{chatLink}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #800020, #600018); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
         Go to Chat | انتقل إلى المحادثة
       </a>
     </div>
@@ -399,7 +399,7 @@ export const defaultTemplates = [
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+  <div style="background: linear-gradient(135deg, #800020 0%, #600018 100%); padding: 30px; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px;">🔑 Password Reset | إعادة تعيين كلمة المرور</h1>
   </div>
   
@@ -412,7 +412,7 @@ export const defaultTemplates = [
       <p style="color: #555; line-height: 1.8;">Click the button below to reset your password:</p>
       
       <div style="text-align: center; margin: 25px 0;">
-        <a href="{{resetLink}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+        <a href="{{resetLink}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #800020, #600018); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Reset Password
         </a>
       </div>
@@ -432,7 +432,7 @@ export const defaultTemplates = [
       <p style="color: #555; line-height: 1.8;">انقر على الزر أدناه لإعادة تعيين كلمة المرور:</p>
       
       <div style="text-align: center; margin: 25px 0;">
-        <a href="{{resetLink}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+        <a href="{{resetLink}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #800020, #600018); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           إعادة تعيين كلمة المرور
         </a>
       </div>
@@ -463,7 +463,7 @@ export const defaultTemplates = [
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
-  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+  <div style="background: linear-gradient(135deg, #800020 0%, #600018 100%); padding: 30px; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Welcome! | مرحباً بك!</h1>
   </div>
   
@@ -477,7 +477,7 @@ export const defaultTemplates = [
       </p>
       
       <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #667eea;">Your Account Details</h3>
+        <h3 style="margin-top: 0; color: #800020;">Your Account Details</h3>
         <p style="margin: 8px 0; color: #555;"><strong>Email:</strong> {{userEmail}}</p>
         <p style="margin: 8px 0; color: #555;"><strong>Display Name:</strong> {{displayName}}</p>
         <p style="margin: 8px 0; color: #555;"><strong>Joined:</strong> {{currentDate}}</p>
@@ -492,7 +492,7 @@ export const defaultTemplates = [
       </ul>
       
       <div style="text-align: center; margin: 25px 0;">
-        <a href="{{platformUrl}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+        <a href="{{platformUrl}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #800020, #600018); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           Go to Dashboard
         </a>
       </div>
@@ -506,7 +506,7 @@ export const defaultTemplates = [
       </p>
       
       <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #764ba2;">تفاصيل حسابك</h3>
+        <h3 style="margin-top: 0; color: #600018;">تفاصيل حسابك</h3>
         <p style="margin: 8px 0; color: #555;"><strong>البريد الإلكتروني:</strong> {{userEmail}}</p>
         <p style="margin: 8px 0; color: #555;"><strong>اسم العرض:</strong> {{displayName}}</p>
         <p style="margin: 8px 0; color: #555;"><strong>تاريخ الانضمام:</strong> {{currentDate}}</p>
@@ -521,7 +521,7 @@ export const defaultTemplates = [
       </ul>
       
       <div style="text-align: center; margin: 25px 0;">
-        <a href="{{platformUrl}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+        <a href="{{platformUrl}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #800020, #600018); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
           انتقل إلى لوحة التحكم
         </a>
       </div>

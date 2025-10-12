@@ -17,7 +17,8 @@ const SmartGrid = ({
   allowDelete = true,
   allowAdd = true,
   validateDelete = null, // function to validate before delete
-  quickFilters = null // { active, buttons: [{key, label, filter(item)}] }
+  quickFilters = null, // { active, buttons: [{key, label, filter(item)}] }
+  skipDeleteConfirmation = false // skip confirmation modal and call onDelete directly
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('');
@@ -127,6 +128,12 @@ const SmartGrid = ({
 
   const handleDeleteClick = async (item) => {
     if (!onDelete) return;
+    
+    // If skipDeleteConfirmation is true, call onDelete directly
+    if (skipDeleteConfirmation) {
+      await onDelete(item);
+      return;
+    }
     
     // Check if item can be deleted
     if (canDeleteItem) {

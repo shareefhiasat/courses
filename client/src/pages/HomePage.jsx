@@ -136,7 +136,7 @@ const HomePage = () => {
       <div className="home-page">
         <div className="hero-section">
           <div className="hero-content">
-            <h1 className="hero-title">Computer Science Learning Hub</h1>
+            <h1 className="hero-title">Learning Hub</h1>
             <p className="hero-subtitle">
               Interactive exercises and games for mastering programming concepts
             </p>
@@ -152,7 +152,7 @@ const HomePage = () => {
       {!isAdmin && (
       <div className="hero-section">
         <div className="hero-content">
-          <h1 className="hero-title">Computer Science Learning Hub</h1>
+          <h1 className="hero-title">Learning Hub</h1>
           <p className="hero-subtitle">
             Interactive exercises and games for mastering programming concepts
           </p>
@@ -169,7 +169,7 @@ const HomePage = () => {
           padding: '1.5rem',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
-          <h2 style={{ marginBottom: '1rem', color: '#667eea' }}>📢 Latest Announcements</h2>
+          <h2 style={{ marginBottom: '1rem', color: '#800020' }}>📢 Latest Announcements</h2>
           
           {/* Date Filters */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '1rem', flexWrap: 'wrap' }}>
@@ -186,7 +186,7 @@ const HomePage = () => {
                   padding: '8px 16px',
                   border: 'none',
                   borderRadius: '6px',
-                  background: announcementFilter === filter.key ? '#667eea' : '#f0f0f0',
+                  background: announcementFilter === filter.key ? '#800020' : '#f0f0f0',
                   color: announcementFilter === filter.key ? 'white' : '#333',
                   cursor: 'pointer',
                   fontWeight: announcementFilter === filter.key ? '600' : '500',
@@ -232,7 +232,7 @@ const HomePage = () => {
                         target="_blank" 
                         rel="noopener noreferrer"
                         style={{
-                          color: '#667eea',
+                          color: '#800020',
                           textDecoration: 'none',
                           fontSize: '0.9rem',
                           fontWeight: 600,
@@ -254,7 +254,7 @@ const HomePage = () => {
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#667eea',
+                        color: '#800020',
                         cursor: 'pointer',
                         padding: '4px 0',
                         fontSize: '0.9rem',
@@ -324,7 +324,7 @@ const HomePage = () => {
               {/* Activity Filters */}
               <div style={{ marginBottom: '1.5rem', background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
                 <div style={{ marginBottom: '0.75rem' }}>
-                  <strong style={{ marginRight: '0.5rem', color: '#667eea' }}>📋 Type</strong>
+                  <strong style={{ marginRight: '0.5rem', color: '#800020' }}>📋 Type</strong>
                   <div style={{ display: 'flex', gap: '6px', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     {['all', 'training', 'homework', 'quiz'].map(type => (
                       <button
@@ -334,7 +334,7 @@ const HomePage = () => {
                           padding: '6px 12px',
                           border: 'none',
                           borderRadius: '6px',
-                          background: activityTypeFilter === type ? '#667eea' : 'white',
+                          background: activityTypeFilter === type ? '#800020' : 'white',
                           color: activityTypeFilter === type ? 'white' : '#333',
                           cursor: 'pointer',
                           fontSize: '0.85rem',
@@ -348,7 +348,7 @@ const HomePage = () => {
                   </div>
                 </div>
                 <div>
-                  <strong style={{ marginRight: '0.5rem', color: '#667eea' }}>🎯 Level</strong>
+                  <strong style={{ marginRight: '0.5rem', color: '#800020' }}>🎯 Level</strong>
                   <div style={{ display: 'flex', gap: '6px', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                     {['all', 'beginner', 'intermediate', 'advanced'].map(level => (
                       <button
@@ -358,7 +358,7 @@ const HomePage = () => {
                           padding: '6px 12px',
                           border: 'none',
                           borderRadius: '6px',
-                          background: difficultyFilter === level ? '#667eea' : 'white',
+                          background: difficultyFilter === level ? '#800020' : 'white',
                           color: difficultyFilter === level ? 'white' : '#333',
                           cursor: 'pointer',
                           fontSize: '0.85rem',

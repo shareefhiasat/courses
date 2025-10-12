@@ -126,7 +126,7 @@ const ChatPage = () => {
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', height: 'calc(100vh - 120px)' }}>
       <div style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #800020 0%, #600018 100%)',
         color: 'white',
         padding: '1.5rem',
         borderRadius: '12px',

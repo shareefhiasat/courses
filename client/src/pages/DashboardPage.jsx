@@ -1,48 +1,28 @@
- 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  getActivities,
-  addActivity,
-  updateActivity,
-  deleteActivity,
-  getAnnouncements,
-  addAnnouncement,
-  updateAnnouncement,
-  deleteAnnouncement,
-  getUsers,
-  addUser,
-  updateUser,
-  deleteUser,
-  getAllowlist,
-  updateAllowlist,
+  getActivities, addActivity, updateActivity, deleteActivity,
+  getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement,
+  getUsers, addUser, updateUser, deleteUser,
+  getClasses, addClass, updateClass, deleteClass,
+  getEnrollments, addEnrollment, deleteEnrollment,
+  getSubmissions, gradeSubmission, deleteSubmission,
+  getResources, addResource, updateResource, deleteResource,
+  addEmailLog, getEmailLogs,
   sendEmail,
-  getEmailLogs,
-  deleteEmailLog,
-  addEmailLog,
-  getClasses,
-  addClass,
-  updateClass,
-  deleteClass,
-  getEnrollments,
-  addEnrollment,
-  deleteEnrollment,
-  getSubmissions,
-  gradeSubmission,
-  getResources,
-  addResource,
-  updateResource,
-  deleteResource,
   getSMTPConfig,
-  updateSMTPConfig
+  updateSMTPConfig,
+  deleteEmailLog
 } from '../firebase/firestore';
-import { getLoginLogs, getCourses, setCourse, deleteCourse } from '../firebase/firestore';
+import { getLoginLogs, getCourses, setCourse, deleteCourse, getAllowlist, updateAllowlist } from '../firebase/firestore';
 import { notifyAllUsers, notifyUsersByClass } from '../firebase/notifications';
 import Loading from '../components/Loading';
 import SmartGrid from '../components/SmartGrid';
 import EmailManager from '../components/EmailManager';
 import EmailComposer from '../components/EmailComposer';
+import SmartEmailComposer from '../components/SmartEmailComposer';
+import UserDeletionModal from '../components/UserDeletionModal';
 import EmailSettings from '../components/EmailSettings';
 import EmailTemplates from '../components/EmailTemplates';
 import EmailLogs from '../components/EmailLogs';
@@ -144,6 +124,11 @@ const DashboardPage = () => {
   const [smtpLoading, setSmtpLoading] = useState(false);
   const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
+  // Smart email composer
+  const [smartComposerOpen, setSmartComposerOpen] = useState(false);
+  // User deletion modal
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [showUserDeletionModal, setShowUserDeletionModal] = useState(false);
   
   // Derived: filtered activity logs
   const filteredLoginLogs = () => {
@@ -456,7 +441,7 @@ const DashboardPage = () => {
       
       const buildEn = () => `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #667eea;">📚 New Activity Assigned</h2>
+          <h2 style="color: #800020;">📚 New Activity Assigned</h2>
           <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
             <h3 style="margin-top: 0;">${activity.title_en || ''}</h3>
             <p><strong>Type:</strong> ${activity.type}</p>
@@ -466,11 +451,11 @@ const DashboardPage = () => {
             ${activity.optional ? '<p><strong>Status:</strong> Optional 💡</p>' : '<p><strong>Status:</strong> Required 📌</p>'}
           </div>
           <p>${activity.description_en || ''}</p>
-          <a href="${activity.url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;text-decoration:none;border-radius:8px;margin-top:1rem;">Start Activity 🎯</a>
+          <a href="${activity.url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#800020,#600018);color:#fff;text-decoration:none;border-radius:8px;margin-top:1rem;">Start Activity 🎯</a>
         </div>`;
       const buildAr = () => `
         <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align:right">
-          <h2 style="color: #667eea;">📚 واجب/نشاط جديد</h2>
+          <h2 style="color: #800020;">📚 واجب/نشاط جديد</h2>
           <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
             <h3 style="margin-top: 0;">${activity.title_ar || activity.title_en || ''}</h3>
             <p><strong>النوع:</strong> ${activity.type}</p>
@@ -480,7 +465,7 @@ const DashboardPage = () => {
             ${activity.optional ? '<p><strong>الحالة:</strong> اختياري 💡</p>' : '<p><strong>الحالة:</strong> إلزامي 📌</p>'}
           </div>
           <p>${activity.description_ar || ''}</p>
-          <a href="${activity.url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;text-decoration:none;border-radius:8px;margin-top:1rem;">ابدأ النشاط 🎯</a>
+          <a href="${activity.url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#800020,#600018);color:#fff;text-decoration:none;border-radius:8px;margin-top:1rem;">ابدأ النشاط 🎯</a>
         </div>`;
 
       let emailBody = '';
@@ -903,7 +888,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   padding: '1rem',
                   background: '#f0f8ff',
                   borderRadius: '8px',
-                  border: '2px solid #667eea'
+                  border: '2px solid #800020'
                 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                     <input
@@ -1054,34 +1039,30 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
           {activeTab === 'newsletter' && (
             <div className="newsletter-tab">
-              <h2>{t('newsletter')}</h2>
-              <p style={{ color:'#666' }}>{t('send_bulk_emails_view')}</p>
-              {(!emailLogs || emailLogs.length === 0) ? (
-                <div style={{ padding:'1rem', background:'#f8f9fa', border:'1px dashed #ddd', borderRadius:8 }}>
-                  {t('no_email_logs_yet') || 'No email logs yet. Use the email composer to send a newsletter.'}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12, marginBottom: '1rem' }}>
+                <div>
+                  <h2 style={{ margin: 0 }}>{t('newsletter')}</h2>
+                  <p style={{ color:'#666', marginTop: '0.5rem', marginBottom: 0 }}>{t('send_bulk_emails_view')}</p>
                 </div>
-              ) : (
-                <div style={{ overflowX:'auto', marginTop:'1rem' }}>
-                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign:'left', padding:'8px', borderBottom:'2px solid #ddd' }}>{t('when')}</th>
-                        <th style={{ textAlign:'left', padding:'8px', borderBottom:'2px solid #ddd' }}>{t('subject')}</th>
-                        <th style={{ textAlign:'left', padding:'8px', borderBottom:'2px solid #ddd' }}>{t('to')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {emailLogs.map(l => (
-                        <tr key={l.docId}>
-                          <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>{l.timestamp?.seconds ? new Date(l.timestamp.seconds*1000).toLocaleString('en-GB') : ''}</td>
-                          <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>{l.subject || '—'}</td>
-                          <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>{Array.isArray(l.to) ? l.to.join(', ') : (l.to || '—')}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setSmartComposerOpen(true)}
+                    style={{
+                      padding: '10px 16px',
+                      background: 'linear-gradient(135deg, #800020, #600018)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontWeight: 600
+                    }}
+                  >
+                    📧 {t('compose_email') || 'Compose Email'}
+                  </button>
                 </div>
-              )}
+              </div>
+              <EmailLogs defaultTypeFilter="newsletter" />
             </div>
           )}
 
@@ -1303,7 +1284,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 </select>
                 <label style={{ color:'#666', display:'flex', alignItems:'center', gap:4 }}>{t('from') || 'From'} <input type="date" value={loginFrom} onChange={(e)=>setLoginFrom(e.target.value)} style={{ padding:'6px' }} /></label>
                 <label style={{ color:'#666', display:'flex', alignItems:'center', gap:4 }}>{t('to') || 'To'} <input type="date" value={loginTo} onChange={(e)=>setLoginTo(e.target.value)} style={{ padding:'6px' }} /></label>
-                <button onClick={loadData} style={{ padding:'8px 16px', border:'1px solid #ddd', borderRadius:8, cursor:'pointer', background:'#667eea', color:'white', fontWeight:600 }}>{t('refresh')}</button>
+                <button onClick={loadData} style={{ padding:'8px 16px', border:'1px solid #ddd', borderRadius:8, cursor:'pointer', background:'#800020', color:'white', fontWeight:600 }}>{t('refresh')}</button>
               </div>
               {(() => {
                 const list = filteredLoginLogs();
@@ -2009,7 +1990,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         <a 
                           href={`/student-progress?userId=${user.docId}`} 
                           style={{ 
-                            color: '#667eea', 
+                            color: '#800020', 
                             textDecoration: 'none',
                             fontWeight: '600'
                           }}
@@ -2051,7 +2032,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         }}
                         style={{
                           padding: '0.5rem 1rem',
-                          background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                          background: 'linear-gradient(135deg, #800020, #600018)',
                           color: 'white',
                           border: 'none',
                           borderRadius: 6,
@@ -2075,33 +2056,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   });
                 }}
                 searchPlaceholder={t('search_users')}
-                validateDelete={validateUserDeletion}
+                skipDeleteConfirmation={true}
                 onDelete={async (user) => {
-                  // Optimistic update - remove from UI immediately
-                  setUsers(prev => prev.filter(u => u.docId !== user.docId));
-                  
-                  try {
-                    const result = await deleteUser(user.docId);
-                    if (result.success) {
-                      // Also delete their enrollments
-                      const userEnrollments = enrollments.filter(e => e.userId === user.docId);
-                      for (const enrollment of userEnrollments) {
-                        await deleteEnrollment(enrollment.docId);
-                      }
-                      await loadData();
-                      toast?.showSuccess('User deleted successfully!');
-                    } else {
-                      // Revert optimistic update on error
-                      setUsers(prev => [...prev, user].sort((a, b) => a.email.localeCompare(b.email)));
-                      toast?.showError('Error deleting user: ' + result.error);
-                    }
-                  } catch (error) {
-                    // Revert optimistic update on error
-                    setUsers(prev => [...prev, user].sort((a, b) => a.email.localeCompare(b.email)));
-                    toast?.showError('Error deleting user: ' + error.message);
-                  }
+                  // Open deletion modal instead of immediate delete
+                  setUserToDelete(user);
+                  setShowUserDeletionModal(true);
                 }}
-                searchPlaceholder={t('search_users')}
               />
             </div>
           )}
@@ -2395,7 +2355,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           setSmtpSaving(false);
                         }
                       }}
-                      style={{ padding:'10px 20px', background:'linear-gradient(135deg,#667eea,#764ba2)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}
+                      style={{ padding:'10px 20px', background:'linear-gradient(135deg,#800020,#600018)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}
                     >
                       {smtpSaving ? 'Saving...' : 'Save Configuration'}
                     </button>
@@ -2426,7 +2386,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         toast?.showError('Failed to add defaults: ' + err.message);
                       }
                     }}
-                    style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize:'0.95rem' }}
+                    style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize:'0.95rem' }}
                   >
                     ➕ {t('add_default_categories')}
                   </button>
@@ -2450,7 +2410,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 <input type="text" placeholder="Name (English)" value={courseForm.name_en} onChange={(e)=>setCourseForm({...courseForm, name_en: e.target.value})} required style={{ padding:'0.6rem', border:'1px solid #ddd', borderRadius:6 }} />
                 <input type="text" placeholder="Name (Arabic)" value={courseForm.name_ar} onChange={(e)=>setCourseForm({...courseForm, name_ar: e.target.value})} style={{ padding:'0.6rem', border:'1px solid #ddd', borderRadius:6 }} />
                 <input type="number" placeholder="Order" value={courseForm.order} onChange={(e)=>setCourseForm({...courseForm, order: e.target.value})} style={{ padding:'0.6rem', border:'1px solid #ddd', borderRadius:6 }} />
-                <button type="submit" style={{ padding:'0.6rem 1rem', background:'linear-gradient(135deg, #667eea, #764ba2)', color:'white', border:'none', borderRadius:6, cursor:'pointer', fontWeight:600 }}>{editingCourse ? 'Update' : 'Add'}</button>
+                <button type="submit" style={{ padding:'0.6rem 1rem', background:'linear-gradient(135deg, #800020, #600018)', color:'white', border:'none', borderRadius:6, cursor:'pointer', fontWeight:600 }}>{editingCourse ? 'Update' : 'Add'}</button>
                 {editingCourse && <button type="button" onClick={()=>{ setCourseForm({ id: '', name_en: '', name_ar: '', order: 0 }); setEditingCourse(null); }} style={{ padding:'0.6rem 1rem', background:'#6c757d', color:'white', border:'none', borderRadius:6, cursor:'pointer' }}>Cancel</button>}
               </form>
 
@@ -2535,22 +2495,58 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         </div>
       </div>
       
-      {/* Email Composer Modal */}
-      <EmailComposer
-        open={emailComposerOpen}
-        onClose={() => setEmailComposerOpen(false)}
-        onSend={async (emailData) => {
-          const result = await sendEmail(emailData);
-          // Log the attempt
-          await addEmailLog({
-            to: emailData.to,
-            subject: emailData.subject,
-            type: emailData.type || 'custom',
-            status: result.success ? 'sent' : 'failed',
-            error: result.success ? null : result.error,
-            sentBy: user?.uid || 'unknown'
-          });
-          if (!result.success) throw new Error(result.error);
+      {/* Smart Email Composer Modal */}
+      <SmartEmailComposer
+        open={smartComposerOpen}
+        onClose={() => setSmartComposerOpen(false)}
+        onSend={async ({ to, subject, htmlBody, type }) => {
+          try {
+            console.log('📧 Newsletter Send - Starting...');
+            console.log('Recipients:', to);
+            console.log('Subject:', subject);
+            console.log('Type:', type || 'newsletter');
+            console.log('HTML Body length:', htmlBody?.length);
+            
+            // Ensure to is an array
+            const recipients = Array.isArray(to) ? to : [to];
+            
+            // Validate recipients
+            if (recipients.length === 0) {
+              throw new Error('No recipients specified');
+            }
+            
+            console.log('Calling sendEmail function...');
+            const result = await sendEmail({ 
+              to: recipients, 
+              subject: subject || 'Newsletter', 
+              html: htmlBody || '<p>No content</p>', 
+              type: type || 'newsletter' 
+            });
+            
+            console.log('📧 Send result:', result);
+            
+            // Log the email attempt
+            await addEmailLog({
+              to: recipients,
+              subject,
+              type: type || 'newsletter',
+              status: result.success ? 'sent' : 'failed',
+              error: result.success ? null : result.error,
+              sentBy: user?.uid || 'unknown'
+            });
+            
+            if (!result.success) {
+              console.error('❌ Error sending email:', result.error);
+              throw new Error(result.error || 'Failed to send email');
+            }
+            
+            console.log('✅ Email sent successfully!');
+            // refresh logs list if we're on the tab
+            loadData();
+          } catch (error) {
+            console.error('❌ Exception in onSend:', error);
+            throw error;
+          }
         }}
       />
 
@@ -2572,24 +2568,20 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 return;
               }
               try {
-                const { httpsCallable } = await import('firebase/functions');
-                const { functions } = await import('../firebase/config');
-                const adminSetPassword = httpsCallable(functions, 'adminSetPassword');
-                console.log('Calling adminSetPassword with:', { uid: passwordUser.docId, newPassword: '***' });
-                const result = await adminSetPassword({ uid: passwordUser.docId, newPassword });
-                console.log('adminSetPassword result:', result);
-                if (result.data && result.data.success) {
-                  toast?.showSuccess(result.data.message || 'Password updated successfully!');
+                const { updatePassword } = await import('firebase/auth');
+                const { auth } = await import('../firebase/config');
+                if (auth.currentUser && auth.currentUser.uid === passwordUser.docId) {
+                  await updatePassword(auth.currentUser, newPassword);
+                  toast?.showSuccess('Password updated successfully!');
                   setShowPasswordModal(false);
                   setPasswordUser(null);
                   setNewPassword('');
                 } else {
-                  toast?.showError('Failed to set password: ' + (result.data?.error || 'Unknown error'));
+                  toast?.showError('Can only update password for currently logged-in user');
                 }
               } catch (error) {
-                console.error('Error setting password:', error);
-                const msg = error.message || error.code || 'Unknown error';
-                toast?.showError('Failed to set password: ' + msg);
+                console.error('Error updating password:', error);
+                toast?.showError('Failed to update password: ' + error.message);
               }
             }}>
               <input
@@ -2603,12 +2595,56 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               />
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => { setShowPasswordModal(false); setPasswordUser(null); setNewPassword(''); }} style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Set Password</button>
+                <button type="submit" style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Set Password</button>
               </div>
             </form>
           </div>
         </Modal>
       )}
+
+      {/* User Deletion Modal */}
+      <UserDeletionModal
+        open={showUserDeletionModal}
+        onClose={() => {
+          setShowUserDeletionModal(false);
+          setUserToDelete(null);
+        }}
+        user={userToDelete}
+        enrollments={enrollments}
+        submissions={submissions}
+        activities={activities}
+        classes={classes}
+        onConfirmDelete={async (user, relatedData) => {
+          try {
+            toast?.showInfo(`Deleting user and ${relatedData.enrollments.length + relatedData.submissions.length} related records...`);
+            
+            // Delete enrollments
+            for (const enrollment of relatedData.enrollments) {
+              await deleteEnrollment(enrollment.docId || enrollment.id);
+            }
+            
+            // Delete submissions
+            for (const submission of relatedData.submissions) {
+              await deleteSubmission(submission.docId || submission.id);
+            }
+            
+            // Delete user
+            const result = await deleteUser(user.docId || user.id);
+            
+            if (result.success) {
+              toast?.showSuccess(`✅ User deleted successfully! Removed ${relatedData.enrollments.length} enrollments and ${relatedData.submissions.length} submissions.`);
+              await loadData();
+            } else {
+              throw new Error(result.error || 'Failed to delete user');
+            }
+          } catch (error) {
+            console.error('Error deleting user:', error);
+            toast?.showError('Failed to delete user: ' + error.message);
+            throw error;
+          }
+        }}
+      />
+
     </div>
   );
 };

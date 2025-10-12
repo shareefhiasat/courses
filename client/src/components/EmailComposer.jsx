@@ -114,8 +114,8 @@ const EmailComposer = ({ open, onClose, onSend }) => {
         <div
           key={email}
           style={{
-            background: '#e3f2fd',
-            color: '#1976d2',
+            background: '#fff0f3',
+            color: '#800020',
             padding: '4px 8px',
             borderRadius: '16px',
             fontSize: '0.85rem',
@@ -130,7 +130,7 @@ const EmailComposer = ({ open, onClose, onSend }) => {
             style={{
               background: 'none',
               border: 'none',
-              color: '#1976d2',
+              color: '#800020',
               cursor: 'pointer',
               padding: '0 4px',
               fontSize: '1rem',
@@ -192,7 +192,7 @@ const EmailComposer = ({ open, onClose, onSend }) => {
             onClick={() => { setSelectorMode('to'); setShowUserSelector(true); }}
             style={{
               padding: '8px 16px',
-              background: '#667eea',
+              background: 'linear-gradient(135deg, #800020, #600018)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -213,7 +213,7 @@ const EmailComposer = ({ open, onClose, onSend }) => {
             onClick={() => { setSelectorMode('cc'); setShowUserSelector(true); }}
             style={{
               padding: '8px 16px',
-              background: '#667eea',
+              background: 'linear-gradient(135deg, #800020, #600018)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -234,7 +234,7 @@ const EmailComposer = ({ open, onClose, onSend }) => {
             onClick={() => { setSelectorMode('bcc'); setShowUserSelector(true); }}
             style={{
               padding: '8px 16px',
-              background: '#667eea',
+              background: 'linear-gradient(135deg, #800020, #600018)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -306,7 +306,7 @@ const EmailComposer = ({ open, onClose, onSend }) => {
             disabled={loading}
             style={{
               padding: '10px 20px',
-              background: '#667eea',
+              background: 'linear-gradient(135deg, #800020, #600018)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -344,7 +344,7 @@ const EmailComposer = ({ open, onClose, onSend }) => {
               onClick={() => handleSelectAll(selectorMode)}
               style={{
                 padding: '8px 16px',
-                background: '#667eea',
+                background: 'linear-gradient(135deg, #800020, #600018)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
@@ -379,7 +379,7 @@ const EmailComposer = ({ open, onClose, onSend }) => {
                     }}
                     style={{
                       padding: '6px 12px',
-                      background: '#667eea',
+                      background: 'linear-gradient(135deg, #800020, #600018)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '6px',

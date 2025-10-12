@@ -1,0 +1,33 @@
+/* QAF Learning Hub - Maroon Brand Colors */
+:root {
+  /* Primary Maroon Colors */
+  --primary-maroon: #800020;
+  --primary-maroon-light: #A0002F;
+  --primary-maroon-dark: #600018;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #800020 0%, #600018 100%);
+  --gradient-light: linear-gradient(135deg, #A0002F 0%, #800020 100%);
+  
+  /* Accent Colors */
+  --accent-gold: #FFD700;
+  --accent-cream: #FFF8DC;
+  
+  /* Status Colors */
+  --success: #28a745;
+  --warning: #ffc107;
+  --error: #dc3545;
+  --info: #17a2b8;
+  
+  /* Neutral Colors */
+  --bg: #f5f5f5;
+  --panel: #ffffff;
+  --text: #333333;
+  --text-light: #666666;
+  --border: #dddddd;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(128, 0, 32, 0.1);
+  --shadow-md: 0 4px 12px rgba(128, 0, 32, 0.15);
+  --shadow-lg: 0 8px 24px rgba(128, 0, 32, 0.2);
+}

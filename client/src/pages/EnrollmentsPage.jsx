@@ -71,13 +71,13 @@ const EnrollmentsPage = () => {
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button
                   onClick={() => navigate(`/chat?dest=${encodeURIComponent(cls.docId)}`)}
-                  style={{ padding: '0.5rem 0.75rem', borderRadius: 8, border: 'none', background: '#667eea', color: 'white', cursor: 'pointer' }}
+                  style={{ padding: '0.5rem 0.75rem', borderRadius: 8, border: 'none', background: '#800020', color: 'white', cursor: 'pointer' }}
                 >
                   💬 {t('open_chat') || 'Open Chat'}
                 </button>
                 <button
                   onClick={() => navigate('/activities')}
-                  style={{ padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #667eea', background: 'white', color: '#667eea', cursor: 'pointer' }}
+                  style={{ padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #800020', background: 'white', color: '#800020', cursor: 'pointer' }}
                 >
                   📚 {t('view_activities') || 'View Activities'}
                 </button>

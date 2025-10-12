@@ -70,7 +70,7 @@ const LeaderboardPage = () => {
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #800020 0%, #600018 100%)',
         color: 'white',
         padding: '2rem',
         borderRadius: '12px',
@@ -143,7 +143,7 @@ const LeaderboardPage = () => {
                             {(userData.docId || userData.id) === user.uid && (
                               <span style={{ 
                                 marginLeft: '0.5rem', 
-                                color: '#667eea', 
+                                color: '#800020', 
                                 fontSize: '0.9rem' 
                               }}>
                                 (You)
@@ -157,7 +157,7 @@ const LeaderboardPage = () => {
                       <div style={{ 
                         fontSize: '1.25rem', 
                         fontWeight: 'bold',
-                        color: '#667eea'
+                        color: '#800020'
                       }}>
                         {userData.totalScore}
                       </div>

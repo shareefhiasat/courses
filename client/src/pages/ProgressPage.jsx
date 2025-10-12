@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { getSubmissions, getResources } from '../firebase/firestore';
+import { getSubmissions, getResources, getActivities } from '../firebase/firestore';
 import Loading from '../components/Loading';
 import { useLang } from '../contexts/LangContext';
 
@@ -14,6 +14,7 @@ const ProgressPage = () => {
   const [resourceProgress, setResourceProgress] = useState({});
   const [submissions, setSubmissions] = useState([]);
   const [resources, setResources] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,8 +33,12 @@ const ProgressPage = () => {
       }
       // Load submissions for activity count
       const subsResult = await getSubmissions();
-      const mySubs = (subsResult.data || []).filter(s => s.userId === user.uid && s.status === 'completed');
+      const mySubs = (subsResult.data || []).filter(s => s.userId === user.uid);
       setSubmissions(mySubs);
+      
+      // Load activities to get type breakdown
+      const actResult = await getActivities();
+      setActivities(actResult.data || []);
       
       // Load resources for resource count
       const resResult = await getResources();
@@ -63,14 +68,32 @@ const ProgressPage = () => {
   }
 
   const progressEntries = Object.entries(progress);
-  const activityCompletedCount = submissions.length;
+  const gradedSubmissions = submissions.filter(s => s.status === 'graded');
+  const activityCompletedCount = gradedSubmissions.length;
   const resourceCompletedCount = Object.values(resourceProgress).filter(r => r.completed).length;
-  const totalScore = submissions.reduce((sum, s) => sum + (s.score || 0), 0);
+  const totalScore = gradedSubmissions.reduce((sum, s) => sum + (s.score || 0), 0);
+  
+  // Calculate type breakdown
+  const typeBreakdown = {};
+  ['quiz', 'training', 'assignment', 'homework', 'optional'].forEach(type => {
+    const typeActivities = activities.filter(a => a.type === type);
+    const typeSubmissions = gradedSubmissions.filter(s => {
+      const activity = activities.find(a => (a.docId || a.id) === s.activityId);
+      return activity?.type === type;
+    });
+    if (typeActivities.length > 0) {
+      typeBreakdown[type] = {
+        total: typeActivities.length,
+        completed: typeSubmissions.length,
+        percentage: typeActivities.length > 0 ? Math.round((typeSubmissions.length / typeActivities.length) * 100) : 0
+      };
+    }
+  });
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #800020 0%, #600018 100%)',
         color: 'white',
         padding: '2rem',
         borderRadius: '12px',
@@ -93,6 +116,64 @@ const ProgressPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Activity Type Breakdown */}
+      {Object.keys(typeBreakdown).length > 0 && (
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          marginBottom: '2rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.3rem', color: '#800020' }}>
+            📊 {t('activity_breakdown') || 'Activity Breakdown by Type'}
+          </h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem'
+          }}>
+            {Object.entries(typeBreakdown).map(([type, stats]) => (
+              <div key={type} style={{
+                background: '#f8f9fa',
+                padding: '1rem',
+                borderRadius: '8px',
+                border: '1px solid #e0e0e0'
+              }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
+                  {type === 'quiz' ? '📝 ' + (t('quiz') || 'Quiz') :
+                   type === 'training' ? '🎯 ' + (t('training') || 'Training') :
+                   type === 'assignment' ? '📋 ' + (t('assignment') || 'Assignment') :
+                   type === 'homework' ? '📚 ' + (t('homework') || 'Homework') :
+                   '⭐ ' + (t('optional') || 'Optional')}
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#800020', marginBottom: '0.25rem' }}>
+                  {stats.completed}/{stats.total}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                  {stats.percentage}% {t('completed') || 'Complete'}
+                </div>
+                {/* Progress bar */}
+                <div style={{
+                  marginTop: '0.5rem',
+                  height: '6px',
+                  background: '#e0e0e0',
+                  borderRadius: '3px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${stats.percentage}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #800020, #a00028)',
+                    transition: 'width 0.3s'
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Show message if no progress */}
       {activityCompletedCount === 0 && resourceCompletedCount === 0 ? (
@@ -118,7 +199,7 @@ const ProgressPage = () => {
               <h3 style={{ marginBottom: '0.5rem' }}>Activity: {sub.activityId}</h3>
               <div style={{ marginBottom: '1rem' }}>
                 <span style={{
-                  background: sub.status === 'graded' ? '#667eea' : '#28a745',
+                  background: sub.status === 'graded' ? '#800020' : '#28a745',
                   color: 'white',
                   padding: '4px 8px',
                   borderRadius: '4px',

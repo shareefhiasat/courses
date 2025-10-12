@@ -109,14 +109,14 @@ const Navbar = () => {
               </NavLink>
               {!isAdmin && (
                 <>
-                  <NavLink to="/enrollments" className={({isActive})=>`navbar-item${isActive?' active':''}`} aria-label={t('my_classes') || 'My Classes'}>
-                    <span style={{ fontSize: '1.8rem', display: 'inline-block' }}>🎓</span>
+                  <NavLink to="/enrollments" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
+                    {t('my_classes') || 'Classes'}
                   </NavLink>
                   <NavLink to="/progress" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('my_progress')}</NavLink>
                 </>
               )}
-              <NavLink to="/activities?tab=bookmarks" className={({isActive})=>`navbar-item${isActive?' active':''}`} title={t('bookmarked') || 'Bookmarked'}>
-                ⭐
+              <NavLink to="/activities" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
+                {t('view_activities') || 'Activities'}
               </NavLink>
               <NavLink to="/chat" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('chat')}</NavLink>
               <NavLink to="/leaderboard" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('leaderboard')}</NavLink>

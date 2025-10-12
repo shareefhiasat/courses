@@ -17,7 +17,7 @@ const LoginPage = () => {
   return (
     <div className="login-page">
       <div style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #800020 0%, #600018 100%)',
         minHeight: '40vh',
         display: 'flex',
         alignItems: 'center',

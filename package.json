@@ -1,7 +1,7 @@
 {
   "name": "cs-learning-hub",
   "version": "1.0.0",
-  "description": "Computer Science Learning Hub - React + Firebase",
+  "description": "Learning Hub",
   "scripts": {
     "dev": "cd client && npm run dev",
     "dev:prod": "cd client && npm run dev",

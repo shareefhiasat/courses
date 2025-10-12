@@ -31,7 +31,7 @@ const getFirebaseErrorMessage = (error) => {
   }
   
   if (errorString.includes('weak-password')) {
-    return '🔒 Password is too weak. Please use at least 6 characters.';
+    return '🔒 Password must be at least 6 characters.';
   }
   
   if (errorString.includes('invalid-email')) {
@@ -85,10 +85,9 @@ const AuthForm = () => {
           return;
         }
         
-        // Validate password strength
-        const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-        if (!passwordRegex.test(password)) {
-          setError('Password must be at least 8 characters with 1 number and 1 special character (!@#$%^&*)');
+        // Validate password strength (minimum 6 characters)
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters');
           setLoading(false);
           return;
         }
@@ -220,8 +219,39 @@ const AuthForm = () => {
                 className="form-input"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 name="password"
+                minLength={6}
               />
             </div>
+          )}
+
+          {mode === 'signup' && (
+            <>
+              <div className="form-group">
+                <input
+                  type="password"
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="form-input"
+                  autoComplete="new-password"
+                  name="confirm-password"
+                  minLength={6}
+                />
+              </div>
+              <div style={{ 
+                fontSize: '0.85rem', 
+                color: '#666', 
+                marginTop: '-8px', 
+                marginBottom: '12px',
+                padding: '8px 12px',
+                background: '#f0f8ff',
+                borderRadius: '6px',
+                border: '1px solid #d0e8ff'
+              }}>
+                💡 Password must be at least 6 characters
+              </div>
+            </>
           )}
 
           {mode === 'signup' && (
@@ -265,35 +295,6 @@ const AuthForm = () => {
             </div>
           )}
 
-          {mode === 'signup' && (
-            <>
-              <div className="form-group">
-                <input
-                  type="password"
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="form-input"
-                  autoComplete="new-password"
-                  name="confirm-password"
-                />
-              </div>
-              <div style={{ 
-                fontSize: '0.85rem', 
-                color: '#666', 
-                marginTop: '-8px', 
-                marginBottom: '12px',
-                padding: '8px 12px',
-                background: '#f0f8ff',
-                borderRadius: '6px',
-                border: '1px solid #d0e8ff'
-              }}>
-                💡 Password must be at least 8 characters with 1 number and 1 special character (!@#$%^&*)
-              </div>
-            </>
-          )}
-
           {mode === 'login' && (
             <div className="form-group" style={{ marginTop: '8px', marginBottom: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -303,7 +304,7 @@ const AuthForm = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   style={{ cursor: 'pointer' }}
                 />
-                <span>Remember me for 30 days</span>
+                <span>Remember me</span>
               </label>
             </div>
           )}
@@ -313,7 +314,7 @@ const AuthForm = () => {
             className="auth-button"
             disabled={loading}
             style={{
-              background: loading ? '#ccc' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: loading ? '#ccc' : 'linear-gradient(135deg, #800020 0%, #600018 100%)',
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >

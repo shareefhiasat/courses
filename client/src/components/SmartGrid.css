@@ -38,8 +38,8 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #800020;
+  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
 }
 
 .export-btn, .add-btn {
@@ -63,13 +63,13 @@
 }
 
 .add-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #800020, #600018);
   color: white;
 }
 
 .add-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(128, 0, 32, 0.3);
 }
 
 .smart-grid-table-container {

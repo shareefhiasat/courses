@@ -90,12 +90,19 @@ const NotificationBell = () => {
             });
             note.onclick = () => {
               window.focus();
-              // Navigate to chat destination
-              let dest = 'global';
-              if (latest.data?.classId) dest = latest.data.classId;
-              if (latest.data?.roomId) dest = `dm:${latest.data.roomId}`;
-              const msgId = latest.data?.messageId;
-              const url = msgId ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${msgId}` : `/chat?dest=${encodeURIComponent(dest)}`;
+              // Navigate based on notification type
+              let url = '/';
+              if (latest.type === 'activity' || latest.type === 'grade' || latest.type === 'submission') {
+                url = '/activities';
+              } else if (latest.type === 'message' || latest.data?.messageId || latest.data?.roomId) {
+                let dest = 'global';
+                if (latest.data?.classId) dest = latest.data.classId;
+                if (latest.data?.roomId) dest = `dm:${latest.data.roomId}`;
+                const msgId = latest.data?.messageId;
+                url = msgId ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${msgId}` : `/chat?dest=${encodeURIComponent(dest)}`;
+              } else if (latest.type === 'announcement') {
+                url = '/';
+              }
               try { window.history.pushState({}, '', url); } catch {}
               try { window.dispatchEvent(new Event('popstate')); } catch {}
             };
@@ -165,18 +172,30 @@ const NotificationBell = () => {
   };
 
   const gotoFromNotification = (n) => {
-    // Build destination query
-    let dest = 'global';
-    if (n.data?.classId) dest = n.data.classId; // class id
-    if (n.data?.roomId) dest = `dm:${n.data.roomId}`;
+    // Route based on notification type
+    if (n.type === 'activity' || n.type === 'grade' || n.type === 'submission') {
+      // Activity-related notifications go to activities page
+      navigate('/activities');
+    } else if (n.type === 'message' || n.data?.messageId || n.data?.roomId) {
+      // Message notifications go to chat
+      let dest = 'global';
+      if (n.data?.classId) dest = n.data.classId;
+      if (n.data?.roomId) dest = `dm:${n.data.roomId}`;
+      
+      const msgId = n.data?.messageId;
+      const url = msgId 
+        ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${msgId}`
+        : `/chat?dest=${encodeURIComponent(dest)}`;
+      
+      navigate(url);
+    } else if (n.type === 'announcement') {
+      // Announcements go to home page
+      navigate('/');
+    } else {
+      // Default: go to home
+      navigate('/');
+    }
     
-    // Include message ID if available for highlighting
-    const msgId = n.data?.messageId;
-    const url = msgId 
-      ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${msgId}`
-      : `/chat?dest=${encodeURIComponent(dest)}`;
-    
-    navigate(url);
     setShowDropdown(false);
   };
 
