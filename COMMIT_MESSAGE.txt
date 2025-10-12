@@ -1,0 +1,50 @@
+feat: Add student activity filters, grading details, and progress statistics
+
+## Major Features Added
+
+### 1. Activity Filter Toggles (ActivitiesPage)
+- Added Retake filter (show only retake-allowed activities)
+- Added Grading Status filter (All/Graded/Not Graded)
+- Added Completion filter (show only completed activities)
+- Color-coded filter buttons with icons
+
+### 2. Grading Details in Activity Cards
+- Show submitted date/time (DD/MM/YYYY HH:MM format)
+- Show graded date/time when applicable
+- Display score as X/MaxScore format
+- Show instructor feedback
+- Visual indicators: green for graded, orange for pending
+- Added link to view activity details from grading page
+
+### 3. Class Progress Statistics (ProgressPage)
+- Activity type breakdown (Quiz/Training/Assignment/Homework/Optional)
+- Show X/Y completed with percentage for each type
+- Progress bars for visual representation
+- Only displays types that have activities
+
+### 4. Bug Fixes
+- Fixed duplicate keys in LangContext (removed 9 duplicates)
+- Fixed "Unknown Activity" display in grading page
+- Added activity detail link with ID for debugging
+- Removed redundant Activities page header
+- Standardized all dates to DD/MM/YYYY format
+
+### 5. Email Notifications
+- Students receive email when graded (if enabled in activity settings)
+- Email includes: score, feedback, activity title, date/time
+- Added gradedAt and gradedBy timestamps to submissions
+
+## Translations Added
+- EN + AR translations for: retake, retake_allowed, grading_status, completion, not_graded, graded_on, score, activity_breakdown, view_activity
+
+## Files Modified
+- client/src/pages/ActivitiesPage.jsx
+- client/src/pages/ProgressPage.jsx
+- client/src/pages/StudentProgressPage.jsx
+- client/src/contexts/LangContext.jsx
+
+## Impact
+- Better student experience with detailed grading information
+- Advanced filtering for activity management
+- Clear progress tracking by activity type
+- Improved instructor workflow with activity links

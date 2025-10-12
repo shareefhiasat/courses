@@ -157,19 +157,6 @@ const ActivitiesPage = () => {
 
   return (
     <div className="activities-page">
-      {/* Header */}
-      <div className="page-header" style={{ 
-        background: 'linear-gradient(135deg, #800020, #600018)',
-        padding: '1.25rem 1.5rem',
-        color: 'white',
-        textAlign: 'left',
-        marginBottom: '1rem',
-        borderRadius: 12
-      }}>
-        <h1 style={{ margin: 0, fontSize: '1.4rem' }}>{t('activities')}</h1>
-        {/* subtitle removed to save space */}
-      </div>
-
       {/* Filters */}
       <div className="filters-section" style={{
         background: 'white',

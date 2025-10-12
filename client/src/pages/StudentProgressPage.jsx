@@ -626,6 +626,19 @@ const StudentProgressPage = () => {
               </div>
               <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
                 <strong>ID:</strong> {gradingSubmission.activityId}
+                {(() => {
+                  const activity = activities.find(a => a.docId === gradingSubmission.activityId);
+                  if (activity?.url) {
+                    return (
+                      <span style={{ marginLeft: '0.5rem' }}>
+                        | <a href={activity.url} target="_blank" rel="noopener noreferrer" style={{ color: '#800020', textDecoration: 'underline' }}>
+                          🔗 {t('view_activity') || 'View Activity'}
+                        </a>
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
               
               <div style={{ marginBottom: '0.5rem' }}>
