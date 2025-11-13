@@ -313,7 +313,7 @@ export function onAuthChange(callback) {
   return onAuthStateChanged(auth, callback);
 }
 
-export { auth, db };
+export { auth, db, functions };
 export { storage };
 
 // Activities (Firestore)

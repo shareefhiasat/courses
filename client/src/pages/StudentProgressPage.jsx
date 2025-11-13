@@ -5,9 +5,12 @@ import { getUsers, getClasses, getEnrollments, getActivities, getSubmissions, gr
 import Loading from '../components/Loading';
 import { useLang } from '../contexts/LangContext';
 import { useToast } from '../components/ToastProvider';
+import { addNotification } from '../firebase/notifications';
+import { formatDateTime } from '../utils/date';
+import { BarChart3, User as UserIcon, FileSignature, Pencil, Repeat, Link2, Circle, Hourglass, CheckCircle } from 'lucide-react';
 
 const StudentProgressPage = () => {
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading, impersonateUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,8 +164,17 @@ const StudentProgressPage = () => {
         border: '1px solid #eee',
         textAlign: 'center'
       }}>
-        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>📊 {t('student_progress_overview') || 'Student Progress Overview'}</h1>
-        <p style={{ margin: '0.5rem 0 0', color: '#6b7280' }}>{t('monitor_student_progress') || 'Monitor all student progress and performance'}</p>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}><span style={{ display:'inline-flex', verticalAlign:'middle', marginRight:6 }}><BarChart3 size={18} /></span>{t('student_progress_overview') || 'Student Progress Overview'}</h1>
+            <p style={{ margin: '0.5rem 0 0', color: '#6b7280' }}>{t('monitor_student_progress') || 'Monitor all student progress and performance'}</p>
+          </div>
+          <a href="/activities" style={{
+            padding:'0.6rem 1rem', background:'linear-gradient(135deg,#800020,#600018)', color:'#fff', textDecoration:'none', borderRadius:8, fontWeight:700, whiteSpace:'nowrap'
+          }}>
+            + {t('add_homework') || 'Add Homework'}
+          </a>
+        </div>
         <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             type="text"
@@ -351,7 +363,10 @@ const StudentProgressPage = () => {
             whiteSpace: 'nowrap'
           }}
         >
-          📊 Overview
+          <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+            <BarChart3 size={16} />
+            Overview
+          </span>
         </button>
         {selectedStudent && (
           <button
@@ -368,7 +383,10 @@ const StudentProgressPage = () => {
               whiteSpace: 'nowrap'
             }}
           >
-            👤 {selectedStudent.displayName || selectedStudent.email}
+            <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+              <UserIcon size={16} />
+              {selectedStudent.displayName || selectedStudent.email}
+            </span>
           </button>
         )}
         {gradingSubmission && (
@@ -386,7 +404,10 @@ const StudentProgressPage = () => {
               whiteSpace: 'nowrap'
             }}
           >
-            📝 Grade
+            <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+              <FileSignature size={16} />
+              {t('grade') || 'Grade'}
+            </span>
           </button>
         )}
       </div>
@@ -449,6 +470,36 @@ const StudentProgressPage = () => {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      {/* Impersonate Button */}
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const result = await impersonateUser(student.docId || student.id);
+                          if (result.success) {
+                            toast?.showSuccess(t('impersonation_started') || 'Now viewing as student');
+                            window.location.href = '/';
+                          } else {
+                            toast?.showError(result.error || 'Failed to impersonate');
+                          }
+                        }}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: '#ff9800',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}
+                        title={t('impersonate_student') || 'View as Student'}
+                      >
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><UserIcon size={14} /> {t('view_as') || 'View'}</span>
+                      </button>
+                      
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '0.75rem', color: '#666' }}>Completed</div>
                         <div style={{ fontWeight: '600', color: '#28a745', fontSize: '0.9rem' }}>
@@ -506,6 +557,18 @@ const StudentProgressPage = () => {
               </select>
             </div>
             <div style={{ overflowX: 'auto' }}>
+              {/* Legend for status icons */}
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', margin: '0.5rem 0 0.75rem 0', color: '#666', fontSize: '0.8rem' }}>
+                <span title={t('not_started') || 'Not started'} style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                  <Circle size={14} /> {t('not_started') || 'Not started'}
+                </span>
+                <span title={t('pending') || 'Pending'} style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                  <Hourglass size={14} /> {t('pending') || 'Pending'}
+                </span>
+                <span title={t('graded') || 'Graded'} style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                  <CheckCircle size={14} /> {t('graded') || 'Graded'}
+                </span>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid #eee' }}>
@@ -535,7 +598,7 @@ const StudentProgressPage = () => {
                                 borderRadius: '4px',
                                 fontWeight: '600'
                               }}>
-                                🔄
+                                <span style={{ display:'inline-flex' }} title={t('allow_retakes') || 'Allow retakes'}><Repeat size={12} /></span>
                               </span>
                             )}
                           </div>
@@ -543,13 +606,13 @@ const StudentProgressPage = () => {
                         </td>
                         <td style={{ padding: '0.5rem', textAlign: 'center' }}>
                           {status === 'not_started' && (
-                            <span style={{ color: '#999', fontSize: '0.8rem' }}>⭕</span>
+                            <span title={t('not_started') || 'Not started'} style={{ color: '#999', fontSize: '0.8rem', display:'inline-flex' }}><Circle size={16} /></span>
                           )}
                           {status === 'pending' && (
-                            <span style={{ color: '#ffc107', fontSize: '0.8rem', fontWeight: '600' }}>⏳</span>
+                            <span title={t('pending') || 'Pending'} style={{ color: '#ffc107', fontSize: '0.8rem', fontWeight: '600', display:'inline-flex' }}><Hourglass size={16} /></span>
                           )}
                           {status === 'graded' && (
-                            <span style={{ color: '#28a745', fontSize: '0.8rem', fontWeight: '600' }}>✅</span>
+                            <span title={t('graded') || 'Graded'} style={{ color: '#28a745', fontSize: '0.8rem', fontWeight: '600', display:'inline-flex' }}><CheckCircle size={16} /></span>
                           )}
                         </td>
                         <td style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 600, color: '#800020', fontSize: '0.85rem' }}>
@@ -557,9 +620,9 @@ const StudentProgressPage = () => {
                             <span>{submission.score || 0}/{activity.maxScore || 100}</span>
                           ) : '—'}
                         </td>
-                        <td style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem' }}>
+                        <td style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                           {submission ? (
-                            new Date(submission.submittedAt?.seconds ? submission.submittedAt.seconds * 1000 : submission.submittedAt).toLocaleDateString('en-GB')
+                            formatDateTime(submission.submittedAt)
                           ) : '—'}
                         </td>
                         <td style={{ padding: '0.5rem', textAlign: 'center' }}>
@@ -580,8 +643,9 @@ const StudentProgressPage = () => {
                                 fontSize: '0.75rem',
                                 fontWeight: '600'
                               }}
+                            title={t('grade_submission') || 'Grade submission'}
                             >
-                              📝
+                              <span style={{ display:'inline-flex' }}><FileSignature size={14} /></span>
                             </button>
                           )}
                           {submission && submission.status === 'graded' && (
@@ -600,8 +664,9 @@ const StudentProgressPage = () => {
                                 cursor: 'pointer',
                                 fontSize: '0.75rem'
                               }}
+                            title={t('edit_grade') || 'Edit grade'}
                             >
-                              ✏️
+                              <span style={{ display:'inline-flex' }}><Pencil size={14} /></span>
                             </button>
                           )}
                         </td>
@@ -622,7 +687,13 @@ const StudentProgressPage = () => {
             <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f8f9fa', borderRadius: '8px' }}>
               <div style={{ marginBottom: '0.5rem' }}>
                 <strong>{t('activity') || 'Activity'}:</strong>{' '}
-                {activities.find(a => a.docId === gradingSubmission.activityId)?.titleEn || activities.find(a => a.docId === gradingSubmission.activityId)?.title || gradingSubmission.activityTitle || 'Unknown Activity'}
+                {(() => {
+                  const activity = activities.find(a => a.docId === gradingSubmission.activityId);
+                  if (activity) {
+                    return activity.titleEn || activity.title || gradingSubmission.activityTitle || gradingSubmission.activityId;
+                  }
+                  return gradingSubmission.activityTitle || gradingSubmission.activityId || 'Unknown Activity';
+                })()}
               </div>
               <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
                 <strong>ID:</strong> {gradingSubmission.activityId}
@@ -630,10 +701,13 @@ const StudentProgressPage = () => {
                   const activity = activities.find(a => a.docId === gradingSubmission.activityId);
                   if (activity?.url) {
                     return (
-                      <span style={{ marginLeft: '0.5rem' }}>
-                        | <a href={activity.url} target="_blank" rel="noopener noreferrer" style={{ color: '#800020', textDecoration: 'underline' }}>
-                          🔗 {t('view_activity') || 'View Activity'}
+                      <span style={{ marginLeft: '0.5rem', display:'inline-flex', alignItems:'center', gap:8 }}>
+                        | <a href={activity.url} style={{ color: '#800020', textDecoration: 'underline', display:'inline-flex', alignItems:'center', gap:6 }}>
+                          {t('view_activity') || 'View Activity'}
                         </a>
+                        <button title="Open in new tab" onClick={() => window.open(activity.url, '_blank', 'noopener,noreferrer')} style={{ background:'transparent', border:'1px solid #ddd', borderRadius:6, width:28, height:24, display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#800020' }}>
+                          <Link2 size={14} />
+                        </button>
                       </span>
                     );
                   }
@@ -643,7 +717,7 @@ const StudentProgressPage = () => {
               
               <div style={{ marginBottom: '0.5rem' }}>
                 <strong>{t('submitted_at') || 'Submitted'}:</strong>{' '}
-                {new Date(gradingSubmission.submittedAt?.seconds ? gradingSubmission.submittedAt.seconds * 1000 : gradingSubmission.submittedAt).toLocaleString('en-GB')}
+                {formatDateTime(gradingSubmission.submittedAt)}
               </div>
 
               {gradingSubmission.files && gradingSubmission.files.length > 0 && (
@@ -762,7 +836,7 @@ const StudentProgressPage = () => {
                               score,
                               maxScore: activity.maxScore || 100,
                               feedback: gradeForm.feedback,
-                              dateTime: new Date().toLocaleString('en-GB')
+                              dateTime: formatDateTime(new Date())
                             }
                           });
                         } catch (emailError) {
@@ -770,6 +844,17 @@ const StudentProgressPage = () => {
                         }
                       }
                       
+                      // In-app notification to the student
+                      try {
+                        await addNotification({
+                          userId: selectedStudent.docId || selectedStudent.id,
+                          title: t('activity_graded') || 'Activity graded',
+                          message: `${activity?.titleEn || activity?.title || gradingSubmission.activityTitle || ''}: ${score}/${activity?.maxScore || 100}`,
+                          type: 'activity_graded',
+                          data: { activityId: gradingSubmission.activityId, submissionId: gradingSubmission.docId || gradingSubmission.id }
+                        });
+                      } catch {}
+
                       toast?.showSuccess('✅ Submission graded successfully!');
                       setGradingSubmission(null);
                       setGradeForm({ score: '', feedback: '' });

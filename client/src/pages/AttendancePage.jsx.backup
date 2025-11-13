@@ -1,0 +1,259 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LangContext';
+import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '../firebase/attendance';
+import QRCode from 'qrcode';
+import { db } from '../firebase/config';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+
+const AttendancePage = () => {
+  const { user, isAdmin } = useAuth();
+  const { t } = useLang();
+  const [classId, setClassId] = useState(() => {
+    try { return localStorage.getItem('att_instructor_class') || ''; } catch { return ''; }
+  });
+  // Subject removed per spec; we show Class Term/Year instead
+  const [session, setSession] = useState(null);
+  const [sessionId, setSessionId] = useState('');
+  const [token, setToken] = useState('');
+  const qrCanvasRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [list, setList] = useState([]);
+  const [cfg, setCfg] = useState({ rotationSeconds: 30, sessionMinutes: 15, strictDeviceBinding: true });
+  const [savingCfg, setSavingCfg] = useState(false);
+  const [classOptions, setClassOptions] = useState([]);
+  const [err, setErr] = useState('');
+  const selectedClass = useMemo(() => classOptions.find(c => (c.id||c.docId) === classId), [classOptions, classId]);
+
+  // Legacy open sessions list removed for QR-based flow
+
+  // Load classes for dropdown (for all instructors/users who can read classes)
+  useEffect(() => {
+    (async () => {
+      try {
+        const { collection, getDocs } = await import('firebase/firestore');
+        const snap = await getDocs(collection(db, 'classes'));
+        const opts = [];
+        snap.forEach(d => {
+          const data = d.data() || {};
+          // Ensure Firestore data cannot overwrite the document id
+          opts.push({ ...(data), id: d.id, docId: d.id });
+        });
+        console.log('[Attendance] loaded classes', opts.map(o => ({ id: o.id, name: o.name, code: o.code })));
+        setClassOptions(opts);
+        if (!classId && opts.length === 1) setClassId(opts[0].id);
+      } catch {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'config', 'attendance'));
+        if (snap.exists()) setCfg({ rotationSeconds: snap.data().rotationSeconds ?? 30, sessionMinutes: snap.data().sessionMinutes ?? 15, strictDeviceBinding: snap.data().strictDeviceBinding !== false });
+      } catch {}
+    })();
+  }, []);
+
+  const startSession = async () => {
+    if (!user) { setErr('Please sign in'); return; }
+    if (!classId) { setErr('Please select a class'); return; }
+    setLoading(true);
+    try {
+      setErr('');
+      console.log('[Attendance] startSession clicked', { classId, uid: user?.uid });
+      const { id } = await createSession({ classId, createdBy: user.uid });
+      console.log('[Attendance] createSession returned', { id });
+      if (!id) throw new Error('No session id returned from backend');
+      setSession({ id });
+      setSessionId(id);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Listen to live token updates once we have a session
+  useEffect(() => {
+    if (!sessionId) return;
+    const unsub = listenAttendanceSession(sessionId, (s) => {
+      if (!s) return;
+      setToken(s.token || '');
+    });
+    return () => unsub && unsub();
+  }, [sessionId]);
+
+  // Render QR on token change
+  useEffect(() => {
+    const canvas = qrCanvasRef.current;
+    if (!canvas || !token) return;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const payload = `${origin}/my-attendance?sid=${sessionId}&t=${encodeURIComponent(token)}`;
+    QRCode.toCanvas(canvas, payload, { width: 260, errorCorrectionLevel: 'M' }).catch(()=>{});
+  }, [token, sessionId]);
+
+  const endSession = async () => {
+    if (!sessionId) return;
+    setLoading(true);
+    try { await closeAttendanceSession(sessionId); } finally { setLoading(false); }
+  };
+
+  const saveCfg = async () => {
+    setSavingCfg(true);
+    try {
+      await setDoc(doc(db, 'config', 'attendance'), cfg, { merge: true });
+    } finally { setSavingCfg(false); }
+  };
+
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '1rem' }}>
+      <h1 style={{ marginTop: 0 }}>{t('attendance') || 'Attendance'}</h1>
+      {err && (
+        <div style={{ margin: '0.5rem 0 1rem 0', padding:'0.75rem', border:'1px solid #fca5a5', background:'#fef2f2', color:'#991b1b', borderRadius:8 }}>
+          {String(err)}
+        </div>
+      )}
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px,1fr))', gap: 12, marginBottom: 12 }}>
+        <div>
+          <label style={{ fontWeight: 600, display:'block', marginBottom: 6 }}>{t('class') || 'Class'}</label>
+          <div style={{ fontSize:12, color:'var(--muted)' }}>{(t('pick_below')||'Pick a class from the list below').replaceAll('_',' ')}</div>
+          {classOptions.length === 0 && (
+            <div style={{ fontSize:12, color:'var(--muted)', marginTop:6 }}>{(t('no_classes_found')||'No classes found. Create a class first.').replaceAll('_',' ')}</div>
+          )}
+          {selectedClass && (
+            <div style={{ display:'flex', gap:8, marginTop:6, fontSize:12, color:'var(--muted)' }}>
+              <span style={{ padding:'2px 6px', border:'1px solid var(--border)', borderRadius:6, background:'var(--panel)' }}>{(t('term')||'Term').replaceAll('_',' ')}: {selectedClass.term || '—'}</span>
+              <span style={{ padding:'2px 6px', border:'1px solid var(--border)', borderRadius:6, background:'var(--panel)' }}>{(t('year')||'Year').replaceAll('_',' ')}: {selectedClass.year || '—'}</span>
+            </div>
+          )}
+        </div>
+        <div style={{ alignSelf:'end', display:'flex', gap:8, flexWrap:'wrap' }}>
+          <div style={{ alignSelf:'center', fontSize:12, color:'var(--muted)' }}>
+            {(t('selected')||'Selected').replaceAll('_',' ')}: {classId || '—'} · {(t('classes')||'classes').replaceAll('_',' ')}: {classOptions.length}
+          </div>
+          {(!classId && classOptions.length>0) && (
+            <button onClick={()=>{ const v = classOptions[0]?.id || classOptions[0]?.docId || ''; if (v){ setClassId(v); try { localStorage.setItem('att_instructor_class', v); } catch {} } }} style={{ padding:'0.4rem 0.75rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff' }}>
+              {(t('use_first_class')||'Use first class').replaceAll('_',' ')}
+            </button>
+          )}
+          <button onClick={async()=>{
+            try { await startSession(); }
+            catch(e){ setErr(e?.message || 'Failed to start session'); }
+          }} disabled={!classId || loading} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#667eea', color:'white', fontWeight:600 }}>
+            {loading ? (t('starting') || 'Starting...') : (t('start_session') || 'Start Session')}
+          </button>
+          {sessionId && (
+            <button onClick={endSession} disabled={loading} style={{ padding:'0.6rem 1rem', border:'1px solid rgba(0,0,0,0.1)', borderRadius:8, background:'transparent', color:'inherit', fontWeight:600 }}>
+              {t('end_session') || 'End Session'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {classOptions.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize:12, color:'var(--muted)', marginBottom:6 }}>{(t('or_pick_below') || 'Or pick below').replaceAll('_',' ')}</div>
+          <div style={{ display:'grid', gap:6 }}>
+            {classOptions.map(c => {
+              const val = c.id || c.docId || '';
+              const label = c.name || c.code || val || '—';
+              const checked = classId === val;
+              return (
+                <label key={`alt-${val||label}`} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, background: checked ? 'rgba(102,126,234,0.08)' : 'transparent' }} onClick={()=>{ const v = val; setClassId(v); try { localStorage.setItem('att_instructor_class', v); } catch {}; console.log('[Attendance] class selected (click)', v); }}>
+                  <input type="radio" name="classAlt" value={val} checked={checked} onChange={(e)=>{ const v = e.target.value; setClassId(v); try { localStorage.setItem('att_instructor_class', v); } catch {}; console.log('[Attendance] class selected (change)', v); }} />
+                  <span>{label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {list.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>{t('open_sessions') || 'Open Sessions'}</div>
+          <ul style={{ margin: 0, paddingLeft: 16 }}>
+            {list.map(s => (
+              <li key={s.id}>{s.id} · {s.subjectId || '—'} · {s.status}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Admin Settings */}
+      {isAdmin && (
+        <div style={{ marginBottom: 16, padding:'1rem', background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>{t('attendance_settings') || 'Attendance Settings'}</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px,1fr))', gap: 12 }}>
+            <div>
+              <label style={{ display:'block', marginBottom: 6, fontWeight: 600 }}>{t('rotation_seconds') || 'Rotation (seconds)'}</label>
+              <input type="number" min={10} max={120} value={cfg.rotationSeconds}
+                onChange={(e)=>setCfg(v=>({ ...v, rotationSeconds: Math.max(10, Math.min(120, parseInt(e.target.value||'30',10))) }))}
+                style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }} />
+            </div>
+            <div>
+              <label style={{ display:'block', marginBottom: 6, fontWeight: 600 }}>{t('session_minutes') || 'Session (minutes)'}</label>
+              <input type="number" min={5} max={120} value={cfg.sessionMinutes}
+                onChange={(e)=>setCfg(v=>({ ...v, sessionMinutes: Math.max(5, Math.min(120, parseInt(e.target.value||'15',10))) }))}
+                style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }} />
+            </div>
+            <div style={{ alignSelf:'end' }}>
+              <label style={{ display:'block', marginBottom: 6, fontWeight: 600 }}>{t('strict_device_binding') || 'Strict device binding'}</label>
+              <button onClick={()=>setCfg(v=>({ ...v, strictDeviceBinding: !v.strictDeviceBinding }))} style={{ padding:'0.6rem 1rem', border:'1px solid var(--border)', borderRadius:8, background: cfg.strictDeviceBinding ? 'rgba(16,185,129,0.15)' : 'transparent', color:'inherit' }}>
+                {cfg.strictDeviceBinding ? (t('enabled')||'Enabled') : (t('disabled')||'Disabled')}
+              </button>
+            </div>
+            <div style={{ alignSelf:'end' }}>
+              <button onClick={saveCfg} disabled={savingCfg} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#667eea', color:'white', fontWeight:600 }}>
+                {savingCfg ? (t('saving')||'Saving...') : (t('save_settings')||'Save Settings')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:16, alignItems:'center', padding:'1rem', background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12 }}>
+        <div>
+          <canvas ref={qrCanvasRef} width={260} height={260} style={{ borderRadius: 8, background:'#fff' }} />
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>{(t('live_qr') || 'Live QR').replaceAll('_',' ')}</div>
+          {!sessionId && <div style={{ fontSize: 12, color:'var(--muted)' }}>{(t('no_active_session') || 'No active session.').replaceAll('_',' ')}</div>}
+          {sessionId && (
+            <>
+              <div style={{ fontSize: 12, color:'var(--muted)', wordBreak:'break-all' }}>{(t('token_rotates_every_30s') || 'Token rotates every ~30s (admin-configurable).').replaceAll('_',' ')}</div>
+              <div style={{ marginTop:8, padding:'0.5rem 0.75rem', background:'rgba(0,0,0,0.04)', borderRadius:8, fontFamily:'monospace', fontSize:12, color:'var(--muted)' }}>{token ? token.slice(0,64)+'…' : ((t('waiting_token')||'Waiting for token...').replaceAll('_',' '))}</div>
+              {!token && (
+                <div style={{ marginTop:8, fontSize:12, color:'#b45309' }}>
+                  {(t('waiting_for_backend')||'If this stays empty, deploy Cloud Functions and set ATTENDANCE_SECRET.').replaceAll('_',' ')}
+                </div>
+              )}
+              <div style={{ marginTop:10, display:'flex', gap:8, flexWrap:'wrap' }}>
+                <button onClick={() => {
+                  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                  const link = `${origin}/my-attendance?sid=${sessionId}&t=${encodeURIComponent(token||'')}`;
+                  navigator.clipboard && navigator.clipboard.writeText(link).catch(()=>{});
+                }} style={{ padding:'0.5rem 0.75rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff' }}>{(t('copy_student_link')||'Copy student link').replaceAll('_',' ')}</button>
+                <button onClick={async()=>{
+                  try {
+                    const snap = await getDocs(collection(db, 'attendanceSessions', sessionId, 'marks'));
+                    const rows = snap.docs.map(d => ({ uid: d.id, ...(d.data()||{}) }));
+                    const headers = ['uid','status','deviceHash','at'];
+                    const csvRows = rows.map(r => [r.uid, r.status||'', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB')]);
+                    const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+                    a.href = url; a.download = `attendance_session_${sessionId}.csv`; a.click();
+                    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+                  } catch(e) { setErr(e?.message || 'Export failed'); }
+                }} style={{ padding:'0.5rem 0.75rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff' }}>{(t('export_session_csv')||'Export session CSV').replaceAll('_',' ')}</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AttendancePage;

@@ -2,13 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { getActivities } from '../firebase/firestore';
+import { getActivities, getStudentPoints } from '../firebase/firestore';
 import { db } from '../firebase/config';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { submitActivity, getUserSubmissions, canRetakeActivity } from '../firebase/submissions';
 import Loading from '../components/Loading';
 import { useToast } from '../components/ToastProvider';
 import './HomePage.css';
+import { CheckCircle, Hourglass, CalendarDays, Repeat, Star, StarOff, Pin, Award, MessageSquareText } from 'lucide-react';
+import { addNotification } from '../firebase/notifications';
+import { sendEmail } from '../firebase/firestore';
+import { formatDateTime } from '../utils/date';
 
 const ActivitiesPage = () => {
   const { user, isAdmin } = useAuth();
@@ -28,14 +32,48 @@ const ActivitiesPage = () => {
   const [completedFilter, setCompletedFilter] = useState(false);
   const [bookmarks, setBookmarks] = useState({}); // { [activityId]: true }
   const [enrolledClasses, setEnrolledClasses] = useState([]);
+  const [activityMedals, setActivityMedals] = useState({}); // { [activityId]: [{medal, points}] }
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
 
   useEffect(() => {
     fetchActivities();
     if (user) {
       fetchUserSubmissions();
       loadBookmarks();
+      loadActivityMedals();
     }
   }, [user]);
+
+  const loadActivityMedals = async () => {
+    if (!user) return;
+    try {
+      // Get all points for this student
+      const q = query(
+        collection(db, 'points'),
+        where('studentId', '==', user.uid)
+      );
+      const snapshot = await getDocs(q);
+      
+      const medalsByActivity = {};
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.activityId) {
+          if (!medalsByActivity[data.activityId]) {
+            medalsByActivity[data.activityId] = [];
+          }
+          medalsByActivity[data.activityId].push({
+            category: data.category,
+            points: data.points,
+            timestamp: data.timestamp
+          });
+        }
+      });
+      
+      setActivityMedals(medalsByActivity);
+    } catch (error) {
+      console.error('Error loading activity medals:', error);
+    }
+  };
 
   // Deep-link: tab=bookmarks sets bookmark filter initially
   useEffect(() => {
@@ -121,6 +159,33 @@ const ActivitiesPage = () => {
 
       if (result.success) {
         toast?.showSuccess(result.message || 'Activity marked as complete!');
+        // In-app notification to the student
+        try {
+          await addNotification({
+            userId: user.uid,
+            title: (t('activity_completed') || 'Activity completed'),
+            message: `${activity.title_en || activity.title_ar || activity.id}`,
+            type: 'activity_complete',
+            data: { activityId }
+          });
+        } catch {}
+        // Email confirmation to the student
+        try {
+          if (user.email) {
+            const html = `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #800020;">✅ ${(t('activity_completed') || 'Activity completed')}</h2>
+                <p style="margin:0.5rem 0 0.25rem 0;"><strong>${t('activity') || 'Activity'}:</strong> ${activity.title_en || activity.title_ar || activity.id}</p>
+                <p style="margin:0.25rem 0;"><strong>${t('submitted_at') || 'Submitted'}:</strong> ${formatDateTime(new Date())}</p>
+              </div>`;
+            await sendEmail({
+              to: [user.email],
+              subject: `Completed: ${activity.title_en || activity.title_ar || activity.id}`,
+              html,
+              type: 'activity_complete'
+            });
+          }
+        } catch {}
         await fetchUserSubmissions();
       } else {
         toast?.showError(result.error || 'Failed to submit activity');
@@ -136,7 +201,7 @@ const ActivitiesPage = () => {
     const submission = submissions[activityId];
     
     const typeMatch = typeFilter === 'all' || activity.type === typeFilter;
-    const levelMatch = levelFilter === 'all' || activity.level === levelFilter;
+    const levelMatch = levelFilter === 'all' || (activity.level || 'beginner') === levelFilter;
     const bookmarkMatch = !bookmarkFilter || !!bookmarks[activityId];
     const featuredMatch = !featuredFilter || !!activity.featured;
     const enrolledGate = !activity.classId || (enrolledClasses || []).includes(activity.classId);
@@ -156,22 +221,19 @@ const ActivitiesPage = () => {
   if (loading) return <Loading />;
 
   return (
-    <div className="activities-page">
+    <div className="activities-page" style={{ padding: '1rem 1.25rem' }}>
       {/* Filters */}
       <div className="filters-section" style={{
         background: 'white',
-        padding: '1.5rem',
+        padding: '1rem 1.5rem',
         borderRadius: '12px',
         marginBottom: '2rem',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
-        <div className="filter-group" style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              📝 {t('type')}
-            </label>
-            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
+        <div className="filter-group" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#666', whiteSpace: 'nowrap', display:'inline-flex', alignItems:'center', gap:6 }}><MessageSquareText size={14}/> {t('type')}:</span>
+              <button type="button"
                 onClick={() => setTypeFilter('all')}
                 className={`filter-pill ${typeFilter === 'all' ? 'active' : ''}`}
                 style={{
@@ -186,7 +248,7 @@ const ActivitiesPage = () => {
               >
                 {t('all_types')}
               </button>
-              <button 
+              <button type="button"
                 onClick={() => setTypeFilter('training')}
                 className={`filter-pill ${typeFilter === 'training' ? 'active' : ''}`}
                 style={{
@@ -200,7 +262,7 @@ const ActivitiesPage = () => {
               >
                 {t('training')}
               </button>
-              <button 
+              <button type="button"
                 onClick={() => setTypeFilter('homework')}
                 className={`filter-pill ${typeFilter === 'homework' ? 'active' : ''}`}
                 style={{
@@ -214,7 +276,7 @@ const ActivitiesPage = () => {
               >
                 {t('homework')}
               </button>
-              <button 
+              <button type="button"
                 onClick={() => setTypeFilter('quiz')}
                 className={`filter-pill ${typeFilter === 'quiz' ? 'active' : ''}`}
                 style={{
@@ -228,15 +290,11 @@ const ActivitiesPage = () => {
               >
                 {t('quiz')}
               </button>
-            </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              🎯 {t('level')}
-            </label>
-            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#666', whiteSpace: 'nowrap', display:'inline-flex', alignItems:'center', gap:6 }}><Award size={14}/> {t('level')}:</span>
+              <button type="button"
                 onClick={() => setLevelFilter('all')}
                 className={`filter-pill ${levelFilter === 'all' ? 'active' : ''}`}
                 style={{
@@ -250,7 +308,7 @@ const ActivitiesPage = () => {
               >
                 {t('all_levels')}
               </button>
-              <button 
+              <button type="button"
                 onClick={() => setLevelFilter('beginner')}
                 className={`filter-pill ${levelFilter === 'beginner' ? 'active' : ''}`}
                 style={{
@@ -264,7 +322,7 @@ const ActivitiesPage = () => {
               >
                 {t('beginner')}
               </button>
-              <button 
+              <button type="button"
                 onClick={() => setLevelFilter('intermediate')}
                 className={`filter-pill ${levelFilter === 'intermediate' ? 'active' : ''}`}
                 style={{
@@ -278,7 +336,7 @@ const ActivitiesPage = () => {
               >
                 {t('intermediate')}
               </button>
-              <button 
+              <button type="button"
                 onClick={() => setLevelFilter('advanced')}
                 className={`filter-pill ${levelFilter === 'advanced' ? 'active' : ''}`}
                 style={{
@@ -292,15 +350,11 @@ const ActivitiesPage = () => {
               >
                 {t('advanced')}
               </button>
-            </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              ⭐ {t('bookmarked')}
-            </label>
-            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#666', whiteSpace: 'nowrap', display:'inline-flex' }}><Star size={14} /></span>
+              <button type="button"
                 onClick={() => setBookmarkFilter(!bookmarkFilter)}
                 className={`filter-pill ${bookmarkFilter ? 'active' : ''}`}
                 style={{
@@ -314,15 +368,11 @@ const ActivitiesPage = () => {
               >
                 {bookmarkFilter ? t('bookmarked') : t('all')}
               </button>
-            </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              📌 {t('featured') || 'Featured'}
-            </label>
-            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#666', whiteSpace: 'nowrap', display:'inline-flex' }}><Pin size={14} /></span>
+              <button type="button"
                 onClick={() => setFeaturedFilter(!featuredFilter)}
                 className={`filter-pill ${featuredFilter ? 'active' : ''}`}
                 style={{
@@ -336,16 +386,12 @@ const ActivitiesPage = () => {
               >
                 {featuredFilter ? (t('featured') || 'Featured') : t('all')}
               </button>
-            </div>
           </div>
 
           {/* New Filters */}
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              🔄 {t('retake') || 'Retake'}
-            </label>
-            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#666', whiteSpace: 'nowrap', display:'inline-flex' }}><Repeat size={14} /></span>
+              <button type="button"
                 onClick={() => setRetakeFilter(!retakeFilter)}
                 className={`filter-pill ${retakeFilter ? 'active' : ''}`}
                 style={{
@@ -359,15 +405,11 @@ const ActivitiesPage = () => {
               >
                 {retakeFilter ? (t('retake_allowed') || 'Retake Allowed') : t('all')}
               </button>
-            </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              ✅ {t('grading_status') || 'Grading'}
-            </label>
-            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#666', whiteSpace: 'nowrap', display:'inline-flex' }}><CheckCircle size={14} /></span>
+              <button type="button"
                 onClick={() => setGradedFilter('all')}
                 className={`filter-pill ${gradedFilter === 'all' ? 'active' : ''}`}
                 style={{
@@ -381,7 +423,7 @@ const ActivitiesPage = () => {
               >
                 {t('all')}
               </button>
-              <button 
+              <button type="button"
                 onClick={() => setGradedFilter('graded')}
                 className={`filter-pill ${gradedFilter === 'graded' ? 'active' : ''}`}
                 style={{
@@ -395,7 +437,7 @@ const ActivitiesPage = () => {
               >
                 {t('graded') || 'Graded'}
               </button>
-              <button 
+              <button type="button"
                 onClick={() => setGradedFilter('not_graded')}
                 className={`filter-pill ${gradedFilter === 'not_graded' ? 'active' : ''}`}
                 style={{
@@ -409,15 +451,11 @@ const ActivitiesPage = () => {
               >
                 {t('not_graded') || 'Not Graded'}
               </button>
-            </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-              ✔️ {t('completion') || 'Completion'}
-            </label>
-            <div className="filter-pills" style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#666', whiteSpace: 'nowrap' }}>✔️</span>
+              <button type="button"
                 onClick={() => setCompletedFilter(!completedFilter)}
                 className={`filter-pill ${completedFilter ? 'active' : ''}`}
                 style={{
@@ -431,7 +469,11 @@ const ActivitiesPage = () => {
               >
                 {completedFilter ? (t('completed') || 'Completed Only') : t('all')}
               </button>
-            </div>
+          </div>
+          {/* View toggle */}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <button type="button" onClick={()=>setViewMode('grid')} className={`filter-pill ${viewMode==='grid'?'active':''}`} style={{ padding:'0.5rem 0.75rem', borderRadius: 8, border:'none', background: viewMode==='grid' ? '#800020' : '#f0f0f0', color: viewMode==='grid' ? 'white' : '#666' }}>Grid</button>
+            <button type="button" onClick={()=>setViewMode('list')} className={`filter-pill ${viewMode==='list'?'active':''}`} style={{ padding:'0.5rem 0.75rem', borderRadius: 8, border:'none', background: viewMode==='list' ? '#800020' : '#f0f0f0', color: viewMode==='list' ? 'white' : '#666' }}>List</button>
           </div>
         </div>
       </div>
@@ -444,7 +486,7 @@ const ActivitiesPage = () => {
       ) : (
         <div className="activities-grid" style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+          gridTemplateColumns: viewMode==='grid' ? 'repeat(auto-fill, minmax(350px, 1fr))' : '1fr',
           gap: '1.5rem'
         }}>
           {filteredActivities.map(activity => {
@@ -458,7 +500,7 @@ const ActivitiesPage = () => {
               <div key={activity.id} className="activity-card" style={{
                 background: 'white',
                 borderRadius: '12px',
-                padding: '1.5rem',
+                padding: '1.25rem',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 transition: 'transform 0.3s',
                 cursor: 'pointer',
@@ -479,6 +521,11 @@ const ActivitiesPage = () => {
                         if (next[activityId]) delete next[activityId]; else next[activityId] = true;
                         setBookmarks(next);
                         await setDoc(doc(db, 'users', user.uid), { bookmarks: { activities: next } }, { merge: true });
+                        // Send in-app notification and email on activity completion
+                        if (isCompleted) {
+                          sendNotification(t('activity_completed'), t('activity_completed_message'));
+                          sendEmail(t('activity_completed_email_subject'), t('activity_completed_email_body'));
+                        }
                       } catch {}
                     }}
                     aria-label={isBookmarked ? t('remove_bookmark') : t('add_bookmark')}
@@ -491,7 +538,7 @@ const ActivitiesPage = () => {
                       boxShadow: '0 2px 6px rgba(0,0,0,0.06)', cursor: 'pointer', color: isBookmarked ? '#f5c518' : '#bbb'
                     }}
                   >
-                    ★
+                    {isBookmarked ? <Star size={18} /> : <StarOff size={18} />}
                   </button>
                 )}
                 {/* Activity Header */}
@@ -507,7 +554,7 @@ const ActivitiesPage = () => {
                         borderRadius: '6px',
                         fontWeight: '600'
                       }}>
-                        🔄 Retake Allowed
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Repeat size={14} /> {t('retake_allowed') || 'Retake Allowed'}</span>
                       </span>
                     )}
                   </h3>
@@ -552,6 +599,28 @@ const ActivitiesPage = () => {
                       {t('optional')}
                     </span>
                   )}
+                  
+                  {/* Show medals earned for this activity */}
+                  {activityMedals[activityId] && activityMedals[activityId].length > 0 && (
+                    <>
+                      {activityMedals[activityId].map((medal, idx) => (
+                        <span key={idx} style={{
+                          background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
+                          color: '#2E3B4E',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '12px',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          border: '2px solid #D4AF37',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}>
+                          🏅 +{medal.points}
+                        </span>
+                      ))}
+                    </>
+                  )}
                 </div>
 
                 {/* Activity Info */}
@@ -561,11 +630,14 @@ const ActivitiesPage = () => {
                   marginBottom: '1rem',
                   lineHeight: '1.6'
                 }}>
+                  {activity.createdAt && (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}><CalendarDays size={14} /> {t('created') || 'Created'}: {formatDateTime(activity.createdAt)}</div>
+                  )}
                   {activity.dueDate && (
-                    <div>📅 {t('due_date_label')}: {new Date(activity.dueDate).toLocaleDateString('en-GB')}</div>
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}><CalendarDays size={14} /> {t('due_date_label')}: {formatDateTime(activity.dueDate)}</div>
                   )}
                   {activity.allowRetakes && (
-                    <div>🔄 {t('retakes_allowed')}: ✅</div>
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Repeat size={14} /> {t('retakes_allowed')}: <CheckCircle size={14} /></div>
                   )}
                   {activity.totalQuestions && (
                     <div>❓ {t('total_questions')}: {activity.totalQuestions}</div>
@@ -582,27 +654,27 @@ const ActivitiesPage = () => {
                     fontSize: '0.85rem',
                     border: `1px solid ${isGraded ? '#c8e6c9' : '#ffe0b2'}`
                   }}>
-                    <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: isGraded ? '#2e7d32' : '#f57c00' }}>
-                      {isGraded ? '✅ ' + (t('graded') || 'Graded') : '⏳ ' + (t('pending') || 'Pending')}
+                    <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: isGraded ? '#2e7d32' : '#f57c00', display:'inline-flex', alignItems:'center', gap:6 }}>
+                      {isGraded ? <><CheckCircle size={16} /> {t('graded') || 'Graded'}</> : <><Hourglass size={16} /> {t('pending') || 'Pending'}</>}
                     </div>
                     
                     {submission.submittedAt && (
-                      <div style={{ color: '#666', marginBottom: '0.25rem' }}>
-                        📤 {t('submitted_at') || 'Submitted'}: {new Date(submission.submittedAt?.seconds ? submission.submittedAt.seconds * 1000 : submission.submittedAt).toLocaleDateString('en-GB')} {new Date(submission.submittedAt?.seconds ? submission.submittedAt.seconds * 1000 : submission.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      <div style={{ color: '#666', marginBottom: '0.25rem', display:'inline-flex', alignItems:'center', gap:6 }}>
+                        <MessageSquareText size={14} /> {t('submitted_at') || 'Submitted'}: {formatDateTime(submission.submittedAt)}
                       </div>
                     )}
                     
                     {isGraded && (
                       <>
-                        <div style={{ color: '#666', marginBottom: '0.25rem' }}>
-                          📝 {t('graded_on') || 'Graded On'}: {submission.gradedAt ? new Date(submission.gradedAt?.seconds ? submission.gradedAt.seconds * 1000 : submission.gradedAt).toLocaleDateString('en-GB') + ' ' + new Date(submission.gradedAt?.seconds ? submission.gradedAt.seconds * 1000 : submission.gradedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : (t('unknown') || 'Unknown')}
+                        <div style={{ color: '#666', marginBottom: '0.25rem', display:'inline-flex', alignItems:'center', gap:6 }}>
+                          <FileSignature size={14} /> {t('graded_on') || 'Graded On'}: {submission.gradedAt ? formatDateTime(submission.gradedAt) : (t('unknown') || 'Unknown')}
                         </div>
                         <div style={{ fontWeight: '700', fontSize: '1rem', color: '#2e7d32', marginTop: '0.5rem' }}>
                           🎯 {t('score') || 'Score'}: {submission.score}/{activity.maxScore || 100}
                         </div>
                         {submission.feedback && (
-                          <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'white', borderRadius: '4px', color: '#555', fontStyle: 'italic' }}>
-                            💬 {submission.feedback}
+                          <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'white', borderRadius: '4px', color: '#555', fontStyle: 'italic', display:'inline-flex', alignItems:'center', gap:6 }}>
+                            <MessageSquareText size={14} /> {submission.feedback}
                           </div>
                         )}
                       </>
@@ -622,7 +694,7 @@ const ActivitiesPage = () => {
                     borderRadius: '12px',
                     fontSize: '0.85rem'
                   }}>
-                    ✅ Graded: {submission.score}%
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><CheckCircle size={14} /> {t('graded') || 'Graded'}: {submission.score}%</span>
                   </div>
                 )}
                 {isCompleted && !isGraded && (
@@ -636,7 +708,7 @@ const ActivitiesPage = () => {
                     borderRadius: '12px',
                     fontSize: '0.85rem'
                   }}>
-                    ⏳ Pending Grade
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Hourglass size={14} /> {t('pending') || 'Pending'}</span>
                   </div>
                 )}
                 {activity.featured && (
@@ -644,7 +716,7 @@ const ActivitiesPage = () => {
                     position: 'absolute', top: '1rem', [lang === 'ar' ? 'left' : 'right']: '4.5rem',
                     background: '#ecf0ff', color: '#4a57d6', padding: '0.25rem 0.5rem', borderRadius: 8, fontSize: '0.8rem'
                   }}>
-                    📌 {t('featured') || 'Featured'}
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Pin size={14} /> {t('featured') || 'Featured'}</span>
                   </div>
                 )}
 
@@ -655,28 +727,40 @@ const ActivitiesPage = () => {
                   gap: '0.5rem' 
                 }}>
                   <button
-                    onClick={() => window.open(activity.url, '_blank')}
+                    onClick={() => {
+                      // If activity has quizId, navigate to quiz player
+                      if (activity.quizId) {
+                        window.location.href = `/quiz/${activity.quizId}`;
+                      } else {
+                        window.open(activity.url, '_blank');
+                      }
+                    }}
                     style={{
                       flex: 1,
-                      padding: '0.75rem',
-                      background: 'linear-gradient(135deg, #800020, #600018)',
+                      background: activity.quizId ? 'linear-gradient(135deg, #22c55e, #16a34a)' : 'linear-gradient(135deg, #667eea, #764ba2)',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '8px',
+                      borderRadius: 8,
+                      padding: '0.5rem 0.75rem',
                       cursor: 'pointer',
-                      fontWeight: '600',
-                      transition: 'all 0.3s'
-                    }}
-                    onMouseEnter={e => {
-                      e.target.style.background = 'linear-gradient(135deg, #5568d3, #6a3d8f)';
-                      e.target.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.target.style.background = 'linear-gradient(135deg, #800020, #600018)';
-                      e.target.style.transform = 'translateY(0)';
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
                     }}
                   >
-                    {t('start_activity')}
+                    {activity.quizId ? '🎮 ' + (t('start_quiz') || 'Start Quiz') : (activity.type === 'assignment' ? '📤 ' + (t('submit') || 'Submit') : t('start_activity'))}
+                  </button>
+                  <button
+                    onClick={() => { window.location.href = `/activity/${activityId}`; }}
+                    style={{
+                      flex: 1,
+                      background: '#f5f5f5',
+                      color: '#333',
+                      border: '1px solid #e5e5e5',
+                      borderRadius: 8,
+                      padding: '0.5rem 0.75rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {t('details') || 'Details / Share'}
                   </button>
                   {!isCompleted && !isAdmin && (
                     <button

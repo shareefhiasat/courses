@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useLang } from '../contexts/LangContext';
+import { formatDateTime } from '../utils/date';
 
 // Helper: convert various inputs to a datetime-local string (YYYY-MM-DDTHH:MM)
 function toLocalInputValue(val) {
@@ -54,9 +55,7 @@ function toPretty(val) {
     const tmp = new Date(val);
     d = isNaN(tmp.getTime()) ? null : tmp;
   }
-  return d 
-    ? d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : '';
+  return d ? formatDateTime(d) : '';
 }
 
 export default function DateTimePicker({ value, onChange, placeholder = 'DD/MM/YYYY HH:MM', allowClear = true, id }) {
@@ -67,9 +66,7 @@ export default function DateTimePicker({ value, onChange, placeholder = 'DD/MM/Y
     // If we already produced an ISO string previously, show as pretty
     if (typeof value === 'string' && value.includes('T')) {
       const d = new Date(value);
-      return isNaN(d.getTime()) 
-        ? '' 
-        : d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return isNaN(d.getTime()) ? '' : formatDateTime(d);
     }
     return toPretty(value);
   }, [value]);

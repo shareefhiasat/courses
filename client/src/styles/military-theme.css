@@ -1,0 +1,858 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700;800&family=Roboto:wght@400;500;600;700&display=swap');
+
+/* 🎖️ Military Theme - QAF Academy */
+/* Design System Implementation */
+
+:root {
+  /* Military Colors */
+  --military-dark-green: #2C5530;
+  --military-green: #4A7C4E;
+  --military-light-green: #6B9B6E;
+  --military-olive: #5C6B3D;
+  
+  --navy-dark: #1C3A57;
+  --navy-blue: #2E5C8A;
+  --navy-light: #4A7BA7;
+  
+  --military-gold: #D4AF37;
+  --military-bronze: #CD7F32;
+  --military-silver: #C0C0C0;
+  --military-red: #8B0000;
+  
+  --military-tan: #C3B091;
+  --military-gray: #4A4A4A;
+  --military-light-gray: #D3D3D3;
+  --off-white: #F5F5DC;
+  
+  --success-green: #2D5016;
+  --warning-yellow: #F4C430;
+  --danger-red: #8B0000;
+  --info-blue: #2E5C8A;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #2C5530, #4A7C4E);
+  --gradient-gold: linear-gradient(135deg, #D4AF37, #F4C430);
+  --gradient-navy: linear-gradient(135deg, #1C3A57, #2E5C8A);
+  --gradient-rank: linear-gradient(135deg, #CD7F32, #D4AF37, #C0C0C0);
+  
+  /* Typography */
+  --font-primary: 'Oswald', 'Bebas Neue', 'Arial Black', sans-serif;
+  --font-secondary: 'Roboto', 'Open Sans', 'Arial', sans-serif;
+  --font-mono: 'Courier New', 'Consolas', monospace;
+  
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.25);
+  --shadow-gold: 0 4px 12px rgba(212, 175, 55, 0.4);
+  --shadow-green: 0 4px 12px rgba(44, 85, 48, 0.3);
+}
+
+/* ========================================
+   RANK DISPLAY COMPONENTS
+   ======================================== */
+
+.rank-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-navy);
+  padding: 1.5rem 1rem;
+  border-radius: 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.rank-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.rank-badge {
+  position: relative;
+  z-index: 2;
+  width: 88px;
+  height: 88px;
+  background: var(--gradient-gold);
+  border-radius: 50%;
+  border: 4px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  box-shadow: var(--shadow-gold);
+  margin-bottom: 0.75rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.rank-badge:hover {
+  animation: none;
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+.rank-name {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-primary);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--military-gold);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.rank-student-name {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin-bottom: 0.4rem;
+}
+
+.rank-points {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--military-gold);
+  margin-bottom: 0.75rem;
+}
+
+.rank-progress-container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 480px;
+  margin-top: 0.75rem;
+}
+
+.rank-progress-bar {
+  background: var(--military-light-gray);
+  border-radius: 12px;
+  height: 18px;
+  overflow: hidden;
+  border: 2px solid var(--military-gray);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.rank-progress-fill {
+  background: linear-gradient(90deg, var(--military-green), var(--military-gold));
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.rank-progress-text {
+  position: relative;
+  z-index: 2;
+  color: white;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+/* ========================================
+   RANK BADGES (Inline)
+   ======================================== */
+
+.rank-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gradient-gold);
+  color: var(--military-dark-green);
+  font-family: var(--font-primary);
+  font-weight: 800;
+  font-size: 1rem;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 2px solid var(--military-dark-green);
+  box-shadow: var(--shadow-sm);
+}
+
+.rank-badge-inline .rank-icon {
+  font-size: 1.25rem;
+}
+
+/* ========================================
+   SKILL MEDALS
+   ======================================== */
+
+.skill-medal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 2px solid var(--military-green);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.skill-medal:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+  border-color: var(--military-gold);
+}
+
+.skill-medal-icon {
+  font-size: 1.25rem;
+}
+
+.skill-medal-points {
+  color: var(--military-gold);
+  font-weight: 700;
+}
+
+/* Medal Grid for Selection */
+.medal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.medal-card {
+  background: white;
+  border: 2px solid var(--military-light-gray);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.medal-card:hover {
+  border-color: var(--military-gold);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+
+.medal-card.selected {
+  background: var(--gradient-gold);
+  border-color: var(--military-dark-green);
+  color: var(--military-dark-green);
+  box-shadow: var(--shadow-gold);
+}
+
+.medal-card-icon {
+  font-size: 3rem;
+}
+
+.medal-card-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.medal-card-points {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--military-gold);
+}
+
+.medal-card.selected .medal-card-points {
+  color: var(--military-dark-green);
+}
+
+/* ========================================
+   BUTTONS
+   ======================================== */
+
+.btn-military-primary {
+  background: var(--gradient-primary);
+  color: white;
+  font-family: var(--font-primary);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  box-shadow: var(--shadow-green);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  font-size: 1rem;
+  letter-spacing: 1px;
+}
+
+.btn-military-primary:hover {
+  background: linear-gradient(135deg, #4A7C4E, #6B9B6E);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(44, 85, 48, 0.4);
+}
+
+.btn-military-primary:active {
+  transform: translateY(0);
+}
+
+.btn-military-secondary {
+  background: var(--gradient-navy);
+  color: white;
+  font-family: var(--font-primary);
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-military-secondary:hover {
+  background: linear-gradient(135deg, #2E5C8A, #4A7BA7);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-military-gold {
+  background: var(--gradient-gold);
+  color: var(--military-dark-green);
+  font-family: var(--font-primary);
+  font-weight: 800;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 2px solid var(--military-dark-green);
+  box-shadow: var(--shadow-gold);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.btn-military-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
+}
+
+.btn-military-outline {
+  background: transparent;
+  color: var(--navy-blue);
+  border: 2px solid var(--navy-blue);
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-military-outline:hover {
+  background: var(--navy-blue);
+  color: white;
+}
+
+/* ========================================
+   CARDS
+   ======================================== */
+
+.card-military {
+  background: var(--off-white);
+  border: 2px solid var(--military-gray);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.card-military::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--military-green), var(--military-gold), var(--military-green));
+  border-radius: 12px 12px 0 0;
+}
+
+.card-military:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-military-success {
+  background: #E8F5E9;
+  border: 3px solid var(--military-green);
+  border-left: 8px solid var(--military-dark-green);
+}
+
+.card-military-warning {
+  background: #FFF3E0;
+  border: 3px solid #FF8C00;
+  border-left: 8px solid #FF6B00;
+}
+
+.card-military-info {
+  background: #E3F2FD;
+  border: 3px solid var(--navy-blue);
+  border-left: 8px solid var(--navy-dark);
+}
+
+.card-military-danger {
+  background: #FFEBEE;
+  border: 3px solid var(--military-red);
+  border-left: 8px solid #6B0000;
+}
+
+/* ========================================
+   STATUS BADGES
+   ======================================== */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge-success {
+  background: var(--military-green);
+  color: white;
+}
+
+.status-badge-warning {
+  background: #FF8C00;
+  color: white;
+}
+
+.status-badge-info {
+  background: var(--navy-blue);
+  color: white;
+}
+
+.status-badge-danger {
+  background: var(--military-red);
+  color: white;
+}
+
+.status-badge-gold {
+  background: var(--gradient-gold);
+  color: var(--military-dark-green);
+  border: 2px solid var(--military-dark-green);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes rankUp {
+  0% {
+    transform: scale(0.8) rotate(-10deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.rank-up-animation {
+  animation: rankUp 0.6s ease-out;
+}
+
+@keyframes medalEarned {
+  0% {
+    transform: translateY(-100px) scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(10px) scale(1.1);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.medal-earned-animation {
+  animation: medalEarned 0.5s ease-out;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ========================================
+   DASHBOARD GRID
+   ======================================== */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* ========================================
+   STATS DISPLAY
+   ======================================== */
+
+.stats-card {
+  background: white;
+  border: 2px solid var(--military-light-gray);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.stats-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+}
+
+.stats-card-icon {
+  font-size: 2rem;
+}
+
+.stats-card-value {
+  font-family: var(--font-primary);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--navy-dark);
+  margin-bottom: 0.5rem;
+}
+
+.stats-card-label {
+  font-size: 0.875rem;
+  color: var(--military-gray);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .rank-hero {
+    padding: 2rem 1rem;
+  }
+  
+  .rank-badge {
+    width: 100px;
+    height: 100px;
+    font-size: 40px;
+  }
+  
+  .rank-name {
+    font-size: 2rem;
+  }
+  
+  .rank-student-name {
+    font-size: 1.5rem;
+  }
+  
+  .medal-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .btn-military-primary,
+  .btn-military-gold {
+    width: 100%;
+    padding: 14px 20px;
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.text-military-gold {
+  color: var(--military-gold);
+}
+
+.text-military-green {
+  color: var(--military-green);
+}
+
+.text-navy {
+  color: var(--navy-dark);
+}
+
+.bg-military-gradient {
+  background: var(--gradient-primary);
+}
+
+.bg-navy-gradient {
+  background: var(--gradient-navy);
+}
+
+.bg-gold-gradient {
+  background: var(--gradient-gold);
+}
+
+.font-military {
+  font-family: var(--font-primary);
+}
+
+.font-body {
+  font-family: var(--font-secondary);
+}
+
+.shadow-military {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-gold {
+  box-shadow: var(--shadow-gold);
+}
+
+.shadow-green {
+  box-shadow: var(--shadow-green);
+}
+
+/* ========================================
+   RANK UPGRADE CELEBRATION
+   ======================================== */
+
+.rank-upgrade-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+.rank-upgrade-content {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-blue) 100%);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  max-width: 500px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(212, 175, 55, 0.3);
+  animation: rankUpSlide 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.rank-upgrade-content::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.rank-upgrade-stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.rank-upgrade-star {
+  position: absolute;
+  color: var(--military-gold);
+  font-size: 1.5rem;
+  animation: starFloat 3s ease-in-out infinite;
+  opacity: 0;
+}
+
+.rank-upgrade-star:nth-child(1) { left: 10%; top: 20%; animation-delay: 0s; }
+.rank-upgrade-star:nth-child(2) { left: 80%; top: 30%; animation-delay: 0.3s; }
+.rank-upgrade-star:nth-child(3) { left: 20%; top: 70%; animation-delay: 0.6s; }
+.rank-upgrade-star:nth-child(4) { left: 85%; top: 65%; animation-delay: 0.9s; }
+.rank-upgrade-star:nth-child(5) { left: 50%; top: 10%; animation-delay: 1.2s; }
+
+.rank-upgrade-title {
+  font-family: var(--font-primary);
+  font-size: 2rem;
+  color: var(--military-gold);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  position: relative;
+  z-index: 1;
+  animation: glow 2s ease-in-out infinite;
+}
+
+.rank-upgrade-icon {
+  font-size: 6rem;
+  margin: 1rem 0;
+  position: relative;
+  z-index: 1;
+  animation: iconBounce 1s ease-in-out;
+  filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.6));
+}
+
+.rank-upgrade-name {
+  font-family: var(--font-primary);
+  font-size: 2.5rem;
+  color: white;
+  margin: 1rem 0;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.rank-upgrade-message {
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.rank-upgrade-close {
+  margin-top: 2rem;
+  padding: 12px 32px;
+  background: var(--gradient-gold);
+  color: var(--navy-dark);
+  border: none;
+  border-radius: 25px;
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+}
+
+.rank-upgrade-close:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
+}
+
+@keyframes rankUpSlide {
+  0% {
+    transform: scale(0.5) translateY(100px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes starFloat {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-30px) rotate(180deg);
+  }
+}
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.2) rotate(-5deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  75% {
+    transform: scale(1.15) rotate(-3deg);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(212, 175, 55, 0.8), 0 0 30px rgba(212, 175, 55, 0.6);
+  }
+}

@@ -35,6 +35,41 @@ An interactive learning platform for university-level computer science courses, 
    - Set Firestore security rules (see below)
 
 ### Production Deployment
+
+#### Option A: Firebase Hosting (Recommended)
+Client is built with Vite in `client/` and hosted by Firebase.
+
+Build and deploy (PowerShell-safe):
+
+```powershell
+# From repo root
+cd client
+npm ci
+npm run build
+
+# Back to repo root, deploy Hosting (serves client/dist)
+cd ..
+firebase deploy --only hosting --project <your-project-id>
+
+# If you need to deploy rules and indexes
+firebase deploy --only "firestore" --project <your-project-id>
+
+# If you need to deploy Cloud Functions
+cd functions
+npm ci
+cd ..
+firebase deploy --only "functions" --project <your-project-id>
+
+# Deploy multiple targets in one command (PowerShell requires quotes):
+firebase deploy --only "hosting,firestore,functions" --project <your-project-id>
+```
+
+Notes:
+- Hosting public dir is `client/dist` (see `firebase.json`).
+- For SPAs, rewrites already route `**` to `/index.html`.
+- Use quotes around comma-separated targets in PowerShell.
+
+#### Option B: GitHub Pages
 - Push to `main` branch → auto-deploys to GitHub Pages
 - Live at: `https://shareefhiasat.github.io/courses/`
 
@@ -277,3 +312,68 @@ Then open `http://localhost:8080/`.
 
 ## License
 MIT
+
+## Attendance System (MVP)
+
+### Story: A Secure, Fair Check‑In
+An instructor opens attendance for a class and projects a QR code. Every 30 seconds, the QR silently changes to block screenshots. Students scan it and get instant confirmation. One student tries to send a screenshot to a late friend; it fails because the token expired. Another student attempts from a second device; the system blocks it and alerts the instructor. At the end of the 15‑minute window, the session closes automatically, present/absent are finalized, and students receive notifications in their preferred language.
+
+### Design Overview
+- **Rotating signed tokens (anti‑screenshot)**
+  - Short‑lived token (default 30s) signed by Cloud Function (JWT/HMAC).
+  - QR payload: `qaf://attend?sid={sessionId}&t={token}`.
+  - Tokens rotate on a timer; old tokens are rejected.
+- **Session window (attendance period)**
+  - Default 15 minutes; accepts check‑ins only while `status = open`.
+  - Instructor can end early or extend.
+- **Strict device binding (optional, recommended Default: ON)**
+  - First successful check‑in stores a device fingerprint hash.
+  - Subsequent attempts from a different device are blocked and flagged.
+- **Anomaly detection (alerts to instructor)**
+  - Multiple students from the same device in short time.
+  - Device change attempts for the same student.
+  - Suspicious geo/IP change (coarse, privacy‑respecting).
+- **Real‑time notifications**
+  - Students: badge awards, attendance recorded, absent at session close.
+  - Instructors: device anomalies, session about to expire.
+  - Language: per‑user preference `users/{uid}.notifLang` with values `auto|en|ar`.
+
+### Defaults and Admin Settings
+- Rotation interval: **30 seconds** (configurable)
+- Session duration: **15 minutes** (configurable)
+- Location: Firestore `config/attendance`
+  ```json
+  {
+    "rotationSeconds": 30,
+    "sessionMinutes": 15,
+    "strictDeviceBinding": true
+  }
+  ```
+- Dashboard exposes controls for the above. Client reads from `config/attendance` with a cached fallback to these defaults.
+
+### Data Model
+- `attendanceSessions/{sessionId}`
+  - `classId`, `createdBy`, `status` (open|closed), `startTime`, `endTime`
+  - `rotationSeconds`, `expiresAt`, `nonce`
+- `attendance/{classId}/{date}/{studentId}`
+  - `checkedInAt`, `deviceHash`, `ipHash`, `status` (present|absent)
+- `attendanceEvents/{sessionId}/{eventId}`
+  - `type` (badge|penalty|anomaly), `details`, `createdAt`
+
+### Flow
+1. Instructor starts a session → Cloud Function creates `attendanceSessions/*` and issues first signed token.
+2. QR shows token; rotates every N seconds. Mobile scans → calls callable `attend.scan(sid, token)`.
+3. Function verifies signature/expiry, session `open`, enrollment, and device binding.
+4. Write attendance record; send real‑time notification (language from `notifLang`, else UI language).
+5. On session end (time or manual), mark remaining students absent; notify.
+
+### Security Notes
+- Signing happens server‑side only; no secrets in the client.
+- Firestore rules restrict attendance writes to callable Functions.
+- All user identifiers and device/IP data are hashed when stored.
+
+### Testing Checklist
+- Token screenshot reuse fails after rotation.
+- Second‑device attempt is blocked and instructor notified.
+- Rotation/session settings change in Dashboard are reflected without redeploy.
+- Notifications appear in English/Arabic per user’s `notifLang` or UI language.

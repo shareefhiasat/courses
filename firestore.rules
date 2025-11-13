@@ -160,5 +160,22 @@ service cloud.firestore {
       allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
       allow delete: if isAdmin();
     }
+
+    // Attendance sessions
+    match /attendanceSessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn(); // Further checks in function
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
+
+      match /marks/{userId} {
+        allow read: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+        allow write: if isSignedIn(); // Further checks in function
+      }
+
+      match /events/{eventId} {
+        allow read: if isAdmin();
+        allow create: if isSignedIn(); // Function-based
+      }
+    }
   }
 }

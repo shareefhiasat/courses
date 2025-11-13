@@ -3,12 +3,16 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { signOutUser } from '../firebase/auth';
 import NotificationBell from './NotificationBell';
+import SideDrawer from './SideDrawer';
 import { useLang } from '../contexts/LangContext';
 import { getUsers, updateUser } from '../firebase/firestore';
 import './Navbar.css';
+import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import { getTimeFormatPreference, setTimeFormatPreference } from '../utils/date';
 
 const Navbar = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin, impersonating } = useAuth();
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -17,24 +21,32 @@ const Navbar = () => {
   const [realName, setRealName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
   const [messageColor, setMessageColor] = useState('#667eea');
+  const [timeFormat, setTimeFormat] = useState(() => getTimeFormatPreference());
   const { lang, toggleLang, t } = useLang();
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('theme') || 'light'; } catch { return 'light'; }
-  });
+  const { theme, toggleTheme } = useTheme();
+  const [notifLang, setNotifLang] = useState('auto');
   const [density, setDensity] = useState(() => {
     try { return localStorage.getItem('density') || 'compact'; } catch { return 'compact'; }
   });
   const menuRef = useRef(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // theme is managed by ThemeProvider
+
+  // Allow other components (e.g., SideDrawer) to open the profile modal
   useEffect(() => {
-    try { localStorage.setItem('theme', theme); } catch {}
-    try { document.documentElement.setAttribute('data-theme', theme); } catch {}
-  }, [theme]);
+    const openProfileHandler = () => setShowProfile(true);
+    window.addEventListener('openProfile', openProfileHandler);
+    return () => window.removeEventListener('openProfile', openProfileHandler);
+  }, []);
 
   useEffect(() => {
     try { localStorage.setItem('density', density); } catch {}
     try { document.documentElement.setAttribute('data-density', density); } catch {}
+    try { window.dispatchEvent(new CustomEvent('density-change', { detail: { density } })); } catch {}
   }, [density]);
+
+  // no slider value needed
 
   // Close dropdown on outside click / Escape
   useEffect(() => {
@@ -57,14 +69,30 @@ const Navbar = () => {
 
   const openProfile = async () => {
     try {
-      // Pre-fill with existing data
-      const result = await getUsers();
-      const me = (result.data || []).find(u => u.email === user.email) || (result.data || []).find(u => u.docId === user.uid);
+      // Prefer deterministic users/{uid} document for reliability with rules
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { db } = await import('../firebase/config');
+      let me = null;
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        me = snap.exists() ? { docId: user.uid, ...snap.data() } : null;
+      } catch {}
+      // Fallback: list query (in case read rules block direct doc)
+      if (!me) {
+        try {
+          const { getUsers } = await import('../firebase/firestore');
+          const res = await getUsers();
+          me = (res.data || []).find(u => u.docId === user.uid || u.email === user.email) || null;
+        } catch {}
+      }
       setDisplayName(user?.displayName || me?.displayName || '');
       setPhoneNumber(me?.phoneNumber || '');
       setMessageColor(me?.messageColor || '#667eea');
       setRealName(me?.realName || '');
       setStudentNumber(me?.studentNumber || '');
+      setNotifLang(me?.notifLang || 'auto');
+      // No avatar support; we always use initials avatar
+      setTimeFormat(getTimeFormatPreference());
       setShowProfile(true);
     } catch (e) { /* noop */ }
   };
@@ -72,12 +100,19 @@ const Navbar = () => {
   const saveProfile = async () => {
     try {
       if (!user) return;
-      // Find user doc by email (more reliable than uid for this app schema)
-      const result = await getUsers();
-      const me = (result.data || []).find(u => u.email === user.email) || (result.data || []).find(u => u.docId === user.uid);
-      if (me?.docId) {
-        await updateUser(me.docId, { displayName, phoneNumber, messageColor, realName, studentNumber });
-      }
+      // Write directly to users/{uid}
+      const { doc, setDoc } = await import('firebase/firestore');
+      const { db } = await import('../firebase/config');
+      const dataToSave = {
+        displayName: displayName || null,
+        phoneNumber: phoneNumber || null,
+        messageColor: messageColor || '#667eea',
+        realName: realName || null,
+        studentNumber: studentNumber || null,
+        email: user.email,
+        notifLang: notifLang || 'auto',
+      };
+      await setDoc(doc(db, 'users', user.uid), dataToSave, { merge: true });
       // Update Firebase Auth profile
       try {
         const { getAuth, updateProfile } = await import('firebase/auth');
@@ -86,9 +121,10 @@ const Navbar = () => {
           await updateProfile(auth.currentUser, { displayName });
         }
       } catch {}
+      // Save UI-only preferences
+      setTimeFormatPreference(timeFormat);
+      // Close dialog on successful save
       setShowProfile(false);
-      // Refresh page to reflect color changes
-      window.location.reload();
     } catch (err) {
       console.error('Failed to save profile:', err);
       alert('Failed to save profile');
@@ -96,17 +132,142 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-container">
-        {/* Hide brand to save space */}
-        <div className="navbar-brand" style={{ display: 'none' }} />
-        
-        <div className="navbar-menu">
-          {user ? (
-            <>
-              <NavLink to="/" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
-                <span style={{ fontSize: '1.8rem', lineHeight: 1, display: 'inline-block' }}>🏠</span>
-              </NavLink>
+    <>
+      <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      
+      <nav className="navbar" style={{ padding: '0.5rem 0' }}>
+        <div className="navbar-container">
+          {/* Hamburger Menu */}
+          {user && (
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="navbar-hamburger"
+              style={{
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.6)',
+                color: '#ffffff',
+                fontSize: '1.25rem',
+                cursor: 'pointer',
+                padding: '0.4rem 0.6rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 8,
+                marginRight: lang === 'ar' ? 0 : '0.75rem',
+                marginLeft: lang === 'ar' ? '0.75rem' : 0
+              }}
+              aria-label="Menu"
+            >
+              <Menu size={18} />
+            </button>
+          )}
+
+          {/* Brand */}
+          <div className="navbar-brand" style={{ 
+            fontWeight: 700, 
+            fontSize: '1.25rem', 
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/2/21/Seal_of_the_Qatar_Armed_Forces_General_Command.png/255px-Seal_of_the_Qatar_Armed_Forces_General_Command.png" alt="QAF" style={{ width: 20, height: 20, objectFit: 'cover', borderRadius: '50%' }} /> QAF
+          </div>
+
+          {/* Impersonation Banner */}
+          {impersonating && (
+            <div style={{
+              padding: '0.5rem 1rem',
+              background: '#ff9800',
+              color: 'white',
+              borderRadius: '20px',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <User size={16} /> {t('viewing_as_student') || 'Viewing as Student'}
+            </div>
+          )}
+          
+          <div style={{ flex: 1 }} />
+          
+          {/* Right side: Notifications + Profile */}
+          {user && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <NotificationBell />
+              <button
+                onClick={toggleTheme}
+                title={theme==='light'?'Dark':'Light'}
+                style={{ background:'transparent', border:'1px solid rgba(255,255,255,0.4)', color:'white', borderRadius:8, width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}
+              >
+                {theme==='light'?<Moon size={16} />:<Sun size={16} />}
+              </button>
+              
+              {/* Profile Avatar with Super Admin badge and dropdown */}
+              <div ref={menuRef} style={{ position: 'relative' }}>
+                <div 
+                  onClick={() => setShowDropdown(v=>!v)}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.25rem',
+                    fontWeight: 700,
+                    color: '#2E3B4E',
+                    cursor: 'pointer',
+                    border: '2px solid rgba(255,255,255,0.6)',
+                    transition: 'transform 0.2s',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  aria-haspopup="menu"
+                  aria-expanded={showDropdown}
+                >
+                  {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+                </div>
+                {isSuperAdmin && (
+                  <div title="Super Admin" style={{ position:'absolute', right:-6, top:-6, background:'#4f46e5', color:'#fff', borderRadius:'50%', width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                    <Crown size={12} />
+                  </div>
+                )}
+                {showDropdown && (
+                  <div className="dropdown-menu" style={{ right: 0, top: 48, zIndex: 9999 }}>
+                    <div className="dropdown-item user-info" style={{ padding: '10px 12px', borderBottom: '1px solid #eee' }}>
+                      <div className="user-email" style={{ fontWeight: 600 }}>{user.displayName || user.email}</div>
+                      {(isSuperAdmin || isAdmin) && (
+                        <div className="admin-badge" style={{ marginTop: 6, display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'#4f46e5', fontWeight:700, padding:'4px 8px', borderRadius:999, border:'1.5px solid #4f46e5', background:'transparent' }}>
+                          {isSuperAdmin ? <><Crown size={14} /> Super Admin</> : <>Admin</>}
+                        </div>
+                      )}
+                    </div>
+                    <Link to="/profile" onClick={(e)=>{ setShowDropdown(false); }} className="dropdown-item" style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', textDecoration:'none', color:'inherit' }}>
+                      My Settings
+                    </Link>
+                    <Link to="/progress" onClick={(e)=>{ setShowDropdown(false); }} className="dropdown-item" style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', textDecoration:'none', color:'inherit' }}>
+                      My Badges
+                    </Link>
+                    <button className="dropdown-item sign-out-btn" style={{ width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color:'#b91c1c', fontWeight:600 }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDropdown(false); setTimeout(() => handleSignOut(), 0); }}>
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <div className="navbar-menu" style={{ display: 'none' }}>
+            {user ? (
+              <>
+                <NavLink to="/" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
+                  <span style={{ display: 'inline-flex', alignItems:'center' }}><HomeIcon size={18} /></span>
+                </NavLink>
               {!isAdmin && (
                 <>
                   <NavLink to="/enrollments" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
@@ -139,10 +300,10 @@ const Navbar = () => {
                 {lang==='en'?'AR':'EN'}
               </button>
               <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn" title={density==='compact'?'Normal View':'Compact View'}>
-                {density==='compact'?'🔍':'📐'}
+                {density==='compact'?<ZoomIn size={16} />:<Ruler size={16} />}
               </button>
               <button onClick={()=>setTheme(t=>t==='light'?'dark':'light')} className="icon-btn" title={theme==='light'?'Dark':'Light'}>
-                {theme==='light'?'🌙':'☀️'}
+                {theme==='light'?<Moon size={16} />:<Sun size={16} />}
               </button>
               
               <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)} ref={menuRef}>
@@ -170,31 +331,36 @@ const Navbar = () => {
       </div>
       {showProfile && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000
         }} onClick={()=>setShowProfile(false)}>
-          <div style={{ background: 'white', padding: '1.5rem', borderRadius: 12, minWidth: 320, maxWidth: 720, width: '90vw' }} onClick={(e)=>e.stopPropagation()}>
+          <div style={{
+            background: theme==='light' ? '#ffffff' : '#0f172a',
+            color: theme==='light' ? '#111827' : '#e5e7eb',
+            padding: '1.5rem', borderRadius: 12, minWidth: 320, maxWidth: 720, width: '90vw',
+            boxShadow: theme==='light' ? '0 10px 30px rgba(0,0,0,0.1)' : '0 10px 30px rgba(0,0,0,0.4)'
+          }} onClick={(e)=>e.stopPropagation()}>
             <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>{t('edit_profile')}</h3>
             <div style={{ display:'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('email')}</label>
-                <input type="email" value={user?.email || ''} readOnly style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: 8, background: '#f5f5f5', color: '#666' }} />
+                <input type="email" value={user?.email || ''} readOnly style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#f3f4f6':'#111827', color: theme==='light'?'#6b7280':'#e5e7eb' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('display_name')}</label>
-                <input type="text" value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder={t('display_name')} style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: 8 }} />
+                <input type="text" value={displayName} onChange={(e)=>setDisplayName(e.target.value)} placeholder={t('display_name')} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('real_name')}</label>
-                <input type="text" value={realName} onChange={(e)=>setRealName(e.target.value)} placeholder="First Last" style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: 8 }} />
+                <input type="text" value={realName} onChange={(e)=>setRealName(e.target.value)} placeholder="First Last" style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('student_number')} ({t('optional')})</label>
-                <input type="text" value={studentNumber} onChange={(e)=>setStudentNumber(e.target.value)} placeholder="e.g., 202400123" style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: 8 }} />
+                <input type="text" value={studentNumber} onChange={(e)=>setStudentNumber(e.target.value)} placeholder="e.g., 202400123" style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('phone_number') || 'Phone Number'}</label>
-                <input type="tel" value={phoneNumber} onChange={(e)=>setPhoneNumber(e.target.value)} placeholder="+1 234 567 8900" style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: 8 }} />
+                <input type="tel" value={phoneNumber} onChange={(e)=>setPhoneNumber(e.target.value)} placeholder="+1 234 567 8900" style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('message_color') || 'Message Bubble Color'}</label>
@@ -203,15 +369,52 @@ const Navbar = () => {
                   <div style={{ flex: 1, padding: '0.75rem', background: messageColor, color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 600 }}>{t('preview')}</div>
                 </div>
               </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('notifications_language') || 'Notifications Language'}</label>
+                <select value={notifLang} onChange={(e)=>setNotifLang(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }}>
+                  <option value="auto">{t('auto_follow_ui') || 'Auto (Follow UI Language)'}</option>
+                  <option value="en">English</option>
+                  <option value="ar">العربية</option>
+                </select>
+              </div>
+            </div>
+            {/* Density control (4 levels) */}
+            <div style={{ marginTop: 16 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('density') || 'Density'}</label>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap: 8 }}>
+                {[
+                  { id:'compact', label: t('compact') || 'Compact' },
+                  { id:'cozy', label: t('cozy') || 'Cozy' },
+                  { id:'comfortable', label: t('comfortable') || 'Comfortable' },
+                  { id:'roomy', label: t('roomy') || 'Roomy' },
+                ].map(opt => (
+                  <label key={opt.id} style={{
+                    border:'1px solid '+(density===opt.id? '#4f46e5':'var(--border)'),
+                    borderRadius:8, padding:'0.5rem 0.75rem', cursor:'pointer', textAlign:'center',
+                    background: density===opt.id ? 'rgba(79,70,229,0.1)' : 'transparent'
+                  }}>
+                    <input
+                      type="radio"
+                      name="density"
+                      value={opt.id}
+                      checked={density===opt.id}
+                      onChange={()=>setDensity(opt.id)}
+                      style={{ marginRight: 6 }}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button onClick={()=>setShowProfile(false)} style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6 }}>{t('cancel')}</button>
-              <button onClick={saveProfile} style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: 6 }}>{t('save')}</button>
+              <button onClick={()=>setShowProfile(false)} style={{ padding: '0.5rem 1rem', background: theme==='light' ? '#6b7280' : '#374151', color: 'white', border: 'none', borderRadius: 6 }}>{t('cancel')}</button>
+              <button onClick={saveProfile} style={{ padding: '0.5rem 1rem', background: theme==='light' ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#4f46e5', color: 'white', border: 'none', borderRadius: 6 }}>{t('save')}</button>
             </div>
           </div>
         </div>
       )}
-    </nav>
+      </nav>
+    </>
   );
 };
 

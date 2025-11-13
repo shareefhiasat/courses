@@ -12,6 +12,8 @@ import { deleteNotification } from '../firebase/notifications';
 import { useLang } from '../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import Modal from './Modal';
+import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info } from 'lucide-react';
+import { formatDateTime } from '../utils/date';
 
 const NotificationBell = () => {
   const { user } = useAuth();
@@ -23,8 +25,8 @@ const NotificationBell = () => {
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [focused, setFocused] = useState(false);
   const prevUnreadRef = useRef(0);
-  const audioRef = useRef(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const audioCtxRef = useRef(null);
 
   const rootRef = useRef(null);
 
@@ -39,7 +41,7 @@ const NotificationBell = () => {
     return unsubscribe;
   }, [user]);
 
-  // Load user preference for sound
+  // Load user preference for sound and request permission
   useEffect(() => {
     const loadPref = async () => {
       if (!user) return;
@@ -47,37 +49,49 @@ const NotificationBell = () => {
         const snap = await getDoc(doc(db, 'users', user.uid));
         const data = snap.exists() ? snap.data() : {};
         setSoundEnabled(data.notificationSoundEnabled !== false);
+        
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
       } catch {}
     };
     loadPref();
   }, [user]);
 
-  // Prepare audio (guard browser support to avoid NotSupportedError)
-  useEffect(() => {
-    try {
-      if (!audioRef.current) {
-        const test = document.createElement('audio');
-        const canPlayWav = !!test.canPlayType && test.canPlayType('audio/wav') !== '';
-        if (canPlayWav) {
-          // Tiny valid wav header tone (very short silence to avoid autoplay blocks)
-          audioRef.current = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACAAABAQAA');
-          audioRef.current.volume = 0.4;
-        } else {
-          // Disable sound if unsupported
-          setSoundEnabled(false);
-        }
-      }
-    } catch {
-      setSoundEnabled(false);
+  const ensureCtx = async () => {
+    if (!audioCtxRef.current) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtxRef.current = new Ctx();
     }
-  }, []);
+    if (audioCtxRef.current.state === 'suspended') {
+      try { await audioCtxRef.current.resume(); } catch {}
+    }
+    return audioCtxRef.current;
+  };
+
+  const playBeep = async (durationMs = 200, freq = 1200) => {
+    const ctx = await ensureCtx();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + durationMs / 1000);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + durationMs / 1000 + 0.01);
+  };
 
   // Play sound and show browser notification on unread increase
   useEffect(() => {
     const unread = notifications.filter(n => !n.read).length;
     const prev = prevUnreadRef.current;
     if (unread > prev) {
-      try { if (soundEnabled && audioRef.current) audioRef.current.play().catch(()=>{}); } catch {}
+      if (soundEnabled) { playBeep().catch(()=>{}); }
       // Browser notification
       try {
         if ('Notification' in window) {
@@ -143,7 +157,7 @@ const NotificationBell = () => {
     if (diff < 60) return `${diff}s`;
     if (diff < 3600) return `${Math.floor(diff/60)}m`;
     if (diff < 86400) return `${Math.floor(diff/3600)}h`;
-    return d.toLocaleDateString('en-GB');
+    return formatDateTime(d);
   };
 
   const handleClearAll = async () => {
@@ -211,13 +225,13 @@ const NotificationBell = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'success': return '✅';
-      case 'warning': return '⚠️';
-      case 'error': return '❌';
-      case 'announcement': return '📢';
-      case 'grade': return '📊';
-      case 'activity': return '🎯';
-      default: return 'ℹ️';
+      case 'success': return <CheckCircle2 size={16} title="Success" />;
+      case 'warning': return <AlertTriangle size={16} title="Warning" />;
+      case 'error': return <XCircle size={16} title="Error" />;
+      case 'announcement': return <Megaphone size={16} title="Announcement" />;
+      case 'grade': return <BarChart3 size={16} title="Grade" />;
+      case 'activity': return <FileText size={16} title="Activity" />;
+      default: return <Info size={16} title="Info" />;
     }
   };
 
@@ -257,7 +271,7 @@ const NotificationBell = () => {
           transition: 'box-shadow 0.15s ease-in-out'
         }}
       >
-        🔔
+        <Bell size={18} />
         {unreadCount > 0 && (
           <span style={{
             position: 'absolute',
@@ -297,10 +311,28 @@ const NotificationBell = () => {
             padding: '0.75rem 1rem',
             borderBottom: '1px solid #eee',
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
             alignItems: 'center',
             gap: '8px'
           }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="notif-sound" style={{ fontSize: '0.85rem', color: '#666', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input 
+                  id="notif-sound" 
+                  type="checkbox" 
+                  checked={soundEnabled} 
+                  onChange={async (e) => {
+                    const v = e.target.checked; 
+                    setSoundEnabled(v);
+                    try { 
+                      if (user) await setDoc(doc(db, 'users', user.uid), { notificationSoundEnabled: v }, { merge: true }); 
+                    } catch {}
+                  }}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Bell size={14} /> Sound</span>
+              </label>
+            </div>
             <div>
               <button
                 onClick={handleMarkAllAsRead}
@@ -322,14 +354,6 @@ const NotificationBell = () => {
                 {t('clear_all') || 'Clear all'}
               </button>
             </div>
-        {/* Footer toggle for sound */}
-        <div style={{ padding:'0.5rem', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <label htmlFor="notif-sound" style={{ fontSize:'0.85rem', color:'var(--muted)' }}>Sound</label>
-          <input id="notif-sound" type="checkbox" checked={soundEnabled} onChange={async (e)=>{
-            const v = e.target.checked; setSoundEnabled(v);
-            try { if (user) await setDoc(doc(db,'users',user.uid), { notificationSoundEnabled: v }, { merge:true }); } catch {}
-          }} />
-        </div>
           </div>
 
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
@@ -337,13 +361,29 @@ const NotificationBell = () => {
               notifications.slice(0, 10).map(notification => (
                 <div
                   key={notification.id}
-                  onClick={() => { if (!notification.read) handleMarkAsRead(notification.id); gotoFromNotification(notification); }}
+                  onClick={(e) => { 
+                    if (!notification.read) handleMarkAsRead(notification.id); 
+                    gotoFromNotification(notification);
+                    e.currentTarget.style.transform = 'scale(0.98)';
+                    setTimeout(() => {
+                      if (e.currentTarget) e.currentTarget.style.transform = 'scale(1)';
+                    }, 100);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    e.currentTarget.style.background = notification.read ? '#f8f9fa' : '#e8eaff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.background = notification.read ? 'white' : '#f8f9ff';
+                  }}
                   style={{
                     padding: '0.75rem 1rem',
                     borderBottom: '1px solid #f0f0f0',
-                    cursor: notification.read ? 'default' : 'pointer',
+                    cursor: 'pointer',
                     background: notification.read ? 'white' : '#f8f9ff',
-                    transition: 'background 0.2s'
+                    transition: 'all 0.2s',
+                    transform: 'scale(1)'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>

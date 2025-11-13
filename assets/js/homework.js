@@ -1,5 +1,5 @@
-import { db, auth, onAuthChange, signIn, signOutUser, getPublicActivities, getUserSubmissions, uploadHomeworkFile, createSubmission, updateSubmission } from '../../firebase-config.js';
-import { collection, getDocs, doc, getDoc, query, where } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js';
+import { db, auth, onAuthChange, signIn, signOutUser, getPublicActivities, getUserSubmissions, uploadHomeworkFile, createSubmission, updateSubmission, functions } from '../../firebase-config.js';
+import { httpsCallable } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-functions.js';
 
 (async function(){
   const row = document.getElementById('auth-row');
@@ -138,15 +138,12 @@ import { collection, getDocs, doc, getDoc, query, where } from 'https://www.gsta
             submittedAt: new Date(),
           };
 
-          // Check if submission exists to decide on create vs update
-          getUserSubmissions(currentUser.uid).then(res => {
-            const existing = res.submissions.find(s => s.activityId === activityId);
-            if (existing) {
-              updateSubmission(existing.id, submissionData).then(() => loadHomework());
-            } else {
-              createSubmission(submissionData).then(() => loadHomework());
-            }
-          });
+          const createHomeworkSubmission = httpsCallable(functions, 'createHomeworkSubmission');
+          createHomeworkSubmission(submissionData)
+            .then(() => loadHomework())
+            .catch((error) => {
+              alert('Failed to create submission: ' + error.message);
+            });
         }
       });
     }

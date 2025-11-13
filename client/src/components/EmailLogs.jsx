@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { useToast } from './ToastProvider';
 import Modal from './Modal';
 import { useLang } from '../contexts/LangContext';
+import { Mail, Megaphone, FileText, CheckCircle2, XCircle, GraduationCap, BookOpen, MessageSquareText, Mailbox, Eye, Download } from 'lucide-react';
+import { formatDateTime } from '../utils/date';
 
 const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
   const toast = useToast();
   const { t } = useLang();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [missingIndexUrl, setMissingIndexUrl] = useState('');
   const [filters, setFilters] = useState({
     type: defaultTypeFilter,
     status: 'all',
@@ -52,10 +55,19 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
         logList.push({ id: doc.id, ...doc.data() });
       });
       
+      setMissingIndexUrl('');
       setLogs(logList);
     } catch (error) {
-      console.error('Error loading logs:', error);
-      toast?.showError('Failed to load email logs: ' + error.message);
+      // Detect missing index error and provide a helpful link instead of noisy toasts
+      const msg = error?.message || '';
+      const idxPrefix = 'https://console.firebase.google.com';
+      const match = msg.includes('requires an index') && msg.match(/https:\/\/console\.firebase\.google\.com[^\s)]+/);
+      if (match && match[0]) {
+        setMissingIndexUrl(match[0]);
+      } else {
+        console.error('Error loading logs:', error);
+        toast?.showError('Failed to load email logs: ' + (error?.message || '')); 
+      }
     } finally {
       setLoading(false);
     }
@@ -74,19 +86,20 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
     return true;
   });
 
-  const getTypeIcon = (type) => {
-    const icons = {
-      newsletter: '📧',
-      announcement: '📢',
-      activity: '📝',
-      activity_complete: '✅',
-      activity_graded: '🎯',
-      enrollment: '🎓',
-      resource: '📚',
-      chat_digest: '💬',
-      custom: '✉️'
+  const getTypeIcon = (type, size = 16) => {
+    const common = { size };
+    const map = {
+      newsletter: <Mailbox {...common} title="Newsletter" />,
+      announcement: <Megaphone {...common} title="Announcement" />,
+      activity: <FileText {...common} title="Activity" />,
+      activity_complete: <CheckCircle2 {...common} title="Completion" />,
+      activity_graded: <FileText {...common} title="Grading" />,
+      enrollment: <GraduationCap {...common} title="Enrollment" />,
+      resource: <BookOpen {...common} title="Resource" />,
+      chat_digest: <MessageSquareText {...common} title="Chat Digest" />,
+      custom: <Mail {...common} title="Email" />
     };
-    return icons[type] || '✉️';
+    return map[type] || <Mail {...common} title="Email" />;
   };
 
   const getStatusBadge = (status) => {
@@ -100,7 +113,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
   const exportToCSV = () => {
     const headers = ['Date/Time', 'Type', 'Subject', 'To', 'Status', 'Error'];
     const rows = filteredLogs.map(log => [
-      log.timestamp?.toDate?.()?.toLocaleString('en-GB') || '',
+      log.timestamp ? formatDateTime(log.timestamp) : '',
       log.type || '',
       log.subject || '',
       Array.isArray(log.to) ? log.to.join('; ') : log.to || '',
@@ -125,6 +138,20 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
 
   return (
     <div>
+      {missingIndexUrl && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.75rem 1rem',
+          background: '#fdecea',
+          color: '#611a15',
+          border: '1px solid #f5c2c7',
+          borderRadius: 8
+        }}>
+          <strong>Action needed:</strong> This query requires a Firestore index. 
+          <a href={missingIndexUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#b02a37', textDecoration: 'underline', marginLeft: 6 }}>Create index</a>
+          . After the index builds, reload this page.
+        </div>
+      )}
       <div style={{ marginBottom: '1.5rem' }}>
         <p style={{ color: '#666', fontSize: '0.95rem', marginBottom: '1rem' }}>
           View all sent emails with full audit trail. Search by recipient, subject, or type.
@@ -140,14 +167,14 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
               style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: 6 }}
             >
               <option value="all">All Types</option>
-              <option value="newsletter">📧 Newsletter</option>
-              <option value="announcement">📢 Announcements</option>
-              <option value="activity">📝 Activities</option>
-              <option value="activity_graded">🎯 Grading</option>
-              <option value="activity_complete">✅ Completions</option>
-              <option value="enrollment">🎓 Enrollments</option>
-              <option value="resource">📚 Resources</option>
-              <option value="chat_digest">💬 Chat Digest</option>
+              <option value="newsletter">Newsletter</option>
+              <option value="announcement">Announcements</option>
+              <option value="activity">Activities</option>
+              <option value="activity_graded">Grading</option>
+              <option value="activity_complete">Completions</option>
+              <option value="enrollment">Enrollments</option>
+              <option value="resource">Resources</option>
+              <option value="chat_digest">Chat Digest</option>
             </select>
           </div>
 
@@ -190,7 +217,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
                 fontSize: '0.9rem'
               }}
             >
-              📥 Export CSV
+              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Download size={16} /></span> Export CSV
             </button>
           </div>
         </div>
@@ -230,17 +257,13 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
                 return (
                   <tr key={log.id} style={{ borderBottom: '1px solid #f3f3f3' }}>
                     <td style={{ padding: '12px', fontSize: '0.85rem' }}>
-                      {log.timestamp?.toDate?.()?.toLocaleString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }) || 'N/A'}
+                      {log.timestamp ? formatDateTime(log.timestamp) : 'N/A'}
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <span style={{ fontSize: '1.2rem' }}>{getTypeIcon(log.type)}</span>
-                      <span style={{ marginLeft: '8px', fontSize: '0.85rem' }}>{log.type}</span>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
+                        {getTypeIcon(log.type, 18)}
+                        <span style={{ fontSize: '0.85rem' }}>{log.type}</span>
+                      </span>
                     </td>
                     <td style={{ padding: '12px', fontSize: '0.9rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {log.subject || 'No subject'}
@@ -269,8 +292,9 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
                           cursor: 'pointer',
                           fontSize: '0.85rem'
                         }}
+                        title="View"
                       >
-                        👁️
+                        <span style={{ display:'inline-flex' }}><Eye size={16} /></span>
                       </button>
                     </td>
                   </tr>
@@ -323,7 +347,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <h2 style={{ margin: 0, fontSize: '1.15rem' }}>📧 Email Log Preview</h2>
+              <h2 style={{ margin: 0, fontSize: '1.15rem', display:'flex', alignItems:'center', gap:8 }}><Mail size={18} /> Email Log Preview</h2>
               <button
                 onClick={() => {
                   setShowPreview(false);
@@ -353,7 +377,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
                 {/* Metadata box */}
                 <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#f8f9fa', borderRadius: 8 }}>
                   <div style={{ display: 'grid', gap: '0.75rem', fontSize: '0.9rem' }}>
-                    <div><strong>Date/Time:</strong> {selectedLog.timestamp?.toDate?.()?.toLocaleString('en-GB') || 'N/A'}</div>
+                    <div><strong>Date/Time:</strong> {selectedLog.timestamp ? formatDateTime(selectedLog.timestamp) : 'N/A'}</div>
                     <div><strong>Type:</strong> {getTypeIcon(selectedLog.type)} {selectedLog.type}</div>
                     <div><strong>Subject:</strong> {selectedLog.subject}</div>
                     <div><strong>From:</strong> {selectedLog.senderName} &lt;{selectedLog.from}&gt;</div>

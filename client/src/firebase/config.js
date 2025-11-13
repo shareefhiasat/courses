@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
@@ -10,7 +10,7 @@ const firebaseConfig = {
   authDomain: "main-one-32026.firebaseapp.com",
   databaseURL: "https://main-one-32026-default-rtdb.firebaseio.com",
   projectId: "main-one-32026",
-  storageBucket: "main-one-32026.firebasestorage.app",
+  storageBucket: "main-one-32026.appspot.com",
   messagingSenderId: "1070031616844",
   appId: "1:1070031616844:web:f8c4e4b2a8b8c8b8c8b8c8"
 };
@@ -20,7 +20,10 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Use initializeFirestore to improve reliability on some networks/environments
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true
+});
 export const functions = getFunctions(app, 'us-central1');
 export const storage = getStorage(app);
 export const rtdb = getDatabase(app);
