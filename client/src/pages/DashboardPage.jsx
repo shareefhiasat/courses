@@ -18,6 +18,8 @@ import {
 import { getLoginLogs, getCourses, setCourse, deleteCourse, getAllowlist, updateAllowlist } from '../firebase/firestore';
 import { notifyAllUsers, notifyUsersByClass } from '../firebase/notifications';
 import Loading from '../components/Loading';
+import RibbonTabs from '../components/RibbonTabs';
+import DragGrid from '../components/DragGrid';
 import SmartGrid from '../components/SmartGrid';
 import EmailManager from '../components/EmailManager';
 import EmailComposer from '../components/EmailComposer';
@@ -29,18 +31,32 @@ import EmailLogs from '../components/EmailLogs';
 import Modal from '../components/Modal';
 import { useToast } from '../components/ToastProvider';
 import './DashboardPage.css';
+import { FileSignature, Mail, BarChart3 } from 'lucide-react';
+import { formatDateTime } from '../utils/date';
 import { useLang } from '../contexts/LangContext';
 import DateTimePicker from '../components/DateTimePicker';
 import ToggleSwitch from '../components/ToggleSwitch';
 
 const DashboardPage = () => {
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading, impersonateUser } = useAuth();
   const { lang, setLang, t } = useLang();
   const navigate = useNavigate();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('dashboardActiveTab') || 'activities';
     return saved === 'courses' ? 'categories' : saved;
+  });
+  const [activeCategory, setActiveCategory] = useState(() => {
+    // derive category from saved tab
+    const map = {
+      activities: 'content', announcements: 'content', resources: 'content',
+      users: 'users', allowlist: 'users',
+      classes: 'academic', enrollments: 'academic', submissions: 'academic',
+      smtp: 'communication', newsletter: 'communication', emailTemplates: 'communication', emailLogs: 'communication',
+      categories: 'settings', login: 'settings',
+      analytics: 'analytics'
+    };
+    return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
   });
   const [loading, setLoading] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
@@ -55,6 +71,36 @@ const DashboardPage = () => {
     setActiveTab(tab);
     localStorage.setItem('dashboardActiveTab', tab);
   };
+
+  const ribbonCategories = [
+    { key: 'content', label: 'Content', items: [
+      { key: 'activities', label: t('activities') },
+      { key: 'announcements', label: t('announcements') },
+      { key: 'resources', label: t('resources') },
+    ]},
+    { key: 'users', label: 'Users', items: [
+      { key: 'users', label: t('users') },
+      { key: 'allowlist', label: t('allowlist') },
+    ]},
+    { key: 'academic', label: 'Academic', items: [
+      { key: 'classes', label: t('classes') },
+      { key: 'enrollments', label: t('enrollments') },
+      { key: 'submissions', label: t('submissions') },
+    ]},
+    { key: 'communication', label: 'Communication', items: [
+      { key: 'smtp', label: t('smtp') },
+      { key: 'newsletter', label: t('newsletter') },
+      { key: 'emailTemplates', label: 'Templates' },
+      { key: 'emailLogs', label: 'Logs' },
+    ]},
+    { key: 'analytics', label: 'Analytics', items: [
+      { key: 'analytics', label: 'Overview' },
+    ]},
+    { key: 'settings', label: 'Settings', items: [
+      { key: 'categories', label: t('categories') },
+      { key: 'login', label: 'Activity' },
+    ]},
+  ];
 
   // Load email logs when newsletter tab is opened
   useEffect(() => {
@@ -92,7 +138,8 @@ const DashboardPage = () => {
     setActivityForm({
       id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
       course: 'python', type: 'quiz', difficulty: 'beginner', url: '', dueDate: '',
-      image: '', order: 0, show: true, allowRetake: false, classId: '', featured: false
+      image: '', order: 0, show: true, allowRetake: false, classId: '', featured: false,
+      optional: false, quizId: '', requiresSubmission: false, maxScore: 10
     });
     setFormErrors({});
   };
@@ -105,6 +152,7 @@ const DashboardPage = () => {
   const [classes, setClasses] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
   const [resources, setResources] = useState([]);
   const [emailLogs, setEmailLogs] = useState([]);
   const [loginLogs, setLoginLogs] = useState([]);
@@ -151,15 +199,22 @@ const DashboardPage = () => {
     if (loginUserFilter !== 'all') {
       list = list.filter(l => (l.email || l.userId) === loginUserFilter);
     }
+    const parseDDMM = (s) => {
+      try {
+        const [dd, mm, yyyy] = (s || '').split('/');
+        if (!dd || !mm || !yyyy) return NaN;
+        return new Date(`${yyyy}-${mm}-${dd}T00:00:00`).getTime();
+      } catch { return NaN; }
+    };
     if (loginFrom) {
-      const fromDate = new Date(loginFrom).getTime();
+      const fromDate = parseDDMM(loginFrom);
       list = list.filter(l => {
         const logDate = l.when?.seconds ? l.when.seconds * 1000 : new Date(l.when).getTime();
         return logDate >= fromDate;
       });
     }
     if (loginTo) {
-      const toDate = new Date(loginTo).getTime() + 86400000;
+      const toDate = parseDDMM(loginTo);
       list = list.filter(l => {
         const logDate = l.when?.seconds ? l.when.seconds * 1000 : new Date(l.when).getTime();
         return logDate <= toDate;
@@ -213,7 +268,10 @@ const DashboardPage = () => {
     show: true,
     allowRetake: false,
     classId: '',
-    featured: false
+    featured: false,
+    optional: false,
+    quizId: '',
+    requiresSubmission: false
   });
   
   const [emailOptions, setEmailOptions] = useState({
@@ -229,6 +287,7 @@ const DashboardPage = () => {
     target: 'global'
   });
   const [announcementEmailOptions, setAnnouncementEmailOptions] = useState({ sendEmail: false, lang: 'both' });
+  const [resourceEmailOptions, setResourceEmailOptions] = useState({ sendEmail: false, createAnnouncement: false });
   
   const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '' });
   const [enrollmentForm, setEnrollmentForm] = useState({ userId: '', classId: '', role: 'student' });
@@ -245,7 +304,8 @@ const DashboardPage = () => {
     url: '',
     type: 'link',
     dueDate: '',
-    optional: false
+    optional: false,
+    featured: false
   });
 
   useEffect(() => {
@@ -262,7 +322,7 @@ const DashboardPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [activitiesRes, announcementsRes, usersRes, allowlistRes, classesRes, enrollmentsRes, submissionsRes, resourcesRes, loginLogsRes, coursesRes] = await Promise.all([
+      const [activitiesRes, announcementsRes, usersRes, allowlistRes, classesRes, enrollmentsRes, submissionsRes, resourcesRes, loginLogsRes, coursesRes, quizzesRes] = await Promise.all([
         getActivities(),
         getAnnouncements(),
         getUsers(),
@@ -272,7 +332,15 @@ const DashboardPage = () => {
         getSubmissions(),
         getResources(),
         getLoginLogs(),
-        getCourses()
+        getCourses(),
+        (async () => {
+          try {
+            const { getAllQuizzes } = await import('../firebase/quizzes');
+            return await getAllQuizzes();
+          } catch {
+            return { success: false, data: [] };
+          }
+        })()
       ]);
       
       if (activitiesRes.success) setActivities(activitiesRes.data);
@@ -285,6 +353,7 @@ const DashboardPage = () => {
       if (resourcesRes.success) setResources(resourcesRes.data);
       if (loginLogsRes.success) setLoginLogs(loginLogsRes.data);
       if (coursesRes.success) setCourses(coursesRes.data || []);
+      if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -436,7 +505,7 @@ const DashboardPage = () => {
       
       // Format email
       const dueDate = activity.dueDate 
-        ? new Date(activity.dueDate).toLocaleDateString('en-GB')
+        ? formatDateTime(activity.dueDate)
         : 'No deadline';
       
       const buildEn = () => `
@@ -495,7 +564,7 @@ const DashboardPage = () => {
   const createActivityAnnouncement = async (activity) => {
     try {
       const dueDate = activity.dueDate 
-        ? new Date(activity.dueDate).toLocaleDateString('en-GB')
+        ? formatDateTime(activity.dueDate)
         : 'No deadline';
       
       const announcement = {
@@ -538,6 +607,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         await addAnnouncement(announcementForm);
         
       if (result.success) {
+        // Log announcement creation
+        if (!editingAnnouncement) {
+          try {
+            await addActivityLog({
+              type: 'announcement_created',
+              userId: user.uid,
+              email: user.email,
+              displayName: user.displayName || user.email,
+              userAgent: navigator.userAgent,
+              metadata: { announcementId: result.id, title: announcementForm.title, target: announcementForm.target }
+            });
+          } catch (e) { console.warn('Failed to log announcement:', e); }
+        }
         // Send notifications only for new announcements
         if (!editingAnnouncement) {
           if (announcementForm.target === 'global') {
@@ -616,7 +698,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
   };
 
   if (authLoading) {
-    return <Loading message="Checking permissions..." />;
+    return <Loading fullscreen message="Checking permissions..." />;
   }
 
   if (!user || !isAdmin) {
@@ -630,106 +712,96 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
     );
   }
 
+  if (loading) {
+    return <Loading fullscreen message="Loading dashboard..." />;
+  }
+
   return (
     <div className="dashboard-page">
       {/* Compact header removed to save vertical space */}
 
       <div className="dashboard-content">
-        <div className="dashboard-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'activities' ? 'active' : ''}`}
-            onClick={() => handleTabChange('activities')}
-          >
-            {t('activities')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'announcements' ? 'active' : ''}`}
-            onClick={() => handleTabChange('announcements')}
-          >
-            {t('announcements')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => handleTabChange('users')}
-          >
-            {t('users')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'allowlist' ? 'active' : ''}`}
-            onClick={() => handleTabChange('allowlist')}
-          >
-            {t('allowlist')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'classes' ? 'active' : ''}`}
-            onClick={() => handleTabChange('classes')}
-          >
-            {t('classes')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'enrollments' ? 'active' : ''}`}
-            onClick={() => handleTabChange('enrollments')}
-          >
-            {t('enrollments')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'submissions' ? 'active' : ''}`}
-            onClick={() => handleTabChange('submissions')}
-          >
-            {t('submissions')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'resources' ? 'active' : ''}`}
-            onClick={() => handleTabChange('resources')}
-          >
-            {t('resources')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'smtp' ? 'active' : ''}`}
-            onClick={() => handleTabChange('smtp')}
-          >
-            {t('smtp')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'newsletter' ? 'active' : ''}`}
-            onClick={() => handleTabChange('newsletter')}
-          >
-            {t('newsletter')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'login' ? 'active' : ''}`}
-            onClick={() => handleTabChange('login')}
-          >
-            {t('activity_tab')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'categories' ? 'active' : ''}`}
-            onClick={() => handleTabChange('categories')}
-          >
-            {t('categories')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'emailTemplates' ? 'active' : ''}`}
-            onClick={() => handleTabChange('emailTemplates')}
-          >
-            📧 {t('email_management')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'emailLogs' ? 'active' : ''}`}
-            onClick={() => handleTabChange('emailLogs')}
-          >
-            📊 {t('email_logs')}
-          </button>
-        </div>
+        <RibbonTabs
+          categories={ribbonCategories}
+          activeCategory={activeCategory}
+          activeItem={activeTab}
+          onChange={({ category, item }) => { setActiveCategory(category); handleTabChange(item); }}
+        />
 
         <div className="tab-content">
           {activeTab === 'activities' && (
             <div className="activities-tab">
               {editingActivity && (
-                <div className="edit-mode-indicator">
-                  📝 Editing Activity: {editingActivity.id} - {editingActivity.title_en}
+                <div className="edit-mode-indicator" style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <FileSignature size={16} /> Editing Activity: {editingActivity.id} - {editingActivity.title_en}
                 </div>
               )}
+
+          {activeTab === 'analytics' && (
+            <div className="analytics-tab" style={{ padding: '0.5rem' }}>
+              <DragGrid
+                storageKey="dashboard_analytics_layout"
+                widgets={[
+                  { id: 'w_quizzes', title: 'Quizzes', render: () => (<div>{quizzes.length} total quizzes</div>) },
+                  { id: 'w_students', title: 'Users', render: () => (<div>{users.length} users</div>) },
+                  { id: 'w_classes', title: 'Classes', render: () => (<div>{classes.length} classes</div>) },
+                  { id: 'w_submissions', title: 'Submissions', render: () => {
+                      const graded = submissions.filter(s=>s.status==='graded').length;
+                      const rate = submissions.length ? Math.round((graded/submissions.length)*100) : 0;
+                      return (
+                        <div>
+                          <div style={{ marginBottom: 8 }}>{submissions.length} submissions</div>
+                          <div style={{ fontSize:12, color:'#666', marginBottom:6 }}>Graded rate: {rate}%</div>
+                          <div style={{ height:8, background:'#eee', borderRadius:6, overflow:'hidden' }}>
+                            <div style={{ width: `${rate}%`, height: '100%', background:'#10b981' }} />
+                          </div>
+                        </div>
+                      );
+                  } },
+                  { id: 'w_ann', title: 'Announcements', render: () => {
+                      const last7 = (()=>{ const now=Date.now(); const week=7*24*60*60*1000; return announcements.filter(a=>{ const ts=a.createdAt?.seconds? a.createdAt.seconds*1000 : new Date(a.createdAt).getTime(); return (now - ts) <= week; }).length; })();
+                      return (<div>{announcements.length} total • {last7} last 7 days</div>);
+                  } },
+                  { id: 'w_activities', title: 'Activities by type', render: () => {
+                      const byType = (types=> types.map(t=> ({ t, c: activities.filter(a=>a.type===t).length })))(['training','homework','quiz','assignment']);
+                      const max = Math.max(1, ...byType.map(x=>x.c));
+                      return (
+                        <div style={{ display:'grid', gap:6 }}>
+                          {byType.map(x=> (
+                            <div key={x.t} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <div style={{ width:90, fontSize:12, color:'#555', textTransform:'capitalize' }}>{x.t}</div>
+                              <div style={{ flex:1, height:8, background:'#f1f5f9', borderRadius:6, overflow:'hidden' }}>
+                                <div style={{ width: `${Math.round((x.c/max)*100)}%`, height:'100%', background:'#6366f1' }} />
+                              </div>
+                              <div style={{ width:36, textAlign:'right', fontSize:12 }}>{x.c}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                  } },
+                  { id: 'w_classes_terms', title: 'Classes by term', render: () => {
+                      const termMap = new Map();
+                      classes.forEach(c=>{ const k=c.term||'—'; termMap.set(k, (termMap.get(k)||0)+1); });
+                      const rows = Array.from(termMap.entries());
+                      const max = Math.max(1, ...rows.map(r=>r[1]));
+                      return (
+                        <div style={{ display:'grid', gap:6 }}>
+                          {rows.map(([term,count])=> (
+                            <div key={term} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <div style={{ width:90, fontSize:12, color:'#555' }}>{String(term)}</div>
+                              <div style={{ flex:1, height:8, background:'#f1f5f9', borderRadius:6, overflow:'hidden' }}>
+                                <div style={{ width: `${Math.round((count/max)*100)}%`, height:'100%', background:'#f59e0b' }} />
+                              </div>
+                              <div style={{ width:36, textAlign:'right', fontSize:12 }}>{count}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                  } },
+                ]}
+              />
+            </div>
+          )}
 
               <form onSubmit={handleActivitySubmit} className="activity-form">
                 <div className="form-row">
@@ -773,9 +845,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     value={activityForm.type}
                     onChange={(e) => setActivityForm({...activityForm, type: e.target.value})}
                   >
-                    <option value="quiz">{t('quiz')}</option>
-                    <option value="homework">{t('homework')}</option>
-                    <option value="training">{t('training')}</option>
+                    <option value="quiz">🧩 {t('quiz') || 'Quiz'}</option>
+                    <option value="homework">📝 {t('homework') || 'Homework'}</option>
+                    <option value="training">🏋️ {t('training') || 'Training'}</option>
+                    <option value="assignment">📤 {t('assignment') || 'Assignment'}</option>
                   </select>
                   <select
                     value={activityForm.difficulty}
@@ -853,6 +926,24 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   />
                 </div>
                 
+                {/* Quiz Selector - Only show for quiz type */}
+                {activityForm.type === 'quiz' && (
+                  <div className="form-row">
+                    <select
+                      value={activityForm.quizId || ''}
+                      onChange={(e) => setActivityForm({...activityForm, quizId: e.target.value})}
+                      style={{ flex: 1 }}
+                    >
+                      <option value="">🎮 {t('select_quiz') || 'Select Quiz (Optional)'}</option>
+                      {quizzes.map(quiz => (
+                        <option key={quiz.id} value={quiz.id}>
+                          {quiz.title} ({quiz.questions?.length || 0} questions)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="form-row">
                   <label>
                     <input
@@ -877,6 +968,22 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       onChange={(e) => setActivityForm({ ...activityForm, featured: e.target.checked })}
                     />
                     {t('featured') || 'Featured'}
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={activityForm.optional}
+                      onChange={(e) => setActivityForm({ ...activityForm, optional: e.target.checked })}
+                    />
+                    {t('optional') || 'Optional (if off: Required)'}
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={activityForm.requiresSubmission}
+                      onChange={(e) => setActivityForm({ ...activityForm, requiresSubmission: e.target.checked })}
+                    />
+                    {t('requires_submission') || '📤 Requires Submission'}
                   </label>
                 </div>
                 
@@ -977,6 +1084,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       filter: (a) => a.type === 'quiz'
                     },
                     { 
+                      key: 'assignment', 
+                      label: `📤 ${t('assignment') || 'Assignment'}`,
+                      count: activities.filter(a => a.type === 'assignment').length,
+                      filter: (a) => a.type === 'assignment'
+                    },
+                    { 
                       key: 'beginner', 
                       label: `🌟 ${t('beginner')}`,
                       count: activities.filter(a => a.difficulty === 'beginner').length,
@@ -995,15 +1108,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     accessor: 'dueDate',
                     render: (value) => {
                       if (!value) return t('no_deadline_set');
-                      // Firestore Timestamp
-                      if (typeof value === 'object' && value.seconds) {
-                        return new Date(value.seconds * 1000).toLocaleDateString('en-GB');
-                      }
-                      const str = String(value);
-                      const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-                      if (ddmmyyyy.test(str)) return str; // already DD/MM/YYYY
-                      const d = new Date(str);
-                      return isNaN(d.getTime()) ? str : d.toLocaleDateString('en-GB');
+                      return formatDateTime(value);
                     }
                   },
                   { 
@@ -1211,10 +1316,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     accessor: 'createdAt',
                     render: (createdAt) => {
                       if (!createdAt) return 'Unknown';
-                      const date = createdAt.seconds ? 
-                        new Date(createdAt.seconds * 1000) : 
-                        new Date(createdAt);
-                      return date.toLocaleString('en-GB');
+                      return formatDateTime(createdAt);
                     }
                   }
                 ]}
@@ -1260,14 +1362,37 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             <div className="login-activity-tab">
               <h2>{t('activity_logs')}</h2>
               <div style={{ display:'flex', gap:12, alignItems:'center', margin:'0.5rem 0 1rem', flexWrap:'wrap' }}>
-                <select value={activityTypeFilter} onChange={(e)=>setActivityTypeFilter(e.target.value)} style={{ padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, fontWeight: 600, flex:'1 1 180px' }}>
+                <select value={activityTypeFilter} onChange={(e)=>setActivityTypeFilter(e.target.value)} style={{ padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, fontWeight: 600, flex:'1 1 200px' }}>
                   <option value="all">{t('all_activity_types')}</option>
-                  <option value="login">🔐 Login</option>
-                  <option value="signup">✨ Signup</option>
-                  <option value="profile_update">👤 Profile Update</option>
-                  <option value="password_change">🔑 Password Change</option>
-                  <option value="email_change">📧 Email Change</option>
-                  <option value="session_timeout">⏱️ Session Timeout</option>
+                  <optgroup label="Authentication">
+                    <option value="login">🔐 Login</option>
+                    <option value="signup">✨ Signup</option>
+                    <option value="session_timeout">⏱️ Session Timeout</option>
+                  </optgroup>
+                  <optgroup label="Profile">
+                    <option value="profile_update">👤 Profile Update</option>
+                    <option value="password_change">🔑 Password Change</option>
+                    <option value="email_change">📧 Email Change</option>
+                  </optgroup>
+                  <optgroup label="Academic">
+                    <option value="quiz_start">🎯 Quiz Started</option>
+                    <option value="quiz_submit">✅ Quiz Submitted</option>
+                    <option value="submission">📝 Assignment Submitted</option>
+                    <option value="submission_graded">⭐ Submission Graded</option>
+                    <option value="resource_completed">📚 Resource Completed</option>
+                    <option value="attendance_marked">✓ Attendance Marked</option>
+                  </optgroup>
+                  <optgroup label="Communication">
+                    <option value="message_sent">📤 Message Sent</option>
+                    <option value="message_received">📥 Message Received</option>
+                    <option value="announcement_read">📢 Announcement Read</option>
+                    <option value="announcement_created">📣 Announcement Created</option>
+                  </optgroup>
+                  <optgroup label="Engagement">
+                    <option value="activity_viewed">👁️ Activity Viewed</option>
+                    <option value="resource_bookmarked">🔖 Resource Bookmarked</option>
+                    <option value="badge_earned">🏅 Badge Earned</option>
+                  </optgroup>
                 </select>
                 <input
                   type="text"
@@ -1282,8 +1407,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     <option key={u.docId} value={u.email || u.docId}>{u.displayName ? `${u.displayName} (${u.email||u.docId})` : (u.email || u.docId)}</option>
                   ))}
                 </select>
-                <label style={{ color:'#666', display:'flex', alignItems:'center', gap:4 }}>{t('from') || 'From'} <input type="date" value={loginFrom} onChange={(e)=>setLoginFrom(e.target.value)} style={{ padding:'6px' }} /></label>
-                <label style={{ color:'#666', display:'flex', alignItems:'center', gap:4 }}>{t('to') || 'To'} <input type="date" value={loginTo} onChange={(e)=>setLoginTo(e.target.value)} style={{ padding:'6px' }} /></label>
+                <label style={{ color:'#666', display:'flex', alignItems:'center', gap:4 }}>{t('from') || 'From'} <input type="text" placeholder="DD/MM/YYYY" value={loginFrom} onChange={(e)=>setLoginFrom(e.target.value)} style={{ padding:'6px' }} /></label>
+                <label style={{ color:'#666', display:'flex', alignItems:'center', gap:4 }}>{t('to') || 'To'} <input type="text" placeholder="DD/MM/YYYY" value={loginTo} onChange={(e)=>setLoginTo(e.target.value)} style={{ padding:'6px' }} /></label>
                 <button onClick={loadData} style={{ padding:'8px 16px', border:'1px solid #ddd', borderRadius:8, cursor:'pointer', background:'#800020', color:'white', fontWeight:600 }}>{t('refresh')}</button>
               </div>
               {(() => {
@@ -1312,7 +1437,16 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             message_sent: '📤',
                             message_received: '📥',
                             submission: '📝',
-                            announcement_read: '📢'
+                            announcement_read: '📢',
+                            announcement_created: '📣',
+                            quiz_start: '🎯',
+                            quiz_submit: '✅',
+                            submission_graded: '⭐',
+                            resource_completed: '📚',
+                            attendance_marked: '✓',
+                            activity_viewed: '👁️',
+                            resource_bookmarked: '🔖',
+                            badge_earned: '🏅'
                           };
                           return (
                             <tr key={l.docId}>
@@ -1320,7 +1454,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                 <span style={{ fontSize: '1.2rem', marginRight: '6px' }}>{typeIcons[l.type] || '📋'}</span>
                                 <span style={{ fontSize: '0.85rem' }}>{l.type || 'login'}</span>
                               </td>
-                              <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3', whiteSpace:'nowrap' }}>{l.when?.seconds ? new Date(l.when.seconds*1000).toLocaleString('en-GB') : new Date(l.when).toLocaleString('en-GB')}</td>
+                              <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3', whiteSpace:'nowrap' }}>{formatDateTime(l.when)}</td>
                               <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>{l.displayName || '—'}</td>
                               <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>{l.email || '—'}</td>
                               <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>
@@ -1477,6 +1611,22 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const classEnrollments = enrollments.filter(e => e.classId === effectiveId);
                       return `${classEnrollments.length} ${t('enrolled') || 'enrolled'}`;
                     }
+                  },
+                  {
+                    header: t('actions') || 'Actions',
+                    accessor: 'docId',
+                    render: (docId, classItem) => (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/award-medals/${docId || classItem.id}`);
+                        }}
+                        className="btn-military-primary"
+                        style={{ padding: '6px 12px', fontSize: '0.875rem' }}
+                      >
+                        🎖️ {t('award_medals') || 'Award Medals'}
+                      </button>
+                    )
                   }
                 ]}
                 onEdit={(classItem) => {
@@ -1634,8 +1784,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     accessor: 'createdAt',
                     render: (value) => {
                       if (!value) return 'Unknown';
-                      const date = value.seconds ? new Date(value.seconds * 1000) : new Date(value);
-                      return date.toLocaleDateString('en-GB');
+                      return formatDateTime(value);
                     }
                   }
                 ]}
@@ -1741,10 +1890,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     accessor: 'submittedAt',
                     render: (submittedAt) => {
                       if (!submittedAt) return t('unknown');
-                      const date = submittedAt.seconds ? 
-                        new Date(submittedAt.seconds * 1000) : 
-                        new Date(submittedAt);
-                      return date.toLocaleString('en-GB');
+                      return formatDateTime(submittedAt);
                     }
                   },
                   { 
@@ -1788,6 +1934,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         status: 'graded' 
                       });
                       if (result.success) {
+                        // Log grading activity
+                        try {
+                          await addActivityLog({
+                            type: 'submission_graded',
+                            userId: user.uid,
+                            email: user.email,
+                            displayName: user.displayName || user.email,
+                            userAgent: navigator.userAgent,
+                            metadata: { submissionId: submission.id, studentId: submission.userId, activityId: submission.activityId, score, gradedBy: user.uid }
+                          });
+                        } catch (e) { console.warn('Failed to log grading:', e); }
                         await loadData();
                         // Notify student
                         try {
@@ -1905,9 +2062,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   <select
                     value={userForm.role}
                     onChange={(e) => setUserForm({...userForm, role: e.target.value})}
+                    style={{ padding: '0.6rem', border: '1px solid #ddd', borderRadius: 6, background: 'white' }}
                   >
-                    <option value="student">{t('student')}</option>
-                    <option value="admin">{t('admin')}</option>
+                    <option value="student">{t('student') || 'Student'}</option>
+                    <option value="instructor">{t('instructor') || 'Instructor'}</option>
+                    <option value="hr">{t('hr') || 'HR'}</option>
+                    <option value="admin">{t('admin') || 'Admin'}</option>
+                    <option value="superadmin">Super Admin</option>
                   </select>
                 </div>
                 
@@ -2009,39 +2170,68 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     accessor: 'createdAt',
                     render: (value) => {
                       if (!value) return t('unknown');
-                      const d = value?.seconds ? new Date(value.seconds * 1000) : new Date(value);
-                      return d.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+                      return formatDateTime(value);
                     }
                   },
                   {
                     header: t('actions_col'),
                     accessor: 'docId',
                     render: (value, user) => (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const { sendPasswordResetEmail } = await import('firebase/auth');
-                            const { auth } = await import('../firebase/config');
-                            
-                            await sendPasswordResetEmail(auth, user.email);
-                            toast?.showSuccess(`Password reset email sent to ${user.email}`);
-                          } catch (error) {
-                            console.error('Error:', error);
-                            toast?.showError('Failed: ' + error.message);
-                          }
-                        }}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          background: 'linear-gradient(135deg, #800020, #600018)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 6,
-                          cursor: 'pointer',
-                          fontSize: '0.9rem'
-                        }}
-                      >
-                        🔑
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {/* Impersonate Button - Only for students */}
+                        {(user.role || 'student') === 'student' && (
+                          <button
+                            onClick={async () => {
+                              const result = await impersonateUser(user.docId || user.id);
+                              if (result.success) {
+                                toast?.showSuccess(t('impersonation_started') || 'Now viewing as student');
+                                window.location.href = '/';
+                              } else {
+                                toast?.showError(result.error || 'Failed to impersonate');
+                              }
+                            }}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              background: '#ff9800',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              fontSize: '0.9rem'
+                            }}
+                            title={t('impersonate_student') || 'View as Student'}
+                          >
+                            🎭
+                          </button>
+                        )}
+                        
+                        {/* Reset Password Button */}
+                        <button
+                          onClick={async () => {
+                            try {
+                              const { sendPasswordResetEmail } = await import('firebase/auth');
+                              const { auth } = await import('../firebase/config');
+                              
+                              await sendPasswordResetEmail(auth, user.email);
+                              toast?.showSuccess(`Password reset email sent to ${user.email}`);
+                            } catch (error) {
+                              console.error('Error:', error);
+                              toast?.showError('Failed: ' + error.message);
+                            }
+                          }}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            background: 'linear-gradient(135deg, #800020, #600018)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          🔑
+                        </button>
+                      </div>
                     )
                   }
                 ]}
@@ -2090,8 +2280,69 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     await addResource(resourceForm);
                     
                   if (result.success) {
+                    const resourceId = editingResource?.docId || result?.id;
+                    
+                    // Send email notification if requested (only for new resources)
+                    if (!editingResource && resourceEmailOptions.sendEmail) {
+                      try {
+                        const emailResult = await sendEmail({
+                          to: 'all_students',
+                          subject: `New Resource: ${resourceForm.title}`,
+                          message: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
+                          type: 'resource'
+                        });
+                        if (emailResult.success) {
+                          console.log('Resource notification email sent successfully');
+                        }
+                      } catch (emailError) {
+                        console.warn('Failed to send resource email:', emailError);
+                      }
+                    }
+                    
+                    // Create announcement if requested (only for new resources)
+                    if (!editingResource && resourceEmailOptions.createAnnouncement) {
+                      try {
+                        const announcementData = {
+                          title: `New Resource Available`,
+                          content: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
+                          target: 'global',
+                          type: 'resource',
+                          resourceId: resourceId
+                        };
+                        
+                        const addAnnouncement = (await import('../firebase/firestore')).addAnnouncement;
+                        await addAnnouncement(announcementData);
+                        console.log('Resource announcement created successfully');
+                        try {
+                          await notifyAllUsers(
+                            `📚 New Resource: ${resourceForm.title}`,
+                            resourceForm.description || 'New resource available',
+                            'resource'
+                          );
+                        } catch (notifErr) {
+                          console.warn('Failed to send bell notification for resource:', notifErr);
+                        }
+                      } catch (announcementError) {
+                        console.warn('Failed to create resource announcement:', announcementError);
+                      }
+                    }
+                    
+                    // If no announcement requested, still send bell notification for visibility
+                    if (!editingResource && !resourceEmailOptions.createAnnouncement) {
+                      try {
+                        await notifyAllUsers(
+                          `📚 New Resource: ${resourceForm.title}`,
+                          resourceForm.description || 'New resource available',
+                          'resource'
+                        );
+                      } catch (notifErr) {
+                        console.warn('Failed to send bell notification for resource:', notifErr);
+                      }
+                    }
+                    
                     await loadData();
-                    setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false });
+                    setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false });
+                    setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
                     setEditingResource(null);
                     toast?.showSuccess(editingResource ? 'Resource updated successfully!' : 'Resource created successfully!');
                   } else {
@@ -2167,6 +2418,40 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 {t('optional_resource')}
                   </label>
                 </div>
+
+                <div className="form-row">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={resourceForm.featured}
+                      onChange={(e) => setResourceForm({...resourceForm, featured: e.target.checked})}
+                    />
+                    Featured Resource
+                  </label>
+                </div>
+
+                {/* Email and Announcement Options */}
+                <div className="form-row" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+                  <div style={{ fontWeight: 600, marginBottom: '0.75rem', color: '#800020' }}>📢 Notification Options</div>
+                  
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={resourceEmailOptions.sendEmail}
+                      onChange={(e) => setResourceEmailOptions({...resourceEmailOptions, sendEmail: e.target.checked})}
+                    />
+                    Send email notification
+                  </label>
+                  
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={resourceEmailOptions.createAnnouncement}
+                      onChange={(e) => setResourceEmailOptions({...resourceEmailOptions, createAnnouncement: e.target.checked})}
+                    />
+                    Create announcement (bell notification)
+                  </label>
+                </div>
                 
                 <div className="form-actions">
                   <button type="submit" className="submit-btn" disabled={loading}>
@@ -2175,7 +2460,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {editingResource && (
                     <button type="button" onClick={() => {
                       setEditingResource(null);
-                      setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false });
+                      setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false });
+                      setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
                     }} className="cancel-btn">
                       Cancel Edit
                     </button>
@@ -2206,14 +2492,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     accessor: 'dueDate',
                     render: (val) => {
                       if (!val) return t('no_deadline');
-                      if (typeof val === 'object' && val.seconds) {
-                        return new Date(val.seconds * 1000).toLocaleDateString('en-GB');
-                      }
-                      const str = String(val);
-                      const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-                      if (ddmmyyyy.test(str)) return str;
-                      const d = new Date(str);
-                      return isNaN(d.getTime()) ? str : d.toLocaleDateString('en-GB');
+                      return formatDateTime(val);
                     }
                   },
                   { 
@@ -2226,10 +2505,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     accessor: 'createdAt',
                     render: (createdAt) => {
                       if (!createdAt) return 'Unknown';
-                      const date = createdAt.seconds ? 
-                        new Date(createdAt.seconds * 1000) : 
-                        new Date(createdAt);
-                      return date.toLocaleDateString('en-GB');
+                      return formatDateTime(createdAt);
                     }
                   }
                 ]}

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { formatDateTime } from '../utils/date';
 import './SmartGrid.css';
 import Modal from './Modal';
 import { useToast } from './ToastProvider';
@@ -204,7 +205,7 @@ const SmartGrid = ({
         
         // Handle dates
         if (value && typeof value === 'object' && value.seconds) {
-          value = new Date(value.seconds * 1000).toLocaleDateString('en-GB');
+          value = formatDateTime(value);
         }
         
         return `"${String(value || '').replace(/"/g, '""')}"`;

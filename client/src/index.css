@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Base */
   --bg: #f5f6fa;
@@ -74,6 +78,34 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Compact density controls */
+html[data-density='compact'] .navbar {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+html[data-density='compact'] .navbar .navbar-container {
+  gap: 0.5rem;
+}
+html[data-density='compact'] .table th,
+html[data-density='compact'] .table td {
+  padding: 6px !important;
+}
+html[data-density='compact'] input,
+html[data-density='compact'] select,
+html[data-density='compact'] button,
+html[data-density='compact'] textarea {
+  padding: 0.5rem 0.6rem !important;
+}
+html[data-density='compact'] .card,
+html[data-density='compact'] .card-military {
+  padding: 0.75rem !important;
+}
+html[data-density='compact'] .list-item,
+html[data-density='compact'] .row-item {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
 /* Compact density mode */
 [data-density="compact"] {
   font-size: 14px;
@@ -99,6 +131,47 @@ button:focus-visible {
 [data-density="compact"] textarea {
   padding: 0.6em 0.9em;
   font-size: 0.95em;
+}
+
+/* Additional density levels */
+[data-density="cozy"] {
+  font-size: 15px;
+}
+[data-density="cozy"] button {
+  padding: 0.55em 1.05em;
+  font-size: 0.98em;
+}
+[data-density="cozy"] input,
+[data-density="cozy"] select,
+[data-density="cozy"] textarea {
+  padding: 0.65em 1em;
+  font-size: 0.98em;
+}
+
+[data-density="comfortable"] {
+  font-size: 16px;
+}
+[data-density="comfortable"] button {
+  padding: 0.7em 1.1em;
+}
+[data-density="comfortable"] input,
+[data-density="comfortable"] select,
+[data-density="comfortable"] textarea {
+  padding: 0.75em 1.1em;
+}
+
+[data-density="roomy"] {
+  font-size: 17px;
+}
+[data-density="roomy"] button {
+  padding: 0.8em 1.2em;
+  font-size: 1.05em;
+}
+[data-density="roomy"] input,
+[data-density="roomy"] select,
+[data-density="roomy"] textarea {
+  padding: 0.85em 1.2em;
+  font-size: 1.05em;
 }
 
 /* Light theme only */

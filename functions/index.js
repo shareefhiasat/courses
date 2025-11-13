@@ -7,6 +7,7 @@ const { onDocumentCreated, onDocumentDeleted } = require('firebase-functions/v2/
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineString } = require('firebase-functions/params');
 const nodemailer = require('nodemailer');
+const { createHomeworkSubmission } = require('./upload');
 
 // Environment variables for Gmail SMTP and site URL
 const gmailEmail = defineString('GMAIL_EMAIL');
@@ -14,6 +15,7 @@ const gmailPassword = defineString('GMAIL_PASSWORD');
 const siteUrlParam = defineString('SITE_URL');
 
 const { getAuth } = require('firebase-admin/auth');
+const crypto = require('crypto');
 
 // Initialize Nodemailer transporter once the params are loaded
 let mailTransport;
@@ -35,6 +37,217 @@ async function initializeMailTransport() {
           pass: smtpConfig.password || gmailPassword.value(),
         },
       });
+
+      return mailTransport;
+    }
+  } catch (error) {
+    console.warn('Could not load SMTP config from Firestore, using environment variables');
+  }
+  
+  // Fallback to environment variables
+  mailTransport = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: gmailEmail.value(),
+      pass: gmailPassword.value(),
+    },
+  });
+  return mailTransport;
+}
+
+initializeApp();
+const db = getFirestore();
+
+// -------------------------------
+// Attendance MVP (QR with rotation)
+// -------------------------------
+const ATTENDANCE_SECRET = defineString('ATTENDANCE_SECRET');
+
+function signToken(payload, ttlSeconds = 30) {
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const body = { ...payload, exp };
+  const data = Buffer.from(JSON.stringify(body)).toString('base64url');
+  const secret = ATTENDANCE_SECRET.value();
+  const sig = crypto
+    .createHmac('sha256', secret)
+    .update(data)
+    .digest('base64url');
+  return `${data}.${sig}`;
+}
+
+function verifyToken(token) {
+  const [data, sig] = (token || '').split('.');
+  if (!data || !sig) return { ok: false, error: 'bad_token' };
+  const secret = ATTENDANCE_SECRET.value();
+  const expect = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+  if (sig !== expect) return { ok: false, error: 'sig_mismatch' };
+  let body;
+  try { body = JSON.parse(Buffer.from(data, 'base64url').toString('utf8')); } catch { return { ok: false, error: 'bad_token' }; }
+  if ((body.exp || 0) < Math.floor(Date.now() / 1000)) return { ok: false, error: 'expired' };
+  return { ok: true, body };
+}
+
+async function readAttendanceConfig() {
+  try {
+    const snap = await db.collection('config').doc('attendance').get();
+    if (snap.exists) return snap.data();
+  } catch {}
+  return { rotationSeconds: 30, sessionMinutes: 15, strictDeviceBinding: true };
+}
+
+exports.attendanceCreateSession = onCall(async (req) => {
+  const { classId, subjectId } = req.data || {};
+  if (!req.auth) throw new Error('auth_required');
+  if (!classId) throw new Error('classId_required');
+  const cfg = await readAttendanceConfig();
+  const now = new Date();
+  const end = new Date(now.getTime() + (cfg.sessionMinutes || 15) * 60 * 1000);
+  const docRef = await db.collection('attendanceSessions').add({
+    classId,
+    subjectId: subjectId || null,
+    createdBy: req.auth.uid,
+    createdAt: FieldValue.serverTimestamp(),
+    status: 'open',
+    rotationSeconds: cfg.rotationSeconds || 30,
+    strictDeviceBinding: cfg.strictDeviceBinding !== false,
+    endAt: end,
+  });
+  // set first token
+  const token = signToken({ sid: docRef.id, classId }, cfg.rotationSeconds || 30);
+  await docRef.update({ token, tokenIssuedAt: FieldValue.serverTimestamp() });
+  return { sessionId: docRef.id, token, rotationSeconds: cfg.rotationSeconds, endAt: end.toISOString() };
+});
+
+exports.attendanceRotateToken = onSchedule({ schedule: 'every 1 minutes', timeZone: 'UTC' }, async () => {
+  const open = await db.collection('attendanceSessions').where('status', '==', 'open').get();
+  const updates = [];
+  open.forEach((d) => {
+    const sid = d.id; const data = d.data();
+    const rot = data.rotationSeconds || 30;
+    const token = signToken({ sid, classId: data.classId }, rot);
+    updates.push(d.ref.update({ token, tokenIssuedAt: FieldValue.serverTimestamp() }));
+  });
+  await Promise.all(updates);
+});
+
+exports.attendanceScan = onCall(async (req) => {
+  const { sid, token, deviceHash, status, reason, note } = req.data || {};
+  if (!req.auth) throw new Error('auth_required');
+  if (!sid || !token) throw new Error('sid_and_token_required');
+  const v = verifyToken(token);
+  if (!v.ok) throw new Error(`invalid_token:${v.error}`);
+  const docRef = db.collection('attendanceSessions').doc(sid);
+  const snap = await docRef.get();
+  if (!snap.exists) throw new Error('session_not_found');
+  const s = snap.data();
+  if (s.status !== 'open') throw new Error('session_closed');
+  if (s.strictDeviceBinding) {
+    const markRef = docRef.collection('marks').doc(req.auth.uid);
+    const mark = await markRef.get();
+    const saved = mark.exists ? (mark.data().deviceHash || null) : null;
+    if (saved && deviceHash && saved !== deviceHash) {
+      // block and flag anomaly
+      await docRef.collection('events').add({
+        type: 'anomaly_device_change', uid: req.auth.uid, at: FieldValue.serverTimestamp(), saved, deviceHash
+      });
+      throw new Error('device_change_blocked');
+    }
+  }
+  // record attendance with optional leave status
+  const markData = {
+    uid: req.auth.uid,
+    status: status || 'present', // present|absent|late|leave
+    deviceHash: deviceHash || null,
+    at: FieldValue.serverTimestamp(),
+  };
+  if (status === 'leave' && reason) {
+    markData.reason = reason; // medical|official|other
+  }
+  if (note) {
+    markData.note = note;
+  }
+  await docRef.collection('marks').doc(req.auth.uid).set(markData, { merge: true });
+  return { ok: true };
+});
+
+exports.attendanceCloseSession = onCall(async (req) => {
+  const { sid } = req.data || {};
+  if (!req.auth) throw new Error('auth_required');
+  if (!sid) throw new Error('sid_required');
+  const ref = db.collection('attendanceSessions').doc(sid);
+  await ref.update({ status: 'closed', closedAt: FieldValue.serverTimestamp() });
+  return { ok: true };
+});
+
+// Manual attendance override (for HR, Instructor, Admin, Super Admin)
+exports.attendanceManualOverride = onCall(async (req) => {
+  const { sid, uid, status, reason, note } = req.data || {};
+  if (!req.auth) throw new Error('auth_required');
+  if (!sid || !uid || !status) throw new Error('sid_uid_status_required');
+  
+  // Check permissions: admin, HR, instructor, or super admin
+  let hasPermission = false;
+  try {
+    // Check admin claim
+    const token = await getAuth().verifyIdToken(req.auth.token);
+    if (token.admin) {
+      hasPermission = true;
+    } else {
+      // Check user doc for HR, instructor, or super admin
+      const userDoc = await db.collection('users').doc(req.auth.uid).get();
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.isHR || userData.isInstructor || userData.isSuperAdmin || userData.role === 'hr' || userData.role === 'instructor') {
+          hasPermission = true;
+        }
+      }
+      // Also check allowlist for admin emails
+      if (!hasPermission) {
+        const allowlistDoc = await db.collection('config').doc('allowlist').get();
+        if (allowlistDoc.exists()) {
+          const { adminEmails = [] } = allowlistDoc.data();
+          const email = (req.auth.token.email || '').toLowerCase();
+          hasPermission = adminEmails.some(e => (e || '').toLowerCase() === email);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Permission check error:', err);
+  }
+  
+  if (!hasPermission) throw new Error('permission_denied');
+  
+  // Get session
+  const sessionRef = db.collection('attendanceSessions').doc(sid);
+  const sessionSnap = await sessionRef.get();
+  if (!sessionSnap.exists()) throw new Error('session_not_found');
+  
+  // Override mark
+  const markData = {
+    uid: uid,
+    status: status, // present|absent|late|leave
+    overriddenBy: req.auth.uid,
+    overriddenAt: FieldValue.serverTimestamp(),
+    manual: true,
+  };
+  if (reason) markData.reason = reason;
+  if (note) markData.note = note;
+  
+  await sessionRef.collection('marks').doc(uid).set(markData, { merge: true });
+  
+  // Log event
+  await sessionRef.collection('events').add({
+    type: 'manual_override',
+    uid: uid,
+    status: status,
+    actor: req.auth.uid,
+    reason: reason || null,
+    note: note || null,
+    at: FieldValue.serverTimestamp(),
+  });
+  
+  return { ok: true };
+});
 
 // HTTP wrapper for curl/testing: Authorization: Bearer <Firebase ID token>
 exports.sendEmailHttp = onRequest(async (req, res) => {
@@ -135,25 +348,6 @@ exports.sendEmailHttp = onRequest(async (req, res) => {
     return res.status(500).json({ error: error.message || 'Internal error' });
   }
 });
-      return mailTransport;
-    }
-  } catch (error) {
-    console.warn('Could not load SMTP config from Firestore, using environment variables');
-  }
-  
-  // Fallback to environment variables
-  mailTransport = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: gmailEmail.value(),
-      pass: gmailPassword.value(),
-    },
-  });
-  return mailTransport;
-}
-
-initializeApp();
-const db = getFirestore();
 
 // Server-side allowlist enforcement
 exports.beforeUserCreated = beforeUserCreated(async (event) => {
@@ -485,6 +679,8 @@ exports.sendEmail = onCall(async (request) => {
     throw new Error('Failed to send email: ' + error.message);
   }
 });
+
+exports.createHomeworkSubmission = createHomeworkSubmission;
 
 // Callable function to manage allowlist (admin only)
 exports.updateAllowlist = onCall(async (request) => {

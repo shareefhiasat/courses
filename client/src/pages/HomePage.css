@@ -212,6 +212,13 @@
 
 .activity-link:hover {
   transform: translateY(-1px);
+  color: #ffffff !important;
+}
+
+.activity-link:focus,
+.activity-link:active {
+  color: #ffffff !important;
+  outline: none;
 }
 
 @keyframes fadeIn {

@@ -18,7 +18,8 @@ import {
   updateDoc,
   arrayUnion,
   arrayRemove,
-  deleteField
+  deleteField,
+  Timestamp
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
@@ -27,6 +28,8 @@ import { addNotification } from '../firebase/notifications';
 import Loading from '../components/Loading';
 import { useToast } from '../components/ToastProvider';
 import './ChatPage.css';
+import { formatDateTime, formatDate } from '../utils/date';
+import { MessageSquareText } from 'lucide-react';
 
 const ChatPage = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -96,6 +99,7 @@ const ChatPage = () => {
   // Scroll management
   const scrollContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const [myMessageColor, setMyMessageColor] = useState(null);
   const hasHighlightedRef = useRef(null);
   useEffect(() => {
     const loadProfile = async () => {
@@ -105,10 +109,27 @@ const ChatPage = () => {
         if (me?.displayName) setProfileName(me.displayName);
         setArchivedRooms(me?.archivedRooms || {});
         setArchivedClasses(me?.archivedClasses || {});
+        if (me?.messageColor) setMyMessageColor(me.messageColor);
       } catch {}
     };
-    loadProfile();
-  }, [user]);
+    if (user?.uid) loadProfile();
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    let unsub = null;
+    (async () => {
+      const { onSnapshot, doc } = await import('firebase/firestore');
+      const { db } = await import('../firebase/config');
+      try {
+        unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+          const data = snap.exists() ? snap.data() : {};
+          if (data.messageColor) setMyMessageColor(data.messageColor);
+        });
+      } catch {}
+    })();
+    return () => { try { unsub && unsub(); } catch {} };
+  }, [user?.uid]);
 
   // Close reaction menu on outside click
   useEffect(() => {
@@ -355,7 +376,7 @@ const ChatPage = () => {
     });
 
     // Classes
-    const classUnsubs = classes.map(cls => {
+    const classUnsubs = (Array.isArray(classes) ? classes : []).map(cls => {
       const classKey = cls.docId;
       const readAt = chatReads[classKey] || chatReads[`class:${classKey}`];
       const cq = query(msgsRef, where('classId', '==', classKey));
@@ -372,7 +393,7 @@ const ChatPage = () => {
     });
 
     // DMs
-    const dmUnsubs = directRooms.map(room => {
+    const dmUnsubs = (Array.isArray(directRooms) ? directRooms : []).map(room => {
       const dmKey = `dm:${room.id}`;
       const readAt = chatReads[dmKey];
       const dq = query(msgsRef, where('type', '==', 'dm'), where('roomId', '==', room.id));
@@ -975,8 +996,9 @@ const ChatPage = () => {
         messageData.duration = recordingTime;
         messageData.content = '[Voice Message]';
       } else if (attachedFile) {
-        // File attachment
-        const filePath = `chat-attachments/${Date.now()}_${user.uid}_${attachedFile.name}`;
+        // File attachment - sanitize filename to avoid CORS/preflight issues on special characters
+        const safeName = (attachedFile.name || 'file').replace(/[^a-zA-Z0-9_.-]/g, '_');
+        const filePath = `chat-attachments/${Date.now()}_${user.uid}_${safeName}`;
         const fileRef = ref(storage, filePath);
         await uploadBytes(fileRef, attachedFile);
         const fileUrl = await getDownloadURL(fileRef);
@@ -1222,7 +1244,7 @@ const ChatPage = () => {
               </div>
             </div>
             <div style={{ maxHeight:'50vh', overflowY:'auto', padding:'0.75rem 0' }}>
-              {receiptsFor.list.map(r => {
+              {(receiptsFor.list || []).map(r => {
                 const hasRead = !!r.readAt;
                 return (
                   <div key={r.uid} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 1.25rem', borderBottom:'1px solid var(--border)' }}>
@@ -1284,7 +1306,7 @@ const ChatPage = () => {
           )}
 
           {/* Class Chats */}
-          {archivedClasses !== null && classes
+          {archivedClasses !== null && (Array.isArray(classes) ? classes : [])
             .filter(cls => showArchived || !archivedClasses[cls.docId])
             .map(cls => (
             <div
@@ -1331,7 +1353,7 @@ const ChatPage = () => {
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#666', display:'flex', justifyContent:'space-between', gap:8 }}>
                     <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.lastMessage || `${cls.term} - ${cls.code}`}</span>
-                    <span style={{ color:'#888' }}>{cls.lastMessageAt?.toDate?.()?.toLocaleString('en-GB') || ''}</span>
+                    <span style={{ color:'#888' }}>{cls.lastMessageAt ? formatDateTime(cls.lastMessageAt) : ''}</span>
                   </div>
                   {(() => {
                     const instructor = cls.instructorId
@@ -1405,8 +1427,11 @@ const ChatPage = () => {
               const bTime = (b.lastMessageAt?.toDate?.() || b.createdAt?.toDate?.() || 0);
               return bTime - aTime;
             });
-            return filtered || [];
-          })().map(room => {
+            return Array.isArray(filtered) ? filtered : (filtered ? [filtered] : []);
+          })()
+            .filter(Boolean)
+            .flatMap(x => Array.isArray(x) ? x : [x])
+            .map(room => {
             const otherId = (room.participants || []).find(p => p !== user.uid);
             const other = allUsers.find(u => u.docId === otherId);
             const label = other?.displayName || other?.email || 'Conversation';
@@ -1437,7 +1462,7 @@ const ChatPage = () => {
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
                       <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{room.lastMessage || ''}</span>
                       <span style={{ color:'#888', marginLeft: 8 }}>
-                        {lastTime ? `${lastTime.toLocaleDateString('en-GB')} ${lastTime.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}` : ''}
+                        {lastTime ? formatDateTime(lastTime) : ''}
                       </span>
                     </div>
                     {/* Operations row (icons) */}
@@ -1568,7 +1593,7 @@ const ChatPage = () => {
                   padding: '3rem',
                   color: '#999'
                 }}>
-                  <p style={{ fontSize: '3rem', margin: 0 }}>💬</p>
+                  <p style={{ fontSize: '3rem', margin: 0 }}><MessageSquareText size={42} /></p>
                   <p style={{ color: 'var(--muted)' }}>{t('no_messages')}</p>
                 </div>
               );
@@ -1577,7 +1602,7 @@ const ChatPage = () => {
             let lastDate = null;
             list.forEach((msg) => {
               const msgDate = msg.createdAt?.toDate?.() || new Date();
-              const dateStr = msgDate.toLocaleDateString('en-GB');
+              const dateStr = formatDate(msgDate);
               if (dateStr !== lastDate) {
                 groupedByDate.push({ type: 'date', date: msgDate, dateStr });
                 lastDate = dateStr;
@@ -1587,8 +1612,8 @@ const ChatPage = () => {
             
             return groupedByDate.map((item, idx) => {
               if (item.type === 'date') {
-                const today = new Date().toLocaleDateString('en-GB');
-                const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-GB');
+                const today = formatDate(new Date());
+                const yesterday = formatDate(new Date(Date.now() - 86400000));
                 let label = item.dateStr;
                 if (item.dateStr === today) label = 'Today';
                 else if (item.dateStr === yesterday) label = 'Yesterday';
@@ -1604,7 +1629,10 @@ const ChatPage = () => {
               const isOwnMessage = msg.senderId === user.uid;
               const senderUser = allUsers.find(u => u.docId === msg.senderId);
               const isHighlighted = highlightedMsgId === msg.id;
-              const bubbleColor = isOwnMessage ? (senderUser?.messageColor || '#667eea') : '#ffffff';
+              const myProfile = allUsers.find(u => u.docId === user?.uid);
+              const bubbleColor = isOwnMessage
+                ? (myMessageColor || user?.messageColor || myProfile?.messageColor || '#667eea')
+                : '#ffffff';
               // Smart contrast: if highlighted, force dark readable text
               const textColor = isHighlighted ? '#1e293b' : (isOwnMessage ? 'white' : '#000000');
               

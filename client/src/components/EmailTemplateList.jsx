@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from './ToastProvider';
 import ToggleSwitch from './ToggleSwitch';
+import { formatDateTime } from '../utils/date';
+import { Megaphone, FileText, CheckCircle2, GraduationCap, BookOpen, MessageSquareText, Key, PartyPopper, Mail, Plus, Pencil, Send, Copy, Trash2 } from 'lucide-react';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();
@@ -116,13 +118,14 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       ? `http://${window.location.hostname}:${window.location.port || 5174}`
       : 'https://main-one-32026.web.app';
     
+    const prettyNow = formatDateTime(new Date());
     const base = {
       recipientName: 'John Doe',
       siteName: 'CS Learning Hub',
       platformName: 'CS Learning Hub',
       platformUrl: platformUrl,
       siteUrl: platformUrl,
-      currentDate: new Date().toLocaleDateString('en-GB')
+      currentDate: prettyNow ? prettyNow.split(' ')[0] : ''
     };
     switch (template.type) {
       case 'announcement':
@@ -196,19 +199,20 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   );
 
   const getTypeIcon = (type) => {
+    const common = { size: 20 };
     const icons = {
-      announcement: '📢',
-      activity: '📝',
-      activity_complete: '✅',
-      activity_graded: '🎯',
-      enrollment: '🎓',
-      resource: '📚',
-      chat_digest: '💬',
-      password_reset: '🔑',
-      welcome_signup: '🎉',
-      custom: '✉️'
+      announcement: <Megaphone {...common} title="Announcement" />,
+      activity: <FileText {...common} title="Activity" />,
+      activity_complete: <CheckCircle2 {...common} title="Completion" />,
+      activity_graded: <FileText {...common} title="Grading" />,
+      enrollment: <GraduationCap {...common} title="Enrollment" />,
+      resource: <BookOpen {...common} title="Resource" />,
+      chat_digest: <MessageSquareText {...common} title="Chat Digest" />,
+      password_reset: <Key {...common} title="Password Reset" />,
+      welcome_signup: <PartyPopper {...common} title="Welcome" />,
+      custom: <Mail {...common} title="Email" />
     };
-    return icons[type] || '✉️';
+    return icons[type] || <Mail {...common} title="Email" />;
   };
 
   if (loading) {
@@ -244,7 +248,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
             fontSize: '0.95rem'
           }}
         >
-          ➕ Create New Template
+          <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}><Plus size={16} /> Create New Template</span>
         </button>
       </div>
 
@@ -334,7 +338,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           fontSize: '0.85rem'
                         }}
                       >
-                        ✏️ Edit
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Pencil size={14} /> Edit</span>
                       </button>
                       <button
                         onClick={async (e) => {
@@ -368,7 +372,9 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           fontSize: '0.85rem'
                         }}
                       >
-                        {testingEmail === template.id ? 'Sending…' : '📧 Test Email'}
+                        {testingEmail === template.id
+                          ? 'Sending…'
+                          : <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Send size={14} /> Test Email</span>}
                       </button>
                       <button
                         onClick={(e) => {
@@ -385,7 +391,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           fontSize: '0.85rem'
                         }}
                       >
-                        📋 Duplicate
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Copy size={14} /> Duplicate</span>
                       </button>
                       <button
                         onClick={(e) => {
@@ -402,7 +408,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           fontSize: '0.85rem'
                         }}
                       >
-                        🗑️ Delete
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Trash2 size={14} /> Delete</span>
                       </button>
                     </div>
                   </div>
@@ -439,7 +445,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                     </div>
                   )}
                   <p style={{ margin: '0.75rem 0 0 0', color: '#999', fontSize: '0.8rem' }}>
-                    Last updated: {template.updatedAt?.toDate?.()?.toLocaleDateString('en-GB') || 'Unknown'}
+                    Last updated: {template.updatedAt ? formatDateTime(template.updatedAt) : 'Unknown'}
                   </p>
                 </div>
               </div>

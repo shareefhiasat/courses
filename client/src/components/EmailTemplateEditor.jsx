@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useToast } from './ToastProvider';
 import VariableHelper from './VariableHelper';
 import Modal from './Modal';
+import { Eye, Info } from 'lucide-react';
+import { formatDateTime } from '../utils/date';
 
 const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   const toast = useToast();
@@ -17,15 +19,74 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   });
 
   const templateTypes = [
-    { value: 'announcement', label: '📢 Announcement' },
-    { value: 'activity', label: '📝 New Activity' },
-    { value: 'activity_complete', label: '✅ Activity Complete' },
-    { value: 'activity_graded', label: '🎯 Activity Graded' },
-    { value: 'enrollment', label: '🎓 Enrollment Welcome' },
-    { value: 'resource', label: '📚 New Resource' },
-    { value: 'chat_digest', label: '💬 Chat Digest' },
-    { value: 'custom', label: '✉️ Custom' }
+    { value: 'announcement', label: 'Announcement' },
+    { value: 'activity', label: 'New Activity' },
+    { value: 'activity_complete', label: 'Activity Complete' },
+    { value: 'activity_graded', label: 'Activity Graded' },
+    { value: 'enrollment', label: 'Enrollment Welcome' },
+    { value: 'resource', label: 'New Resource' },
+    { value: 'chat_digest', label: 'Chat Digest' },
+    { value: 'custom', label: 'Custom' }
   ];
+
+  const helpByType = {
+    announcement: {
+      purpose: 'Inform users about class or site-wide announcements.',
+      trigger: 'Manual send by admin/teacher.',
+      actor: 'Admin/Teacher',
+      audience: 'Selected users, classes, or all students.',
+      variables: ['title', 'title_ar', 'content', 'content_ar', 'dateTime', 'link']
+    },
+    activity: {
+      purpose: 'Notify students about a newly posted activity.',
+      trigger: 'Manual send when creating an activity.',
+      actor: 'Admin/Teacher',
+      audience: 'Students in the target class/course.',
+      variables: ['activityTitle', 'activityTitle_ar', 'activityType', 'course', 'course_ar', 'difficulty', 'dueDateTime', 'maxScore', 'description', 'description_ar', 'link']
+    },
+    activity_complete: {
+      purpose: 'Confirm that the student completed an activity.',
+      trigger: 'Automatic on student completion.',
+      actor: 'System',
+      audience: 'The submitting student.',
+      variables: ['studentName', 'studentEmail', 'activityTitle', 'activityTitle_ar', 'submissionDate', 'link']
+    },
+    activity_graded: {
+      purpose: 'Inform the student that their submission was graded.',
+      trigger: 'Automatic when a teacher saves a grade.',
+      actor: 'System',
+      audience: 'The graded student.',
+      variables: ['studentName', 'studentEmail', 'activityTitle', 'activityTitle_ar', 'score', 'maxScore', 'feedback', 'feedback_ar', 'submissionDate', 'link']
+    },
+    enrollment: {
+      purpose: 'Welcome a user after enrolling them into a class.',
+      trigger: 'Manual or automatic on enrollment.',
+      actor: 'Admin/Teacher/System',
+      audience: 'Newly enrolled student.',
+      variables: ['studentName', 'className', 'classCode', 'term', 'instructorName', 'instructorEmail', 'link']
+    },
+    resource: {
+      purpose: 'Notify users about a new learning resource.',
+      trigger: 'Manual send by admin/teacher.',
+      actor: 'Admin/Teacher',
+      audience: 'Target students/classes.',
+      variables: ['resourceTitle', 'resourceType', 'description', 'dueDate', 'link']
+    },
+    chat_digest: {
+      purpose: 'Summarize unread chat activity.',
+      trigger: 'Scheduled or manual digest.',
+      actor: 'System/Admin',
+      audience: 'Students or staff with unread messages.',
+      variables: ['unreadCount', 'messages', 'chatLink']
+    },
+    custom: {
+      purpose: 'Free-form custom email for any purpose.',
+      trigger: 'Manual send.',
+      actor: 'Admin/Teacher',
+      audience: 'Any recipients you choose.',
+      variables: ['Any variables you define']
+    }
+  };
 
   const extractVariables = (html) => {
     const regex = /\{\{([a-zA-Z0-9_]+)\}\}/g;
@@ -91,6 +152,8 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
 
   const getSampleData = () => {
     const now = new Date();
+    const prettyDateTime = formatDateTime(now);
+    const prettyDate = prettyDateTime ? prettyDateTime.split(' ')[0] : '';
     return {
       // Common variables
       recipientName: 'Ahmed Mohammed',
@@ -98,27 +161,15 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       greeting: 'Dear Ahmed Mohammed',
       siteName: 'CS Learning Hub',
       siteUrl: 'https://your-domain.com',
-      currentDate: now.toLocaleDateString('en-GB'),
-      currentDateTime: now.toLocaleString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
+      currentDate: prettyDate,
+      currentDateTime: prettyDateTime,
       
       // Announcement variables
       title: 'Important Update',
       title_ar: 'تحديث مهم',
       content: 'This is a sample announcement content.',
       content_ar: 'هذا محتوى إعلان نموذجي.',
-      dateTime: now.toLocaleString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
+      dateTime: prettyDateTime,
       
       // Activity variables
       activityTitle: 'Python Quiz 1',
@@ -128,13 +179,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       course_ar: 'البرمجة',
       description: 'Complete the Python quiz to test your knowledge.',
       description_ar: 'أكمل اختبار بايثون لاختبار معرفتك.',
-      dueDateTime: now.toLocaleString('en-GB', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
+      dueDateTime: prettyDateTime,
       maxScore: '100',
       difficulty: 'intermediate',
       
@@ -145,7 +190,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       score: '85',
       feedback: 'Great work! Keep it up.',
       feedback_ar: 'عمل رائع! استمر.',
-      submissionDate: now.toLocaleDateString('en-GB'),
+      submissionDate: prettyDate,
       
       // Class variables
       className: 'Python I',
@@ -238,7 +283,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                 type="text"
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                placeholder="e.g., 📢 New Announcement | إعلان جديد: {{title}}"
+                placeholder="e.g., New Announcement | إعلان جديد: {{title}}"
                 style={{
                   width: '100%',
                   padding: '10px',
@@ -338,7 +383,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                 fontWeight: 600
               }}
             >
-              👁️ Preview
+              <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}><Eye size={16} /> Preview</span>
             </button>
             <button
               onClick={onCancel}
@@ -357,8 +402,32 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
         </div>
       </div>
 
-      {/* Variable Helper Section */}
-      <div style={{ overflowY: 'auto' }}>
+      {/* Right Panel: Template Help + Variable Helper */}
+      <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: 12, padding: '1rem' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:'0.5rem', color:'#333' }}>
+            <Info size={18} /> <strong>About this template</strong>
+          </div>
+          {(() => {
+            const info = helpByType[formData.type] || helpByType.custom;
+            return (
+              <div style={{ fontSize:'0.9rem', color:'#555', display:'grid', gap:'0.4rem' }}>
+                <div><strong>Purpose:</strong> {info.purpose}</div>
+                <div><strong>Trigger:</strong> {info.trigger}</div>
+                <div><strong>Actor:</strong> {info.actor}</div>
+                <div><strong>Audience:</strong> {info.audience}</div>
+                <div>
+                  <strong>Key Variables:</strong>
+                  <div style={{ marginTop: 6, display:'flex', flexWrap:'wrap', gap:6 }}>
+                    {(info.variables || []).map(v => (
+                      <code key={v} style={{ background:'#f8f9fa', border:'1px solid #eee', borderRadius:6, padding:'2px 6px' }}>{`{{${v}}}`}</code>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
         <VariableHelper templateType={formData.type} />
       </div>
 

@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { getResources } from '../firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { setDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { addActivityLog } from '../firebase/firestore';
 import { useToast } from '../components/ToastProvider';
 import Loading from '../components/Loading';
 import './ResourcesPage.css';
+import { formatDateTime } from '../utils/date';
+import { FileText, Link2, Video, Star, X } from 'lucide-react';
 
 const ResourcesPage = () => {
   const { user, loading: authLoading, isAdmin } = useAuth();
@@ -66,6 +69,7 @@ const ResourcesPage = () => {
     if (!user) return;
 
     const isCompleted = userProgress[resourceId]?.completed || false;
+    const resource = resources.find(r => (r.docId || r.id) === resourceId) || {};
 
     // Prevent students from unmarking once completed
     if (isCompleted && !isAdmin) {
@@ -87,6 +91,22 @@ const ResourcesPage = () => {
       await setDoc(doc(db, 'users', user.uid), {
         resourceProgress: newProgress
       }, { merge: true });
+      
+      // Process badge trigger for resource completion
+      if (!isCompleted) {
+        try {
+          await processBadgeTrigger(user.uid, 'resource_completed', {
+            resourceId: resourceId,
+            resourceTitle: resource.title_en || resource.title || 'Untitled Resource',
+            resourceType: resource.type || 'unknown',
+            bookmarked: !!bookmarks[resourceId],
+            completedAt: new Date()
+          });
+        } catch (badgeError) {
+          console.warn('Badge processing failed:', badgeError);
+          // Don't fail the resource completion if badge processing fails
+        }
+      }
       
       toast?.showSuccess(
         !isCompleted ? 'Resource marked as completed!' : 'Resource marked as incomplete'
@@ -122,12 +142,13 @@ const ResourcesPage = () => {
   });
 
   const getResourceIcon = (type) => {
+    const common = { size: 16 };
     const icons = {
-      'document': '📄',
-      'link': '🔗',
-      'video': '📺'
+      'document': <FileText {...common} title="Document" />,
+      'link': <Link2 {...common} title="Link" />,
+      'video': <Video {...common} title="Video" />
     };
-    return icons[type] || '🔗';
+    return icons[type] || <Link2 {...common} title="Link" />;
   };
 
   const isOverdue = (resource) => {
@@ -164,7 +185,7 @@ const ResourcesPage = () => {
             onClick={() => setShowBookmarks(true)}
             title={t('bookmarked')}
           >
-            <span className="star">★</span>
+            <span className="star" style={{ display:'inline-flex', alignItems:'center' }}><Star size={14} /></span>
             <span className="count">{Object.keys(bookmarks || {}).length}</span>
           </button>
         </div>
@@ -264,34 +285,63 @@ const ResourcesPage = () => {
                   <div className="resource-details">
                     {resource.dueDate && (
                       <div className="due-date">
-                        <strong>{t('due')}:</strong> {new Date(resource.dueDate).toLocaleDateString('en-GB')}
+                        <strong>{t('due')}:</strong> {formatDateTime(resource.dueDate)}
                       </div>
                     )}
                     
                     {isCompleted && completedAt && (
                       <div className="completed-date">
-                        <strong>{t('completed')}:</strong> {new Date(completedAt.seconds ? completedAt.seconds * 1000 : completedAt).toLocaleDateString('en-GB')}
+                        <strong>{t('completed')}:</strong> {formatDateTime(completedAt)}
                       </div>
                     )}
                   </div>
 
-                  {/* Corner star overlay */}
+                  {/* Corner star overlay - match Activities style */}
                   <button
                     onClick={async () => {
                       try {
                         const rid = resource.docId || resource.id;
                         const next = { ...bookmarks };
+                        const isAdding = !next[rid];
                         if (next[rid]) delete next[rid]; else next[rid] = true;
                         setBookmarks(next);
                         await setDoc(doc(db, 'users', user.uid), { bookmarks: { resources: next } }, { merge: true });
+                        // Log bookmark action
+                        if (isAdding) {
+                          try {
+                            await addActivityLog({
+                              type: 'resource_bookmarked',
+                              userId: user.uid,
+                              email: user.email,
+                              displayName: user.displayName || user.email,
+                              userAgent: navigator.userAgent,
+                              metadata: { resourceId: rid, resourceTitle: resource.title_en || resource.title || 'Untitled', resourceType: resource.type || 'unknown' }
+                            });
+                          } catch (e) { console.warn('Failed to log bookmark:', e); }
+                        }
                       } catch (e) {
                         toast?.showError(e.message || 'Failed to update bookmark');
                       }
                     }}
                     aria-label={isBookmarked ? t('remove_bookmark') : t('add_bookmark')}
-                    className={`bookmark-toggle ${lang === 'ar' ? 'rtl' : ''} ${isBookmarked ? 'active' : ''}`}
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      [lang === 'ar' ? 'left' : 'right']: 12,
+                      background: 'white',
+                      border: '1px solid #eee',
+                      borderRadius: 20,
+                      width: 32,
+                      height: 32,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                      cursor: 'pointer',
+                      color: isBookmarked ? '#f5c518' : '#bbb'
+                    }}
                   >
-                    ★
+                    <Star size={18} />
                   </button>
 
                   <div className="resource-actions">
@@ -371,7 +421,7 @@ const ResourcesPage = () => {
             />
             <div className="bm-header">
               <h3 style={{ margin: 0 }}>{t('bookmarked')}</h3>
-              <button className="bm-close" onClick={()=>setShowBookmarks(false)}>✕</button>
+              <button className="bm-close" onClick={()=>setShowBookmarks(false)} aria-label="Close"><X size={16} /></button>
             </div>
             <div style={{ padding: '0 1rem 0.5rem' }}>
               <input

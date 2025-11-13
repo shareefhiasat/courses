@@ -6,6 +6,9 @@ import { db } from '../firebase/config';
 import { getSubmissions, getResources, getActivities } from '../firebase/firestore';
 import Loading from '../components/Loading';
 import { useLang } from '../contexts/LangContext';
+import RankDisplay from '../components/RankDisplay';
+import RankHistory from '../components/RankHistory';
+import RecentMedals from '../components/RecentMedals';
 
 const ProgressPage = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -16,6 +19,7 @@ const ProgressPage = () => {
   const [resources, setResources] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -30,6 +34,7 @@ const ProgressPage = () => {
         const data = userDoc.data();
         setProgress(data.progress || {});
         setResourceProgress(data.resourceProgress || {});
+        setUserData(data);
       }
       // Load submissions for activity count
       const subsResult = await getSubmissions();
@@ -91,13 +96,24 @@ const ProgressPage = () => {
   });
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Rank Display - Compact */}
+      <div style={{ marginBottom: '1rem' }}>
+        <RankDisplay 
+        totalPoints={userData?.totalPoints || 0}
+        studentName={userData?.displayName || user?.displayName || ''}
+        showProgress={true}
+      />
+
+      </div>
+      
       <div style={{ 
         background: 'linear-gradient(135deg, #800020 0%, #600018 100%)',
         color: 'white',
-        padding: '2rem',
+        padding: '1.5rem',
         borderRadius: '12px',
         marginBottom: '2rem',
+        marginTop: '2rem',
         textAlign: 'center'
       }}>
         <h1>{t('progress') || 'Progress'}</h1>
@@ -284,9 +300,32 @@ const ProgressPage = () => {
               )}
             </div>
           ))
-          )}
+        )}
         </div>
       )}
+
+      {/* Military Theme Sections - Always show */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+        gap: '2rem',
+        marginTop: '2rem'
+      }}>
+        {/* Recent Medals */}
+        <div>
+          <RecentMedals studentId={user.uid} limit={10} />
+        </div>
+
+        {/* Rank History */}
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '2rem',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <RankHistory studentId={user.uid} />
+        </div>
+      </div>
     </div>
   );
 };

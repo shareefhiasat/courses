@@ -17,6 +17,9 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 
+// Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
+const _ensureUserDocOnce = new Set();
+
 // Helper: Convert ISO string to Firestore Timestamp
 const convertDatesToTimestamps = (data) => {
   const converted = { ...data };
@@ -65,6 +68,7 @@ export const deleteCourse = async (courseId) => {
 // Ensure a deterministic users/{uid} doc exists
 export const ensureUserDoc = async (uid, data = {}) => {
   if (!uid) return { success: false, error: 'uid required' };
+  if (_ensureUserDocOnce.has(uid)) return { success: true, skipped: true };
   try {
     const ref = doc(db, 'users', uid);
     const snap = await getDoc(ref);
@@ -77,8 +81,15 @@ export const ensureUserDoc = async (uid, data = {}) => {
       createdAt: Timestamp.now(),
     };
     await setDoc(ref, snap.exists() ? data : base, { merge: true });
+    _ensureUserDocOnce.add(uid);
     return { success: true };
   } catch (error) {
+    // Ignore permission-denied to avoid noisy console during restricted environments
+    const code = error && (error.code || '').toString();
+    if (code === 'permission-denied') {
+      console.warn('ensureUserDoc permission denied for uid:', uid);
+      return { success: false, error: 'permission-denied' };
+    }
     return { success: false, error: error.message };
   }
 };
@@ -430,8 +441,51 @@ export const getSubmissions = async () => {
 };
 
 export const gradeSubmission = async (id, update) => {
-  try { await updateDoc(doc(db, 'submissions', id), update); return { success: true }; }
-  catch (error) { return { success: false, error: error.message }; }
+  try {
+    // Update submission
+    await updateDoc(doc(db, 'submissions', id), update);
+    
+    // Auto-award points based on score
+    if (update.score !== undefined && update.status === 'graded') {
+      const submissionDoc = await getDoc(doc(db, 'submissions', id));
+      if (submissionDoc.exists()) {
+        const submission = submissionDoc.data();
+        const score = Number(update.score);
+        
+        // Award points based on performance
+        let pointsToAward = 0;
+        let category = 'completion';
+        
+        if (score >= 90) {
+          pointsToAward = 2; // Excellence
+          category = 'excellence';
+        } else if (score >= 70) {
+          pointsToAward = 1; // Good work
+          category = 'good_work';
+        } else if (score >= 50) {
+          pointsToAward = 1; // Completion
+          category = 'completion';
+        }
+        
+        // Award points if score is passing
+        if (pointsToAward > 0 && submission.userId) {
+          await awardPoints({
+            studentIds: [submission.userId],
+            points: pointsToAward,
+            category: category,
+            reason: `Activity graded: ${score}/100`,
+            awardedBy: update.gradedBy || 'system',
+            classId: submission.classId || null,
+            activityId: submission.activityId || null
+          });
+        }
+      }
+    }
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 export const deleteSubmission = async (id) => {
@@ -512,6 +566,210 @@ export const getEmailLogs = async () => {
 export const deleteEmailLog = async (id) => {
   try {
     await deleteDoc(doc(db, 'emailLogs', id));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ========================================
+// POINTS & SKILLS SYSTEM (Military Theme)
+// ========================================
+
+// Award points to student(s)
+export const awardPoints = async (pointsData) => {
+  try {
+    const { studentIds, points, category, reason, awardedBy, classId, activityId } = pointsData;
+    
+    const results = await Promise.all(studentIds.map(async (studentId) => {
+      // Get current rank before awarding
+      const studentRef = doc(db, 'users', studentId);
+      const studentSnap = await getDoc(studentRef);
+      const currentPoints = studentSnap.exists() ? (studentSnap.data().totalPoints || 0) : 0;
+      const oldRank = getStudentRank(currentPoints);
+      
+      // Add point record
+      await addDoc(collection(db, 'points'), {
+        studentId,
+        classId,
+        awardedBy,
+        points: Number(points),
+        category,
+        reason: reason || '',
+        activityId: activityId || null,
+        timestamp: Timestamp.now()
+      });
+      
+      // Update student's total points
+      const newPoints = currentPoints + Number(points);
+      if (studentSnap.exists()) {
+        await updateDoc(studentRef, {
+          totalPoints: newPoints,
+          lastPointsUpdate: Timestamp.now()
+        });
+      }
+      
+      // Check if rank changed
+      const newRank = getStudentRank(newPoints);
+      const rankChanged = oldRank.current.name !== newRank.current.name;
+      
+      return {
+        studentId,
+        oldRank: oldRank.current,
+        newRank: newRank.current,
+        rankChanged,
+        pointsAwarded: Number(points),
+        newTotalPoints: newPoints
+      };
+    }));
+    
+    return { success: true, results };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Get points for a student
+export const getStudentPoints = async (studentId) => {
+  try {
+    const q = query(
+      collection(db, 'points'), 
+      where('studentId', '==', studentId),
+      orderBy('timestamp', 'desc')
+    );
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Get all points for a class
+export const getClassPoints = async (classId) => {
+  try {
+    const q = query(
+      collection(db, 'points'),
+      where('classId', '==', classId),
+      orderBy('timestamp', 'desc')
+    );
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Get student rank based on points
+export const getStudentRank = (totalPoints) => {
+  const ranks = [
+    { name: 'Recruit', nameAr: 'مجند', icon: '🎖️', min: 0, max: 99, color: '#CD7F32' },
+    { name: 'Private', nameAr: 'جندي', icon: '🪖', min: 100, max: 249, color: '#CD7F32' },
+    { name: 'Corporal', nameAr: 'عريف', icon: '⭐', min: 250, max: 499, color: '#C0C0C0' },
+    { name: 'Sergeant', nameAr: 'رقيب', icon: '⌃', min: 500, max: 999, color: '#C0C0C0' },
+    { name: 'Lieutenant', nameAr: 'ملازم', icon: '━', min: 1000, max: 1999, color: '#D4AF37' },
+    { name: 'Captain', nameAr: 'نقيب', icon: '━━', min: 2000, max: 3999, color: '#D4AF37' },
+    { name: 'Major', nameAr: 'رائد', icon: '🍂', min: 4000, max: 6999, color: '#D4AF37' },
+    { name: 'Colonel', nameAr: 'عقيد', icon: '🦅', min: 7000, max: 9999, color: '#D4AF37' },
+    { name: 'General', nameAr: 'لواء', icon: '⭐', min: 10000, max: Infinity, color: '#D4AF37' }
+  ];
+  
+  const currentRank = ranks.find(r => totalPoints >= r.min && totalPoints <= r.max) || ranks[0];
+  const nextRankIndex = ranks.findIndex(r => r.name === currentRank.name) + 1;
+  const nextRank = nextRankIndex < ranks.length ? ranks[nextRankIndex] : null;
+  
+  return {
+    current: currentRank,
+    next: nextRank,
+    progress: nextRank ? ((totalPoints - currentRank.min) / (nextRank.min - currentRank.min)) * 100 : 100,
+    pointsToNext: nextRank ? nextRank.min - totalPoints : 0
+  };
+};
+
+// Get leaderboard for a class
+export const getClassLeaderboard = async (classId) => {
+  try {
+    // Get all enrollments for the class
+    const enrollmentsQuery = query(
+      collection(db, 'enrollments'),
+      where('classId', '==', classId)
+    );
+    const enrollmentsSnap = await getDocs(enrollmentsQuery);
+    
+    const leaderboard = [];
+    
+    for (const enrollDoc of enrollmentsSnap.docs) {
+      const enrollment = enrollDoc.data();
+      const studentRef = doc(db, 'users', enrollment.userId);
+      const studentSnap = await getDoc(studentRef);
+      
+      if (studentSnap.exists()) {
+        const studentData = studentSnap.data();
+        const totalPoints = studentData.totalPoints || 0;
+        const rank = getStudentRank(totalPoints);
+        
+        leaderboard.push({
+          studentId: enrollment.userId,
+          displayName: studentData.displayName || 'Unknown',
+          email: studentData.email,
+          totalPoints,
+          rank: rank.current.name,
+          rankIcon: rank.current.icon
+        });
+      }
+    }
+    
+    // Sort by points descending
+    leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
+    
+    return { success: true, data: leaderboard };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Create or update skill
+export const saveSkill = async (skillData) => {
+  try {
+    const { docId, ...data } = skillData;
+    if (docId) {
+      await updateDoc(doc(db, 'skills', docId), data);
+      return { success: true, docId };
+    } else {
+      const docRef = await addDoc(collection(db, 'skills'), {
+        ...data,
+        createdAt: Timestamp.now()
+      });
+      return { success: true, docId: docRef.id };
+    }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Get skills for a class
+export const getClassSkills = async (classId) => {
+  try {
+    const q = query(
+      collection(db, 'skills'),
+      where('classId', '==', classId)
+    );
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Delete skill
+export const deleteSkill = async (skillId) => {
+  try {
+    await deleteDoc(doc(db, 'skills', skillId));
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

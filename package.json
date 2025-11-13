@@ -25,5 +25,9 @@
   "license": "MIT",
   "devDependencies": {
     "cross-env": "^7.0.3"
+  },
+  "dependencies": {
+    "lucide-react": "^0.552.0",
+    "react-grid-layout": "^1.5.2"
   }
 }
