@@ -17,6 +17,54 @@
   flex-wrap: wrap; /* allow items to wrap on small screens */
 }
 
+/* Smart, colorful icon buttons */
+.nav-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: transform .15s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  backdrop-filter: saturate(150%) blur(6px);
+}
+
+.nav-icon-btn:hover { 
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.55);
+}
+
+.nav-icon-btn:active { transform: translateY(0); }
+
+/* Color accents */
+.nav-icon--menu { background: rgba(255,255,255,0.12); }
+.nav-icon--notify { background: rgba(99,102,241,0.25); border-color: rgba(99,102,241,0.55); }
+.nav-icon--lang { background: rgba(34,197,94,0.22); border-color: rgba(34,197,94,0.55); }
+.nav-icon--theme { background: rgba(14,165,233,0.22); border-color: rgba(14,165,233,0.55); }
+
+/* Mini badge dot for notifications container (works if child uses relative) */
+.nav-badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background: #f5c518;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.75);
+}
+
 .navbar-brand {
   font-size: 1.4rem;
   font-weight: bold;
@@ -66,6 +114,14 @@
   background: rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Make actions wrap nicely on narrow screens */
+.navbar-actions-wrap { display: inline-flex; align-items: center; gap: 10px; }
+
+@media (max-width: 640px) {
+  .navbar-actions-wrap { gap: 6px; }
+  .nav-icon-btn { width: 32px; height: 32px; }
 }
 
 .admin-link {

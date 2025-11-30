@@ -3,13 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Shield, Settings2, Check, X, Save, Search, ToggleLeft, ToggleRight } from 'lucide-react';
-import Loading from '../components/Loading';
-import './RoleAccessPro.css';
+import { Shield, Settings2, Save, Search } from 'lucide-react';
+import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast } from '../components/ui';
+import styles from './RoleAccessPro.module.css';
 
 export default function RoleAccessPro() {
   const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const { t } = useLang();
+  const toast = useToast();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,15 +70,13 @@ export default function RoleAccessPro() {
 
   const saveRoleScreens = async () => {
     setSaving(true);
-    setMessage('');
     try {
       const docRef = doc(db, 'config', 'roleScreens');
       await setDoc(docRef, roleScreens);
-      setMessage(t('role_access_updated') || 'Role access saved');
-      setTimeout(()=>setMessage(''), 2500);
+      toast.success(t('role_access_updated') || 'Role access saved');
     } catch (e) {
       console.error(e);
-      setMessage('Error saving role access');
+      toast.error('Error saving role access');
     } finally {
       setSaving(false);
     }
@@ -99,109 +98,166 @@ export default function RoleAccessPro() {
     return Object.entries(groups).map(([group, items]) => ({ group, items }));
   }, [q]);
 
-  if (authLoading) return <Loading fullscreen message={t('loading')} />;
-  if (!(isSuperAdmin || isAdmin)) {
+  if (authLoading || loading) {
     return (
-      <div style={{minHeight:'100vh',background:'linear-gradient(135deg,#f4e9ff,#eaf2ff)',padding:24}}>
-        <div style={{maxWidth:720,margin:'0 auto',background:'#fff',borderRadius:16,boxShadow:'0 20px 40px rgba(0,0,0,0.15)',padding:32,textAlign:'center'}}>
-          <Shield style={{width:56,height:56,color:'#ef4444',margin:'0 auto 12px'}} />
-          <h2 style={{fontSize:22,fontWeight:800,marginBottom:8}}>Access Denied</h2>
-          <p style={{color:'#4b5563'}}>Only admins can access this page.</p>
-        </div>
+      <div className={styles.loadingWrapper}>
+        <Spinner size="lg" />
       </div>
     );
   }
-  if (loading) return <Loading fullscreen message={t('loading')} />;
+  
+  if (!(isSuperAdmin || isAdmin)) {
+    return (
+      <Container maxWidth="md" className={styles.accessDenied}>
+        <Card>
+          <CardBody className={styles.accessDeniedContent}>
+            <Shield size={56} className={styles.accessDeniedIcon} />
+            <h2>Access Denied</h2>
+            <p>Only admins can access this page.</p>
+          </CardBody>
+        </Card>
+      </Container>
+    );
+  }
 
   return (
-    <div className="rolepro-page">
-      <div className="rolepro-card">
-        <div className="rolepro-hero">
-          <div className="hero-row">
-            <div style={{display:'flex',alignItems:'center',gap:16}}>
-              <div className="logo">
-                <Settings2 style={{width:28,height:28,color:'#fff'}} />
-              </div>
+    <Container maxWidth="xl" className={styles.page}>
+      <Card>
+        <CardBody>
+          <div className={styles.header}>
+            <div className={styles.headerContent}>
+              <Settings2 size={32} className={styles.headerIcon} />
               <div>
-                <h1 className="rolepro-title">Role Access</h1>
-                <p className="rolepro-subtitle">Enable/disable screens per role</p>
+                <h1 className={styles.title}>Role Access</h1>
+                <p className={styles.subtitle}>Enable/disable screens per role</p>
               </div>
             </div>
-            <div className="rolepro-controls">
-              <div className="rolepro-search">
-                <Search style={{width:16,height:16,color:'rgba(255,255,255,0.85)'}} />
-                <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search screens..." />
-              </div>
-              <div className="rolepro-chooser">
-                <span>Role</span>
-                <select value={activeRole} onChange={(e)=>setActiveRole(e.target.value)}>
-                  {roles.map(r => (<option key={r} value={r}>{r}</option>))}
-                </select>
-                <button onClick={()=>{ const allOn={}; screens.forEach(s=>allOn[s.id]=true); setRoleScreens(p=>({ ...p, [activeRole]: { ...(p[activeRole]||{}), ...allOn } })); }} className="rolepro-btn">Enable all</button>
-                <button onClick={()=>{ const allOff={}; screens.forEach(s=>allOff[s.id]=false); setRoleScreens(p=>({ ...p, [activeRole]: { ...(p[activeRole]||{}), ...allOff } })); }} className="rolepro-btn danger">Disable all</button>
+            
+            <div className={styles.controls}>
+              <Input
+                icon={<Search size={16} />}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search screens..."
+                className={styles.searchInput}
+              />
+              
+              <div className={styles.roleControls}>
+                <Select
+                  value={activeRole}
+                  onChange={(e) => setActiveRole(e.target.value)}
+                  label="Role"
+                >
+                  {roles.map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </Select>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const allOn = {};
+                    screens.forEach(s => allOn[s.id] = true);
+                    setRoleScreens(p => ({ ...p, [activeRole]: { ...(p[activeRole] || {}), ...allOn } }));
+                  }}
+                >
+                  Enable all
+                </Button>
+                
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    const allOff = {};
+                    screens.forEach(s => allOff[s.id] = false);
+                    setRoleScreens(p => ({ ...p, [activeRole]: { ...(p[activeRole] || {}), ...allOff } }));
+                  }}
+                >
+                  Disable all
+                </Button>
               </div>
             </div>
           </div>
-          <div className="rolepro-deco1" />
-          <div className="rolepro-deco2" />
-        </div>
 
-        <div style={{display:'flex',flexDirection:'column',gap:24}}>
-          {filteredScreens.map(({ group, items }) => (
-            <div key={group} className="rolepro-group">
-              <div className="head">
-                <div className="title">{group}</div>
-                <div className="count">{items.length} screens</div>
-              </div>
-              <div className="rolepro-list">
-                {items.map((s, idx) => (
-                  <div key={s.id} className={`rolepro-row ${idx%2 ? 'alt' : ''}`}>
-                    <div>
-                      <div className="screen-name">{s.name}</div>
-                      <div className="screen-id">{s.id}</div>
-                    </div>
-                    <div className="rolepro-rolegrid">
-                      {roles.map(r => {
-                        const on = !!(roleScreens[r]?.[s.id]);
-                        return (
-                          <div key={`${s.id}_${r}`} style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div className={styles.groups}>
+            {filteredScreens.map(({ group, items }) => (
+              <div key={group} className={styles.group}>
+                <div className={styles.groupHeader}>
+                  <h3>{group}</h3>
+                  <Badge variant="subtle">{items.length} screens</Badge>
+                </div>
+                
+                {/* Role Header Row */}
+                <div className={styles.screenRow} style={{ paddingTop: '.75rem', paddingBottom: '.75rem' }}>
+                  <div className={styles.screenInfo}>
+                    <div className={styles.screenName} style={{ opacity: .7 }}>Screen</div>
+                  </div>
+                  <div className={styles.roleToggles}>
+                    {roles.map(r => (
+                      <div key={`role-head-${r}`} style={{
+                        minWidth: 64,
+                        textTransform: 'capitalize',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: r === activeRole ? 'var(--color-primary, #800020)' : 'var(--text-muted, #666)'
+                      }}>
+                        {r}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={styles.screensList}>
+                  {items.map((s, idx) => (
+                    <div key={s.id} className={`${styles.screenRow} ${idx % 2 ? styles.alt : ''}`}>
+                      <div className={styles.screenInfo}>
+                        <div className={styles.screenName}>{s.name}</div>
+                        <div className={styles.screenId}>{s.id}</div>
+                      </div>
+                      
+                      <div className={styles.roleToggles}>
+                        {roles.map(r => {
+                          const on = !!(roleScreens[r]?.[s.id]);
+                          return (
                             <button
-                              onClick={()=>toggleScreen(r, s.id)}
+                              key={`${s.id}_${r}`}
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); toggleScreen(r, s.id); }}
                               role="switch"
                               aria-checked={on}
-                              className={`switch ${on ? 'on' : 'off'}`}
+                              className={`${styles.toggle} ${on ? styles.toggleOn : styles.toggleOff}`}
                               title={`${r} toggle`}
-                              style={{WebkitTapHighlightColor:'transparent'}}
+                              style={r === activeRole ? { outline: '2px solid rgba(128,0,32,0.25)' } : undefined}
                             >
-                              <span className="knob" />
+                              <span className={styles.toggleKnob} />
                             </button>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="rolepro-savebar">
-          <div className="bar">
-            <div style={{display:'flex',alignItems:'center',gap:8,fontSize:14,color:'#374151'}}>
-              <Save style={{width:16,height:16}} />
+          <div className={styles.saveBar}>
+            <div className={styles.saveBarContent}>
+              <Save size={16} />
               <span>Make sure to save your changes</span>
             </div>
-            <button onClick={saveRoleScreens} disabled={saving} className="save-btn" style={{opacity: saving ? 0.6 : 1, cursor: saving ? 'not-allowed' : 'pointer'}}>
+            <Button
+              variant="primary"
+              onClick={saveRoleScreens}
+              disabled={saving}
+              loading={saving}
+            >
               {saving ? (t('saving') || 'Saving...') : (t('save_role_access') || 'Save Role Access')}
-            </button>
+            </Button>
           </div>
-        </div>
-
-        {message && (
-          <div className="rolepro-toast">{message}</div>
-        )}
-      </div>
-    </div>
+        </CardBody>
+      </Card>
+    </Container>
   );
 }

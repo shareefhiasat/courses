@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useLang } from '../contexts/LangContext';
-import Loading from '../components/Loading';
+import { Container, Card, CardBody, Button, Badge, Spinner, Modal } from '../components/ui';
 import QRCodeGenerator from '../components/QRCodeGenerator';
 import { CalendarDays, Repeat, Play, ExternalLink, QrCode } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
+import styles from './ActivityDetailPage.module.css';
 
 export default function ActivityDetailPage() {
   const { activityId } = useParams();
@@ -30,84 +31,105 @@ export default function ActivityDetailPage() {
     load();
   }, [activityId]);
 
-  if (loading) return <Loading/>;
-  if (!activity) return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-        <h2 className="text-xl font-semibold">{t('not_found') || 'Not found'}</h2>
+  if (loading) {
+    return (
+      <div className={styles.loadingWrapper}>
+        <Spinner size="lg" />
       </div>
-    </div>
-  );
+    );
+  }
+  
+  if (!activity) {
+    return (
+      <Container maxWidth="lg">
+        <Card>
+          <CardBody>
+            <h2 className={styles.notFound}>{t('not_found') || 'Not found'}</h2>
+          </CardBody>
+        </Card>
+      </Container>
+    );
+  }
 
   const title = lang === 'ar' ? (activity.title_ar || activity.title_en || activity.id) : (activity.title_en || activity.title_ar || activity.id);
   const shareUrl = `${window.location.origin}/activity/${activityId}`;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">{title}</h1>
-            {activity.description_en || activity.description_ar ? (
-              <p className="text-gray-600 dark:text-gray-300 mb-2">
-                {lang === 'ar' ? (activity.description_ar || activity.description_en) : (activity.description_en || activity.description_ar)}
-              </p>
+    <Container maxWidth="xl" className={styles.page}>
+      <Card>
+        <CardBody>
+          <div className={styles.header}>
+            <div className={styles.headerContent}>
+              <h1 className={styles.title}>{title}</h1>
+              {(activity.description_en || activity.description_ar) && (
+                <p className={styles.description}>
+                  {lang === 'ar' ? (activity.description_ar || activity.description_en) : (activity.description_en || activity.description_ar)}
+                </p>
+              )}
+              <div className={styles.meta}>
+                {activity.createdAt && (
+                  <Badge variant="subtle" color="default">
+                    <CalendarDays size={14} />
+                    {t('created') || 'Created'}: {formatDateTime(activity.createdAt)}
+                  </Badge>
+                )}
+                {activity.dueDate && (
+                  <Badge variant="subtle" color="warning">
+                    <CalendarDays size={14} />
+                    {t('due_date_label')}: {formatDateTime(activity.dueDate)}
+                  </Badge>
+                )}
+                {activity.allowRetake && (
+                  <Badge variant="subtle" color="info">
+                    <Repeat size={14} />
+                    {t('retake_allowed') || 'Retake Allowed'}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className={styles.headerActions}>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<QrCode size={16} />}
+                onClick={() => setShowQR(true)}
+              >
+                {t('share') || 'Share'}
+              </Button>
+            </div>
+          </div>
+
+          <div className={styles.actions}>
+            {activity.quizId ? (
+              <Button
+                variant="primary"
+                icon={<Play size={16} />}
+                onClick={() => navigate(`/quiz/${activity.quizId}`)}
+              >
+                {t('start_quiz') || 'Start Quiz'}
+              </Button>
+            ) : activity.url ? (
+              <Button
+                variant="primary"
+                icon={<ExternalLink size={16} />}
+                onClick={() => window.open(activity.url, '_blank')}
+              >
+                {t('open') || 'Open'}
+              </Button>
             ) : null}
-            <div className="flex flex-wrap gap-3 text-sm text-gray-600 dark:text-gray-400">
-              {activity.createdAt && (
-                <span className="inline-flex items-center gap-1"><CalendarDays size={14}/> {t('created') || 'Created'}: {formatDateTime(activity.createdAt)}</span>
-              )}
-              {activity.dueDate && (
-                <span className="inline-flex items-center gap-1"><CalendarDays size={14}/> {t('due_date_label')}: {formatDateTime(activity.dueDate)}</span>
-              )}
-              {activity.allowRetake && (
-                <span className="inline-flex items-center gap-1"><Repeat size={14}/> {t('retake_allowed') || 'Retake Allowed'}</span>
-              )}
-            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowQR(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm"
-            >
-              <QrCode size={16}/> {t('share') || 'Share'}
-            </button>
-          </div>
-        </div>
+        </CardBody>
+      </Card>
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          {activity.quizId ? (
-            <button
-              onClick={() => navigate(`/quiz/${activity.quizId}`)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white"
-            >
-              <Play size={16}/> {t('start_quiz') || 'Start Quiz'}
-            </button>
-          ) : activity.url ? (
-            <a
-              href={activity.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white"
-            >
-              <ExternalLink size={16}/> {t('open') || 'Open'}
-            </a>
-          ) : null}
-        </div>
-      </div>
-
-      {showQR && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowQR(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-[380px]" onClick={e => e.stopPropagation()}>
-            <h3 className="font-semibold mb-3">{t('share_activity') || 'Share Activity'}</h3>
-            <QRCodeGenerator url={shareUrl} title={title} />
-            <div className="mt-4 text-xs text-gray-500 break-all">{shareUrl}</div>
-            <div className="mt-4 text-right">
-              <button onClick={() => setShowQR(false)} className="px-3 py-1.5 rounded border">{t('close') || 'Close'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Modal
+        isOpen={showQR}
+        onClose={() => setShowQR(false)}
+        title={t('share_activity') || 'Share Activity'}
+        size="sm"
+      >
+        <QRCodeGenerator url={shareUrl} title={title} />
+        <div className={styles.shareUrl}>{shareUrl}</div>
+      </Modal>
+    </Container>
   );
 }

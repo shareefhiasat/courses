@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Shuffle, Check, X, Trophy, SkipForward } from 'lucide-react';
+import { useLang } from '../../contexts/LangContext';
 
 export default function AnagramGame({ questions, settings, onComplete }) {
+  const { t, lang } = useLang();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -26,7 +28,7 @@ export default function AnagramGame({ questions, settings, onComplete }) {
       letter,
       originalIndex: idx
     }));
-    
+
     // Shuffle
     const shuffled = [...letters].sort(() => Math.random() - 0.5);
     setScrambledLetters(shuffled);
@@ -36,14 +38,14 @@ export default function AnagramGame({ questions, settings, onComplete }) {
 
   const handleLetterClick = (letter) => {
     if (feedback) return;
-    
+
     setSelectedLetters([...selectedLetters, letter]);
     setScrambledLetters(scrambledLetters.filter(l => l.id !== letter.id));
   };
 
   const handleSelectedLetterClick = (letter, index) => {
     if (feedback) return;
-    
+
     setScrambledLetters([...scrambledLetters, letter]);
     setSelectedLetters(selectedLetters.filter((_, idx) => idx !== index));
   };
@@ -82,7 +84,7 @@ export default function AnagramGame({ questions, settings, onComplete }) {
 
   const handleSkip = () => {
     if (skips === 0) return;
-    
+
     setSkips(skips - 1);
     const newAnswers = [...answers, {
       questionId: currentQuestion.id,
@@ -113,43 +115,47 @@ export default function AnagramGame({ questions, settings, onComplete }) {
   if (gameFinished) {
     const percentage = (score / questions.reduce((sum, q) => sum + (q.points || 1), 0)) * 100;
     return (
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <Trophy size={64} style={{ color: '#f59e0b', marginBottom: '1rem' }} />
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '1rem' }}>All Words Unscrambled!</h1>
-        <div style={{ fontSize: 48, fontWeight: 800, color: '#8b5cf6', marginBottom: '1rem' }}>
+      <div className="max-w-2xl mx-auto p-8 text-center">
+        <div className="flex justify-center mb-6">
+          <Trophy size={64} className="text-yellow-500" />
+        </div>
+        <h1 className="text-3xl font-extrabold mb-6 text-slate-900 dark:text-white">
+          {t('gameCompleted', 'All Words Unscrambled!')}
+        </h1>
+        <div className="text-5xl font-extrabold text-violet-600 mb-4">
           {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
         </div>
-        <div style={{ fontSize: 18, color: 'var(--muted)' }}>
-          {percentage.toFixed(1)}% Score
+        <div className="text-lg text-slate-500 dark:text-slate-400 mb-8">
+          {percentage.toFixed(1)}% {t('score', 'Score')}
         </div>
 
         {settings?.showCorrectAnswers && (
-          <div style={{ marginTop: '2rem', textAlign: 'left' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: '1rem' }}>Review</h3>
-            {questions.map((q, idx) => {
-              const userAnswer = answers[idx];
-              return (
-                <div
-                  key={q.id}
-                  style={{
-                    padding: '1rem',
-                    background: userAnswer?.correct ? '#d1fae5' : '#fee2e2',
-                    borderRadius: 8,
-                    marginBottom: '0.5rem'
-                  }}
-                >
-                  <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{q.hint}</div>
-                  <div style={{ fontSize: 14 }}>
-                    Your answer: {userAnswer?.answer || '(skipped)'} {userAnswer?.correct ? '✓' : '✗'}
-                  </div>
-                  {!userAnswer?.correct && (
-                    <div style={{ fontSize: 14, marginTop: '0.25rem' }}>
-                      Correct answer: {q.answer.toUpperCase()}
+          <div className="mt-8 text-left">
+            <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">{t('review', 'Review')}</h3>
+            <div className="space-y-3">
+              {questions.map((q, idx) => {
+                const userAnswer = answers[idx];
+                return (
+                  <div
+                    key={q.id}
+                    className={`p-4 rounded-xl border ${userAnswer?.correct
+                        ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800'
+                        : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+                      }`}
+                  >
+                    <div className="font-semibold mb-2 text-slate-900 dark:text-white">{q.hint}</div>
+                    <div className="text-sm text-slate-700 dark:text-slate-300">
+                      {t('yourAnswer', 'Your answer')}: {userAnswer?.answer || t('skipped', '(skipped)')} {userAnswer?.correct ? '✓' : '✗'}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                    {!userAnswer?.correct && (
+                      <div className="text-sm mt-1 text-slate-600 dark:text-slate-400">
+                        {t('correctAnswer', 'Correct answer')}: {q.answer.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -157,191 +163,122 @@ export default function AnagramGame({ questions, settings, onComplete }) {
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem' }}>
+    <div className="max-w-3xl mx-auto p-4 md:p-8">
       {/* Header */}
-      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: '0.5rem' }}>
-          Question {currentIndex + 1} of {questions.length}
+      <div className="mb-8 text-center">
+        <div className="text-sm text-slate-500 dark:text-slate-400 mb-2 font-medium">
+          {t('question', 'Question')} {currentIndex + 1} {t('of', 'of')} {questions.length}
         </div>
-        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: '1rem' }}>
-          {currentQuestion.hint || 'Unscramble the word'}
+        <h2 className="text-2xl md:text-3xl font-bold mb-6 text-slate-900 dark:text-white">
+          {currentQuestion.hint || t('unscrambleWord', 'Unscramble the word')}
         </h2>
         {currentQuestion.image && (
-          <img
-            src={currentQuestion.image}
-            alt="Hint"
-            style={{ maxWidth: 200, borderRadius: 12, marginBottom: '1rem' }}
-          />
-        )}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 16, alignItems: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#8b5cf6' }}>
-            Score: {score}
+          <div className="flex justify-center mb-6">
+            <img
+              src={currentQuestion.image}
+              alt="Hint"
+              className="max-w-[200px] rounded-2xl shadow-lg"
+            />
           </div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--muted)' }}>
-            Skips: {skips}
+        )}
+        <div className="flex justify-center gap-6 items-center">
+          <div className="text-lg font-semibold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 px-4 py-1.5 rounded-full">
+            {t('score', 'Score')}: {score}
+          </div>
+          <div className="text-lg font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-4 py-1.5 rounded-full">
+            {t('skips', 'Skips')}: {skips}
           </div>
         </div>
       </div>
 
       {/* Answer Area */}
-      <div style={{ marginBottom: '2rem', padding: '2rem', background: 'white', borderRadius: 16, border: '2px solid var(--border)', minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div className="mb-8 p-8 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 min-h-[140px] flex items-center justify-center gap-3 flex-wrap shadow-sm">
         {selectedLetters.length === 0 ? (
-          <div style={{ fontSize: 16, color: 'var(--muted)' }}>
-            Click letters below to build your answer
+          <div className="text-lg text-slate-400 dark:text-slate-500 font-medium text-center">
+            {t('clickLetters', 'Click letters below to build your answer')}
           </div>
         ) : (
           selectedLetters.map((letter, idx) => (
-            <div
+            <button
               key={`selected-${idx}`}
               onClick={() => handleSelectedLetterClick(letter, idx)}
-              style={{
-                width: 60,
-                height: 60,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#8b5cf6',
-                color: 'white',
-                fontSize: 28,
-                fontWeight: 800,
-                borderRadius: 12,
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
-                transition: 'transform 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center bg-violet-600 text-white text-2xl sm:text-3xl font-bold rounded-xl shadow-lg shadow-violet-200 dark:shadow-none hover:scale-110 transition-transform duration-200"
             >
               {letter.letter}
-            </div>
+            </button>
           ))
         )}
       </div>
 
       {/* Scrambled Letters */}
-      <div style={{ marginBottom: '2rem', padding: '2rem', background: '#f9fafb', borderRadius: 16, minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div className="mb-8 p-8 bg-slate-50 dark:bg-slate-900/50 rounded-2xl min-h-[140px] flex items-center justify-center gap-3 flex-wrap border border-slate-100 dark:border-slate-800">
         {scrambledLetters.map(letter => (
-          <div
+          <button
             key={letter.id}
             onClick={() => handleLetterClick(letter)}
-            style={{
-              width: 60,
-              height: 60,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'white',
-              border: '2px solid var(--border)',
-              fontSize: 28,
-              fontWeight: 800,
-              borderRadius: 12,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#8b5cf6';
-              e.currentTarget.style.transform = 'scale(1.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
+            className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-2xl sm:text-3xl font-bold rounded-xl shadow-sm hover:border-violet-500 dark:hover:border-violet-500 hover:scale-110 hover:text-violet-600 dark:hover:text-violet-400 transition-all duration-200"
           >
             {letter.letter}
-          </div>
+          </button>
         ))}
       </div>
 
       {/* Feedback */}
       {feedback && (
         <div
-          style={{
-            marginBottom: '2rem',
-            padding: '1.5rem',
-            background: feedback === 'correct' ? '#d1fae5' : '#fee2e2',
-            border: `3px solid ${feedback === 'correct' ? '#10b981' : '#ef4444'}`,
-            borderRadius: 12,
-            textAlign: 'center',
-            fontSize: 24,
-            fontWeight: 800,
-            color: feedback === 'correct' ? '#065f46' : '#991b1b'
-          }}
+          className={`mb-8 p-6 rounded-2xl border-2 text-center transform transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${feedback === 'correct'
+              ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+              : 'bg-red-50 border-red-500 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+            }`}
         >
-          {feedback === 'correct' ? (
-            <>
-              <Check size={32} style={{ marginBottom: '0.5rem' }} />
-              <div>Correct!</div>
-            </>
-          ) : (
-            <>
-              <X size={32} style={{ marginBottom: '0.5rem' }} />
-              <div>Wrong! The answer was: {correctAnswer}</div>
-            </>
-          )}
+          <div className="flex flex-col items-center gap-2">
+            {feedback === 'correct' ? (
+              <>
+                <Check size={40} className="mb-1" />
+                <div className="text-2xl font-bold">{t('correct', 'Correct!')}</div>
+              </>
+            ) : (
+              <>
+                <X size={40} className="mb-1" />
+                <div className="text-xl font-bold">{t('wrong', 'Wrong!')}</div>
+                <div className="text-lg opacity-90">{t('answerWas', 'The answer was')}: {correctAnswer}</div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+      <div className="flex gap-4 justify-center flex-wrap">
         <button
           onClick={handleShuffle}
           disabled={feedback !== null}
-          style={{
-            padding: '1rem 2rem',
-            background: '#f3f4f6',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: feedback ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8
-          }}
+          className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Shuffle size={18} />
-          Shuffle
+          <Shuffle size={20} />
+          {t('shuffle', 'Shuffle')}
         </button>
         <button
           onClick={handleSkip}
           disabled={skips === 0 || feedback !== null}
-          style={{
-            padding: '1rem 2rem',
-            background: skips === 0 ? '#e5e7eb' : '#f59e0b',
-            color: skips === 0 ? '#9ca3af' : 'white',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: skips === 0 || feedback ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8
-          }}
+          className={`px-6 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${skips === 0
+              ? 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600'
+              : 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200 dark:shadow-none'
+            }`}
         >
-          <SkipForward size={18} />
-          Skip ({skips})
+          <SkipForward size={20} />
+          {t('skip', 'Skip')} ({skips})
         </button>
         <button
           onClick={handleSubmit}
           disabled={selectedLetters.length !== correctAnswer.length || feedback !== null}
-          style={{
-            padding: '1rem 2rem',
-            background: selectedLetters.length !== correctAnswer.length || feedback ? '#9ca3af' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: selectedLetters.length !== correctAnswer.length || feedback ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            boxShadow: selectedLetters.length === correctAnswer.length && !feedback ? '0 4px 12px rgba(139, 92, 246, 0.4)' : 'none'
-          }}
+          className={`px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${selectedLetters.length !== correctAnswer.length || feedback
+              ? 'bg-slate-300 text-slate-500 dark:bg-slate-800 dark:text-slate-600'
+              : 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200 dark:shadow-none hover:scale-105'
+            }`}
         >
-          <Check size={18} />
-          Submit Answer
+          <Check size={20} />
+          {t('submit', 'Submit Answer')}
         </button>
       </div>
     </div>

@@ -1,0 +1,247 @@
+/* Manage Enrollments Page */
+.page {
+  padding: 1rem 0;
+}
+
+/* Access Denied */
+.accessDenied {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.accessDeniedIcon {
+  color: var(--color-danger, #ef4444);
+  margin-bottom: 1rem;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text, #212529);
+}
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1rem;
+}
+
+/* Class List */
+.classList {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.classListHeader {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--text, #212529);
+}
+
+.classItems {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.classItem {
+  padding: 0.75rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--background, #fff);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.classItem:hover {
+  border-color: var(--color-primary, #667eea);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.classItemSelected {
+  background: rgba(102, 126, 234, 0.12);
+  border-color: var(--color-primary, #667eea);
+}
+
+.className {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text, #212529);
+}
+
+.classInfo {
+  font-size: 0.6875rem;
+  color: var(--text-muted, #666);
+  margin-top: 0.25rem;
+}
+
+/* Students Panel */
+.studentsPanel {
+  min-height: 400px;
+}
+
+.selectedClassHeader {
+  margin-bottom: 1rem;
+}
+
+.selectedClassHeader h2 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text, #212529);
+}
+
+.stats {
+  font-size: 0.75rem;
+  color: var(--text-muted, #666);
+}
+
+/* Search Input */
+.searchInput {
+  margin-bottom: 1rem;
+}
+
+/* Info Box */
+.infoBox {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #eff6ff;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #1e40af;
+}
+
+.infoBox strong {
+  font-weight: 600;
+}
+
+.infoBox ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.25rem;
+}
+
+.infoBox li {
+  margin: 0.25rem 0;
+}
+
+/* Loading State */
+.loadingState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+}
+
+/* Students List */
+.studentsList {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.studentItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--background, #fff);
+  transition: all 0.2s;
+}
+
+.studentItem:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.studentDisabled {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.studentInfo {
+  flex: 1;
+}
+
+.studentName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text, #212529);
+  margin-bottom: 0.25rem;
+}
+
+.studentEmail {
+  font-size: 0.75rem;
+  color: var(--text-muted, #666);
+  margin-bottom: 0.125rem;
+}
+
+.studentId {
+  font-size: 0.6875rem;
+  color: var(--text-muted, #999);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .classList {
+    max-height: 300px;
+  }
+
+  .studentItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .studentItem button {
+    width: 100%;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .header h1 {
+    color: var(--text, #f5f5f5);
+  }
+
+  .classListHeader {
+    color: var(--text, #f5f5f5);
+  }
+
+  .className {
+    color: var(--text, #f5f5f5);
+  }
+
+  .selectedClassHeader h2 {
+    color: var(--text, #f5f5f5);
+  }
+
+  .studentName {
+    color: var(--text, #f5f5f5);
+  }
+
+  .infoBox {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    color: #93c5fd;
+  }
+}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Select } from './ui';
 import { useToast } from './ToastProvider';
 import VariableHelper from './VariableHelper';
 import Modal from './Modal';
@@ -255,24 +256,17 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                Template Type *
-              </label>
-              <select
+              <Select
+                label="Template Type *"
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: 8,
-                  fontSize: '0.95rem'
-                }}
-              >
-                {templateTypes.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
+                options={templateTypes.map(type => ({
+                  value: type.value,
+                  label: type.label
+                }))}
+                searchable
+                fullWidth
+              />
             </div>
 
             <div>

@@ -1,0 +1,164 @@
+/* Dropdown */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Trigger */
+.trigger {
+  cursor: pointer;
+}
+
+.defaultTrigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--panel, white);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text, #212529);
+  transition: all 0.2s ease;
+}
+
+.defaultTrigger:hover {
+  background: var(--panel-hover, #f8f9fa);
+}
+
+/* Menu */
+.menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  min-width: 200px;
+  background: var(--panel, white);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.1));
+  padding: 0.5rem;
+  z-index: var(--z-dropdown, 1000);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Menu Alignment */
+.align-start {
+  left: 0;
+}
+
+.align-end {
+  right: 0;
+}
+
+.align-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Menu Item */
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text, #212529);
+  text-align: start;
+  transition: all 0.2s ease;
+}
+
+.item:hover:not(.disabled) {
+  background: rgba(128, 0, 32, 0.05);
+}
+
+.item.danger {
+  color: var(--color-danger, #dc3545);
+}
+
+.item.danger:hover:not(.disabled) {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Item Icon */
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Item Label */
+.label {
+  flex: 1;
+}
+
+/* Item Badge */
+.badge {
+  padding: 0.125rem 0.5rem;
+  background: var(--color-primary, #800020);
+  color: white;
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 600;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--border-light, #f0f0f0);
+  margin: 0.5rem 0;
+}
+
+/* RTL Support */
+[dir="rtl"] .align-start {
+  left: auto;
+  right: 0;
+}
+
+[dir="rtl"] .align-end {
+  right: auto;
+  left: 0;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .menu {
+    background: var(--panel, #1a1a1a);
+    border-color: var(--border, #333);
+  }
+  
+  .defaultTrigger {
+    background: var(--panel, #1a1a1a);
+    border-color: var(--border, #333);
+    color: var(--text, #f5f5f5);
+  }
+  
+  .item {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .divider {
+    background: var(--border, #333);
+  }
+}

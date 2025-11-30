@@ -1,0 +1,101 @@
+/* Accordion */
+.accordion {
+  width: 100%;
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+}
+
+/* Item */
+.item {
+  border-bottom: 1px solid var(--border-light, #f0f0f0);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: var(--panel, white);
+  border: none;
+  cursor: pointer;
+  text-align: start;
+  transition: all 0.2s ease;
+}
+
+.header:hover {
+  background: var(--panel-hover, #f8f9fa);
+}
+
+/* Title */
+.title {
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 600;
+  color: var(--text, #212529);
+}
+
+/* Icon */
+.icon {
+  flex-shrink: 0;
+  color: var(--text-muted, #666);
+  transition: transform 0.3s ease;
+}
+
+.iconOpen {
+  transform: rotate(180deg);
+}
+
+/* Content */
+.content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.contentOpen {
+  max-height: 1000px;
+}
+
+.contentInner {
+  padding: 1rem 1.5rem;
+  color: var(--text-secondary, #495057);
+  line-height: 1.6;
+}
+
+/* RTL Support */
+[dir="rtl"] .header {
+  text-align: start;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .accordion {
+    border-color: var(--border, #333);
+  }
+  
+  .item {
+    border-bottom-color: var(--border, #333);
+  }
+  
+  .header {
+    background: var(--panel, #1a1a1a);
+  }
+  
+  .header:hover {
+    background: var(--panel-hover, #2a2a2a);
+  }
+  
+  .title {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .contentInner {
+    color: var(--text-secondary, #d0d0d0);
+  }
+}

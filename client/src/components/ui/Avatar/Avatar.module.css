@@ -1,0 +1,104 @@
+/* Avatar */
+.avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary, #800020), var(--color-primary-light, #a0002a));
+  color: white;
+  font-weight: 600;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Sizes */
+.xs {
+  width: 24px;
+  height: 24px;
+  font-size: 0.625rem;
+}
+
+.sm {
+  width: 32px;
+  height: 32px;
+  font-size: 0.75rem;
+}
+
+.md {
+  width: 40px;
+  height: 40px;
+  font-size: 0.875rem;
+}
+
+.lg {
+  width: 56px;
+  height: 56px;
+  font-size: 1rem;
+}
+
+.xl {
+  width: 80px;
+  height: 80px;
+  font-size: 1.5rem;
+}
+
+/* Shapes */
+.circle {
+  border-radius: 50%;
+}
+
+.square {
+  border-radius: var(--radius-md, 8px);
+}
+
+/* Image */
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Initials */
+.initials {
+  user-select: none;
+}
+
+/* Status Indicator */
+.status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 25%;
+  height: 25%;
+  border-radius: 50%;
+  border: 2px solid var(--panel, white);
+}
+
+.status-online {
+  background: var(--color-success, #28a745);
+}
+
+.status-offline {
+  background: var(--color-gray-500, #adb5bd);
+}
+
+.status-busy {
+  background: var(--color-danger, #dc3545);
+}
+
+.status-away {
+  background: var(--color-warning, #ffc107);
+}
+
+/* RTL Support */
+[dir="rtl"] .status {
+  right: auto;
+  left: 0;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .status {
+    border-color: var(--panel, #1a1a1a);
+  }
+}

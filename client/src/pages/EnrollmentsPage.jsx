@@ -3,7 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { getClasses, getEnrollments, getUsers } from '../firebase/firestore';
-import Loading from '../components/Loading';
+import { Container, Grid, Card, CardBody, Button, Spinner, EmptyState } from '../components/ui';
+import { MessageCircle, BookOpen } from 'lucide-react';
+import styles from './EnrollmentsPage.module.css';
 
 const EnrollmentsPage = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -47,46 +49,63 @@ const EnrollmentsPage = () => {
     load();
   }, [user]);
 
-  if (authLoading) return <Loading />;
+  if (authLoading) {
+    return (
+      <div className={styles.loadingWrapper}>
+        <Spinner size="lg" />
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div style={{ padding: '1.5rem', maxWidth: 1000, margin: '0 auto' }}>
-      <h1 style={{ margin: 0, marginBottom: '1rem' }}>🎓 {t('my_classes') || 'My Classes'}</h1>
+    <Container maxWidth="lg" className={styles.page}>
+      <h1 className={styles.title}>🎓 {t('my_classes') || 'My Classes'}</h1>
+      
       {loading ? (
-        <Loading />
+        <div className={styles.loadingWrapper}>
+          <Spinner size="lg" />
+        </div>
       ) : myClasses.length === 0 ? (
-        <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 12, padding: '1rem', color: '#666' }}>
-          {t('no_classes_enrolled') || 'No classes found for your account.'}
-        </div>
+        <EmptyState
+          title={t('no_classes_enrolled') || 'No classes found'}
+          description="You are not enrolled in any classes yet."
+        />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        <Grid cols={3} gap="lg" className={styles.grid}>
           {myClasses.map(cls => (
-            <div key={cls.docId} style={{ background: 'white', border: '1px solid #eee', borderRadius: 12, padding: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0 }}>{cls.name}</h3>
-                <span style={{ fontSize: 12, color: '#666' }}>{cls.term || ''}</span>
-              </div>
-              <div style={{ color: '#666', marginTop: 4 }}>{cls.code || ''}</div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button
-                  onClick={() => navigate(`/chat?dest=${encodeURIComponent(cls.docId)}`)}
-                  style={{ padding: '0.5rem 0.75rem', borderRadius: 8, border: 'none', background: '#800020', color: 'white', cursor: 'pointer' }}
-                >
-                  💬 {t('open_chat') || 'Open Chat'}
-                </button>
-                <button
-                  onClick={() => navigate('/activities')}
-                  style={{ padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #800020', background: 'white', color: '#800020', cursor: 'pointer' }}
-                >
-                  📚 {t('view_activities') || 'View Activities'}
-                </button>
-              </div>
-            </div>
+            <Card key={cls.docId} hoverable>
+              <CardBody>
+                <div className={styles.classHeader}>
+                  <h3 className={styles.className}>{cls.name}</h3>
+                  {cls.term && <span className={styles.term}>{cls.term}</span>}
+                </div>
+                {cls.code && <div className={styles.classCode}>{cls.code}</div>}
+                
+                <div className={styles.actions}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<MessageCircle size={16} />}
+                    onClick={() => navigate(`/chat?dest=${encodeURIComponent(cls.docId)}`)}
+                  >
+                    {t('open_chat') || 'Open Chat'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<BookOpen size={16} />}
+                    onClick={() => navigate('/activities')}
+                  >
+                    {t('view_activities') || 'Activities'}
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
           ))}
-        </div>
+        </Grid>
       )}
-    </div>
+    </Container>
   );
 };
 

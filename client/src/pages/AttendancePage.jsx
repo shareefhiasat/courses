@@ -5,7 +5,8 @@ import { createSession, listOpenSessions, listenAttendanceSession, closeAttendan
 import QRCode from 'qrcode';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
-import { Info, Users, Calendar } from 'lucide-react';
+import { Info, Users, Calendar, Download } from 'lucide-react';
+import { Button, Select, Loading, YearSelect } from '../components/ui';
 
 const AttendancePageEnhanced = () => {
   const { user, isAdmin, isInstructor, isHR } = useAuth();
@@ -180,43 +181,50 @@ const AttendancePageEnhanced = () => {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1rem' }}>
-      <h1 style={{ marginTop: 0 }}>{t('attendance') || 'Attendance'}</h1>
-      {err && (
-        <div style={{ margin: '0.5rem 0 1rem 0', padding:'0.75rem', border:'1px solid #fca5a5', background:'#fef2f2', color:'#991b1b', borderRadius:8 }}>
-          {String(err)}
-        </div>
-      )}
+      {err && <div style={{ padding:'0.75rem', background:'#fee', border:'1px solid #fcc', borderRadius:8, color:'#c00', marginBottom:16 }}>{err}</div>}
 
-      {/* Class Selection with Filters */}
+      {/* Class Selection */}
       <div style={{ marginBottom: 16, padding:'1rem', background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ fontWeight: 700, marginBottom: 12, display:'flex', alignItems:'center', gap:8 }}>
-          <Calendar size={20} />
-          <span>{t('select_class') || 'Select Class'}</span>
-        </div>
         
         {/* Filters */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px,1fr))', gap: 12, marginBottom: 12 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px,1fr))', gap:12, marginBottom:12 }}>
           <div>
-            <label style={{ display:'block', marginBottom: 6, fontSize:12, fontWeight: 600 }}>{t('term') || 'Term'}</label>
-            <select value={termFilter} onChange={(e)=>setTermFilter(e.target.value)} style={{ width:'100%', padding:'0.5rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }}>
-              <option value="all">{t('all_terms') || 'All Terms'}</option>
-              {terms.map(term => <option key={term} value={term}>{term}</option>)}
-            </select>
+            <Select
+              searchable
+              value={termFilter}
+              onChange={(e)=>setTermFilter(e.target.value)}
+              options={[
+                { value: 'all', label: t('all_terms') || 'All Terms' },
+                ...terms.map(term => ({ value: term, label: term }))
+              ]}
+              fullWidth
+            />
           </div>
           <div>
-            <label style={{ display:'block', marginBottom: 6, fontSize:12, fontWeight: 600 }}>{t('year') || 'Year'}</label>
-            <select value={yearFilter} onChange={(e)=>setYearFilter(e.target.value)} style={{ width:'100%', padding:'0.5rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }}>
-              <option value="all">{t('all_years') || 'All Years'}</option>
-              {years.map(year => <option key={year} value={year}>{year}</option>)}
-            </select>
+            <YearSelect
+              value={yearFilter === 'all' ? '' : yearFilter}
+              onChange={(e)=>setYearFilter(e.target.value || 'all')}
+              startYear={2024}
+              yearsAhead={5}
+              includeAll
+              allValue="all"
+              allLabel={t('all_years') || 'All Years'}
+              fullWidth
+              searchable
+            />
           </div>
           {(isAdmin || isHR) && instructors.length > 0 && (
             <div>
-              <label style={{ display:'block', marginBottom: 6, fontSize:12, fontWeight: 600 }}>{t('instructor') || 'Instructor'}</label>
-              <select value={instructorFilter} onChange={(e)=>setInstructorFilter(e.target.value)} style={{ width:'100%', padding:'0.5rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }}>
-                <option value="all">{t('all_instructors') || 'All Instructors'}</option>
-                {instructors.map(inst => <option key={inst} value={inst}>{inst}</option>)}
-              </select>
+              <Select
+                searchable
+                value={instructorFilter}
+                onChange={(e)=>setInstructorFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_instructors') || 'All Instructors' },
+                  ...instructors.map(inst => ({ value: inst, label: inst }))
+                ]}
+                fullWidth
+              />
             </div>
           )}
         </div>
@@ -344,21 +352,25 @@ const AttendancePageEnhanced = () => {
                 }} style={{ padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff', fontWeight:600 }}>
                   📋 {(t('copy_student_link')||'Copy Student Link').replaceAll('_',' ')}
                 </button>
-                <button onClick={async()=>{
-                  try {
-                    const snap = await getDocs(collection(db, 'attendanceSessions', sessionId, 'marks'));
-                    const rows = snap.docs.map(d => ({ uid: d.id, ...(d.data()||{}) }));
-                    const headers = ['uid','status','deviceHash','scannedAt'];
-                    const csvRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB')]);
-                    const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
-                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob); const a = document.createElement('a');
-                    a.href = url; a.download = `attendance_${sessionId}_${new Date().toISOString().split('T')[0]}.csv`; a.click();
-                    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-                  } catch(e) { setErr(e?.message || 'Export failed'); }
-                }} style={{ padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff', fontWeight:600 }}>
-                  📊 {(t('export_csv')||'Export CSV').replaceAll('_',' ')}
-                </button>
+                <Button 
+                  variant="secondary" 
+                  icon={<Download size={16} />}
+                  onClick={async()=>{
+                    try {
+                      const snap = await getDocs(collection(db, 'attendanceSessions', sessionId, 'marks'));
+                      const rows = snap.docs.map(d => ({ uid: d.id, ...(d.data()||{}) }));
+                      const headers = ['uid','status','deviceHash','scannedAt'];
+                      const csvRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB')]);
+                      const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
+                      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob); const a = document.createElement('a');
+                      a.href = url; a.download = `attendance_${sessionId}_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+                      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+                    } catch(e) { setErr(e?.message || 'Export failed'); }
+                  }}
+                >
+                  {t('export_csv') || 'Export CSV'}
+                </Button>
               </div>
             </>
           )}

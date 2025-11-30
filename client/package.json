@@ -7,9 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.5",
+    "@mui/x-data-grid": "^8.18.0",
+    "@sentry/react": "^10.25.0",
     "cs-learning-hub": "file:..",
     "dompurify": "^3.2.7",
     "firebase": "^12.3.0",
@@ -17,18 +24,31 @@
     "grapesjs": "^0.22.13",
     "grapesjs-preset-newsletter": "^1.0.2",
     "moment-timezone": "^0.6.0",
+    "papaparse": "^5.5.3",
+    "posthog-js": "^1.295.0",
     "qrcode": "^1.5.4",
+    "quill": "^2.0.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-grid-layout": "^1.5.2",
+    "react-joyride": "^2.7.0",
     "react-router-dom": "^7.9.3",
     "recharts": "^3.3.0"
   },
   "devDependencies": {
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
+    "@storybook/addon-links": "^8.6.14",
+    "@storybook/blocks": "^8.6.14",
+    "@storybook/react": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
+    "@storybook/test": "^8.6.14",
     "@tailwindcss/postcss": "^4.1.17",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.22",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.17"
+    "storybook": "^8.6.14",
+    "tailwindcss": "^4.1.17",
+    "vite": "^6.0.7"
   }
 }

@@ -68,10 +68,9 @@ export const getAllQuizzes = async () => {
     return { success: true, data: quizzes };
   } catch (error) {
     if (error?.code === 'permission-denied') {
-      console.warn('getAllQuizzes: permission-denied');
       return { success: false, error: 'permission-denied', data: [] };
     }
-    console.warn('Error getting quizzes:', error?.message || error);
+    console.error('Error getting quizzes:', error?.message || error);
     return { success: false, error: error.message };
   }
 };
@@ -99,15 +98,26 @@ export const getQuizzesByCreator = async (userId) => {
 export const updateQuiz = async (quizId, updates) => {
   try {
     const quizRef = doc(db, 'quizzes', quizId);
-    await updateDoc(quizRef, {
+    
+    // Build update object without undefined values
+    const updatePayload = {
       ...updates,
-      // Preserve defaults if client omitted
       visibility: updates?.visibility || 'private',
       allowAnonymous: updates?.allowAnonymous === true,
-      folderId: ('folderId' in updates) ? (updates.folderId || null) : undefined,
-      assignedClassIds: Array.isArray(updates?.assignedClassIds) ? updates.assignedClassIds : undefined,
       updatedAt: serverTimestamp()
-    });
+    };
+    
+    // Only include folderId if explicitly provided
+    if ('folderId' in updates) {
+      updatePayload.folderId = updates.folderId || null;
+    }
+    
+    // Only include assignedClassIds if it's an array
+    if (Array.isArray(updates?.assignedClassIds)) {
+      updatePayload.assignedClassIds = updates.assignedClassIds;
+    }
+    
+    await updateDoc(quizRef, updatePayload);
     return { success: true };
   } catch (error) {
     console.error('Error updating quiz:', error);
@@ -252,20 +262,54 @@ export const getQuizAnalytics = async (quizId) => {
     const avgScore = totalSubmissions > 0 ? totalScore / totalSubmissions : 0;
     const completionRate = data.filter(s => s.completedAt).length / totalSubmissions * 100;
     
-    // Question analysis
+    // Question analysis (supports legacy array shape and new object map shape)
     const questionStats = {};
     data.forEach(submission => {
-      submission.answers?.forEach(answer => {
-        if (!questionStats[answer.questionId]) {
-          questionStats[answer.questionId] = { correct: 0, incorrect: 0, total: 0 };
-        }
-        questionStats[answer.questionId].total++;
-        if (answer.correct) {
-          questionStats[answer.questionId].correct++;
-        } else {
-          questionStats[answer.questionId].incorrect++;
-        }
-      });
+      const ans = submission.answers;
+      if (!ans) return;
+
+      // Legacy: answers is array of { questionId, correct, timeSpent? }
+      if (Array.isArray(ans)) {
+        ans.forEach(answer => {
+          const qid = answer.questionId;
+          if (!qid) return;
+          if (!questionStats[qid]) {
+            questionStats[qid] = { correct: 0, incorrect: 0, total: 0, totalTime: 0 };
+          }
+          questionStats[qid].total++;
+          if (answer.correct) {
+            questionStats[qid].correct++;
+          } else {
+            questionStats[qid].incorrect++;
+          }
+          if (typeof answer.timeSpent === 'number') {
+            questionStats[qid].totalTime += answer.timeSpent;
+          }
+        });
+      } else if (typeof ans === 'object') {
+        // New: answers is an object keyed by questionId: { [questionId]: { isCorrect, timeSpent } }
+        Object.entries(ans).forEach(([qid, value]) => {
+          if (!questionStats[qid]) {
+            questionStats[qid] = { correct: 0, incorrect: 0, total: 0, totalTime: 0 };
+          }
+          questionStats[qid].total++;
+          if (value?.isCorrect) {
+            questionStats[qid].correct++;
+          } else {
+            questionStats[qid].incorrect++;
+          }
+          if (typeof value?.timeSpent === 'number') {
+            questionStats[qid].totalTime += value.timeSpent;
+          }
+        });
+      }
+    });
+
+    // Compute average time per question
+    Object.keys(questionStats).forEach(qid => {
+      const stats = questionStats[qid];
+      const answeredCount = stats.total || 1;
+      stats.avgTime = stats.totalTime / answeredCount;
     });
     
     return {

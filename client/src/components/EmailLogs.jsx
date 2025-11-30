@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useToast } from './ToastProvider';
 import Modal from './Modal';
 import { useLang } from '../contexts/LangContext';
-import { Mail, Megaphone, FileText, CheckCircle2, XCircle, GraduationCap, BookOpen, MessageSquareText, Mailbox, Eye, Download } from 'lucide-react';
+import { Mail, Megaphone, FileText, CheckCircle2, XCircle, GraduationCap, BookOpen, MessageSquareText, Mailbox, Eye } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
+import { AdvancedDataGrid, Loading, Select, Input, Badge } from './ui';
 
-const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
+const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const toast = useToast();
   const { t } = useLang();
   const [logs, setLogs] = useState([]);
@@ -52,7 +53,13 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
       
       const logList = [];
       snapshot.forEach(doc => {
-        logList.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        // Only add valid objects, skip any malformed data
+        if (data && typeof data === 'object') {
+          logList.push({ id: doc.id, ...data });
+        } else {
+          console.warn('[EmailLogs] Skipping invalid document:', doc.id, data);
+        }
       });
       
       setMissingIndexUrl('');
@@ -76,15 +83,32 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
   const filteredLogs = logs.filter(log => {
     if (filters.search) {
       const search = filters.search.toLowerCase();
-      const toArray = Array.isArray(log.to) ? log.to : [log.to];
+      const toArray = Array.isArray(log?.to) ? log.to : [log?.to];
       return (
-        log.subject?.toLowerCase().includes(search) ||
+        log?.subject?.toLowerCase().includes(search) ||
         toArray.some(email => email?.toLowerCase().includes(search)) ||
-        log.type?.toLowerCase().includes(search)
+        log?.type?.toLowerCase().includes(search)
       );
     }
     return true;
   });
+
+  const gridRows = filteredLogs
+    .map((log, index) => {
+      if (!log || typeof log !== 'object') {
+        console.warn('[EmailLogs] Skipping malformed log row:', log);
+        return null;
+      }
+
+      const resolvedId = log.id || log.docId || `log-${index}`;
+
+      return {
+        ...log,
+        id: resolvedId,
+        __rowIndex: index,
+      };
+    })
+    .filter(Boolean);
 
   const getTypeIcon = (type, size = 16) => {
     const common = { size };
@@ -110,30 +134,8 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
     }
   };
 
-  const exportToCSV = () => {
-    const headers = ['Date/Time', 'Type', 'Subject', 'To', 'Status', 'Error'];
-    const rows = filteredLogs.map(log => [
-      log.timestamp ? formatDateTime(log.timestamp) : '',
-      log.type || '',
-      log.subject || '',
-      Array.isArray(log.to) ? log.to.join('; ') : log.to || '',
-      log.status || '',
-      log.error || ''
-    ]);
-    
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `email-logs-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast?.showSuccess('Logs exported to CSV!');
-  };
-
   if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading email logs...</div>;
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
   }
 
   return (
@@ -159,151 +161,153 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
 
         {/* Filters */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>Type</label>
-            <select
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: 6 }}
-            >
-              <option value="all">All Types</option>
-              <option value="newsletter">Newsletter</option>
-              <option value="announcement">Announcements</option>
-              <option value="activity">Activities</option>
-              <option value="activity_graded">Grading</option>
-              <option value="activity_complete">Completions</option>
-              <option value="enrollment">Enrollments</option>
-              <option value="resource">Resources</option>
-              <option value="chat_digest">Chat Digest</option>
-            </select>
-          </div>
+          <Select
+            value={filters.type}
+            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+            options={[
+              { value: 'all', label: 'All Types' },
+              { value: 'newsletter', label: 'Newsletter' },
+              { value: 'announcement', label: 'Announcements' },
+              { value: 'activity', label: 'Activities' },
+              { value: 'activity_graded', label: 'Grading' },
+              { value: 'activity_complete', label: 'Completions' },
+              { value: 'enrollment', label: 'Enrollments' },
+              { value: 'resource', label: 'Resources' },
+              { value: 'chat_digest', label: 'Chat Digest' }
+            ]}
+            fullWidth
+            searchable
+          />
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>Status</label>
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: 6 }}
-            >
-              <option value="all">All Status</option>
-              <option value="sent">✓ Sent</option>
-              <option value="failed">✗ Failed</option>
-            </select>
-          </div>
+          <Select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            options={[
+              { value: 'all', label: 'All Status' },
+              { value: 'sent', label: 'Sent' },
+              { value: 'failed', label: 'Failed' }
+            ]}
+            fullWidth
+            searchable
+          />
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600 }}>Search</label>
-            <input
-              type="text"
-              placeholder="Search by email, subject..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: 6 }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button
-              onClick={exportToCSV}
-              disabled={filteredLogs.length === 0}
-              style={{
-                padding: '8px 16px',
-                background: filteredLogs.length === 0 ? '#ccc' : '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: 6,
-                cursor: filteredLogs.length === 0 ? 'not-allowed' : 'pointer',
-                fontWeight: 600,
-                fontSize: '0.9rem'
-              }}
-            >
-              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Download size={16} /></span> Export CSV
-            </button>
-          </div>
+          <Input
+            type="text"
+            placeholder="Search by email, subject..."
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            fullWidth
+          />
         </div>
+
+        {actionsSlot && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            {actionsSlot}
+          </div>
+        )}
       </div>
 
-      {/* Logs Table */}
-      {filteredLogs.length === 0 ? (
-        <div style={{
-          padding: '3rem',
-          textAlign: 'center',
-          background: '#f8f9fa',
-          borderRadius: 12,
-          border: '2px dashed #ddd'
-        }}>
-          <p style={{ fontSize: '1.1rem', color: '#666' }}>
-            {filters.search || filters.type !== 'all' || filters.status !== 'all' 
-              ? 'No logs found matching your filters.' 
-              : 'No email logs yet. Emails will appear here once sent.'}
-          </p>
-        </div>
-      ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: 8 }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid #ddd', fontWeight: 600 }}>{t('date_time')}</th>
-                <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid #ddd', fontWeight: 600 }}>{t('type')}</th>
-                <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid #ddd', fontWeight: 600 }}>{t('subject')}</th>
-                <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid #ddd', fontWeight: 600 }}>{t('to')}</th>
-                <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid #ddd', fontWeight: 600 }}>{t('status')}</th>
-                <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid #ddd', fontWeight: 600 }}>{t('actions_col')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map(log => {
-                const toArray = Array.isArray(log.to) ? log.to : [log.to];
-                return (
-                  <tr key={log.id} style={{ borderBottom: '1px solid #f3f3f3' }}>
-                    <td style={{ padding: '12px', fontSize: '0.85rem' }}>
-                      {log.timestamp ? formatDateTime(log.timestamp) : 'N/A'}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
-                        {getTypeIcon(log.type, 18)}
-                        <span style={{ fontSize: '0.85rem' }}>{log.type}</span>
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '0.9rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {log.subject || 'No subject'}
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '0.85rem' }}>
-                      {toArray.length === 1 ? toArray[0] : `${toArray.length} recipients`}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      {getStatusBadge(log.status)}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <button
-                        onClick={() => {
-                          console.log('👁️ View button clicked!');
-                          console.log('Log data:', log);
-                          setSelectedLog(log);
-                          setShowPreview(true);
-                          console.log('Set showPreview to true');
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          background: '#0d6efd',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 4,
-                          cursor: 'pointer',
-                          fontSize: '0.85rem'
-                        }}
-                        title="View"
-                      >
-                        <span style={{ display:'inline-flex' }}><Eye size={16} /></span>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Logs Grid */}
+      <AdvancedDataGrid
+        rows={gridRows}
+        getRowId={(row) => row.id || row.__rowIndex}
+        columns={[
+          { 
+            field: 'timestamp', 
+            headerName: t('date_time'), 
+            width: 180,
+            renderCell: (params) => {
+              const r = params.row || {};
+              const ts = r.timestamp || r.sentAt || r.createdAt || r.date;
+              if (!ts) return '—';
+              try {
+                if (ts && typeof ts.toDate === 'function') {
+                  return formatDateTime(ts);
+                }
+                if (typeof ts === 'number') {
+                  return formatDateTime({ toDate: () => new Date(ts) });
+                }
+                if (typeof ts === 'string') {
+                  return formatDateTime({ toDate: () => new Date(ts) });
+                }
+              } catch {}
+              return '—';
+            }
+          },
+          { 
+            field: 'type', 
+            headerName: t('type'), 
+            width: 150,
+            renderCell: (params) => (
+              <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
+                {getTypeIcon(params.value, 18)}
+                <span style={{ fontSize: '0.85rem' }}>{params.value}</span>
+              </span>
+            )
+          },
+          { 
+            field: 'subject', 
+            headerName: t('subject'), 
+            flex: 1,
+            minWidth: 200,
+            renderCell: (params) => {
+              const r = params.row || {};
+              const value = r.subject || r.title || r.summary;
+              return value || '—';
+            }
+          },
+          { 
+            field: 'to', 
+            headerName: t('to'), 
+            width: 200,
+            renderCell: (params) => {
+              const r = params.row || {};
+              const rawTo = r.to || r.recipients || r.recipient;
+              const toArray = Array.isArray(rawTo) ? rawTo : (rawTo ? [rawTo] : []);
+              if (toArray.length === 0) return '—';
+              return toArray.length === 1 ? toArray[0] : `${toArray.length} recipients`;
+            }
+          },
+          { 
+            field: 'status', 
+            headerName: t('status'), 
+            width: 120,
+            renderCell: (params) => getStatusBadge(params.value)
+          },
+          { 
+            field: 'actions', 
+            headerName: t('actions_col'), 
+            width: 100,
+            sortable: false,
+            renderCell: (params) => (
+              <button
+                onClick={() => {
+                  setSelectedLog(params.row);
+                  setShowPreview(true);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  background: '#0d6efd',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
+                }}
+                title="View"
+              >
+                <Eye size={16} />
+              </button>
+            )
+          }
+        ]}
+        pageSize={20}
+        pageSizeOptions={[10, 20, 50, 100]}
+        checkboxSelection
+        exportFileName="email-logs"
+        showExportButton
+        exportLabel={t('export') || 'Export'}
+      />
 
       {/* Preview Overlay (full-screen, highly visible) */}
       {showPreview && selectedLog && (
@@ -313,10 +317,10 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
             inset: 0,
             background: 'rgba(0, 0, 0, 0.7)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
             zIndex: 99999,
-            padding: '2rem'
+            padding: '3rem 2rem 2rem'
           }}
           onClick={() => {
             console.log('Closing email log preview overlay');
@@ -340,14 +344,19 @@ const EmailLogs = ({ defaultTypeFilter = 'all' }) => {
           >
             {/* Header */}
             <div style={{
-              padding: '1.25rem 1.5rem',
+              padding: '0.75rem 1rem',
               background: 'linear-gradient(135deg, #667eea, #764ba2)',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <h2 style={{ margin: 0, fontSize: '1.15rem', display:'flex', alignItems:'center', gap:8 }}><Mail size={18} /> Email Log Preview</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}>
+                {getTypeIcon(selectedLog.type, 18)}
+                <span style={{ fontWeight: 500, maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedLog.subject || 'Email log'}
+                </span>
+              </div>
               <button
                 onClick={() => {
                   setShowPreview(false);

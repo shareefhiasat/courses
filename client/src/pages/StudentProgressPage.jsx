@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { getUsers, getClasses, getEnrollments, getActivities, getSubmissions, gradeSubmission } from '../firebase/firestore';
-import Loading from '../components/Loading';
+import { Container, Card, CardBody, Button, Input, Select, Loading, Badge, useToast, AdvancedDataGrid } from '../components/ui';
 import { useLang } from '../contexts/LangContext';
-import { useToast } from '../components/ToastProvider';
+import styles from './StudentProgressPage.module.css';
 import { addNotification } from '../firebase/notifications';
 import { formatDateTime } from '../utils/date';
 import { BarChart3, User as UserIcon, FileSignature, Pencil, Repeat, Link2, Circle, Hourglass, CheckCircle } from 'lucide-react';
 
 const StudentProgressPage = () => {
-  const { user, isAdmin, loading: authLoading, impersonateUser } = useAuth();
+  const { user, isAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,10 +29,10 @@ const StudentProgressPage = () => {
   const toast = useToast();
 
   useEffect(() => {
-    if (user && isAdmin) {
+    if (user && (isAdmin || isInstructor)) {
       loadStudentProgress();
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, isInstructor]);
 
   const loadStudentProgress = async () => {
     try {
@@ -115,16 +115,12 @@ const StudentProgressPage = () => {
     }
   };
 
-  if (authLoading) {
-    return <Loading message={t('loading')} />;
+  if (authLoading || loading) {
+    return <Loading variant="overlay" message={t('loading') || 'Loading...'} />;
   }
 
-  if (!user || !isAdmin) {
+  if (!user || !(isAdmin || isInstructor)) {
     return <Navigate to="/" replace />;
-  }
-
-  if (loading) {
-    return <Loading message={t('loading_student_progress') || 'Loading student progress...'} />;
   }
 
   const filteredUsers = users.filter(u => {
@@ -169,77 +165,47 @@ const StudentProgressPage = () => {
             <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}><span style={{ display:'inline-flex', verticalAlign:'middle', marginRight:6 }}><BarChart3 size={18} /></span>{t('student_progress_overview') || 'Student Progress Overview'}</h1>
             <p style={{ margin: '0.5rem 0 0', color: '#6b7280' }}>{t('monitor_student_progress') || 'Monitor all student progress and performance'}</p>
           </div>
-          <a href="/activities" style={{
-            padding:'0.6rem 1rem', background:'linear-gradient(135deg,#800020,#600018)', color:'#fff', textDecoration:'none', borderRadius:8, fontWeight:700, whiteSpace:'nowrap'
-          }}>
-            + {t('add_homework') || 'Add Homework'}
-          </a>
         </div>
         <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
+          <Input
             type="text"
             placeholder={t('search_students') || 'Search students...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid #ddd',
-              width: '300px',
-              fontSize: '1rem',
-              outline: 'none'
-            }}
+            className={styles.searchInput}
           />
-          <select
+          <Select
+            searchable
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
-            style={{
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid #ddd',
-              fontSize: '1rem',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="all">{t('all_classes') || 'All Classes'}</option>
-            {classes.map(cls => (
-              <option key={cls.docId} value={cls.docId}>{cls.name}</option>
-            ))}
-          </select>
-          <select
+            options={[
+              { value: 'all', label: t('all_classes') || 'All Classes' },
+              ...classes.map(cls => ({ value: cls.docId, label: cls.name }))
+            ]}
+            className={styles.filterSelect}
+          />
+          <Select
+            searchable
             value={termFilter}
             onChange={(e) => setTermFilter(e.target.value)}
-            style={{
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid #ddd',
-              fontSize: '1rem',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="all">{t('all_terms') || 'All Terms'}</option>
-            {[...new Set(classes.map(c => c.term))].filter(Boolean).map(term => (
-              <option key={term} value={term}>{term}</option>
-            ))}
-          </select>
-          <select
+            options={[
+              { value: 'all', label: t('all_terms') || 'All Terms' },
+              ...[...new Set(classes.map(c => c.term))].filter(Boolean).map(term => ({ value: term, label: term }))
+            ]}
+            className={styles.filterSelect}
+          />
+          <Select
+            searchable
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: '1px solid #ddd',
-              fontSize: '1rem'
-            }}
-          >
-            <option value="all">{t('all_types') || 'All Types'}</option>
-            <option value="quiz">Quiz</option>
-            <option value="training">Training</option>
-            <option value="assignment">Assignment</option>
-            <option value="optional">Optional</option>
-          </select>
+            options={[
+              { value: 'all', label: t('all_types') || 'All Types' },
+              { value: 'quiz', label: 'Quiz' },
+              { value: 'training', label: 'Training' },
+              { value: 'optional', label: 'Optional' }
+            ]}
+            className={styles.filterSelect}
+          />
         </div>
       </div>
 
@@ -312,7 +278,6 @@ const StudentProgressPage = () => {
             const typeColors = {
               quiz: '#17a2b8',
               training: '#28a745',
-              assignment: '#ffc107',
               optional: '#6c757d'
             };
 
@@ -476,10 +441,10 @@ const StudentProgressPage = () => {
                           e.stopPropagation();
                           const result = await impersonateUser(student.docId || student.id);
                           if (result.success) {
-                            toast?.showSuccess(t('impersonation_started') || 'Now viewing as student');
+                            toast.success(t('impersonation_started') || 'Now viewing as student');
                             window.location.href = '/';
                           } else {
-                            toast?.showError(result.error || 'Failed to impersonate');
+                            toast.error(result.error || 'Failed to impersonate');
                           }
                         }}
                         style={{
@@ -539,22 +504,19 @@ const StudentProgressPage = () => {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{t('activities') || 'Activities'}</h3>
-              <select
+              <Select
+                searchable
+                size="small"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                style={{
-                  padding: '0.4rem 0.8rem',
-                  borderRadius: '6px',
-                  border: '1px solid #ddd',
-                  fontSize: '0.85rem'
-                }}
-              >
-                <option value="all">{t('all_types') || 'All Types'}</option>
-                <option value="quiz">Quiz</option>
-                <option value="training">Training</option>
-                <option value="assignment">Assignment</option>
-                <option value="optional">Optional</option>
-              </select>
+                options={[
+                  { value: 'all', label: t('all_types') || 'All Types' },
+                  { value: 'quiz', label: 'Quiz' },
+                  { value: 'training', label: 'Training' },
+                  { value: 'optional', label: 'Optional' }
+                ]}
+                className={styles.typeFilterSmall}
+              />
             </div>
             <div style={{ overflowX: 'auto' }}>
               {/* Legend for status icons */}
@@ -569,112 +531,78 @@ const StudentProgressPage = () => {
                   <CheckCircle size={14} /> {t('graded') || 'Graded'}
                 </span>
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #eee' }}>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>{t('activity') || 'Activity'}</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'center' }}>{t('status') || 'Status'}</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'center' }}>{t('grade') || 'Grade'}</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'center' }}>{t('submitted') || 'Submitted'}</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'center' }}>{t('actions') || 'Actions'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activities.filter(a => typeFilter === 'all' || a.type === typeFilter).map(activity => {
-                    const submission = selectedStudent.userSubmissions.find(s => s.activityId === activity.docId);
-                    const status = !submission ? 'not_started' : (submission.status === 'graded' ? 'graded' : 'pending');
-                    
-                    return (
-                      <tr key={activity.docId} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                        <td style={{ padding: '0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: '600', fontSize: '0.85rem' }}>{activity.titleEn || activity.title}</span>
-                            {activity.allowRetake && (
-                              <span style={{
-                                fontSize: '0.65rem',
-                                background: '#17a2b8',
-                                color: 'white',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontWeight: '600'
-                              }}>
-                                <span style={{ display:'inline-flex' }} title={t('allow_retakes') || 'Allow retakes'}><Repeat size={12} /></span>
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#666' }}>{activity.type}</div>
-                        </td>
-                        <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                          {status === 'not_started' && (
-                            <span title={t('not_started') || 'Not started'} style={{ color: '#999', fontSize: '0.8rem', display:'inline-flex' }}><Circle size={16} /></span>
+              <AdvancedDataGrid
+                rows={activities.filter(a => typeFilter === 'all' || a.type === typeFilter).map(activity => {
+                  const submission = selectedStudent.userSubmissions.find(s => s.activityId === activity.docId);
+                  const status = !submission ? 'not_started' : (submission.status === 'graded' ? 'graded' : 'pending');
+                  return {
+                    ...activity,
+                    submission,
+                    status,
+                    gradeDisplay: submission && submission.status === 'graded' ? `${submission.score || 0}/${activity.maxScore || 100}` : '—',
+                    submittedDisplay: submission ? formatDateTime(submission.submittedAt) : '—'
+                  };
+                })}
+                getRowId={(row) => row.docId || row.id}
+                columns={[
+                  { field: 'titleEn', headerName: t('activity') || 'Activity', flex: 1, minWidth: 200,
+                    renderCell: (params) => (
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: '600', fontSize: '0.85rem' }}>{params.value || params.row.title}</span>
+                          {params.row.allowRetake && (
+                            <Badge variant="info" size="sm">
+                              <Repeat size={12} />
+                            </Badge>
                           )}
-                          {status === 'pending' && (
-                            <span title={t('pending') || 'Pending'} style={{ color: '#ffc107', fontSize: '0.8rem', fontWeight: '600', display:'inline-flex' }}><Hourglass size={16} /></span>
-                          )}
-                          {status === 'graded' && (
-                            <span title={t('graded') || 'Graded'} style={{ color: '#28a745', fontSize: '0.8rem', fontWeight: '600', display:'inline-flex' }}><CheckCircle size={16} /></span>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 600, color: '#800020', fontSize: '0.85rem' }}>
-                          {submission && submission.status === 'graded' ? (
-                            <span>{submission.score || 0}/{activity.maxScore || 100}</span>
-                          ) : '—'}
-                        </td>
-                        <td style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                          {submission ? (
-                            formatDateTime(submission.submittedAt)
-                          ) : '—'}
-                        </td>
-                        <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                          {submission && submission.status !== 'graded' && (
-                            <button
-                              onClick={() => {
-                                setGradingSubmission(submission);
-                                setGradeForm({ score: '', feedback: submission.feedback || '' });
-                                setActiveTab('grade');
-                              }}
-                              style={{
-                                padding: '0.3rem 0.6rem',
-                                background: 'linear-gradient(135deg, #800020, #600018)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '0.75rem',
-                                fontWeight: '600'
-                              }}
-                            title={t('grade_submission') || 'Grade submission'}
-                            >
-                              <span style={{ display:'inline-flex' }}><FileSignature size={14} /></span>
-                            </button>
-                          )}
-                          {submission && submission.status === 'graded' && (
-                            <button
-                              onClick={() => {
-                                setGradingSubmission(submission);
-                                setGradeForm({ score: submission.score || '', feedback: submission.feedback || '' });
-                                setActiveTab('grade');
-                              }}
-                              style={{
-                                padding: '0.3rem 0.6rem',
-                                background: '#6c757d',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '0.75rem'
-                              }}
-                            title={t('edit_grade') || 'Edit grade'}
-                            >
-                              <span style={{ display:'inline-flex' }}><Pencil size={14} /></span>
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#666' }}>{params.row.type}</div>
+                      </div>
+                    )
+                  },
+                  { field: 'status', headerName: t('status') || 'Status', width: 120,
+                    renderCell: (params) => {
+                      if (params.value === 'not_started') {
+                        return <span title={t('not_started') || 'Not started'} style={{ color: '#999' }}><Circle size={16} /></span>;
+                      }
+                      if (params.value === 'pending') {
+                        return <span title={t('pending') || 'Pending'} style={{ color: '#ffc107' }}><Hourglass size={16} /></span>;
+                      }
+                      return <span title={t('graded') || 'Graded'} style={{ color: '#28a745' }}><CheckCircle size={16} /></span>;
+                    }
+                  },
+                  { field: 'gradeDisplay', headerName: t('grade') || 'Grade', width: 120,
+                    renderCell: (params) => (
+                      <span style={{ fontWeight: 600, color: '#800020' }}>{params.value}</span>
+                    )
+                  },
+                  { field: 'submittedDisplay', headerName: t('submitted') || 'Submitted', width: 180 },
+                  { field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
+                    renderCell: (params) => (
+                      params.row.submission && params.row.submission.status !== 'graded' ? (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => {
+                            setGradingSubmission(params.row.submission);
+                            setGradeForm({ score: '', feedback: params.row.submission.feedback || '' });
+                            setActiveTab('grade');
+                          }}
+                          title={t('grade_submission') || 'Grade submission'}
+                        >
+                          <FileSignature size={14} />
+                        </Button>
+                      ) : null
+                    )
+                  }
+                ]}
+                pageSize={10}
+                pageSizeOptions={[5, 10, 20, 50]}
+                checkboxSelection
+                exportFileName="student-activities"
+                showExportButton
+                exportLabel={t('export') || 'Export'}
+              />
             </div>
           </div>
         )}
@@ -799,7 +727,7 @@ const StudentProgressPage = () => {
               <button
                 onClick={async () => {
                   if (!gradeForm.score) {
-                    toast?.showError('Please enter a score');
+                    toast.error('Please enter a score');
                     return;
                   }
                   
@@ -809,7 +737,7 @@ const StudentProgressPage = () => {
                     const score = parseInt(gradeForm.score);
                     
                     if (isNaN(score) || score < 0 || score > maxScore) {
-                      toast?.showError(`Score must be between 0 and ${maxScore}`);
+                      toast.error(`Score must be between 0 and ${maxScore}`);
                       return;
                     }
                     
@@ -855,17 +783,17 @@ const StudentProgressPage = () => {
                         });
                       } catch {}
 
-                      toast?.showSuccess('✅ Submission graded successfully!');
+                      toast.success('✅ Submission graded successfully!');
                       setGradingSubmission(null);
                       setGradeForm({ score: '', feedback: '' });
                       setActiveTab('details');
                       await loadStudentProgress();
                     } else {
-                      toast?.showError('Failed to grade submission: ' + result.error);
+                      toast.error('Failed to grade submission: ' + result.error);
                     }
                   } catch (error) {
                     console.error('Error grading:', error);
-                    toast?.showError('Error grading submission: ' + error.message);
+                    toast.error('Error grading submission: ' + error.message);
                   }
                 }}
                 style={{

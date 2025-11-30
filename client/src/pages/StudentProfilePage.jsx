@@ -3,10 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
-import { User, Users, Calendar, TrendingUp, Award, FileText, Clock, Search, Trophy, Flame, Target } from 'lucide-react';
+import { User, Users, Calendar, TrendingUp, Award, FileText, Clock, Search, Trophy, Flame, Target, X } from 'lucide-react';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '../firebase/badges';
 import { useSearchParams } from 'react-router-dom';
-import Loading from '../components/Loading';
+import { Container, Loading, Select } from '../components/ui';
+import styles from './StudentProfilePage.module.css';
 
 const StudentProfilePage = () => {
   const { user, isAdmin, isHR, isInstructor } = useAuth();
@@ -302,7 +303,7 @@ const StudentProfilePage = () => {
   };
 
   if (loading) {
-    return <Loading fullscreen message={t('loading')} />;
+    return <Loading variant="overlay" message={t('loading') || 'Loading...'} />;
   }
 
   if (!studentData) {
@@ -391,58 +392,56 @@ const StudentProfilePage = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Class</label>
-                <select
+                <Select
+                  label="Class"
+                  searchable
                   value={filters.classId}
                   onChange={(e) => setFilters({ ...filters, classId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-purple-500 outline-none"
-                >
-                  <option value="">All Classes</option>
-                  {allClasses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name || c.name_en || c.id}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'All Classes' },
+                    ...allClasses.map((c) => ({ value: c.id, label: c.name || c.name_en || c.id }))
+                  ]}
+                  fullWidth
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Year</label>
-                <select
+                <Select
+                  label="Year"
+                  searchable
                   value={filters.year}
                   onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-purple-500 outline-none"
-                >
-                  <option value="">All Years</option>
-                  {[...new Set(allClasses.map(c => c.year || c.academicYear).filter(Boolean))].map((y, i) => (
-                    <option key={`year_${y}_${i}`} value={y}>{y}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'All Years' },
+                    ...[...new Set(allClasses.map(c => c.year || c.academicYear).filter(Boolean))].map((y) => ({ value: y, label: y }))
+                  ]}
+                  fullWidth
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Term</label>
-                <select
+                <Select
+                  label="Term"
+                  searchable
                   value={filters.term}
                   onChange={(e) => setFilters({ ...filters, term: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-purple-500 outline-none"
-                >
-                  <option value="">All Terms</option>
-                  {[...new Set(allClasses.map(c => c.term || c.sessionTerm).filter(Boolean))].map((t, i) => (
-                    <option key={`term_${t}_${i}`} value={t}>{t}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'All Terms' },
+                    ...[...new Set(allClasses.map(c => c.term || c.sessionTerm).filter(Boolean))].map((t) => ({ value: t, label: t }))
+                  ]}
+                  fullWidth
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Semester</label>
-                <select
+                <Select
+                  label="Semester"
+                  searchable
                   value={filters.semester}
                   onChange={(e) => setFilters({ ...filters, semester: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-purple-500 outline-none"
-                >
-                  <option value="">All Semesters</option>
-                  {[...new Set(allClasses.map(c => c.semester).filter(Boolean))].map((s, i) => (
-                    <option key={`sem_${s}_${i}`} value={s}>{s}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'All Semesters' },
+                    ...[...new Set(allClasses.map(c => c.semester).filter(Boolean))].map((s) => ({ value: s, label: s }))
+                  ]}
+                  fullWidth
+                />
               </div>
             </div>
           </div>

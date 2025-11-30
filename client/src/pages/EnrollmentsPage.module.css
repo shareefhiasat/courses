@@ -1,0 +1,87 @@
+/* Enrollments Page */
+.page {
+  padding: 1.5rem 0;
+}
+
+.title {
+  margin: 0 0 1.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text, #212529);
+}
+
+/* Loading Wrapper */
+.loadingWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+/* Grid */
+.grid {
+  margin-top: 1rem;
+}
+
+/* Class Card */
+.classHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.className {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text, #212529);
+}
+
+.term {
+  font-size: 0.75rem;
+  color: var(--text-muted, #666);
+  background: var(--color-gray-100, #f8f9fa);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.classCode {
+  color: var(--text-muted, #666);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .title {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .className {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .term {
+    background: var(--color-gray-800, #343a40);
+    color: var(--text-muted, #999);
+  }
+}

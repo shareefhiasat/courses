@@ -4,15 +4,16 @@ import { collection, query, where, orderBy, addDoc, getDocs, Timestamp, doc, get
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
-import { useToast } from '../components/ToastProvider';
-import Loading from '../components/Loading';
+import { Container, Card, CardBody, Button, Spinner, Badge, EmptyState, useToast } from '../components/ui';
+import { Camera, Send } from 'lucide-react';
+import styles from './ClassStoryPage.module.css';
 import '../styles/military-theme.css';
 
 const ClassStoryPage = () => {
   const { classId } = useParams();
   const { user, isAdmin } = useAuth();
   const { lang, t } = useLang();
-  const { showSuccess, showError, showInfo } = useToast();
+  const toast = useToast();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,7 @@ const ClassStoryPage = () => {
         setNoAccess(true);
       } else {
         console.error('Error loading posts:', error);
-        showError(t('error_loading_data') || 'Error loading posts');
+        toast.error(t('error_loading_data') || 'Error loading posts');
       }
     } finally {
       setLoading(false);
@@ -85,7 +86,7 @@ const ClassStoryPage = () => {
 
   const handleCreatePost = async () => {
     if (!newPostContent.trim()) {
-      showInfo(t('please_enter_content') || 'Please enter some content');
+      toast.info(t('please_enter_content') || 'Please enter some content');
       return;
     }
 
@@ -93,7 +94,7 @@ const ClassStoryPage = () => {
     try {
       const effId = await resolveClassId();
       if (!effId) {
-        showError(t('select_class') || 'Please select a class');
+        toast.error(t('select_class') || 'Please select a class');
         setPosting(false);
         return;
       }
@@ -108,11 +109,11 @@ const ClassStoryPage = () => {
       });
 
       setNewPostContent('');
-      showSuccess(t('post_created') || 'Post created successfully!');
+      toast.success(t('post_created') || 'Post created successfully!');
       await loadPosts();
     } catch (error) {
       console.error('Error creating post:', error);
-      showError(t('error_occurred') || 'Error creating post');
+      toast.error(t('error_occurred') || 'Error creating post');
     } finally {
       setPosting(false);
     }
@@ -135,68 +136,49 @@ const ClassStoryPage = () => {
     return `${diffDays} ${t('days_ago') || 'days ago'}`;
   };
 
-  if (loading) return <Loading />;
+  if (loading) return (
+    <Container className={styles.loadingWrapper}>
+      <Spinner size="lg" />
+      <p>Loading class story...</p>
+    </Container>
+  );
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+    <Container maxWidth="md" className={styles.page}>
       {/* Header */}
-      <div style={{
-        marginBottom: '2rem',
-        textAlign: 'center'
-      }}>
-        <h1 style={{
-          fontFamily: 'var(--font-primary)',
-          fontSize: '2.5rem',
-          color: 'var(--navy-dark)',
-          marginBottom: '0.5rem'
-        }}>
-          📸 {t('class_story') || 'Class Story'}
+      <div className={styles.header}>
+        <h1>
+          <Camera size={32} /> {t('class_story') || 'Class Story'}
         </h1>
-        <p style={{
-          fontSize: '1.125rem',
-          color: 'var(--military-gray)'
-        }}>
-          {className}
-        </p>
+        <p>{className}</p>
       </div>
 
       {/* New Post (Instructors only) */}
       {isAdmin && (
-        <div className="card-military" style={{ marginBottom: '2rem' }}>
-          <textarea
-            value={newPostContent}
-            onChange={(e) => setNewPostContent(e.target.value)}
-            placeholder={t('write_post') || 'Write a post...'}
-            style={{
-              width: '100%',
-              minHeight: '120px',
-              padding: '1rem',
-              borderRadius: '8px',
-              border: '2px solid var(--military-light-gray)',
-              fontFamily: 'var(--font-secondary)',
-              fontSize: '1rem',
-              resize: 'vertical',
-              marginBottom: '1rem'
-            }}
-          />
-          <button
-            onClick={handleCreatePost}
-            disabled={posting || !newPostContent.trim()}
-            className="btn-military-gold"
-            style={{
-              width: '100%',
-              padding: '0.75rem 1.5rem',
-              opacity: (posting || !newPostContent.trim()) ? 0.5 : 1,
-              cursor: (posting || !newPostContent.trim()) ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {posting ? (t('posting') || 'Posting...') : (t('post_to_class') || 'Post to Class')}
-          </button>
-        </div>
+        <Card className={styles.newPostCard}>
+          <CardBody>
+            <textarea
+              value={newPostContent}
+              onChange={(e) => setNewPostContent(e.target.value)}
+              placeholder={t('write_post') || 'Write a post...'}
+              className={styles.textarea}
+            />
+            <Button
+              onClick={handleCreatePost}
+              disabled={posting || !newPostContent.trim()}
+              variant="primary"
+              icon={<Send size={18} />}
+              loading={posting}
+              fullWidth
+            >
+              {posting ? (t('posting') || 'Posting...') : (t('post_to_class') || 'Post to Class')}
+            </Button>
+          </CardBody>
+        </Card>
       )}
 
       {/* Posts Feed */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.postsFeed}>
         {noAccess && (
           <div className="card-military" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
             {t('no_access_class_posts') || 'You do not have permission to view class posts.'}
@@ -312,7 +294,7 @@ const ClassStoryPage = () => {
           ))
         ))}
       </div>
-    </div>
+    </Container>
   );
 };
 

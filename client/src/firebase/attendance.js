@@ -65,14 +65,38 @@ export async function closeAttendanceSession(sessionId) {
   return res?.data;
 }
 
-export async function scanAttendance({ sid, token, deviceHash, classId }) {
+export async function scanAttendance(payload) {
   const fn = httpsCallable(functions, 'attendanceScan');
-  const payload = { sid, token, deviceHash };
-  if (classId) payload.classId = classId;
+  // payload may include: sid, token, deviceHash, classId, status, reason, note
   console.log('[Attendance/api] calling attendanceScan', payload);
-  const res = await fn(payload);
-  console.log('[Attendance/api] attendanceScan result', res?.data);
-  return res?.data;
+  try {
+    const res = await fn(payload);
+    console.log('[Attendance/api] attendanceScan result', res?.data);
+    return res?.data;
+  } catch (error) {
+    // Map common Cloud Function errors to clearer messages
+    const msg = error?.message || '';
+    if (msg.includes('auth_required')) {
+      throw new Error('You must be logged in to record attendance. Please sign in and try again.');
+    }
+    if (msg.includes('sid_and_token_required')) {
+      throw new Error('Attendance link is invalid or incomplete (missing session information).');
+    }
+    if (msg.includes('invalid_token')) {
+      throw new Error('This attendance link has expired or is invalid. Please scan a fresh QR code.');
+    }
+    if (msg.includes('session_not_found')) {
+      throw new Error('This attendance session no longer exists. Ask your instructor to start a new session.');
+    }
+    if (msg.includes('session_closed')) {
+      throw new Error('This attendance session is already closed.');
+    }
+    if (msg.includes('device_change_blocked')) {
+      throw new Error('Attendance blocked: you are trying to scan from a different device than before for this session.');
+    }
+    console.error('attendanceScan failed:', error);
+    throw new Error('Failed to record attendance. Please try again or contact support.');
+  }
 }
 
 export function simpleDeviceHash() {

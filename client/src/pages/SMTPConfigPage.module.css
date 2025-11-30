@@ -1,0 +1,155 @@
+/* SMTP Config Page */
+.page {
+  padding: 1.5rem 0;
+}
+
+.loadingWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.headerIcon {
+  color: var(--color-primary, #800020);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text, #212529);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-muted, #666);
+  font-size: 0.875rem;
+}
+
+/* Instructions */
+.instructions {
+  background: #e3f2fd;
+  padding: 1rem;
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: 2rem;
+  border-left: 4px solid #2196f3;
+}
+
+.instructions h3 {
+  margin: 0 0 0.5rem 0;
+  color: #1976d2;
+  font-size: 1rem;
+}
+
+.instructions ol {
+  margin: 0;
+  padding-left: 1.5rem;
+  line-height: 1.8;
+  color: var(--text-secondary, #495057);
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.passwordInput input {
+  font-family: 'Courier New', monospace;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border, #e0e0e0);
+}
+
+/* Success Banner */
+.successBanner {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #e8f5e9;
+  border-radius: var(--radius-md, 8px);
+  border-left: 4px solid #4caf50;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.successIcon {
+  font-size: 2rem;
+}
+
+.successBanner strong {
+  color: #2e7d32;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.successBanner p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .title {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .instructions {
+    background: #1e3a5f;
+    border-left-color: #64b5f6;
+  }
+  
+  .instructions h3 {
+    color: #64b5f6;
+  }
+  
+  .instructions ol {
+    color: var(--text-secondary, #d0d0d0);
+  }
+  
+  .successBanner {
+    background: #1b5e20;
+    border-left-color: #66bb6a;
+  }
+  
+  .successBanner strong {
+    color: #a5d6a7;
+  }
+  
+  .successBanner p {
+    color: #c8e6c9;
+  }
+}

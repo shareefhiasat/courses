@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { signIn, signUp, resetPassword } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { getAllowlist } from '../firebase/firestore';
+import { useLang } from '../contexts/LangContext';
 import './AuthForm.css';
 
 // Helper function to translate Firebase errors to user-friendly messages
@@ -63,6 +64,16 @@ const AuthForm = () => {
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  const { t, lang } = useLang?.() || {};
+
+  const tr = (key, fallbackEn, fallbackAr) => {
+    if (typeof t === 'function') {
+      const translated = t(key);
+      if (translated) return translated;
+    }
+    if (lang === 'ar' && fallbackAr) return fallbackAr;
+    return fallbackEn;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,20 +85,20 @@ const AuthForm = () => {
       if (mode === 'reset') {
         const result = await resetPassword(email);
         if (result.success) {
-          setMessage('Password reset email sent! Check your inbox.');
+          setMessage(tr('reset_email_sent', 'Password reset email sent! Check your inbox.', 'تم إرسال بريد إعادة التعيين! تحقق من صندوقك.'));
         } else {
           setError(getFirebaseErrorMessage(result.error));
         }
       } else if (mode === 'signup') {
         if (password !== confirmPassword) {
-          setError('Passwords do not match');
+          setError(tr('passwords_mismatch', 'Passwords do not match', 'كلمتا المرور غير متطابقتين'));
           setLoading(false);
           return;
         }
         
         // Validate password strength (minimum 6 characters)
         if (password.length < 6) {
-          setError('Password must be at least 6 characters');
+          setError(tr('password_min_length', 'Password must be at least 6 characters', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'));
           setLoading(false);
           return;
         }
@@ -103,15 +114,15 @@ const AuthForm = () => {
               .includes(userEmail);
             
             if (!isAllowed) {
-              setError('Registration is restricted. Your email is not on the allowlist. Please contact an administrator.');
+              setError(tr('registration_restricted', 'Registration is restricted. Your email is not on the allowlist. Please contact an administrator.', 'التسجيل مقيد. بريدك غير موجود في قائمة السماح. تواصل مع الإدارة.'));
               return;
             }
           } else {
-            setError('Unable to verify registration permissions. Please try again later.');
+            setError(tr('allowlist_error', 'Unable to verify registration permissions. Please try again later.', 'تعذر التحقق من صلاحيات التسجيل. حاول لاحقاً.'));
             return;
           }
         } catch (allowlistError) {
-          setError('Unable to verify registration permissions. Please try again later.');
+          setError(tr('allowlist_error', 'Unable to verify registration permissions. Please try again later.', 'تعذر التحقق من صلاحيات التسجيل. حاول لاحقاً.'));
           return;
         }
         
@@ -141,7 +152,7 @@ const AuthForm = () => {
               // Don't block signup if email fails
             }
           } catch {}
-          setMessage('✅ Account created successfully! Redirecting...');
+          setMessage(tr('signup_success', '✅ Account created successfully! Redirecting...', '✅ تم إنشاء الحساب بنجاح! سيتم التحويل...'));
           setTimeout(() => navigate('/'), 1500);
         } else {
           setError(getFirebaseErrorMessage(result.error));
@@ -155,7 +166,7 @@ const AuthForm = () => {
             expiryDate.setDate(expiryDate.getDate() + 30);
             document.cookie = `rememberMe=true; expires=${expiryDate.toUTCString()}; path=/`;
           }
-          setMessage('✅ Login successful! Redirecting...');
+          setMessage(tr('login_success', '✅ Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
           setTimeout(() => navigate('/'), 1000);
         } else {
           setError(getFirebaseErrorMessage(result.error));

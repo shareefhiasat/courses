@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Globe2, Code2, Monitor, Sigma, BookOpen, BarChart3, Megaphone, Link2, MessageSquareText, RotateCcw, FileText, AlertCircle } from 'lucide-react';
+import { Globe2, Code2, Monitor, Sigma, BookOpen, BarChart3, Megaphone, Link2, MessageSquareText, RotateCcw, FileText, AlertCircle, Leaf, TrendingUp, Flame, Award, HelpCircle, ClipboardList, Play, Info, StarOff, Hourglass, Repeat, CheckCircle } from 'lucide-react';
 import { getActivities, getAnnouncements, getCourses } from '../firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useLang } from '../contexts/LangContext';
 import { formatDateTime } from '../utils/date';
-import Loading from '../components/Loading';
+import { Container, Card, CardBody, Button, Badge, Spinner, ExpandablePanel, Loading } from '../components/ui';
 import AuthForm from '../components/AuthForm';
 import RankDisplay from '../components/RankDisplay';
 import RecentMedals from '../components/RecentMedals';
+import styles from './HomePage.module.css';
 import './HomePage.css';
 
 const HomePage = () => {
@@ -19,6 +20,7 @@ const HomePage = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(''); // Default to "ALL" (empty string)
   const [announcementFilter, setAnnouncementFilter] = useState('all');
+  const [announcementSearch, setAnnouncementSearch] = useState('');
   const [activityTypeFilter, setActivityTypeFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const { lang, t } = useLang();
@@ -124,8 +126,23 @@ const HomePage = () => {
         });
       }
     }
-    return filtered.slice(0, 5);
-  }, [announcements, announcementFilter]);
+    // Search by title/content
+    const q = (announcementSearch || '').trim().toLowerCase();
+    if (q) {
+      filtered = filtered.filter(a => {
+        const title = (a.title || '').toLowerCase();
+        const content = ((lang === 'ar' ? (a.content_ar || a.content) : (a.content || a.content_ar)) || '').toLowerCase();
+        return title.includes(q) || content.includes(q);
+      });
+    }
+    // Sort desc by createdAt
+    filtered = [...filtered].sort((a,b)=>{
+      const ad = a.createdAt?.seconds ? a.createdAt.seconds*1000 : new Date(a.createdAt || 0).getTime();
+      const bd = b.createdAt?.seconds ? b.createdAt.seconds*1000 : new Date(b.createdAt || 0).getTime();
+      return bd - ad;
+    });
+    return filtered.slice(0, 20);
+  }, [announcements, announcementFilter, announcementSearch, lang]);
 
   // Filter activities by type and difficulty
   const filterActivities = (courseActivities) => {
@@ -165,7 +182,7 @@ const HomePage = () => {
 
   // Early returns AFTER all hooks
   if (authLoading) {
-    return <Loading message="Initializing..." />;
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
   }
 
   if (!user) {
@@ -188,7 +205,7 @@ const HomePage = () => {
       {!isAdmin && (
         <>
           {/* Military Rank Display for Students */}
-          <div style={{ marginBottom: '1rem' }}>
+          <div className={styles.rankSection}>
             <RankDisplay 
               totalPoints={userData?.totalPoints || 0}
               studentName={userData?.displayName || user?.displayName || user?.email}
@@ -197,7 +214,7 @@ const HomePage = () => {
           </div>
           
           {/* Dashboard Grid */}
-          <div className="dashboard-grid" style={{ marginTop: '2rem' }}>
+          <div className={styles.dashboardGrid}>
             {/* Recent Medals */}
             <RecentMedals studentId={user?.uid} limit={5} />
             
@@ -217,7 +234,7 @@ const HomePage = () => {
       )}
       
       {!isAdmin && (
-      <div className="hero-section" style={{ marginTop: '2rem' }}>
+      <div className={styles.heroSection}>
         <div className="hero-content">
           <h1 className="hero-title">Learning Hub</h1>
           <p className="hero-subtitle">
@@ -228,133 +245,104 @@ const HomePage = () => {
       )}
 
       {announcements.length > 0 && (
-        <div className="announcements-section" style={{
-          background: 'white',
-          margin: '1.25rem auto',
-          maxWidth: '1200px',
-          borderRadius: '12px',
-          padding: '1rem',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:'0.5rem' }}>
-            <h3 style={{ margin: 0, color: '#800020', display:'flex', alignItems:'center', gap:8, fontSize: '1rem' }}><Megaphone size={16} /> {lang==='ar' ? 'الإعلانات' : 'Announcements'}</h3>
-            <button
-              onClick={()=>setAnnCollapsed(v=>!v)}
-              style={{ padding:'4px 10px', border:'1px solid transparent', borderRadius:8, background:'#800020', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:'0.85rem' }}
-            >{annCollapsed ? (lang==='en'?'Show':'عرض') : (lang==='en'?'Hide':'إخفاء')}</button>
-          </div>
-          {!annCollapsed && (
-          <>
-          {/* Date Filters */}
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        <ExpandablePanel
+          title={lang==='ar' ? 'الإعلانات' : 'Announcements'}
+          icon={<Megaphone size={16} />}
+          isOpen={!annCollapsed}
+          onToggle={(open)=>setAnnCollapsed(!open)}
+          duration={200}
+          accentColor="#800020"
+          className={styles.announcementsCard}
+        >
+            {/* Search */}
+            <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+              <input
+                type="search"
+                placeholder={lang==='ar'?'ابحث في الإعلانات':'Search announcements'}
+                value={announcementSearch}
+                onChange={(e)=>setAnnouncementSearch(e.target.value)}
+                style={{ flex:1, padding:'10px 12px', border:'1px solid #e5e7eb', borderRadius:10 }}
+              />
+            </div>
+
+            {/* Date Filters */}
+            <div className={styles.filterButtons}>
             {[
               { key: 'all', label: 'All' },
               { key: '3days', label: lang === 'en' ? 'Last 3 Days' : 'آخر 3 أيام' },
               { key: '7days', label: lang === 'en' ? 'Last 7 Days' : 'آخر 7 أيام' },
               { key: '30days', label: lang === 'en' ? 'Last 30 Days' : 'آخر 30 يوم' }
-            ].map(filter => (
-              <button
-                key={filter.key}
-                onClick={() => setAnnouncementFilter(filter.key)}
-                style={{
-                  padding: '6px 12px',
-                  border: 'none',
-                  borderRadius: '6px',
-                  background: announcementFilter === filter.key ? '#800020' : '#f0f0f0',
-                  color: announcementFilter === filter.key ? 'white' : '#333',
-                  cursor: 'pointer',
-                  fontWeight: announcementFilter === filter.key ? '600' : '500',
-                  transition: 'all 0.2s',
-                  fontSize: '0.85rem'
-                }}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
+              ].map(filter => (
+                <Button
+                  key={filter.key}
+                  onClick={() => setAnnouncementFilter(filter.key)}
+                  variant={announcementFilter === filter.key ? 'primary' : 'outline'}
+                  size="sm"
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
 
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <div className={styles.announcementsList}>
             {filteredAnnouncements.map(announcement => {
               const announcementId = announcement.docId || announcement.id;
               const content = lang === 'ar' && announcement.content_ar ? announcement.content_ar : announcement.content;
               const isLong = content && content.length > 200;
               const expanded = expandedAnnouncements[announcementId] || false;
+              const dtMs = announcement.createdAt?.seconds ? announcement.createdAt.seconds*1000 : new Date(announcement.createdAt || 0).getTime();
+              const dateObj = new Date(dtMs || Date.now());
               
               return (
-                <div key={announcementId} style={{
-                  padding: '0.75rem',
-                  border: '1px solid #eee',
-                  borderRadius: '8px',
-                  background: '#f8f9fa'
-                }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#333' }}>{announcement.title}</h3>
-                  <p style={{ 
-                    margin: '0 0 0.5rem 0', 
-                    color: '#666', 
-                    whiteSpace: 'pre-line', 
-                    direction: lang === 'ar' ? 'rtl' : 'ltr',
-                    maxHeight: isLong && !expanded ? '100px' : 'none',
-                    overflow: 'hidden',
-                    position: 'relative'
-                  }}>
-                    {content}
-                  </p>
-                  {announcement.link && (
-                    <div style={{ margin: '0.75rem 0' }}>
-                      <a 
-                        href={announcement.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{
-                          color: '#800020',
-                          textDecoration: 'none',
-                          fontSize: '0.9rem',
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Link2 size={14} /> Link: {announcement.link}</span>
-                      </a>
+                <Card key={announcementId} className={styles.announcementItem}>
+                  <CardBody>
+                    <div style={{ display:'grid', gridTemplateColumns:'100px 1fr', gap:12, alignItems:'stretch' }}>
+                      {/* Left date rail */}
+                      <div style={{ textAlign:'right', color:'#6b7280', fontSize:13, paddingRight:12, borderRight:'1px solid #e5e7eb', height:'100%' }}>
+                        <div>{dateObj.toLocaleDateString(undefined, { month:'short', day:'2-digit' })}</div>
+                        <div style={{ fontSize:12, opacity:.9 }}>{dateObj.getFullYear()}</div>
+                      </div>
+                      <div>
+                        <h3 className={styles.announcementTitle} style={{ marginTop:0 }}>{announcement.title}</h3>
+                        <p className={`${styles.announcementContent} ${isLong && !expanded ? styles.collapsed : ''}`} style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
+                          {content}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  {isLong && (
-                    <button
-                      onClick={() => setExpandedAnnouncements(prev => ({
-                        ...prev,
-                        [announcementId]: !prev[announcementId]
-                      }))}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#800020',
-                        cursor: 'pointer',
-                        padding: '4px 0',
-                        fontSize: '0.9rem',
-                        fontWeight: 600
-                      }}
-                    >
-                      {expanded ? (lang === 'en' ? '▲ Show Less' : '▲ عرض أقل') : (lang === 'en' ? '▼ Read More' : '▼ اقرأ المزيد')}
-                    </button>
-                  )}
-                  <div>
-                    <small style={{ color: '#999' }}>
-                      {announcement.createdAt ? formatDateTime(announcement.createdAt) : ''}
-                    </small>
-                  </div>
-                </div>
+                    {announcement.link && (
+                      <div className={styles.announcementLink}>
+                        <a href={announcement.link} target="_blank" rel="noopener noreferrer">
+                          <Link2 size={14} /> Link: {announcement.link}
+                        </a>
+                      </div>
+                    )}
+                    {isLong && (
+                      <Button
+                        onClick={() => setExpandedAnnouncements(prev => ({
+                          ...prev,
+                          [announcementId]: !prev[announcementId]
+                        }))}
+                        variant="ghost"
+                        size="sm"
+                        className={styles.expandButton}
+                      >
+                        {expanded ? (lang === 'en' ? '▲ Show Less' : '▲ عرض أقل') : (lang === 'en' ? '▼ Read More' : '▼ اقرأ المزيد')}
+                      </Button>
+                    )}
+                    <div className={styles.announcementDate}>
+                      <small>{announcement.createdAt ? formatDateTime(announcement.createdAt) : ''}</small>
+                    </div>
+                  </CardBody>
+                </Card>
               );
             })}
-            {filteredAnnouncements.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
-                {lang === 'en' ? 'No announcements in this period' : 'لا توجد إعلانات في هذه الفترة'}
-              </div>
-            )}
-          </div>
-          </>)
-          }
-        </div>
+              {filteredAnnouncements.length === 0 && (
+                <div className={styles.emptyAnnouncements}>
+                  {lang === 'en' ? 'No announcements in this period' : 'لا توجد إعلانات في هذه الفترة'}
+                </div>
+              )}
+            </div>
+        </ExpandablePanel>
       )}
 
       <div className="content-section">
@@ -398,166 +386,160 @@ const HomePage = () => {
         </div>
 
         <div className="tab-content">
-          {(activeTab !== null) && (
+          {activeTab !== null && (
             <div className="course-content">
-              <h2 className="course-title">{activeTab === '' ? (lang === 'en' ? 'All Activities' : 'جميع الأنشطة') : courseName(activeTab)}</h2>
-              
-              {/* Activity Filters */}
-              <div style={{ marginBottom: '1.5rem', background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <strong style={{ marginRight: '0.5rem', color: '#800020', display:'inline-flex', alignItems:'center' }}><MessageSquareText size={14} /></strong>
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                    {['all', 'training', 'homework', 'quiz'].map(type => (
-                      <button
-                        key={type}
-                        onClick={() => setActivityTypeFilter(type)}
-                        style={{
-                          padding: '6px 12px',
-                          border: 'none',
-                          borderRadius: '6px',
-                          background: activityTypeFilter === type ? '#800020' : 'white',
-                          color: activityTypeFilter === type ? 'white' : '#333',
-                          cursor: 'pointer',
-                          fontSize: '0.85rem',
-                          fontWeight: activityTypeFilter === type ? '600' : '500',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {type === 'all' ? (lang==='ar' ? 'الكل' : 'All') : typeLabels[lang][type]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <strong style={{ marginRight: '0.5rem', color: '#800020', display:'inline-flex', alignItems:'center' }}><BarChart3 size={14} /></strong>
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                    {['all', 'beginner', 'intermediate', 'advanced'].map(level => (
-                      <button
-                        key={level}
-                        onClick={() => setDifficultyFilter(level)}
-                        style={{
-                          padding: '6px 12px',
-                          border: 'none',
-                          borderRadius: '6px',
-                          background: difficultyFilter === level ? '#800020' : 'white',
-                          color: difficultyFilter === level ? 'white' : '#333',
-                          cursor: 'pointer',
-                          fontSize: '0.85rem',
-                          fontWeight: difficultyFilter === level ? '600' : '500',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {level === 'all' ? (lang==='ar' ? 'الكل' : 'All') : difficultyLabels[lang][level]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Type chips (same style as ActivitiesPage) */}
+              <div style={{ display:'inline-flex', gap:8, flexWrap:'wrap', margin:'0.75rem 0', marginRight:12 }}>
+                <button
+                  onClick={() => setActivityTypeFilter('all')}
+                  style={{ padding:'6px 12px', borderRadius:999, border:'1px solid rgba(0,0,0,0.06)', background:activityTypeFilter==='all'?'#800020':'#fff', color:activityTypeFilter==='all'?'#fff':'#800020', fontWeight:700 }}
+                >
+                  {typeLabels[lang === 'ar' ? 'ar' : 'en'].all}
+                </button>
+                <button
+                  onClick={() => setActivityTypeFilter('training')}
+                  style={{ padding:'6px 12px', borderRadius:999, border:'1px solid #bbdefb', background:activityTypeFilter==='training'?'#1976d2':'#e3f2fd', color:activityTypeFilter==='training'?'#fff':'#1976d2', display:'inline-flex', alignItems:'center', gap:6 }}
+                >
+                  <BookOpen size={14}/> {typeLabels[lang === 'ar' ? 'ar' : 'en'].training}
+                </button>
+                <button
+                  onClick={() => setActivityTypeFilter('homework')}
+                  style={{ padding:'6px 12px', borderRadius:999, border:'1px solid #ffe0b2', background:activityTypeFilter==='homework'?'#f57c00':'#fff3e0', color:activityTypeFilter==='homework'?'#fff':'#b45309', display:'inline-flex', alignItems:'center', gap:6 }}
+                >
+                  <ClipboardList size={14}/> {typeLabels[lang === 'ar' ? 'ar' : 'en'].homework}
+                </button>
+                <button
+                  onClick={() => setActivityTypeFilter('quiz')}
+                  style={{ padding:'6px 12px', borderRadius:999, border:'1px solid #e0e7ff', background:activityTypeFilter==='quiz'?'#6366f1':'#eef2ff', color:activityTypeFilter==='quiz'?'#fff':'#4f46e5', display:'inline-flex', alignItems:'center', gap:6 }}
+                >
+                  <HelpCircle size={14}/> {typeLabels[lang === 'ar' ? 'ar' : 'en'].quiz}
+                </button>
               </div>
+
+              {/* Difficulty chips */}
+              <div style={{ display:'inline-flex', gap:8, flexWrap:'wrap', marginBottom:'1rem' }}>
+                {[ 
+                  {id:'all', key:'all', bg:'#f3f4f6', fg:'#374151'},
+                  {id:'beginner', key:'beginner', bg:'#e8f5e9', fg:'#2e7d32'},
+                  {id:'intermediate', key:'intermediate', bg:'#fff7ed', fg:'#b45309'},
+                  {id:'advanced', key:'advanced', bg:'#fee2e2', fg:'#b91c1c'}
+                ].map(lv => {
+                  const active = difficultyFilter === lv.id;
+                  const labels = difficultyLabels[lang === 'ar' ? 'ar' : 'en'];
+                  return (
+                    <button
+                      key={lv.id}
+                      onClick={() => setDifficultyFilter(lv.id)}
+                      style={{
+                        padding:'6px 12px',
+                        borderRadius:999,
+                        border:`1px solid ${active ? lv.fg : lv.fg + '55'}`,
+                        background: active ? lv.fg : lv.bg,
+                        color: active ? '#fff' : lv.fg,
+                        display:'inline-flex',
+                        alignItems:'center',
+                        gap:6,
+                        fontWeight:600
+                      }}
+                    >
+                      <Award size={14}/> {labels[lv.key]}
+                    </button>
+                  );
+                })}
+              </div>
+
               
-              <div className="activities-grid">
-                {loading ? (
-                  <Loading message="Loading activities..." />
-                ) : (
-                  filterActivities(currentCourseActivities).map(activity => (
-                    <div key={activity.docId || activity.id} className="activity-card">
-                      <h3>{activity.title_en}</h3>
-                      <p>{activity.description_en}</p>
-                      <div className="activity-meta">
-                        <span className={`difficulty ${activity.difficulty}`}>
-                          {activity.difficulty}
-                        </span>
-                        <span className="activity-type">{activity.type}</span>
-                      </div>
-                      
-                      {/* Activity Status Badges */}
-                      <div className="activity-badges" style={{ 
-                        display: 'flex', 
-                        gap: '6px', 
-                        margin: '0.75rem 0', 
-                        flexWrap: 'wrap' 
-                      }}>
-                        {activity.allowRetake && (
-                          <span 
+              {loading ? (
+                <Loading variant="overlay" message={t('loading') || 'Loading...'} />
+              ) : (
+                <div className="activities-grid">
+                  {filterActivities(currentCourseActivities).map(activity => {
+                    const key = activity.docId || activity.id;
+                    const title = lang === 'ar'
+                      ? (activity.title_ar || activity.title_en || key)
+                      : (activity.title_en || activity.title_ar || key);
+                    const description = lang === 'ar'
+                      ? (activity.description_ar || activity.description_en || '—')
+                      : (activity.description_en || activity.description_ar || '—');
+
+                    return (
+                      <div key={key} className="activity-card">
+                        <h3 style={{ margin: 0, display:'flex', alignItems:'center', justifyContent:'space-between', gap:'0.5rem' }}>
+                          <span style={{ display:'flex', alignItems:'center', gap:'0.45rem', flexWrap:'wrap' }}>
+                            <span>{title}</span>
+                            {activity.allowRetake && (
+                              <span
+                                title={lang==='ar' ? 'يسمح بالإعادة' : 'Retake allowed'}
+                                style={{ background:'#17a2b8', color:'#fff', padding:4, borderRadius:6, display:'inline-flex', alignItems:'center', justifyContent:'center', width:24, height:24 }}
+                              >
+                                <RotateCcw size={14} />
+                              </span>
+                            )}
+                          </span>
+
+                          {/* Compact details icon in header */}
+                          <button
+                            type="button"
+                            onClick={() => { /* navigate to details view when implemented */ }}
+                            aria-label={lang==='ar' ? 'التفاصيل' : 'Details'}
                             style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 999,
+                              border: '1px solid #e5e7eb',
+                              background: '#f9fafb',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 8px',
-                              background: '#10b981',
-                              color: 'white',
-                              borderRadius: '12px',
-                              fontSize: '0.75rem',
-                              fontWeight: '600'
+                              justifyContent: 'center',
+                              cursor: 'pointer'
                             }}
-                            title="Retakes allowed"
                           >
-                            <RotateCcw size={12} />
-                            {lang === 'ar' ? 'إعادة' : 'Retake'}
+                            <Info size={14} />
+                          </button>
+                        </h3>
+
+                        <p style={{ color:'#666', fontSize:'0.84rem', margin:0 }}>
+                          {description}
+                        </p>
+
+                        <div style={{ display:'flex', gap:'0.35rem', flexWrap:'wrap' }}>
+                          <span style={{ background:'#e8f5e9', color:'#2e7d32', padding:'0.25rem 0.75rem', borderRadius:12, fontSize:'0.85rem', display:'inline-flex', alignItems:'center', gap:6 }}>
+                            <Award size={14}/> {difficultyLabels[lang === 'ar' ? 'ar' : 'en'][activity.difficulty || 'beginner']}
                           </span>
-                        )}
-                        
-                        {activity.requiresSubmission && (
-                          <span 
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 8px',
-                              background: '#3b82f6',
-                              color: 'white',
-                              borderRadius: '12px',
-                              fontSize: '0.75rem',
-                              fontWeight: '600'
-                            }}
-                            title="Requires submission"
-                          >
-                            <FileText size={12} />
-                            {lang === 'ar' ? 'تسليم' : 'Submit'}
+                          <span style={{ background:'#e3f2fd', color:'#1976d2', padding:'0.25rem 0.75rem', borderRadius:12, fontSize:'0.85rem', display:'inline-flex', alignItems:'center', gap:6 }}>
+                            {activity.type==='quiz' ? <HelpCircle size={14}/> : activity.type==='homework' ? <ClipboardList size={14}/> : <BookOpen size={14}/>} {typeLabels[lang === 'ar' ? 'ar' : 'en'][activity.type || 'training']}
                           </span>
-                        )}
-                        
-                        <span 
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '4px 8px',
-                            background: activity.optional === true ? '#f59e0b' : '#ef4444',
-                            color: 'white',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600'
-                          }}
-                          title={activity.optional === true ? 'Optional activity' : 'Required activity'}
-                        >
-                          {activity.optional === true ? (
-                            <>
-                              <AlertCircle size={12} />
-                              {lang === 'ar' ? 'اختياري' : 'Optional'}
-                            </>
-                          ) : (
-                            <>
-                              <AlertCircle size={12} />
-                              {lang === 'ar' ? 'إلزامي' : 'Required'}
-                            </>
+                          {activity.optional && (
+                            <span style={{ background:'#fff3e0', color:'#f57c00', padding:'0.25rem 0.75rem', borderRadius:12, fontSize:'0.85rem' }}>{lang==='ar' ? 'اختياري' : 'Optional'}</span>
                           )}
-                        </span>
+                        </div>
+
+                        {/* Icon-only buttons: Start + Details */}
+                        <div style={{ marginTop:'auto', display:'flex', gap:'0.5rem' }}>
+                          <Button
+                            variant="success"
+                            size="small"
+                            style={{ width: 40, height: 40, padding: 0, borderRadius: 999 }}
+                            onClick={() => window.open(activity.url, '_blank')}
+                            aria-label={lang==='ar' ? 'ابدأ' : 'Start'}
+                          >
+                            <Play size={18} />
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="small"
+                            style={{ width: 40, height: 40, padding: 0, borderRadius: 999, background: '#f5f5f5', color: '#333', border: '1px solid #e5e5e5' }}
+                            onClick={() => { /* Navigate to details */ }}
+                            aria-label={lang==='ar' ? 'التفاصيل' : 'Details'}
+                          >
+                            <Info size={18} />
+                          </Button>
+                        </div>
                       </div>
-                      
-                      {activity.url && (
-                        <a 
-                          href={activity.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="activity-link"
-                        >
-                          Start Activity
-                        </a>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

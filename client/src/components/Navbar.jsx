@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { signOutUser } from '../firebase/auth';
 import NotificationBell from './NotificationBell';
@@ -7,13 +7,15 @@ import SideDrawer from './SideDrawer';
 import { useLang } from '../contexts/LangContext';
 import { getUsers, updateUser } from '../firebase/firestore';
 import './Navbar.css';
-import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown } from 'lucide-react';
+import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle } from 'lucide-react';
+import { LanguageSwitcher } from './ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { getTimeFormatPreference, setTimeFormatPreference } from '../utils/date';
 
 const Navbar = () => {
   const { user, isAdmin, isSuperAdmin, impersonating } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -143,16 +145,16 @@ const Navbar = () => {
               onClick={() => setDrawerOpen(true)}
               className="navbar-hamburger"
               style={{
-                background: 'rgba(255,255,255,0.12)',
-                border: '1px solid rgba(255,255,255,0.6)',
-                color: '#ffffff',
-                fontSize: '1.25rem',
+                background: 'transparent',
+                border: '2px solid #D4AF37',
+                color: '#D4AF37',
+                fontSize: '1.1rem',
                 cursor: 'pointer',
-                padding: '0.4rem 0.6rem',
+                padding: '0.35rem 0.6rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 8,
+                borderRadius: 10,
                 marginRight: lang === 'ar' ? 0 : '0.75rem',
                 marginLeft: lang === 'ar' ? '0.75rem' : 0
               }}
@@ -195,16 +197,61 @@ const Navbar = () => {
           
           {/* Right side: Notifications + Profile */}
           {user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <NotificationBell />
-              <button
-                onClick={toggleTheme}
-                title={theme==='light'?'Dark':'Light'}
-                style={{ background:'transparent', border:'1px solid rgba(255,255,255,0.4)', color:'white', borderRadius:8, width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}
-              >
-                {theme==='light'?<Moon size={16} />:<Sun size={16} />}
-              </button>
-              
+            <div className="nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              {/* Icon cluster: bell, help, language, theme - gold squares */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}>
+                <NotificationBell />
+
+                <button
+                  className="nav-icon-btn nav-help"
+                  onClick={() => {
+                    try {
+                      window.dispatchEvent(new CustomEvent('app:help', { detail: { route: location?.pathname || '/' } }));
+                    } catch {}
+                  }}
+                  title={t('help') || 'Help'}
+                  aria-label={t('help') || 'Help'}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    border: '2px solid #D4AF37',
+                    background: 'transparent',
+                    color: '#D4AF37',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <HelpCircle size={16} />
+                </button>
+
+                <LanguageSwitcher compact />
+                <button
+                  onClick={toggleTheme}
+                  title={theme==='light'?'Dark':'Light'}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    border: '2px solid #D4AF37',
+                    background: 'transparent',
+                    color: '#D4AF37',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {theme==='light'?<Moon size={15} />:<Sun size={15} />}
+                </button>
+              </div>
+
               {/* Profile Avatar with Super Admin badge and dropdown */}
               <div ref={menuRef} style={{ position: 'relative' }}>
                 <div 
@@ -279,6 +326,12 @@ const Navbar = () => {
               <NavLink to="/activities" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
                 {t('view_activities') || 'Activities'}
               </NavLink>
+              <NavLink to="/student-dashboard" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
+                {t('student_dashboard') || 'Student Dashboard'}
+              </NavLink>
+              <NavLink to="/course-progress/sample-course" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
+                {t('course_progress') || 'Course Progress'}
+              </NavLink>
               <NavLink to="/chat" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('chat')}</NavLink>
               <NavLink to="/leaderboard" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('leaderboard')}</NavLink>
               <NavLink to="/resources" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('resources')}</NavLink>
@@ -290,6 +343,9 @@ const Navbar = () => {
                   </NavLink>
                   <NavLink to="/student-progress" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
                     {t('progress')}
+                  </NavLink>
+                  <NavLink to="/quiz-management" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
+                    {t('quiz_management') || 'Quiz Management'}
                   </NavLink>
                 </>
               )}
@@ -370,12 +426,17 @@ const Navbar = () => {
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('notifications_language') || 'Notifications Language'}</label>
-                <select value={notifLang} onChange={(e)=>setNotifLang(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }}>
-                  <option value="auto">{t('auto_follow_ui') || 'Auto (Follow UI Language)'}</option>
-                  <option value="en">English</option>
-                  <option value="ar">العربية</option>
-                </select>
+                <Select
+                  label={t('notifications_language') || 'Notifications Language'}
+                  value={notifLang}
+                  onChange={(e)=>setNotifLang(e.target.value)}
+                  options={[
+                    { value: 'auto', label: t('auto_follow_ui') || 'Auto (Follow UI Language)' },
+                    { value: 'en', label: 'English' },
+                    { value: 'ar', label: 'العربية' }
+                  ]}
+                  fullWidth
+                />
               </div>
             </div>
             {/* Density control (4 levels) */}

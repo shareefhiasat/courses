@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate, useLocation } from 'react-router-dom';
@@ -25,8 +25,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { db, storage } from '../firebase/config';
 import { getClasses, getEnrollments, getUsers } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
-import Loading from '../components/Loading';
-import { useToast } from '../components/ToastProvider';
+import { Loading, useToast } from '../components/ui';
 import './ChatPage.css';
 import { formatDateTime, formatDate } from '../utils/date';
 import { MessageSquareText } from 'lucide-react';
@@ -101,6 +100,12 @@ const ChatPage = () => {
   const messagesEndRef = useRef(null);
   const [myMessageColor, setMyMessageColor] = useState(null);
   const hasHighlightedRef = useRef(null);
+
+  const safeClasses = useMemo(() => (Array.isArray(classes) ? classes : []), [classes]);
+  const safeDirectRooms = useMemo(() => (Array.isArray(directRooms) ? directRooms : []), [directRooms]);
+  const safeClassMembers = useMemo(() => (Array.isArray(classMembers) ? classMembers : []), [classMembers]);
+  const safeAllUsers = useMemo(() => (Array.isArray(allUsers) ? allUsers : []), [allUsers]);
+  const safeMessages = useMemo(() => (Array.isArray(messages) ? messages : []), [messages]);
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -294,9 +299,9 @@ const ChatPage = () => {
     try {
       const key = selectedClass === 'global' ? 'global' : selectedClass;
       let ids = [];
-      if (selectedClass === 'global') ids = (allUsers || []).map(u => u.docId).filter(Boolean);
-      else if (selectedClass?.startsWith('dm:')) ids = (directRooms.find(r => `dm:${r.id}` === selectedClass)?.participants || []);
-      else ids = (classMembers || []).map(m => m.docId).filter(Boolean);
+      if (selectedClass === 'global') ids = safeAllUsers.map(u => u.docId).filter(Boolean);
+      else if (selectedClass?.startsWith('dm:')) ids = (safeDirectRooms.find(r => `dm:${r.id}` === selectedClass)?.participants || []);
+      else ids = safeClassMembers.map(m => m.docId).filter(Boolean);
       const recips = ids.filter(id => id && id !== user?.uid);
       const reads = {};
       recips.forEach(uid => {
@@ -316,7 +321,7 @@ const ChatPage = () => {
       });
     } catch {}
     return () => { try { unsubs.forEach(u => u()); } catch {} };
-  }, [selectedClass, allUsers, classMembers, directRooms, user?.uid]);
+  }, [selectedClass, safeAllUsers, safeClassMembers, safeDirectRooms, user?.uid]);
 
   // Read query param dest to jump directly from notifications
   useEffect(() => {
@@ -326,7 +331,7 @@ const ChatPage = () => {
       setSelectedClass(dest);
       loadClassMembers(dest);
       // If classes not loaded yet, try to set a temp name
-      const cls = classes.find(c => c.docId === dest);
+      const cls = safeClasses.find(c => c.docId === dest);
       if (cls) setSelectedClassName(cls.name);
       else {
         (async () => {
@@ -376,7 +381,7 @@ const ChatPage = () => {
     });
 
     // Classes
-    const classUnsubs = (Array.isArray(classes) ? classes : []).map(cls => {
+    const classUnsubs = (safeClasses).map(cls => {
       const classKey = cls.docId;
       const readAt = chatReads[classKey] || chatReads[`class:${classKey}`];
       const cq = query(msgsRef, where('classId', '==', classKey));
@@ -393,7 +398,7 @@ const ChatPage = () => {
     });
 
     // DMs
-    const dmUnsubs = (Array.isArray(directRooms) ? directRooms : []).map(room => {
+    const dmUnsubs = (safeDirectRooms).map(room => {
       const dmKey = `dm:${room.id}`;
       const readAt = chatReads[dmKey];
       const dq = query(msgsRef, where('type', '==', 'dm'), where('roomId', '==', room.id));
@@ -414,7 +419,7 @@ const ChatPage = () => {
       classUnsubs.forEach(u => u());
       dmUnsubs.forEach(u => u());
     };
-  }, [user, chatReads, classes, directRooms]);
+  }, [user, chatReads, safeClasses, safeDirectRooms]);
 
   // Mark as read when tab gains focus
   useEffect(() => {
@@ -495,7 +500,7 @@ const ChatPage = () => {
   const deleteDMConversation = async () => {
     if (!isAdmin) return;
     try {
-      const room = directRooms.find(r => `dm:${r.id}` === selectedClass);
+      const room = safeDirectRooms.find(r => `dm:${r.id}` === selectedClass);
       if (!room) return setShowDeleteDMConfirm(false);
       const roomId = room.id;
       // fetch all messages for this room
@@ -952,15 +957,15 @@ const ChatPage = () => {
     let members = allUsers.filter(u => Array.isArray(u.enrolledClasses) && u.enrolledClasses.includes(classId) && u.docId !== user.uid);
     // Ensure instructor/owner is included at top
     try {
-      const cls = classes.find(c => c.docId === classId);
-      const instructor = cls?.instructorId ? allUsers.find(u => u.docId === cls.instructorId)
-                        : allUsers.find(u => u.email === cls?.ownerEmail);
+      const cls = safeClasses.find(c => c.docId === classId);
+      const instructor = cls?.instructorId ? safeAllUsers.find(u => u.docId === cls.instructorId)
+                        : safeAllUsers.find(u => u.email === cls?.ownerEmail);
       if (instructor && instructor.docId !== user.uid && !members.some(m => m.docId === instructor.docId)) {
         members = [instructor, ...members];
       }
     } catch {}
     // Optionally include platform admins so students can DM an admin (but not self)
-    const admins = allUsers.filter(u => u.role === 'admin' && u.docId !== user.uid);
+    const admins = safeAllUsers.filter(u => u.role === 'admin' && u.docId !== user.uid);
     admins.forEach(a => { if (!members.some(m => m.docId === a.docId)) members.push(a); });
     setClassMembers(members);
     setAllUsers(allUsers);
@@ -1859,14 +1864,14 @@ const ChatPage = () => {
                       })}
                       {isOwnMessage && (() => {
                         const msgTime = msg.createdAt?.toDate?.() || new Date();
-                        const recipients = selectedClass === 'global'
-                          ? (allUsers || []).map(u => u.docId).filter(id => id && id !== user.uid)
+                        const recips = selectedClass === 'global'
+                          ? safeAllUsers.map(u => u.docId).filter(id => id && id !== user.uid)
                           : (selectedClass?.startsWith('dm:')
-                              ? (directRooms.find(r => r.id === selectedClass.slice(3))?.participants || []).filter(id => id && id !== user.uid)
-                              : (classMembers || []).map(m => m.docId).filter(id => id && id !== user.uid)
+                              ? (safeDirectRooms.find(r => r.id === selectedClass.slice(3))?.participants || []).filter(id => id && id !== user.uid)
+                              : safeClassMembers.map(m => m.docId).filter(id => id && id !== user.uid)
                             );
-                        const readCount = recipients.filter(id => memberReads[id] && memberReads[id] >= msgTime).length;
-                        const allRead = recipients.length > 0 && readCount === recipients.length;
+                        const readCount = recips.filter(id => memberReads[id] && memberReads[id] >= msgTime).length;
+                        const allRead = recips.length > 0 && readCount === recips.length;
                         const anyRead = readCount > 0;
                         const style = { 
                           marginLeft: 8, 
@@ -2044,10 +2049,10 @@ const ChatPage = () => {
                               list: (() => {
                                 const msgTime = msg.createdAt?.toDate?.() || new Date();
                                 const recipients = selectedClass === 'global'
-                                  ? (allUsers || []).map(u => u.docId).filter(id => id && id !== user.uid)
+                                  ? safeAllUsers.map(u => u.docId).filter(id => id && id !== user.uid)
                                   : (selectedClass?.startsWith('dm:')
-                                      ? (directRooms.find(r => r.id === selectedClass.slice(3))?.participants || []).filter(id => id && id !== user.uid)
-                                      : (classMembers || []).map(m => m.docId).filter(id => id && id !== user.uid)
+                                      ? (safeDirectRooms.find(r => r.id === selectedClass.slice(3))?.participants || []).filter(id => id && id !== user.uid)
+                                      : safeClassMembers.map(m => m.docId).filter(id => id && id !== user.uid)
                                     );
                                 return recipients.map(uid => ({
                                   uid,

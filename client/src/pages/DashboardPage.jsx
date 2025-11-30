@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -9,7 +9,7 @@ import {
   getEnrollments, addEnrollment, deleteEnrollment,
   getSubmissions, gradeSubmission, deleteSubmission,
   getResources, addResource, updateResource, deleteResource,
-  addEmailLog, getEmailLogs,
+  addEmailLog, getEmailLogs, addActivityLog,
   sendEmail,
   getSMTPConfig,
   updateSMTPConfig,
@@ -17,10 +17,9 @@ import {
 } from '../firebase/firestore';
 import { getLoginLogs, getCourses, setCourse, deleteCourse, getAllowlist, updateAllowlist } from '../firebase/firestore';
 import { notifyAllUsers, notifyUsersByClass } from '../firebase/notifications';
-import Loading from '../components/Loading';
+import { Loading, Modal, Select, Input, Button, DatePicker, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect } from '../components/ui';
 import RibbonTabs from '../components/RibbonTabs';
 import DragGrid from '../components/DragGrid';
-import SmartGrid from '../components/SmartGrid';
 import EmailManager from '../components/EmailManager';
 import EmailComposer from '../components/EmailComposer';
 import SmartEmailComposer from '../components/SmartEmailComposer';
@@ -28,20 +27,25 @@ import UserDeletionModal from '../components/UserDeletionModal';
 import EmailSettings from '../components/EmailSettings';
 import EmailTemplates from '../components/EmailTemplates';
 import EmailLogs from '../components/EmailLogs';
-import Modal from '../components/Modal';
-import { useToast } from '../components/ToastProvider';
 import './DashboardPage.css';
 import { FileSignature, Mail, BarChart3 } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { useLang } from '../contexts/LangContext';
-import DateTimePicker from '../components/DateTimePicker';
+// DateTimePicker and ToggleSwitch replaced with UI library DatePicker and checkbox
+// import DateTimePicker from '../components/DateTimePicker';
+// import ToggleSwitch from '../components/ToggleSwitch';
 import ToggleSwitch from '../components/ToggleSwitch';
 
 const DashboardPage = () => {
-  const { user, isAdmin, loading: authLoading, impersonateUser } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();
   const { lang, setLang, t } = useLang();
   const navigate = useNavigate();
-  const toast = useToast();
+  const uiToast = useToast();
+  const toast = {
+    showSuccess: uiToast.success,
+    showError: uiToast.error,
+    showInfo: uiToast.info,
+  };
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('dashboardActiveTab') || 'activities';
     return saved === 'courses' ? 'categories' : saved;
@@ -53,8 +57,7 @@ const DashboardPage = () => {
       users: 'users', allowlist: 'users',
       classes: 'academic', enrollments: 'academic', submissions: 'academic',
       smtp: 'communication', newsletter: 'communication', emailTemplates: 'communication', emailLogs: 'communication',
-      categories: 'settings', login: 'settings',
-      analytics: 'analytics'
+      categories: 'settings', login: 'settings'
     };
     return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
   });
@@ -62,8 +65,10 @@ const DashboardPage = () => {
   const [editingActivity, setEditingActivity] = useState(null);
   const [formErrors, setFormErrors] = useState({});
   const [announcementFilter, setAnnouncementFilter] = useState('all');
-  const [submissionFilter, setSubmissionFilter] = useState('all');
+  const [submissionStatusFilter, setSubmissionStatusFilter] = useState('all');
   const [activityFilter, setActivityFilter] = useState('all');
+  const [submissionStudentFilter, setSubmissionStudentFilter] = useState('all');
+  const [submissionScoreFilter, setSubmissionScoreFilter] = useState('all');
   const [emailComposerOpen, setEmailComposerOpen] = useState(false);
   const [userQuickFilter, setUserQuickFilter] = useState('all');
 
@@ -73,33 +78,40 @@ const DashboardPage = () => {
   };
 
   const ribbonCategories = [
-    { key: 'content', label: 'Content', items: [
-      { key: 'activities', label: t('activities') },
-      { key: 'announcements', label: t('announcements') },
-      { key: 'resources', label: t('resources') },
-    ]},
-    { key: 'users', label: 'Users', items: [
-      { key: 'users', label: t('users') },
-      { key: 'allowlist', label: t('allowlist') },
-    ]},
-    { key: 'academic', label: 'Academic', items: [
-      { key: 'classes', label: t('classes') },
-      { key: 'enrollments', label: t('enrollments') },
-      { key: 'submissions', label: t('submissions') },
-    ]},
-    { key: 'communication', label: 'Communication', items: [
-      { key: 'smtp', label: t('smtp') },
-      { key: 'newsletter', label: t('newsletter') },
-      { key: 'emailTemplates', label: 'Templates' },
-      { key: 'emailLogs', label: 'Logs' },
-    ]},
-    { key: 'analytics', label: 'Analytics', items: [
-      { key: 'analytics', label: 'Overview' },
-    ]},
-    { key: 'settings', label: 'Settings', items: [
-      { key: 'categories', label: t('categories') },
-      { key: 'login', label: 'Activity' },
-    ]},
+    {
+      key: 'content', label: 'Content', items: [
+        { key: 'activities', label: t('activities') },
+        { key: 'announcements', label: t('announcements') },
+        { key: 'resources', label: t('resources') },
+      ]
+    },
+    {
+      key: 'users', label: 'Users', items: [
+        { key: 'users', label: t('users') },
+        { key: 'allowlist', label: t('allowlist') },
+      ]
+    },
+    {
+      key: 'academic', label: 'Academic', items: [
+        { key: 'classes', label: t('classes') },
+        { key: 'enrollments', label: t('enrollments') },
+        // { key: 'submissions', label: t('submissions') }, // Disabled - not completed yet
+      ]
+    },
+    {
+      key: 'communication', label: 'Communication', items: [
+        { key: 'smtp', label: t('smtp') },
+        { key: 'newsletter', label: t('newsletter') },
+        { key: 'emailTemplates', label: 'Templates' },
+        { key: 'emailLogs', label: 'Logs' },
+      ]
+    },
+    {
+      key: 'settings', label: 'Settings', items: [
+        { key: 'categories', label: t('categories') },
+        { key: 'login', label: 'Activity' },
+      ]
+    },
   ];
 
   // Load email logs when newsletter tab is opened
@@ -110,19 +122,19 @@ const DashboardPage = () => {
     };
     if (activeTab === 'newsletter') loadLogs();
   }, [activeTab]);
-  
+
   // Validation functions
   const validateActivityForm = () => {
     const errors = {};
     if (!activityForm.id.trim()) errors.id = 'Activity ID is required';
     if (!activityForm.title_en.trim()) errors.title_en = 'English title is required';
     if (!activityForm.url.trim()) errors.url = 'URL is required';
-    
+
     // Check if ID already exists (for new activities)
     if (!editingActivity && activities.some(a => a.id === activityForm.id)) {
       errors.id = 'Activity ID already exists';
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -143,7 +155,7 @@ const DashboardPage = () => {
     });
     setFormErrors({});
   };
-  
+
   // Data states
   const [activities, setActivities] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -177,23 +189,23 @@ const DashboardPage = () => {
   // User deletion modal
   const [userToDelete, setUserToDelete] = useState(null);
   const [showUserDeletionModal, setShowUserDeletionModal] = useState(false);
-  
+
   // Derived: filtered activity logs
   const filteredLoginLogs = () => {
     const q = (loginSearch || '').trim().toLowerCase();
     let list = loginLogs.slice();
-    
+
     // Filter by activity type
     if (activityTypeFilter !== 'all') {
       list = list.filter(l => l.type === activityTypeFilter);
     }
-    
+
     if (q) {
       list = list.filter(l =>
-        (l.email||'').toLowerCase().includes(q) ||
-        (l.displayName||'').toLowerCase().includes(q) ||
-        (l.userAgent||'').toLowerCase().includes(q) ||
-        (l.type||'').toLowerCase().includes(q)
+        (l.email || '').toLowerCase().includes(q) ||
+        (l.displayName || '').toLowerCase().includes(q) ||
+        (l.userAgent || '').toLowerCase().includes(q) ||
+        (l.type || '').toLowerCase().includes(q)
       );
     }
     if (loginUserFilter !== 'all') {
@@ -222,15 +234,39 @@ const DashboardPage = () => {
     }
     return list;
   };
+
+  const filteredSubmissions = useMemo(() => {
+    return submissions.filter((s) => {
+      if (activityFilter !== 'all' && s.activityId !== activityFilter) return false;
+      if (submissionStudentFilter !== 'all' && s.userId !== submissionStudentFilter) return false;
+
+      if (submissionStatusFilter !== 'all') {
+        const status = s.status || 'submitted';
+        if (submissionStatusFilter === 'pending') {
+          if (!(status === 'pending' || status === 'submitted')) return false;
+        } else if (submissionStatusFilter === 'graded') {
+          if (status !== 'graded') return false;
+        } else if (submissionStatusFilter === 'late') {
+          if (status !== 'late') return false;
+        }
+      }
+
+      if (submissionScoreFilter === 'graded' && (s.score === null || s.score === undefined)) return false;
+      if (submissionScoreFilter === 'not_graded' && (s.score !== null && s.score !== undefined)) return false;
+
+      return true;
+    });
+  }, [submissions, activityFilter, submissionStudentFilter, submissionStatusFilter, submissionScoreFilter]);
+
   // Filter announcements by date
   const filteredAnnouncements = announcements.filter(announcement => {
     if (announcementFilter === 'all') return true;
-    
-    const createdAt = announcement.createdAt?.seconds ? 
-      new Date(announcement.createdAt.seconds * 1000) : 
+
+    const createdAt = announcement.createdAt?.seconds ?
+      new Date(announcement.createdAt.seconds * 1000) :
       new Date(announcement.createdAt);
     const now = new Date();
-    
+
     switch (announcementFilter) {
       case 'today':
         const isToday = createdAt.toDateString() === now.toDateString();
@@ -250,7 +286,7 @@ const DashboardPage = () => {
         return true;
     }
   });
-  
+
   // Form states
   const [activityForm, setActivityForm] = useState({
     id: '',
@@ -273,13 +309,16 @@ const DashboardPage = () => {
     quizId: '',
     requiresSubmission: false
   });
-  
+
   const [emailOptions, setEmailOptions] = useState({
     sendEmail: false,
     createAnnouncement: false,
     emailLang: 'both' // 'en' | 'ar' | 'both'
   });
-  
+  const [gradingModalOpen, setGradingModalOpen] = useState(false);
+  const [gradingSubmission, setGradingSubmission] = useState(null);
+  const [gradingScore, setGradingScore] = useState('');
+
   const [announcementForm, setAnnouncementForm] = useState({
     title: '',
     content: '',
@@ -288,7 +327,7 @@ const DashboardPage = () => {
   });
   const [announcementEmailOptions, setAnnouncementEmailOptions] = useState({ sendEmail: false, lang: 'both' });
   const [resourceEmailOptions, setResourceEmailOptions] = useState({ sendEmail: false, createAnnouncement: false });
-  
+
   const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '' });
   const [enrollmentForm, setEnrollmentForm] = useState({ userId: '', classId: '', role: 'student' });
   const [userForm, setUserForm] = useState({ email: '', displayName: '', role: 'student' });
@@ -297,7 +336,7 @@ const DashboardPage = () => {
   const [editingClass, setEditingClass] = useState(null);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [editingResource, setEditingResource] = useState(null);
-  
+
   const [resourceForm, setResourceForm] = useState({
     title: '',
     description: '',
@@ -309,15 +348,15 @@ const DashboardPage = () => {
   });
 
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
+    if (!authLoading && (!user || !(isAdmin || isSuperAdmin || isInstructor))) {
       navigate('/');
       return;
     }
-    
-    if (user && isAdmin) {
+
+    if (user && (isAdmin || isSuperAdmin || isInstructor)) {
       loadData();
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [user, isAdmin, isSuperAdmin, isInstructor, authLoading, navigate]);
 
   const loadData = async () => {
     setLoading(true);
@@ -342,7 +381,7 @@ const DashboardPage = () => {
           }
         })()
       ]);
-      
+
       if (activitiesRes.success) setActivities(activitiesRes.data);
       if (announcementsRes.success) setAnnouncements(announcementsRes.data);
       if (usersRes.success) setUsers(usersRes.data);
@@ -365,7 +404,7 @@ const DashboardPage = () => {
   const validateUserDeletion = async (user) => {
     const userEnrollments = enrollments.filter(e => e.userId === user.docId);
     const userSubmissions = submissions.filter(s => s.userId === user.docId);
-    
+
     if (userEnrollments.length > 0 || userSubmissions.length > 0) {
       return {
         canDelete: false,
@@ -373,7 +412,7 @@ const DashboardPage = () => {
         message: `Cannot delete user. This user has ${userEnrollments.length} enrollment(s) and ${userSubmissions.length} submission(s) that must be deleted first.`
       };
     }
-    
+
     return { canDelete: true };
   };
 
@@ -381,7 +420,7 @@ const DashboardPage = () => {
     const effectiveId = classItem.docId || classItem.id;
     const classEnrollments = enrollments.filter(e => e.classId === effectiveId);
     const relatedActivities = activities.filter(a => (a.classId || '') === effectiveId);
-    
+
     if (classEnrollments.length > 0 || relatedActivities.length > 0) {
       return {
         canDelete: false,
@@ -389,13 +428,13 @@ const DashboardPage = () => {
         message: `Cannot delete class. This class has ${classEnrollments.length} student(s) enrolled and ${relatedActivities.length} linked activity(ies) that must be removed first.`
       };
     }
-    
+
     return { canDelete: true };
   };
 
   const validateActivityDeletion = async (activity) => {
     const activitySubmissions = submissions.filter(s => s.activityId === activity.id);
-    
+
     if (activitySubmissions.length > 0) {
       return {
         canDelete: false,
@@ -403,18 +442,18 @@ const DashboardPage = () => {
         message: `Cannot delete activity. This activity has ${activitySubmissions.length} submission(s) that must be deleted first.`
       };
     }
-    
+
     return { canDelete: true };
   };
 
   const handleActivitySubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateActivityForm()) {
       toast?.showError('Please fix the form errors before submitting.');
       return;
     }
-    
+
     setLoading(true);
     try {
       // Localize fallbacks: if AR missing, default to EN; same for description
@@ -423,16 +462,16 @@ const DashboardPage = () => {
         title_ar: activityForm.title_ar?.trim() || activityForm.title_en?.trim() || activityForm.id,
         description_ar: activityForm.description_ar?.trim() || activityForm.description_en?.trim() || ''
       };
-      const result = editingActivity ? 
+      const result = editingActivity ?
         await updateActivity(editingActivity.docId, normalized) :
         await addActivity(normalized);
-      
+
       if (result.success) {
         // Handle email notifications if checked
         if (!editingActivity && emailOptions.sendEmail) {
           await sendActivityEmail(activityForm);
         }
-        
+
         // Handle announcement creation if checked
         if (!editingActivity && emailOptions.createAnnouncement) {
           await createActivityAnnouncement(activityForm);
@@ -459,13 +498,13 @@ const DashboardPage = () => {
             console.warn('Activity notification failed', e);
           }
         }
-        
+
         await loadData();
         handleCancelEdit();
-        
+
         // Reset email options
         setEmailOptions({ sendEmail: false, createAnnouncement: false });
-        
+
         toast?.showSuccess(editingActivity ? 'Activity updated successfully!' : 'Activity created successfully!');
       } else {
         toast?.showError('Error: ' + result.error);
@@ -477,37 +516,37 @@ const DashboardPage = () => {
       setLoading(false);
     }
   };
-  
+
   // Send activity email notification
   const sendActivityEmail = async (activity) => {
     try {
       // Get class enrollments
       const enrollmentsResult = await getEnrollments();
-      const classStudents = enrollmentsResult.data?.filter(e => 
+      const classStudents = enrollmentsResult.data?.filter(e =>
         e.classId === activity.classId
       ) || [];
-      
+
       if (classStudents.length === 0) {
         toast?.showInfo('No students found in this class');
         return;
       }
-      
+
       // Get student emails
       const studentEmails = classStudents.map(enrollment => {
         const user = users.find(u => u.docId === enrollment.userId);
         return user?.email;
       }).filter(Boolean);
-      
+
       if (studentEmails.length === 0) {
         toast?.showInfo('No student emails found');
         return;
       }
-      
+
       // Format email
-      const dueDate = activity.dueDate 
+      const dueDate = activity.dueDate
         ? formatDateTime(activity.dueDate)
         : 'No deadline';
-      
+
       const buildEn = () => `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #800020;">📚 New Activity Assigned</h2>
@@ -541,14 +580,14 @@ const DashboardPage = () => {
       if (emailOptions.emailLang === 'en') emailBody = buildEn();
       else if (emailOptions.emailLang === 'ar') emailBody = buildAr();
       else emailBody = [buildEn(), '<hr/>', buildAr()].join('');
-      
+
       // Send email via Firebase function
       const sendResult = await sendEmail({
         to: studentEmails,
         subject: `New Activity: ${activity.title_en || activity.title_ar || ''}`,
         html: emailBody
       });
-      
+
       if (sendResult.success) {
         toast?.showSuccess(`Email sent to ${studentEmails.length} students`);
       } else {
@@ -559,14 +598,14 @@ const DashboardPage = () => {
       toast?.showError('Error sending email notification');
     }
   };
-  
+
   // Create announcement from activity
   const createActivityAnnouncement = async (activity) => {
     try {
-      const dueDate = activity.dueDate 
+      const dueDate = activity.dueDate
         ? formatDateTime(activity.dueDate)
         : 'No deadline';
-      
+
       const announcement = {
         title: `New ${activity.type}: ${activity.title_en}`,
         content: `
@@ -584,9 +623,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         priority: activity.optional ? 'normal' : 'high',
         classId: activity.classId || null
       };
-      
+
       const result = await addAnnouncement(announcement);
-      
+
       if (result.success) {
         toast?.showSuccess('Announcement created successfully');
       } else {
@@ -602,10 +641,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
     e.preventDefault();
     setLoading(true);
     try {
-      const result = editingAnnouncement ? 
+      const result = editingAnnouncement ?
         await updateAnnouncement(editingAnnouncement.docId, announcementForm) :
         await addAnnouncement(announcementForm);
-        
+
       if (result.success) {
         // Log announcement creation
         if (!editingAnnouncement) {
@@ -642,9 +681,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             const buildBody = () => {
               const en = announcementForm.content?.trim();
               const ar = announcementForm.content_ar?.trim();
-              if (announcementEmailOptions.lang === 'en') return en || '';
-              if (announcementEmailOptions.lang === 'ar') return `<div dir="rtl" style="text-align:right">${ar || ''}</div>`;
-              // both
+              // Always send bilingual when available: EN first, then AR if provided
               return [`<div>${en || ''}</div>`, ar ? `<hr/><div dir="rtl" style="text-align:right">${ar}</div>` : ''].join('');
             };
             const recipients = users.map(u => u.email).filter(Boolean);
@@ -662,13 +699,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             }
           }
         }
-        
+
         await loadData();
         setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global' });
         setAnnouncementEmailOptions({ sendEmail: false, lang: 'both' });
         setEditingAnnouncement(null);
-        toast?.showSuccess(editingAnnouncement ? 
-          'Announcement updated successfully!' : 
+        toast?.showSuccess(editingAnnouncement ?
+          'Announcement updated successfully!' :
           'Announcement created and notifications sent!'
         );
       } else {
@@ -698,7 +735,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
   };
 
   if (authLoading) {
-    return <Loading fullscreen message="Checking permissions..." />;
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
   }
 
   if (!user || !isAdmin) {
@@ -712,8 +749,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
     );
   }
 
-  if (loading) {
-    return <Loading fullscreen message="Loading dashboard..." />;
+  // Show initial full-screen loading only on first load
+  if (authLoading) {
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
   }
 
   return (
@@ -729,264 +767,278 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         />
 
         <div className="tab-content">
+          {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} />}
+          
           {activeTab === 'activities' && (
             <div className="activities-tab">
               {editingActivity && (
-                <div className="edit-mode-indicator" style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div className="edit-mode-indicator" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <FileSignature size={16} /> Editing Activity: {editingActivity.id} - {editingActivity.title_en}
                 </div>
               )}
 
-          {activeTab === 'analytics' && (
-            <div className="analytics-tab" style={{ padding: '0.5rem' }}>
-              <DragGrid
-                storageKey="dashboard_analytics_layout"
-                widgets={[
-                  { id: 'w_quizzes', title: 'Quizzes', render: () => (<div>{quizzes.length} total quizzes</div>) },
-                  { id: 'w_students', title: 'Users', render: () => (<div>{users.length} users</div>) },
-                  { id: 'w_classes', title: 'Classes', render: () => (<div>{classes.length} classes</div>) },
-                  { id: 'w_submissions', title: 'Submissions', render: () => {
-                      const graded = submissions.filter(s=>s.status==='graded').length;
-                      const rate = submissions.length ? Math.round((graded/submissions.length)*100) : 0;
-                      return (
-                        <div>
-                          <div style={{ marginBottom: 8 }}>{submissions.length} submissions</div>
-                          <div style={{ fontSize:12, color:'#666', marginBottom:6 }}>Graded rate: {rate}%</div>
-                          <div style={{ height:8, background:'#eee', borderRadius:6, overflow:'hidden' }}>
-                            <div style={{ width: `${rate}%`, height: '100%', background:'#10b981' }} />
-                          </div>
-                        </div>
-                      );
-                  } },
-                  { id: 'w_ann', title: 'Announcements', render: () => {
-                      const last7 = (()=>{ const now=Date.now(); const week=7*24*60*60*1000; return announcements.filter(a=>{ const ts=a.createdAt?.seconds? a.createdAt.seconds*1000 : new Date(a.createdAt).getTime(); return (now - ts) <= week; }).length; })();
-                      return (<div>{announcements.length} total • {last7} last 7 days</div>);
-                  } },
-                  { id: 'w_activities', title: 'Activities by type', render: () => {
-                      const byType = (types=> types.map(t=> ({ t, c: activities.filter(a=>a.type===t).length })))(['training','homework','quiz','assignment']);
-                      const max = Math.max(1, ...byType.map(x=>x.c));
-                      return (
-                        <div style={{ display:'grid', gap:6 }}>
-                          {byType.map(x=> (
-                            <div key={x.t} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                              <div style={{ width:90, fontSize:12, color:'#555', textTransform:'capitalize' }}>{x.t}</div>
-                              <div style={{ flex:1, height:8, background:'#f1f5f9', borderRadius:6, overflow:'hidden' }}>
-                                <div style={{ width: `${Math.round((x.c/max)*100)}%`, height:'100%', background:'#6366f1' }} />
+              {activeTab === 'analytics' && (
+                <div className="analytics-tab" style={{ padding: '0.5rem' }}>
+                  <DragGrid
+                    storageKey="dashboard_analytics_layout"
+                    widgets={[
+                      { id: 'w_quizzes', title: 'Quizzes', render: () => (<div>{quizzes.length} total quizzes</div>) },
+                      { id: 'w_students', title: 'Users', render: () => (<div>{users.length} users</div>) },
+                      { id: 'w_classes', title: 'Classes', render: () => (<div>{classes.length} classes</div>) },
+                      {
+                        id: 'w_submissions', title: 'Submissions', render: () => {
+                          const graded = submissions.filter(s => s.status === 'graded').length;
+                          const rate = submissions.length ? Math.round((graded / submissions.length) * 100) : 0;
+                          return (
+                            <div>
+                              <div style={{ marginBottom: 8 }}>{submissions.length} submissions</div>
+                              <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Graded rate: {rate}%</div>
+                              <div style={{ height: 8, background: '#eee', borderRadius: 6, overflow: 'hidden' }}>
+                                <div style={{ width: `${rate}%`, height: '100%', background: '#10b981' }} />
                               </div>
-                              <div style={{ width:36, textAlign:'right', fontSize:12 }}>{x.c}</div>
                             </div>
-                          ))}
-                        </div>
-                      );
-                  } },
-                  { id: 'w_classes_terms', title: 'Classes by term', render: () => {
-                      const termMap = new Map();
-                      classes.forEach(c=>{ const k=c.term||'—'; termMap.set(k, (termMap.get(k)||0)+1); });
-                      const rows = Array.from(termMap.entries());
-                      const max = Math.max(1, ...rows.map(r=>r[1]));
-                      return (
-                        <div style={{ display:'grid', gap:6 }}>
-                          {rows.map(([term,count])=> (
-                            <div key={term} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                              <div style={{ width:90, fontSize:12, color:'#555' }}>{String(term)}</div>
-                              <div style={{ flex:1, height:8, background:'#f1f5f9', borderRadius:6, overflow:'hidden' }}>
-                                <div style={{ width: `${Math.round((count/max)*100)}%`, height:'100%', background:'#f59e0b' }} />
-                              </div>
-                              <div style={{ width:36, textAlign:'right', fontSize:12 }}>{count}</div>
+                          );
+                        }
+                      },
+                      {
+                        id: 'w_ann', title: 'Announcements', render: () => {
+                          const last7 = (() => { const now = Date.now(); const week = 7 * 24 * 60 * 60 * 1000; return announcements.filter(a => { const ts = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime(); return (now - ts) <= week; }).length; })();
+                          return (<div>{announcements.length} total • {last7} last 7 days</div>);
+                        }
+                      },
+                      {
+                        id: 'w_activities', title: 'Activities by type', render: () => {
+                          const byType = (types => types.map(t => ({ t, c: activities.filter(a => a.type === t).length })))(['training', 'homework', 'quiz']);
+                          const max = Math.max(1, ...byType.map(x => x.c));
+                          return (
+                            <div style={{ display: 'grid', gap: 6 }}>
+                              {byType.map(x => (
+                                <div key={x.t} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <div style={{ width: 90, fontSize: 12, color: '#555', textTransform: 'capitalize' }}>{x.t}</div>
+                                  <div style={{ flex: 1, height: 8, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
+                                    <div style={{ width: `${Math.round((x.c / max) * 100)}%`, height: '100%', background: '#6366f1' }} />
+                                  </div>
+                                  <div style={{ width: 36, textAlign: 'right', fontSize: 12 }}>{x.c}</div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      );
-                  } },
-                ]}
-              />
-            </div>
-          )}
+                          );
+                        }
+                      },
+                      {
+                        id: 'w_classes_terms', title: 'Classes by term', render: () => {
+                          const termMap = new Map();
+                          classes.forEach(c => { const k = c.term || '—'; termMap.set(k, (termMap.get(k) || 0) + 1); });
+                          const rows = Array.from(termMap.entries());
+                          const max = Math.max(1, ...rows.map(r => r[1]));
+                          return (
+                            <div style={{ display: 'grid', gap: 6 }}>
+                              {rows.map(([term, count]) => (
+                                <div key={term} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <div style={{ width: 90, fontSize: 12, color: '#555' }}>{String(term)}</div>
+                                  <div style={{ flex: 1, height: 8, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
+                                    <div style={{ width: `${Math.round((count / max) * 100)}%`, height: '100%', background: '#f59e0b' }} />
+                                  </div>
+                                  <div style={{ width: 36, textAlign: 'right', fontSize: 12 }}>{count}</div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+                      },
+                    ]}
+                  />
+                </div>
+              )}
 
               <form onSubmit={handleActivitySubmit} className="activity-form">
                 <div className="form-row">
                   <div>
-                    <input
+                    <Input
                       type="text"
                       placeholder={t('activity_id') || 'Activity ID'}
                       value={activityForm.id}
-                      onChange={(e) => setActivityForm({...activityForm, id: e.target.value})}
+                      onChange={(e) => setActivityForm({ ...activityForm, id: e.target.value })}
                       disabled={editingActivity} // Can't change ID when editing
                       required
-                      style={{ borderColor: formErrors.id ? '#dc3545' : '#ddd' }}
+                      error={formErrors.id}
                     />
-                    {formErrors.id && <div className="error-text">{formErrors.id}</div>}
                   </div>
-                  <select
+                  <Select
+                    searchable
+                    placeholder={t('general_no_class') || 'Class (Optional)'}
                     value={activityForm.classId || ''}
                     onChange={(e) => setActivityForm({ ...activityForm, classId: e.target.value })}
-                  >
-                    <option value="">{t('general_no_class')}</option>
-                    {classes.map(cls => (
-                      <option key={cls.docId} value={cls.docId}>
-                        {(lang==='ar' ? (cls.name_ar || cls.name) : cls.name)}{cls.code?` (${cls.code})`:''}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    options={[
+                      { value: '', label: t('general_no_class') || 'General (No Class)' },
+                      ...classes.map(cls => ({
+                        value: cls.docId,
+                        label: `${(lang === 'ar' ? (cls.name_ar || cls.name) : cls.name)}${cls.code ? ` (${cls.code})` : ''}`
+                      }))
+                    ]}
+                  />
+                  <Select
+                    searchable
+                    placeholder={t('course') || 'Course'}
                     value={activityForm.course}
-                    onChange={(e) => setActivityForm({...activityForm, course: e.target.value})}
-                  >
-                    {(courses && courses.length > 0 ? courses : [
+                    onChange={(e) => setActivityForm({ ...activityForm, course: e.target.value })}
+                    options={(courses && courses.length > 0 ? courses : [
                       { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
                       { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
                       { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
                       { docId: 'general', name_en: 'General', name_ar: 'عام' },
-                    ]).map(c => (
-                      <option key={c.docId} value={c.docId}>{lang==='ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)}</option>
-                    ))}
-                  </select>
-                  <select
+                    ]).map(c => ({
+                      value: c.docId,
+                      label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)
+                    }))}
+                  />
+                  <Select
+                    searchable
+                    placeholder={t('type') || 'Activity Type'}
                     value={activityForm.type}
-                    onChange={(e) => setActivityForm({...activityForm, type: e.target.value})}
-                  >
-                    <option value="quiz">🧩 {t('quiz') || 'Quiz'}</option>
-                    <option value="homework">📝 {t('homework') || 'Homework'}</option>
-                    <option value="training">🏋️ {t('training') || 'Training'}</option>
-                    <option value="assignment">📤 {t('assignment') || 'Assignment'}</option>
-                  </select>
-                  <select
+                    onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })}
+                    options={[
+                      { value: 'all', label: t('all_types') || 'All Types' },
+                      { value: 'quiz', label: t('quiz') || 'Quiz' },
+                      { value: 'homework', label: t('homework') || 'Homework' },
+                      { value: 'training', label: t('training') || 'Training' }
+                    ]}
+                  />
+                  <Select
+                    searchable
+                    placeholder={t('difficulty') || 'Difficulty'}
                     value={activityForm.difficulty}
-                    onChange={(e) => setActivityForm({...activityForm, difficulty: e.target.value})}
-                  >
-                    <option value="beginner">{t('beginner')}</option>
-                    <option value="intermediate">{t('intermediate')}</option>
-                    <option value="advanced">{t('advanced')}</option>
-                  </select>
+                    onChange={(e) => setActivityForm({ ...activityForm, difficulty: e.target.value })}
+                    options={[
+                      { value: 'beginner', label: t('beginner') || 'Beginner' },
+                      { value: 'intermediate', label: t('intermediate') || 'Intermediate' },
+                      { value: 'advanced', label: t('advanced') || 'Advanced' }
+                    ]}
+                  />
                 </div>
-                
+
                 <div className="form-row">
                   <div>
-                    <input
+                    <Input
                       type="text"
                       placeholder={t('title_english') || t('title_en') || 'Title (English)'}
                       value={activityForm.title_en}
-                      onChange={(e) => setActivityForm({...activityForm, title_en: e.target.value})}
+                      onChange={(e) => setActivityForm({ ...activityForm, title_en: e.target.value })}
                       required
-                      style={{ borderColor: formErrors.title_en ? '#dc3545' : '#ddd' }}
+                      error={formErrors.title_en}
                     />
-                    {formErrors.title_en && <div className="error-text">{formErrors.title_en}</div>}
                   </div>
-                  <input
+                  <Input
                     type="text"
                     placeholder={t('title_arabic') || t('title_ar') || 'Title (Arabic)'}
                     value={activityForm.title_ar}
-                    onChange={(e) => setActivityForm({...activityForm, title_ar: e.target.value})}
+                    onChange={(e) => setActivityForm({ ...activityForm, title_ar: e.target.value })}
                   />
                 </div>
-                
+
                 <div className="form-row">
-                  <textarea
+                  <Textarea
                     placeholder={t('description_english') || t('description_en') || 'Description (English)'}
                     value={activityForm.description_en}
-                    onChange={(e) => setActivityForm({...activityForm, description_en: e.target.value})}
-                    rows="3"
+                    onChange={(e) => setActivityForm({ ...activityForm, description_en: e.target.value })}
+                    rows={3}
+                    fullWidth
                   />
-                  <textarea
+                  <Textarea
                     placeholder={t('description_arabic') || t('description_ar') || 'Description (Arabic)'}
                     value={activityForm.description_ar}
-                    onChange={(e) => setActivityForm({...activityForm, description_ar: e.target.value})}
-                    rows="3"
+                    onChange={(e) => setActivityForm({ ...activityForm, description_ar: e.target.value })}
+                    rows={3}
+                    fullWidth
                   />
                 </div>
-                
+
                 <div className="form-row">
                   <div>
-                    <input
-                      type="url"
+                    <UrlInput
                       placeholder={t('activity_url_label') || 'Activity URL'}
                       value={activityForm.url}
-                      onChange={(e) => setActivityForm({...activityForm, url: e.target.value})}
+                      onChange={(e) => setActivityForm({ ...activityForm, url: e.target.value })}
                       required
-                      style={{ borderColor: formErrors.url ? '#dc3545' : '#ddd' }}
+                      error={formErrors.url}
+                      onOpen={(href) => console.debug('open activity url', href)}
+                      onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
+                      onClear={() => setActivityForm({ ...activityForm, url: '' })}
+                      fullWidth
                     />
-                    {formErrors.url && <div className="error-text">{formErrors.url}</div>}
                   </div>
-                  <DateTimePicker
+                  <DatePicker
+                    type="datetime"
                     value={activityForm.dueDate}
-                    onChange={(iso) => setActivityForm({...activityForm, dueDate: iso})}
+                    onChange={(iso) => setActivityForm({ ...activityForm, dueDate: iso })}
                     placeholder={t('pick_due_date') || 'Pick due date & time'}
                   />
-                  <input
-                    type="url"
+                  <UrlInput
                     placeholder={t('image_url') || 'Image URL'}
                     value={activityForm.image}
-                    onChange={(e) => setActivityForm({...activityForm, image: e.target.value})}
+                    onChange={(e) => setActivityForm({ ...activityForm, image: e.target.value })}
+                    onOpen={(href) => console.debug('open image url', href)}
+                    onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
+                    onClear={() => setActivityForm({ ...activityForm, image: '' })}
+                    fullWidth
                   />
-                  <input
-                    type="number"
+                  <NumberInput
                     placeholder={t('max_score') || 'Max Score'}
                     value={activityForm.maxScore}
-                    onChange={(e) => setActivityForm({...activityForm, maxScore: Math.max(1, parseInt(e.target.value||'0'))})}
+                    onChange={(e) => setActivityForm({ ...activityForm, maxScore: Math.max(1, parseInt(e.target.value || '0')) })}
+                    min={1}
+                    fullWidth
                   />
                 </div>
-                
+
                 {/* Quiz Selector - Only show for quiz type */}
                 {activityForm.type === 'quiz' && (
                   <div className="form-row">
-                    <select
+                    <Select
+                      searchable
+                      placeholder={t('select_quiz') || 'Select Quiz (Optional)'}
                       value={activityForm.quizId || ''}
-                      onChange={(e) => setActivityForm({...activityForm, quizId: e.target.value})}
+                      onChange={(e) => setActivityForm({ ...activityForm, quizId: e.target.value })}
+                      options={[
+                        { value: '', label: t('select_quiz') || 'Select Quiz (Optional)' },
+                        ...quizzes.map(quiz => ({
+                          value: quiz.id,
+                          label: `${quiz.title} (${quiz.questions?.length || 0} questions)`
+                        }))
+                      ]}
                       style={{ flex: 1 }}
-                    >
-                      <option value="">🎮 {t('select_quiz') || 'Select Quiz (Optional)'}</option>
-                      {quizzes.map(quiz => (
-                        <option key={quiz.id} value={quiz.id}>
-                          {quiz.title} ({quiz.questions?.length || 0} questions)
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 )}
 
                 <div className="form-row">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={activityForm.show}
-                      onChange={(e) => setActivityForm({...activityForm, show: e.target.checked})}
-                    />
-                    {t('show_to_students') || 'Show to students'}
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={activityForm.allowRetake}
-                      onChange={(e) => setActivityForm({...activityForm, allowRetake: e.target.checked})}
-                    />
-                    {t('allow_retakes') || 'Allow retakes'}
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={activityForm.featured}
-                      onChange={(e) => setActivityForm({ ...activityForm, featured: e.target.checked })}
-                    />
-                    {t('featured') || 'Featured'}
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={activityForm.optional}
-                      onChange={(e) => setActivityForm({ ...activityForm, optional: e.target.checked })}
-                    />
-                    {t('optional') || 'Optional (if off: Required)'}
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={activityForm.requiresSubmission}
-                      onChange={(e) => setActivityForm({ ...activityForm, requiresSubmission: e.target.checked })}
-                    />
-                    {t('requires_submission') || '📤 Requires Submission'}
-                  </label>
+                  <ToggleSwitch
+                    label={t('show_to_students') || 'Show to students'}
+                    checked={activityForm.show}
+                    onChange={(checked) => setActivityForm({ ...activityForm, show: checked })}
+                  />
+                  <ToggleSwitch
+                    label={t('allow_retakes') || 'Allow retakes'}
+                    checked={activityForm.allowRetake}
+                    onChange={(checked) => setActivityForm({ ...activityForm, allowRetake: checked })}
+                  />
+                  <ToggleSwitch
+                    label={t('featured') || 'Featured'}
+                    checked={activityForm.featured}
+                    onChange={(checked) => setActivityForm({ ...activityForm, featured: checked })}
+                  />
+                  <ToggleSwitch
+                    label={t('optional') || 'Optional (if off: Required)'}
+                    checked={activityForm.optional}
+                    onChange={(checked) => setActivityForm({ ...activityForm, optional: checked })}
+                  />
+                  <ToggleSwitch
+                    label={t('requires_submission') || 'Requires Submission'}
+                    checked={activityForm.requiresSubmission}
+                    onChange={(checked) => setActivityForm({ ...activityForm, requiresSubmission: checked })}
+                  />
                 </div>
-                
+
                 {/* Email Notification Options */}
                 <div style={{
                   display: 'grid',
@@ -997,508 +1049,396 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   borderRadius: '8px',
                   border: '2px solid #800020'
                 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={emailOptions.sendEmail}
-                      onChange={(e) => setEmailOptions({...emailOptions, sendEmail: e.target.checked})}
-                    />
-                    <span>📧 {t('send_email_to_students') || 'Send email to students'}</span>
-                  </label>
-                  
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={emailOptions.createAnnouncement}
-                      onChange={(e) => setEmailOptions({...emailOptions, createAnnouncement: e.target.checked})}
-                    />
-                    <span>📢 {t('create_announcement') || 'Create announcement'}</span>
-                  </label>
+                  <ToggleSwitch
+                    label={t('send_email_to_students') || 'Send email to students'}
+                    checked={emailOptions.sendEmail}
+                    onChange={(checked) => setEmailOptions({ ...emailOptions, sendEmail: checked })}
+                  />
+
+                  <ToggleSwitch
+                    label={t('create_announcement') || 'Create announcement'}
+                    checked={emailOptions.createAnnouncement}
+                    onChange={(checked) => setEmailOptions({ ...emailOptions, createAnnouncement: checked })}
+                  />
                   {emailOptions.sendEmail && (
                     <div>
                       <small>{t('language') || 'Language'}</small>
-                      <select value={emailOptions.emailLang} onChange={(e)=> setEmailOptions({ ...emailOptions, emailLang: e.target.value })}>
-                        <option value="en">{lang === 'ar' ? 'الإنجليزية' : 'English'}</option>
-                        <option value="ar">{lang === 'ar' ? 'العربية' : 'Arabic'}</option>
-                        <option value="both">{lang === 'ar' ? 'ثنائي اللغة (ع/إ)' : 'Bilingual (EN + AR)'}</option>
-                      </select>
+                      <Select
+                        searchable
+                        placeholder={t('language') || 'Language'}
+                        value={emailOptions.emailLang}
+                        onChange={(e) => setEmailOptions({ ...emailOptions, emailLang: e.target.value })}
+                        options={[
+                          { value: 'en', label: lang === 'ar' ? 'الإنجليزية' : 'English' },
+                          { value: 'ar', label: lang === 'ar' ? 'العربية' : 'Arabic' },
+                          { value: 'both', label: lang === 'ar' ? 'ثنائي اللغة' : 'Bilingual' }
+                        ]}
+                      />
                     </div>
                   )}
                 </div>
-                
+
                 <div className="form-actions">
-                  <button type="submit" className="submit-btn" disabled={loading}>
-                    {loading 
-                      ? (editingActivity ? (t('updating') || 'Updating...') : (t('creating') || 'Creating...')) 
-                      : (editingActivity ? (t('update_activity') || 'Update Activity') : (t('create_activity') || 'Create Activity'))}
-                  </button>
-                  {editingActivity && (
-                    <button type="button" onClick={handleCancelEdit} className="cancel-btn">
-                      {t('cancel') || 'Cancel'}
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Button type="submit" variant="primary" loading={loading}>
+                      {(editingActivity ? (t('update') || 'Update') : (t('save') || 'Save'))}
+                    </Button>
+                    {editingActivity && (
+                      <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                        {t('cancel_edit') || 'Cancel Edit'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </form>
-              
-              <SmartGrid
-                data={activities}
-                title={t('existing_activities')}
-                quickFilters={{
-                  active: activityFilter,
-                  onFilterChange: setActivityFilter,
-                  buttons: [
-                    { 
-                      key: 'all', 
-                      label: t('all'),
-                      count: activities.length,
-                      filter: () => true 
-                    },
-                    { 
-                      key: 'python', 
-                      label: `🐍 ${t('python')}`,
-                      count: activities.filter(a => a.course === 'python').length,
-                      filter: (a) => a.course === 'python'
-                    },
-                    { 
-                      key: 'computing', 
-                      label: `💻 ${t('computing')}`,
-                      count: activities.filter(a => a.course === 'computing').length,
-                      filter: (a) => a.course === 'computing'
-                    },
-                    { 
-                      key: 'training', 
-                      label: `🏋️ ${t('training')}`,
-                      count: activities.filter(a => a.type === 'training').length,
-                      filter: (a) => a.type === 'training'
-                    },
-                    { 
-                      key: 'homework', 
-                      label: `📝 ${t('homework')}`,
-                      count: activities.filter(a => a.type === 'homework').length,
-                      filter: (a) => a.type === 'homework'
-                    },
-                    { 
-                      key: 'quiz', 
-                      label: `🧩 ${t('quiz')}`,
-                      count: activities.filter(a => a.type === 'quiz').length,
-                      filter: (a) => a.type === 'quiz'
-                    },
-                    { 
-                      key: 'assignment', 
-                      label: `📤 ${t('assignment') || 'Assignment'}`,
-                      count: activities.filter(a => a.type === 'assignment').length,
-                      filter: (a) => a.type === 'assignment'
-                    },
-                    { 
-                      key: 'beginner', 
-                      label: `🌟 ${t('beginner')}`,
-                      count: activities.filter(a => a.difficulty === 'beginner').length,
-                      filter: (a) => a.difficulty === 'beginner'
-                    }
-                  ]
-                }}
+              <AdvancedDataGrid
+                rows={activities}
+                getRowId={(row) => row.docId || row.id}
                 columns={[
-                  { header: t('id_col'), accessor: 'id' },
-                  { header: t('title_en_col'), accessor: 'title_en' },
-                  { header: t('course_col'), accessor: 'course' },
-                  { header: t('type_col'), accessor: 'type' },
-                  { header: t('difficulty_col'), accessor: 'difficulty' },
-                  { 
-                    header: t('assignment_due_date_col'), 
-                    accessor: 'dueDate',
-                    render: (value) => {
-                      if (!value) return t('no_deadline_set');
-                      return formatDateTime(value);
-                    }
+                  { field: 'id', headerName: t('id_col'), width: 90 },
+                  { field: 'title_en', headerName: t('title_en_col'), flex: 1, minWidth: 160 },
+                  { field: 'course', headerName: t('course_col'), width: 140 },
+                  { field: 'type', headerName: t('type_col'), width: 140 },
+                  { field: 'difficulty', headerName: t('difficulty_col'), width: 140 },
+                  {
+                    field: 'dueDate', headerName: t('assignment_due_date_col'), flex: 1, minWidth: 200,
+                    valueGetter: (params) => params.value,
+                    renderCell: (params) => (params.value ? formatDateTime(params.value) : (t('no_deadline_set') || 'No deadline set'))
                   },
-                  { 
-                    header: t('visible') || 'Visible', 
-                    accessor: 'show',
-                    render: (value) => value ? `✅ ${t('yes')||'Yes'}` : `❌ ${t('no')||'No'}`
+                  {
+                    field: 'show', headerName: t('visible') || 'Visible', width: 120,
+                    renderCell: (params) => (params.value ? `✅ ${t('yes') || 'Yes'}` : `❌ ${t('no') || 'No'}`)
+                  },
+                  {
+                    field: 'actions', headerName: t('actions') || 'Actions', width: 180, sortable: false, filterable: false,
+                    renderCell: (params) => (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Button size="sm" variant="secondary" onClick={() => handleEditActivity(params.row)}>
+                          {t('edit') || 'Edit'}
+                        </Button>
+                        <Button size="sm" variant="danger" onClick={async () => {
+                          const activity = params.row;
+                          setActivities(prev => prev.filter(a => (a.docId || a.id) !== (activity.docId || activity.id)));
+                          try {
+                            const result = await deleteActivity(activity.docId);
+                            if (result.success) {
+                              toast?.showSuccess('Activity deleted successfully!');
+                            } else {
+                              setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
+                              toast?.showError('Error deleting activity: ' + result.error);
+                            }
+                          } catch (error) {
+                            setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
+                            toast?.showError('Error deleting activity: ' + error.message);
+                          }
+                        }}>
+                          {t('delete') || 'Delete'}
+                        </Button>
+                      </div>
+                    )
                   }
                 ]}
-                onEdit={handleEditActivity}
-                onDelete={async (activity) => {
-                  // Optimistic update - remove from UI immediately
-                  setActivities(prev => prev.filter(a => a.docId !== activity.docId));
-                  
-                  try {
-                    const result = await deleteActivity(activity.docId);
-                    if (result.success) {
-                      toast?.showSuccess('Activity deleted successfully!');
-                    } else {
-                      // Revert optimistic update on error
-                      setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
-                      toast?.showError('Error deleting activity: ' + result.error);
-                    }
-                  } catch (error) {
-                    // Revert optimistic update on error
-                    setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
-                    toast?.showError('Error deleting activity: ' + error.message);
-                  }
-                }}
-                searchPlaceholder={t('search_activities') || 'Search activities...'}
+                pageSize={10}
+                pageSizeOptions={[10, 20, 50, 100]}
+                checkboxSelection
+                exportFileName="activities"
+                showExportButton
+                exportLabel={t('export') || 'Export'}
+                loadingOverlayMessage="Loading..."
               />
             </div>
           )}
 
           {activeTab === 'newsletter' && (
+            /* ... */
             <div className="newsletter-tab">
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12, marginBottom: '1rem' }}>
-                <div>
-                  <h2 style={{ margin: 0 }}>{t('newsletter')}</h2>
-                  <p style={{ color:'#666', marginTop: '0.5rem', marginBottom: 0 }}>{t('send_bulk_emails_view')}</p>
-                </div>
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setSmartComposerOpen(true)}
-                    style={{
-                      padding: '10px 16px',
-                      background: 'linear-gradient(135deg, #800020, #600018)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      fontWeight: 600
-                    }}
-                  >
-                    📧 {t('compose_email') || 'Compose Email'}
-                  </button>
-                </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <h2 style={{ margin: 0, display: 'none' }}>{t('newsletter')}</h2>
+                <p style={{ color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>{t('send_bulk_emails_view')}</p>
               </div>
-              <EmailLogs defaultTypeFilter="newsletter" />
+              <EmailLogs
+                defaultTypeFilter="newsletter"
+                actionsSlot={(
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() => setSmartComposerOpen(true)}
+                  >
+                    {t('compose_email') || 'Compose Email'}
+                  </Button>
+                )}
+              />
             </div>
           )}
 
           {activeTab === 'announcements' && (
             <div className="announcements-tab">
-              <h2>{t('announcements_management')}</h2>
-              
+              <h2 style={{ display: 'none' }}>{t('announcements_management')}</h2>
+
               {editingAnnouncement && (
                 <div className="edit-mode-indicator">
                   📝 Editing Announcement: {editingAnnouncement.title}
                 </div>
               )}
-              
+
               <form onSubmit={handleAnnouncementSubmit} className="announcement-form">
-                <input
+                <Input
                   type="text"
                   placeholder={t('announcement_title')}
                   value={announcementForm.title}
-                  onChange={(e) => setAnnouncementForm({...announcementForm, title: e.target.value})}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
                   required
                 />
-                <textarea
+                <Textarea
                   placeholder={t('announcement_content_english')}
                   value={announcementForm.content}
-                  onChange={(e) => setAnnouncementForm({...announcementForm, content: e.target.value})}
-                  rows="4"
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                  rows={4}
                   required
+                  fullWidth
                 />
-                <textarea
+                <Textarea
                   placeholder={t('announcement_content_arabic')}
                   value={announcementForm.content_ar}
-                  onChange={(e) => setAnnouncementForm({...announcementForm, content_ar: e.target.value})}
-                  rows="4"
-                  style={{ direction: 'rtl' }}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, content_ar: e.target.value })}
+                  rows={4}
+                  fullWidth
                 />
-                <select
+                <Select
+                  searchable
+                  placeholder={t('target') || 'Target Audience'}
                   value={announcementForm.target}
-                  onChange={(e) => setAnnouncementForm({...announcementForm, target: e.target.value})}
-                >
-                  <option value="global">{t('all_users')}</option>
-                </select>
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, target: e.target.value })}
+                  options={[
+                    { value: 'global', label: t('all_users') || 'All Users' }
+                  ]}
+                />
                 {/* Email options for announcement */}
                 <div className="form-row" style={{ marginTop: '0.5rem' }}>
                   <ToggleSwitch
+                    label={t('send_email_notification') || 'Send Email Notification'}
                     checked={announcementEmailOptions.sendEmail}
-                    onChange={(val)=> setAnnouncementEmailOptions({ ...announcementEmailOptions, sendEmail: val })}
-                    label={t('send_email_notification')}
+                    onChange={(checked) => setAnnouncementEmailOptions({ ...announcementEmailOptions, sendEmail: checked })}
                   />
-                  {announcementEmailOptions.sendEmail && (
-                    <select
-                      value={announcementEmailOptions.lang}
-                      onChange={(e)=> setAnnouncementEmailOptions({ ...announcementEmailOptions, lang: e.target.value })}
-                    >
-                      <option value="en">English</option>
-                      <option value="ar">Arabic</option>
-                      <option value="both">Bilingual (EN + AR)</option>
-                    </select>
-                  )}
                 </div>
                 <div className="form-actions">
-                  <button type="submit" className="submit-btn" disabled={loading}>
-                    {loading ? (editingAnnouncement ? t('updating_generic') : t('creating')) : (editingAnnouncement ? t('update_announcement_btn') : t('create_announcement_btn'))}
-                  </button>
+                  <Button type="submit" variant="primary" loading={loading}>
+                    {(editingAnnouncement ? t('save_changes') : t('save'))}
+                  </Button>
                   {editingAnnouncement && (
-                    <button type="button" onClick={() => {
+                    <Button type="button" variant="outline" onClick={() => {
                       setEditingAnnouncement(null);
                       setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global' });
-                    }} className="cancel-btn">
-                      Cancel Edit
-                    </button>
+                    }}>
+                      {t('cancel_edit') || 'Cancel'}
+                    </Button>
                   )}
                 </div>
               </form>
-              
-              <SmartGrid
-                data={announcements}
-                title={t('recent_announcements')}
-                quickFilters={{
-                  active: announcementFilter,
-                  onFilterChange: setAnnouncementFilter,
-                  buttons: [
-                    { 
-                      key: 'all', 
-                      label: t('all'),
-                      count: announcements.length,
-                      filter: () => true 
-                    },
-                    { 
-                      key: 'today', 
-                      label: t('today'),
-                      count: announcements.filter(a => {
-                        const date = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                        const today = new Date();
-                        return date.toDateString() === today.toDateString();
-                      }).length,
-                      filter: (a) => {
-                        const date = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                        const today = new Date();
-                        return date.toDateString() === today.toDateString();
-                      }
-                    },
-                    { 
-                      key: '7days', 
-                      label: t('last7'),
-                      count: announcements.filter(a => {
-                        const date = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                        return date >= weekAgo;
-                      }).length,
-                      filter: (a) => {
-                        const date = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                        return date >= weekAgo;
-                      }
-                    },
-                    { 
-                      key: '30days', 
-                      label: t('last30'),
-                      count: announcements.filter(a => {
-                        const date = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                        return date >= monthAgo;
-                      }).length,
-                      filter: (a) => {
-                        const date = a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
-                        const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                        return date >= monthAgo;
-                      }
-                    }
-                  ]
-                }}
+
+              <AdvancedDataGrid
+                rows={announcements}
+                getRowId={(row) => row.docId || row.id}
                 columns={[
-                  { header: 'Title', accessor: 'title' },
-                  { 
-                    header: 'Content', 
-                    accessor: 'content',
-                    render: (content) => content ? (content.length > 100 ? content.substring(0, 100) + '...' : content) : 'No content'
+                  { field: 'title', headerName: 'Title', flex: 1, minWidth: 200 },
+                  {
+                    field: 'content', headerName: 'Content', flex: 2, minWidth: 250,
+                    renderCell: (params) => params.value ? (params.value.length > 100 ? params.value.substring(0, 100) + '...' : params.value) : 'No content'
                   },
-                  { 
-                    header: 'Target', 
-                    accessor: 'target',
-                    render: (target) => target === 'global' ? 'All Users' : target
+                  {
+                    field: 'target', headerName: 'Target', width: 150,
+                    renderCell: (params) => params.value === 'global' ? 'All Users' : params.value
                   },
-                  { 
-                    header: 'Created', 
-                    accessor: 'createdAt',
-                    render: (createdAt) => {
-                      if (!createdAt) return 'Unknown';
-                      return formatDateTime(createdAt);
-                    }
+                  {
+                    field: 'createdAt', headerName: 'Created', width: 180,
+                    valueGetter: (params) => params.value,
+                    renderCell: (params) => params.value ? formatDateTime(params.value) : 'Unknown'
+                  },
+                  {
+                    field: 'actions', headerName: t('actions') || 'Actions', width: 180, sortable: false, filterable: false,
+                    renderCell: (params) => (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Button size="sm" variant="secondary" onClick={() => {
+                          setEditingAnnouncement(params.row);
+                          setAnnouncementForm({
+                            title: params.row.title || '',
+                            content: params.row.content || '',
+                            content_ar: params.row.content_ar || '',
+                            target: params.row.target || 'global'
+                          });
+                        }}>
+                          {t('edit') || 'Edit'}
+                        </Button>
+                        <Button size="sm" variant="danger" onClick={async () => {
+                          const announcement = params.row;
+                          setAnnouncements(prev => prev.filter(a => a.docId !== announcement.docId));
+                          try {
+                            const result = await deleteAnnouncement(announcement.docId);
+                            if (result.success) {
+                              toast?.showSuccess('Announcement deleted successfully!');
+                            } else {
+                              setAnnouncements(prev => [...prev, announcement].sort((a, b) =>
+                                new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt) -
+                                new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt)
+                              ));
+                              toast?.showError('Error deleting announcement: ' + result.error);
+                            }
+                          } catch (error) {
+                            setAnnouncements(prev => [...prev, announcement].sort((a, b) =>
+                              new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt) -
+                              new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt)
+                            ));
+                            toast?.showError('Error deleting announcement: ' + error.message);
+                          }
+                        }}>
+                          {t('delete') || 'Delete'}
+                        </Button>
+                      </div>
+                    )
                   }
                 ]}
-                allowEdit={true}
-                allowDelete={true}
-                onEdit={(announcement) => {
-                  setEditingAnnouncement(announcement);
-                  setAnnouncementForm({
-                    title: announcement.title || '',
-                    content: announcement.content || '',
-                    content_ar: announcement.content_ar || '',
-                    target: announcement.target || 'global'
-                  });
-                }}
-                onDelete={async (announcement) => {
-                  setAnnouncements(prev => prev.filter(a => a.docId !== announcement.docId));
-                  
-                  try {
-                    const result = await deleteAnnouncement(announcement.docId);
-                    if (result.success) {
-                      toast?.showSuccess('Announcement deleted successfully!');
-                    } else {
-                      setAnnouncements(prev => [...prev, announcement].sort((a, b) => 
-                        new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt) - 
-                        new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt)
-                      ));
-                      toast?.showError('Error deleting announcement: ' + result.error);
-                    }
-                  } catch (error) {
-                    setAnnouncements(prev => [...prev, announcement].sort((a, b) => 
-                      new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt) - 
-                      new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt)
-                    ));
-                    toast?.showError('Error deleting announcement: ' + error.message);
-                  }
-                }}
-                searchPlaceholder={t('search_announcements')}
+                pageSize={10}
+                pageSizeOptions={[5, 10, 20, 50]}
+                checkboxSelection
+                showExportButton
+                exportFileName="announcements"
+                exportLabel={t('export') || 'Export'}
               />
             </div>
           )}
 
           {activeTab === 'login' && (
             <div className="login-activity-tab">
-              <h2>{t('activity_logs')}</h2>
-              <div style={{ display:'flex', gap:12, alignItems:'center', margin:'0.5rem 0 1rem', flexWrap:'wrap' }}>
-                <select value={activityTypeFilter} onChange={(e)=>setActivityTypeFilter(e.target.value)} style={{ padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, fontWeight: 600, flex:'1 1 200px' }}>
-                  <option value="all">{t('all_activity_types')}</option>
-                  <optgroup label="Authentication">
-                    <option value="login">🔐 Login</option>
-                    <option value="signup">✨ Signup</option>
-                    <option value="session_timeout">⏱️ Session Timeout</option>
-                  </optgroup>
-                  <optgroup label="Profile">
-                    <option value="profile_update">👤 Profile Update</option>
-                    <option value="password_change">🔑 Password Change</option>
-                    <option value="email_change">📧 Email Change</option>
-                  </optgroup>
-                  <optgroup label="Academic">
-                    <option value="quiz_start">🎯 Quiz Started</option>
-                    <option value="quiz_submit">✅ Quiz Submitted</option>
-                    <option value="submission">📝 Assignment Submitted</option>
-                    <option value="submission_graded">⭐ Submission Graded</option>
-                    <option value="resource_completed">📚 Resource Completed</option>
-                    <option value="attendance_marked">✓ Attendance Marked</option>
-                  </optgroup>
-                  <optgroup label="Communication">
-                    <option value="message_sent">📤 Message Sent</option>
-                    <option value="message_received">📥 Message Received</option>
-                    <option value="announcement_read">📢 Announcement Read</option>
-                    <option value="announcement_created">📣 Announcement Created</option>
-                  </optgroup>
-                  <optgroup label="Engagement">
-                    <option value="activity_viewed">👁️ Activity Viewed</option>
-                    <option value="resource_bookmarked">🔖 Resource Bookmarked</option>
-                    <option value="badge_earned">🏅 Badge Earned</option>
-                  </optgroup>
-                </select>
-                <input
+              <h2 style={{ display: 'none' }}>{t('activity_logs')}</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, margin: '0.5rem 0 1rem' }}>
+                <Select value={activityTypeFilter} onChange={(e) => setActivityTypeFilter(e.target.value)} options={[
+                  { value: 'all', label: t('all_activity_types') },
+                  { value: 'login', label: 'Login' },
+                  { value: 'signup', label: 'Signup' },
+                  { value: 'session_timeout', label: 'Session Timeout' },
+                  { value: 'profile_update', label: 'Profile Update' },
+                  { value: 'password_change', label: 'Password Change' },
+                  { value: 'email_change', label: 'Email Change' },
+                  { value: 'quiz_start', label: 'Quiz Started' },
+                  { value: 'quiz_submit', label: 'Quiz Submitted' },
+                  { value: 'submission', label: 'Assignment Submitted' },
+                  { value: 'submission_graded', label: 'Submission Graded' },
+                  { value: 'resource_completed', label: 'Resource Completed' },
+                  { value: 'attendance_marked', label: 'Attendance Marked' },
+                  { value: 'message_sent', label: 'Message Sent' },
+                  { value: 'message_received', label: 'Message Received' },
+                  { value: 'announcement_read', label: 'Announcement Read' },
+                  { value: 'announcement_created', label: 'Announcement Created' },
+                  { value: 'activity_viewed', label: 'Activity Viewed' },
+                  { value: 'resource_bookmarked', label: 'Resource Bookmarked' },
+                  { value: 'badge_earned', label: 'Badge Earned' }
+                ]} fullWidth />
+                <Input
                   type="text"
                   placeholder={t('search_by_email_name_ua')}
                   value={loginSearch}
-                  onChange={(e)=>setLoginSearch(e.target.value)}
-                  style={{ padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, flex:'1 1 280px' }}
+                  onChange={(e) => setLoginSearch(e.target.value)}
+                  fullWidth
                 />
-                <select value={loginUserFilter} onChange={(e)=>setLoginUserFilter(e.target.value)} style={{ padding:'8px 10px', border:'1px solid #ddd', borderRadius:8, flex:'1 1 180px' }}>
-                  <option value="all">{t('all_users')}</option>
-                  {users.map(u => (
-                    <option key={u.docId} value={u.email || u.docId}>{u.displayName ? `${u.displayName} (${u.email||u.docId})` : (u.email || u.docId)}</option>
-                  ))}
-                </select>
-                <label style={{ color:'#666', display:'flex', alignItems:'center', gap:4 }}>{t('from') || 'From'} <input type="text" placeholder="DD/MM/YYYY" value={loginFrom} onChange={(e)=>setLoginFrom(e.target.value)} style={{ padding:'6px' }} /></label>
-                <label style={{ color:'#666', display:'flex', alignItems:'center', gap:4 }}>{t('to') || 'To'} <input type="text" placeholder="DD/MM/YYYY" value={loginTo} onChange={(e)=>setLoginTo(e.target.value)} style={{ padding:'6px' }} /></label>
-                <button onClick={loadData} style={{ padding:'8px 16px', border:'1px solid #ddd', borderRadius:8, cursor:'pointer', background:'#800020', color:'white', fontWeight:600 }}>{t('refresh')}</button>
+                <Select value={loginUserFilter} onChange={(e) => setLoginUserFilter(e.target.value)} options={[
+                  { value: 'all', label: t('all_users') },
+                  ...users.map(u => ({
+                    value: u.email || u.docId,
+                    label: u.displayName ? `${u.displayName} (${u.email || u.docId})` : (u.email || u.docId)
+                  }))
+                ]} fullWidth />
+                <DatePicker
+                  type="date"
+                  value={loginFrom}
+                  onChange={(iso) => setLoginFrom(iso ? new Date(iso).toLocaleDateString('en-GB') : '')}
+                  placeholder={t('from') || 'From'}
+                  fullWidth
+                />
+                <DatePicker
+                  type="date"
+                  value={loginTo}
+                  onChange={(iso) => setLoginTo(iso ? new Date(iso).toLocaleDateString('en-GB') : '')}
+                  placeholder={t('to') || 'To'}
+                  fullWidth
+                />
+                <Button onClick={loadData} variant="primary">{t('refresh')}</Button>
               </div>
-              {(() => {
-                const list = filteredLoginLogs();
-                return (
-                  <div style={{ overflowX:'auto' }}>
-                    <table className="table" style={{ width:'100%', borderCollapse:'collapse' }}>
-                      <thead>
-                        <tr>
-                          <th style={{ textAlign:'left', padding:'8px', borderBottom:'1px solid #eee' }}>{t('type')}</th>
-                          <th style={{ textAlign:'left', padding:'8px', borderBottom:'1px solid #eee' }}>{t('when')}</th>
-                          <th style={{ textAlign:'left', padding:'8px', borderBottom:'1px solid #eee' }}>{t('user_col')}</th>
-                          <th style={{ textAlign:'left', padding:'8px', borderBottom:'1px solid #eee' }}>{t('email_col')}</th>
-                          <th style={{ textAlign:'left', padding:'8px', borderBottom:'1px solid #eee' }}>{t('user_agent_col')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {list.slice(0, 500).map((l) => {
-                          const typeIcons = {
-                            login: '🔐',
-                            signup: '✨',
-                            profile_update: '👤',
-                            password_change: '🔑',
-                            email_change: '📧',
-                            session_timeout: '⏱️',
-                            message_sent: '📤',
-                            message_received: '📥',
-                            submission: '📝',
-                            announcement_read: '📢',
-                            announcement_created: '📣',
-                            quiz_start: '🎯',
-                            quiz_submit: '✅',
-                            submission_graded: '⭐',
-                            resource_completed: '📚',
-                            attendance_marked: '✓',
-                            activity_viewed: '👁️',
-                            resource_bookmarked: '🔖',
-                            badge_earned: '🏅'
-                          };
-                          return (
-                            <tr key={l.docId}>
-                              <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3', whiteSpace:'nowrap' }}>
-                                <span style={{ fontSize: '1.2rem', marginRight: '6px' }}>{typeIcons[l.type] || '📋'}</span>
-                                <span style={{ fontSize: '0.85rem' }}>{l.type || 'login'}</span>
-                              </td>
-                              <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3', whiteSpace:'nowrap' }}>{formatDateTime(l.when)}</td>
-                              <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>{l.displayName || '—'}</td>
-                              <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>{l.email || '—'}</td>
-                              <td style={{ padding:'8px', borderBottom:'1px solid #f3f3f3' }}>
-                                <div style={{ maxWidth: 520, overflow:'hidden', textOverflow:'ellipsis' }}>{l.userAgent || '—'}</div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {list.length === 0 && (
-                          <tr>
-                            <td colSpan="5" style={{ padding:'1rem', color:'#888' }}>{t('no_activity_logs_yet')}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })()}
+              <AdvancedDataGrid
+                rows={filteredLoginLogs().slice(0, 500)}
+                getRowId={(row) => row.docId || row.id}
+                columns={[
+                  {
+                    field: 'type', headerName: t('type'), width: 200,
+                    renderCell: (params) => {
+                      const typeIcons = {
+                        login: '🔐', signup: '✨', profile_update: '👤', password_change: '🔑',
+                        email_change: '📧', session_timeout: '⏱️', message_sent: '📤', message_received: '📥',
+                        submission: '📝', announcement_read: '📢', announcement_created: '📣',
+                        quiz_start: '🎯', quiz_submit: '✅', submission_graded: '⭐',
+                        resource_completed: '📚', attendance_marked: '✓', activity_viewed: '👁️',
+                        resource_bookmarked: '🔖', badge_earned: '🏅'
+                      };
+                      return (
+                        <span>
+                          <span style={{ fontSize: '1.2rem', marginRight: '6px' }}>{typeIcons[params.value] || '📋'}</span>
+                          <span style={{ fontSize: '0.85rem' }}>{params.value || 'login'}</span>
+                        </span>
+                      );
+                    }
+                  },
+                  {
+                    field: 'when', headerName: t('when'), width: 180,
+                    valueGetter: (params) => params.value,
+                    renderCell: (params) => formatDateTime(params.value)
+                  },
+                  {
+                    field: 'displayName', headerName: t('user_col'), flex: 1, minWidth: 150,
+                    renderCell: (params) => params.value || '—'
+                  },
+                  {
+                    field: 'email', headerName: t('email_col'), flex: 1, minWidth: 200,
+                    renderCell: (params) => params.value || '—'
+                  },
+                  {
+                    field: 'userAgent', headerName: t('user_agent_col'), flex: 2, minWidth: 300,
+                    renderCell: (params) => (
+                      <div style={{ maxWidth: 520, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {params.value || '—'}
+                      </div>
+                    )
+                  }
+                ]}
+                pageSize={20}
+                pageSizeOptions={[10, 20, 50, 100, 500]}
+                checkboxSelection
+                exportFileName="login-activity"
+              />
             </div>
           )}
 
           {activeTab === 'classes' && (
             <div className="classes-tab">
-              <h2>{t('classes_management')}</h2>
-              
+              <h2 style={{ display: 'none' }}>{t('classes_management')}</h2>
+
               {editingClass && (
                 <div className="edit-mode-indicator">
                   📝 Editing Class: {editingClass.name} ({editingClass.code})
                 </div>
               )}
-              
+
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 if (!classForm.name.trim()) {
                   toast?.showError(t('class_name') + ' is required');
                   return;
                 }
-                
+
                 setLoading(true);
                 try {
-                  const result = editingClass ? 
-                    await updateClass(editingClass.docId, classForm) : 
+                  const result = editingClass ?
+                    await updateClass(editingClass.docId, classForm) :
                     await addClass(classForm);
-                    
+
                   if (result.success) {
                     await loadData();
                     setEditingClass(null);
@@ -1514,821 +1454,848 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 }
               }} className="activity-form">
                 <div className="form-row">
-                  <input 
+                  <Input
                     placeholder={t('class_name')}
-                    value={classForm.name} 
-                    onChange={e => setClassForm({...classForm, name: e.target.value})} 
-                    required 
+                    value={classForm.name}
+                    onChange={e => setClassForm({ ...classForm, name: e.target.value })}
+                    required
                   />
-                  <input 
+                  <Input
                     placeholder={t('class_name_arabic')}
-                    value={classForm.nameAr || ''} 
-                    onChange={e => setClassForm({...classForm, nameAr: e.target.value})} 
+                    value={classForm.nameAr || ''}
+                    onChange={e => setClassForm({ ...classForm, nameAr: e.target.value })}
                     dir="rtl"
                   />
-                  <input 
-                    placeholder={t('class_code') + ' (' + t('optional') + ')'} 
-                    value={classForm.code} 
-                    onChange={e => setClassForm({...classForm, code: e.target.value})} 
+                  <Input
+                    placeholder={t('class_code') + ' (' + t('optional') + ')'}
+                    value={classForm.code}
+                    onChange={e => setClassForm({ ...classForm, code: e.target.value })}
                   />
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <select 
-                      value={classForm.term?.split(' ')[0] || ''} 
+                    <Select
+                      searchable
+                      placeholder={t('term')}
+                      value={classForm.term?.split(' ')[0] || ''}
                       onChange={e => {
                         const year = classForm.term?.split(' ')[1] || new Date().getFullYear();
-                        setClassForm({...classForm, term: e.target.value ? `${e.target.value} ${year}` : ''});
+                        setClassForm({ ...classForm, term: e.target.value ? `${e.target.value} ${year}` : '' });
                       }}
+                      options={[
+                        { value: '', label: t('term') || 'Select Term' },
+                        { value: 'Fall', label: t('fall') || 'Fall' },
+                        { value: 'Spring', label: t('spring') || 'Spring' },
+                        { value: 'Summer', label: t('summer') || 'Summer' }
+                      ]}
                       required
-                    >
-                      <option value="">{t('term')}</option>
-                      <option value="Fall">{t('fall')}</option>
-                      <option value="Spring">{t('spring')}</option>
-                      <option value="Summer">{t('summer')}</option>
-                    </select>
-                    <input 
-                      type="number" 
-                      placeholder={t('year')||'Year'} 
-                      min="2020" 
-                      max="2030" 
-                      value={classForm.term?.split(' ')[1] || ''} 
+                    />
+                    <YearSelect
+                      value={classForm.term?.split(' ')[1] || ''}
                       onChange={e => {
                         const semester = classForm.term?.split(' ')[0] || '';
-                        setClassForm({...classForm, term: semester ? `${semester} ${e.target.value}` : e.target.value});
+                        setClassForm({
+                          ...classForm,
+                          term: semester ? `${semester} ${e.target.value}` : e.target.value
+                        });
                       }}
+                      startYear={2024}
+                      yearsAhead={5}
+                      label={null}
+                      placeholder={t('year') || 'Year'}
+                      searchable
                       required
-                      style={{ width: '100px' }}
                     />
                   </div>
-                  <select 
-                    value={classForm.ownerEmail} 
-                    onChange={e => setClassForm({...classForm, ownerEmail: e.target.value})} 
+                  <Select
+                    searchable
+                    placeholder={t('select_owner')}
+                    value={classForm.ownerEmail}
+                    onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
+                    options={[
+                      { value: '', label: t('select_owner') || 'Select Owner' },
+                      ...users.filter(user => user.role === 'admin').map(admin => ({
+                        value: admin.email,
+                        label: `${admin.displayName || admin.email} (${admin.email})`
+                      })),
+                      ...(allowlist?.adminEmails?.filter(email =>
+                        !users.some(u => u.email === email)
+                      ).map(email => ({
+                        value: email,
+                        label: `${email} (from allowlist)`
+                      })) || [])
+                    ]}
                     required
-                  >
-                    <option value="">{t('select_owner')}</option>
-                    {users.filter(user => user.role === 'admin').map(admin => (
-                      <option key={admin.docId || admin.id} value={admin.email}>
-                        {admin.displayName || admin.email} ({admin.email})
-                      </option>
-                    ))}
-                    {allowlist?.adminEmails?.filter(email => 
-                      !users.some(u => u.email === email)
-                    ).map(email => (
-                      <option key={email} value={email}>
-                        {email} (from allowlist)
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
-                
+
                 <div className="form-actions">
-                  <button type="submit" className="submit-btn" disabled={loading}>
-                    {loading ? (editingClass ? t('updating') : t('creating')) : (editingClass ? t('update') + ' Class' : t('create_class'))}
-                  </button>
+                  <Button type="submit" variant="primary" loading={loading}>
+                    {(editingClass ? t('update') : t('save'))}
+                  </Button>
                   {editingClass && (
-                    <button type="button" onClick={() => {
+                    <Button type="button" variant="outline" onClick={() => {
                       setEditingClass(null);
                       setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '' });
-                    }} className="cancel-btn">
-                      Cancel Edit
-                    </button>
+                    }}>
+                      {t('cancel_edit') || 'Cancel Edit'}
+                    </Button>
                   )}
                 </div>
               </form>
-              
-              <SmartGrid
-                data={classes}
-                title={t('existing_classes')}
+
+              <AdvancedDataGrid
+                rows={classes}
+                getRowId={(row) => row.docId || row.id}
                 columns={[
-                  { header: t('name') || 'Name', accessor: 'name' },
-                  { header: t('code') || 'Code', accessor: 'code' },
-                  { header: t('term') || 'Term', accessor: 'term' },
-                  { header: t('owner') || 'Owner', accessor: 'ownerEmail' },
-                  { 
-                    header: t('students') || 'Students', 
-                    accessor: 'docId',
-                    render: (docId, classItem) => {
-                      const effectiveId = docId || classItem?.id;
+                  { field: 'name', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
+                  { field: 'code', headerName: t('code') || 'Code', width: 120 },
+                  { field: 'term', headerName: t('term') || 'Term', width: 140 },
+                  { field: 'ownerEmail', headerName: t('owner') || 'Owner', flex: 1, minWidth: 200 },
+                  {
+                    field: 'students', headerName: t('students') || 'Students', width: 120,
+                    valueGetter: (params) => {
+                      const effectiveId = params.row.docId || params.row.id;
                       const classEnrollments = enrollments.filter(e => e.classId === effectiveId);
-                      return `${classEnrollments.length} ${t('enrolled') || 'enrolled'}`;
-                    }
+                      return classEnrollments.length;
+                    },
+                    renderCell: (params) => `${params.value} ${t('enrolled') || 'enrolled'}`
                   },
                   {
-                    header: t('actions') || 'Actions',
-                    accessor: 'docId',
-                    render: (docId, classItem) => (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/award-medals/${docId || classItem.id}`);
-                        }}
-                        className="btn-military-primary"
-                        style={{ padding: '6px 12px', fontSize: '0.875rem' }}
-                      >
-                        🎖️ {t('award_medals') || 'Award Medals'}
-                      </button>
-                    )
-                  }
-                ]}
-                onEdit={(classItem) => {
-                  setEditingClass(classItem);
-                  setClassForm({
-                    id: classItem.id,
-                    name: classItem.name || '',
-                    code: classItem.code || '',
-                    term: classItem.term || '',
-                    ownerEmail: classItem.ownerEmail || ''
-                  });
-                }}
-                validateDelete={validateClassDeletion}
-                onDelete={async (classItem) => {
-                  // Optimistic update - remove from UI immediately
-                  setClasses(prev => prev.filter(c => c.docId !== classItem.docId));
-                  
-                  try {
-                    const result = await deleteClass(classItem.docId);
-                    if (result.success) {
-                      // Also delete enrollments
-                      const classEnrollments = enrollments.filter(e => e.classId === classItem.docId);
-                      for (const enrollment of classEnrollments) {
-                        await deleteEnrollment(enrollment.docId);
-                      }
-                      await loadData();
-                      toast?.showSuccess('Class deleted successfully!');
-                    } else {
-                      // Revert optimistic update on error
-                      setClasses(prev => [...prev, classItem].sort((a, b) => a.name.localeCompare(b.name)));
-                      toast?.showError('Error deleting class: ' + result.error);
-                    }
-                  } catch (error) {
-                    // Revert optimistic update on error
-                    setClasses(prev => [...prev, classItem].sort((a, b) => a.name.localeCompare(b.name)));
-                    toast?.showError('Error deleting class: ' + error.message);
-                  }
-                }}
-                searchPlaceholder={t('search_classes') || 'Search classes by name or code...'}
-              />
-            </div>
-          )}
-
-          {activeTab === 'enrollments' && (
-            <div className="enrollments-tab">
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                if (!enrollmentForm.userId || !enrollmentForm.classId) {
-                  toast?.showError('Please select both user and class');
-                  return;
-                }
-                
-                // Check if enrollment already exists
-                const existingEnrollment = enrollments.find(e => 
-                  e.userId === enrollmentForm.userId && e.classId === enrollmentForm.classId
-                );
-                
-                if (existingEnrollment) {
-                  toast?.showError('This user is already enrolled in this class');
-                  return;
-                }
-                
-                setLoading(true);
-                try {
-                  const result = await addEnrollment(enrollmentForm);
-                  if (result.success) {
-                    await loadData();
-                    setEnrollmentForm({ userId: '', classId: '', role: 'student' });
-                    toast?.showSuccess('Enrollment added successfully!');
-                  } else {
-                    toast?.showError('Error: ' + result.error);
-                  }
-                } catch (error) {
-                  toast?.showError('Error: ' + error.message);
-                } finally {
-                  setLoading(false);
-                }
-              }} className="activity-form">
-                <div className="form-row">
-                  <select 
-                    value={enrollmentForm.userId} 
-                    onChange={e => setEnrollmentForm({...enrollmentForm, userId: e.target.value})} 
-                    required
-                  >
-                    <option value="">{t('select_user')}</option>
-                    {users.map(u => (
-                      <option key={u.docId || u.id} value={u.docId || u.id}>
-                        {u.email} {u.displayName ? `(${u.displayName})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  <select 
-                    value={enrollmentForm.classId} 
-                    onChange={e => setEnrollmentForm({...enrollmentForm, classId: e.target.value})} 
-                    required
-                  >
-                    <option value="">{t('select_class')}</option>
-                    {classes.map(c => (
-                      <option key={c.docId || c.id} value={c.docId || c.id}>
-                        {c.name} ({c.code}) - {c.term}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  <select 
-                    value={enrollmentForm.role} 
-                    onChange={e => setEnrollmentForm({...enrollmentForm, role: e.target.value})}
-                  >
-                    <option value="student">{t('student')}</option>
-                    <option value="ta">{t('teaching_assistant') || 'Teaching Assistant'}</option>
-                    <option value="instructor">{t('instructor')}</option>
-                  </select>
-                </div>
-                
-                <button type="submit" className="submit-btn" disabled={loading}>
-                  {loading ? t('adding') : t('add_enrollment')}
-                </button>
-              </form>
-              
-              <SmartGrid
-                data={enrollments}
-                title={t('current_enrollments_title')}
-                columns={[
-                  { 
-                    header: t('user_col'), 
-                    accessor: 'userId',
-                    render: (userId) => {
-                      const user = users.find(u => (u.docId || u.id) === userId);
-                      return user ? `${user.email}${user.displayName ? ` (${user.displayName})` : ''}` : userId;
-                    }
-                  },
-                  { 
-                    header: t('class_col'), 
-                    accessor: 'classId',
-                    render: (classId) => {
-                      const classItem = classes.find(c => (c.docId || c.id) === classId);
-                      return classItem ? `${classItem.name} (${classItem.code})` : classId;
-                    }
-                  },
-                  { 
-                    header: t('role_col'), 
-                    accessor: 'role',
-                    render: (role) => {
-                      const roleMap = {
-                        'student': '👨‍🎓 Student',
-                        'ta': '👨‍🏫 TA',
-                        'instructor': '👩‍🏫 Instructor'
-                      };
-                      return roleMap[role] || role;
-                    }
-                  },
-                  { 
-                    header: t('enrolled_col'), 
-                    accessor: 'createdAt',
-                    render: (value) => {
-                      if (!value) return 'Unknown';
-                      return formatDateTime(value);
-                    }
-                  }
-                ]}
-                onDelete={async (enrollment) => {
-                  const result = await deleteEnrollment(enrollment.docId);
-                  if (result.success) {
-                    await loadData();
-                    toast?.showSuccess('Enrollment removed successfully!');
-                  } else {
-                    toast?.showError('Error: ' + result.error);
-                  }
-                }}
-                deleteMessage={(enrollment) => {
-                  const user = users.find(u => u.docId === enrollment.userId);
-                  const classItem = classes.find(c => c.docId === enrollment.classId);
-                  const userName = user ? user.email : enrollment.userId;
-                  const className = classItem ? classItem.name : enrollment.classId;
-                  return `Remove ${userName} from ${className}? This action cannot be undone.`;
-                }}
-                allowEdit={false}
-                searchPlaceholder={t('search_enrollments')}
-              />
-            </div>
-          )}
-
-          {activeTab === 'submissions' && (
-            <div className="submissions-tab">
-              <SmartGrid
-                data={submissions}
-                title={t('student_submissions')}
-                quickFilters={{
-                  active: submissionFilter,
-                  onFilterChange: setSubmissionFilter,
-                  buttons: [
-                    { 
-                      key: 'all', 
-                      label: t('all'),
-                      count: submissions.length,
-                      filter: () => true 
-                    },
-                    { 
-                      key: 'pending', 
-                      label: '⏳ Pending',
-                      count: submissions.filter(s => s.status === 'pending' || s.status === 'submitted' || !s.status).length,
-                      filter: (s) => s.status === 'pending' || s.status === 'submitted' || !s.status
-                    },
-                    { 
-                      key: 'graded', 
-                      label: '✅ Graded',
-                      count: submissions.filter(s => s.status === 'graded').length,
-                      filter: (s) => s.status === 'graded'
-                    },
-                    { 
-                      key: 'late', 
-                      label: '⏰ Late',
-                      count: submissions.filter(s => s.status === 'late').length,
-                      filter: (s) => s.status === 'late'
-                    }
-                  ]
-                }}
-                columns={[
-                  { 
-                    header: t('activity_col'), 
-                    accessor: 'activityId',
-                    render: (activityId) => {
-                      const activity = activities.find(a => a.id === activityId);
-                      return activity ? activity.title_en : activityId;
-                    }
-                  },
-                  { 
-                    header: t('student_col'), 
-                    accessor: 'userId',
-                    render: (userId) => {
-                      const user = users.find(u => u.id === userId);
-                      return user ? user.email : userId;
-                    }
-                  },
-                  { 
-                    header: t('status_col'), 
-                    accessor: 'status',
-                    render: (status) => {
-                      const statusMap = {
-                        'submitted': '📝 Submitted',
-                        'graded': '✅ Graded',
-                        'late': '⏰ Late',
-                        'pending': '⏳ Pending'
-                      };
-                      return statusMap[status] || status || '📝 Submitted';
-                    }
-                  },
-                  { 
-                    header: t('score_col'), 
-                    accessor: 'score',
-                    render: (score, row) => {
-                      // Find activity max score
-                      const act = activities.find(a => a.id === row.activityId || a.docId === row.activityId);
-                      const maxScore = act?.maxScore || 100;
-                      return score !== null && score !== undefined ? `${score} / ${maxScore}` : 'Not graded yet';
-                    }
-                  },
-                  { 
-                    header: t('submitted_at_col'), 
-                    accessor: 'submittedAt',
-                    render: (submittedAt) => {
-                      if (!submittedAt) return t('unknown');
-                      return formatDateTime(submittedAt);
-                    }
-                  },
-                  { 
-                    header: t('files_col'), 
-                    accessor: 'files',
-                    render: (files) => {
-                      if (!files || files.length === 0) return t('no_files');
-                      return (
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {files.map((file, i) => (
-                            <a 
-                              key={i} 
-                              href={file} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              style={{
-                                background: '#e3f2fd',
-                                color: '#1976d2',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                textDecoration: 'none',
-                                fontSize: '0.8rem'
-                              }}
-                            >
-                              File {i + 1}
-                            </a>
-                          ))}
-                        </div>
-                      );
-                    }
-                  }
-                ]}
-                onEdit={async (submission) => {
-                  const newScore = prompt(`Enter score for this submission (0-100):`, submission.score || '');
-                  if (newScore !== null && !isNaN(newScore)) {
-                    const score = Math.max(0, Math.min(100, Number(newScore)));
-                    setLoading(true);
-                    try {
-                      const result = await gradeSubmission(submission.id, { 
-                        score: score, 
-                        status: 'graded' 
-                      });
-                      if (result.success) {
-                        // Log grading activity
-                        try {
-                          await addActivityLog({
-                            type: 'submission_graded',
-                            userId: user.uid,
-                            email: user.email,
-                            displayName: user.displayName || user.email,
-                            userAgent: navigator.userAgent,
-                            metadata: { submissionId: submission.id, studentId: submission.userId, activityId: submission.activityId, score, gradedBy: user.uid }
+                    field: 'actions', headerName: t('actions') || 'Actions', width: 280, sortable: false, filterable: false,
+                    renderCell: (params) => (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Button size="sm" variant="secondary" onClick={() => {
+                          setEditingClass(params.row);
+                          setClassForm({
+                            id: params.row.id,
+                            name: params.row.name || '',
+                            nameAr: params.row.nameAr || '',
+                            code: params.row.code || '',
+                            term: params.row.term || '',
+                            ownerEmail: params.row.ownerEmail || ''
                           });
-                        } catch (e) { console.warn('Failed to log grading:', e); }
-                        await loadData();
-                        // Notify student
-                        try {
-                          const act = activities.find(a => a.id === submission.activityId || a.docId === submission.activityId);
-                          const maxScore = act?.maxScore || 100;
-                          await notifyAllUsers; // noop to ensure import used
-                        } catch {}
-                        try {
-                          const { addNotification } = await import('../firebase/notifications');
-                          const act = activities.find(a => a.id === submission.activityId || a.docId === submission.activityId);
-                          const maxScore = act?.maxScore || 100;
-                          await addNotification({
-                            userId: submission.userId,
-                            title: '📊 Activity Reviewed',
-                            message: `Your submission for ${submission.activityId} was graded: ${score} / ${maxScore}.`,
-                            type: 'grade',
-                            data: { activityId: submission.activityId, submissionId: submission.id }
-                          });
-                        } catch (e) { console.warn('Failed to send grade notification', e); }
-                        alert(`Submission graded with score: ${score}`);
-                      } else {
-                        alert('Error grading submission: ' + result.error);
-                      }
-                    } catch (error) {
-                      alert('Error: ' + error.message);
-                    } finally {
-                      setLoading(false);
-                    }
-                  }
-                }}
-                allowDelete={false}
-                searchPlaceholder={t('search_submissions')}
-                pageSize={15}
-              />
-            </div>
-          )}
-          {activeTab === 'users' && (
-            <div className="users-tab">
-              <p style={{ color: '#555', marginBottom:'1rem' }}>{t('invite_users_blurb')}</p>
-              
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                if (!userForm.email.trim()) {
-                  toast?.showError('Email is required');
-                  return;
-                }
-                
-                setLoading(true);
-                try {
-                  if (editingUser) {
-                    const result = await updateUser(editingUser.docId, userForm);
-                    if (!result.success) throw new Error(result.error || 'Failed to update user');
-                    toast?.showSuccess('User updated successfully!');
-                  } else {
-                    // Add to allowlist if checkbox is checked
-                    if (autoAddToAllowlist && userForm.email) {
-                      const targetList = userForm.role === 'admin' ? 'adminEmails' : 'allowedEmails';
-                      const currentEmails = allowlist[targetList] || [];
-                      
-                      if (!currentEmails.includes(userForm.email)) {
-                        const updatedAllowlist = {
-                          ...allowlist,
-                          [targetList]: [...currentEmails, userForm.email]
-                        };
-                        setAllowlist(updatedAllowlist);
-                        
-                        // Save to Firestore
-                        try {
-                          await updateAllowlist(updatedAllowlist);
-                        } catch (allowlistError) {
-                          toast?.showWarning('Failed to update allowlist: ' + allowlistError.message);
-                        }
-                      }
-                      toast?.showSuccess(`Invite prepared. ${userForm.email} added to ${userForm.role} allowlist. Ask them to sign up.`);
-                    } else {
-                      toast?.showInfo('No changes saved. Provide an email or enable allowlist option.');
-                    }
-                  }
-                    
-                  await loadData();
-                  setEditingUser(null);
-                  setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', role: 'student' });
-                } catch (error) {
-                  toast?.showError('Error: ' + error.message);
-                } finally {
-                  setLoading(false);
-                }
-              }} className="activity-form">
-                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                  <input
-                    type="email"
-                    placeholder={t('user_email_placeholder')}
-                    value={userForm.email}
-                    onChange={(e) => setUserForm({...userForm, email: e.target.value})}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder={t('user_display_name_placeholder')}
-                    value={userForm.displayName}
-                    onChange={(e) => setUserForm({...userForm, displayName: e.target.value})}
-                  />
-                  <input
-                    type="text"
-                    placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
-                    value={userForm.realName || ''}
-                    onChange={(e) => setUserForm({...userForm, realName: e.target.value})}
-                  />
-                  <input
-                    type="text"
-                    placeholder={t('student_number_placeholder') || 'Student Number (Optional)'}
-                    value={userForm.studentNumber || ''}
-                    onChange={(e) => setUserForm({...userForm, studentNumber: e.target.value})}
-                  />
-                  <select
-                    value={userForm.role}
-                    onChange={(e) => setUserForm({...userForm, role: e.target.value})}
-                    style={{ padding: '0.6rem', border: '1px solid #ddd', borderRadius: 6, background: 'white' }}
-                  >
-                    <option value="student">{t('student') || 'Student'}</option>
-                    <option value="instructor">{t('instructor') || 'Instructor'}</option>
-                    <option value="hr">{t('hr') || 'HR'}</option>
-                    <option value="admin">{t('admin') || 'Admin'}</option>
-                    <option value="superadmin">Super Admin</option>
-                  </select>
-                </div>
-                
-                {!editingUser && (
-                  <div className="form-row">
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={autoAddToAllowlist}
-                        onChange={(e) => setAutoAddToAllowlist(e.target.checked)}
-                      />
-                      Auto-add email to student allowlist
-                    </label>
-                  </div>
-                )}
-                
-                <div className="form-actions">
-                  <button type="submit" className="submit-btn" disabled={loading}>
-                    {loading ? (editingUser ? t('updating_generic') : t('adding')) : (editingUser ? t('update_user_btn') : t('add_user_btn'))}
-                  </button>
-                  {editingUser && (
-                    <button type="button" onClick={() => {
-                      setEditingUser(null);
-                      setUserForm({ email: '', displayName: '', role: 'student' });
-                    }} className="cancel-btn">
-                      {t('cancel')}
-                    </button>
-                  )}
-                </div>
-              </form>
-              
-              <SmartGrid
-                data={users}
-                title={t('registered_users')}
-                quickFilters={{
-                  active: userQuickFilter,
-                  onFilterChange: (key) => setUserQuickFilter(key),
-                  buttons: [
-                    { 
-                      key: 'all', 
-                      label: t('all_users'),
-                      count: users.length,
-                      filter: () => true 
-                    },
-                    { 
-                      key: 'students', 
-                      label: `👨‍🎓 ${t('students')}`,
-                      count: users.filter(u => (u.role || 'student') === 'student').length,
-                      filter: (u) => (u.role || 'student') === 'student'
-                    },
-                    { 
-                      key: 'admins', 
-                      label: `👨‍💼 ${t('admins')}`,
-                      count: users.filter(u => u.role === 'admin').length,
-                      filter: (u) => u.role === 'admin'
-                    }
-                  ]
-                }}
-                columns={[
-                  { header: t('email_col'), accessor: 'email' },
-                  { header: t('display_name_col'), accessor: 'displayName' },
-                  { header: t('role_col'), accessor: 'role', render: (value) => value || t('student') },
-                  { 
-                    header: t('enrolled_classes_col'), 
-                    accessor: 'enrolledClasses',
-                    render: (value, user) => {
-                      const userEnrollments = enrollments.filter(e => e.userId === user.docId || (e.userEmail || e.email) === user.email);
-                      return userEnrollments.length;
-                    }
-                  },
-                  { 
-                    header: t('progress'), 
-                    accessor: 'progress',
-                    render: (value, user) => {
-                      const userSubmissions = submissions.filter(s => s.userId === user.id);
-                      const completedCount = userSubmissions.filter(s => s.status === 'graded').length;
-                      const totalActivities = activities.length;
-                      
-                      return (
-                        <a 
-                          href={`/student-progress?userId=${user.docId}`} 
-                          style={{ 
-                            color: '#800020', 
-                            textDecoration: 'none',
-                            fontWeight: '600'
-                          }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.location.href = `/student-progress?userId=${user.docId}`;
-                          }}
-                        >
-                          {completedCount}/{totalActivities} activities →
-                        </a>
-                      );
-                    }
-                  },
-                  { 
-                    header: t('joined'), 
-                    accessor: 'createdAt',
-                    render: (value) => {
-                      if (!value) return t('unknown');
-                      return formatDateTime(value);
-                    }
-                  },
-                  {
-                    header: t('actions_col'),
-                    accessor: 'docId',
-                    render: (value, user) => (
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {/* Impersonate Button - Only for students */}
-                        {(user.role || 'student') === 'student' && (
-                          <button
-                            onClick={async () => {
-                              const result = await impersonateUser(user.docId || user.id);
-                              if (result.success) {
-                                toast?.showSuccess(t('impersonation_started') || 'Now viewing as student');
-                                window.location.href = '/';
-                              } else {
-                                toast?.showError(result.error || 'Failed to impersonate');
+                        }}>
+                          {t('edit') || 'Edit'}
+                        </Button>
+                        <Button size="sm" variant="primary" disabled title="Feature not completed yet" onClick={() => {
+                          navigate(`/award-medals/${params.row.docId || params.row.id}`);
+                        }}>
+                          🎖️ {t('award_medals') || 'Medals'}
+                        </Button>
+                        <Button size="sm" variant="danger" onClick={async () => {
+                          const classItem = params.row;
+                          setClasses(prev => prev.filter(c => c.docId !== classItem.docId));
+                          try {
+                            const result = await deleteClass(classItem.docId);
+                            if (result.success) {
+                              const classEnrollments = enrollments.filter(e => e.classId === classItem.docId);
+                              for (const enrollment of classEnrollments) {
+                                await deleteEnrollment(enrollment.docId);
                               }
-                            }}
-                            style={{
-                              padding: '0.5rem 1rem',
-                              background: '#ff9800',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: 6,
-                              cursor: 'pointer',
-                              fontSize: '0.9rem'
-                            }}
-                            title={t('impersonate_student') || 'View as Student'}
-                          >
-                            🎭
-                          </button>
-                        )}
-                        
-                        {/* Reset Password Button */}
-                        <button
-                          onClick={async () => {
-                            try {
-                              const { sendPasswordResetEmail } = await import('firebase/auth');
-                              const { auth } = await import('../firebase/config');
-                              
-                              await sendPasswordResetEmail(auth, user.email);
-                              toast?.showSuccess(`Password reset email sent to ${user.email}`);
-                            } catch (error) {
-                              console.error('Error:', error);
-                              toast?.showError('Failed: ' + error.message);
+                              await loadData();
+                              toast?.showSuccess('Class deleted successfully!');
+                            } else {
+                              setClasses(prev => [...prev, classItem].sort((a, b) => a.name.localeCompare(b.name)));
+                              toast?.showError('Error deleting class: ' + result.error);
                             }
-                          }}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            background: 'linear-gradient(135deg, #800020, #600018)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 6,
-                            cursor: 'pointer',
-                            fontSize: '0.9rem'
-                          }}
-                        >
-                          🔑
-                        </button>
+                          } catch (error) {
+                            setClasses(prev => [...prev, classItem].sort((a, b) => a.name.localeCompare(b.name)));
+                            toast?.showError('Error deleting class: ' + error.message);
+                          }
+                        }}>
+                          {t('delete') || 'Delete'}
+                        </Button>
                       </div>
                     )
                   }
                 ]}
-                onEdit={(user) => {
-                  setEditingUser(user);
-                  setUserForm({
-                    email: user.email || '',
-                    displayName: user.displayName || '',
-                    realName: user.realName || '',
-                    studentNumber: user.studentNumber || '',
-                    role: user.role || 'student'
-                  });
-                }}
-                searchPlaceholder={t('search_users')}
-                skipDeleteConfirmation={true}
-                onDelete={async (user) => {
-                  // Open deletion modal instead of immediate delete
-                  setUserToDelete(user);
-                  setShowUserDeletionModal(true);
-                }}
+                pageSize={10}
+                pageSizeOptions={[5, 10, 20, 50]}
+                checkboxSelection
+                exportFileName="classes"
+                showExportButton
+                exportLabel={t('export') || 'Export'}
               />
             </div>
           )}
+        </div>
 
-          {activeTab === 'resources' && (
-            <div className="resources-tab">
-              <h2>{t('resources_management')}</h2>
-              
-              {editingResource && (
-                <div className="edit-mode-indicator">
-                  📝 Editing Resource: {editingResource.title}
+        {/* Grade Submission Modal */}
+        <Modal
+          isOpen={gradingModalOpen && !!gradingSubmission}
+          onClose={() => {
+            if (!loading) {
+              setGradingModalOpen(false);
+              setGradingSubmission(null);
+              setGradingScore('');
+            }
+          }}
+          title={t('grade_submission') || 'Grade Submission'}
+          size="small"
+          closeOnOverlayClick={!loading}
+
+          footer={(
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (!loading) {
+                    setGradingModalOpen(false);
+                    setGradingSubmission(null);
+                    setGradingScore('');
+                  }
+                }}
+                disabled={loading}
+              >
+                {t('cancel') || 'Cancel'}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={async () => {
+                  if (!gradingSubmission || !gradingScore) return;
+                  setLoading(true);
+                  try {
+                    const result = await gradeSubmission(
+                      gradingSubmission.docId,
+                      parseFloat(gradingScore)
+                    );
+                    if (result.success) {
+                      await loadData();
+                      setGradingModalOpen(false);
+                      setGradingSubmission(null);
+                      setGradingScore('');
+                      toast?.showSuccess('Submission graded successfully!');
+                    } else {
+                      toast?.showError('Error: ' + result.error);
+                    }
+                  } catch (error) {
+                    toast?.showError('Error: ' + error.message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                loading={loading}
+              >
+                {t('submit') || 'Submit'}
+              </Button>
+            </div>
+          )}
+        >
+          {gradingSubmission && (
+            <div style={{ padding: '1rem' }}>
+              <p style={{ marginBottom: '1rem', color: '#666' }}>
+                Grading submission from <strong>{users.find(u => u.docId === gradingSubmission.userId)?.displayName || gradingSubmission.userId}</strong>
+              </p>
+              <Input
+                type="number"
+                placeholder="Score"
+                value={gradingScore}
+                onChange={(e) => setGradingScore(e.target.value)}
+                min={0}
+                max={gradingSubmission.maxScore || 100}
+                step="0.1"
+                fullWidth
+              />
+            </div>
+          )}
+        </Modal>
+
+        {/* Enrollments Tab */}
+        {activeTab === 'enrollments' && (
+          <div className="enrollments-section" style={{ marginTop: '2rem' }}>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              // Check if enrollment already exists
+              const existingEnrollment = enrollments.find(e =>
+                e.userId === enrollmentForm.userId && e.classId === enrollmentForm.classId
+              );
+
+              if (existingEnrollment) {
+                toast?.showError('This user is already enrolled in this class');
+                return;
+              }
+
+              setLoading(true);
+              try {
+                const result = await addEnrollment(enrollmentForm);
+                if (result.success) {
+                  await loadData();
+                  setEnrollmentForm({ userId: '', classId: '', role: 'student' });
+                  toast?.showSuccess('Enrollment added successfully!');
+                } else {
+                  toast?.showError('Error: ' + result.error);
+                }
+              } catch (error) {
+                toast?.showError('Error: ' + error.message);
+              } finally {
+                setLoading(false);
+              }
+            }} className="activity-form">
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                <Select
+                  searchable
+                  placeholder={t('select_user')}
+                  value={enrollmentForm.userId}
+                  onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
+                  options={[
+                    { value: '', label: t('select_user') || 'Select User' },
+                    ...users.map(u => ({
+                      value: u.docId || u.id,
+                      label: `${u.email}${u.displayName ? ` (${u.displayName})` : ''}`
+                    }))
+                  ]}
+                  required
+                />
+
+                <Select
+                  searchable
+                  placeholder={t('select_class')}
+                  value={enrollmentForm.classId}
+                  onChange={e => setEnrollmentForm({ ...enrollmentForm, classId: e.target.value })}
+                  options={[
+                    { value: '', label: t('select_class') || 'Select Class' },
+                    ...classes.map(c => {
+                      const codePart = c.code ? ` (${c.code})` : '';
+                      const termPart = c.term ? ` - ${c.term}` : '';
+                      return {
+                        value: c.docId || c.id,
+                        label: `${c.name}${codePart}${termPart}`
+                      };
+                    })
+                  ]}
+                  required
+                />
+
+                <Select
+                  searchable
+                  placeholder={t('role') || 'Role'}
+                  value={enrollmentForm.role}
+                  onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
+                  options={[
+                    { value: 'student', label: t('student') || 'Student' },
+                    { value: 'ta', label: t('teaching_assistant') || 'Teaching Assistant' },
+                    { value: 'instructor', label: t('instructor') || 'Instructor' }
+                  ]}
+                />
+              </div>
+
+              <div className="form-actions" style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-start' }}>
+                <Button type="submit" variant="primary" disabled={loading}>
+                  {t('save') || 'Save'}
+                </Button>
+              </div>
+            </form>
+
+            <AdvancedDataGrid
+              rows={enrollments}
+              getRowId={(row) => row.docId || row.id}
+              columns={[
+                {
+                  field: 'userId', headerName: t('user_col'), flex: 1, minWidth: 250,
+                  renderCell: (params) => {
+                    const user = users.find(u => (u.docId || u.id) === params.value);
+                    return user ? `${user.email}${user.displayName ? ` (${user.displayName})` : ''}` : params.value;
+                  }
+                },
+                {
+                  field: 'classId', headerName: t('class_col'), flex: 1, minWidth: 200,
+                  renderCell: (params) => {
+                    const classItem = classes.find(c => (c.docId || c.id) === params.value);
+                    if (!classItem) return params.value;
+                    const codePart = classItem.code ? ` (${classItem.code})` : '';
+                    return `${classItem.name}${codePart}`;
+                  }
+                },
+                {
+                  field: 'role', headerName: t('role_col'), width: 150,
+                  renderCell: (params) => {
+                    const roleMap = {
+                      'student': '👨‍🎓 Student',
+                      'ta': '👨‍🏫 TA',
+                      'instructor': '👩‍🏫 Instructor'
+                    };
+                    return roleMap[params.value] || params.value;
+                  }
+                },
+                {
+                  field: 'createdAt', headerName: t('enrolled_col'), width: 180,
+                  valueGetter: (params) => params.value,
+                  renderCell: (params) => params.value ? formatDateTime(params.value) : 'Unknown'
+                },
+                {
+                  field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
+                  renderCell: (params) => (
+                    <Button size="sm" variant="danger" onClick={async () => {
+                      const enrollment = params.row;
+                      const result = await deleteEnrollment(enrollment.docId);
+                      if (result.success) {
+                        await loadData();
+                        toast?.showSuccess('Enrollment removed successfully!');
+                      } else {
+                        toast?.showError('Error: ' + result.error);
+                      }
+                    }}>
+                      {t('delete') || 'Delete'}
+                    </Button>
+                  )
+                }
+              ]}
+              pageSize={10}
+              pageSizeOptions={[5, 10, 20, 50]}
+              checkboxSelection
+              exportFileName="enrollments"
+              showExportButton
+              exportLabel={t('export') || 'Export'}
+            />
+          </div>
+        )}
+
+        {activeTab === 'submissions' && (
+          <div className="submissions-tab">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 12,
+                marginBottom: '0.75rem',
+                alignItems: 'center'
+              }}
+            >
+              <Select
+                value={activityFilter}
+                onChange={(e) => setActivityFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_activities') || 'All Activities' },
+                  ...activities.map(a => ({ value: a.id || a.docId, label: a.title_en || a.title_ar || a.id }))
+                ]}
+                searchable
+                fullWidth
+              />
+              <Select
+                searchable
+                value={submissionStudentFilter}
+                onChange={(e) => setSubmissionStudentFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_students') || 'All Students' },
+                  ...users.map(u => ({
+                    value: u.docId || u.id,
+                    label: `${u.email}${u.displayName ? ` (${u.displayName})` : ''}`
+                  }))
+                ]}
+                fullWidth
+              />
+              <Select
+                value={submissionStatusFilter}
+                onChange={(e) => setSubmissionStatusFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_statuses') || 'All Status' },
+                  { value: 'pending', label: t('pending') || 'Pending' },
+                  { value: 'graded', label: t('graded') || 'Graded' },
+                  { value: 'late', label: t('late') || 'Late' }
+                ]}
+                searchable
+                fullWidth
+              />
+              <Select
+                value={submissionScoreFilter}
+                onChange={(e) => setSubmissionScoreFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_scores') || 'All Scores' },
+                  { value: 'graded', label: t('graded_only') || 'Graded only' },
+                  { value: 'not_graded', label: t('not_graded_only') || 'Not graded yet' }
+                ]}
+                searchable
+                fullWidth
+              />
+            </div>
+            <AdvancedDataGrid
+              rows={filteredSubmissions}
+              getRowId={(row) => row.id || row.docId}
+              columns={[
+                {
+                  field: 'activityId', headerName: t('activity_col'), flex: 1, minWidth: 200,
+                  renderCell: (params) => {
+                    const activity = activities.find(a => (a.id === params.value) || (a.docId === params.value));
+                    return activity ? (activity.title_en || activity.title_ar || activity.id) : params.value;
+                  }
+                },
+                {
+                  field: 'userId', headerName: t('student_col'), flex: 1.5, minWidth: 260,
+                  renderCell: (params) => {
+                    const user = users.find(u => (u.docId || u.id) === params.value);
+                    if (!user) return params.value;
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span>{user.displayName || user.realName || user.email || params.value}</span>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{user.email}</span>
+                        {user.studentNumber && (
+                          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>#{user.studentNumber}</span>
+                        )}
+                      </div>
+                    );
+                  }
+                },
+                {
+                  field: 'status', headerName: t('status_col'), width: 140,
+                  renderCell: (params) => {
+                    const statusMap = {
+                      'submitted': '📝 Submitted',
+                      'graded': '✅ Graded',
+                      'late': '⏰ Late',
+                      'pending': '⏳ Pending'
+                    };
+                    return statusMap[params.value] || params.value || '📝 Submitted';
+                  }
+                },
+                {
+                  field: 'score', headerName: t('score_col'), width: 140,
+                  renderCell: (params) => {
+                    const act = activities.find(a => a.id === params.row.activityId || a.docId === params.row.activityId);
+                    const maxScore = act?.maxScore || 100;
+                    return params.value !== null && params.value !== undefined ? `${params.value} / ${maxScore}` : 'Not graded yet';
+                  }
+                },
+                {
+                  field: 'submittedAt', headerName: t('submitted_at_col'), width: 180,
+                  valueGetter: (params) => params.value,
+                  renderCell: (params) => params.value ? formatDateTime(params.value) : (t('unknown') || 'Unknown')
+                },
+                {
+                  field: 'files', headerName: t('files_col'), width: 150,
+                  renderCell: (params) => {
+                    if (!params.value || params.value.length === 0) return t('no_files') || 'No files';
+                    return (
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {params.value.map((file, i) => (
+                          <a
+                            key={i}
+                            href={file}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              background: '#e3f2fd',
+                              color: '#1976d2',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              textDecoration: 'none',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            File {i + 1}
+                          </a>
+                        ))}
+                      </div>
+                    );
+                  }
+                },
+                {
+                  field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
+                  renderCell: (params) => (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        const submission = params.row;
+                        const currentScore = (submission.score !== null && submission.score !== undefined)
+                          ? String(submission.score)
+                          : '';
+                        setGradingSubmission(submission);
+                        setGradingScore(currentScore);
+                        setGradingModalOpen(true);
+                      }}
+                    >
+                      {t('grade') || 'Grade'}
+                    </Button>
+                  )
+                }
+              ]}
+              pageSize={15}
+              pageSizeOptions={[5, 10, 15, 20, 50]}
+              checkboxSelection
+              exportFileName="submissions"
+              showExportButton
+              exportLabel={t('export') || 'Export'}
+            />
+          </div>
+        )}
+        {activeTab === 'users' && (
+          <div className="users-tab">
+            <p style={{ color: '#555', marginBottom: '1rem' }}>{t('invite_users_blurb')}</p>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!userForm.email.trim()) {
+                toast?.showError('Email is required');
+                return;
+              }
+
+              setLoading(true);
+              try {
+                if (editingUser) {
+                  const result = await updateUser(editingUser.docId, userForm);
+                  if (!result.success) throw new Error(result.error || 'Failed to update user');
+                  toast?.showSuccess('User updated successfully!');
+                } else {
+                  // Add to allowlist if checkbox is checked
+                  if (autoAddToAllowlist && userForm.email) {
+                    const targetList = userForm.role === 'admin' ? 'adminEmails' : 'allowedEmails';
+                    const currentEmails = allowlist[targetList] || [];
+
+                    if (!currentEmails.includes(userForm.email)) {
+                      const updatedAllowlist = {
+                        ...allowlist,
+                        [targetList]: [...currentEmails, userForm.email]
+                      };
+                      setAllowlist(updatedAllowlist);
+
+                      // Save to Firestore
+                      try {
+                        await updateAllowlist(updatedAllowlist);
+                      } catch (allowlistError) {
+                        toast?.showWarning('Failed to update allowlist: ' + allowlistError.message);
+                      }
+                    }
+                    toast?.showSuccess(`Invite prepared. ${userForm.email} added to ${userForm.role} allowlist. Ask them to sign up.`);
+                  } else {
+                    toast?.showInfo('No changes saved. Provide an email or enable allowlist option.');
+                  }
+                }
+
+                await loadData();
+                setEditingUser(null);
+                setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', role: 'student' });
+              } catch (error) {
+                toast?.showError('Error: ' + error.message);
+              } finally {
+                setLoading(false);
+              }
+            }} className="activity-form">
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <Input
+                  type="email"
+                  placeholder={t('user_email_placeholder')}
+                  value={userForm.email}
+                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                  required
+                />
+                <Input
+                  type="text"
+                  placeholder={t('user_display_name_placeholder')}
+                  value={userForm.displayName}
+                  onChange={(e) => setUserForm({ ...userForm, displayName: e.target.value })}
+                />
+                <Input
+                  type="text"
+                  placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
+                  value={userForm.realName || ''}
+                  onChange={(e) => setUserForm({ ...userForm, realName: e.target.value })}
+                />
+                <Input
+                  type="text"
+                  placeholder={t('student_number_placeholder') || 'Student Number (Optional)'}
+                  value={userForm.studentNumber || ''}
+                  onChange={(e) => setUserForm({ ...userForm, studentNumber: e.target.value })}
+                />
+                <Select
+                  searchable
+                  placeholder={t('role') || 'Role'}
+                  value={userForm.role}
+                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                  options={[
+                    { value: 'student', label: t('student') || 'Student' },
+                    { value: 'instructor', label: t('instructor') || 'Instructor' },
+                    { value: 'hr', label: t('hr') || 'HR' },
+                    { value: 'admin', label: t('admin') || 'Admin' },
+                    { value: 'superadmin', label: 'Super Admin' },
+                  ]}
+                  fullWidth
+                />
+              </div>
+
+              {!editingUser && (
+                <div className="form-row">
+                  <ToggleSwitch
+                    label="Auto-add email to student allowlist"
+                    checked={autoAddToAllowlist}
+                    onChange={(checked) => setAutoAddToAllowlist(checked)}
+                  />
                 </div>
               )}
-              
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                if (!resourceForm.title.trim() || !resourceForm.url.trim()) {
-                  toast?.showError('Title and URL are required');
-                  return;
-                }
-                
-                setLoading(true);
-                try {
-                  const result = editingResource ? 
-                    await updateResource(editingResource.docId, resourceForm) :
-                    await addResource(resourceForm);
-                    
-                  if (result.success) {
-                    const resourceId = editingResource?.docId || result?.id;
-                    
-                    // Send email notification if requested (only for new resources)
-                    if (!editingResource && resourceEmailOptions.sendEmail) {
-                      try {
-                        const emailResult = await sendEmail({
-                          to: 'all_students',
-                          subject: `New Resource: ${resourceForm.title}`,
-                          message: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
-                          type: 'resource'
+
+              <div className="form-actions">
+                <Button type="submit" variant="primary" loading={loading}>
+                  {(editingUser ? t('update') : t('save'))}
+                </Button>
+                {editingUser && (
+                  <Button type="button" variant="outline" onClick={() => {
+                    setEditingUser(null);
+                    setUserForm({ email: '', displayName: '', role: 'student' });
+                  }}>
+                    {t('cancel_edit') || 'Cancel Edit'}
+                  </Button>
+                )}
+              </div>
+            </form>
+
+            <AdvancedDataGrid
+              rows={users}
+              getRowId={(row) => row.docId || row.id}
+              columns={[
+                { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
+                { field: 'displayName', headerName: t('display_name_col'), flex: 1, minWidth: 180 },
+                {
+                  field: 'role', headerName: t('role_col'), width: 120,
+                  renderCell: (params) => params.value || t('student')
+                },
+                {
+                  field: 'enrolledClasses', headerName: t('enrolled_classes_col'), width: 140,
+                  valueGetter: (params) => {
+                    const userEnrollments = enrollments.filter(e => e.userId === params.row.docId || (e.userEmail || e.email) === params.row.email);
+                    return userEnrollments.length;
+                  }
+                },
+                {
+                  field: 'progress', headerName: t('progress'), width: 180,
+                  renderCell: (params) => {
+                    const userSubmissions = submissions.filter(s => s.userId === params.row.id);
+                    const completedCount = userSubmissions.filter(s => s.status === 'graded').length;
+                    const totalActivities = activities.length;
+                    return (
+                      <a
+                        href={`/student-progress?userId=${params.row.docId}`}
+                        style={{ color: '#800020', textDecoration: 'none', fontWeight: '600' }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.location.href = `/student-progress?userId=${params.row.docId}`;
+                        }}
+                      >
+                        {completedCount}/{totalActivities} activities →
+                      </a>
+                    );
+                  }
+                },
+                {
+                  field: 'createdAt', headerName: t('joined'), width: 180,
+                  valueGetter: (params) => params.value,
+                  renderCell: (params) => params.value ? formatDateTime(params.value) : (t('unknown') || 'Unknown')
+                },
+                {
+                  field: 'actions', headerName: t('actions_col'), width: 280, sortable: false, filterable: false,
+                  renderCell: (params) => (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button size="sm" variant="secondary" onClick={() => {
+                        setEditingUser(params.row);
+                        setUserForm({
+                          email: params.row.email || '',
+                          displayName: params.row.displayName || '',
+                          realName: params.row.realName || '',
+                          studentNumber: params.row.studentNumber || '',
+                          role: params.row.role || 'student'
                         });
-                        if (emailResult.success) {
-                          console.log('Resource notification email sent successfully');
-                        }
-                      } catch (emailError) {
-                        console.warn('Failed to send resource email:', emailError);
-                      }
-                    }
-                    
-                    // Create announcement if requested (only for new resources)
-                    if (!editingResource && resourceEmailOptions.createAnnouncement) {
-                      try {
-                        const announcementData = {
-                          title: `New Resource Available`,
-                          content: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
-                          target: 'global',
-                          type: 'resource',
-                          resourceId: resourceId
-                        };
-                        
-                        const addAnnouncement = (await import('../firebase/firestore')).addAnnouncement;
-                        await addAnnouncement(announcementData);
-                        console.log('Resource announcement created successfully');
+                      }}>
+                        {t('edit') || 'Edit'}
+                      </Button>
+                      {(params.row.role || 'student') === 'student' && (
+                        <Button size="sm" variant="primary" onClick={async () => {
+                          const result = await impersonateUser(params.row.docId || params.row.id);
+                          if (result.success) {
+                            toast?.showSuccess(t('impersonation_started') || 'Now viewing as student');
+                            window.location.href = '/';
+                          } else {
+                            toast?.showError(result.error || 'Failed to impersonate');
+                          }
+                        }} title={t('impersonate_student') || 'View as Student'}>
+                          🎭
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={async () => {
                         try {
-                          await notifyAllUsers(
-                            `📚 New Resource: ${resourceForm.title}`,
-                            resourceForm.description || 'New resource available',
-                            'resource'
-                          );
-                        } catch (notifErr) {
-                          console.warn('Failed to send bell notification for resource:', notifErr);
+                          const { sendPasswordResetEmail } = await import('firebase/auth');
+                          const { auth } = await import('../firebase/config');
+                          await sendPasswordResetEmail(auth, params.row.email);
+                          toast?.showSuccess(`Password reset email sent to ${params.row.email}`);
+                        } catch (error) {
+                          console.error('Error:', error);
+                          toast?.showError('Failed: ' + error.message);
                         }
-                      } catch (announcementError) {
-                        console.warn('Failed to create resource announcement:', announcementError);
+                      }}>
+                        🔑
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => {
+                        setUserToDelete(params.row);
+                        setShowUserDeletionModal(true);
+                      }}>
+                        {t('delete') || 'Delete'}
+                      </Button>
+                    </div>
+                  )
+                }
+              ]}
+              pageSize={10}
+              pageSizeOptions={[5, 10, 20, 50]}
+              checkboxSelection
+            />
+          </div>
+        )}
+
+        {activeTab === 'resources' && (
+          <div className="resources-tab">
+            <h2 style={{ display: 'none' }}>{t('resources_management')}</h2>
+
+            {editingResource && (
+              <div className="edit-mode-indicator">
+                📝 Editing Resource: {editingResource.title}
+              </div>
+            )}
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!resourceForm.title.trim() || !resourceForm.url.trim()) {
+                toast?.showError('Title and URL are required');
+                return;
+              }
+
+              setLoading(true);
+              try {
+                const result = editingResource ?
+                  await updateResource(editingResource.docId, resourceForm) :
+                  await addResource(resourceForm);
+
+                if (result.success) {
+                  const resourceId = editingResource?.docId || result?.id;
+
+                  // Send email notification if requested (only for new resources)
+                  if (!editingResource && resourceEmailOptions.sendEmail) {
+                    try {
+                      const emailResult = await sendEmail({
+                        to: 'all_students',
+                        subject: `New Resource: ${resourceForm.title}`,
+                        message: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
+                        type: 'resource'
+                      });
+                      if (emailResult.success) {
+                        console.log('Resource notification email sent successfully');
                       }
+                    } catch (emailError) {
+                      console.warn('Failed to send resource email:', emailError);
                     }
-                    
-                    // If no announcement requested, still send bell notification for visibility
-                    if (!editingResource && !resourceEmailOptions.createAnnouncement) {
+                  }
+
+                  // Create announcement if requested (only for new resources)
+                  if (!editingResource && resourceEmailOptions.createAnnouncement) {
+                    try {
+                      const announcementData = {
+                        title: `New Resource Available`,
+                        content: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
+                        target: 'global',
+                        type: 'resource',
+                        resourceId: resourceId
+                      };
+
+                      const addAnnouncement = (await import('../firebase/firestore')).addAnnouncement;
+                      await addAnnouncement(announcementData);
+                      console.log('Resource announcement created successfully');
                       try {
                         await notifyAllUsers(
                           `📚 New Resource: ${resourceForm.title}`,
@@ -2338,439 +2305,522 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       } catch (notifErr) {
                         console.warn('Failed to send bell notification for resource:', notifErr);
                       }
+                    } catch (announcementError) {
+                      console.warn('Failed to create resource announcement:', announcementError);
                     }
-                    
-                    await loadData();
+                  }
+
+                  // If no announcement requested, still send bell notification for visibility
+                  if (!editingResource && !resourceEmailOptions.createAnnouncement) {
+                    try {
+                      await notifyAllUsers(
+                        `📚 New Resource: ${resourceForm.title}`,
+                        resourceForm.description || 'New resource available',
+                        'resource'
+                      );
+                    } catch (notifErr) {
+                      console.warn('Failed to send bell notification for resource:', notifErr);
+                    }
+                  }
+
+                  await loadData();
+                  setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false });
+                  setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
+                  setEditingResource(null);
+                  toast?.showSuccess(editingResource ? 'Resource updated successfully!' : 'Resource created successfully!');
+                } else {
+                  toast?.showError(`Error ${editingResource ? 'updating' : 'creating'} resource: ` + result.error);
+                }
+              } catch (error) {
+                toast?.showError(`Error ${editingResource ? 'updating' : 'creating'} resource: ` + error.message);
+              } finally {
+                setLoading(false);
+              }
+            }} className="activity-form">
+              <div className="form-row">
+                <Input
+                  type="text"
+                  placeholder={t('resource_title') + ' (EN)'}
+                  value={resourceForm.title_en || resourceForm.title || ''}
+                  onChange={(e) => setResourceForm({ ...resourceForm, title_en: e.target.value, title: e.target.value })}
+                  required
+                />
+                <Input
+                  type="text"
+                  placeholder={t('resource_title') + ' (AR)'}
+                  value={resourceForm.title_ar || ''}
+                  onChange={(e) => setResourceForm({ ...resourceForm, title_ar: e.target.value })}
+                />
+                <Select
+                  searchable
+                  placeholder={t('type') || 'Resource Type'}
+                  value={resourceForm.type}
+                  onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
+                  options={[
+                    { value: 'document', label: '📄 Document' },
+                    { value: 'link', label: '🔗 Link' },
+                    { value: 'video', label: '📺 Video' }
+                  ]}
+                />
+              </div>
+
+              <div className="form-row">
+                <Textarea
+                  placeholder={t('resource_description') + ' (EN)'}
+                  value={resourceForm.description_en || resourceForm.description || ''}
+                  onChange={(e) => setResourceForm({ ...resourceForm, description_en: e.target.value, description: e.target.value })}
+                  rows={3}
+                  fullWidth
+                />
+                <Textarea
+                  placeholder={t('resource_description') + ' (AR)'}
+                  value={resourceForm.description_ar || ''}
+                  onChange={(e) => setResourceForm({ ...resourceForm, description_ar: e.target.value })}
+                  rows={3}
+                  fullWidth
+                />
+              </div>
+
+              <div className="form-row">
+                <UrlInput
+                  placeholder={t('resource_url')}
+                  value={resourceForm.url}
+                  onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
+                  required
+                  onOpen={(href) => console.debug('open resource url', href)}
+                  onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
+                  onClear={() => setResourceForm({ ...resourceForm, url: '' })}
+                  fullWidth
+                />
+                <DatePicker
+                  type="datetime"
+                  value={resourceForm.dueDate}
+                  onChange={(iso) => setResourceForm({ ...resourceForm, dueDate: iso })}
+                  placeholder={t('due_date') + ' (' + t('optional') + ')'}
+                />
+              </div>
+
+              <div className="form-row">
+                <ToggleSwitch
+                  label={t('optional_resource')}
+                  checked={resourceForm.optional}
+                  onChange={(checked) => setResourceForm({ ...resourceForm, optional: checked })}
+                />
+                <ToggleSwitch
+                  label="Featured Resource"
+                  checked={resourceForm.featured}
+                  onChange={(checked) => setResourceForm({ ...resourceForm, featured: checked })}
+                />
+              </div>
+
+              <div className="form-row" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginTop: '1rem', display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <ToggleSwitch
+                  label="Send email notification"
+                  checked={resourceEmailOptions.sendEmail}
+                  onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, sendEmail: checked })}
+                />
+
+                <ToggleSwitch
+                  label="Create announcement (bell notification)"
+                  checked={resourceEmailOptions.createAnnouncement}
+                  onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, createAnnouncement: checked })}
+                />
+              </div>
+
+              <div className="form-actions">
+                <Button type="submit" variant="primary" loading={loading}>
+                  {(editingResource ? t('update') : t('save'))}
+                </Button>
+                {editingResource && (
+                  <Button type="button" variant="outline" onClick={() => {
+                    setEditingResource(null);
                     setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false });
                     setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
-                    setEditingResource(null);
-                    toast?.showSuccess(editingResource ? 'Resource updated successfully!' : 'Resource created successfully!');
-                  } else {
-                    toast?.showError(`Error ${editingResource ? 'updating' : 'creating'} resource: ` + result.error);
-                  }
-                } catch (error) {
-                  toast?.showError(`Error ${editingResource ? 'updating' : 'creating'} resource: ` + error.message);
-                } finally {
-                  setLoading(false);
-                }
-              }} className="activity-form">
-                <div className="form-row">
-                  <input
-                    type="text"
-                    placeholder={t('resource_title') + ' (EN)'}
-                    value={resourceForm.title_en || resourceForm.title || ''}
-                    onChange={(e) => setResourceForm({...resourceForm, title_en: e.target.value, title: e.target.value})}
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder={t('resource_title') + ' (AR)'}
-                    value={resourceForm.title_ar || ''}
-                    onChange={(e) => setResourceForm({...resourceForm, title_ar: e.target.value})}
-                  />
-                  <select
-                    value={resourceForm.type}
-                    onChange={(e) => setResourceForm({...resourceForm, type: e.target.value})}
-                  >
-                    <option value="document">📄 Document</option>
-                    <option value="link">🔗 Link</option>
-                    <option value="video">📺 Video</option>
-                  </select>
-                </div>
-                
-                <div className="form-row">
-                  <textarea
-                    placeholder={t('resource_description') + ' (EN)'}
-                    value={resourceForm.description_en || resourceForm.description || ''}
-                    onChange={(e) => setResourceForm({...resourceForm, description_en: e.target.value, description: e.target.value})}
-                    rows="3"
-                  />
-                  <textarea
-                    placeholder={t('resource_description') + ' (AR)'}
-                    value={resourceForm.description_ar || ''}
-                    onChange={(e) => setResourceForm({...resourceForm, description_ar: e.target.value})}
-                    rows="3"
-                  />
-                </div>
-                
-                <div className="form-row">
-                  <input
-                    type="url"
-                    placeholder={t('resource_url')}
-                    value={resourceForm.url}
-                    onChange={(e) => setResourceForm({...resourceForm, url: e.target.value})}
-                    required
-                  />
-                  <DateTimePicker
-                    value={resourceForm.dueDate}
-                    onChange={(iso) => setResourceForm({...resourceForm, dueDate: iso})}
-                    placeholder={t('due_date') + ' (' + t('optional') + ')'}
-                  />
-                </div>
-                
-                <div className="form-row">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      checked={resourceForm.optional}
-                      onChange={(e) => setResourceForm({...resourceForm, optional: e.target.checked})}
-                    />
-{t('optional_resource')}
-                  </label>
-                </div>
+                  }}>
+                    {t('cancel_edit') || 'Cancel Edit'}
+                  </Button>
+                )}
+              </div>
+            </form>
 
-                <div className="form-row">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      checked={resourceForm.featured}
-                      onChange={(e) => setResourceForm({...resourceForm, featured: e.target.checked})}
-                    />
-                    Featured Resource
-                  </label>
-                </div>
-
-                {/* Email and Announcement Options */}
-                <div className="form-row" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-                  <div style={{ fontWeight: 600, marginBottom: '0.75rem', color: '#800020' }}>📢 Notification Options</div>
-                  
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
-                    <input
-                      type="checkbox"
-                      checked={resourceEmailOptions.sendEmail}
-                      onChange={(e) => setResourceEmailOptions({...resourceEmailOptions, sendEmail: e.target.checked})}
-                    />
-                    Send email notification
-                  </label>
-                  
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      checked={resourceEmailOptions.createAnnouncement}
-                      onChange={(e) => setResourceEmailOptions({...resourceEmailOptions, createAnnouncement: e.target.checked})}
-                    />
-                    Create announcement (bell notification)
-                  </label>
-                </div>
-                
-                <div className="form-actions">
-                  <button type="submit" className="submit-btn" disabled={loading}>
-                    {loading ? (editingResource ? t('updating') : t('creating')) : (editingResource ? t('update') + ' Resource' : t('create_resource'))}
-                  </button>
-                  {editingResource && (
-                    <button type="button" onClick={() => {
-                      setEditingResource(null);
-                      setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false });
-                      setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
-                    }} className="cancel-btn">
-                      Cancel Edit
-                    </button>
-                  )}
-                </div>
-              </form>
-              
-              <SmartGrid
-                data={resources}
-                title={t('learning_resources_title')}
-                columns={[
-                  { header: t('title_col'), accessor: 'title' },
-                  { header: t('type_col'), accessor: 'type', render: (type) => {
+            <AdvancedDataGrid
+              rows={resources}
+              getRowId={(row) => row.docId || row.id}
+              columns={[
+                { field: 'title', headerName: t('title_col'), flex: 1, minWidth: 200 },
+                {
+                  field: 'type', headerName: t('type_col'), width: 140,
+                  renderCell: (params) => {
                     const typeMap = {
                       'document': '📄 Document',
                       'link': '🔗 Link',
                       'video': '📺 Video'
                     };
-                    return typeMap[type] || type;
-                  }},
-                  { 
-                    header: t('description_col'), 
-                    accessor: 'description',
-                    render: (desc) => desc ? (desc.length > 50 ? desc.substring(0, 50) + '...' : desc) : t('no_description')
-                  },
-                  { 
-                    header: t('due_date_col'), 
-                    accessor: 'dueDate',
-                    render: (val) => {
-                      if (!val) return t('no_deadline');
-                      return formatDateTime(val);
-                    }
-                  },
-                  { 
-                    header: t('required_col'), 
-                    accessor: 'optional',
-                    render: (optional) => optional ? t('required_optional') : t('required_yes')
-                  },
-                  { 
-                    header: 'Created', 
-                    accessor: 'createdAt',
-                    render: (createdAt) => {
-                      if (!createdAt) return 'Unknown';
-                      return formatDateTime(createdAt);
-                    }
+                    return typeMap[params.value] || params.value;
                   }
-                ]}
-                onEdit={(resource) => {
-                  setEditingResource(resource);
-                  setResourceForm({
-                    title: resource.title || '',
-                    description: resource.description || '',
-                    url: resource.url || '',
-                    type: resource.type || 'link',
-                    dueDate: resource.dueDate || '',
-                    optional: resource.optional || false
-                  });
-                }}
-                onDelete={async (resource) => {
-                  setResources(prev => prev.filter(r => r.docId !== resource.docId));
-                  
-                  try {
-                    const result = await deleteResource(resource.docId);
-                    if (result.success) {
-                      toast?.showSuccess('Resource deleted successfully!');
-                    } else {
-                      setResources(prev => [...prev, resource].sort((a, b) => 
-                        new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt) - 
-                        new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt)
-                      ));
-                      toast?.showError('Error deleting resource: ' + result.error);
-                    }
-                  } catch (error) {
-                    setResources(prev => [...prev, resource].sort((a, b) => 
-                      new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt) - 
-                      new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt)
-                    ));
-                    toast?.showError('Error deleting resource: ' + error.message);
-                  }
-                }}
-                searchPlaceholder={t('search_resources')}
-              />
-            </div>
-          )}
-
-          {activeTab === 'smtp' && (
-            <div className="smtp-tab">
-              <div style={{ background:'white', border:'1px solid #eee', borderRadius:12, padding:'1.5rem', maxWidth:760 }}>
-                {(() => {
-                  if (!smtpLoading && !smtpConfig.__loaded) {
-                    (async () => {
-                      setSmtpLoading(true);
-                      const r = await getSMTPConfig();
-                      if (r.success && r.data) setSmtpConfig({ ...r.data, __loaded: true });
-                      else setSmtpConfig(s => ({ ...s, __loaded: true }));
-                      setSmtpLoading(false);
-                    })();
-                  }
-                  return null;
-                })()}
-                <div style={{ display:'grid', gap:12 }}>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                    <div>
-                      <label style={{ fontWeight:600, fontSize:'0.9rem', display:'block', marginBottom:4 }}>SMTP Host</label>
-                      <input value={smtpConfig.host} onChange={(e)=>setSmtpConfig({...smtpConfig, host:e.target.value})} placeholder="smtp.gmail.com" style={{ width:'100%', padding:'8px', border:'1px solid #ddd', borderRadius:6 }} />
-                    </div>
-                    <div>
-                      <label style={{ fontWeight:600, fontSize:'0.9rem', display:'block', marginBottom:4 }}>SMTP Port</label>
-                      <input type="number" value={smtpConfig.port} onChange={(e)=>setSmtpConfig({...smtpConfig, port:parseInt(e.target.value||'0')})} placeholder="587" style={{ width:'100%', padding:'8px', border:'1px solid #ddd', borderRadius:6 }} />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ fontWeight:600, fontSize:'0.9rem', display:'block', marginBottom:4 }}>Email Address</label>
-                    <input type="email" value={smtpConfig.user} onChange={(e)=>setSmtpConfig({...smtpConfig, user:e.target.value})} placeholder="your-email@gmail.com" style={{ width:'100%', padding:'8px', border:'1px solid #ddd', borderRadius:6 }} />
-                  </div>
-                  <div>
-                    <label style={{ fontWeight:600, fontSize:'0.9rem', display:'block', marginBottom:4 }}>App Password</label>
-                    <input type="password" value={smtpConfig.password} onChange={(e)=>setSmtpConfig({...smtpConfig, password:e.target.value})} placeholder="16-character app password" style={{ width:'100%', padding:'8px', border:'1px solid #ddd', borderRadius:6 }} />
-                  </div>
-                  <div>
-                    <label style={{ fontWeight:600, fontSize:'0.9rem', display:'block', marginBottom:4 }}>Sender Name</label>
-                    <input value={smtpConfig.senderName} onChange={(e)=>setSmtpConfig({...smtpConfig, senderName:e.target.value})} style={{ width:'100%', padding:'8px', border:'1px solid #ddd', borderRadius:6 }} />
-                  </div>
-                  <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:8 }}>
-                    <button
-                      type="button"
-                      onClick={async () => {
+                },
+                {
+                  field: 'description', headerName: t('description_col'), flex: 1, minWidth: 200,
+                  renderCell: (params) => params.value ? (params.value.length > 50 ? params.value.substring(0, 50) + '...' : params.value) : (t('no_description') || 'No description')
+                },
+                {
+                  field: 'dueDate', headerName: t('due_date_col'), width: 180,
+                  valueGetter: (params) => params.value,
+                  renderCell: (params) => params.value ? formatDateTime(params.value) : (t('no_deadline') || 'No deadline')
+                },
+                {
+                  field: 'optional', headerName: t('required_col'), width: 120,
+                  renderCell: (params) => params.value ? (t('required_optional') || 'Optional') : (t('required_yes') || 'Required')
+                },
+                {
+                  field: 'createdAt', headerName: 'Created', width: 180,
+                  valueGetter: (params) => params.value,
+                  renderCell: (params) => params.value ? formatDateTime(params.value) : 'Unknown'
+                },
+                {
+                  field: 'actions', headerName: t('actions') || 'Actions', width: 180, sortable: false, filterable: false,
+                  renderCell: (params) => (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button size="sm" variant="secondary" onClick={() => {
+                        setEditingResource(params.row);
+                        setResourceForm({
+                          title: params.row.title || '',
+                          title_en: params.row.title_en || params.row.title || '',
+                          title_ar: params.row.title_ar || '',
+                          description: params.row.description || '',
+                          description_en: params.row.description_en || params.row.description || '',
+                          description_ar: params.row.description_ar || '',
+                          url: params.row.url || '',
+                          type: params.row.type || 'link',
+                          dueDate: params.row.dueDate || '',
+                          optional: params.row.optional || false,
+                          featured: params.row.featured || false
+                        });
+                      }}>
+                        {t('edit') || 'Edit'}
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={async () => {
+                        const resource = params.row;
+                        setResources(prev => prev.filter(r => r.docId !== resource.docId));
                         try {
-                          setSmtpTesting(true);
-                          const { httpsCallable } = await import('firebase/functions');
-                          const { functions } = await import('../firebase/config');
-                          const testSMTP = httpsCallable(functions, 'testSMTP');
-                          const result = await testSMTP({ to: user?.email || smtpConfig.user });
-                          if (result.data.success) {
-                            toast?.showSuccess('Test email sent! Check your inbox.');
+                          const result = await deleteResource(resource.docId);
+                          if (result.success) {
+                            toast?.showSuccess('Resource deleted successfully!');
                           } else {
-                            toast?.showError('Test failed: ' + result.data.error);
+                            setResources(prev => [...prev, resource].sort((a, b) =>
+                              new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt) -
+                              new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt)
+                            ));
+                            toast?.showError('Error deleting resource: ' + result.error);
                           }
                         } catch (error) {
-                          toast?.showError('Test failed: ' + (error.message || 'Unknown error'));
-                        } finally {
-                          setSmtpTesting(false);
+                          setResources(prev => [...prev, resource].sort((a, b) =>
+                            new Date(b.createdAt?.seconds ? b.createdAt.seconds * 1000 : b.createdAt) -
+                            new Date(a.createdAt?.seconds ? a.createdAt.seconds * 1000 : a.createdAt)
+                          ));
+                          toast?.showError('Error deleting resource: ' + error.message);
                         }
-                      }}
-                      style={{ padding:'10px 20px', background:'#28a745', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}
-                      disabled={smtpTesting}
-                    >
-                      {smtpTesting ? 'Testing...' : '📧 Test SMTP'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          setSmtpSaving(true);
-                          const payload = {
-                            host: smtpConfig.host,
-                            port: smtpConfig.port,
-                            secure: smtpConfig.secure,
-                            user: smtpConfig.user,
-                            password: smtpConfig.password,
-                            senderName: smtpConfig.senderName,
-                          };
-                          const r = await updateSMTPConfig(payload);
-                          if (r.success) toast?.showSuccess('SMTP configuration saved!');
-                          else toast?.showError('Failed: ' + r.error);
-                        } finally {
-                          setSmtpSaving(false);
-                        }
-                      }}
-                      style={{ padding:'10px 20px', background:'linear-gradient(135deg,#800020,#600018)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}
-                    >
-                      {smtpSaving ? 'Saving...' : 'Save Configuration'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+                      }}>
+                        {t('delete') || 'Delete'}
+                      </Button>
+                    </div>
+                  )
+                }
+              ]}
+              pageSize={10}
+              pageSizeOptions={[5, 10, 20, 50]}
+              checkboxSelection
+            />
+          </div>
+        )}
 
-          {activeTab === 'categories' && (
-            <div className="courses-tab">
-              <p style={{ color:'#666', marginBottom:'1rem' }}>{t('manage_categories')}</p>
-              
-              {courses.length === 0 && (
-                <div style={{ padding: '1.5rem', background: '#f8f9fa', borderRadius: 8, marginBottom: '1rem', textAlign: 'center' }}>
-                  <p style={{ marginBottom: '0.75rem', color:'#555' }}>{t('no_categories_yet')}</p>
-                  <button
-                    type="button"
+        {activeTab === 'smtp' && (
+          <div className="smtp-tab">
+            <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 12, padding: '1.5rem', maxWidth: 760 }}>
+              {(() => {
+                if (!smtpLoading && !smtpConfig.__loaded) {
+                  (async () => {
+                    setSmtpLoading(true);
+                    const r = await getSMTPConfig();
+                    if (r.success && r.data) setSmtpConfig({ ...r.data, __loaded: true });
+                    else setSmtpConfig(s => ({ ...s, __loaded: true }));
+                    setSmtpLoading(false);
+                  })();
+                }
+                return null;
+              })()}
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Input
+                    label="SMTP Host"
+                    value={smtpConfig.host}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
+                    placeholder="smtp.gmail.com"
+                    fullWidth
+                  />
+                  <NumberInput
+                    label="SMTP Port"
+                    value={smtpConfig.port}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, port: parseInt(e.target.value || '0') })}
+                    placeholder="587"
+                    fullWidth
+                  />
+                </div>
+                <Input
+                  label="Email Address"
+                  type="email"
+                  value={smtpConfig.user}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
+                  placeholder="your-email@gmail.com"
+                  fullWidth
+                />
+                <Input
+                  label="App Password"
+                  type="password"
+                  value={smtpConfig.password}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
+                  placeholder="16-character app password"
+                  fullWidth
+                />
+                <Input
+                  label="Sender Name"
+                  value={smtpConfig.senderName}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, senderName: e.target.value })}
+                  fullWidth
+                />
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                  <Button
+                    variant="success"
                     onClick={async () => {
                       try {
-                        await setCourse('programming', { name_en: 'Programming', name_ar: 'البرمجة', order: 1 });
-                        await setCourse('computing', { name_en: 'Computing', name_ar: 'الحوسبة', order: 2 });
-                        await setCourse('algorithm', { name_en: 'Algorithm', name_ar: 'الخوارزميات', order: 3 });
-                        await setCourse('general', { name_en: 'General', name_ar: 'عام', order: 4 });
-                        toast?.showSuccess('Default categories added!');
-                        loadData();
-                      } catch (err) {
-                        toast?.showError('Failed to add defaults: ' + err.message);
+                        setSmtpTesting(true);
+                        const { httpsCallable } = await import('firebase/functions');
+                        const { functions } = await import('../firebase/config');
+                        const testSMTP = httpsCallable(functions, 'testSMTP');
+                        const result = await testSMTP({ to: user?.email || smtpConfig.user });
+                        if (result.data.success) {
+                          toast?.showSuccess('Test email sent! Check your inbox.');
+                        } else {
+                          toast?.showError('Test failed: ' + result.data.error);
+                        }
+                      } catch (error) {
+                        toast?.showError('Test failed: ' + (error.message || 'Unknown error'));
+                      } finally {
+                        setSmtpTesting(false);
                       }
                     }}
-                    style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize:'0.95rem' }}
+                    disabled={smtpTesting}
                   >
-                    ➕ {t('add_default_categories')}
-                  </button>
+                    {smtpTesting ? 'Testing...' : '📧 Test SMTP'}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={async () => {
+                      try {
+                        setSmtpSaving(true);
+                        const payload = {
+                          host: smtpConfig.host,
+                          port: smtpConfig.port,
+                          secure: smtpConfig.secure,
+                          user: smtpConfig.user,
+                          password: smtpConfig.password,
+                          senderName: smtpConfig.senderName,
+                        };
+                        const r = await updateSMTPConfig(payload);
+                        if (r.success) toast?.showSuccess('SMTP configuration saved!');
+                        else toast?.showError('Failed: ' + r.error);
+                      } finally {
+                        setSmtpSaving(false);
+                      }
+                    }}
+                  >
+                    {smtpSaving ? 'Saving...' : 'Save Configuration'}
+                  </Button>
                 </div>
-              )}
-              
-              <form onSubmit={async (e)=>{
-                e.preventDefault();
-                if (!courseForm.id.trim()) { toast?.showError('Category ID required'); return; }
-                try {
-                  await setCourse(courseForm.id, { name_en: courseForm.name_en, name_ar: courseForm.name_ar, order: Number(courseForm.order) || 0 });
-                  toast?.showSuccess(editingCourse ? 'Category updated!' : 'Category created!');
-                  setCourseForm({ id: '', name_en: '', name_ar: '', order: 0 });
-                  setEditingCourse(null);
-                  loadData();
-                } catch (err) {
-                  toast?.showError('Failed to save category: ' + err.message);
-                }
-              }} style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:12, marginBottom:'1.5rem', padding:'1rem', background:'#f8f9fa', borderRadius:8 }}>
-                <input type="text" placeholder="ID (e.g., python)" value={courseForm.id} onChange={(e)=>setCourseForm({...courseForm, id: e.target.value.toLowerCase().trim()})} disabled={!!editingCourse} required style={{ padding:'0.6rem', border:'1px solid #ddd', borderRadius:6 }} />
-                <input type="text" placeholder="Name (English)" value={courseForm.name_en} onChange={(e)=>setCourseForm({...courseForm, name_en: e.target.value})} required style={{ padding:'0.6rem', border:'1px solid #ddd', borderRadius:6 }} />
-                <input type="text" placeholder="Name (Arabic)" value={courseForm.name_ar} onChange={(e)=>setCourseForm({...courseForm, name_ar: e.target.value})} style={{ padding:'0.6rem', border:'1px solid #ddd', borderRadius:6 }} />
-                <input type="number" placeholder="Order" value={courseForm.order} onChange={(e)=>setCourseForm({...courseForm, order: e.target.value})} style={{ padding:'0.6rem', border:'1px solid #ddd', borderRadius:6 }} />
-                <button type="submit" style={{ padding:'0.6rem 1rem', background:'linear-gradient(135deg, #800020, #600018)', color:'white', border:'none', borderRadius:6, cursor:'pointer', fontWeight:600 }}>{editingCourse ? 'Update' : 'Add'}</button>
-                {editingCourse && <button type="button" onClick={()=>{ setCourseForm({ id: '', name_en: '', name_ar: '', order: 0 }); setEditingCourse(null); }} style={{ padding:'0.6rem 1rem', background:'#6c757d', color:'white', border:'none', borderRadius:6, cursor:'pointer' }}>Cancel</button>}
-              </form>
-
-              <div style={{ overflowX:'auto' }}>
-                <table style={{ width:'100%', borderCollapse:'collapse', background:'white', borderRadius:8 }}>
-                  <thead>
-                    <tr style={{ background:'#f8f9fa' }}>
-                      <th style={{ textAlign:'left', padding:'12px', borderBottom:'2px solid #ddd', fontWeight:600 }}>ID</th>
-                      <th style={{ textAlign:'left', padding:'12px', borderBottom:'2px solid #ddd', fontWeight:600 }}>Name (EN)</th>
-                      <th style={{ textAlign:'left', padding:'12px', borderBottom:'2px solid #ddd', fontWeight:600 }}>Name (AR)</th>
-                      <th style={{ textAlign:'left', padding:'12px', borderBottom:'2px solid #ddd', fontWeight:600 }}>Order</th>
-                      <th style={{ textAlign:'left', padding:'12px', borderBottom:'2px solid #ddd', fontWeight:600 }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {courses.map(c => (
-                      <tr key={c.docId} style={{ borderBottom:'1px solid #f3f3f3' }}>
-                        <td style={{ padding:'12px' }}><code>{c.docId}</code></td>
-                        <td style={{ padding:'12px' }}>{c.name_en || '—'}</td>
-                        <td style={{ padding:'12px' }}>{c.name_ar || '—'}</td>
-                        <td style={{ padding:'12px' }}>{c.order ?? 0}</td>
-                        <td style={{ padding:'12px', display:'flex', gap:8 }}>
-                          <button onClick={()=>{ setCourseForm({ id: c.docId, name_en: c.name_en||'', name_ar: c.name_ar||'', order: c.order||0 }); setEditingCourse(c.docId); }} style={{ padding:'6px 12px', background:'#0d6efd', color:'white', border:'none', borderRadius:4, cursor:'pointer', fontSize:'0.85rem' }}>Edit</button>
-                          <button onClick={()=>{ setModalState({ open: true, title: 'Delete Category', message: `Delete "${c.name_en || c.docId}"? Activities with this category will fallback to "General".`, onConfirm: async () => { await deleteCourse(c.docId); toast?.showSuccess('Category deleted'); loadData(); setModalState({ open: false, title: '', message: '', onConfirm: null }); } }); }} style={{ padding:'6px 12px', background:'#dc3545', color:'white', border:'none', borderRadius:4, cursor:'pointer', fontSize:'0.85rem' }}>Delete</button>
-                        </td>
-                      </tr>
-                    ))}
-                    {courses.length === 0 && (
-                      <tr>
-                        <td colSpan="5" style={{ padding:'2rem', color:'#888', textAlign:'center' }}>{t('no_categories_yet')}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'emailTemplates' && (
-            <div className="email-templates-tab">
-              <EmailTemplates />
-            </div>
-          )}
+        {activeTab === 'categories' && (
+          <div className="courses-tab">
+            <p style={{ color: '#666', marginBottom: '1rem' }}>{t('manage_categories')}</p>
 
-          {activeTab === 'emailLogs' && (
-            <div className="email-logs-tab">
-              <EmailLogs />
-            </div>
-          )}
-
-          {activeTab === 'allowlist' && (
-            <div className="allowlist-tab">
-              <h2>{t('allowlist_management')}</h2>
-              
-              <EmailManager
-                emails={allowlist.allowedEmails || []}
-                onEmailsChange={(emails) => setAllowlist({...allowlist, allowedEmails: emails})}
-                title={t('student_emails')}
-                placeholder="student@example.edu"
-                description={t('students_can_register')}
-                excludeEmails={allowlist.adminEmails || []}
-                excludeMessage="This email is already in the admin list"
-              />
-              
-              <EmailManager
-                emails={allowlist.adminEmails || []}
-                onEmailsChange={(emails) => setAllowlist({...allowlist, adminEmails: emails})}
-                title={t('admin_emails')}
-                placeholder="admin@example.edu"
-                description={t('admins_get_privileges')}
-                excludeEmails={allowlist.allowedEmails || []}
-                excludeMessage="This email is already in the student list"
-              />
-              
-              <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-                <button onClick={handleAllowlistSave} className="submit-btn" disabled={loading}>
-                  {loading ? t('saving') : t('save') + ' Allowlist Changes'}
+            {courses.length === 0 && (
+              <div style={{ padding: '1.5rem', background: '#f8f9fa', borderRadius: 8, marginBottom: '1rem', textAlign: 'center' }}>
+                <p style={{ marginBottom: '0.75rem', color: '#555' }}>{t('no_categories_yet')}</p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await setCourse('programming', { name_en: 'Programming', name_ar: 'البرمجة', order: 1 });
+                      await setCourse('computing', { name_en: 'Computing', name_ar: 'الحوسبة', order: 2 });
+                      await setCourse('algorithm', { name_en: 'Algorithm', name_ar: 'الخوارزميات', order: 3 });
+                      await setCourse('general', { name_en: 'General', name_ar: 'عام', order: 4 });
+                      toast?.showSuccess('Default categories added!');
+                      loadData();
+                    } catch (err) {
+                      toast?.showError('Failed to add defaults: ' + err.message);
+                    }
+                  }}
+                  style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem' }}
+                >
+                  ➕ {t('add_default_categories')}
                 </button>
               </div>
+            )}
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!courseForm.id.trim()) { toast?.showError('Category ID required'); return; }
+              try {
+                await setCourse(courseForm.id, { name_en: courseForm.name_en, name_ar: courseForm.name_ar, order: Number(courseForm.order) || 0 });
+                toast?.showSuccess(editingCourse ? 'Category updated!' : 'Category created!');
+                setCourseForm({ id: '', name_en: '', name_ar: '', order: 0 });
+                setEditingCourse(null);
+                loadData();
+              } catch (err) {
+                toast?.showError('Failed to save category: ' + err.message);
+              }
+            }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: 8 }}>
+              <Input
+                placeholder="ID (e.g., python)"
+                value={courseForm.id}
+                onChange={(e) => setCourseForm({ ...courseForm, id: e.target.value.toLowerCase().trim() })}
+                disabled={!!editingCourse}
+                required
+                fullWidth
+              />
+              <Input
+                placeholder="Name (English)"
+                value={courseForm.name_en}
+                onChange={(e) => setCourseForm({ ...courseForm, name_en: e.target.value })}
+                required
+                fullWidth
+              />
+              <Input
+                placeholder="Name (Arabic)"
+                value={courseForm.name_ar}
+                onChange={(e) => setCourseForm({ ...courseForm, name_ar: e.target.value })}
+                fullWidth
+              />
+              <NumberInput
+                placeholder="Order"
+                value={courseForm.order}
+                onChange={(e) => setCourseForm({ ...courseForm, order: e.target.value })}
+                fullWidth
+              />
+              <Button type="submit" variant="primary">{editingCourse ? 'Update' : 'Add'}</Button>
+              {editingCourse && <Button type="button" variant="outline" onClick={() => { setCourseForm({ id: '', name_en: '', name_ar: '', order: 0 }); setEditingCourse(null); }}>Cancel</Button>}
+            </form>
+
+            <AdvancedDataGrid
+              rows={courses}
+              getRowId={(row) => row.docId || row.id}
+              columns={[
+                {
+                  field: 'docId', headerName: 'ID', width: 150,
+                  renderCell: (params) => <code>{params.value}</code>
+                },
+                {
+                  field: 'name_en', headerName: 'Name (EN)', flex: 1, minWidth: 200,
+                  renderCell: (params) => params.value || '—'
+                },
+                {
+                  field: 'name_ar', headerName: 'Name (AR)', flex: 1, minWidth: 200,
+                  renderCell: (params) => params.value || '—'
+                },
+                {
+                  field: 'order', headerName: 'Order', width: 100,
+                  renderCell: (params) => params.value ?? 0
+                },
+                {
+                  field: 'actions', headerName: 'Actions', width: 200, sortable: false, filterable: false,
+                  renderCell: (params) => (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button size="sm" variant="secondary" onClick={() => {
+                        setCourseForm({
+                          id: params.row.docId,
+                          name_en: params.row.name_en || '',
+                          name_ar: params.row.name_ar || '',
+                          order: params.row.order || 0
+                        });
+                        setEditingCourse(params.row.docId);
+                      }}>
+                        Edit
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => {
+                        setModalState({
+                          open: true,
+                          title: 'Delete Category',
+                          message: `Delete "${params.row.name_en || params.row.docId}"? Activities with this category will fallback to "General".`,
+                          onConfirm: async () => {
+                            await deleteCourse(params.row.docId);
+                            toast?.showSuccess('Category deleted');
+                            loadData();
+                            setModalState({ open: false, title: '', message: '', onConfirm: null });
+                          }
+                        });
+                      }}>
+                        Delete
+                      </Button>
+                    </div>
+                  )
+                }
+              ]}
+              pageSize={10}
+              pageSizeOptions={[5, 10, 20, 50]}
+              checkboxSelection
+            />
+          </div>
+        )}
+
+        {activeTab === 'emailTemplates' && (
+          <div className="email-templates-tab">
+            <EmailTemplates />
+          </div>
+        )}
+
+        {activeTab === 'emailLogs' && (
+          <div className="email-logs-tab">
+            <EmailLogs />
+          </div>
+        )}
+
+        {activeTab === 'allowlist' && (
+          <div className="allowlist-tab">
+            <h2 style={{ display: 'none' }}>{t('allowlist_management')}</h2>
+
+            <EmailManager
+              emails={allowlist.allowedEmails || []}
+              onEmailsChange={(emails) => setAllowlist({ ...allowlist, allowedEmails: emails })}
+              title={t('student_emails')}
+              placeholder="student@example.edu"
+              description={t('students_can_register')}
+              excludeEmails={allowlist.adminEmails || []}
+              excludeMessage="This email is already in the admin list"
+            />
+
+            <EmailManager
+              emails={allowlist.adminEmails || []}
+              onEmailsChange={(emails) => setAllowlist({ ...allowlist, adminEmails: emails })}
+              title={t('admin_emails')}
+              placeholder="admin@example.edu"
+              description={t('admins_get_privileges')}
+              excludeEmails={allowlist.allowedEmails || []}
+              excludeMessage="This email is already in the student list"
+            />
+
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <button onClick={handleAllowlistSave} className="submit-btn" disabled={loading} style={{ position: 'relative', opacity: loading ? 0.7 : 1 }}>
+                {loading && <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>⏳</span>}
+                <span style={{ opacity: loading ? 0 : 1 }}>{t('save') + ' Allowlist Changes'}</span>
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-      
+
       {/* Smart Email Composer Modal */}
       <SmartEmailComposer
         open={smartComposerOpen}
@@ -2782,25 +2832,25 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             console.log('Subject:', subject);
             console.log('Type:', type || 'newsletter');
             console.log('HTML Body length:', htmlBody?.length);
-            
+
             // Ensure to is an array
             const recipients = Array.isArray(to) ? to : [to];
-            
+
             // Validate recipients
             if (recipients.length === 0) {
               throw new Error('No recipients specified');
             }
-            
+
             console.log('Calling sendEmail function...');
-            const result = await sendEmail({ 
-              to: recipients, 
-              subject: subject || 'Newsletter', 
-              html: htmlBody || '<p>No content</p>', 
-              type: type || 'newsletter' 
+            const result = await sendEmail({
+              to: recipients,
+              subject: subject || 'Newsletter',
+              html: htmlBody || '<p>No content</p>',
+              type: type || 'newsletter'
             });
-            
+
             console.log('📧 Send result:', result);
-            
+
             // Log the email attempt
             await addEmailLog({
               to: recipients,
@@ -2810,12 +2860,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               error: result.success ? null : result.error,
               sentBy: user?.uid || 'unknown'
             });
-            
+
             if (!result.success) {
               console.error('❌ Error sending email:', result.error);
               throw new Error(result.error || 'Failed to send email');
             }
-            
+
             console.log('✅ Email sent successfully!');
             // refresh logs list if we're on the tab
             loadData();
@@ -2827,56 +2877,58 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       />
 
       {/* Set Password Modal */}
-      {showPasswordModal && passwordUser && (
-        <Modal
-          isOpen={showPasswordModal}
-          onClose={() => { setShowPasswordModal(false); setPasswordUser(null); setNewPassword(''); }}
-          title="Set User Password"
-        >
-          <div style={{ padding: '1rem' }}>
-            <p style={{ marginBottom: '1rem', color: '#666' }}>
-              Set a new password for <strong>{passwordUser.displayName || passwordUser.email}</strong>
-            </p>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (newPassword.length < 6) {
-                toast?.showError('Password must be at least 6 characters');
-                return;
-              }
-              try {
-                const { updatePassword } = await import('firebase/auth');
-                const { auth } = await import('../firebase/config');
-                if (auth.currentUser && auth.currentUser.uid === passwordUser.docId) {
-                  await updatePassword(auth.currentUser, newPassword);
-                  toast?.showSuccess('Password updated successfully!');
-                  setShowPasswordModal(false);
-                  setPasswordUser(null);
-                  setNewPassword('');
-                } else {
-                  toast?.showError('Can only update password for currently logged-in user');
+      {
+        showPasswordModal && passwordUser && (
+          <Modal
+            isOpen={showPasswordModal}
+            onClose={() => { setShowPasswordModal(false); setPasswordUser(null); setNewPassword(''); }}
+            title="Set User Password"
+          >
+            <div style={{ padding: '1rem' }}>
+              <p style={{ marginBottom: '1rem', color: '#666' }}>
+                Set a new password for <strong>{passwordUser.displayName || passwordUser.email}</strong>
+              </p>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (newPassword.length < 6) {
+                  toast?.showError('Password must be at least 6 characters');
+                  return;
                 }
-              } catch (error) {
-                console.error('Error updating password:', error);
-                toast?.showError('Failed to update password: ' + error.message);
-              }
-            }}>
-              <input
-                type="password"
-                placeholder="New password (min 6 characters)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                minLength={6}
-                style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: 8, marginBottom: '1rem' }}
-              />
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => { setShowPasswordModal(false); setPasswordUser(null); setNewPassword(''); }} style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Set Password</button>
-              </div>
-            </form>
-          </div>
-        </Modal>
-      )}
+                try {
+                  const { updatePassword } = await import('firebase/auth');
+                  const { auth } = await import('../firebase/config');
+                  if (auth.currentUser && auth.currentUser.uid === passwordUser.docId) {
+                    await updatePassword(auth.currentUser, newPassword);
+                    toast?.showSuccess('Password updated successfully!');
+                    setShowPasswordModal(false);
+                    setPasswordUser(null);
+                    setNewPassword('');
+                  } else {
+                    toast?.showError('Can only update password for currently logged-in user');
+                  }
+                } catch (error) {
+                  console.error('Error updating password:', error);
+                  toast?.showError('Failed to update password: ' + error.message);
+                }
+              }}>
+                <input
+                  type="password"
+                  placeholder="New password (min 6 characters)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: 8, marginBottom: '1rem' }}
+                />
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => { setShowPasswordModal(false); setPasswordUser(null); setNewPassword(''); }} style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Set Password</button>
+                </div>
+              </form>
+            </div>
+          </Modal>
+        )
+      }
 
       {/* User Deletion Modal */}
       <UserDeletionModal
@@ -2893,20 +2945,20 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         onConfirmDelete={async (user, relatedData) => {
           try {
             toast?.showInfo(`Deleting user and ${relatedData.enrollments.length + relatedData.submissions.length} related records...`);
-            
+
             // Delete enrollments
             for (const enrollment of relatedData.enrollments) {
               await deleteEnrollment(enrollment.docId || enrollment.id);
             }
-            
+
             // Delete submissions
             for (const submission of relatedData.submissions) {
               await deleteSubmission(submission.docId || submission.id);
             }
-            
+
             // Delete user
             const result = await deleteUser(user.docId || user.id);
-            
+
             if (result.success) {
               toast?.showSuccess(`✅ User deleted successfully! Removed ${relatedData.enrollments.length} enrollments and ${relatedData.submissions.length} submissions.`);
               await loadData();
@@ -2921,7 +2973,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         }}
       />
 
-    </div>
+    </div >
   );
 };
 

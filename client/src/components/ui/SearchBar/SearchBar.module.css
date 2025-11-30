@@ -1,0 +1,117 @@
+/* SearchBar */
+.searchBar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background: var(--input-bg, white);
+  border: 1px solid var(--input-border, #e0e0e0);
+  border-radius: var(--radius-lg, 12px);
+  transition: all 0.2s ease;
+}
+
+.searchBar:focus-within {
+  border-color: var(--input-focus, #800020);
+  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Search Icon */
+.searchIcon {
+  position: absolute;
+  left: 1rem;
+  color: var(--text-muted, #666);
+  pointer-events: none;
+}
+
+[dir="rtl"] .searchIcon {
+  left: auto;
+  right: 1rem;
+}
+
+/* Input */
+.input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--text, #212529);
+}
+
+.input::placeholder {
+  color: var(--text-muted, #666);
+}
+
+/* Clear Button */
+.clearButton {
+  position: absolute;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  color: var(--text-muted, #666);
+  transition: all 0.2s ease;
+}
+
+.clearButton:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text, #212529);
+}
+
+[dir="rtl"] .clearButton {
+  right: auto;
+  left: 0.75rem;
+}
+
+/* Sizes */
+.sm {
+  height: 36px;
+}
+
+.sm .input {
+  padding: 0.5rem 2.5rem;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.md {
+  height: 44px;
+}
+
+.md .input {
+  padding: 0.75rem 3rem;
+  font-size: var(--font-size-md, 1rem);
+}
+
+.lg {
+  height: 52px;
+}
+
+.lg .input {
+  padding: 1rem 3.5rem;
+  font-size: var(--font-size-lg, 1.125rem);
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .searchBar {
+    background: var(--input-bg, #1a1a1a);
+    border-color: var(--input-border, #333);
+  }
+  
+  .input {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .clearButton:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text, #f5f5f5);
+  }
+}

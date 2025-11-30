@@ -78,7 +78,7 @@ const EmailManager = ({
       </div>
 
       <div className="add-email-section">
-        <div className="add-email-input">
+        <div className="email-input-row">
           <input
             type="email"
             value={newEmail}
@@ -87,34 +87,68 @@ const EmailManager = ({
             placeholder={placeholder}
             className="email-input"
           />
-          <button onClick={addEmail} className="add-btn" disabled={!newEmail.trim()}>
+          <button
+            onClick={addEmail}
+            className="add-btn"
+            disabled={!newEmail.trim()}
+            style={{
+              padding: '8px 14px',
+              background: 'linear-gradient(135deg, #800020, #600018)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: !newEmail.trim() ? 'not-allowed' : 'pointer',
+              opacity: !newEmail.trim() ? 0.7 : 1,
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
             ➕ {t('add')}
           </button>
+          <button
+            onClick={importFromText}
+            className="import-btn"
+            style={{
+              padding: '8px 14px',
+              background: '#16a34a',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            <span style={{color: 'white'}}>➕</span> Import
+          </button>
         </div>
-        <button onClick={importFromText} className="import-btn">
-          📋 {t('import_multiple')}
-        </button>
-      </div>
 
-      <div className="emails-list">
-        {emails.length === 0 ? (
-          <div className="no-emails">No emails added yet</div>
-        ) : (
-          <div className="emails-grid">
-            {emails.map((email, index) => (
-              <div key={index} className="email-tag">
-                <span className="email-text">{email}</span>
-                <button 
-                  onClick={() => removeEmail(email)}
-                  className="remove-btn"
-                  title="Remove email"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="emails-list">
+          {emails.length === 0 ? (
+            <div className="no-emails">No emails added yet</div>
+          ) : (
+            <div className="emails-grid">
+              {emails.map((email, index) => (
+                <div key={index} className="email-tag">
+                  <span className="email-text">{email}</span>
+                  <button
+                    onClick={() => removeEmail(email)}
+                    className="remove-btn"
+                    title="Remove email"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="email-count">

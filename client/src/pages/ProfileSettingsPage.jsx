@@ -5,9 +5,8 @@ import { Navigate } from 'react-router-dom';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield } from 'lucide-react';
-import Loading from '../components/Loading';
-import { useToast } from '../components/ToastProvider';
-import './ProfileSettingsPage.css';
+import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '../components/ui';
+import styles from './ProfileSettingsPage.module.css';
 
 const ProfileSettingsPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -49,7 +48,7 @@ const ProfileSettingsPage = () => {
         }
       } catch (error) {
         console.error('Error loading profile:', error);
-        toast?.error?.(t('error_loading_profile') || 'Error loading profile');
+        toast.error(t('error_loading_profile') || 'Error loading profile');
       } finally {
         setLoading(false);
       }
@@ -73,10 +72,10 @@ const ProfileSettingsPage = () => {
         preferOTPLogin: profileData.preferOTPLogin
       });
 
-      toast?.success?.(t('profile_updated') || 'Profile updated successfully');
+      toast.success(t('profile_updated') || 'Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast?.error?.(t('error_updating_profile') || 'Error updating profile');
+      toast.error(t('error_updating_profile') || 'Error updating profile');
     } finally {
       setSaving(false);
     }
@@ -89,7 +88,13 @@ const ProfileSettingsPage = () => {
     }));
   };
 
-  if (authLoading || loading) return <Loading />;
+  if (authLoading || loading) {
+    return (
+      <div className={styles.loadingWrapper}>
+        <Spinner size="lg" />
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" />;
 
   const colorOptions = [
@@ -104,197 +109,169 @@ const ProfileSettingsPage = () => {
   ];
 
   return (
-    <div className="profile-settings-page">
-      <div className="profile-header">
-        <div className="header-content">
-          <div className="header-icon">
-            <Settings size={32} />
-          </div>
-          <div>
-            <h1>{t('profile_settings')}</h1>
-            <p>{t('manage_your_profile') || 'Manage your profile and preferences'}</p>
-          </div>
+    <Container maxWidth="lg" className={styles.page}>
+      <div className={styles.header}>
+        <Settings size={32} className={styles.headerIcon} />
+        <div>
+          <h1 className={styles.title}>{t('profile_settings')}</h1>
+          <p className={styles.subtitle}>{t('manage_your_profile') || 'Manage your profile and preferences'}</p>
         </div>
       </div>
 
-      <div className="profile-content">
-        <div className="profile-card">
-          <div className="card-header">
-            <User size={24} />
-            <h2>{t('personal_information') || 'Personal Information'}</h2>
-          </div>
-
-          <div className="form-section">
-            <div className="form-group">
-              <label htmlFor="email">
-                <Mail size={18} />
-                {t('email')}
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={user.email || ''}
-                disabled
-                className="input-disabled"
-              />
-              <small className="help-text">
-                {t('email_cannot_be_changed') || 'Email address cannot be changed'}
-              </small>
+      <div className={styles.content}>
+        <Card>
+          <CardBody>
+            <div className={styles.cardHeader}>
+              <User size={24} />
+              <h2>{t('personal_information') || 'Personal Information'}</h2>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="displayName">
-                <User size={18} />
-                {t('display_name')}
-              </label>
-              <input
+            <div className={styles.formSection}>
+              <Input
+                id="email"
+                type="email"
+                label={t('email')}
+                value={user.email || ''}
+                disabled
+                icon={<Mail size={18} />}
+                helperText={t('email_cannot_be_changed') || 'Email address cannot be changed'}
+              />
+
+              <Input
                 id="displayName"
                 type="text"
+                label={t('display_name')}
                 value={profileData.displayName}
                 onChange={(e) => handleChange('displayName', e.target.value)}
                 placeholder={t('display_name_placeholder') || 'Enter your display name'}
+                icon={<User size={18} />}
               />
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="realName">
-                <User size={18} />
-                {t('real_name')}
-              </label>
-              <input
+              <Input
                 id="realName"
                 type="text"
+                label={t('real_name')}
                 value={profileData.realName}
                 onChange={(e) => handleChange('realName', e.target.value)}
                 placeholder={t('real_name_placeholder')}
+                icon={<User size={18} />}
               />
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="studentNumber">
-                <Hash size={18} />
-                {t('student_number')}
-              </label>
-              <input
+              <Input
                 id="studentNumber"
                 type="text"
+                label={t('student_number')}
                 value={profileData.studentNumber}
                 onChange={(e) => handleChange('studentNumber', e.target.value)}
                 placeholder={t('student_number_placeholder')}
+                icon={<Hash size={18} />}
               />
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="phoneNumber">
-                <Phone size={18} />
-                {t('phone_number')}
-              </label>
-              <input
+              <Input
                 id="phoneNumber"
                 type="tel"
+                label={t('phone_number')}
                 value={profileData.phoneNumber}
                 onChange={(e) => handleChange('phoneNumber', e.target.value)}
                 placeholder={t('phone_number_placeholder') || 'Enter your phone number'}
+                icon={<Phone size={18} />}
               />
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
 
-        <div className="profile-card">
-          <div className="card-header">
-            <Palette size={24} />
-            <h2>{t('appearance') || 'Appearance'}</h2>
-          </div>
+        <Card>
+          <CardBody>
+            <div className={styles.cardHeader}>
+              <Palette size={24} />
+              <h2>{t('appearance') || 'Appearance'}</h2>
+            </div>
 
-          <div className="form-section">
-            <div className="form-group">
-              <label>{t('message_color')}</label>
-              <div className="color-picker">
-                {colorOptions.map(color => (
-                  <button
-                    key={color}
-                    className={`color-option ${profileData.messageColor === color ? 'selected' : ''}`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => handleChange('messageColor', color)}
-                    title={color}
-                  />
-                ))}
-              </div>
-              <div className="color-preview">
-                <div className="preview-label">{t('preview')}:</div>
-                <div 
-                  className="message-bubble-preview"
-                  style={{ backgroundColor: profileData.messageColor }}
-                >
-                  {t('sample_message') || 'This is how your messages will look'}
+            <div className={styles.formSection}>
+              <div className={styles.formGroup}>
+                <label>{t('message_color')}</label>
+                <div className={styles.colorPicker}>
+                  {colorOptions.map(color => (
+                    <button
+                      key={color}
+                      className={`${styles.colorOption} ${profileData.messageColor === color ? styles.selected : ''}`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => handleChange('messageColor', color)}
+                      title={color}
+                    />
+                  ))}
+                </div>
+                <div className={styles.colorPreview}>
+                  <div className={styles.previewLabel}>{t('preview')}:</div>
+                  <div 
+                    className={styles.messageBubble}
+                    style={{ backgroundColor: profileData.messageColor }}
+                  >
+                    {t('sample_message') || 'This is how your messages will look'}
+                  </div>
                 </div>
               </div>
+
+              <div className={styles.formGroup}>
+                <label>{t('language')}</label>
+                <Button
+                  variant="outline"
+                  onClick={toggleLang}
+                  className={styles.languageToggle}
+                >
+                  <span>🌐</span>
+                  {lang === 'en' ? 'English' : 'العربية'}
+                  <span className={styles.toggleHint}>
+                    {t('click_to_switch') || 'Click to switch'}
+                  </span>
+                </Button>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody>
+            <div className={styles.cardHeader}>
+              <Shield size={24} />
+              <h2>{t('security') || 'Security'}</h2>
             </div>
 
-            <div className="form-group">
-              <label>{t('language')}</label>
-              <button 
-                onClick={toggleLang}
-                className="language-toggle"
-              >
-                <span className="language-icon">🌐</span>
-                {lang === 'en' ? 'English' : 'العربية'}
-                <span className="toggle-hint">
-                  {t('click_to_switch') || 'Click to switch'}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="profile-card">
-          <div className="card-header">
-            <Shield size={24} />
-            <h2>{t('security') || 'Security'}</h2>
-          </div>
-
-          <div className="form-section">
-            <div className="form-group">
-              <label>
-                <Shield size={18} />
-                {t('otp_login') || 'OTP Login'}
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-                <button
+            <div className={styles.formSection}>
+              <div className={styles.formGroup}>
+                <label>
+                  <Shield size={18} />
+                  {t('otp_login') || 'OTP Login'}
+                </label>
+                <Button
+                  variant={profileData.preferOTPLogin ? 'primary' : 'outline'}
                   onClick={() => handleChange('preferOTPLogin', !profileData.preferOTPLogin)}
-                  style={{
-                    padding: '0.75rem 1.25rem',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    background: profileData.preferOTPLogin ? '#10b981' : '#e5e7eb',
-                    color: profileData.preferOTPLogin ? 'white' : '#374151',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
+                  className={styles.otpToggle}
                 >
                   {profileData.preferOTPLogin ? (t('enabled') || 'Enabled') : (t('disabled') || 'Disabled')}
-                </button>
+                </Button>
+                <p className={styles.helpText}>
+                  {t('otp_login_description') || 'When enabled, you can request a one-time password via email for login instead of using your regular password. More secure and convenient.'}
+                </p>
               </div>
-              <small className="help-text" style={{ marginTop: '8px', display: 'block' }}>
-                {t('otp_login_description') || 'When enabled, you can request a one-time password via email for login instead of using your regular password. More secure and convenient.'}
-              </small>
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
 
-        <div className="profile-actions">
-          <button
+        <div className={styles.actions}>
+          <Button
+            variant="primary"
+            size="lg"
+            icon={<Save size={20} />}
             onClick={handleSave}
             disabled={saving}
-            className="btn-primary save-btn"
+            loading={saving}
           >
-            <Save size={20} />
             {saving ? t('saving') : t('save_changes')}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Container>
   );
 };
 

@@ -1,0 +1,754 @@
+.courseProgressDetail {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 2rem 0;
+}
+
+/* Loading State */
+.loadingWrapper {
+  padding: 2rem;
+}
+
+.loadingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.loadingHeader {
+  height: 120px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  border-radius: 12px;
+  animation: loading 1.5s infinite;
+}
+
+.loadingStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.loadingStats > div {
+  height: 100px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  border-radius: 12px;
+  animation: loading 1.5s infinite;
+}
+
+.loadingTabs {
+  height: 400px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  border-radius: 12px;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Course Header */
+.courseHeader {
+  margin-bottom: 2rem;
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.courseInfo {
+  flex: 1;
+}
+
+.courseMeta {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.courseTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+
+.courseDescription {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.6;
+}
+
+.instructorInfo {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.instructor,
+.enrollment,
+.enrollmentDate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.headerActions {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+/* Course Stats */
+.courseStats {
+  margin-bottom: 2rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+/* Tabs Content */
+.tabsContent {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.courseTabs {
+  margin-bottom: 2rem;
+}
+
+.tabContent {
+  min-height: 400px;
+}
+
+/* Overview Tab */
+.overviewGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1.5rem 0;
+}
+
+.progressBreakdown {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.progressBreakdown h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+}
+
+.chapterProgress {
+  margin-bottom: 1rem;
+}
+
+.chapterInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.chapterName {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.chapterStats {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.chapterProgressBar {
+  width: 100%;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.chapterProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Activity List */
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.activityIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  flex-shrink: 0;
+}
+
+.activityContent {
+  flex: 1;
+}
+
+.activityTitle {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.activityTime {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Chapters Tab */
+.chaptersList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.chapterCard {
+  overflow: hidden;
+}
+
+.chapterHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  padding: 1rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.chapterHeader:hover {
+  background: #f8fafc;
+}
+
+.chapterInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.chapterNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.chapterDetails {
+  flex: 1;
+}
+
+.chapterTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+}
+
+.chapterDescription {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0 0 0.5rem 0;
+}
+
+.chapterMeta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.chapterActions {
+  display: flex;
+  align-items: center;
+}
+
+.expandIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.lessonsList {
+  padding: 0 1rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 1rem;
+}
+
+.lessonItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.lessonItem:hover {
+  background: #f1f5f9;
+  border-color: #8b5cf6;
+}
+
+.lessonItem.completed {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border-color: #10b981;
+}
+
+.lessonStatus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.lessonCircle {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 50%;
+}
+
+.lessonInfo {
+  flex: 1;
+}
+
+.lessonTitle {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+}
+
+.lessonDuration {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Assignments Tab */
+.assignmentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.assignmentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.assignmentInfo {
+  flex: 1;
+}
+
+.assignmentTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.assignmentDescription {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0 0 1rem 0;
+}
+
+.assignmentMeta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dueDate {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.assignmentStatus {
+  flex-shrink: 0;
+}
+
+.submittedInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.scoreValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.scoreMax {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+/* Quizzes Tab */
+.quizzesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.quizHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.quizInfo {
+  flex: 1;
+}
+
+.quizTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.quizDescription {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0 0 1rem 0;
+}
+
+.quizMeta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.quizStatus {
+  flex-shrink: 0;
+}
+
+.completedQuiz {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .courseProgressDetail {
+    padding: 1rem 0;
+  }
+  
+  .headerContent {
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+  
+  .courseTitle {
+    font-size: 1.5rem;
+  }
+  
+  .courseDescription {
+    font-size: 1rem;
+  }
+  
+  .instructorInfo {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .headerActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .statsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .chapterHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .chapterInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .lessonsList {
+    padding: 0 0.5rem 1rem 0.5rem;
+  }
+  
+  .assignmentHeader,
+  .quizHeader {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .assignmentStatus,
+  .quizStatus {
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .headerContent {
+    padding: 1rem;
+  }
+  
+  .courseTitle {
+    font-size: 1.25rem;
+  }
+  
+  .tabsContent {
+    padding: 1rem;
+  }
+  
+  .sectionTitle {
+    font-size: 1.1rem;
+  }
+  
+  .chapterMeta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .assignmentMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .courseProgressDetail {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .headerContent,
+[data-theme="dark"] .tabsContent {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .courseTitle {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .courseDescription {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .instructor,
+[data-theme="dark"] .enrollment,
+[data-theme="dark"] .enrollmentDate,
+[data-theme="dark"] .dueDate,
+[data-theme="dark"] .chapterStats,
+[data-theme="dark"] .lessonDuration {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .sectionTitle {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .progressBreakdown {
+  border-top-color: #334155;
+}
+
+[data-theme="dark"] .chapterName {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .progressBreakdown h4 {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .chapterProgressBar {
+  background: #334155;
+}
+
+[data-theme="dark"] .activityItem {
+  background: #334155;
+  border-color: #4b5563;
+}
+
+[data-theme="dark"] .activityIcon {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .activityTitle {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .activityTime {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .chapterHeader:hover {
+  background: #334155;
+}
+
+[data-theme="dark"] .chapterTitle {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .chapterDescription {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .chapterMeta {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .expandIcon {
+  background: #334155;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .lessonsList {
+  border-top-color: #334155;
+}
+
+[data-theme="dark"] .lessonItem {
+  background: #334155;
+  border-color: #4b5563;
+}
+
+[data-theme="dark"] .lessonItem:hover {
+  background: #4b5563;
+  border-color: #8b5cf6;
+}
+
+[data-theme="dark"] .lessonTitle {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .lessonCircle {
+  border-color: #6b7280;
+}
+
+[data-theme="dark"] .assignmentTitle,
+[data-theme="dark"] .quizTitle {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .assignmentDescription,
+[data-theme="dark"] .quizDescription {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .quizMeta {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .loadingHeader,
+[data-theme="dark"] .loadingStats > div,
+[data-theme="dark"] .loadingTabs {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+}

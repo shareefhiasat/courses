@@ -3,9 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getSMTPConfig, updateSMTPConfig, sendEmail as sendEmailFn } from '../firebase/firestore';
-import { useToast } from '../components/ToastProvider';
-import Loading from '../components/Loading';
-import './DashboardPage.css';
+import { Container, Card, CardBody, Button, Input, Spinner, Badge, useToast } from '../components/ui';
+import { Mail, Server, Key, User as UserIcon } from 'lucide-react';
+import styles from './SMTPConfigPage.module.css';
 
 const SMTPConfigPage = () => {
   const { user, isAdmin } = useAuth();
@@ -42,9 +42,9 @@ const SMTPConfigPage = () => {
     const result = await updateSMTPConfig(config);
     
     if (result.success) {
-      toast?.showSuccess('SMTP configuration saved successfully');
+      toast.success('SMTP configuration saved successfully');
     } else {
-      toast?.showError('Failed to save configuration: ' + result.error);
+      toast.error('Failed to save configuration: ' + result.error);
     }
     
     setSaving(false);
@@ -53,7 +53,7 @@ const SMTPConfigPage = () => {
   const handleTestEmail = async () => {
     try {
       if (!config.user || !config.password) {
-        toast?.showError('Please save a valid SMTP config first');
+        toast.error('Please save a valid SMTP config first');
         return;
       }
       const to = user.email;
@@ -64,48 +64,46 @@ const SMTPConfigPage = () => {
       </div>`;
       const resp = await sendEmailFn({ to, subject, html, type: 'test' });
       if (resp.success) {
-        toast?.showSuccess('✅ Test email sent to ' + to);
+        toast.success('✅ Test email sent to ' + to);
       } else {
         const errorMsg = resp.error || 'Unknown error';
-        toast?.showError(`❌ Failed to send test email: ${errorMsg}`);
+        toast.error(`❌ Failed to send test email: ${errorMsg}`);
         console.error('[SMTP Test] Full error:', resp);
-        // Show hint about Cloud Functions logs
         setTimeout(() => {
-          toast?.showInfo('💡 Check Cloud Functions logs in Firebase Console for detailed error information (us-central1/sendEmail)');
+          toast.info('💡 Check Cloud Functions logs in Firebase Console for detailed error information');
         }, 2000);
       }
     } catch (err) {
-      toast?.showError('❌ Failed to send test email: ' + (err.message || err));
+      toast.error('❌ Failed to send test email: ' + (err.message || err));
       console.error('[SMTP Test] Exception:', err);
     }
   };
 
   if (!user || !isAdmin) return <Navigate to="/" />;
-  if (loading) return <Loading />;
+  
+  if (loading) {
+    return (
+      <div className={styles.loadingWrapper}>
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-header">
-        <h1>📧 SMTP Configuration</h1>
-        <p>Configure email server settings</p>
+    <Container maxWidth="md" className={styles.page}>
+      <div className={styles.header}>
+        <Mail size={32} className={styles.headerIcon} />
+        <div>
+          <h1 className={styles.title}>SMTP Configuration</h1>
+          <p className={styles.subtitle}>Configure email server settings</p>
+        </div>
       </div>
 
-      <div className="dashboard-content" style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ 
-          background: 'white', 
-          padding: '2rem', 
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ 
-            background: '#e3f2fd', 
-            padding: '1rem', 
-            borderRadius: '8px',
-            marginBottom: '2rem',
-            borderLeft: '4px solid #2196f3'
-          }}>
-            <h3 style={{ margin: '0 0 0.5rem 0', color: '#1976d2' }}>📌 Setup Instructions</h3>
-            <ol style={{ margin: 0, paddingLeft: '1.5rem', lineHeight: '1.8' }}>
+      <Card>
+        <CardBody>
+          <div className={styles.instructions}>
+            <h3>📌 Setup Instructions</h3>
+            <ol>
               <li>Go to your Google Account settings</li>
               <li>Enable 2-Factor Authentication</li>
               <li>Go to Security → App Passwords</li>
@@ -114,188 +112,95 @@ const SMTPConfigPage = () => {
             </ol>
           </div>
 
-          <form onSubmit={handleSave}>
-            <div style={{ display: 'grid', gap: '1.5rem' }}>
-              {/* SMTP Host */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                  🌐 SMTP Host
-                </label>
-                <input
-                  type="text"
-                  value={config.host}
-                  onChange={(e) => setConfig({ ...config, host: e.target.value })}
-                  placeholder={t('smtp_host_placeholder')}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '1rem'
-                  }}
-                  required
-                />
-              </div>
+          <form onSubmit={handleSave} className={styles.form}>
+            <Input
+              type="text"
+              label="🌐 SMTP Host"
+              value={config.host}
+              onChange={(e) => setConfig({ ...config, host: e.target.value })}
+              placeholder={t('smtp_host_placeholder')}
+              icon={<Server size={18} />}
+              required
+            />
 
-              {/* SMTP Port */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                  🔌 SMTP Port
-                </label>
-                <input
-                  type="number"
-                  value={config.port}
-                  onChange={(e) => setConfig({ ...config, port: parseInt(e.target.value) })}
-                  placeholder={t('smtp_port_placeholder')}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '1rem'
-                  }}
-                  required
-                />
-                <small style={{ color: '#666' }}>Use 587 for TLS or 465 for SSL</small>
-              </div>
+            <Input
+              type="number"
+              label="🔌 SMTP Port"
+              value={config.port}
+              onChange={(e) => setConfig({ ...config, port: parseInt(e.target.value) })}
+              placeholder={t('smtp_port_placeholder')}
+              helperText="Use 587 for TLS or 465 for SSL"
+              required
+            />
 
-              {/* Email Address */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                  📧 Email Address
-                </label>
-                <input
-                  type="email"
-                  value={config.user}
-                  onChange={(e) => setConfig({ ...config, user: e.target.value })}
-                  placeholder={t('email_placeholder')}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '1rem'
-                  }}
-                  required
-                />
-              </div>
+            <Input
+              type="email"
+              label="📧 Email Address"
+              value={config.user}
+              onChange={(e) => setConfig({ ...config, user: e.target.value })}
+              placeholder={t('email_placeholder')}
+              icon={<Mail size={18} />}
+              required
+            />
 
-              {/* App Password */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                  🔑 App Password
-                </label>
-                <input
-                  type="password"
-                  value={config.password}
-                  onChange={(e) => setConfig({ ...config, password: e.target.value })}
-                  placeholder={t('app_password_placeholder')}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontFamily: 'monospace'
-                  }}
-                  required
-                />
-                <small style={{ color: '#666' }}>Not your regular password - use Google App Password</small>
-              </div>
+            <Input
+              type="password"
+              label="🔑 App Password"
+              value={config.password}
+              onChange={(e) => setConfig({ ...config, password: e.target.value })}
+              placeholder={t('app_password_placeholder')}
+              icon={<Key size={18} />}
+              helperText="Not your regular password - use Google App Password"
+              className={styles.passwordInput}
+              required
+            />
 
-              {/* Sender Name */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                  👤 Sender Name
-                </label>
-                <input
-                  type="text"
-                  value={config.senderName}
-                  onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
-                  placeholder={t('sender_name_placeholder')}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    fontSize: '1rem'
-                  }}
-                  required
-                />
-                <small style={{ color: '#666' }}>This will appear as the sender name in emails</small>
-              </div>
+            <Input
+              type="text"
+              label="👤 Sender Name"
+              value={config.senderName}
+              onChange={(e) => setConfig({ ...config, senderName: e.target.value })}
+              placeholder={t('sender_name_placeholder')}
+              icon={<UserIcon size={18} />}
+              helperText="This will appear as the sender name in emails"
+              required
+            />
 
-              {/* Action Buttons */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '1rem',
-                marginTop: '1rem',
-                paddingTop: '1rem',
-                borderTop: '1px solid #eee'
-              }}>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    flex: 1,
-                    padding: '1rem',
-                    background: 'linear-gradient(135deg, #800020, #600018)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    opacity: saving ? 0.7 : 1
-                  }}
-                >
-                  {saving ? '⏳ Saving...' : '💾 Save Configuration'}
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={handleTestEmail}
-                  style={{
-                    padding: '1rem 2rem',
-                    background: 'white',
-                    color: '#800020',
-                    border: '2px solid #800020',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  📨 Test Email
-                </button>
-              </div>
+            <div className={styles.actions}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                disabled={saving}
+                loading={saving}
+                fullWidth
+              >
+                {saving ? '⏳ Saving...' : '💾 Save Configuration'}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={handleTestEmail}
+              >
+                📨 Test Email
+              </Button>
             </div>
           </form>
 
-          {/* Success Indicator */}
           {config.user && config.password && (
-            <div style={{
-              marginTop: '2rem',
-              padding: '1rem',
-              background: '#e8f5e9',
-              borderRadius: '8px',
-              borderLeft: '4px solid #4caf50',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem'
-            }}>
-              <span style={{ fontSize: '2rem' }}>✅</span>
+            <div className={styles.successBanner}>
+              <span className={styles.successIcon}>✅</span>
               <div>
-                <strong style={{ color: '#2e7d32' }}>SMTP Configured</strong>
-                <p style={{ margin: '0.25rem 0 0 0', color: '#666', fontSize: '0.9rem' }}>
-                  Email notifications are active and ready to use
-                </p>
+                <strong>SMTP Configured</strong>
+                <p>Email notifications are active and ready to use</p>
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </CardBody>
+      </Card>
+    </Container>
   );
 };
 

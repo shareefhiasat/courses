@@ -256,22 +256,24 @@ const NotificationBell = () => {
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={{
-          background: 'none',
-          border: 'none',
+          background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
+          border: '1px solid rgba(255,255,255,0.7)',
           cursor: 'pointer',
           position: 'relative',
-          padding: '0.5rem',
-          borderRadius: '50%',
+          padding: 0,
+          borderRadius: 8,
+          width: 32,
+          height: 32,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '1.2rem',
+          fontSize: '1.1rem',
           outline: 'none',
-          boxShadow: focused ? '0 0 0 3px rgba(255,255,255,0.45)' : 'none',
+          boxShadow: focused ? '0 0 0 2px rgba(0,0,0,0.25)' : 'none',
           transition: 'box-shadow 0.15s ease-in-out'
         }}
       >
-        <Bell size={18} />
+        <Bell size={18} color="#2E3B4E" />
         {unreadCount > 0 && (
           <span style={{
             position: 'absolute',

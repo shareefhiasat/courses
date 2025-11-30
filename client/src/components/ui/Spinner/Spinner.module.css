@@ -1,0 +1,187 @@
+/* Container */
+.container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Base Spinner */
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Circle Variant */
+.circle {
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: currentColor;
+}
+
+/* Dots Variant */
+.dots {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+/* Pulse Variant */
+.pulse {
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Sizes */
+.small.circle {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.medium.circle {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+
+.large.circle {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+.small.pulse {
+  width: 16px;
+  height: 16px;
+}
+
+.medium.pulse {
+  width: 24px;
+  height: 24px;
+}
+
+.large.pulse {
+  width: 40px;
+  height: 40px;
+}
+
+.small.dots .dot {
+  width: 6px;
+  height: 6px;
+}
+
+.medium.dots .dot {
+  width: 8px;
+  height: 8px;
+}
+
+.large.dots .dot {
+  width: 12px;
+  height: 12px;
+}
+
+/* Colors */
+.primary {
+  color: var(--color-primary, #800020);
+}
+
+.secondary {
+  color: var(--color-secondary, #6c757d);
+}
+
+.white {
+  color: white;
+}
+
+.white.circle {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+}
+
+/* Full Screen Overlay */
+.fullScreenOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.fullScreenContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.label {
+  color: white;
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Screen Reader Only */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}

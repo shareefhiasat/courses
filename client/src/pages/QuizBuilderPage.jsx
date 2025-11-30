@@ -1,162 +1,322 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Plus, Save, Eye, Share2, Settings, Image as ImageIcon, 
-  Clock, Trash2, GripVertical, Copy, Download, QrCode as QrCodeIcon,
-  Play, Trophy, BarChart3, Users, Calendar
+import {
+  Plus, Save, Eye, Trash2, GripVertical, Clock, Copy, Play,
+  CheckCircle, XCircle, HelpCircle, ListChecks, Repeat, Award
 } from 'lucide-react';
-import QRCodeGenerator from '../components/QRCodeGenerator';
-import MultipleChoiceGame from '../components/games/MultipleChoiceGame';
-import TrueFalseGame from '../components/games/TrueFalseGame';
-import SpinWheelGame from '../components/games/SpinWheelGame';
-import GroupSortGame from '../components/games/GroupSortGame';
-import AirplaneGame from '../components/games/AirplaneGame';
-import AnagramGame from '../components/games/AnagramGame';
-import CategorizeGame from '../components/games/CategorizeGame';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading } from '../components/ui';
+import ToggleSwitch from '../components/ToggleSwitch';
+import styles from './QuizBuilderPage.module.css';
 
-// Template types
-const TEMPLATES = {
+// Simplified question types
+const QUESTION_TYPES = {
   MULTIPLE_CHOICE: 'multiple_choice',
-  TRUE_FALSE: 'true_false',
-  GROUP_SORT: 'group_sort',
-  SPIN_WHEEL: 'spin_wheel',
-  CATEGORIZE: 'categorize',
-  AIRPLANE: 'airplane',
-  ANAGRAM: 'anagram'
+  SINGLE_CHOICE: 'single_choice',
+  TRUE_FALSE: 'true_false'
 };
 
-const TEMPLATE_INFO = {
-  [TEMPLATES.MULTIPLE_CHOICE]: {
-    name: 'Multiple Choice Quiz',
-    icon: '📝',
-    description: 'Classic quiz with multiple choice questions',
-    color: '#667eea'
+const DIFFICULTY_LABELS = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced'
+};
+
+const QUESTION_TYPE_INFO = {
+  [QUESTION_TYPES.MULTIPLE_CHOICE]: {
+    name: 'Multiple Choice',
+    icon: <ListChecks size={20} />,
+    description: 'Select one or more correct answers',
+    color: '#6366f1'
   },
-  [TEMPLATES.TRUE_FALSE]: {
-    name: 'True or False',
-    icon: '✓✗',
-    description: 'Simple true/false questions',
-    color: '#10b981'
+  [QUESTION_TYPES.SINGLE_CHOICE]: {
+    name: 'Single Choice',
+    icon: <CheckCircle size={20} />,
+    description: 'Select only one correct answer',
+    color: '#0ea5e9'
   },
-  [TEMPLATES.GROUP_SORT]: {
-    name: 'Group Sort',
-    icon: '📊',
-    description: 'Drag items into correct groups',
+  [QUESTION_TYPES.TRUE_FALSE]: {
+    name: 'True/False',
+    icon: <HelpCircle size={20} />,
+    description: 'Simple true or false question',
     color: '#f59e0b'
-  },
-  [TEMPLATES.SPIN_WHEEL]: {
-    name: 'Spin the Wheel',
-    icon: '🎡',
-    description: 'Spin wheel to select random questions',
-    color: '#8b5cf6'
-  },
-  [TEMPLATES.CATEGORIZE]: {
-    name: 'Categorize',
-    icon: '🗂️',
-    description: 'Sort items into categories',
-    color: '#06b6d4'
-  },
-  [TEMPLATES.AIRPLANE]: {
-    name: 'Airplane Game',
-    icon: '✈️',
-    description: 'Fly through correct answers',
-    color: '#ef4444'
-  },
-  [TEMPLATES.ANAGRAM]: {
-    name: 'Anagram',
-    icon: '🔤',
-    description: 'Unscramble the letters',
-    color: '#ec4899'
   }
 };
 
+function getDefaultOptions(type = QUESTION_TYPES.MULTIPLE_CHOICE) {
+  switch (type) {
+    case QUESTION_TYPES.TRUE_FALSE:
+      return [
+        { id: '1', text: 'True', correct: false },
+        { id: '2', text: 'False', correct: false }
+      ];
+    case QUESTION_TYPES.SINGLE_CHOICE:
+      return [
+        { id: '1', text: '', correct: false },
+        { id: '2', text: '', correct: false },
+        { id: '3', text: '', correct: false },
+        { id: '4', text: '', correct: false }
+      ];
+    case QUESTION_TYPES.MULTIPLE_CHOICE:
+    default:
+      return [
+        { id: '1', text: '', correct: false },
+        { id: '2', text: '', correct: false },
+        { id: '3', text: '', correct: false },
+        { id: '4', text: '', correct: false }
+      ];
+  }
+}
+
 export default function QuizBuilderPage() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { user, isAdmin, isInstructor } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const quizId = searchParams.get('id');
+  const toast = useToast();
 
-  const [step, setStep] = useState('template'); // template, build, settings, preview
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [quizData, setQuizData] = useState({
+  // If navigated from QuizManagementPage with mock/loaded quiz data
+  const initialQuizFromState = location.state?.quiz || null;
+
+  const [step, setStep] = useState('setup'); // setup, build, preview
+  const [selectedType, setSelectedType] = useState(QUESTION_TYPES.MULTIPLE_CHOICE);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+
+  const defaultQuizTemplate = useMemo(() => ({
     title: '',
     description: '',
-    template: null,
+    type: QUESTION_TYPES.MULTIPLE_CHOICE,
+    difficulty: 'beginner',
+    estimatedTime: 10,
     questions: [],
-    visibility: 'private',
-    allowAnonymous: false,
     settings: {
-      timeLimit: 0, // 0 = no limit
-      timePerQuestion: 0,
-      randomizeOrder: false,
-      showCorrectAnswers: true,
+      timeLimit: 0,
       allowRetake: true,
-      passingScore: 0,
-      showLeaderboard: true
-    },
-    assignment: {
-      isAssignment: false,
-      classId: null,
-      deadline: null,
-      notifyStudents: false
+      showCorrectAnswers: true,
+      randomizeOrder: false,
+      passingScore: 70
     }
-  });
+  }), []);
 
-  const [draggedItem, setDraggedItem] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const normalizeQuestion = (question = {}) => {
+    const baseOptions = Array.isArray(question.options) ? question.options : [];
+    const resolvedType = question.type || QUESTION_TYPES.MULTIPLE_CHOICE;
+
+    return {
+      id: question.id || Date.now().toString(),
+      type: resolvedType,
+      question: question.question || '',
+      image: question.image || null,
+      explanation: question.explanation || '',
+      points: Number.isFinite(question.points) ? question.points : 1,
+      timeLimit: Number.isFinite(question.timeLimit) ? question.timeLimit : 0,
+      difficulty: question.difficulty || 'medium',
+      topic: question.topic || 'General',
+      options: baseOptions.length > 0 ? baseOptions : getDefaultOptions(resolvedType)
+    };
+  };
+
+  const normalizeQuizData = (data = {}) => {
+    const mergedSettings = {
+      ...defaultQuizTemplate.settings,
+      ...(data.settings || {})
+    };
+
+    const normalizedQuestions = Array.isArray(data.questions)
+      ? data.questions.map(normalizeQuestion)
+      : [];
+
+    return {
+      ...defaultQuizTemplate,
+      ...data,
+      type: data.type || defaultQuizTemplate.type,
+      difficulty: data.difficulty || defaultQuizTemplate.difficulty,
+      estimatedTime: Number.isFinite(data.estimatedTime) ? data.estimatedTime : defaultQuizTemplate.estimatedTime,
+      questions: normalizedQuestions,
+      settings: mergedSettings
+    };
+  };
+
+  const [quizData, setQuizData] = useState(() => normalizeQuizData());
+
+  const questionCount = quizData.questions?.length ?? 0;
+  const estimatedTime = Number.isFinite(quizData.estimatedTime) ? quizData.estimatedTime : 0;
+
+  const handleCancel = () => {
+    if (location.state?.from) {
+      navigate(-1);
+    } else {
+      navigate('/quiz-management');
+    }
+  };
+
+  const getDifficultyChipClass = (difficulty) => {
+    switch ((difficulty || '').toLowerCase()) {
+      case 'beginner':
+        return styles.difficultyBeginner;
+      case 'intermediate':
+        return styles.difficultyIntermediate;
+      case 'advanced':
+        return styles.difficultyAdvanced;
+      default:
+        return styles.difficultyDefault;
+    }
+  };
+
+  const getDifficultyLabel = (difficulty) => {
+    const key = (difficulty || '').toLowerCase();
+    return DIFFICULTY_LABELS[key] || (difficulty ? difficulty : 'General');
+  };
+
+  const renderMetaChips = () => {
+    const chips = [];
+    const typeLabel = QUESTION_TYPE_INFO[quizData.type]?.name || 'Quiz';
+
+    chips.push(
+      <span key="type" className={`${styles.metaChip} ${styles.typeChip}`}>
+        <span className={styles.metaChipIcon}>{getQuestionIcon(quizData.type)}</span>
+        <span>{typeLabel}</span>
+      </span>
+    );
+
+    chips.push(
+      <span key="questions" className={`${styles.metaChip} ${styles.infoChip}`}>
+        <span className={styles.metaChipIcon}><ListChecks size={14} /></span>
+        <span>{questionCount} {questionCount === 1 ? 'question' : 'questions'}</span>
+      </span>
+    );
+
+    chips.push(
+      <span key="time" className={`${styles.metaChip} ${styles.infoChip}`}>
+        <span className={styles.metaChipIcon}><Clock size={14} /></span>
+        <span>{estimatedTime} min</span>
+      </span>
+    );
+
+    chips.push(
+      <span key="difficulty" className={`${styles.metaChip} ${getDifficultyChipClass(quizData.difficulty)}`}>
+        <span className={styles.metaChipIcon}><Award size={14} /></span>
+        <span>{getDifficultyLabel(quizData.difficulty)}</span>
+      </span>
+    );
+
+    if (quizData.settings?.allowRetake) {
+      chips.push(
+        <span key="retake" className={`${styles.metaChip} ${styles.retakeChip}`}>
+          <span className={styles.metaChipIcon}><Repeat size={14} /></span>
+          <span>Retake allowed</span>
+        </span>
+      );
+    }
+
+    return <div className={styles.metaChips}>{chips}</div>;
+  };
 
   useEffect(() => {
+    // 1) Edit mode via router state (only if it actually contains questions)
+    if (initialQuizFromState && Array.isArray(initialQuizFromState.questions) && initialQuizFromState.questions.length > 0) {
+      const normalized = normalizeQuizData(initialQuizFromState);
+      setQuizData(normalized);
+      setSelectedType(normalized.type || QUESTION_TYPES.MULTIPLE_CHOICE);
+      setStep('build');
+      setActiveQuestionIndex(normalized.questions.length > 0 ? 0 : -1);
+      return;
+    }
+
+    // 2) Always load full quiz from backend when only ID or a trimmed quiz is provided
     if (quizId) {
       loadQuiz(quizId);
     }
-  }, [quizId]);
+  }, [quizId, initialQuizFromState]);
 
   const loadQuiz = async (id) => {
-    const { getQuiz } = await import('../firebase/quizzes');
-    const result = await getQuiz(id);
-    if (result.success) {
-      setQuizData(result.data);
-      setSelectedTemplate(result.data.template);
-      setStep('build');
+    setLoading(true);
+    try {
+      const { getQuiz } = await import('../firebase/quizzes');
+      const result = await getQuiz(id);
+      if (result.success) {
+        const normalized = normalizeQuizData(result.data);
+        setQuizData(normalized);
+        setSelectedType(normalized.type || QUESTION_TYPES.MULTIPLE_CHOICE);
+        setStep('build');
+        setActiveQuestionIndex(normalized.questions.length > 0 ? 0 : -1);
+      }
+    } catch (error) {
+      console.error('Error loading quiz:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const saveQuiz = async () => {
     if (!quizData.title.trim()) {
-      alert('Please enter a quiz title');
+      toast?.showError?.('Please enter a quiz title');
       return;
     }
     if (quizData.questions.length === 0) {
-      alert('Please add at least one question');
+      toast?.showError?.('Please add at least one question');
       return;
     }
 
     setSaving(true);
     try {
       const { createQuiz, updateQuiz } = await import('../firebase/quizzes');
-      
+
+      let targetQuizId = quizId;
+
       if (quizId) {
         const result = await updateQuiz(quizId, quizData);
         if (result.success) {
-          alert('Quiz updated successfully!');
+          toast?.showSuccess?.('Quiz updated successfully!');
         } else {
           throw new Error(result.error);
         }
       } else {
         const result = await createQuiz(quizData, user.uid);
         if (result.success) {
-          alert('Quiz created successfully!');
+          targetQuizId = result.id;
+          toast?.showSuccess?.('Quiz created successfully!');
           navigate(`/quiz-builder?id=${result.id}`);
         } else {
           throw new Error(result.error);
         }
       }
+
+      // Sync to Activities collection
+      if (targetQuizId) {
+        const activityData = {
+          title_en: quizData.title,
+          title_ar: quizData.title,
+          description_en: quizData.description || '',
+          description_ar: quizData.description || '',
+          type: 'quiz',
+          level: quizData.difficulty,
+          internalQuizId: targetQuizId,
+          updatedAt: serverTimestamp(),
+          createdBy: user.uid,
+          points: quizData.questions.reduce((acc, q) => acc + (q.points || 1), 0),
+          allowRetake: quizData.settings.allowRetake,
+          estimatedTime: quizData.estimatedTime,
+          questionCount: quizData.questions.length
+        };
+
+        if (!quizId) {
+          activityData.createdAt = serverTimestamp();
+        }
+
+        await setDoc(doc(db, 'activities', targetQuizId), activityData, { merge: true });
+      }
+
     } catch (error) {
       console.error('Error saving quiz:', error);
-      alert('Failed to save quiz: ' + error.message);
+      toast?.showError?.('Failed to save quiz: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -165,676 +325,708 @@ export default function QuizBuilderPage() {
   const addQuestion = () => {
     const newQuestion = {
       id: Date.now().toString(),
-      type: selectedTemplate,
+      type: selectedType,
       question: '',
       image: null,
-      options: selectedTemplate === TEMPLATES.TRUE_FALSE 
-        ? [{ id: '1', text: 'True', correct: false }, { id: '2', text: 'False', correct: false }]
-        : [{ id: '1', text: '', correct: false }],
+      options: getDefaultOptions(selectedType),
       explanation: '',
       points: 1,
       timeLimit: 0
     };
 
-    setQuizData(prev => ({
-      ...prev,
-      questions: [...prev.questions, newQuestion]
-    }));
+    setQuizData(prev => {
+      const prevQuestions = prev.questions || [];
+      const nextQuestions = [...prevQuestions, newQuestion];
+      setActiveQuestionIndex(nextQuestions.length - 1);
+      return {
+        ...prev,
+        questions: nextQuestions
+      };
+    });
   };
 
-  const updateQuestion = (questionId, updates) => {
+  const updateQuestion = (index, updates) => {
     setQuizData(prev => ({
       ...prev,
-      questions: prev.questions.map(q => 
-        q.id === questionId ? { ...q, ...updates } : q
+      questions: prev.questions.map((q, i) =>
+        i === index ? { ...q, ...updates } : q
       )
     }));
   };
 
-  const deleteQuestion = (questionId) => {
-    setQuizData(prev => ({
-      ...prev,
-      questions: prev.questions.filter(q => q.id !== questionId)
-    }));
-  };
-
-  const reorderQuestions = (fromIndex, toIndex) => {
-    const newQuestions = [...quizData.questions];
-    const [removed] = newQuestions.splice(fromIndex, 1);
-    newQuestions.splice(toIndex, 0, removed);
+  const deleteQuestion = (index) => {
+    const newQuestions = quizData.questions.filter((_, i) => i !== index);
     setQuizData(prev => ({ ...prev, questions: newQuestions }));
+    if (activeQuestionIndex >= newQuestions.length && newQuestions.length > 0) {
+      setActiveQuestionIndex(newQuestions.length - 1);
+    }
   };
 
-  const addOption = (questionId) => {
-    const question = quizData.questions.find(q => q.id === questionId);
+  const addOption = (questionIndex) => {
+    const question = quizData.questions[questionIndex];
     if (!question) return;
 
     const newOption = {
       id: Date.now().toString(),
       text: '',
-      image: null,
       correct: false
     };
 
-    updateQuestion(questionId, {
+    updateQuestion(questionIndex, {
       options: [...question.options, newOption]
     });
   };
 
-  const updateOption = (questionId, optionId, updates) => {
-    const question = quizData.questions.find(q => q.id === questionId);
+  const updateOption = (questionIndex, optionId, updates) => {
+    const question = quizData.questions[questionIndex];
     if (!question) return;
 
-    updateQuestion(questionId, {
+    updateQuestion(questionIndex, {
       options: question.options.map(opt =>
         opt.id === optionId ? { ...opt, ...updates } : opt
       )
     });
   };
 
-  const deleteOption = (questionId, optionId) => {
-    const question = quizData.questions.find(q => q.id === questionId);
+  const deleteOption = (questionIndex, optionId) => {
+    const question = quizData.questions[questionIndex];
     if (!question) return;
 
-    updateQuestion(questionId, {
+    updateQuestion(questionIndex, {
       options: question.options.filter(opt => opt.id !== optionId)
     });
   };
 
-  // Template Selection Step
-  if (step === 'template') {
-    return (
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2rem' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '0.5rem' }}>
-          Create New Quiz/Game
-        </h1>
-        <p style={{ color: 'var(--muted)', marginBottom: '2rem' }}>
-          Choose a template to get started
-        </p>
+  const setCorrectAnswer = (questionIndex, optionId) => {
+    const question = quizData.questions[questionIndex];
+    if (!question) return;
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
-          {Object.entries(TEMPLATE_INFO).map(([key, info]) => (
-            <div
-              key={key}
-              onClick={() => {
-                setSelectedTemplate(key);
-                setQuizData(prev => ({ ...prev, template: key }));
-                setStep('build');
-              }}
-              style={{
-                padding: '2rem',
-                border: '2px solid var(--border)',
-                borderRadius: 16,
-                background: 'white',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                textAlign: 'center'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = info.color;
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <div style={{ fontSize: 48, marginBottom: '1rem' }}>{info.icon}</div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: '0.5rem', color: info.color }}>
-                {info.name}
-              </h3>
-              <p style={{ fontSize: 14, color: 'var(--muted)' }}>{info.description}</p>
-            </div>
-          ))}
-        </div>
+    if (question.type === QUESTION_TYPES.SINGLE_CHOICE) {
+      // Single choice - clear all others, set this one
+      updateQuestion(questionIndex, {
+        options: question.options.map(opt => ({
+          ...opt,
+          correct: opt.id === optionId
+        }))
+      });
+    } else if (question.type === QUESTION_TYPES.MULTIPLE_CHOICE) {
+      // Multiple choice - toggle this option
+      updateOption(questionIndex, optionId, {
+        correct: !question.options.find(opt => opt.id === optionId)?.correct
+      });
+    } else if (question.type === QUESTION_TYPES.TRUE_FALSE) {
+      // True/false - clear all others, set this one
+      updateQuestion(questionIndex, {
+        options: question.options.map(opt => ({
+          ...opt,
+          correct: opt.id === optionId
+        }))
+      });
+    }
+  };
+
+  const getQuestionIcon = (type) => {
+    switch (type) {
+      case QUESTION_TYPES.MULTIPLE_CHOICE:
+        return <ListChecks size={16} />;
+      case QUESTION_TYPES.SINGLE_CHOICE:
+        return <CheckCircle size={16} />;
+      case QUESTION_TYPES.TRUE_FALSE:
+        return <HelpCircle size={16} />;
+      default:
+        return <HelpCircle size={16} />;
+    }
+  };
+
+  const getQuestionTypeLabel = (type) => {
+    switch (type) {
+      case QUESTION_TYPES.MULTIPLE_CHOICE:
+        return 'Multiple Choice';
+      case QUESTION_TYPES.SINGLE_CHOICE:
+        return 'Single Choice';
+      case QUESTION_TYPES.TRUE_FALSE:
+        return 'True/False';
+      default:
+        return 'Question';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Loading
+        variant="overlay"
+        fullscreen
+        message="Loading quiz..."
+      />
+    );
+  }
+
+  // Preview Step
+  if (step === 'preview') {
+    return (
+      <div className={styles.quizBuilder}>
+        <Container maxWidth="lg">
+          <Card>
+            <CardBody>
+              <div className={styles.previewHeader}>
+                <Button
+                  variant="outline"
+                  onClick={() => setStep('build')}
+                >
+                  ← Back to Edit
+                </Button>
+                <div className={styles.headerSummary}>
+                  <h1 className={styles.quizTitle}>{quizData.title}</h1>
+                  {renderMetaChips()}
+                </div>
+                <div className={styles.previewActions}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={saveQuiz}
+                    disabled={saving}
+                    aria-label="Save quiz"
+                  >
+                    {saving ? <Spinner size="sm" /> : <Save size={16} />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className={styles.previewContent}>
+                {questionCount === 0 ? (
+                  <div className={styles.emptyPreview}>
+                    <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
+                    <h3>No Questions to Preview</h3>
+                    <p>Add some questions to see how your quiz will look</p>
+                    <Button variant="outline" onClick={() => setStep('build')}>
+                      Add Questions
+                    </Button>
+                  </div>
+                ) : (
+                  <div className={styles.questionsPreview}>
+                    {quizData.questions.map((question, qIndex) => (
+                      <Card key={question.id} className={styles.previewQuestionCard}>
+                        <CardBody>
+                          <div className={styles.previewQuestionHeader}>
+                            <div className={styles.questionNumber}>Question {qIndex + 1}</div>
+                            <div className={styles.questionType}>
+                              {getQuestionIcon(question.type)}
+                              <span>{getQuestionTypeLabel(question.type)}</span>
+                            </div>
+                            <div className={styles.questionPoints}>
+                              {question.points || 1} point{question.points !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+
+                          <div 
+                            className={styles.previewQuestionText}
+                            dangerouslySetInnerHTML={{ __html: question.question || '<p>No question text</p>' }}
+                          />
+
+                          <div className={styles.previewOptions}>
+                            {question.options?.map((option, oIndex) => (
+                              <div
+                                key={option.id}
+                                className={`${styles.previewOption} ${option.correct ? styles.correct : styles.incorrect}`}
+                              >
+                                <div className={styles.optionIndicator}>
+                                  {option.correct ? (
+                                    <CheckCircle size={20} style={{ color: '#10b981' }} />
+                                  ) : (
+                                    <div className={styles.optionRadio} />
+                                  )}
+                                </div>
+                                <div 
+                                  className={styles.optionText}
+                                  dangerouslySetInnerHTML={{ __html: option.text || `Option ${oIndex + 1}` }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          {question.explanation && (
+                            <div className={styles.previewExplanation}>
+                              <h4>Explanation:</h4>
+                              <div
+                                className={styles.previewExplanationContent}
+                                dangerouslySetInnerHTML={{ __html: question.explanation }}
+                              />
+                            </div>
+                          )}
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        </Container>
+      </div>
+    );
+  }
+
+  // Setup Step
+  if (step === 'setup') {
+    return (
+      <div className={styles.quizBuilder}>
+        <Container maxWidth="lg">
+          <Card>
+            <CardBody>
+              <h1 className={styles.pageTitle}>Create New Quiz</h1>
+              <p className={styles.pageDescription}>
+                Choose the type of quiz you want to create
+              </p>
+
+              <div className={styles.typeGrid}>
+                {Object.entries(QUESTION_TYPE_INFO).map(([type, info]) => (
+                  <button
+                    key={type}
+                    className={`${styles.typeCard} ${selectedType === type ? styles.active : ''}`}
+                    onClick={() => setSelectedType(type)}
+                  >
+                    <div className={styles.typeIcon} style={{ color: info.color }}>
+                      {info.icon}
+                    </div>
+                    <h3>{info.name}</h3>
+                    <p>{info.description}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.setupForm}>
+                <div className={styles.formGrid}>
+                  <div className={styles.formField}>
+                    <Input
+                      placeholder="Quiz Title"
+                      value={quizData.title}
+                      onChange={(e) => setQuizData(prev => ({ ...prev, title: e.target.value }))}
+                      className={styles.titleInput}
+                    />
+                  </div>
+                  <div className={styles.formField}>
+                    <Input
+                      placeholder="Quiz Description (optional)"
+                      value={quizData.description}
+                      onChange={(e) => setQuizData(prev => ({ ...prev, description: e.target.value }))}
+                      className={styles.descriptionInput}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formRow}>
+                  <Select
+                    value={quizData.difficulty}
+                    onChange={(e) => setQuizData(prev => ({ ...prev, difficulty: e.target.value }))}
+                    options={[
+                      { value: 'beginner', label: 'Beginner' },
+                      { value: 'intermediate', label: 'Intermediate' },
+                      { value: 'advanced', label: 'Advanced' }
+                    ]}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Estimated time (minutes)"
+                    value={quizData.estimatedTime}
+                    onChange={(e) => setQuizData(prev => ({ ...prev, estimatedTime: parseInt(e.target.value) || 10 }))}
+                    min="1"
+                    max="180"
+                  />
+                </div>
+
+                <div className={`${styles.formRow} ${styles.toggleRow}`}>
+                  <ToggleSwitch
+                    label="Allow students to retake this quiz"
+                    checked={quizData.settings?.allowRetake || false}
+                    onChange={(checked) => setQuizData(prev => ({
+                      ...prev,
+                      settings: { ...prev.settings, allowRetake: checked }
+                    }))}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.setupActions}>
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setQuizData(prev => ({ ...prev, type: selectedType }));
+                    setStep('build');
+                  }}
+                  disabled={!quizData.title.trim()}
+                >
+                  Continue to Questions
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </Container>
       </div>
     );
   }
 
   // Build Step
-  if (step === 'build') {
-    return (
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', padding: '1rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-          <div style={{ flex: 1 }}>
-            <input
-              type="text"
-              placeholder="Quiz Title"
-              value={quizData.title}
-              onChange={(e) => setQuizData(prev => ({ ...prev, title: e.target.value }))}
-              style={{ fontSize: 24, fontWeight: 700, border: 'none', outline: 'none', width: '100%' }}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '0.5rem' }}>
-              <span style={{ 
-                padding: '4px 12px', 
-                background: TEMPLATE_INFO[selectedTemplate]?.color + '20',
-                color: TEMPLATE_INFO[selectedTemplate]?.color,
-                borderRadius: 12,
-                fontSize: 12,
-                fontWeight: 600
-              }}>
-                {TEMPLATE_INFO[selectedTemplate]?.icon} {TEMPLATE_INFO[selectedTemplate]?.name}
-              </span>
-              <span style={{ fontSize: 14, color: 'var(--muted)' }}>
-                {quizData.questions.length} questions
-              </span>
+  return (
+    <div className={styles.quizBuilder}>
+      <Container maxWidth="xl">
+        <div className={styles.builderHeader}>
+          <div className={styles.headerLeft}>
+            <Button
+              variant="outline"
+              onClick={() => setStep('setup')}
+            >
+              ← Back
+            </Button>
+            <div className={styles.headerSummary}>
+              <h1 className={styles.quizTitle}>{quizData.title}</h1>
+              {renderMetaChips()}
             </div>
           </div>
-          
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => setStep('template')}
-              style={{ padding: '0.75rem 1.5rem', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
-            >
-              Change Template
-            </button>
-            <button
-              onClick={() => setStep('settings')}
-              style={{ padding: '0.75rem 1.5rem', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              <Settings size={18} />
-              Settings
-            </button>
-            <button
+          <div className={styles.headerActions}>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Preview quiz"
               onClick={() => setStep('preview')}
-              style={{ padding: '0.75rem 1.5rem', background: '#667eea', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              disabled={questionCount === 0}
             >
-              <Eye size={18} />
-              Preview
-            </button>
-            <button
+              <Eye size={16} />
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={saveQuiz}
               disabled={saving}
-              style={{ padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              aria-label="Save quiz"
             >
-              <Save size={18} />
-              {saving ? 'Saving...' : 'Save'}
-            </button>
+              {saving ? <Spinner size="sm" /> : <Save size={16} />}
+            </Button>
           </div>
         </div>
 
-        {/* Questions List */}
-        <div style={{ display: 'grid', gap: 16 }}>
-          {quizData.questions.map((question, index) => (
-            <QuestionCard
-              key={question.id}
-              question={question}
-              index={index}
-              template={selectedTemplate}
-              onUpdate={(updates) => updateQuestion(question.id, updates)}
-              onDelete={() => deleteQuestion(question.id)}
-              onAddOption={() => addOption(question.id)}
-              onUpdateOption={(optionId, updates) => updateOption(question.id, optionId, updates)}
-              onDeleteOption={(optionId) => deleteOption(question.id, optionId)}
-            />
-          ))}
-
-          {/* Add Question Button */}
-          <button
-            onClick={addQuestion}
-            style={{
-              padding: '2rem',
-              border: '2px dashed var(--border)',
-              borderRadius: 12,
-              background: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              fontSize: 16,
-              fontWeight: 600,
-              color: '#667eea'
-            }}
-          >
-            <Plus size={20} />
-            Add Question
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Settings Step
-  if (step === 'settings') {
-    return (
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <button
-            onClick={() => setStep('build')}
-            style={{ padding: '0.5rem 1rem', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer' }}
-          >
-            ← Back to Builder
-          </button>
-        </div>
-
-        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: '1.5rem' }}>Quiz Settings</h2>
-
-        <div style={{ display: 'grid', gap: 24 }}>
-          {/* Access & Visibility */}
-          <div style={{ padding: '1.5rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: '1rem' }}>Access & Visibility</h3>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Visibility</label>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  {[
-                    { key: 'private', label: 'Private' },
-                    { key: 'class', label: 'Class' },
-                    { key: 'public', label: 'Public' }
-                  ].map(opt => (
-                    <label key={opt.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.5rem 0.75rem', border: '1px solid var(--border)', borderRadius: 8, background: quizData.visibility === opt.key ? 'rgba(102,126,234,0.12)' : 'transparent' }}>
-                      <input
-                        type="radio"
-                        name="visibility"
-                        checked={quizData.visibility === opt.key}
-                        onChange={() => setQuizData(prev => ({ ...prev, visibility: opt.key }))}
-                      />
-                      <span>{opt.label}</span>
-                    </label>
-                  ))}
+        <div className={styles.builderContent}>
+          {/* Questions Sidebar */}
+          <div className={styles.questionsSidebar}>
+            <div className={styles.sidebarHeader}>
+              <h3>Questions</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addQuestion}
+                title="Add question"
+              >
+                <Plus size={14} />
+              </Button>
+            </div>
+            <div className={styles.questionsList}>
+              {quizData.questions.map((question, index) => (
+                <div
+                  key={question.id}
+                  className={`${styles.questionTab} ${activeQuestionIndex === index ? styles.active : ''}`}
+                  onClick={() => setActiveQuestionIndex(index)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setActiveQuestionIndex(index);
+                    }
+                  }}
+                >
+                  <span className={styles.questionNumber}>Q{index + 1}</span>
+                  <span className={styles.questionType}>
+                    {QUESTION_TYPE_INFO[question.type]?.name || 'Unknown'}
+                  </span>
+                  <button
+                    className={styles.deleteQuestion}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteQuestion(index);
+                    }}
+                    aria-label={`Delete question ${index + 1}`}
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-              </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={!!quizData.allowAnonymous}
-                  onChange={(e) => setQuizData(prev => ({ ...prev, allowAnonymous: e.target.checked }))}
-                />
-                <span>Allow anonymous play (only applies when Public)</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Time Settings */}
-          <div style={{ padding: '1.5rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Clock size={20} />
-              Time Settings
-            </h3>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 14, fontWeight: 500 }}>Total Time Limit (minutes, 0 = no limit)</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={quizData.settings.timeLimit}
-                  onChange={(e) => setQuizData(prev => ({
-                    ...prev,
-                    settings: { ...prev.settings, timeLimit: parseInt(e.target.value) || 0 }
-                  }))}
-                  style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8 }}
-                />
-              </label>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 14, fontWeight: 500 }}>Time Per Question (seconds, 0 = no limit)</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={quizData.settings.timePerQuestion}
-                  onChange={(e) => setQuizData(prev => ({
-                    ...prev,
-                    settings: { ...prev.settings, timePerQuestion: parseInt(e.target.value) || 0 }
-                  }))}
-                  style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8 }}
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Quiz Behavior */}
-          <div style={{ padding: '1.5rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: '1rem' }}>Quiz Behavior</h3>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={quizData.settings.randomizeOrder}
-                  onChange={(e) => setQuizData(prev => ({
-                    ...prev,
-                    settings: { ...prev.settings, randomizeOrder: e.target.checked }
-                  }))}
-                />
-                <span>Randomize question order</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={quizData.settings.showCorrectAnswers}
-                  onChange={(e) => setQuizData(prev => ({
-                    ...prev,
-                    settings: { ...prev.settings, showCorrectAnswers: e.target.checked }
-                  }))}
-                />
-                <span>Show correct answers after submission</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={quizData.settings.allowRetake}
-                  onChange={(e) => setQuizData(prev => ({
-                    ...prev,
-                    settings: { ...prev.settings, allowRetake: e.target.checked }
-                  }))}
-                />
-                <span>Allow retakes</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={quizData.settings.showLeaderboard}
-                  onChange={(e) => setQuizData(prev => ({
-                    ...prev,
-                    settings: { ...prev.settings, showLeaderboard: e.target.checked }
-                  }))}
-                />
-                <span>Show leaderboard</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Assignment Settings */}
-          <div style={{ padding: '1.5rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Calendar size={20} />
-              Assignment Settings
-            </h3>
-            <div style={{ display: 'grid', gap: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={quizData.assignment.isAssignment}
-                  onChange={(e) => setQuizData(prev => ({
-                    ...prev,
-                    assignment: { ...prev.assignment, isAssignment: e.target.checked }
-                  }))}
-                />
-                <span>Set as assignment</span>
-              </label>
-              
-              {quizData.assignment.isAssignment && (
-                <>
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ fontSize: 14, fontWeight: 500 }}>Deadline</span>
-                    <input
-                      type="datetime-local"
-                      value={quizData.assignment.deadline || ''}
-                      onChange={(e) => setQuizData(prev => ({
-                        ...prev,
-                        assignment: { ...prev.assignment, deadline: e.target.value }
-                      }))}
-                      style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8 }}
-                    />
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input
-                      type="checkbox"
-                      checked={quizData.assignment.notifyStudents}
-                      onChange={(e) => setQuizData(prev => ({
-                        ...prev,
-                        assignment: { ...prev.assignment, notifyStudents: e.target.checked }
-                      }))}
-                    />
-                    <span>Send notification to students</span>
-                  </label>
-                </>
+              ))}
+              {quizData.questions.length === 0 && (
+                <div className={styles.emptyQuestions}>
+                  <p>No questions yet</p>
+                  <Button variant="outline" size="sm" onClick={addQuestion}>
+                    Add your first question
+                  </Button>
+                </div>
               )}
             </div>
           </div>
-        </div>
 
-        {/* QR Code Section */}
-        {quizId && (
-          <div style={{ marginTop: '2rem' }}>
-            <QRCodeGenerator
-              url={`${window.location.origin}/quiz/${quizId}`}
-              title={quizData.title || 'Quiz'}
-            />
-          </div>
-        )}
+          {/* Question Editor */}
+          <div className={styles.questionEditor}>
+            {quizData.questions.length > 0 ? (
+              <Card>
+                <CardBody>
+                  <div className={styles.questionHeader}>
+                    <h3>Question {activeQuestionIndex + 1}</h3>
+                    <Select
+                      value={quizData.questions[activeQuestionIndex]?.type || QUESTION_TYPES.MULTIPLE_CHOICE}
+                      onChange={(e) => updateQuestion(activeQuestionIndex, {
+                        type: e.target.value,
+                        options: getDefaultOptions(e.target.value)
+                      })}
+                      options={Object.entries(QUESTION_TYPE_INFO).map(([value, info]) => ({
+                        value,
+                        label: info.name
+                      }))}
+                      size="sm"
+                    />
+                  </div>
 
-        <div style={{ marginTop: '2rem', display: 'flex', gap: 12 }}>
-          <button
-            onClick={() => setStep('build')}
-            style={{ flex: 1, padding: '1rem', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
-          >
-            Back to Builder
-          </button>
-          <button
-            onClick={saveQuiz}
-            disabled={saving}
-            style={{ flex: 1, padding: '1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
-          >
-            {saving ? 'Saving...' : 'Save & Publish'}
-          </button>
-        </div>
-      </div>
-    );
-  }
+                  <div className={styles.questionForm}>
+                    <RichTextEditor
+                      label="Question Text"
+                      placeholder="Enter your question here..."
+                      value={quizData.questions[activeQuestionIndex]?.question || ''}
+                      onChange={(html) => updateQuestion(activeQuestionIndex, { question: html })}
+                      height={150}
+                      className={styles.questionInput}
+                    />
 
-  // Preview Step - Show actual game
-  if (step === 'preview') {
-    const qList = Array.isArray(quizData?.questions) ? quizData.questions : [];
-    // Guard: no questions -> show info and return
-    if (qList.length === 0) {
-      return (
-        <div style={{ maxWidth: 720, margin: '2rem auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 64, marginBottom: 12 }}>🤔</div>
-          <h2 style={{ margin: 0, fontWeight: 800 }}>Nothing to preview</h2>
-          <p style={{ color: '#6b7280' }}>Add at least one question before previewing.</p>
-          <button
-            onClick={() => setStep('build')}
-            style={{ marginTop: 12, padding: '0.6rem 1rem', borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer' }}
-          >Back to Builder</button>
-        </div>
-      );
-    }
-    const renderPreviewGame = () => {
-      const gameProps = {
-        questions: qList,
-        settings: quizData.settings,
-        onComplete: (results) => {
-          alert('Preview completed! Score: ' + results.score);
-          setStep('build');
-        }
-      };
+                    <div className={styles.optionsSection}>
+                      <div className={styles.optionsHeader}>
+                        <h4>Answer Options</h4>
+                        {quizData.questions[activeQuestionIndex]?.type !== QUESTION_TYPES.TRUE_FALSE && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addOption(activeQuestionIndex)}
+                            title="Add option"
+                          >
+                            <Plus size={14} />
+                          </Button>
+                        )}
+                      </div>
 
-      switch (selectedTemplate) {
-        case TEMPLATES.MULTIPLE_CHOICE:
-          return <MultipleChoiceGame {...gameProps} />;
-        case TEMPLATES.TRUE_FALSE:
-          const tfQuestions = qList.map(q => ({
-            ...q,
-            correctAnswer: q.options?.find(opt => opt.correct)?.text === 'True'
-          }));
-          return <TrueFalseGame {...gameProps} questions={tfQuestions} />;
-        case TEMPLATES.SPIN_WHEEL:
-          return <SpinWheelGame {...gameProps} />;
-        case TEMPLATES.GROUP_SORT:
-          const groups = [
-            { name: 'True', items: [], color: '#10b981' },
-            { name: 'False', items: [], color: '#ef4444' }
-          ];
-          qList.forEach(q => {
-            const correctOption = q.options?.find(opt => opt.correct);
-            if (correctOption?.text === 'True') {
-              groups[0].items.push(q.question);
-            } else {
-              groups[1].items.push(q.question);
-            }
-          });
-          return <GroupSortGame data={{ groups }} settings={gameProps.settings} onComplete={gameProps.onComplete} />;
-        case TEMPLATES.AIRPLANE:
-          return <AirplaneGame {...gameProps} />;
-        case TEMPLATES.ANAGRAM:
-          const anagramQuestions = qList.map(q => ({
-            ...q,
-            hint: q.question,
-            answer: q.options?.find(opt => opt.correct)?.text || ''
-          }));
-          return <AnagramGame {...gameProps} questions={anagramQuestions} />;
-        case TEMPLATES.CATEGORIZE:
-          const categories = [
-            { name: 'Yes', items: [], color: '#10b981' },
-            { name: 'No', items: [], color: '#ef4444' },
-            { name: 'Maybe', items: [], color: '#f59e0b' }
-          ];
-          return <CategorizeGame data={{ categories }} settings={gameProps.settings} onComplete={gameProps.onComplete} />;
-        default:
-          return <div>Template not supported</div>;
-      }
-    };
+                      <div className={styles.optionsList}>
+                        {quizData.questions[activeQuestionIndex]?.options?.map((option, optIndex) => (
+                          <div key={option.id} className={styles.optionRow}>
+                            <button
+                              className={`${styles.correctToggle} ${option.correct ? styles.correct : ''}`}
+                              onClick={() => setCorrectAnswer(activeQuestionIndex, option.id)}
+                            >
+                              {option.correct ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                            </button>
+                            <div style={{ flex: 1 }}>
+                              <RichTextEditor
+                                placeholder={`Option ${optIndex + 1}`}
+                                value={option.text}
+                                onChange={(html) => updateOption(activeQuestionIndex, option.id, { text: html })}
+                                height={100}
+                                className={styles.optionInput}
+                              />
+                            </div>
+                            {quizData.questions[activeQuestionIndex]?.type !== QUESTION_TYPES.TRUE_FALSE && (
+                              <button
+                                className={styles.deleteOption}
+                                onClick={() => deleteOption(activeQuestionIndex, option.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-    return (
-      <div>
-        <div style={{ maxWidth: 800, margin: '0 auto', padding: '1rem 2rem 0' }}>
-          <button
-            onClick={() => setStep('build')}
-            style={{ padding: '0.75rem 1.5rem', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, marginBottom: '1rem' }}
-          >
-            ← Back to Builder
-          </button>
-          <div style={{ padding: '1rem', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, marginBottom: '1rem', textAlign: 'center' }}>
-            <strong>Preview Mode</strong> - This is a fully functional preview of your quiz
-          </div>
-        </div>
-        {renderPreviewGame()}
-      </div>
-    );
-  }
+                    <div className={styles.questionSettings}>
+                      <div className={styles.settingRow}>
+                        <label>Points</label>
+                        <Input
+                          type="number"
+                          value={quizData.questions[activeQuestionIndex]?.points || 1}
+                          onChange={(e) => updateQuestion(activeQuestionIndex, { points: parseInt(e.target.value) || 1 })}
+                          min="1"
+                          max="100"
+                          style={{ width: '100px' }}
+                        />
+                      </div>
+                      <div className={styles.settingRow}>
+                        <label>Time Limit (seconds)</label>
+                        <Input
+                          type="number"
+                          value={quizData.questions[activeQuestionIndex]?.timeLimit || 0}
+                          onChange={(e) => updateQuestion(activeQuestionIndex, { timeLimit: parseInt(e.target.value) || 0 })}
+                          min="0"
+                          max="600"
+                          placeholder="No limit"
+                          style={{ width: '120px' }}
+                        />
+                      </div>
+                      <div className={styles.settingRow}>
+                        <label>Difficulty</label>
+                        <Select
+                          value={quizData.questions[activeQuestionIndex]?.difficulty || 'medium'}
+                          onChange={(e) => updateQuestion(activeQuestionIndex, { difficulty: e.target.value })}
+                          options={[
+                            { value: 'easy', label: 'Easy' },
+                            { value: 'medium', label: 'Medium' },
+                            { value: 'hard', label: 'Hard' }
+                          ]}
+                          style={{ width: '120px' }}
+                        />
+                      </div>
+                      <div className={styles.settingRow}>
+                        <label>Topic</label>
+                        <Input
+                          type="text"
+                          value={quizData.questions[activeQuestionIndex]?.topic || 'General'}
+                          onChange={(e) => updateQuestion(activeQuestionIndex, { topic: e.target.value })}
+                          placeholder="e.g., Algebra, History"
+                          style={{ width: '180px' }}
+                        />
+                      </div>
+                    </div>
 
-  return null;
-}
-
-// Question Card Component
-function QuestionCard({ question, index, template, onUpdate, onDelete, onAddOption, onUpdateOption, onDeleteOption }) {
-  const [showImagePicker, setShowImagePicker] = useState(false);
-
-  return (
-    <div style={{ padding: '1.5rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-      {/* Question Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: '1rem' }}>
-        <div style={{ cursor: 'grab', color: 'var(--muted)' }}>
-          <GripVertical size={20} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--muted)' }}>Question {index + 1}</span>
-            <input
-              type="number"
-              min="1"
-              value={question.points}
-              onChange={(e) => onUpdate({ points: parseInt(e.target.value) || 1 })}
-              style={{ width: 60, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 12 }}
-              placeholder="Points"
-            />
-            <span style={{ fontSize: 12, color: 'var(--muted)' }}>points</span>
-          </div>
-          <textarea
-            placeholder="Enter your question here..."
-            value={question.question}
-            onChange={(e) => onUpdate({ question: e.target.value })}
-            style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, fontSize: 16, minHeight: 80, resize: 'vertical' }}
-          />
-        </div>
-        <button
-          onClick={onDelete}
-          style={{ padding: '0.5rem', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 6, cursor: 'pointer' }}
-        >
-          <Trash2 size={18} />
-        </button>
-      </div>
-
-      {/* Question Image */}
-      {question.image && (
-        <div style={{ marginBottom: '1rem' }}>
-          <img src={question.image} alt="Question" style={{ maxWidth: 200, borderRadius: 8 }} />
-          <button
-            onClick={() => onUpdate({ image: null })}
-            style={{ marginLeft: 8, padding: '4px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 4, fontSize: 12, cursor: 'pointer' }}
-          >
-            Remove
-          </button>
-        </div>
-      )}
-
-      {/* Add Image Button */}
-      {!question.image && (
-        <button
-          onClick={() => {
-            const url = prompt('Enter image URL:');
-            if (url) onUpdate({ image: url });
-          }}
-          style={{ marginBottom: '1rem', padding: '0.5rem 1rem', background: '#f3f4f6', border: 'none', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}
-        >
-          <ImageIcon size={16} />
-          Add Image
-        </button>
-      )}
-
-      {/* Options */}
-      <div style={{ display: 'grid', gap: 8 }}>
-        {question.options.map((option, optIndex) => (
-          <div key={option.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              type={template === TEMPLATES.MULTIPLE_CHOICE ? 'radio' : 'checkbox'}
-              checked={option.correct}
-              onChange={(e) => {
-                if (template === TEMPLATES.MULTIPLE_CHOICE) {
-                  // Only one correct answer
-                  question.options.forEach(opt => {
-                    onUpdateOption(opt.id, { correct: opt.id === option.id });
-                  });
-                } else {
-                  onUpdateOption(option.id, { correct: e.target.checked });
-                }
-              }}
-              style={{ width: 20, height: 20 }}
-            />
-            <input
-              type="text"
-              placeholder={`Option ${optIndex + 1}`}
-              value={option.text}
-              onChange={(e) => onUpdateOption(option.id, { text: e.target.value })}
-              style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 6 }}
-            />
-            {option.image && (
-              <img src={option.image} alt="Option" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} />
-            )}
-            <button
-              onClick={() => {
-                const url = prompt('Enter image URL for this option:');
-                if (url) onUpdateOption(option.id, { image: url });
-              }}
-              style={{ padding: '0.5rem', background: '#f3f4f6', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-            >
-              <ImageIcon size={16} />
-            </button>
-            {question.options.length > 2 && (
-              <button
-                onClick={() => onDeleteOption(option.id)}
-                style={{ padding: '0.5rem', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-              >
-                <Trash2 size={16} />
-              </button>
+                    <div className={styles.explanationSection}>
+                      <RichTextEditor
+                        label="Explanation (Optional)"
+                        value={quizData.questions[activeQuestionIndex]?.explanation || ''}
+                        onChange={(html) => updateQuestion(activeQuestionIndex, { explanation: html })}
+                        placeholder="Describe why this answer is correct..."
+                        helperText="Shown to students after they answer the question."
+                        height={180}
+                      />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            ) : (
+              <Card>
+                <CardBody className={styles.emptyEditor}>
+                  <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
+                  <h3>No Questions Yet</h3>
+                  <p>Add your first question to get started</p>
+                  <Button variant="primary" onClick={addQuestion}>
+                    <Plus size={16} style={{ marginRight: 6 }} />
+                    Add Question
+                  </Button>
+                </CardBody>
+              </Card>
             )}
           </div>
-        ))}
-      </div>
-
-      {/* Add Option Button */}
-      {template !== TEMPLATES.TRUE_FALSE && (
-        <button
-          onClick={onAddOption}
-          style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: '#f3f4f6', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          <Plus size={16} />
-          Add Option
-        </button>
-      )}
+        </div>
+      </Container>
     </div>
   );
+
+  // Preview Step
+  if (step === 'preview') {
+    return (
+      <div className={styles.quizBuilder}>
+        <Container maxWidth="lg">
+          <Card>
+            <CardBody>
+              <div className={styles.previewHeader}>
+                <Button
+                  variant="outline"
+                  onClick={() => setStep('build')}
+                >
+                  ← Back to Edit
+                </Button>
+                <div>
+                  <h1 className={styles.quizTitle}>{quizData.title}</h1>
+                  <p className={styles.quizMeta}>
+                    {quizData.questions.length} questions • {quizData.estimatedTime} min • {quizData.difficulty}
+                  </p>
+                </div>
+                <div className={styles.previewActions}>
+                  <Button
+                    variant="primary"
+                    onClick={saveQuiz}
+                    disabled={saving}
+                  >
+                    {saving ? <Spinner size="sm" /> : <Save size={16} style={{ marginRight: 6 }} />}
+                    {saving ? 'Saving...' : 'Save Quiz'}
+                  </Button>
+                </div>
+              </div>
+
+              <div className={styles.previewContent}>
+                {quizData.questions.length === 0 ? (
+                  <div className={styles.emptyPreview}>
+                    <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
+                    <h3>No Questions to Preview</h3>
+                    <p>Add some questions to see how your quiz will look</p>
+                    <Button variant="outline" onClick={() => setStep('build')}>
+                      Add Questions
+                    </Button>
+                  </div>
+                ) : (
+                  <div className={styles.questionsPreview}>
+                    {quizData.questions.map((question, qIndex) => (
+                      <Card key={question.id} className={styles.previewQuestionCard}>
+                        <CardBody>
+                          <div className={styles.previewQuestionHeader}>
+                            <div className={styles.questionNumber}>Question {qIndex + 1}</div>
+                            <div className={styles.questionType}>
+                              {getQuestionIcon(question.type)}
+                              <span>{getQuestionTypeLabel(question.type)}</span>
+                            </div>
+                            <div className={styles.questionPoints}>
+                              {question.points || 1} point{question.points !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+
+                          <div 
+                            className={styles.previewQuestionText}
+                            dangerouslySetInnerHTML={{ __html: question.question || '<p>No question text</p>' }}
+                          />
+
+                          <div className={styles.previewOptions}>
+                            {question.options?.map((option, oIndex) => (
+                              <div
+                                key={option.id}
+                                className={`${styles.previewOption} ${option.correct ? styles.correct : styles.incorrect}`}
+                              >
+                                <div className={styles.optionIndicator}>
+                                  {option.correct ? (
+                                    <CheckCircle size={20} style={{ color: '#10b981' }} />
+                                  ) : (
+                                    <div className={styles.optionRadio} />
+                                  )}
+                                </div>
+                                <div 
+                                  className={styles.optionText}
+                                  dangerouslySetInnerHTML={{ __html: option.text || `Option ${oIndex + 1}` }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          {question.explanation && (
+                            <div className={styles.previewExplanation}>
+                              <h4>Explanation:</h4>
+                              <div
+                                className={styles.previewExplanationContent}
+                                dangerouslySetInnerHTML={{ __html: question.explanation }}
+                              />
+                            </div>
+                          )}
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        </Container>
+      </div>
+    );
+  }
 }

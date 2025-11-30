@@ -1,0 +1,21 @@
+.compact {
+  background: linear-gradient(135deg, #D4AF37, #FFD700);
+  border: 1px solid rgba(255,255,255,0.7);
+  color: #2E3B4E;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.full {
+  background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}

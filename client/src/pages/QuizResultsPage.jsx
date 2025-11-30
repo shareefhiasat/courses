@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAllQuizzes, getQuizSubmissions, getQuizAnalytics } from '../firebase/quizzes';
-import { Trophy, Users, BarChart3, Clock, Download, Eye, Trash2, Edit } from 'lucide-react';
+import { Container, Card, CardBody, Button, Spinner, Badge, Loading, Chart, EmptyState, Input, Select, SearchBar } from '../components/ui';
+import { Trophy, Users, BarChart3, Download, Eye, Edit, ArrowLeft, Filter, TrendingUp, Calendar } from 'lucide-react';
+import styles from './QuizResultsPage.module.css';
 
 export default function QuizResultsPage() {
   const { user, isAdmin, isInstructor } = useAuth();
@@ -12,6 +14,13 @@ export default function QuizResultsPage() {
   const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [classFilter, setClassFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [studentFilter, setStudentFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     loadQuizzes();
@@ -63,202 +72,413 @@ export default function QuizResultsPage() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <p>Loading quizzes...</p>
-      </div>
+      <Loading
+        variant="overlay"
+        fullscreen
+        message="Loading quizzes..."
+      />
     );
   }
 
   if (selectedQuiz) {
     return (
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '2rem' }}>
-        <button
+      <Container maxWidth="xl" className={styles.page}>
+        <Button
           onClick={() => { setSelectedQuiz(null); setSubmissions([]); setAnalytics(null); }}
-          style={{ padding: '0.5rem 1rem', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', marginBottom: '1rem' }}
+          variant="outline"
+          icon={<ArrowLeft size={16} />}
+          className={styles.backButton}
         >
-          ← Back to All Quizzes
-        </button>
+          Back to All Quizzes
+        </Button>
 
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '0.5rem' }}>{selectedQuiz.title}</h1>
-          <p style={{ color: 'var(--muted)' }}>{selectedQuiz.description}</p>
+        <div className={styles.header}>
+          <h1>{selectedQuiz.title}</h1>
+          <p>{selectedQuiz.description}</p>
         </div>
 
         {/* Analytics Cards */}
         {analytics && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: '2rem' }}>
-            <div style={{ padding: '1.5rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
-                <Users size={20} style={{ color: '#667eea' }} />
-                <span style={{ fontSize: 14, color: 'var(--muted)' }}>Submissions</span>
-              </div>
-              <div style={{ fontSize: 32, fontWeight: 800 }}>{analytics.totalSubmissions}</div>
-            </div>
-            <div style={{ padding: '1.5rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
-                <Trophy size={20} style={{ color: '#f59e0b' }} />
-                <span style={{ fontSize: 14, color: 'var(--muted)' }}>Avg Score</span>
-              </div>
-              <div style={{ fontSize: 32, fontWeight: 800 }}>{analytics.avgScore.toFixed(1)}</div>
-            </div>
-            <div style={{ padding: '1.5rem', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
-                <BarChart3 size={20} style={{ color: '#10b981' }} />
-                <span style={{ fontSize: 14, color: 'var(--muted)' }}>Completion</span>
-              </div>
-              <div style={{ fontSize: 32, fontWeight: 800 }}>{analytics.completionRate.toFixed(0)}%</div>
-            </div>
+          <div className={styles.analyticsGrid}>
+            <Card>
+              <CardBody>
+                <div className={styles.statLabel}>
+                  <Users size={20} style={{ color: '#667eea' }} />
+                  <span>Submissions</span>
+                </div>
+                <div className={styles.statValue}>{analytics.totalSubmissions}</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className={styles.statLabel}>
+                  <Trophy size={20} style={{ color: '#f59e0b' }} />
+                  <span>Avg Score</span>
+                </div>
+                <div className={styles.statValue}>{analytics.avgScore.toFixed(1)}</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <div className={styles.statLabel}>
+                  <BarChart3 size={20} style={{ color: '#10b981' }} />
+                  <span>Completion</span>
+                </div>
+                <div className={styles.statValue}>{analytics.completionRate.toFixed(0)}%</div>
+              </CardBody>
+            </Card>
           </div>
         )}
 
+        {/* Charts Row */}
+        {analytics && submissions.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            {/* Score Distribution Chart */}
+            <Card className={styles.chartCard}>
+              <CardBody>
+                <Chart
+                  type="bar"
+                  title="Score Distribution"
+                  data={submissions.map((s, idx) => ({
+                    name: s.userName || `#${idx + 1}`,
+                    score: s.percentage || 0
+                  }))}
+                  xKey="name"
+                  yKeys={['score']}
+                  height={260}
+                />
+              </CardBody>
+            </Card>
+
+            {/* Per-Student Trend Chart */}
+            <Card className={styles.chartCard}>
+              <CardBody>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <TrendingUp size={20} style={{ color: '#667eea' }} />
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Student Performance Trends</h3>
+                </div>
+                <Chart
+                  type="line"
+                  data={(() => {
+                    // Group submissions by student
+                    const studentMap = {};
+                    submissions.forEach(s => {
+                      const name = s.userName || s.userId;
+                      if (!studentMap[name]) studentMap[name] = [];
+                      studentMap[name].push(s.percentage || 0);
+                    });
+                    // Calculate trend (show last 5 attempts per student)
+                    return Object.entries(studentMap).slice(0, 5).map(([name, scores]) => ({
+                      name,
+                      avgScore: scores.reduce((a, b) => a + b, 0) / scores.length,
+                      lastScore: scores[scores.length - 1]
+                    }));
+                  })()}
+                  xKey="name"
+                  yKeys={['avgScore', 'lastScore']}
+                  height={260}
+                />
+              </CardBody>
+            </Card>
+          </div>
+        )}
+
+        {/* Question Difficulty Heatmap */}
+        {analytics?.questionStats && (
+          <Card className={styles.heatmapCard} style={{ marginBottom: '1.5rem' }}>
+            <CardBody>
+              <h2 className={styles.sectionTitle}>Question Difficulty Heatmap</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                {Object.entries(analytics.questionStats).map(([questionId, stats]) => {
+                  const attempts = stats.total || 0;
+                  const correctPct = attempts > 0 ? (stats.correct / attempts) * 100 : 0;
+                  const getColor = (pct) => {
+                    if (pct >= 80) return '#10b981'; // green
+                    if (pct >= 60) return '#f59e0b'; // yellow
+                    if (pct >= 40) return '#f97316'; // orange
+                    return '#ef4444'; // red
+                  };
+                  return (
+                    <div
+                      key={questionId}
+                      style={{
+                        backgroundColor: getColor(correctPct),
+                        color: 'white',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s',
+                      }}
+                      title={`${correctPct.toFixed(1)}% correct, ${attempts} attempts, ${Math.round(stats.avgTime || 0)}s avg`}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      Q{questionId.slice(-3)}
+                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                        {correctPct.toFixed(0)}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', fontSize: '0.8rem', color: '#666' }}>
+                <span><span style={{ display: 'inline-block', width: 12, height: 12, backgroundColor: '#10b981', borderRadius: 2, marginRight: 4 }}></span>Easy (≥80%)</span>
+                <span><span style={{ display: 'inline-block', width: 12, height: 12, backgroundColor: '#f59e0b', borderRadius: 2, marginRight: 4 }}></span>Medium (60-79%)</span>
+                <span><span style={{ display: 'inline-block', width: 12, height: 12, backgroundColor: '#f97316', borderRadius: 2, marginRight: 4 }}></span>Hard (40-59%)</span>
+                <span><span style={{ display: 'inline-block', width: 12, height: 12, backgroundColor: '#ef4444', borderRadius: 2, marginRight: 4 }}></span>Very Hard {'(<40%)'}</span>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {/* Question Difficulty Table */}
+        {analytics?.questionStats && (
+          <Card className={styles.questionStatsCard}>
+            <CardBody>
+              <h2 className={styles.sectionTitle}>Detailed Question Analysis</h2>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Question ID</th>
+                    <th>Correct %</th>
+                    <th>Attempts</th>
+                    <th>Avg Time (sec)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(analytics.questionStats).map(([questionId, stats]) => {
+                    const attempts = stats.total || 0;
+                    const correctPct = attempts > 0 ? (stats.correct / attempts) * 100 : 0;
+                    return (
+                      <tr key={questionId}>
+                        <td>{questionId}</td>
+                        <td>
+                          <Badge
+                            variant={correctPct >= 80 ? 'success' : correctPct >= 50 ? 'warning' : 'danger'}
+                          >
+                            {correctPct.toFixed(1)}%
+                          </Badge>
+                        </td>
+                        <td>{attempts}</td>
+                        <td>{Math.round(stats.avgTime || 0)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </CardBody>
+          </Card>
+        )}
+
         {/* Export Button */}
-        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-          <button
+        <div className={styles.exportWrapper}>
+          <Button
             onClick={exportCSV}
-            style={{ padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}
+            variant="success"
+            icon={<Download size={18} />}
           >
-            <Download size={18} />
             Export CSV
-          </button>
+          </Button>
         </div>
 
-        {/* Submissions Table */}
-        <div style={{ background: 'white', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '2px solid var(--border)' }}>
-                <th style={{ padding: '1rem', textAlign: 'left', fontWeight: 600 }}>Student</th>
-                <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 600 }}>Score</th>
-                <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 600 }}>Percentage</th>
-                <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 600 }}>Completed At</th>
-                <th style={{ padding: '1rem', textAlign: 'center', fontWeight: 600 }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {submissions.map((submission, idx) => (
-                <tr key={submission.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '1rem' }}>{submission.userName || submission.userId}</td>
-                  <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 600 }}>{submission.score}</td>
-                  <td style={{ padding: '1rem', textAlign: 'center' }}>
-                    <span style={{
-                      padding: '4px 12px',
-                      background: submission.percentage >= 80 ? '#d1fae5' : submission.percentage >= 60 ? '#fef3c7' : '#fee2e2',
-                      color: submission.percentage >= 80 ? '#065f46' : submission.percentage >= 60 ? '#92400e' : '#991b1b',
-                      borderRadius: 12,
-                      fontSize: 14,
-                      fontWeight: 600
-                    }}>
-                      {submission.percentage?.toFixed(1)}%
-                    </span>
-                  </td>
-                  <td style={{ padding: '1rem', textAlign: 'center', fontSize: 14, color: 'var(--muted)' }}>
-                    {submission.completedAt ? new Date(submission.completedAt.seconds * 1000).toLocaleString() : 'In progress'}
-                  </td>
-                  <td style={{ padding: '1rem', textAlign: 'center' }}>
-                    <button
-                      onClick={() => alert('View details coming soon')}
-                      style={{ padding: '0.5rem', background: '#f3f4f6', border: 'none', borderRadius: 6, cursor: 'pointer' }}
-                    >
-                      <Eye size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {submissions.length === 0 && (
+        {/* Submissions Table with Student Filter */}
+        <Card>
+          <CardBody className={styles.tableContainer}>
+            <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <SearchBar
+                value={studentFilter}
+                onChange={(e) => setStudentFilter(e.target.value)}
+                placeholder="Search students..."
+                style={{ maxWidth: 300 }}
+              />
+              <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                Showing {submissions.filter(s => 
+                  studentFilter === 'all' || 
+                  s.userName?.toLowerCase().includes(studentFilter.toLowerCase()) ||
+                  s.userEmail?.toLowerCase().includes(studentFilter.toLowerCase())
+                ).length} of {submissions.length} submissions
+              </span>
+            </div>
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
-                    No submissions yet
-                  </td>
+                  <th>Student</th>
+                  <th>Score</th>
+                  <th>Percentage</th>
+                  <th>Completed At</th>
+                  <th>Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody>
+                {submissions
+                  .filter(s => 
+                    studentFilter === 'all' || 
+                    s.userName?.toLowerCase().includes(studentFilter.toLowerCase()) ||
+                    s.userEmail?.toLowerCase().includes(studentFilter.toLowerCase())
+                  )
+                  .map((submission) => (
+                  <tr key={submission.id}>
+                    <td>{submission.userName || submission.userId}</td>
+                    <td className={styles.scoreCell}>{submission.score}</td>
+                    <td>
+                      <Badge variant={submission.percentage >= 80 ? 'success' : submission.percentage >= 60 ? 'warning' : 'danger'}>
+                        {submission.percentage?.toFixed(1)}%
+                      </Badge>
+                    </td>
+                    <td className={styles.dateCell}>
+                      {submission.completedAt ? new Date(submission.completedAt.seconds * 1000).toLocaleString() : 'In progress'}
+                    </td>
+                    <td>
+                      <Button
+                        onClick={() => alert('View details coming soon')}
+                        variant="ghost"
+                        size="sm"
+                        icon={<Eye size={16} />}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {submissions.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className={styles.emptyCell}>
+                      No submissions yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </CardBody>
+        </Card>
+      </Container>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <Container maxWidth="xl" className={styles.page}>
+      <div className={styles.header}>
         <div>
-          <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '0.5rem' }}>Quiz Results</h1>
-          <p style={{ color: 'var(--muted)' }}>View and manage quiz submissions</p>
+          <h1>Quiz Results</h1>
+          <p>View and manage quiz submissions</p>
         </div>
-        <button
+        <Button
           onClick={() => navigate('/quiz-builder')}
-          style={{ padding: '0.75rem 1.5rem', background: '#667eea', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+          variant="primary"
         >
           + Create New Quiz
-        </button>
+        </Button>
       </div>
 
-      <div style={{ display: 'grid', gap: 16 }}>
-        {quizzes.map(quiz => (
-          <div
+      {/* Filters Section */}
+      <Card className={styles.filtersCard}>
+        <CardBody>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+            <Button
+              onClick={() => setShowFilters(!showFilters)}
+              variant="outline"
+              icon={<Filter size={16} />}
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
+            <SearchBar
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search quizzes..."
+              style={{ flex: 1 }}
+            />
+          </div>
+          
+          {showFilters && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <Select
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Classes' },
+                  { value: 'class1', label: 'Class 1' },
+                  { value: 'class2', label: 'Class 2' }
+                ]}
+                placeholder="Filter by class"
+              />
+              <Select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Time' },
+                  { value: 'today', label: 'Today' },
+                  { value: 'week', label: 'This Week' },
+                  { value: 'month', label: 'This Month' }
+                ]}
+                placeholder="Filter by date"
+              />
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      <div className={styles.quizList}>
+        {quizzes
+          .filter(q => {
+            const matchSearch = !searchTerm || 
+              q.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              q.description?.toLowerCase().includes(searchTerm.toLowerCase());
+            return matchSearch;
+          })
+          .map(quiz => (
+          <Card
             key={quiz.id}
-            style={{
-              padding: '1.5rem',
-              background: 'white',
-              borderRadius: 12,
-              border: '1px solid var(--border)',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onClick={() => loadQuizDetails(quiz)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#667eea';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
+            className={styles.quizCard}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: '0.5rem' }}>{quiz.title}</h3>
-                <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: '1rem' }}>{quiz.description}</p>
-                <div style={{ display: 'flex', gap: 16, fontSize: 14 }}>
-                  <span style={{ color: 'var(--muted)' }}>
-                    📝 {quiz.questions?.length || 0} questions
-                  </span>
-                  <span style={{ color: 'var(--muted)' }}>
-                    🎮 {quiz.template}
-                  </span>
-                  {quiz.assignment?.isAssignment && (
-                    <span style={{ padding: '2px 8px', background: '#fef3c7', color: '#92400e', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
-                      Assignment
-                    </span>
-                  )}
+            <CardBody>
+              <div 
+                className={styles.quizContent}
+                style={{ cursor: 'pointer' }}
+                onClick={() => loadQuizDetails(quiz)}
+              >
+                <div className={styles.quizInfo}>
+                  <h3>{quiz.title}</h3>
+                  <p>{quiz.description}</p>
+                  <div className={styles.quizMeta}>
+                    <span>📝 {quiz.questions?.length || 0} questions</span>
+                    <span>🎮 {quiz.template}</span>
+                    {quiz.assignment?.isAssignment && (
+                      <Badge variant="warning" size="sm">Assignment</Badge>
+                    )}
+                  </div>
+                </div>
+                <div 
+                  className={styles.quizActions}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    onClick={() => navigate(`/quiz-builder?id=${quiz.id}`)}
+                    variant="ghost"
+                    size="sm"
+                    icon={<Edit size={16} />}
+                  />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); navigate(`/quiz-builder?id=${quiz.id}`); }}
-                  style={{ padding: '0.5rem', background: '#f3f4f6', border: 'none', borderRadius: 6, cursor: 'pointer' }}
-                >
-                  <Edit size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         ))}
         {quizzes.length === 0 && (
-          <div style={{ padding: '3rem', textAlign: 'center', background: 'white', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <Trophy size={64} style={{ color: 'var(--muted)', marginBottom: '1rem', margin: '0 auto' }} />
-            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: '0.5rem' }}>No Quizzes Yet</h3>
-            <p style={{ color: 'var(--muted)', marginBottom: '1.5rem' }}>Create your first quiz to get started</p>
-            <button
-              onClick={() => navigate('/quiz-builder')}
-              style={{ padding: '0.75rem 2rem', background: '#667eea', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
-            >
-              Create Quiz
-            </button>
-          </div>
+          <EmptyState
+            icon={Trophy}
+            title="No Quizzes Yet"
+            description="Create your first quiz to get started"
+            action={
+              <Button
+                onClick={() => navigate('/quiz-builder')}
+                variant="primary"
+              >
+                Create Quiz
+              </Button>
+            }
+          />
         )}
       </div>
-    </div>
+    </Container>
   );
 }

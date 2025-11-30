@@ -7,10 +7,10 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
-import { useToast } from '../components/ToastProvider';
-import Loading from '../components/Loading';
+import { Container, Card, CardBody, Button, Spinner, Badge, useToast } from '../components/ui';
 import RankUpgradeModal from '../components/RankUpgradeModal';
 import '../styles/military-theme.css';
+import styles from './AwardMedalsPage.module.css';
 import { seedBadges } from '../firebase/seedBadges';
 
 // Default medals - will be replaced by Firestore badges
@@ -34,7 +34,7 @@ const AwardMedalsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { lang, t } = useLang();
-  const { showSuccess, showError, showInfo } = useToast();
+  const toast = useToast();
 
   const [students, setStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -98,7 +98,7 @@ const AwardMedalsPage = () => {
       }
     } catch (error) {
       console.error('Error loading students:', error);
-      showError(t('error_loading_data') || 'Error loading students');
+      toast.error(t('error_loading_data') || 'Error loading students');
     } finally {
       setLoading(false);
     }
@@ -125,13 +125,13 @@ const AwardMedalsPage = () => {
     try {
       const res = await seedBadges();
       if (res?.success) {
-        showSuccess(`${res.count} badges seeded`);
+        toast.success(`${res.count} badges seeded`);
         await loadBadges();
       } else {
-        showError(res?.error || 'Failed to seed badges');
+        toast.error(res?.error || 'Failed to seed badges');
       }
     } catch (e) {
-      showError(e?.message || 'Failed to seed badges');
+      toast.error(e?.message || 'Failed to seed badges');
     } finally {
       setSeeding(false);
     }
@@ -139,12 +139,12 @@ const AwardMedalsPage = () => {
 
   const handleAwardMedals = async () => {
     if (selectedStudents.length === 0) {
-      showInfo(t('select_at_least_one_student') || 'Please select at least one student');
+      toast.info(t('select_at_least_one_student') || 'Please select at least one student');
       return;
     }
 
     if (!selectedMedal) {
-      showInfo(t('select_medal') || 'Please select a medal');
+      toast.info(t('select_medal') || 'Please select a medal');
       return;
     }
 
@@ -169,13 +169,13 @@ const AwardMedalsPage = () => {
             // Show toasts for multiple upgrades
             rankUpgrades.forEach(upgrade => {
               const student = students.find(s => s.userId === upgrade.studentId);
-              showSuccess(`🎖️ ${student?.displayName || 'Student'} promoted to ${upgrade.newRank.icon} ${upgrade.newRank.name}!`);
+              toast.success(`🎖️ ${student?.displayName || 'Student'} promoted to ${upgrade.newRank.icon} ${upgrade.newRank.name}!`);
             });
           }
         }
         
         // Show general success message
-        showSuccess(`${selectedMedal.icon} Medals awarded to ${selectedStudents.length} student(s)!`);
+        toast.success(`${selectedMedal.icon} Medals awarded to ${selectedStudents.length} student(s)!`);
         
         // Reset form
         setSelectedStudents([]);
@@ -185,17 +185,22 @@ const AwardMedalsPage = () => {
         // Reload students to show updated points
         await loadStudents();
       } else {
-        showError(result.error || 'Error awarding medals');
+        toast.error(result.error || 'Error awarding medals');
       }
     } catch (error) {
       console.error('Error awarding medals:', error);
-      showError(t('error_occurred') || 'An error occurred');
+      toast.error(t('error_occurred') || 'An error occurred');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <Loading />;
+  if (loading) return (
+    <Container className={styles.loadingWrapper}>
+      <Spinner size="lg" />
+      <p>Loading students...</p>
+    </Container>
+  );
 
   return (
     <div style={{ padding: '1rem', maxWidth: '1100px', margin: '0 auto' }}>

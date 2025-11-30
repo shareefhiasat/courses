@@ -1,15 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { Calendar, Clock, Plus, Trash2, Save } from 'lucide-react';
+import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast } from '../components/ui';
+import { Calendar, Clock, Plus, Trash2, Save, AlertCircle } from 'lucide-react';
+import styles from './ClassSchedulePage.module.css';
 
 const ClassSchedulePage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
   const { t } = useLang();
+  const toast = useToast();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
+  const [yearFilter, setYearFilter] = useState('all');
+  const [termFilter, setTermFilter] = useState('all');
+  const [sortOption, setSortOption] = useState('name_asc');
   const [schedule, setSchedule] = useState({
     frequency: 'once', // once, twice, thrice
     days: [], // ['SUN', 'TUE', 'THU']
@@ -30,6 +36,54 @@ const ClassSchedulePage = () => {
   ];
   const durationOptions = [60, 75, 90, 105, 120, 135, 150, 180];
 
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    classes.forEach(cls => {
+      if (cls.year) years.add(String(cls.year));
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [classes]);
+
+  const availableTerms = useMemo(() => {
+    const terms = new Set();
+    classes.forEach(cls => {
+      if (cls.term) terms.add(cls.term);
+    });
+    return Array.from(terms).sort();
+  }, [classes]);
+
+  const filteredClasses = useMemo(() => {
+    let result = [...classes];
+
+    if (yearFilter !== 'all') {
+      result = result.filter(cls => String(cls.year) === yearFilter);
+    }
+
+    if (termFilter !== 'all') {
+      result = result.filter(cls => cls.term === termFilter);
+    }
+
+    switch (sortOption) {
+      case 'name_desc':
+        result.sort((a, b) => (b.name || b.code || '').localeCompare(a.name || a.code || ''));
+        break;
+      case 'recent':
+        result.sort((a, b) => {
+          const yearA = Number(a.year) || 0;
+          const yearB = Number(b.year) || 0;
+          if (yearA !== yearB) return yearB - yearA;
+          return (b.term || '').localeCompare(a.term || '');
+        });
+        break;
+      case 'name_asc':
+      default:
+        result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
+        break;
+    }
+
+    return result;
+  }, [classes, yearFilter, termFilter, sortOption]);
+
   useEffect(() => {
     if (!user) return;
     if (!isAdmin && !isInstructor) return;
@@ -39,8 +93,24 @@ const ClassSchedulePage = () => {
   const loadClasses = async () => {
     try {
       const snap = await getDocs(collection(db, 'classes'));
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const data = snap.docs.map(d => {
+        const docData = d.data();
+        const docId = d.id;
+        return {
+          ...docData,
+          docId,
+          id: docData?.id || docId
+        };
+      });
       setClasses(data);
+
+      const previouslySelectedId = selectedClass?.docId || selectedClass?.id;
+      if (previouslySelectedId) {
+        const matching = data.find(cls => (cls.docId || cls.id) === previouslySelectedId);
+        if (matching) {
+          loadSchedule(matching, { skipScroll: true });
+        }
+      }
     } catch (e) {
       // permission-denied should not spam console
       if (e?.code === 'permission-denied') return;
@@ -48,8 +118,9 @@ const ClassSchedulePage = () => {
     }
   };
 
-  const loadSchedule = (classData) => {
-    setSelectedClass(classData);
+  const loadSchedule = (classData, options = {}) => {
+    const safeClass = classData ? { ...classData, docId: classData.docId || classData.id, id: classData.id || classData.docId } : null;
+    setSelectedClass(safeClass);
     if (classData.schedule) {
       setSchedule({
         frequency: classData.schedule.frequency || 'once',
@@ -105,17 +176,22 @@ const ClassSchedulePage = () => {
   };
 
   const saveSchedule = async () => {
-    if (!selectedClass) return;
+    // Use docId or id, whichever is available
+    const cid = selectedClass?.docId || selectedClass?.id;
+    if (!selectedClass || !cid) {
+      toast?.error?.(t('select_class_first') || 'Please select a class first');
+      return;
+    }
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'classes', selectedClass.id), {
+      await updateDoc(doc(db, 'classes', cid), {
         schedule: schedule
       });
-      alert('Schedule saved successfully!');
+      toast?.success?.(t('schedule_saved') || 'Schedule saved successfully!');
       await loadClasses();
     } catch (e) {
       console.error('[Schedule] Error saving:', e);
-      alert('Failed to save: ' + (e?.message || 'unknown error'));
+      toast?.error?.((t('schedule_save_failed') || 'Failed to save schedule: ') + (e?.message || 'unknown error'));
     } finally {
       setSaving(false);
     }
@@ -132,22 +208,52 @@ const ClassSchedulePage = () => {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1rem' }}>
-      <h1 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Calendar size={28} />
-        {t('class_schedules') || 'Class Schedules'}
-      </h1>
-
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
         {/* Class List */}
         <div style={{ padding: '1rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>{t('classes') || 'Classes'} ({classes.length})</div>
+          <div style={{ fontWeight: 700, marginBottom: 12 }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
+          <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+            <Select
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              options={[
+                { value: 'all', label: t('all_years') || 'All years' },
+                ...availableYears.map(year => ({ value: year, label: year }))
+              ]}
+              fullWidth
+              placeholder={t('filter_year') || 'Filter by year'}
+            />
+            <Select
+              value={termFilter}
+              onChange={(e) => setTermFilter(e.target.value)}
+              options={[
+                { value: 'all', label: t('all_terms') || 'All terms' },
+                ...availableTerms.map(term => ({ value: term, label: term }))
+              ]}
+              fullWidth
+              placeholder={t('filter_term') || 'Filter by term'}
+            />
+            <Select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              options={[
+                { value: 'name_asc', label: t('sort_name_asc') || 'Name A → Z' },
+                { value: 'name_desc', label: t('sort_name_desc') || 'Name Z → A' },
+                { value: 'recent', label: t('sort_recent') || 'Most recent' }
+              ]}
+              fullWidth
+              placeholder={t('sort_classes') || 'Sort classes'}
+            />
+          </div>
           <div style={{ display: 'grid', gap: 8 }}>
-            {classes.map(cls => {
-              const isSelected = selectedClass?.id === cls.id;
+            {filteredClasses.map((cls, index) => {
+              const currentId = selectedClass?.docId || selectedClass?.id;
+              const clsId = cls.docId || cls.id;
+              const isSelected = currentId === clsId;
               const hasSchedule = cls.schedule && cls.schedule.days && cls.schedule.days.length > 0;
               return (
                 <div
-                  key={cls.id}
+                  key={clsId || `class-${index}`}
                   onClick={() => loadSchedule(cls)}
                   style={{
                     padding: '0.75rem',
@@ -185,9 +291,8 @@ const ClassSchedulePage = () => {
                 </div>
               </div>
 
-              {/* Frequency */}
+              {/* Frequency (buttons only, no top label) */}
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('frequency') || 'Frequency'}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                   {frequencyOptions.map(opt => (
                     <button
@@ -199,7 +304,7 @@ const ClassSchedulePage = () => {
                         padding: '0.75rem',
                         border: '1px solid var(--border)',
                         borderRadius: 8,
-                        background: schedule.frequency === opt.value ? '#667eea' : '#fff',
+                        background: schedule.frequency === opt.value ? '#800020' : '#fff',
                         color: schedule.frequency === opt.value ? 'white' : 'inherit',
                         fontWeight: 600,
                         cursor: 'pointer'
@@ -211,9 +316,9 @@ const ClassSchedulePage = () => {
                 </div>
               </div>
 
-              {/* Days */}
+              {/* Days (keep counter but hide label text) */}
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>
+                <label style={{ display: 'none' }}>
                   {t('select_days') || 'Select Days'} ({schedule.days.length}/{frequencyOptions.find(f => f.value === schedule.frequency)?.days})
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
@@ -245,10 +350,10 @@ const ClassSchedulePage = () => {
                 </div>
               </div>
 
-              {/* Time & Duration */}
+              {/* Time & Duration (labels visually hidden to avoid repetition) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>
+                  <label style={{ display: 'none' }}>
                     <Clock size={16} style={{ display: 'inline', marginRight: 6 }} />
                     {t('start_time') || 'Start Time'}
                   </label>
@@ -260,16 +365,17 @@ const ClassSchedulePage = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('duration') || 'Duration (minutes)'}</label>
-                  <select
+                  <label style={{ display: 'none' }}>{t('duration') || 'Duration (minutes)'}</label>
+                  <Select
+                    searchable
                     value={schedule.duration}
                     onChange={(e) => setSchedule({ ...schedule, duration: parseInt(e.target.value) })}
-                    style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
-                  >
-                    {durationOptions.map(dur => (
-                      <option key={dur} value={dur}>{dur} min ({(dur / 60).toFixed(1)} hrs)</option>
-                    ))}
-                  </select>
+                    options={durationOptions.map(dur => ({
+                      value: dur,
+                      label: `${dur} min (${(dur / 60).toFixed(1)} hrs)`
+                    }))}
+                    fullWidth
+                  />
                 </div>
               </div>
 
@@ -336,7 +442,7 @@ const ClassSchedulePage = () => {
                   padding: '1rem',
                   border: 'none',
                   borderRadius: 8,
-                  background: schedule.days.length === 0 ? '#9ca3af' : '#667eea',
+                  background: schedule.days.length === 0 ? '#9ca3af' : '#16a34a',
                   color: 'white',
                   fontWeight: 600,
                   fontSize: 16,
