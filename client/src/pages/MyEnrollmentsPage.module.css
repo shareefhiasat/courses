@@ -1,0 +1,489 @@
+.enrollmentsPage {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 2rem 0;
+}
+
+/* Loading State */
+.loadingWrapper {
+  padding: 2rem;
+}
+
+.loadingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 400px;
+}
+
+.loadingContent p {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* Page Header */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.pageDescription {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.headerStats {
+  display: flex;
+  gap: 2rem;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+.statLabel {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Filter Tabs */
+.filterTabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.filterTab {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterTab:hover {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.filterTab.active {
+  background: #8b5cf6;
+  color: white;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+/* Enrollments List */
+.enrollmentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.enrollmentCard {
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.enrollmentCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Card Header */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.classInfo {
+  flex: 1;
+}
+
+.classTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.className {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.classMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.classCode {
+  font-weight: 600;
+  color: #8b5cf6;
+}
+
+.separator {
+  color: #cbd5e1;
+}
+
+.schedule {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.gradeBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border: 2px solid;
+  border-radius: 12px;
+  background: white;
+  min-width: 80px;
+}
+
+.gradeValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.gradeLabel {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Progress Section */
+.progressSection {
+  margin-bottom: 1.5rem;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.progressLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.progressValue {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+.progressBar {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progressStats {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* Stats Row */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.statBox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.statIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.statContent {
+  flex: 1;
+}
+
+.statNumber {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.statText {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Next Class Banner */
+.nextClassBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 8px;
+  border: 1px solid #fbbf24;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+/* Card Actions */
+.cardActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.emptyState h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem 0;
+}
+
+.emptyState p {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .pageHeader {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .headerStats {
+    width: 100%;
+    justify-content: space-around;
+  }
+}
+
+@media (max-width: 768px) {
+  .enrollmentsPage {
+    padding: 1rem 0;
+  }
+
+  .pageHeader {
+    padding: 1.5rem;
+  }
+
+  .pageTitle {
+    font-size: 1.5rem;
+  }
+
+  .filterTabs {
+    flex-direction: column;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .gradeBox {
+    align-self: flex-start;
+  }
+
+  .statsRow {
+    grid-template-columns: 1fr;
+  }
+
+  .cardActions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .pageHeader {
+    padding: 1rem;
+  }
+
+  .pageTitle {
+    font-size: 1.25rem;
+  }
+
+  .className {
+    font-size: 1.1rem;
+  }
+
+  .headerStats {
+    gap: 1rem;
+  }
+
+  .statValue {
+    font-size: 1.5rem;
+  }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .enrollmentsPage {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .pageHeader,
+[data-theme="dark"] .filterTabs,
+[data-theme="dark"] .enrollmentCard {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .pageTitle,
+[data-theme="dark"] .className {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .pageDescription,
+[data-theme="dark"] .classMeta,
+[data-theme="dark"] .schedule,
+[data-theme="dark"] .progressLabel,
+[data-theme="dark"] .progressStats,
+[data-theme="dark"] .statText {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .filterTab {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .filterTab:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .filterTab.active {
+  background: #8b5cf6;
+  color: white;
+}
+
+[data-theme="dark"] .statBox {
+  background: #334155;
+  border-color: #4b5563;
+}
+
+[data-theme="dark"] .statIcon {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .statNumber {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .progressBar {
+  background: #334155;
+}
+
+[data-theme="dark"] .gradeBox {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .nextClassBanner {
+  background: linear-gradient(135deg, #422006 0%, #78350f 100%);
+  border-color: #92400e;
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .emptyState h3 {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .emptyState p {
+  color: #94a3b8;
+}

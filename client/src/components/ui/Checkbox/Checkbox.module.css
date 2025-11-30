@@ -1,0 +1,143 @@
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.wrapper.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.wrapper.fullWidth {
+  width: 100%;
+}
+
+.checkboxContainer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border, #e5e7eb);
+  border-radius: 4px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.input:checked + .checkmark {
+  background: var(--color-primary, #b91c1c);
+  border-color: var(--color-primary, #b91c1c);
+}
+
+.input:focus + .checkmark {
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.1);
+}
+
+.input:disabled + .checkmark {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.checkIcon {
+  color: white;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show check icon when checked */
+.input:checked + .checkmark .checkIcon {
+  opacity: 1;
+}
+
+/* Label next to checkbox */
+.label {
+  font-size: 0.95rem;
+  color: var(--text, #212529);
+}
+
+.errorText {
+  color: var(--color-danger, #dc3545);
+  font-size: 0.8rem;
+}
+
+.helperText {
+  color: var(--muted, #6b7280);
+  font-size: 0.8rem;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  /* Do not force OS dark styling in light app mode */
+  .checkmark {
+    background: #ffffff;
+    border-color: #e5e7eb;
+  }
+  .input:checked + .checkmark {
+    background: var(--color-primary, #800020);
+    border-color: var(--color-primary, #800020);
+  }
+  /* Don't change label color here; app theme controls it */
+}
+
+/* Theme attribute overrides */
+:global([data-theme="dark"]) .checkmark { background: #1f2937; border-color: #374151; }
+:global([data-theme="dark"]) .input:checked + .checkmark { background: var(--color-primary, #b91c1c); border-color: var(--color-primary, #b91c1c); }
+:global([data-theme="dark"]) .label { color: #e5e7eb; }
+
+.input:checked + .checkmark .checkIcon {
+  opacity: 1;
+}
+
+.label {
+  font-size: 0.95rem;
+  color: var(--text, #212529);
+  line-height: 1.5;
+}
+
+.error {
+  border-color: var(--color-danger, #dc3545);
+}
+
+.errorText {
+  color: var(--color-danger, #dc3545);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.helperText {
+  color: var(--text-muted, #666);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Keep light appearance unless data-theme explicitly switches */
+  .checkmark {
+    background: #ffffff;
+    border-color: #e5e7eb;
+  }
+  
+  .input:disabled + .checkmark {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+  
+  /* Don't alter label color here */
+}

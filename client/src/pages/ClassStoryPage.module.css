@@ -1,0 +1,106 @@
+/* Class Story Page */
+.page {
+  padding: 2rem 1rem;
+}
+
+/* Loading */
+.loadingWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+/* Header */
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.header h1 {
+  font-family: var(--font-primary, inherit);
+  font-size: 2.5rem;
+  color: var(--navy-dark, #1e3a8a);
+  margin: 0 0 0.5rem 0;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.header p {
+  font-size: 1.125rem;
+  color: var(--military-gray, #666);
+  margin: 0;
+}
+
+/* New Post Card */
+.newPostCard {
+  margin-bottom: 2rem;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid var(--military-light-gray, #e5e7eb);
+  font-family: var(--font-secondary, inherit);
+  font-size: 1rem;
+  resize: vertical;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #667eea);
+}
+
+/* Posts Feed */
+.postsFeed {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 1.75rem;
+  }
+
+  .header p {
+    font-size: 1rem;
+  }
+
+  .textarea {
+    min-height: 100px;
+    font-size: 0.9375rem;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .header h1 {
+    color: var(--navy-light, #93c5fd);
+  }
+
+  .header p {
+    color: var(--text-muted, #999);
+  }
+
+  .textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text, #f5f5f5);
+  }
+
+  .textarea:focus {
+    border-color: var(--color-primary, #667eea);
+  }
+}

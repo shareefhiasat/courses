@@ -1,0 +1,231 @@
+/* Home Page - Additional Styles */
+
+/* Loading */
+.loadingWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+/* Rank Section */
+.rankSection {
+  margin-bottom: 1rem;
+}
+
+/* Dashboard Grid */
+.dashboardGrid {
+  margin-top: 2rem;
+}
+
+/* Hero Section */
+.heroSection {
+  margin-top: 2rem;
+}
+
+/* Announcements Card */
+.announcementsCard {
+  margin: 1.25rem auto;
+  max-width: 1200px;
+}
+
+.announcementsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.announcementsHeader h3 {
+  margin: 0;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Filter Buttons */
+.filterButtons {
+  display: flex;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Announcements List */
+.announcementsList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.announcementItem {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.announcementItem:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.announcementTitle {
+  margin: 0 0 0.5rem 0;
+  color: #111827;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.announcementContent {
+  margin: 0 0 0.5rem 0;
+  color: #374151;
+  white-space: pre-line;
+  position: relative;
+  /* Smooth expand/collapse */
+  max-height: 800px;
+  overflow: hidden;
+  transition: max-height 300ms ease, opacity 200ms ease;
+}
+
+.announcementContent.collapsed {
+  max-height: 100px;
+}
+
+/* Soft bottom fade when collapsed */
+.announcementContent.collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), var(--panel, #fff));
+}
+
+.announcementLink {
+  margin: 0.75rem 0;
+}
+
+.announcementLink a {
+  color: #b91c1c;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: opacity 0.2s;
+}
+
+.announcementLink a:hover {
+  opacity: 0.8;
+}
+
+.expandButton {
+  padding: 0.25rem 0 !important;
+  color: #800020 !important;
+  font-weight: 600;
+}
+
+.announcementDate {
+  margin-top: 0.5rem;
+}
+
+.announcementDate small {
+  color: var(--text-muted, #999);
+  font-size: 0.8125rem;
+}
+
+.emptyAnnouncements {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted, #999);
+}
+
+/* Filters Card */
+.filtersCard {
+  margin-bottom: 1.5rem;
+  background: #f8f9fa;
+}
+
+.filterSection {
+  margin-bottom: 0.75rem;
+}
+
+.filterSection:last-child {
+  margin-bottom: 0;
+}
+
+.filterLabel {
+  margin-right: 0.5rem;
+  color: #800020;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Loading Activities */
+.loadingActivities {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+}
+
+/* Activity Badges */
+.activityBadges {
+  display: flex;
+  gap: 0.375rem;
+  margin: 0.75rem 0;
+  flex-wrap: wrap;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .announcementsHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .announcementsHeader button {
+    width: 100%;
+  }
+
+  .filterButtons {
+    flex-direction: column;
+  }
+
+  .filterButtons button {
+    width: 100%;
+  }
+
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .announcementsHeader h3 {
+    color: #a00028;
+  }
+
+  .announcementTitle {
+    color: var(--text, #f5f5f5);
+  }
+
+  .filtersCard {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .filterLabel {
+    color: #a00028;
+  }
+}

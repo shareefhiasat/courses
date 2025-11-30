@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { formatDateTime } from '../utils/date';
 import './SmartGrid.css';
-import Modal from './Modal';
-import { useToast } from './ToastProvider';
+import { Modal, useToast } from './ui';
 import { useLang } from '../contexts/LangContext';
 
 const SmartGrid = ({ 

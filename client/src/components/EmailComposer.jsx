@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getUsers } from '../firebase/firestore';
 import { useLang } from '../contexts/LangContext';
+import { Select } from './ui';
 import Modal from './Modal';
 import { useToast } from './ToastProvider';
 import './EmailComposer.css';
@@ -157,7 +158,7 @@ const EmailComposer = ({ open, onClose, onSend }) => {
           <label style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
             {lang === 'en' ? 'Email Type' : 'نوع البريد'}
           </label>
-          <select
+          <Select
             value={emailData.type}
             onChange={(e) => {
               const type = e.target.value;
@@ -170,17 +171,13 @@ const EmailComposer = ({ open, onClose, onSend }) => {
                       type === 'newsletter' ? '' : prev.body
               }));
             }}
-            style={{
-              width: '100%',
-              padding: '8px',
-              borderRadius: '6px',
-              border: '1px solid #ddd'
-            }}
-          >
-            <option value="custom">{lang === 'en' ? 'Custom Email' : 'بريد مخصص'}</option>
-            <option value="welcome">{lang === 'en' ? 'Welcome Email' : 'بريد ترحيبي'}</option>
-            <option value="newsletter">{lang === 'en' ? 'Newsletter' : 'نشرة إخبارية'}</option>
-          </select>
+            options={[
+              { value: 'custom', label: lang === 'en' ? 'Custom Email' : 'بريد مخصص' },
+              { value: 'welcome', label: lang === 'en' ? 'Welcome Email' : 'بريد ترحيبي' },
+              { value: 'newsletter', label: lang === 'en' ? 'Newsletter' : 'نشرة إخبارية' }
+            ]}
+            fullWidth
+          />
         </div>
 
         {/* Recipients */}

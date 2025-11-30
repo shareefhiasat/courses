@@ -177,5 +177,91 @@ service cloud.firestore {
         allow create: if isSignedIn(); // Function-based
       }
     }
+
+    // Quizzes: Creator and admins can write, visibility-based read
+    match /quizzes/{quizId} {
+      // Read rules based on visibility
+      allow read: if isSignedIn() && (
+        resource.data.visibility == 'public' ||
+        resource.data.createdBy == request.auth.uid ||
+        isAdmin() ||
+        (resource.data.visibility == 'class' && resource.data.assignedClassIds != null && 
+         resource.data.assignedClassIds.hasAny([request.auth.uid])) // Simplified class check
+      );
+      
+      // Create: any signed-in user
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      
+      // Update/Delete: creator or admin
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
+    }
+
+    // Quiz Submissions: Students can create/read their own, creators can read all for their quizzes
+    match /quizSubmissions/{submissionId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin() ||
+        get(/databases/$(database)/documents/quizzes/$(resource.data.quizId)).data.createdBy == request.auth.uid
+      );
+      allow update: if isAdmin() || 
+        (isSignedIn() && resource.data.userId == request.auth.uid) ||
+        (isSignedIn() && get(/databases/$(database)/documents/quizzes/$(resource.data.quizId)).data.createdBy == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Quiz Folders: Creator and admins can manage
+    match /quizFolders/{folderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+    }
+
+    // Student Progress: Users can read/write their own, admins/instructors can read all
+    match /studentProgress/{userId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId ||
+        isAdmin() ||
+        request.auth.token.instructor == true
+      );
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Activity Logs: Users can create their own, admins can read all
+    match /activityLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // Flat attendance collection used by dashboard and legacy attendance APIs
+    match /attendance/{recordId} {
+      // Students can read their own records; admins can read all
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.studentId ||
+        isAdmin()
+      );
+
+      // Only admins can write/delete attendance records from the client
+      allow create, update, delete: if isAdmin();
+    }
+
+    // User badges (achievements) used by dashboard
+    match /userBadges/{badgeId} {
+      // Students can read their own badges; admins can read all
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        isAdmin()
+      );
+
+      // Students can create their own badge docs (if any client-side flow does this); admins can manage all
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if isAdmin();
+    }
   }
 }

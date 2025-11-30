@@ -1,0 +1,99 @@
+/* Tabs Container */
+.tabsContainer {
+  width: 100%;
+}
+
+/* Tab List */
+.tabList {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid var(--border, #e0e0e0);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabList::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tab */
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 500;
+  color: var(--muted, #666);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text, #212529);
+  background: rgba(128, 0, 32, 0.05);
+}
+
+.tab.active {
+  color: var(--color-primary, #800020);
+  border-bottom-color: var(--color-primary, #800020);
+}
+
+.tabIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tab Panel */
+.tabPanel {
+  padding: 1.5rem 0;
+}
+
+/* Animated inner wrapper so key changes trigger entrance animation */
+.tabPanelInner {
+  animation: tabFadeSlideIn 220ms ease both;
+}
+
+@keyframes tabFadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .tab {
+    padding: 0.5rem 1rem;
+    font-size: var(--font-size-sm, 0.875rem);
+  }
+  
+  .tabPanel {
+    padding: 1rem 0;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .tabList {
+    border-bottom-color: var(--border, #333);
+  }
+  
+  .tab {
+    color: var(--muted, #999);
+  }
+  
+  .tab:hover {
+    color: var(--text, #f5f5f5);
+    background: rgba(160, 32, 64, 0.1);
+  }
+  
+  .tab.active {
+    color: var(--color-primary, #ff6b9d);
+    border-bottom-color: var(--color-primary, #ff6b9d);
+  }
+}

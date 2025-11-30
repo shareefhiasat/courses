@@ -1,0 +1,48 @@
+/* Container */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Max Width */
+.maxWidth-sm {
+  max-width: 640px;
+}
+
+.maxWidth-md {
+  max-width: 768px;
+}
+
+.maxWidth-lg {
+  max-width: 1024px;
+}
+
+.maxWidth-xl {
+  max-width: 1280px;
+}
+
+.maxWidth-full {
+  max-width: none;
+}
+
+/* Padding */
+.padding-none {
+  padding: 0;
+}
+
+.padding-sm {
+  padding: var(--spacing-sm, 0.5rem);
+}
+
+.padding-md {
+  padding: var(--spacing-md, 1rem);
+}
+
+.padding-lg {
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.padding-xl {
+  padding: var(--spacing-xl, 2rem);
+}

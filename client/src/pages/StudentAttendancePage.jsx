@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { scanAttendance, simpleDeviceHash } from '../firebase/attendance';
+import { Button, Select, Loading } from '../components/ui';
+import { Download } from 'lucide-react';
 
 const StudentAttendancePage = () => {
   const { user } = useAuth();
@@ -230,8 +232,6 @@ const StudentAttendancePage = () => {
   return (
     <>
     <div style={{ maxWidth: 880, margin: '0 auto', padding: '1rem' }}>
-      <h1 style={{ marginTop: 0 }}>{(t('scan_attendance') || 'Scan Attendance').replaceAll('_',' ')}</h1>
-
       <div style={{ display:'grid', gridTemplateColumns:'minmax(280px,360px) 1fr', gap: 16, alignItems:'start' }}>
         <div style={{ position: 'relative', background: '#000', borderRadius: 12, overflow: 'hidden' }}>
           <video ref={videoRef} playsInline muted style={{ width: '100%', height: 'auto', display: 'block' }} />
@@ -245,42 +245,40 @@ const StudentAttendancePage = () => {
         <div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr', gap: 8 }}>
             <div>
-              <div style={{ marginBottom: 6, fontWeight: 700 }}>{(t('class') || 'Class').replaceAll('_',' ')}</div>
-              <select value={classId} onChange={(e)=>onSelectClass(e.target.value)} style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }}>
-                <option value="">{(t('select_class_optional') || 'Select class (optional)').replaceAll('_',' ')}</option>
-                {classOptions.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <div style={{ marginBottom: 6, fontWeight: 700 }}>{(t('status') || 'Status').replaceAll('_',' ')}</div>
-              <select value={attendanceStatus} onChange={(e)=>setAttendanceStatus(e.target.value)} style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }}>
-                <option value="present">{(t('present_count') || 'Present').replaceAll('_',' ')}</option>
-                <option value="leave">{(t('leave') || 'Leave').replaceAll('_',' ')}</option>
-              </select>
+              <Select
+                value={attendanceStatus}
+                onChange={(e)=>setAttendanceStatus(e.target.value)}
+                options={[
+                  { value: 'present', label: 'Present' },
+                  { value: 'leave', label: 'Leave' }
+                ]}
+                fullWidth
+              />
             </div>
             {attendanceStatus === 'leave' && (
               <>
                 <div>
-                  <div style={{ marginBottom: 6, fontWeight: 700 }}>{(t('leave_reason') || 'Leave Reason').replaceAll('_',' ')}</div>
-                  <select value={leaveReason} onChange={(e)=>setLeaveReason(e.target.value)} style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }}>
-                    <option value="medical">{(t('medical') || 'Medical').replaceAll('_',' ')}</option>
-                    <option value="official">{(t('official') || 'Official').replaceAll('_',' ')}</option>
-                    <option value="other">{(t('other') || 'Other').replaceAll('_',' ')}</option>
-                  </select>
+                  <Select
+                    value={leaveReason}
+                    onChange={(e)=>setLeaveReason(e.target.value)}
+                    options={[
+                      { value: 'medical', label: 'Sick Leave (Medical)' },
+                      { value: 'official', label: 'Official Leave' },
+                      { value: 'humanitarian', label: 'Humanitarian Case Leave' },
+                      { value: 'personal', label: 'Personal Leave' }
+                    ]}
+                    fullWidth
+                  />
                 </div>
                 <div>
-                  <div style={{ marginBottom: 6, fontWeight: 700 }}>{(t('attendance_note') || 'Note').replaceAll('_',' ')} ({(t('optional') || 'Optional').replaceAll('_',' ')})</div>
-                  <textarea value={leaveNote} onChange={(e)=>setLeaveNote(e.target.value)} placeholder="Enter reason details..." style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit', minHeight: 60, resize: 'vertical' }} />
+                  <textarea value={leaveNote} onChange={(e)=>setLeaveNote(e.target.value)} placeholder="Enter reason details (optional)..." style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit', minHeight: 60, resize: 'vertical' }} />
                 </div>
               </>
             )}
             <div>
-              <div style={{ marginBottom: 6, fontWeight: 700 }}>{(t('manual_entry') || 'Manual Entry').replaceAll('_',' ')}</div>
-              <input value={manualText} onChange={(e)=>setManualText(e.target.value)} placeholder="Paste link OR enter 6-digit code" style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }} />
+              <input value={manualText} onChange={(e)=>setManualText(e.target.value)} placeholder="Enter 6-digit code or paste link" style={{ width:'100%', padding:'0.6rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'inherit' }} />
               <div style={{ fontSize:11, color:'var(--muted)', marginTop:4 }}>
-                Enter the 6-digit code shown on instructor's screen, or paste the full link
+                Enter the code shown on instructor's screen, or paste the full attendance link
               </div>
               <div style={{ marginTop: 8, display:'flex', gap: 8 }}>
                 <button onClick={handleManualSubmit} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#667eea', color:'#fff', fontWeight:600 }}>{(t('submit') || 'Submit').replaceAll('_',' ')}</button>
@@ -302,38 +300,71 @@ const StudentAttendancePage = () => {
     {showHistory && <div style={{ maxWidth: 880, margin: '1rem auto', padding: '1rem', background:'var(--panel)', borderRadius:12 }}>
       <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', marginBottom:8 }}>
         <strong>{(t('attendance_history') || 'Attendance History').replaceAll('_',' ')}</strong>
-        <select value={histClassFilter} onChange={(e)=>setHistClassFilter(e.target.value)} style={{ padding:'0.4rem 0.6rem', borderRadius:8, border:'1px solid var(--border)' }}>
-          <option value="all">{(t('all_classes')||'All Classes').replaceAll('_',' ')}</option>
-          {classOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)} style={{ padding:'0.4rem 0.6rem', borderRadius:8, border:'1px solid var(--border)' }}>
-          <option value="all">{(t('all')||'All').replaceAll('_',' ')}</option>
-          <option value="present">{(t('present')||'Present').replaceAll('_',' ')}</option>
-          <option value="absent">{(t('absent')||'Absent').replaceAll('_',' ')}</option>
-          <option value="anomaly">{(t('anomaly')||'Anomaly').replaceAll('_',' ')}</option>
-        </select>
-        <input type="date" value={fromDate} onChange={(e)=>setFromDate(e.target.value)} style={{ padding:'0.4rem 0.6rem', borderRadius:8, border:'1px solid var(--border)' }} />
-        <input type="date" value={toDate} onChange={(e)=>setToDate(e.target.value)} style={{ padding:'0.4rem 0.6rem', borderRadius:8, border:'1px solid var(--border)' }} />
+        <Select
+          searchable
+          size="small"
+          value={histClassFilter}
+          onChange={(e)=>setHistClassFilter(e.target.value)}
+          options={[
+            { value: 'all', label: (t('all_classes')||'All Classes').replaceAll('_',' ') },
+            ...classOptions.map(c => ({ value: c.id, label: c.name }))
+          ]}
+        />
+        <Select
+          searchable
+          size="small"
+          value={statusFilter}
+          onChange={(e)=>setStatusFilter(e.target.value)}
+          options={[
+            { value: 'all', label: (t('all')||'All').replaceAll('_',' ') },
+            { value: 'present', label: (t('present')||'Present').replaceAll('_',' ') },
+            { value: 'absent', label: (t('absent')||'Absent').replaceAll('_',' ') },
+            { value: 'leave', label: (t('leave')||'Leave').replaceAll('_',' ') }
+          ]}
+        />
+        <Select
+          searchable
+          size="small"
+          value={fromDate}
+          onChange={(e)=>setFromDate(e.target.value)}
+          options={[
+            { value: '', label: (t('from_date')||'From Date').replaceAll('_',' ') },
+            ...Array(31).fill(0).map((_, i) => ({ value: `${i+1}`, label: `${i+1}` })),
+          ]}
+        />
+        <Select
+          searchable
+          size="small"
+          value={toDate}
+          onChange={(e)=>setToDate(e.target.value)}
+          options={[
+            { value: '', label: (t('to_date')||'To Date').replaceAll('_',' ') },
+            ...Array(31).fill(0).map((_, i) => ({ value: `${i+1}`, label: `${i+1}` })),
+          ]}
+        />
       </div>
       {histLoading ? (
-        <div style={{ padding:'1rem' }}>{(t('loading')||'Loading...').replaceAll('_',' ')}</div>
+        <Loading />
       ) : (
+// ... (rest of the code remains the same)
         <div style={{ display:'grid', gap:8 }}>
           <div style={{ justifySelf: 'end' }}>
-            <button onClick={()=>{
-              const headers = ['Class','Session','Status','Updated At'];
-              const rows = history.map(h=>[
-                (h.className||h.classId||''),
-                (h.sessionId||''),
-                (h.status||''),
-                new Date(h.updatedAt?.toDate ? h.updatedAt.toDate() : (h.updatedAt || h.at || h.createdAt || Date.now())).toLocaleString('en-GB')
-              ]);
-              const csv = [headers.join(','), ...rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
-              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob); const a = document.createElement('a');
-              a.href = url; a.download = `attendance_history_${new Date().toISOString().split('T')[0]}.csv`; a.click();
-              setTimeout(()=>URL.revokeObjectURL(url), 1000);
-            }} style={{ padding:'0.4rem 0.75rem', borderRadius:8, border:'1px solid var(--border)', background:'#fff' }}>{(t('export_csv')||'Export CSV').replaceAll('_',' ')}</button>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              icon={<Download size={16} />}
+              onClick={()=>{
+                const headers = ['Date','Status','Class'];
+                const csvRows = history.map(h => [new Date(h.scannedAt).toLocaleString('en-GB'), h.status||'present', h.className||'']);
+                const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob); const a = document.createElement('a');
+                a.href = url; a.download = `attendance_history_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+                setTimeout(()=>URL.revokeObjectURL(url), 1000);
+              }}
+            >
+              {t('export_csv') || 'Export CSV'}
+            </Button>
           </div>
           {history.length === 0 ? (
             <div style={{ padding:'0.5rem', color:'var(--muted)' }}>{(t('no_records')||'No records').replaceAll('_',' ')}</div>

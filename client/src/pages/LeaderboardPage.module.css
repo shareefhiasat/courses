@@ -1,0 +1,324 @@
+/* Leaderboard Page */
+.page {
+  padding: 2rem 0;
+}
+
+/* Loading */
+.loadingWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+/* Hero Card */
+.heroCard {
+  background: var(--gradient-navy, linear-gradient(135deg, #1e3a8a, #3b82f6));
+  color: white;
+  margin-bottom: 2rem;
+}
+
+.heroContent {
+  text-align: center;
+}
+
+.heroIcon {
+  margin: 0 auto 1rem;
+  color: var(--military-gold, #fbbf24);
+}
+
+.heroContent h1 {
+  font-family: var(--font-primary, inherit);
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 800;
+}
+
+.heroContent p {
+  margin: 0 0 1rem 0;
+  opacity: 0.9;
+  font-size: 1.125rem;
+}
+
+/* User Position */
+.userPosition {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.positionLabel {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  margin-bottom: 0.25rem;
+}
+
+.positionValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.positionPoints {
+  font-size: 1.125rem;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Table */
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead tr {
+  border-bottom: 2px solid var(--border, #e5e7eb);
+}
+
+.table th {
+  padding: 1rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-muted, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table th:first-child,
+.table th:nth-child(2) {
+  text-align: left;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  transition: background 0.2s;
+}
+
+.table tbody tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.table tbody tr.currentUser {
+  background: #f8f9ff;
+}
+
+.table td {
+  padding: 1rem;
+  text-align: center;
+}
+
+.table td:first-child,
+.table td:nth-child(2) {
+  text-align: left;
+}
+
+/* Position */
+.position {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.medal {
+  font-size: 1.5rem;
+}
+
+/* Student Info */
+.studentInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.studentName {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text, #212529);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.youBadge {
+  font-size: 0.75rem;
+}
+
+.studentEmail {
+  font-size: 0.875rem;
+  color: var(--text-muted, #888);
+}
+
+/* Rank Badge */
+.rankBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.rankIcon {
+  font-size: 1.5rem;
+}
+
+/* Points */
+.points {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--military-gold, #fbbf24);
+}
+
+/* Grid View */
+.gridView {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.gridCard {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gridCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.gridHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.gridName {
+  font-weight: 600;
+  color: var(--text, #212529);
+}
+
+.gridPosition {
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+}
+
+.gridRank {
+  margin-bottom: 0.75rem;
+}
+
+.gridPoints {
+  font-weight: 700;
+  color: var(--military-gold, #fbbf24);
+  font-size: 1.125rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .heroContent h1 {
+    font-size: 1.75rem;
+  }
+
+  .heroContent p {
+    font-size: 1rem;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters {
+    flex-direction: column;
+  }
+
+  .viewToggle {
+    width: 100%;
+  }
+
+  .viewToggle button {
+    flex: 1;
+  }
+
+  .table {
+    font-size: 0.875rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .studentInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .rankBadge {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .rankIcon {
+    font-size: 1.25rem;
+  }
+
+  .points {
+    font-size: 1.25rem;
+  }
+
+  .gridView {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .studentName {
+    color: var(--text, #f5f5f5);
+  }
+
+  .gridName {
+    color: var(--text, #f5f5f5);
+  }
+
+  .table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .table tbody tr.currentUser {
+    background: rgba(102, 126, 234, 0.1);
+  }
+}

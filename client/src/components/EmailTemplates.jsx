@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import EmailTemplateList from './EmailTemplateList';
 import EmailTemplateEditor from './EmailTemplateEditor';
 import SeedDefaultTemplates from './SeedDefaultTemplates';
+import { Loading } from './ui';
+import { useLang } from '../contexts/LangContext';
 
 const EmailTemplates = () => {
+  const { t } = useLang();
   const [view, setView] = useState('list'); // 'list' or 'editor'
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -63,7 +66,7 @@ const EmailTemplates = () => {
           </div>
           
           {checking ? (
-            <div style={{ padding: '2rem', textAlign: 'center' }}>Loading templates...</div>
+            <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />
           ) : (
             <>
               {hasTemplates === false && (

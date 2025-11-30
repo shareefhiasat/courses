@@ -4,6 +4,7 @@ import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, query, where, orderBy, limit, getDoc } from 'firebase/firestore';
 import { FileDown, Search, Filter, Calendar, User, AlertCircle } from 'lucide-react';
+import { Button, Select, Loading, DatePicker } from '../components/ui';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin } = useAuth();
@@ -18,6 +19,7 @@ const HRAttendancePage = () => {
   const [dateTo, setDateTo] = useState('');
   const [classes, setClasses] = useState([]);
   const [editingMark, setEditingMark] = useState(null);
+  const [savingMark, setSavingMark] = useState(null);
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
 
@@ -43,13 +45,42 @@ const HRAttendancePage = () => {
       const snap = await getDocs(collection(db, 'attendanceSessions'));
       let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       
+      // Enrich with class and instructor info
+      const enriched = await Promise.all(data.map(async (session) => {
+        try {
+          // Get class info
+          if (session.classId) {
+            const classDoc = await getDoc(doc(db, 'classes', session.classId));
+            if (classDoc.exists()) {
+              const classData = classDoc.data();
+              session.className = classData.name || classData.code || session.classId;
+              session.classTerm = classData.term;
+              session.classYear = classData.year;
+              
+              // Get instructor info
+              if (session.createdBy) {
+                const userDoc = await getDoc(doc(db, 'users', session.createdBy));
+                if (userDoc.exists()) {
+                  const userData = userDoc.data();
+                  session.instructorName = userData.displayName || userData.email;
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to enrich session:', err);
+        }
+        return session;
+      }));
+      
       // Apply filters
+      let filtered = enriched;
       if (classFilter !== 'all') {
-        data = data.filter(s => s.classId === classFilter);
+        filtered = filtered.filter(s => s.classId === classFilter);
       }
       if (dateFrom) {
         const from = new Date(dateFrom);
-        data = data.filter(s => {
+        filtered = filtered.filter(s => {
           const createdAt = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt || 0);
           return createdAt >= from;
         });
@@ -57,20 +88,20 @@ const HRAttendancePage = () => {
       if (dateTo) {
         const to = new Date(dateTo);
         to.setHours(23, 59, 59, 999);
-        data = data.filter(s => {
+        filtered = filtered.filter(s => {
           const createdAt = s.createdAt?.toDate ? s.createdAt.toDate() : new Date(s.createdAt || 0);
           return createdAt <= to;
         });
       }
 
       // Sort by date desc
-      data.sort((a, b) => {
+      filtered.sort((a, b) => {
         const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
         const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
         return bDate - aDate;
       });
 
-      setSessions(data);
+      setSessions(filtered);
     } catch (e) {
       console.error('[HR] Error loading sessions:', e);
     } finally {
@@ -197,42 +228,64 @@ const HRAttendancePage = () => {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12 }}>
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600 }}>{t('class') || 'Class'}</label>
-            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--panel)', color: 'inherit' }}>
-              <option value="all">{t('all_classes') || 'All Classes'}</option>
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name || c.code || c.id}</option>)}
-            </select>
+            <Select
+              searchable
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              options={[
+                { value: 'all', label: t('all_classes') || 'All Classes' },
+                ...classes.map(c => ({ value: c.id, label: c.name || c.code || c.id }))
+              ]}
+              fullWidth
+              placeholder={t('class') || 'Class'}
+            />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600 }}>{t('status') || 'Status'}</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--panel)', color: 'inherit' }}>
-              <option value="all">{t('all') || 'All'}</option>
-              <option value="present">{t('attended') || 'Attended'}</option>
-              <option value="late">{t('late') || 'Late'}</option>
-              <option value="absent">{t('absent') || 'Absent'}</option>
-              <option value="leave">{t('leave') || 'Leave'}</option>
-            </select>
+            <Select
+              searchable
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={[
+                { value: 'all', label: t('all') || 'All Status' },
+                { value: 'present', label: t('attended') || 'Attended' },
+                { value: 'late', label: t('late') || 'Late' },
+                { value: 'absent', label: t('absent') || 'Absent' },
+                { value: 'leave', label: t('leave') || 'Leave' }
+              ]}
+              fullWidth
+              placeholder={t('status') || 'Status'}
+            />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600 }}>{t('from_date') || 'From Date'}</label>
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--panel)', color: 'inherit' }} />
+            <DatePicker
+              type="date"
+              value={dateFrom}
+              onChange={(iso) => setDateFrom(iso ? new Date(iso).toLocaleDateString('en-CA') : '')}
+              placeholder={t('from_date') || 'From Date'}
+              fullWidth
+            />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 600 }}>{t('to_date') || 'To Date'}</label>
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--panel)', color: 'inherit' }} />
+            <DatePicker
+              type="date"
+              value={dateTo}
+              onChange={(iso) => setDateTo(iso ? new Date(iso).toLocaleDateString('en-CA') : '')}
+              placeholder={t('to_date') || 'To Date'}
+              fullWidth
+            />
           </div>
         </div>
       </div>
 
       {/* Sessions List */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16 }}>
-        <div style={{ padding: '1rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ flex: '1 1 300px', padding: '1rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
           <div style={{ fontWeight: 700, marginBottom: 12 }}>{t('sessions') || 'Sessions'} ({sessions.length})</div>
           {loading && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>{t('loading') || 'Loading...'}</div>}
           {!loading && sessions.length === 0 && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>{t('no_sessions') || 'No sessions found'}</div>}
           <div style={{ display: 'grid', gap: 8 }}>
             {sessions.map(session => {
-              const className = classes.find(c => c.id === session.classId)?.name || session.classId;
+              const className = session.className || classes.find(c => c.id === session.classId)?.name || session.classId;
               const createdAt = session.createdAt?.toDate ? session.createdAt.toDate() : new Date(session.createdAt || 0);
               const isSelected = selectedSession?.id === session.id;
               return (
@@ -249,11 +302,16 @@ const HRAttendancePage = () => {
                   }}
                 >
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{className}</div>
+                  {session.instructorName && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      👤 {session.instructorName}
+                    </div>
+                  )}
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
-                    {createdAt.toLocaleDateString('en-GB')} {createdAt.toLocaleTimeString('en-GB')}
+                    📅 {createdAt.toLocaleDateString('en-GB')} {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                    Status: {session.status || 'open'}
+                  <div style={{ fontSize: 11, color: session.status === 'open' ? '#10b981' : 'var(--muted)', marginTop: 2, fontWeight: 600 }}>
+                    {session.status === 'open' ? '🟢 Open' : '⚫ Closed'}
                   </div>
                 </div>
               );
@@ -262,7 +320,7 @@ const HRAttendancePage = () => {
         </div>
 
         {/* Marks Detail */}
-        <div style={{ padding: '1rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
+        <div style={{ flex: '2 1 400px', padding: '1rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
           {!selectedSession && (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
               <Search size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
@@ -278,10 +336,13 @@ const HRAttendancePage = () => {
                     {t('total_scans') || 'Total Scans'}: {marks.length}
                   </div>
                 </div>
-                <button onClick={() => exportSessionCSV(selectedSession.id)} style={{ padding: '0.5rem 1rem', border: '1px solid var(--border)', borderRadius: 8, background: '#10b981', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FileDown size={16} />
+                <Button 
+                  variant="success" 
+                  icon={<FileDown size={16} />}
+                  onClick={() => exportSessionCSV(selectedSession.id)}
+                >
                   {t('export_csv') || 'Export CSV'}
-                </button>
+                </Button>
               </div>
 
               {/* Summary Stats */}
@@ -327,12 +388,18 @@ const HRAttendancePage = () => {
                           <div style={{ marginTop: 8, padding: '0.75rem', background: '#f9fafb', borderRadius: 8 }}>
                             <div style={{ marginBottom: 8 }}>
                               <label style={{ display: 'block', marginBottom: 4, fontSize: 11, fontWeight: 600 }}>{t('status') || 'Status'}</label>
-                              <select value={mark.status || 'present'} onChange={(e) => setEditingMark({ ...mark, status: e.target.value })} style={{ width: '100%', padding: '0.4rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 }}>
-                                <option value="present">{t('attended') || 'Attended'}</option>
-                                <option value="late">{t('late') || 'Late'}</option>
-                                <option value="absent">{t('absent') || 'Absent'}</option>
-                                <option value="leave">{t('leave') || 'Leave'}</option>
-                              </select>
+                              <Select
+                                size="small"
+                                value={mark.status || 'present'}
+                                onChange={(e) => setEditingMark({ ...mark, status: e.target.value })}
+                                options={[
+                                  { value: 'present', label: t('attended') || 'Attended' },
+                                  { value: 'late', label: t('late') || 'Late' },
+                                  { value: 'absent', label: t('absent') || 'Absent' },
+                                  { value: 'leave', label: t('leave') || 'Leave' }
+                                ]}
+                                fullWidth
+                              />
                             </div>
                             <div style={{ marginBottom: 8 }}>
                               <label style={{ display: 'block', marginBottom: 4, fontSize: 11, fontWeight: 600 }}>{t('reason') || 'Reason'}</label>
@@ -343,12 +410,25 @@ const HRAttendancePage = () => {
                               <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Additional notes..." rows={2} style={{ width: '100%', padding: '0.4rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, resize: 'vertical' }} />
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
-                              <button onClick={() => updateMarkStatus(selectedSession.id, mark.uid, editingMark.status, reason, feedback)} style={{ padding: '0.4rem 0.75rem', border: 'none', borderRadius: 6, background: '#10b981', color: 'white', fontSize: 12, fontWeight: 600 }}>
+                              <Button 
+                                variant="success"
+                                size="small"
+                                loading={savingMark === mark.uid}
+                                onClick={async () => {
+                                  setSavingMark(mark.uid);
+                                  await updateMarkStatus(selectedSession.id, mark.uid, editingMark.status, reason, feedback);
+                                  setSavingMark(null);
+                                }}
+                              >
                                 {t('save') || 'Save'}
-                              </button>
-                              <button onClick={() => { setEditingMark(null); setReason(''); setFeedback(''); }} style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border)', borderRadius: 6, background: 'white', fontSize: 12, fontWeight: 600 }}>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="small"
+                                onClick={() => { setEditingMark(null); setReason(''); setFeedback(''); }}
+                              >
                                 {t('cancel') || 'Cancel'}
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         )}

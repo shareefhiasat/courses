@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,12 +8,12 @@ import { signOutUser } from '../firebase/auth';
 import {
   Home, ClipboardList, BarChart3, Trophy, MessageSquare,
   BookOpen, Users, Settings, LogOut, Languages, LayoutDashboard,
-  X, QrCode, User as UserIcon, Theater, Bell, ExternalLink, Activity, Timer as TimerIcon, Pin, PinOff, Sun, Moon, Shield, UserX, Calendar, Gamepad2, ListChecks, ChevronDown, ChevronRight
+  X, QrCode, User as UserIcon, Theater, Bell, ExternalLink, Activity, Timer as TimerIcon, Pin, PinOff, Sun, Moon, Shield, UserX, Calendar, Gamepad2, ListChecks, ChevronDown, ChevronRight, ChevronLeft
 } from 'lucide-react';
 import TimerStopwatch from './TimerStopwatch';
 
 const SideDrawer = ({ isOpen, onClose }) => {
-  const { user, isAdmin, isHR, isInstructor, role, impersonating, stopImpersonation } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation } = useAuth();
   const { t, lang, toggleLang } = useLang();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -85,8 +85,12 @@ const SideDrawer = ({ isOpen, onClose }) => {
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
     main: true,
+    quiz: false,
+    classes: false,
+    attendance: false,
     analytics: false,
     community: false,
+    tools: false,
     settings: false
   });
 
@@ -94,57 +98,172 @@ const SideDrawer = ({ isOpen, onClose }) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  const footerShadowBase = useMemo(() => (
+    theme === 'light'
+      ? '0 6px 14px rgba(15,23,42,0.08)'
+      : '0 6px 16px rgba(0,0,0,0.45)'
+  ), [theme]);
+
+  const footerShadowHover = useMemo(() => (
+    theme === 'light'
+      ? '0 12px 24px rgba(15,23,42,0.16)'
+      : '0 12px 28px rgba(0,0,0,0.65)'
+  ), [theme]);
+
+  const headerHoverShadow = useMemo(() => (
+    theme === 'light'
+      ? '0 8px 18px rgba(15,23,42,0.18)'
+      : '0 8px 22px rgba(0,0,0,0.65)'
+  ), [theme]);
+
+  const quickHoverShadow = useMemo(() => (
+    theme === 'light'
+      ? '0 6px 14px rgba(15,23,42,0.12)'
+      : '0 6px 16px rgba(0,0,0,0.55)'
+  ), [theme]);
+
+  const footerButtonBase = useMemo(() => ({
+    width: collapsed ? '56px' : '100%',
+    padding: collapsed ? '0.55rem' : '0.85rem',
+    borderRadius: 12,
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: collapsed ? '0.85rem' : '0.95rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
+    boxShadow: footerShadowBase,
+  }), [collapsed, footerShadowBase]);
+
+  const langButtonStyle = useMemo(() => ({
+    ...footerButtonBase,
+    background: theme === 'light'
+      ? 'linear-gradient(135deg, #f8fafc, #e2e8f0)'
+      : 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.2))',
+    color: theme === 'light' ? '#0f172a' : '#f8fafc',
+    border: theme === 'light'
+      ? '1px solid rgba(15,23,42,0.08)'
+      : '1px solid rgba(255,255,255,0.18)'
+  }), [footerButtonBase, theme]);
+
+  const logoutButtonStyle = useMemo(() => ({
+    ...footerButtonBase,
+    background: 'linear-gradient(135deg, #f87171, #dc2626)',
+    color: '#ffffff',
+    border: '1px solid rgba(220,38,38,0.45)'
+  }), [footerButtonBase]);
+
+  const onFooterHover = (e) => {
+    e.currentTarget.style.transform = 'translateY(-2px)';
+    e.currentTarget.style.boxShadow = footerShadowHover;
+  };
+
+  const onFooterLeave = (e) => {
+    e.currentTarget.style.transform = 'translateY(0)';
+    e.currentTarget.style.boxShadow = footerShadowBase;
+  };
+
+  const onHeaderButtonEnter = (e) => {
+    if (e.currentTarget.dataset.hoverBg) {
+      e.currentTarget.style.background = e.currentTarget.dataset.hoverBg;
+    }
+    e.currentTarget.style.boxShadow = headerHoverShadow;
+    e.currentTarget.style.transform = 'translateY(-1px)';
+  };
+
+  const onHeaderButtonLeave = (e) => {
+    if (e.currentTarget.dataset.baseBg) {
+      e.currentTarget.style.background = e.currentTarget.dataset.baseBg;
+    }
+    e.currentTarget.style.boxShadow = 'none';
+    e.currentTarget.style.transform = 'translateY(0)';
+  };
+
+  const onQuickActionEnter = (e) => {
+    if (e.currentTarget.dataset.hoverBg) {
+      e.currentTarget.style.background = e.currentTarget.dataset.hoverBg;
+    }
+    e.currentTarget.style.boxShadow = quickHoverShadow;
+    e.currentTarget.style.transform = 'translateY(-1px)';
+  };
+
+  const onQuickActionLeave = (e) => {
+    if (e.currentTarget.dataset.baseBg) {
+      e.currentTarget.style.background = e.currentTarget.dataset.baseBg;
+    }
+    e.currentTarget.style.boxShadow = 'none';
+    e.currentTarget.style.transform = 'translateY(0)';
+  };
+
   // Grouped navigation with tree structure
+  // Student: Class-centric view with enrollments and schedules
   const studentLinks = {
     main: {
       label: 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: t('home') || 'Home' },
-        { path: '/progress', icon: <Trophy size={18} />, label: t('my_badges') || 'My Badges' },
-        { path: '/activities', icon: <ClipboardList size={18} />, label: t('activities') || 'Activities' },
+        { path: '/', icon: <Home size={18} />, label: t('home') || 'home' },
+        { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+        { path: '/progress', icon: <BarChart3 size={18} />, label: 'Progress' },
         { path: '/leaderboard', icon: <Trophy size={18} />, label: t('leaderboard') || 'Leaderboard' },
-        { path: '/resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
-        { path: '/enrollments', icon: <Users size={18} />, label: t('my_classes') || 'My Classes' },
+        { path: '/activities', icon: <Activity size={18} />, label: t('activities') || 'Activities' },
+      ]
+    },
+    quiz: {
+      label: 'QUIZ',
+      items: [
+        { path: '/quiz-results', icon: <ListChecks size={18} />, label: t('quiz_results') || 'Quiz Results' },
+      ]
+    },
+    classes: {
+      label: 'CLASSES',
+      items: [
+        { path: '/my-enrollments', icon: <BookOpen size={18} />, label: 'My Enrollments' },
+        { path: '/class-schedules', icon: <Calendar size={18} />, label: t('class_schedules') || 'Class Schedules' },
+      ]
+    },
+    attendance: {
+      label: 'ATTENDANCE',
+      items: [
+        { path: '/my-attendance', icon: <QrCode size={18} />, label: t('my_attendance') || 'My Attendance' },
       ]
     },
     community: {
       label: 'COMMUNITY',
       items: [
         { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
-      ]
-    },
-    tools: {
-      label: 'TOOLS',
-      items: [
-        { key: 'timerControl', icon: <TimerIcon size={18} />, label: t('timer') || 'Timer' }
+        { path: '/resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
       ]
     },
     settings: {
-      label: 'WORKSPACE SETTINGS',
+      label: 'SETTINGS',
       items: [
         { path: '/notifications', icon: <Bell size={18} />, label: t('notifications') || 'Notifications' },
-        { path: '/student-profile', icon: <UserIcon size={18} />, label: t('student_profile') || 'Student Profile' },
-        { path: '/my-attendance', icon: <QrCode size={18} />, label: t('my_attendance') || 'My Attendance' },
-        { path: '/profile', icon: <Settings size={18} />, label: t('workspace_settings') || 'Workspace Settings' }
+        { path: '/profile', icon: <Settings size={18} />, label: t('settings') || 'Settings' },
+        { key: 'timerControl', icon: <TimerIcon size={18} />, label: t('timer') || 'Timer' }
       ]
     }
   };
 
+  // Admin & SuperAdmin: Full management view
   const adminLinks = {
     main: {
       label: 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: t('home') || 'Home' },
+        { path: '/', icon: <Home size={18} />, label: t('home') || 'home' },
         { path: '/dashboard', icon: <LayoutDashboard size={18} />, label: t('dashboard') || 'Dashboard' },
+        { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Student Dashboard' },
         { path: '/student-progress', icon: <BarChart3 size={18} />, label: t('student_progress') || 'Student Progress' },
-        { path: '/progress', icon: <Trophy size={18} />, label: t('my_badges') || 'My Badges' },
         { path: '/activities', icon: <Activity size={18} />, label: t('activities') || 'Activities' },
-        { path: '/role-access', icon: <Shield size={18} />, label: t('role_access') || 'Role Access' },
+        // Role Access only visible for SuperAdmin (conditionally added below)
       ]
     },
     quiz: {
       label: 'QUIZ',
       items: [
+        { path: '/quiz-management', icon: <ClipboardList size={18} />, label: 'Quiz Management' },
         { path: '/quiz-builder', icon: <Gamepad2 size={18} />, label: 'Quiz Builder' },
         { path: '/quiz-results', icon: <ListChecks size={18} />, label: 'Quiz Results' },
       ]
@@ -153,20 +272,23 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: 'CLASSES',
       items: [
         { path: '/class-schedules', icon: <Calendar size={18} />, label: t('class_schedules') || 'Class Schedules' },
+        { path: '/manage-enrollments', icon: <Users size={18} />, label: t('manage_enrollments') || 'Manage Enrollments' },
       ]
     },
     attendance: {
       label: 'ATTENDANCE',
       items: [
-        { path: '/attendance', icon: <QrCode size={18} />, label: t('attendance') || 'QR Attendance' },
-        { path: '/attendance-management', icon: <Calendar size={18} />, label: t('attendance_management') || 'Attendance Management' },
+        { path: '/attendance', icon: <QrCode size={18} />, label: t('attendance') || 'attendance' },
+        { path: '/attendance-management', icon: <ClipboardList size={18} />, label: t('attendance_management') || 'Attendance Management' },
+        { path: '/manual-attendance', icon: <ClipboardList size={18} />, label: t('manual_attendance') || 'Manual Attendance' },
+        { path: '/hr-attendance', icon: <QrCode size={18} />, label: t('hr_attendance') || 'HR Attendance' },
       ]
     },
     analytics: {
       label: 'ANALYTICS',
       items: [
         { path: '/analytics', icon: <BarChart3 size={18} />, label: t('analytics') || 'Analytics' },
-        { path: '/advanced-analytics', icon: <BarChart3 size={18} />, label: '📊 Advanced Analytics' },
+        { path: '/advanced-analytics', icon: <BarChart3 size={18} />, label: 'Advanced Analytics' },
         { path: '/leaderboard', icon: <Trophy size={18} />, label: t('leaderboard') || 'Leaderboard' },
       ]
     },
@@ -175,7 +297,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
         { path: '/resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
-        { path: '/manage-enrollments', icon: <UserX size={18} />, label: t('manage_enrollments') || 'Manage Enrollments' },
       ]
     },
     tools: {
@@ -221,52 +342,35 @@ const SideDrawer = ({ isOpen, onClose }) => {
     }
   };
 
-  const instructorLinks = {
-    main: {
-      label: 'MAIN',
-      items: [
-        { path: '/', icon: <Home size={18} />, label: t('home') || 'Home' },
-        { path: '/activities', icon: <ClipboardList size={18} />, label: t('activities') || 'Activities' },
-        { path: '/quiz-results', icon: <ListChecks size={18} />, label: 'Quiz Results' },
-        { path: '/progress', icon: <Trophy size={18} />, label: t('my_badges') || 'My Badges' },
-        { path: '/attendance', icon: <QrCode size={18} />, label: t('attendance') || 'QR Attendance' },
-        { path: '/attendance-management', icon: <Calendar size={18} />, label: t('attendance_management') || 'Attendance Management' },
-        { path: '/class-schedules', icon: <Calendar size={18} />, label: t('class_schedules') || 'Class Schedules' },
-        { path: '/manage-enrollments', icon: <UserX size={18} />, label: t('manage_enrollments') || 'Manage Enrollments' },
-        { path: '/student-progress', icon: <BarChart3 size={18} />, label: t('student_progress') || 'Student Progress' },
-      ]
-    },
-    analytics: {
-      label: 'ANALYTICS',
-      items: [
-        { path: '/analytics', icon: <BarChart3 size={18} />, label: t('analytics') || 'Analytics' },
-        { path: '/advanced-analytics', icon: <BarChart3 size={18} />, label: '📊 Advanced Analytics' },
-        { path: '/leaderboard', icon: <Trophy size={18} />, label: t('leaderboard') || 'Leaderboard' },
-      ]
-    },
-    community: {
-      label: 'COMMUNITY',
-      items: [
-        { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
-        { path: '/resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
-      ]
-    },
-    settings: {
-      label: 'SETTINGS',
-      items: [
-        { path: '/notifications', icon: <Bell size={18} />, label: t('notifications') || 'Notifications' },
-        { path: '/student-profile', icon: <UserIcon size={18} />, label: t('student_profile') || 'Student Profile' },
-        { path: '/profile', icon: <Settings size={18} />, label: t('settings') || 'Settings' },
-        { key: 'timerControl', icon: <TimerIcon size={18} />, label: t('timer') || 'Timer' }
-      ]
-    }
-  };
+  // Instructor: Same as Admin (everything except Role Access)
+  const instructorLinks = adminLinks;
 
   let links = studentLinks;
   if (!impersonating) {
-    if (isAdmin) links = adminLinks;
-    else if (isHR) links = hrLinks;
-    else if (isInstructor) links = instructorLinks;
+    // Super admins and admins get admin links, instructors get same as admin
+    if (isAdmin || isSuperAdmin || isInstructor) {
+      // Create a proper deep clone without circular references
+      links = {
+        main: { ...adminLinks.main, items: [...adminLinks.main.items] },
+        quiz: { ...adminLinks.quiz, items: [...adminLinks.quiz.items] },
+        classes: { ...adminLinks.classes, items: [...adminLinks.classes.items] },
+        attendance: { ...adminLinks.attendance, items: [...adminLinks.attendance.items] },
+        analytics: { ...adminLinks.analytics, items: [...adminLinks.analytics.items] },
+        community: { ...adminLinks.community, items: [...adminLinks.community.items] },
+        tools: { ...adminLinks.tools, items: [...adminLinks.tools.items] },
+        settings: { ...adminLinks.settings, items: [...adminLinks.settings.items] }
+      };
+      // Add Role Access only for SuperAdmin
+      if (isSuperAdmin) {
+        links.main.items.push({ path: '/role-access-pro', icon: <Shield size={18} />, label: t('role_access') || 'Role Access' });
+      }
+    } else if (isHR) {
+      links = {
+        main: { ...hrLinks.main, items: [...hrLinks.main.items] },
+        community: { ...hrLinks.community, items: [...hrLinks.community.items] },
+        settings: { ...hrLinks.settings, items: [...hrLinks.settings.items] }
+      };
+    }
   }
   
   return (
@@ -291,18 +395,62 @@ const SideDrawer = ({ isOpen, onClose }) => {
             }}
           />) : null}
 
+          {/* Auto-hide hover hotspot + restore tab */}
+          {(autoHide && !isHovering) && (
+            <div
+              onMouseEnter={() => setIsHovering(true)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                bottom: 0,
+                [lang==='ar' ? 'right' : 'left']: 0,
+                width: 8,
+                boxShadow: lang==='ar' ? '-2px 0 8px rgba(0,0,0,0.15)' : '2px 0 8px rgba(0,0,0,0.15)',
+                background: 'transparent',
+                zIndex: 1002,
+                cursor: 'ew-resize'
+              }}
+            >
+              <button
+                onClick={() => setIsHovering(true)}
+                title={t('expand') || 'Expand Drawer'}
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  [lang==='ar' ? 'left' : 'right']: -2,
+                  width: 20,
+                  height: 40,
+                  borderRadius: 6,
+                  border: 'none',
+                  background: 'rgba(0,0,0,0.1)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                {lang==='ar' ? <ChevronRight size={14} /> : <ChevronDown size={0} />}
+                {lang==='ar' ? null : <ChevronRight size={14} />}
+              </button>
+            </div>
+          )}
+
           {/* Drawer */}
           <motion.div
             initial={{ x: 0 }}
             animate={{
-              x: collapsed ? 0 : ((autoHide && !isHovering) ? -(drawerWidth - 64) : 0)
+              x: (autoHide && !isHovering && !collapsed)
+                ? (lang==='ar' ? (drawerWidth - 8) : -(drawerWidth - 8))
+                : 0
             }}
             exit={{ x: -drawerWidth }}
             transition={{ type: 'tween', ease: 'easeInOut' }}
             style={{
               position: 'fixed',
               top: 0,
-              left: 0,
+              left: lang==='ar' ? 'auto' : 0,
+              right: lang==='ar' ? 0 : 'auto',
               bottom: 0,
               // Width rules:
               // - Collapsed: fixed 64px (icons only)
@@ -310,7 +458,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
               // - Normal: drawerWidth
               width: collapsed ? 64 : drawerWidth,
               background: theme === 'light' ? '#ffffff' : 'linear-gradient(180deg, #0f172a, #111827)',
-              borderRight: theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)',
+              borderRight: lang==='ar' ? 'none' : (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)'),
+              borderLeft: lang==='ar' ? (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)') : 'none',
               color: theme === 'light' ? '#0f172a' : 'white',
               zIndex: 1001,
               display: 'flex',
@@ -322,6 +471,29 @@ const SideDrawer = ({ isOpen, onClose }) => {
             onMouseEnter={() => (autoHide && !collapsed) ? setIsHovering(true) : null}
             onMouseLeave={() => (autoHide && !collapsed) ? setIsHovering(false) : null}
           >
+            {/* Magic arrow for collapsed (icons-only) restore */}
+            {collapsed && (
+              <button
+                onClick={() => setCollapsed(false)}
+                title={t('expand') || 'Expand'}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  [lang==='ar' ? 'left' : 'right']: -12,
+                  width: 28,
+                  height: 40,
+                  borderRadius: 8,
+                  background: 'rgba(0,0,0,0.12)',
+                  color: '#fff',
+                  border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', zIndex: 1003
+                }}
+              >
+                {lang==='ar' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+              </button>
+            )}
             {/* Resizer */}
             <div
               onMouseDown={(e) => {
@@ -368,75 +540,102 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   </div>
                 </div>
                 
-                <button
-                  onClick={toggleTheme}
-                  title={theme==='light' ? (t('switch_to_dark')||'Dark') : (t('switch_to_light')||'Light')}
-                  style={{
-                    background: theme==='light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
-                    border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
-                    padding: '0.4rem', borderRadius: '6px', width: '32px', height: '32px',
-                    display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6
-                  }}
-                >
-                  {theme==='light' ? <Moon size={18} /> : <Sun size={18} />}
-                </button>
-                <button
-                  onClick={() => {
-                    setCollapsed(v=>!v);
-                    if (collapsed) {
-                      // When expanding from collapsed, also disable auto-hide
-                      setAutoHide(false);
-                    }
-                  }}
-                  title={collapsed ? (t('expand')||'Expand Drawer') : (t('collapse')||'Collapse Drawer')}
-                  style={{
-                    background: collapsed
-                      ? (theme==='light' ? 'rgba(251, 191, 36, 0.25)' : 'rgba(212,175,55,0.2)')
-                      : (theme==='light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)'),
-                    border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
-                    padding: '0.4rem', borderRadius: '6px', width: '32px', height: '32px',
-                    display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6
-                  }}
-                >
-                  {collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
-                </button>
-                <button
-                  onClick={() => setAutoHide(v=>!v)}
-                  title={autoHide ? (t('disable_auto_hide')||'Disable auto-hide') : (t('enable_auto_hide')||'Enable auto-hide')}
-                  style={{
-                    background: autoHide
-                      ? (theme==='light' ? 'rgba(251, 191, 36, 0.25)' : 'rgba(212,175,55,0.2)')
-                      : (theme==='light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)'),
-                    border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
-                    padding: '0.4rem', borderRadius: '6px', width: '32px', height: '32px',
-                    display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6
-                  }}
-                >
-                  <Theater size={18} />
-                </button>
-                <button
-                  onClick={onClose}
-                  style={{
-                    background: theme==='light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
-                    border: 'none',
-                    color: theme==='light' ? '#111' : 'white',
-                    fontSize: '1.2rem',
-                    cursor: 'pointer',
-                    padding: '0.4rem',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '32px',
-                    height: '32px',
-                    flexShrink: 0,
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = theme==='light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.2)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = theme==='light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)'}
-                >
-                  <X size={18} />
-                </button>
+                {(() => {
+                  const neutralBg = theme==='light' ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.1)';
+                  const neutralHover = theme==='light' ? 'rgba(15,23,42,0.12)' : 'rgba(255,255,255,0.2)';
+                  const accentBg = theme==='light' ? 'rgba(251, 191, 36, 0.25)' : 'rgba(212,175,55,0.2)';
+                  const accentHover = theme==='light' ? 'rgba(251, 191, 36, 0.4)' : 'rgba(212,175,55,0.3)';
+                  return (
+                    <>
+                      <button
+                        onClick={toggleTheme}
+                        title={theme==='light' ? (t('switch_to_dark')||'Dark') : (t('switch_to_light')||'Light')}
+                        data-base-bg={neutralBg}
+                        data-hover-bg={neutralHover}
+                        style={{
+                          background: neutralBg,
+                          border: 'none',
+                          color: theme==='light' ? '#111' : 'white',
+                          cursor: 'pointer',
+                          padding: '0.4rem',
+                          borderRadius: '10px',
+                          width: '36px',
+                          height: '36px',
+                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6,
+                          transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseEnter={onHeaderButtonEnter}
+                        onMouseLeave={onHeaderButtonLeave}
+                      >
+                        {theme==='light' ? <Moon size={18} /> : <Sun size={18} />}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCollapsed(v=>!v);
+                          if (collapsed) {
+                            setAutoHide(false);
+                          }
+                        }}
+                        title={collapsed ? (t('expand')||'Expand Drawer') : (t('collapse')||'Collapse Drawer')}
+                        data-base-bg={collapsed ? accentBg : neutralBg}
+                        data-hover-bg={collapsed ? accentHover : neutralHover}
+                        style={{
+                          background: collapsed ? accentBg : neutralBg,
+                          border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
+                          padding: '0.4rem', borderRadius: '10px', width: '36px', height: '36px',
+                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6,
+                          transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseEnter={onHeaderButtonEnter}
+                        onMouseLeave={onHeaderButtonLeave}
+                      >
+                        {collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                      </button>
+                      <button
+                        onClick={() => setAutoHide(v=>!v)}
+                        title={autoHide ? (t('disable_auto_hide')||'Disable auto-hide') : (t('enable_auto_hide')||'Enable auto-hide')}
+                        data-base-bg={autoHide ? accentBg : neutralBg}
+                        data-hover-bg={autoHide ? accentHover : neutralHover}
+                        style={{
+                          background: autoHide ? accentBg : neutralBg,
+                          border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
+                          padding: '0.4rem', borderRadius: '10px', width: '36px', height: '36px',
+                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6,
+                          transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseEnter={onHeaderButtonEnter}
+                        onMouseLeave={onHeaderButtonLeave}
+                      >
+                        <Theater size={18} />
+                      </button>
+                      <button
+                        onClick={onClose}
+                        data-base-bg={neutralBg}
+                        data-hover-bg={neutralHover}
+                        style={{
+                          background: neutralBg,
+                          border: 'none',
+                          color: theme==='light' ? '#111' : 'white',
+                          fontSize: '1.2rem',
+                          cursor: 'pointer',
+                          padding: '0.4rem',
+                          borderRadius: '10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '36px',
+                          height: '36px',
+                          flexShrink: 0,
+                          transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseEnter={onHeaderButtonEnter}
+                        onMouseLeave={onHeaderButtonLeave}
+                      >
+                        <X size={18} />
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Top pinned compact strip (icons only) - Always show when collapsed or has pins */}
@@ -446,7 +645,12 @@ const SideDrawer = ({ isOpen, onClose }) => {
                     <button
                       onClick={() => setShowTimerPanel(v=>!v)}
                       title={t('timer') || 'Timer'}
-                      style={{ padding:'0.5rem', borderRadius:8, background: theme==='light' ? '#e5e7eb' : '#e5e7eb', border:'1px solid rgba(0,0,0,0.15)', color:'#111827' }}
+                      data-base-bg={theme==='light' ? '#e2e8f0' : 'rgba(255,255,255,0.12)'}
+                      data-hover-bg={theme==='light' ? '#cbd5f5' : 'rgba(255,255,255,0.22)'}
+                      style={{ padding:'0.5rem', borderRadius:8, background: theme==='light' ? '#e2e8f0' : 'rgba(255,255,255,0.12)', border:'1px solid rgba(0,0,0,0.15)', color:'#111827',
+                        cursor:'pointer', transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease' }}
+                      onMouseEnter={onQuickActionEnter}
+                      onMouseLeave={onQuickActionLeave}
                     >
                       <TimerIcon size={18} />
                     </button>
@@ -457,7 +661,12 @@ const SideDrawer = ({ isOpen, onClose }) => {
                     if (!found) return null;
                     return (
                       <Link key={p} to={p} onClick={onClose} title={found.label}
-                        style={{ padding:'0.5rem', borderRadius:8, background: theme==='light' ? '#e5e7eb' : 'rgba(212,175,55,0.2)', border: theme==='light' ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(212,175,55,0.6)', color: theme==='light' ? '#111827' : '#FFD700', display:'inline-flex' }}>
+                        data-base-bg={theme==='light' ? '#e5e7eb' : 'rgba(212,175,55,0.2)'}
+                        data-hover-bg={theme==='light' ? '#d1d5db' : 'rgba(212,175,55,0.35)'}
+                        style={{ padding:'0.5rem', borderRadius:8, background: theme==='light' ? '#e5e7eb' : 'rgba(212,175,55,0.2)', border: theme==='light' ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(212,175,55,0.6)', color: theme==='light' ? '#111827' : '#FFD700', display:'inline-flex', transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease' }}
+                        onMouseEnter={onQuickActionEnter}
+                        onMouseLeave={onQuickActionLeave}
+                      >
                         <span style={{ display:'inline-flex', alignItems:'center' }}>{found.icon}</span>
                       </Link>
                     );
@@ -520,7 +729,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '0.5rem 1rem',
+                        padding: '0.4rem 1rem',
                         background: 'transparent',
                         border: 'none',
                         color: theme==='light' ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.5)',
@@ -529,7 +738,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         letterSpacing: '1.2px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        transition: 'all 0.2s'
+                        transition: 'color 0.2s'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.color = theme==='light' ? 'rgba(17,24,39,0.9)' : 'rgba(255,255,255,0.8)';
@@ -544,7 +753,17 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   )}
                   
                   {/* Section Items - Collapsible */}
-                  {expandedSections[groupKey] && group.items.map((link) => (
+                  <AnimatePresence initial={false}>
+                  {expandedSections[groupKey] && (
+                    <motion.div
+                      key={`${groupKey}-items`}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                    {group.items.map((link) => (
                     <div key={link.key || link.path} style={{ display:'flex', alignItems:'center', gap:8, margin:'0 0.5rem' }}>
                       {link.key === 'timerControl' ? (
                         <button
@@ -553,7 +772,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           style={{
                             display:'flex', alignItems:'center', gap:'0.85rem', padding:'0.7rem 1rem', borderRadius:8,
                             color: theme==='light' ? '#111827' : 'rgba(255,255,255,0.85)', background:'transparent',
-                            border: theme==='light' ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.08)', cursor:'pointer', flex:1
+                            border: 'none', cursor:'pointer', flex:1
                           }}
                         >
                           <span style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{link.icon}</span>
@@ -562,7 +781,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       ) : (
                         <Link
                           to={link.path}
-                          onClick={onClose}
+                          onClick={() => { if (!collapsed && !autoHide) onClose(); }}
                           title={link.label}
                           style={{
                           display: 'flex',
@@ -652,10 +871,13 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         <div style={{ width: 64 }} />
                       )}
                     </div>
-                  ))}
+                    ))}
+                    </motion.div>
+                  )}
+                  </AnimatePresence>
                 </div>
               ))}
-            </nav>
+                </nav>
 
             {/* Footer Actions */}
             <div style={{
@@ -671,25 +893,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 }}
                 title={collapsed ? (lang === 'en' ? 'العربية' : 'English') : ''}
                 style={{
-                  width: collapsed ? '48px' : '100%',
-                  padding: '0.65rem',
-                  marginBottom: '0.5rem',
-                  background: 'rgba(255,255,255,0.08)',
-                  color: 'white',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s',
-                  margin: collapsed ? '0 auto 0.5rem auto' : '0 0 0.5rem 0'
+                  ...langButtonStyle,
+                  margin: collapsed ? '0 auto 0.6rem auto' : '0 0 0.6rem 0'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                onMouseEnter={onFooterHover}
+                onMouseLeave={onFooterLeave}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}><Languages size={16} /></span>
                 {!collapsed && <span>{lang === 'en' ? 'العربية' : 'English'}</span>}
@@ -700,30 +908,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 onClick={handleLogout}
                 title={collapsed ? (t('logout') || 'Logout') : ''}
                 style={{
-                  width: collapsed ? '48px' : '100%',
-                  padding: '0.65rem',
-                  background: 'rgba(244, 67, 54, 0.15)',
-                  color: '#ff6b6b',
-                  border: '1px solid rgba(244, 67, 54, 0.3)',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s',
+                  ...logoutButtonStyle,
                   margin: collapsed ? '0 auto' : '0'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f44336';
-                  e.currentTarget.style.color = 'white';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(244, 67, 54, 0.15)';
-                  e.currentTarget.style.color = '#ff6b6b';
-                }}
+                onMouseEnter={onFooterHover}
+                onMouseLeave={onFooterLeave}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}><LogOut size={16} /></span>
                 {!collapsed && <span>{t('logout') || 'Logout'}</span>}

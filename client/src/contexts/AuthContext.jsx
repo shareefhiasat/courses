@@ -4,6 +4,7 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { getAllowlist, ensureUserDoc, addLoginLog } from '../firebase/firestore';
 import { signOutUser } from '../firebase/auth';
+import { ActivityLogger } from '../firebase/activityLogger';
 
 const AuthContext = createContext();
 
@@ -17,6 +18,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null); // Full user profile from Firestore
   const [isAdmin, setIsAdmin] = useState(false);
   const [isHR, setIsHR] = useState(false);
   const [isInstructor, setIsInstructor] = useState(false);
@@ -25,6 +27,18 @@ export const AuthProvider = ({ children }) => {
   const [role, setRole] = useState('guest'); // 'guest' | 'student' | 'instructor' | 'hr' | 'admin'
   const [impersonating, setImpersonating] = useState(null); // { originalUser, impersonatedUser }
   const [realUser, setRealUser] = useState(null); // Store the real admin user
+  
+  // Load cached profile from sessionStorage on mount
+  useEffect(() => {
+    const cached = sessionStorage.getItem('userProfile');
+    if (cached) {
+      try {
+        setUserProfile(JSON.parse(cached));
+      } catch (e) {
+        console.warn('Failed to parse cached user profile');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let userDocUnsub = null;
@@ -72,12 +86,13 @@ export const AuthProvider = ({ children }) => {
           } catch {}
         }
 
-        // Check user doc for roles
+        // Check user doc for roles and fetch full profile
         let userRole = 'student';
         let hr = false;
         let instructor = false;
         let adminFromDoc = false;
         let superAdminFromDoc = false;
+        let profile = null;
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
@@ -86,6 +101,22 @@ export const AuthProvider = ({ children }) => {
             superAdminFromDoc = userData.role === 'super_admin';
             hr = userData.role === 'hr' || userData.isHR === true;
             instructor = userData.role === 'instructor' || userData.isInstructor === true;
+            
+            // Store full profile with display name
+            profile = {
+              uid: firebaseUser.uid,
+              email: userData.email || firebaseUser.email,
+              displayName: userData.displayName || userData.name || firebaseUser.displayName || userData.email?.split('@')[0],
+              name: userData.name || userData.displayName || firebaseUser.displayName,
+              role: userData.role,
+              studentNumber: userData.studentNumber,
+              photoURL: userData.photoURL || firebaseUser.photoURL,
+              ...userData
+            };
+            
+            // Cache in sessionStorage
+            sessionStorage.setItem('userProfile', JSON.stringify(profile));
+            setUserProfile(profile);
           }
         } catch {}
 
@@ -107,6 +138,8 @@ export const AuthProvider = ({ children }) => {
         // Best-effort login log
         try {
           await addLoginLog({ userId: firebaseUser.uid, email: firebaseUser.email, displayName: firebaseUser.displayName || null });
+          // Log activity with new logger
+          await ActivityLogger.login();
         } catch {}
 
         // Listen to user doc existence (sign out if removed)
@@ -195,6 +228,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    userProfile,
     isAdmin,
     isSuperAdmin,
     isHR,

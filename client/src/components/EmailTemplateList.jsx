@@ -216,7 +216,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   };
 
   if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading templates...</div>;
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
   }
 
   return (
@@ -239,7 +239,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
           onClick={onCreateNew}
           style={{
             padding: '10px 20px',
-            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+            background: 'linear-gradient(135deg, #800020, #600018)',
             color: 'white',
             border: 'none',
             borderRadius: 8,
@@ -268,7 +268,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
               onClick={onCreateNew}
               style={{
                 padding: '12px 24px',
-                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                background: 'linear-gradient(135deg, #800020, #600018)',
                 color: 'white',
                 border: 'none',
                 borderRadius: 8,
@@ -330,7 +330,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                         }}
                         style={{
                           padding: '6px 12px',
-                          background: '#0d6efd',
+                          background: '#16a34a',
                           color: 'white',
                           border: 'none',
                           borderRadius: 6,
@@ -364,9 +364,9 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                         }}
                         style={{
                           padding: '6px 12px',
-                          background: '#f8f9fa',
-                          color: '#333',
-                          border: '1px solid #ddd',
+                          background: '#f97316',
+                          color: 'white',
+                          border: 'none',
                           borderRadius: 6,
                           cursor: 'pointer',
                           fontSize: '0.85rem'

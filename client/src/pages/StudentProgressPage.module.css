@@ -1,0 +1,24 @@
+/* Student Progress Page */
+
+.page {
+  padding: 1rem;
+}
+
+/* Loading */
+.loadingWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  min-height: 60vh;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .loadingWrapper p {
+    color: var(--text-muted, #999);
+  }
+}

@@ -1,0 +1,28 @@
+/* Chart Wrapper */
+.chartWrapper {
+  width: 100%;
+  padding: 1rem;
+  background: var(--panel, white);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+/* Title */
+.title {
+  margin: 0 0 1rem 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 600;
+  color: var(--text, #212529);
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .chartWrapper {
+    background: var(--panel, #1a1a1a);
+    border-color: var(--border, #333);
+  }
+  
+  .title {
+    color: var(--text, #f5f5f5);
+  }
+}

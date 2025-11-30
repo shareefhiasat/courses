@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, RotateCcw } from 'lucide-react';
+import { useLang } from '../../contexts/LangContext';
 
 export default function GroupSortGame({ data, settings, onComplete }) {
+  const { t, lang } = useLang();
   // data structure: { groups: [{name: 'True', items: ['item1', 'item2']}, {name: 'False', items: [...]}] }
   const [items, setItems] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -24,11 +26,11 @@ export default function GroupSortGame({ data, settings, onComplete }) {
         });
       });
     });
-    
+
     // Shuffle items
     const shuffled = allItems.sort(() => Math.random() - 0.5);
     setItems(shuffled);
-    
+
     // Initialize empty groups
     setGroups(data.groups.map((g, idx) => ({
       name: g.name,
@@ -75,13 +77,13 @@ export default function GroupSortGame({ data, settings, onComplete }) {
     if (fromGroup === null) {
       setItems(items.filter(i => i.id !== item.id));
     } else {
-      setGroups(groups.map((g, idx) => 
+      setGroups(groups.map((g, idx) =>
         idx === fromGroup ? { ...g, items: g.items.filter(i => i.id !== item.id) } : g
       ));
     }
 
     // Add to target group
-    setGroups(groups.map((g, idx) => 
+    setGroups(groups.map((g, idx) =>
       idx === groupIndex ? { ...g, items: [...g.items, { ...item, currentGroup: groupIndex }] } : g
     ));
 
@@ -94,7 +96,7 @@ export default function GroupSortGame({ data, settings, onComplete }) {
     const { item, fromGroup } = draggedItem;
 
     // Remove from group
-    setGroups(groups.map((g, idx) => 
+    setGroups(groups.map((g, idx) =>
       idx === fromGroup ? { ...g, items: g.items.filter(i => i.id !== item.id) } : g
     ));
 
@@ -137,7 +139,7 @@ export default function GroupSortGame({ data, settings, onComplete }) {
         allItems.push({ ...item, currentGroup: null });
       });
     });
-    
+
     setItems([...items, ...allItems].sort(() => Math.random() - 0.5));
     setGroups(groups.map(g => ({ ...g, items: [] })));
     setSubmitted(false);
@@ -150,22 +152,22 @@ export default function GroupSortGame({ data, settings, onComplete }) {
     const percentage = totalItems > 0 ? (score / totalItems) * 100 : 0;
 
     return (
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <Trophy size={64} style={{ color: '#f59e0b', marginBottom: '1rem' }} />
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '1rem' }}>Sorting Complete!</h1>
-        <div style={{ fontSize: 48, fontWeight: 800, color: '#667eea', marginBottom: '1rem' }}>
+      <div className="max-w-3xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('sorting_complete') || 'Sorting Complete!'}</h1>
+        <div className="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-4">
           {score} / {totalItems}
         </div>
-        <div style={{ fontSize: 18, color: 'var(--muted)', marginBottom: '2rem' }}>
-          {percentage.toFixed(1)}% Correct
+        <div className="text-lg text-gray-500 dark:text-gray-400 mb-8">
+          {percentage.toFixed(1)}% {t('correct') || 'Correct'}
         </div>
 
         {settings?.showCorrectAnswers && (
-          <div style={{ marginTop: '2rem', textAlign: 'left' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: '1rem' }}>Review</h3>
+          <div className="mt-8 text-left">
+            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">{t('review') || 'Review'}</h3>
             {groups.map((group, groupIndex) => (
-              <div key={groupIndex} style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: '0.5rem', color: group.color }}>
+              <div key={groupIndex} className="mb-4">
+                <div className="text-base font-semibold mb-2" style={{ color: group.color }}>
                   {group.name}
                 </div>
                 {group.items.map(item => {
@@ -173,19 +175,11 @@ export default function GroupSortGame({ data, settings, onComplete }) {
                   return (
                     <div
                       key={item.id}
-                      style={{
-                        padding: '0.75rem',
-                        background: isCorrect ? '#d1fae5' : '#fee2e2',
-                        borderRadius: 8,
-                        marginBottom: '0.5rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8
-                      }}
+                      className={`p-3 rounded-lg mb-2 flex items-center gap-2 ${isCorrect ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}
                     >
-                      {item.image && <img src={item.image} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} />}
-                      <span>{item.text}</span>
-                      <span style={{ marginLeft: 'auto', fontWeight: 600 }}>
+                      {item.image && <img src={item.image} alt="" className="w-10 h-10 object-cover rounded" />}
+                      <span className="text-gray-900 dark:text-white">{item.text}</span>
+                      <span className="ml-auto font-semibold text-gray-900 dark:text-white">
                         {isCorrect ? '✓' : '✗'}
                       </span>
                     </div>
@@ -199,23 +193,10 @@ export default function GroupSortGame({ data, settings, onComplete }) {
         {settings?.allowRetake && (
           <button
             onClick={handleReset}
-            style={{
-              marginTop: '2rem',
-              padding: '1rem 2rem',
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8
-            }}
+            className="mt-8 px-8 py-4 bg-indigo-600 text-white rounded-xl font-semibold flex items-center gap-2 mx-auto hover:bg-indigo-700 transition-colors"
           >
             <RotateCcw size={18} />
-            Try Again
+            {t('try_again') || 'Try Again'}
           </button>
         )}
       </div>
@@ -223,104 +204,73 @@ export default function GroupSortGame({ data, settings, onComplete }) {
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2rem' }}>
+    <div className="max-w-6xl mx-auto p-6" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '0.5rem' }}>Group Sort</h1>
-        <p style={{ fontSize: 16, color: 'var(--muted)' }}>
-          Drag and drop each item into its correct box
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white">{t('group_sort') || 'Group Sort'}</h1>
+        <p className="text-base text-gray-500 dark:text-gray-400">
+          {t('drag_drop_instruction') || 'Drag and drop each item into its correct box'}
         </p>
         {settings?.timeLimit > 0 && (
-          <div style={{ marginTop: '1rem', fontSize: 18, fontWeight: 600, color: timeLeft < 30 ? '#ef4444' : '#667eea' }}>
-            Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+          <div className={`mt-4 text-lg font-semibold ${timeLeft < 30 ? 'text-red-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
+            {t('time_left') || 'Time Left'}: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </div>
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24 }}>
+      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
         {/* Items Pool */}
         <div
           onDragOver={handleDragOver}
           onDrop={handleDropToItems}
-          style={{
-            padding: '1.5rem',
-            background: '#f9fafb',
-            borderRadius: 12,
-            border: '2px dashed var(--border)',
-            minHeight: 400
-          }}
+          className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 min-h-[400px]"
         >
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: '1rem', color: 'var(--muted)' }}>
-            Items ({items.length})
+          <h3 className="text-base font-bold mb-4 text-gray-500 dark:text-gray-400">
+            {t('items') || 'Items'} ({items.length})
           </h3>
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div className="grid gap-2">
             {items.map(item => (
               <div
                 key={item.id}
                 draggable
                 onDragStart={() => handleDragStart(item, null)}
-                style={{
-                  padding: '1rem',
-                  background: 'white',
-                  border: '2px solid var(--border)',
-                  borderRadius: 8,
-                  cursor: 'grab',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                className="p-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-grab text-sm font-semibold flex items-center gap-2 transition-all hover:scale-[1.02] active:cursor-grabbing shadow-sm"
               >
-                {item.image && <img src={item.image} alt="" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4 }} />}
-                {item.text}
+                {item.image && <img src={item.image} alt="" className="w-8 h-8 object-cover rounded" />}
+                <span className="text-gray-900 dark:text-white">{item.text}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Groups */}
-        <div style={{ display: 'grid', gap: 16 }}>
+        <div className="grid gap-4">
           {groups.map((group, groupIndex) => (
             <div
               key={groupIndex}
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(groupIndex)}
-              style={{
-                padding: '1.5rem',
-                background: 'white',
-                borderRadius: 12,
-                border: `3px solid ${group.color}`,
-                minHeight: 150
-              }}
+              className="p-6 bg-white dark:bg-gray-800 rounded-xl border-[3px] min-h-[150px] transition-colors"
+              style={{ borderColor: group.color }}
             >
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: '1rem', color: group.color }}>
+              <h3 className="text-lg font-bold mb-4" style={{ color: group.color }}>
                 {group.name}
               </h3>
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div className="grid gap-2">
                 {group.items.map(item => (
                   <div
                     key={item.id}
                     draggable
                     onDragStart={() => handleDragStart(item, groupIndex)}
+                    className="p-4 rounded-lg cursor-grab text-sm font-semibold flex items-center gap-2 border-2"
                     style={{
-                      padding: '1rem',
-                      background: `${group.color}15`,
-                      border: `2px solid ${group.color}`,
-                      borderRadius: 8,
-                      cursor: 'grab',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8
+                      backgroundColor: `${group.color}15`,
+                      borderColor: group.color,
+                      color: 'inherit'
                     }}
                   >
-                    {item.image && <img src={item.image} alt="" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4 }} />}
-                    {item.text}
+                    {item.image && <img src={item.image} alt="" className="w-8 h-8 object-cover rounded" />}
+                    <span className="text-gray-900 dark:text-white">{item.text}</span>
                   </div>
                 ))}
               </div>
@@ -330,23 +280,13 @@ export default function GroupSortGame({ data, settings, onComplete }) {
       </div>
 
       {/* Submit Button */}
-      <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+      <div className="mt-8 text-center">
         <button
           onClick={handleSubmit}
           disabled={items.length > 0}
-          style={{
-            padding: '1rem 3rem',
-            background: items.length > 0 ? '#9ca3af' : 'linear-gradient(135deg, #10b981, #059669)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 12,
-            fontSize: 18,
-            fontWeight: 700,
-            cursor: items.length > 0 ? 'not-allowed' : 'pointer',
-            boxShadow: items.length > 0 ? 'none' : '0 4px 12px rgba(16, 185, 129, 0.4)'
-          }}
+          className={`px-12 py-4 rounded-xl text-lg font-bold text-white shadow-lg transition-all ${items.length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-green-500/30 hover:scale-105'}`}
         >
-          {items.length > 0 ? `Sort all items first (${items.length} remaining)` : 'Submit Answers'}
+          {items.length > 0 ? `${t('sort_all_first') || 'Sort all items first'} (${items.length} ${t('remaining') || 'remaining'})` : (t('submit_answers') || 'Submit Answers')}
         </button>
       </div>
     </div>

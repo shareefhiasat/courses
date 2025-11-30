@@ -1,0 +1,58 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.editorContainer {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wrapper:focus-within .editorContainer {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.editor :global(.ql-toolbar) {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.editor :global(.ql-container) {
+  border: none;
+  min-height: inherit;
+  font-size: 0.95rem;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: #1f2937;
+}
+
+.editor :global(.ql-editor) {
+  min-height: inherit;
+  padding: 1rem 1.25rem;
+}
+
+.helper {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.error {
+  font-size: 0.85rem;
+  color: #dc2626;
+}
+
+.wrapper[data-error='true'] .editorContainer {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}

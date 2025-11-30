@@ -1,0 +1,310 @@
+.progressWidget {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.progressWidget:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Size Variants */
+.sizeSmall {
+  padding: 1rem;
+}
+
+.sizeSmall .progressTitle {
+  font-size: 0.9rem;
+}
+
+.sizeSmall .progressSubtitle {
+  font-size: 0.8rem;
+}
+
+.sizeMedium {
+  padding: 1.5rem;
+}
+
+.sizeMedium .progressTitle {
+  font-size: 1rem;
+}
+
+.sizeMedium .progressSubtitle {
+  font-size: 0.85rem;
+}
+
+.sizeLarge {
+  padding: 2rem;
+}
+
+.sizeLarge .progressTitle {
+  font-size: 1.1rem;
+}
+
+.sizeLarge .progressSubtitle {
+  font-size: 0.9rem;
+}
+
+/* Content Layout */
+.progressContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.progressHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.progressIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.progressInfo {
+  flex: 1;
+}
+
+.progressTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.progressSubtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.progressTrend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.progressBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.progressMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progressBar {
+  width: 100%;
+}
+
+.progressStats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progressPercentage {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #8b5cf6;
+}
+
+.progressValue {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.progressLabel {
+  text-align: center;
+  padding: 0.25rem 0.75rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Color Variants */
+.colorPrimary .progressIcon {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+}
+
+.colorSuccess .progressIcon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.colorWarning .progressIcon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.colorDanger .progressIcon {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.colorInfo .progressIcon {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+/* Skeleton Loading State */
+.skeleton {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.skeletonIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+.skeletonContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.skeletonTitle {
+  height: 16px;
+  width: 70%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+.skeletonProgress {
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+.skeletonSubtitle {
+  height: 14px;
+  width: 50%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .progressWidget {
+    padding: 1rem;
+  }
+  
+  .progressHeader {
+    gap: 0.5rem;
+  }
+  
+  .progressIcon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .progressTrend {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .progressWidget {
+    padding: 0.75rem;
+  }
+  
+  .progressHeader {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+  
+  .progressIcon {
+    align-self: center;
+    width: 36px;
+    height: 36px;
+  }
+  
+  .progressTrend {
+    align-self: flex-end;
+  }
+}
+
+/* Dark Mode */
+[data-theme="dark"] .progressWidget {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .progressTitle {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .progressSubtitle {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .progressValue {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .progressLabel {
+  background: #334155;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .progressTrend {
+  background: #334155;
+}
+
+[data-theme="dark"] .skeletonIcon,
+[data-theme="dark"] .skeletonTitle,
+[data-theme="dark"] .skeletonProgress,
+[data-theme="dark"] .skeletonSubtitle {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+}

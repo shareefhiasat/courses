@@ -8,6 +8,7 @@ import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
 import AreaChart from './charts/AreaChart';
 import { Plus, X, Download, Filter, BarChart3, LineChart as LineIcon, PieChart as PieIcon, TrendingUp, Save, Trash2, GripVertical } from 'lucide-react';
+import { Select, YearSelect, Loading } from './ui';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 
@@ -397,9 +398,8 @@ export default function AdvancedAnalytics() {
 
   if (loading && widgets.length === 0) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <p>{t('loading') || 'Loading analytics...'}</p>
+      <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <Loading size="lg" message={t('loading') || 'Loading analytics...'} />
       </div>
     );
   }
@@ -492,6 +492,10 @@ export default function AdvancedAnalytics() {
         .layout {
           position: relative;
         }
+        
+        .react-grid-item:hover .widget-actions {
+          opacity: 1 !important;
+        }
       `}</style>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -501,27 +505,29 @@ export default function AdvancedAnalytics() {
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <label style={{ fontSize: 12, color: 'var(--muted)' }}>Auto refresh</label>
-            <select value={autoRefreshMs}
+            <Select
+              value={autoRefreshMs}
               onChange={(e)=> setAutoRefreshMs(Number(e.target.value))}
-              style={{ padding: '0.4rem 0.6rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)' }}>
-              <option key="refresh_off" value={0}>Off</option>
-              <option key="refresh_1min" value={60000}>1 min</option>
-              <option key="refresh_5min" value={300000}>5 min</option>
-              <option key="refresh_15min" value={900000}>15 min</option>
-              <option key="refresh_30min" value={1800000}>30 min</option>
-              <option key="refresh_60min" value={3600000}>60 min</option>
-            </select>
+              options={[
+                { value: 0, label: 'Off' },
+                { value: 60000, label: '1 min' },
+                { value: 300000, label: '5 min' },
+                { value: 900000, label: '15 min' },
+                { value: 1800000, label: '30 min' },
+                { value: 3600000, label: '60 min' }
+              ]}
+              size="small"
+            />
           </div>
           {autoRefreshMs > 0 && (
             <div style={{ width: 160, height: 6, background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }} title="Next auto refresh">
               <div style={{ height: '100%', width: `${Math.min(100, ((nowTick - lastUpdatedAt) % autoRefreshMs) / autoRefreshMs * 100)}%`, background: '#8b5cf6', transition: 'width 0.25s linear' }} />
             </div>
           )}
-          <button onClick={()=>loadAllData()} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+          <button onClick={()=>loadAllData()} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
             ⟳ Refresh
           </button>
-          <button onClick={()=>setEditLayout(v=>!v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: editLayout ? '#ef4444' : 'transparent', color: editLayout ? 'white' : 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+          <button onClick={()=>setEditLayout(v=>!v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: editLayout ? '#ef4444' : '#f97316', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
             {editLayout ? 'Exit Edit Layout' : 'Edit Layout'}
           </button>
           <button
@@ -533,7 +539,7 @@ export default function AdvancedAnalytics() {
           </button>
           <button
             onClick={() => setShowBuilder(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: '#667eea', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
             <Plus size={18} />
             Add Widget
@@ -555,48 +561,49 @@ export default function AdvancedAnalytics() {
 
       {/* Global Filters */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <div>
-          <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: 'var(--text)' }}>Class</label>
-          <select value={globalFilters.classId} onChange={(e)=>setGlobalFilters({ ...globalFilters, classId: e.target.value })}
-            style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)' }}>
-            <option key="cls_all" value="">All Classes</option>
-            {rawData.classes.map((c, idx) => {
+        <Select
+          value={globalFilters.classId}
+          onChange={(e)=>setGlobalFilters({ ...globalFilters, classId: e.target.value })}
+          options={[
+            { value: '', label: 'All Classes' },
+            ...rawData.classes.map((c, idx) => {
               const id = c?.id || c?.docId || `idx_${idx}`;
               const name = c?.title || c?.name_en || c?.name || c?.code || c?.className;
               const termStr = c?.term || '';
               const m = /^(Spring|Summer|Fall|Winter)\s*(\d{4})?$/i.exec(termStr || '');
               const termLabel = m ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}${m[2] ? ' ' + m[2] : ''}` : (termStr || '').toString();
               const label = name || termLabel || `Class ${id.substring(0,6)}`;
-              return (<option key={`cls_${id}`} value={id}>{label}</option>);
-            })}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: 'var(--text)' }}>Term</label>
-          <select value={globalFilters.term} onChange={(e)=>setGlobalFilters({ ...globalFilters, term: e.target.value })}
-            style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)' }}>
-            <option key="term_all" value="">All Terms</option>
-            {Array.from(new Set(rawData.classes.map(c => {
+              return { value: id, label };
+            })
+          ]}
+          searchable
+          fullWidth
+        />
+        <Select
+          value={globalFilters.term}
+          onChange={(e)=>setGlobalFilters({ ...globalFilters, term: e.target.value })}
+          options={[
+            { value: '', label: 'All Terms' },
+            ...Array.from(new Set(rawData.classes.map(c => {
               const t = (c?.term || '').toString();
               const m = /^(Spring|Summer|Fall|Winter)/i.exec(t);
               return m ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}` : (t || '');
-            }).filter(Boolean))).map((v, i) => (<option key={`term_${v}_${i}`} value={v}>{v}</option>))}
-          </select>
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: 'var(--text)' }}>Year</label>
-          <select value={globalFilters.year} onChange={(e)=>setGlobalFilters({ ...globalFilters, year: e.target.value })}
-            style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)' }}>
-            <option key="year_all" value="">All Years</option>
-            {Array.from(new Set(rawData.classes.map(c => {
-              const explicitYear = c?.year || c?.academicYear;
-              if (explicitYear) return explicitYear;
-              const t = (c?.term || '').toString();
-              const m = /(\d{4})/.exec(t);
-              return m ? m[1] : '';
-            }).filter(Boolean))).map((v, i) => (<option key={`year_${v}_${i}`} value={v}>{v}</option>))}
-          </select>
-        </div>
+            }).filter(Boolean))).map(v => ({ value: v, label: v }))
+          ]}
+          searchable
+          fullWidth
+        />
+        <YearSelect
+          value={globalFilters.year}
+          onChange={(e)=>setGlobalFilters({ ...globalFilters, year: e.target.value })}
+          startYear={2024}
+          yearsAhead={5}
+          includeAll
+          allValue=""
+          allLabel="All Years"
+          searchable
+          fullWidth
+        />
       </div>
 
       {/* React Grid Layout - Professional Drag & Drop */}
@@ -637,23 +644,23 @@ export default function AdvancedAnalytics() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-                {editLayout && (
-                  <div className="drag-handle" style={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}>
-                    <GripVertical size={16} style={{ color: '#8b5cf6' }} />
-                  </div>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {widget.title}
                   {recentlyRefreshed[widget.id] && (
                     <span style={{ color: '#10b981', fontSize: 14 }}>✓</span>
                   )}
                 </h3>
-                <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--muted)' }}>
-                  Last updated: {new Date(widgetUpdatedAt[widget.id] || lastUpdatedAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '')}
+                <span style={{ fontSize: 10, color: 'var(--muted)', opacity: 0.7 }}>
+                  {new Date(widgetUpdatedAt[widget.id] || lastUpdatedAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '')}
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: 4 }}>
+              {editLayout && (
+                <div className="drag-handle" style={{ cursor: 'grab', display: 'flex', alignItems: 'center', marginRight: 8, position: 'absolute', left: -32, top: '50%', transform: 'translateY(-50%)' }}>
+                  <GripVertical size={18} style={{ color: '#8b5cf6' }} />
+                </div>
+              )}
+              <div className="widget-actions" style={{ display: 'flex', gap: 4, opacity: 0, transition: 'opacity 0.2s' }}>
                 <button
                   onClick={() => refreshWidget(widget.id)}
                   style={{ padding: '0.35rem', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30 }}

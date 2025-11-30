@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, Clock, Trophy } from 'lucide-react';
+import { useLang } from '../../contexts/LangContext';
 
 export default function TrueFalseGame({ questions, settings, onComplete }) {
+  const { t, lang } = useLang();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -52,31 +54,23 @@ export default function TrueFalseGame({ questions, settings, onComplete }) {
 
   if (!gameStarted) {
     return (
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: 64, marginBottom: '1rem' }}>✓✗</div>
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '1rem' }}>True or False</h1>
-        <p style={{ fontSize: 18, color: 'var(--muted)', marginBottom: '2rem' }}>
-          {questions.length} questions • {settings?.timePerQuestion ? `${settings.timePerQuestion}s per question` : 'No time limit'}
-        </p>
-        <button
-          onClick={() => {
-            setGameStarted(true);
-            setTimeLeft(settings?.timePerQuestion || 0);
-          }}
-          style={{
-            padding: '1rem 3rem',
-            background: 'linear-gradient(135deg, #667eea, #764ba2)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 12,
-            fontSize: 18,
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
-          }}
-        >
-          START
-        </button>
+      <div className="max-w-2xl mx-auto p-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-8 py-10 text-center">
+          <div className="text-5xl mb-4">✓✗</div>
+          <h1 className="text-2xl font-bold mb-3 text-gray-900">{t('true_false_quiz') || 'True or False'}</h1>
+          <p className="text-sm text-gray-500 mb-8">
+            {questions.length} {t('questions') || 'questions'} • {settings?.timePerQuestion ? `${settings.timePerQuestion}s ${t('per_question') || 'per question'}` : (t('no_time_limit') || 'No time limit')}
+          </p>
+          <button
+            onClick={() => {
+              setGameStarted(true);
+              setTimeLeft(settings?.timePerQuestion || 0);
+            }}
+            className="px-10 py-3 bg-[#0066ff] hover:bg-[#0052cc] text-white text-sm font-semibold rounded-full shadow-md transition-colors"
+          >
+            {t('start') || 'Start'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -84,31 +78,32 @@ export default function TrueFalseGame({ questions, settings, onComplete }) {
   if (gameFinished) {
     const percentage = (score / questions.reduce((sum, q) => sum + (q.points || 1), 0)) * 100;
     return (
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <Trophy size={64} style={{ color: '#f59e0b', marginBottom: '1rem' }} />
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '1rem' }}>Quiz Complete!</h1>
-        <div style={{ fontSize: 48, fontWeight: 800, color: '#667eea', marginBottom: '1rem' }}>
-          {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
-        </div>
-        <div style={{ fontSize: 18, color: 'var(--muted)', marginBottom: '2rem' }}>
-          {percentage.toFixed(1)}% Score
-        </div>
-        
+      <div className="max-w-2xl mx-auto p-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-8 py-10 text-center">
+          <Trophy size={56} className="mx-auto text-yellow-500 mb-4" />
+          <h1 className="text-2xl font-bold mb-3 text-gray-900">{t('quiz_complete') || 'Quiz Complete!'}</h1>
+          <div className="text-3xl font-extrabold text-indigo-600 mb-2">
+            {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
+          </div>
+          <div className="text-sm text-gray-500 mb-6">
+            {percentage.toFixed(1)}% {t('score') || 'Score'}
+          </div>
+
         {settings?.showCorrectAnswers && (
-          <div style={{ marginTop: '2rem', textAlign: 'left' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: '1rem' }}>Review Answers</h3>
+          <div className="mt-6 text-left border-t border-gray-100 pt-4">
+            <h3 className="text-sm font-semibold mb-3 text-gray-900">{t('review_answers') || 'Review Answers'}</h3>
             {questions.map((q, idx) => {
               const userAnswer = answers[idx];
               return (
-                <div key={q.id} style={{ padding: '1rem', background: userAnswer?.correct ? '#d1fae5' : '#fee2e2', borderRadius: 8, marginBottom: '0.5rem' }}>
-                  <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Q{idx + 1}: {q.question}</div>
-                  <div style={{ fontSize: 14 }}>
-                    Your answer: {userAnswer?.answer === true ? 'True' : userAnswer?.answer === false ? 'False' : 'No answer'} 
+                <div key={q.id} className={`p-3 rounded-xl mb-2 ${userAnswer?.correct ? 'bg-green-50' : 'bg-red-50'}`}>
+                  <div className="text-sm font-semibold mb-1 text-gray-900">Q{idx + 1}: {q.question}</div>
+                  <div className="text-xs text-gray-700">
+                    {t('your_answer') || 'Your answer'}: {userAnswer?.answer === true ? (t('true') || 'True') : userAnswer?.answer === false ? (t('false') || 'False') : (t('no_answer') || 'No answer')}
                     {userAnswer?.correct ? ' ✓' : ' ✗'}
                   </div>
                   {!userAnswer?.correct && (
-                    <div style={{ fontSize: 14, marginTop: '0.25rem' }}>
-                      Correct answer: {q.correctAnswer ? 'True' : 'False'}
+                    <div className="text-xs mt-1 text-green-700">
+                      {t('correct_answer') || 'Correct answer'}: {q.correctAnswer ? (t('true') || 'True') : (t('false') || 'False')}
                     </div>
                   )}
                 </div>
@@ -116,85 +111,63 @@ export default function TrueFalseGame({ questions, settings, onComplete }) {
             })}
           </div>
         )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem' }}>
+    <div className="max-w-4xl mx-auto p-6" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Progress Bar */}
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Question {currentIndex + 1} of {questions.length}</span>
+      <div className="mb-8">
+        <div className="flex justify-between mb-2">
+          <span className="text-xs font-semibold text-gray-500">{t('question') || 'Question'} {currentIndex + 1} {t('of') || 'of'} {questions.length}</span>
           {settings?.timePerQuestion > 0 && (
-            <span style={{ fontSize: 14, fontWeight: 600, color: timeLeft < 10 ? '#ef4444' : '#667eea', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span className={`text-xs font-semibold flex items-center gap-1 ${timeLeft < 10 ? 'text-red-500' : 'text-indigo-600'}`}>
               <Clock size={16} />
               {timeLeft}s
             </span>
           )}
         </div>
-        <div style={{ height: 8, background: '#e5e7eb', borderRadius: 999, overflow: 'hidden' }}>
-          <div style={{ width: `${((currentIndex + 1) / questions.length) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #667eea, #764ba2)', transition: 'width 0.3s' }} />
+        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300 ease-out"
+            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+          />
         </div>
       </div>
 
       {/* Question */}
-      <div style={{ padding: '2rem', background: 'white', borderRadius: 16, border: '1px solid var(--border)', marginBottom: '2rem', textAlign: 'center' }}>
+      <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 text-center">
         {currentQuestion.image && (
-          <img src={currentQuestion.image} alt="Question" style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 12, marginBottom: '1.5rem' }} />
+          <img src={currentQuestion.image} alt="Question" className="max-w-full max-h-[300px] rounded-xl mb-6 block mx-auto object-contain" />
         )}
-        <h2 style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.4 }}>
+        <h2 className="text-xl font-semibold leading-relaxed text-gray-900">
           {currentQuestion.question}
         </h2>
       </div>
 
       {/* True/False Buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-2 gap-4">
         <button
           onClick={() => handleAnswer(true)}
-          style={{
-            padding: '3rem 2rem',
-            background: 'linear-gradient(135deg, #10b981, #059669)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 16,
-            fontSize: 32,
-            fontWeight: 800,
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-            transition: 'transform 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          className="p-5 bg-green-50 border border-green-300 text-green-800 rounded-2xl shadow-sm hover:bg-green-500 hover:text-white hover:border-green-500 transition-all flex flex-col items-center justify-center gap-1 group"
         >
-          <Check size={48} style={{ marginBottom: '0.5rem' }} />
-          <div>True</div>
+          <Check size={32} className="group-hover:scale-110 transition-transform" />
+          <div className="text-base font-semibold">{t('true') || 'True'}</div>
         </button>
         <button
           onClick={() => handleAnswer(false)}
-          style={{
-            padding: '3rem 2rem',
-            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 16,
-            fontSize: 32,
-            fontWeight: 800,
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-            transition: 'transform 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          className="p-5 bg-red-50 border border-red-300 text-red-800 rounded-2xl shadow-sm hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex flex-col items-center justify-center gap-1 group"
         >
-          <X size={48} style={{ marginBottom: '0.5rem' }} />
-          <div>False</div>
+          <X size={32} className="group-hover:scale-110 transition-transform" />
+          <div className="text-base font-semibold">{t('false') || 'False'}</div>
         </button>
       </div>
 
       {/* Score Display */}
-      <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: 18, fontWeight: 600, color: 'var(--muted)' }}>
-        Current Score: {score}
+      <div className="mt-6 text-center text-sm font-semibold text-gray-500">
+        {t('current_score') || 'Current Score'}: {score}
       </div>
     </div>
   );

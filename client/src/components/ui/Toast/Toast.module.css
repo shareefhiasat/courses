@@ -1,0 +1,146 @@
+/* Toast Container */
+.toastContainer {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+/* Toast */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: white;
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid;
+  animation: slideIn 0.3s ease-out;
+  pointer-events: all;
+  min-width: 300px;
+}
+
+.toast:hover {
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Toast Types */
+.success {
+  border-left-color: var(--color-success, #28a745);
+}
+
+.success .toastIcon {
+  color: var(--color-success, #28a745);
+}
+
+.error {
+  border-left-color: var(--color-danger, #dc3545);
+}
+
+.error .toastIcon {
+  color: var(--color-danger, #dc3545);
+}
+
+.warning {
+  border-left-color: var(--color-warning, #ffc107);
+}
+
+.warning .toastIcon {
+  color: #856404;
+}
+
+.info {
+  border-left-color: var(--color-info, #17a2b8);
+}
+
+.info .toastIcon {
+  color: var(--color-info, #17a2b8);
+}
+
+/* Toast Icon */
+.toastIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Toast Message */
+.toastMessage {
+  flex: 1;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text, #212529);
+  line-height: 1.5;
+}
+
+/* Toast Close Button */
+.toastClose {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--muted, #666);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 4px);
+  transition: all 0.2s ease;
+}
+
+.toastClose:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text, #212529);
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .toastContainer {
+    left: 1rem;
+    right: 1rem;
+    max-width: none;
+  }
+  
+  .toast {
+    min-width: auto;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .toast {
+    background: var(--panel, #1a1a1a);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  }
+  
+  .toastMessage {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .toastClose {
+    color: var(--muted, #999);
+  }
+  
+  .toastClose:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text, #f5f5f5);
+  }
+}

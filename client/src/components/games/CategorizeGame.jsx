@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, RotateCcw } from 'lucide-react';
+import { useLang } from '../../contexts/LangContext';
 
 export default function CategorizeGame({ data, settings, onComplete }) {
+  const { t, lang } = useLang();
   // data structure: { categories: [{name: 'Yes', items: [...]}, {name: 'No', items: [...]}, {name: 'Maybe', items: [...]}] }
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -23,11 +25,11 @@ export default function CategorizeGame({ data, settings, onComplete }) {
         });
       });
     });
-    
+
     // Shuffle items
     const shuffled = allItems.sort(() => Math.random() - 0.5);
     setItems(shuffled);
-    
+
     // Initialize empty categories
     setCategories(data.categories.map((c, idx) => ({
       name: c.name,
@@ -58,13 +60,13 @@ export default function CategorizeGame({ data, settings, onComplete }) {
     if (fromCategory === null) {
       setItems(items.filter(i => i.id !== item.id));
     } else {
-      setCategories(categories.map((c, idx) => 
+      setCategories(categories.map((c, idx) =>
         idx === fromCategory ? { ...c, items: c.items.filter(i => i.id !== item.id) } : c
       ));
     }
 
     // Add to target category
-    setCategories(categories.map((c, idx) => 
+    setCategories(categories.map((c, idx) =>
       idx === categoryIndex ? { ...c, items: [...c.items, { ...item, currentCategory: categoryIndex }] } : c
     ));
 
@@ -77,7 +79,7 @@ export default function CategorizeGame({ data, settings, onComplete }) {
     const { item, fromCategory } = draggedItem;
 
     // Remove from category
-    setCategories(categories.map((c, idx) => 
+    setCategories(categories.map((c, idx) =>
       idx === fromCategory ? { ...c, items: c.items.filter(i => i.id !== item.id) } : c
     ));
 
@@ -120,7 +122,7 @@ export default function CategorizeGame({ data, settings, onComplete }) {
         allItems.push({ ...item, currentCategory: null });
       });
     });
-    
+
     setItems([...items, ...allItems].sort(() => Math.random() - 0.5));
     setCategories(categories.map(c => ({ ...c, items: [] })));
     setSubmitted(false);
@@ -132,58 +134,47 @@ export default function CategorizeGame({ data, settings, onComplete }) {
     const percentage = totalItems > 0 ? (score / totalItems) * 100 : 0;
 
     return (
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <Trophy size={64} style={{ color: '#f59e0b', marginBottom: '1rem' }} />
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '1rem' }}>Categorization Complete!</h1>
-        <div style={{ fontSize: 48, fontWeight: 800, color: '#06b6d4', marginBottom: '1rem' }}>
+      <div className="max-w-3xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('categorization_complete') || 'Categorization Complete!'}</h1>
+        <div className="text-5xl font-extrabold text-cyan-500 dark:text-cyan-400 mb-4">
           {score} / {totalItems}
         </div>
-        <div style={{ fontSize: 18, color: 'var(--muted)', marginBottom: '2rem' }}>
-          {percentage.toFixed(1)}% Correct
+        <div className="text-lg text-gray-500 dark:text-gray-400 mb-8">
+          {percentage.toFixed(1)}% {t('correct') || 'Correct'}
         </div>
 
         {settings?.showCorrectAnswers && (
-          <div style={{ marginTop: '2rem', textAlign: 'left' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: '1rem' }}>Review</h3>
+          <div className="mt-8 text-left">
+            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">{t('review') || 'Review'}</h3>
             {categories.map((category, categoryIndex) => (
-              <div key={categoryIndex} style={{ marginBottom: '1.5rem' }}>
-                <div style={{ 
-                  fontSize: 18, 
-                  fontWeight: 700, 
-                  marginBottom: '0.75rem', 
-                  color: category.color,
-                  padding: '0.5rem 1rem',
-                  background: `${category.color}20`,
-                  borderRadius: 8,
-                  display: 'inline-block'
-                }}>
+              <div key={categoryIndex} className="mb-6">
+                <div
+                  className="text-lg font-bold mb-3 inline-block px-4 py-2 rounded-lg"
+                  style={{
+                    color: category.color,
+                    background: `${category.color}20`
+                  }}
+                >
                   {category.name}
                 </div>
-                <div style={{ display: 'grid', gap: 8 }}>
+                <div className="grid gap-2">
                   {category.items.map(item => {
                     const isCorrect = item.correctCategory === categoryIndex;
                     return (
                       <div
                         key={item.id}
-                        style={{
-                          padding: '1rem',
-                          background: isCorrect ? '#d1fae5' : '#fee2e2',
-                          border: `2px solid ${isCorrect ? '#10b981' : '#ef4444'}`,
-                          borderRadius: 8,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12
-                        }}
+                        className={`p-4 rounded-xl flex items-center gap-3 border-2 ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 border-green-500' : 'bg-red-100 dark:bg-red-900/30 border-red-500'}`}
                       >
                         {item.image && (
-                          <img 
-                            src={item.image} 
-                            alt="" 
-                            style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 6 }} 
+                          <img
+                            src={item.image}
+                            alt=""
+                            className="w-12 h-12 object-cover rounded-lg"
                           />
                         )}
-                        <span style={{ flex: 1, fontWeight: 600 }}>{item.text}</span>
-                        <span style={{ fontSize: 20, fontWeight: 800 }}>
+                        <span className="flex-1 font-semibold text-gray-900 dark:text-white">{item.text}</span>
+                        <span className="text-xl font-extrabold text-gray-900 dark:text-white">
                           {isCorrect ? '✓' : '✗'}
                         </span>
                       </div>
@@ -198,23 +189,10 @@ export default function CategorizeGame({ data, settings, onComplete }) {
         {settings?.allowRetake && (
           <button
             onClick={handleReset}
-            style={{
-              marginTop: '2rem',
-              padding: '1rem 2rem',
-              background: '#06b6d4',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8
-            }}
+            className="mt-8 px-8 py-4 bg-cyan-600 text-white rounded-xl font-semibold flex items-center gap-2 mx-auto hover:bg-cyan-700 transition-colors"
           >
             <RotateCcw size={18} />
-            Try Again
+            {t('try_again') || 'Try Again'}
           </button>
         )}
       </div>
@@ -222,135 +200,86 @@ export default function CategorizeGame({ data, settings, onComplete }) {
   }
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '2rem' }}>
+    <div className="max-w-[1400px] mx-auto p-6" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '0.5rem' }}>Categorize</h1>
-        <p style={{ fontSize: 16, color: 'var(--muted)' }}>
-          Drag each item into its correct category
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white">{t('categorize') || 'Categorize'}</h1>
+        <p className="text-base text-gray-500 dark:text-gray-400">
+          {t('drag_category_instruction') || 'Drag each item into its correct category'}
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 24 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         {/* Items Pool */}
         <div
           onDragOver={handleDragOver}
           onDrop={handleDropToItems}
-          style={{
-            padding: '1.5rem',
-            background: '#f9fafb',
-            borderRadius: 12,
-            border: '2px dashed var(--border)',
-            minHeight: 500,
-            position: 'sticky',
-            top: 20
-          }}
+          className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 min-h-[500px] lg:sticky lg:top-5 h-fit"
         >
-          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: '1rem', color: 'var(--muted)' }}>
-            Items ({items.length})
+          <h3 className="text-base font-bold mb-4 text-gray-500 dark:text-gray-400">
+            {t('items') || 'Items'} ({items.length})
           </h3>
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div className="grid gap-2">
             {items.map(item => (
               <div
                 key={item.id}
                 draggable
                 onDragStart={() => handleDragStart(item, null)}
-                style={{
-                  padding: '1rem',
-                  background: 'white',
-                  border: '2px solid var(--border)',
-                  borderRadius: 8,
-                  cursor: 'grab',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                className="p-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-grab text-sm font-semibold flex items-center gap-2 transition-all hover:scale-[1.02] active:cursor-grabbing shadow-sm"
               >
                 {item.image && (
-                  <img 
-                    src={item.image} 
-                    alt="" 
-                    style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6 }} 
+                  <img
+                    src={item.image}
+                    alt=""
+                    className="w-10 h-10 object-cover rounded"
                   />
                 )}
-                <span style={{ flex: 1 }}>{item.text}</span>
+                <span className="flex-1 text-gray-900 dark:text-white">{item.text}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Categories */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {categories.map((category, categoryIndex) => (
             <div
               key={categoryIndex}
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(categoryIndex)}
-              style={{
-                padding: '1.5rem',
-                background: 'white',
-                borderRadius: 12,
-                border: `3px solid ${category.color}`,
-                minHeight: 200
-              }}
+              className="p-6 bg-white dark:bg-gray-800 rounded-xl border-[3px] min-h-[200px] transition-colors"
+              style={{ borderColor: category.color }}
             >
-              <h3 style={{ 
-                fontSize: 18, 
-                fontWeight: 700, 
-                marginBottom: '1rem', 
-                color: category.color,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              }}>
-                <div style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 8,
-                  background: category.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: 14,
-                  fontWeight: 800
-                }}>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: category.color }}>
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-extrabold"
+                  style={{ background: category.color }}
+                >
                   {category.items.length}
                 </div>
                 {category.name}
               </h3>
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div className="grid gap-2">
                 {category.items.map(item => (
                   <div
                     key={item.id}
                     draggable
                     onDragStart={() => handleDragStart(item, categoryIndex)}
+                    className="p-4 rounded-lg cursor-grab text-sm font-semibold flex items-center gap-2 border-2"
                     style={{
-                      padding: '1rem',
-                      background: `${category.color}15`,
-                      border: `2px solid ${category.color}`,
-                      borderRadius: 8,
-                      cursor: 'grab',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8
+                      backgroundColor: `${category.color}15`,
+                      borderColor: category.color,
+                      color: 'inherit'
                     }}
                   >
                     {item.image && (
-                      <img 
-                        src={item.image} 
-                        alt="" 
-                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6 }} 
+                      <img
+                        src={item.image}
+                        alt=""
+                        className="w-10 h-10 object-cover rounded"
                       />
                     )}
-                    <span style={{ flex: 1 }}>{item.text}</span>
+                    <span className="flex-1 text-gray-900 dark:text-white">{item.text}</span>
                   </div>
                 ))}
               </div>
@@ -360,23 +289,13 @@ export default function CategorizeGame({ data, settings, onComplete }) {
       </div>
 
       {/* Submit Button */}
-      <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+      <div className="mt-8 text-center">
         <button
           onClick={handleSubmit}
           disabled={items.length > 0}
-          style={{
-            padding: '1rem 3rem',
-            background: items.length > 0 ? '#9ca3af' : 'linear-gradient(135deg, #06b6d4, #0891b2)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 12,
-            fontSize: 18,
-            fontWeight: 700,
-            cursor: items.length > 0 ? 'not-allowed' : 'pointer',
-            boxShadow: items.length > 0 ? 'none' : '0 4px 12px rgba(6, 182, 212, 0.4)'
-          }}
+          className={`px-12 py-4 rounded-xl text-lg font-bold text-white shadow-lg transition-all ${items.length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:shadow-cyan-500/30 hover:scale-105'}`}
         >
-          {items.length > 0 ? `Categorize all items first (${items.length} remaining)` : 'Submit Answers'}
+          {items.length > 0 ? `${t('categorize_all_first') || 'Categorize all items first'} (${items.length} ${t('remaining') || 'remaining'})` : (t('submit_answers') || 'Submit Answers')}
         </button>
       </div>
     </div>

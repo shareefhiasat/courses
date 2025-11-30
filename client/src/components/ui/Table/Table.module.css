@@ -1,0 +1,181 @@
+/* Table Wrapper */
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+/* Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel, white);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* Table Head */
+.table thead {
+  background: var(--background-secondary, #f8f9fa);
+  border-bottom: 2px solid var(--border, #e0e0e0);
+}
+
+.table th {
+  padding: 1rem;
+  text-align: start;
+  font-weight: 600;
+  color: var(--text, #212529);
+  white-space: nowrap;
+}
+
+/* Sortable Header */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  background: rgba(128, 0, 32, 0.05);
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sortIcon {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted, #666);
+}
+
+/* Table Body */
+.table td {
+  padding: 1rem;
+  border-top: 1px solid var(--border-light, #f0f0f0);
+  color: var(--text, #212529);
+}
+
+/* Striped Rows */
+.striped tbody tr:nth-child(even) {
+  background: var(--background-secondary, #f8f9fa);
+}
+
+/* Hoverable Rows */
+.hoverable tbody tr:hover {
+  background: rgba(128, 0, 32, 0.05);
+}
+
+/* Clickable Rows */
+.clickable {
+  cursor: pointer;
+}
+
+/* Bordered */
+.bordered {
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+.bordered td,
+.bordered th {
+  border: 1px solid var(--border-light, #f0f0f0);
+}
+
+/* Compact */
+.compact th,
+.compact td {
+  padding: 0.5rem;
+}
+
+/* Checkbox Cell */
+.checkboxCell {
+  width: 40px;
+  text-align: center;
+}
+
+.checkboxCell input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+/* Alignment */
+.align-left { text-align: start; }
+.align-center { text-align: center; }
+.align-right { text-align: end; }
+
+/* Loading State */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: var(--text-muted, #666);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(128, 0, 32, 0.1);
+  border-top-color: var(--color-primary, #800020);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.empty {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted, #666);
+}
+
+/* RTL Support */
+[dir="rtl"] .table th,
+[dir="rtl"] .table td {
+  text-align: start;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .table {
+    font-size: var(--font-size-xs, 0.75rem);
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+  
+  .compact th,
+  .compact td {
+    padding: 0.25rem;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .table {
+    background: var(--panel, #1a1a1a);
+  }
+  
+  .table thead {
+    background: var(--background-secondary, #2a2a2a);
+  }
+  
+  .table th,
+  .table td {
+    color: var(--text, #f5f5f5);
+    border-color: var(--border, #333);
+  }
+  
+  .striped tbody tr:nth-child(even) {
+    background: var(--background-secondary, #2a2a2a);
+  }
+}

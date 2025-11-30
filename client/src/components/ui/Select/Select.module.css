@@ -1,0 +1,302 @@
+/* Select Wrapper */
+.selectWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Label */
+.label {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--text, #212529);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.required {
+  color: var(--color-danger, #dc3545);
+}
+
+/* Select Container */
+.selectContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Base Select Styles */
+.select {
+  width: 100%;
+  font-family: inherit;
+  font-size: var(--font-size-md, 1rem);
+  color: var(--text, #212529);
+  background: var(--panel, white);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: var(--radius-md, 8px);
+  transition: all 0.2s ease;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.select:hover:not(:disabled) {
+  border-color: #999;
+}
+
+.select:focus {
+  border-color: var(--color-primary, #800020);
+  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+}
+
+.select:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Sizes */
+.small {
+  padding: 0.375rem 2rem 0.375rem 0.75rem;
+  font-size: var(--font-size-sm, 0.875rem);
+  min-height: 32px;
+}
+
+.medium {
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  font-size: var(--font-size-md, 1rem);
+  min-height: 40px;
+}
+
+.large {
+  padding: 0.75rem 3rem 0.75rem 1.25rem;
+  font-size: var(--font-size-lg, 1.125rem);
+  min-height: 48px;
+}
+
+/* Custom Arrow icon */
+.arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted, #6b7280);
+  transition: transform 0.2s ease;
+}
+
+.arrowUp {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* Custom Select Container */
+.customSelectContainer {
+  position: relative;
+}
+
+.customSelectContainer .select {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.customSelectContainer .select .placeholder {
+  color: var(--text-muted, #9ca3af);
+}
+
+/* Icons container */
+.icons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.clearIcon {
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  pointer-events: auto;
+}
+
+.clearIcon:hover {
+  color: var(--danger, #ef4444);
+}
+
+/* Dropdown menu */
+.dropdown {
+  position: absolute;
+  min-width: 220px;
+  width: 100%;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-height: 300px;
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search container */
+.searchContainer {
+  position: relative;
+  padding: 8px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+.searchIcon {
+  position: absolute;
+  inset-inline-start: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted, #9ca3af);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px;
+  /* more space for magnifier to avoid overlap */
+  padding-inline-start: 48px;
+  padding-inline-end: 12px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  background: var(--input-bg, #ffffff);
+  color: var(--text, #1f2937);
+}
+
+.searchInput:focus {
+  border-color: var(--primary, #667eea);
+}
+
+/* Options list */
+.optionsList {
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.option {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+  font-size: 0.875rem;
+  color: var(--text, #1f2937);
+}
+
+.option:hover {
+  background: var(--hover-bg, #f3f4f6);
+}
+
+.option.selected {
+  background: var(--primary-light, #eef2ff);
+  color: var(--primary, #667eea);
+  font-weight: 500;
+}
+
+.noOptions {
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--text-muted, #9ca3af);
+  font-size: 0.875rem;
+}
+
+/* Error State */
+.error {
+  border-color: var(--color-danger, #dc3545);
+}
+
+.error:focus {
+  border-color: var(--color-danger, #dc3545);
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+/* Helper Text */
+.helperText {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--muted, #666);
+}
+
+.errorText {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-danger, #dc3545);
+  font-weight: 500;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .label {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .select {
+    background: var(--panel, #1a1a1a);
+    border-color: var(--border, #333);
+    color: var(--text, #f5f5f5);
+  }
+  
+  .select:disabled {
+    background: #2a2a2a;
+  }
+  
+  .arrow {
+    color: var(--muted, #999);
+  }
+
+  .dropdown {
+    background: #111827;
+    border-color: #333;
+  }
+  .searchInput {
+    background: #1f2937;
+    color: #e5e7eb;
+    border-color: #374151;
+  }
+  .option {
+    color: #e5e7eb;
+  }
+  .option:hover {
+    background: #374151;
+  }
+}
+
+/* Theme attribute support */
+:global([data-theme="dark"]) .select { background: #1a1a1a; border-color: #333; color: #f5f5f5; }
+:global([data-theme="dark"]) .dropdown { background: #111827; border-color: #333; }
+:global([data-theme="dark"]) .searchInput { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+:global([data-theme="dark"]) .option { color: #e5e7eb; }
+:global([data-theme="dark"]) .option:hover { background: #374151; }
+
+/* Force light palette when explicitly set */
+:global([data-theme="light"]) .select { background: #ffffff; border-color: #e5e7eb; color: #111827; }
+:global([data-theme="light"]) .dropdown { background: #ffffff; border-color: #e5e7eb; }
+:global([data-theme="light"]) .searchInput { background: #ffffff; color: #1f2937; border-color: #e5e7eb; }
+:global([data-theme="light"]) .option { color: #1f2937; }
+:global([data-theme="light"]) .option:hover { background: #f3f4f6; }

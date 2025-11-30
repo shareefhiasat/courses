@@ -3,6 +3,7 @@ import { getUsers, getClasses, getEnrollments } from '../firebase/firestore';
 import { useLang } from '../contexts/LangContext';
 import Modal from './Modal';
 import { useToast } from './ToastProvider';
+import { Input, Textarea, Button } from './ui';
 
 const SmartEmailComposer = ({ open, onClose, onSend }) => {
   const { t, lang } = useLang();
@@ -188,17 +189,11 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
         <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
           <h4 style={{ margin: '0 0 0.75rem 0', color: '#800020' }}>🔍 Filter Recipients</h4>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <input
+            <Input
               type="text"
               placeholder="Search by name or email..."
               value={filters.searchTerm}
               onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-              style={{
-                flex: '1 1 250px',
-                padding: '8px 12px',
-                border: '1px solid #ddd',
-                borderRadius: '6px'
-              }}
             />
             <button
               onClick={handleSelectAll}
@@ -277,18 +272,12 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
           <label style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>
             📝 Subject
           </label>
-          <input
+          <Input
             type="text"
             value={emailData.subject}
             onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
             placeholder="Enter email subject..."
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '6px',
-              border: '1px solid #ddd',
-              fontSize: '1rem'
-            }}
+            fullWidth
           />
         </div>
 
@@ -314,20 +303,12 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
           </div>
           
           {!showPreview ? (
-            <textarea
+            <Textarea
               value={emailData.htmlBody}
               onChange={(e) => setEmailData(prev => ({ ...prev, htmlBody: e.target.value }))}
               placeholder="Paste your HTML here... You can use variables: %DISPLAY_NAME%, %EMAIL%, %APP_NAME%"
-              rows="12"
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '6px',
-                border: '1px solid #ddd',
-                fontFamily: 'monospace',
-                fontSize: '0.9rem',
-                resize: 'vertical'
-              }}
+              rows={12}
+              fullWidth
             />
           ) : (
             <div
@@ -355,35 +336,20 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
-          <button
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={loading}
-            style={{
-              padding: '10px 24px',
-              background: '#f0f0f0',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: 600
-            }}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSend}
             disabled={loading || emailData.to.length === 0}
-            style={{
-              padding: '10px 24px',
-              background: loading || emailData.to.length === 0 ? '#ccc' : 'linear-gradient(135deg, #800020, #600018)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: loading || emailData.to.length === 0 ? 'not-allowed' : 'pointer',
-              fontWeight: 600
-            }}
           >
             {loading ? '📤 Sending...' : `📧 Send to ${emailData.to.length} Recipients`}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

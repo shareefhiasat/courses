@@ -32,9 +32,15 @@ import AdvancedAnalytics from './components/AdvancedAnalytics';
 import RoleAccessPage from './pages/RoleAccessPage';
 import RoleAccessPro from './pages/RoleAccessPro';
 import StudentProfilePage from './pages/StudentProfilePage';
+import StudentDashboardPage from './pages/StudentDashboardPage';
+import CourseProgressDetailPage from './pages/CourseProgressDetailPage';
+import QuizManagementPage from './pages/QuizManagementPage';
+import QuizPreviewPage from './pages/QuizPreviewPage';
 import QuizBuilderPage from './pages/QuizBuilderPage';
+import MyEnrollmentsPage from './pages/MyEnrollmentsPage';
 import StudentQuizPage from './pages/StudentQuizPage';
 import QuizResultsPage from './pages/QuizResultsPage';
+import QuestionBankPage from './pages/QuestionBankPage';
 import './App.css';
 import './styles/colors.css';
 
@@ -71,7 +77,13 @@ const AppContent = () => {
           <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
           <Route path="/role-access" element={<RoleAccessPage />} />
           <Route path="/role-access-pro" element={<RoleAccessPro />} />
-          <Route path="/student-profile" element={<StudentProfilePage />} />
+          {/* Redirect old student-profile to new unified dashboard */}
+          <Route path="/student-profile" element={<StudentDashboardPage />} />
+          <Route path="/student-dashboard" element={<StudentDashboardPage />} />
+          <Route path="/my-enrollments" element={<MyEnrollmentsPage />} />
+          <Route path="/course-progress/:courseId" element={<CourseProgressDetailPage />} />
+          <Route path="/quiz-management" element={<QuizManagementPage />} />
+          <Route path="/quiz-preview/:quizId" element={<QuizPreviewPage />} />
           <Route path="/quiz-builder" element={<QuizBuilderPage />} />
           <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
           <Route path="/quiz-results" element={<QuizResultsPage />} />

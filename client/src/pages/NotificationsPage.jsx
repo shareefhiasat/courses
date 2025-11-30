@@ -4,10 +4,10 @@ import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { Bell, Search, Check, Trash2, Filter, X } from 'lucide-react';
-import Loading from '../components/Loading';
+import { Bell, Check, Trash2, Mail, MessageCircle, ArrowDownWideNarrow, ArrowUpWideNarrow } from 'lucide-react';
+import { Container, Card, CardBody, Button, SearchBar, Badge, Spinner, EmptyState } from '../components/ui';
 import { formatDateTime } from '../utils/date';
-import './NotificationsPage.css';
+import styles from './NotificationsPage.module.css';
 
 const NotificationsPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -16,9 +16,8 @@ const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all'); // all, unread, read
-  const [sortBy, setSortBy] = useState('newest'); // newest, oldest
-  const [showFilters, setShowFilters] = useState(false);
+  const [filterType, setFilterType] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -90,14 +89,11 @@ const NotificationsPage = () => {
     }
   };
 
-  // Filter and sort notifications
   const filteredNotifications = notifications
     .filter(notif => {
-      // Filter by read/unread
       if (filterType === 'unread' && notif.read) return false;
       if (filterType === 'read' && !notif.read) return false;
       
-      // Filter by search query
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const title = (notif.title || '').toLowerCase();
@@ -115,170 +111,181 @@ const NotificationsPage = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  if (authLoading || loading) return <Loading />;
+  if (authLoading || loading) {
+    return (
+      <div className={styles.loadingWrapper}>
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+  
   if (!user) return <Navigate to="/login" />;
 
   return (
-    <div className="notifications-page">
-      <div className="notifications-header">
-        <div className="header-top">
-          <div className="header-title">
+    <Container maxWidth="lg" className={styles.page}>
+      <div className={styles.header}>
+        <div className={styles.headerTop}>
+          <div className={styles.headerTitle}>
             <Bell size={28} />
             <h1>{t('notifications')}</h1>
             {unreadCount > 0 && (
-              <span className="unread-badge">{unreadCount}</span>
+              <Badge color="danger">{unreadCount}</Badge>
             )}
           </div>
-          <div className="header-actions">
+          <div className={styles.headerActions}>
             {unreadCount > 0 && (
-              <button onClick={markAllAsRead} className="btn-secondary">
-                <Check size={18} />
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Check size={18} />}
+                onClick={markAllAsRead}
+              >
                 {t('mark_all_read')}
-              </button>
+              </Button>
             )}
             {notifications.length > 0 && (
-              <button onClick={clearAll} className="btn-danger">
-                <Trash2 size={18} />
+              <Button
+                variant="danger"
+                size="sm"
+                icon={<Trash2 size={18} />}
+                onClick={clearAll}
+              >
                 {t('clear_all')}
-              </button>
+              </Button>
             )}
           </div>
         </div>
 
-        <div className="search-filter-bar">
-          <div className="search-box">
-            <Search size={20} />
-            <input
-              type="text"
-              placeholder={t('search_notifications') || 'Search notifications...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="clear-search">
-                <X size={18} />
-              </button>
-            )}
+        <div className={styles.searchFilterBar}>
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder={t('search_notifications') || 'Search notifications...'}
+            fullWidth
+          />
+        </div>
+
+        <div className={styles.chipRow}>
+          <div className={styles.statusChips}>
+            <Button
+              variant={filterType === 'all' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setFilterType('all')}
+            >
+              {t('all')}
+            </Button>
+            <Button
+              variant={filterType === 'unread' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setFilterType('unread')}
+            >
+              {t('unread') || 'Unread'}
+            </Button>
+            <Button
+              variant={filterType === 'read' ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setFilterType('read')}
+            >
+              {t('read') || 'Read'}
+            </Button>
           </div>
 
-          <button 
-            onClick={() => setShowFilters(!showFilters)} 
-            className={`filter-toggle ${showFilters ? 'active' : ''}`}
+          <button
+            type="button"
+            className={styles.sortChip}
+            onClick={() => setSortBy(sortBy === 'newest' ? 'oldest' : 'newest')}
           >
-            <Filter size={20} />
-            {t('filter') || 'Filter'}
+            {sortBy === 'newest' ? (
+              <>
+                <ArrowDownWideNarrow size={16} />
+                <span>{t('newest_first') || 'Newest'}</span>
+              </>
+            ) : (
+              <>
+                <ArrowUpWideNarrow size={16} />
+                <span>{t('oldest_first') || 'Oldest'}</span>
+              </>
+            )}
           </button>
         </div>
-
-        {showFilters && (
-          <div className="filters-panel">
-            <div className="filter-group">
-              <label>{t('status') || 'Status'}:</label>
-              <div className="filter-options">
-                <button
-                  className={filterType === 'all' ? 'active' : ''}
-                  onClick={() => setFilterType('all')}
-                >
-                  {t('all')}
-                </button>
-                <button
-                  className={filterType === 'unread' ? 'active' : ''}
-                  onClick={() => setFilterType('unread')}
-                >
-                  {t('unread') || 'Unread'}
-                </button>
-                <button
-                  className={filterType === 'read' ? 'active' : ''}
-                  onClick={() => setFilterType('read')}
-                >
-                  {t('read') || 'Read'}
-                </button>
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <label>{t('sort_by') || 'Sort by'}:</label>
-              <div className="filter-options">
-                <button
-                  className={sortBy === 'newest' ? 'active' : ''}
-                  onClick={() => setSortBy('newest')}
-                >
-                  {t('newest_first') || 'Newest First'}
-                </button>
-                <button
-                  className={sortBy === 'oldest' ? 'active' : ''}
-                  onClick={() => setSortBy('oldest')}
-                >
-                  {t('oldest_first') || 'Oldest First'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      <div className="notifications-list">
+      <div className={styles.notificationsList}>
         {filteredNotifications.length === 0 ? (
-          <div className="empty-state">
-            <Bell size={64} />
-            <h2>{searchQuery ? t('no_results') || 'No results found' : t('no_notifications_yet')}</h2>
-            <p>
-              {searchQuery 
+          <EmptyState
+            icon={Bell}
+            title={searchQuery ? t('no_results') || 'No results found' : t('no_notifications_yet')}
+            description={
+              searchQuery 
                 ? t('try_different_search') || 'Try a different search term'
                 : t('notifications_appear_here') || 'Your notifications will appear here'
-              }
-            </p>
-          </div>
+            }
+          />
         ) : (
           filteredNotifications.map(notif => (
-            <div
+            <Card
               key={notif.id}
-              className={`notification-item ${notif.read ? 'read' : 'unread'}`}
+              className={`${styles.notificationItem} ${notif.read ? styles.read : styles.unread}`}
               onClick={() => !notif.read && markAsRead(notif.id)}
             >
-              <div className="notification-content">
-                <div className="notification-header">
-                  <h3>{notif.title || t('notification')}</h3>
-                  <span className="notification-time">
-                    {formatDateTime(notif.createdAt?.toDate?.())}
-                  </span>
+              <CardBody>
+                <div className={styles.notificationContent}>
+                  <div className={styles.notificationHeader}>
+                    <div className={styles.notificationTitleRow}>
+                      <span className={`${styles.readDot} ${notif.read ? styles.readDotRead : styles.readDotUnread}`} />
+                      <span className={styles.typeIcon}>
+                        {notif.type === 'chat' ? (
+                          <MessageCircle size={16} />
+                        ) : notif.type === 'email' || notif.type === 'newsletter' ? (
+                          <Mail size={16} />
+                        ) : (
+                          <Bell size={16} />
+                        )}
+                      </span>
+                      <h3>{notif.title || t('notification')}</h3>
+                    </div>
+                    <span className={styles.notificationTime}>
+                      {formatDateTime(notif.createdAt?.toDate?.())}
+                    </span>
+                  </div>
+                  <p className={styles.notificationMessage}>{notif.message}</p>
+                  {notif.link && (
+                    <a href={notif.link} className={styles.notificationLink}>
+                      {t('view_details') || 'View Details'} →
+                    </a>
+                  )}
                 </div>
-                <p className="notification-message">{notif.message}</p>
-                {notif.link && (
-                  <a href={notif.link} className="notification-link">
-                    {t('view_details') || 'View Details'} →
-                  </a>
-                )}
-              </div>
-              <div className="notification-actions">
-                {!notif.read && (
-                  <button
+                <div className={styles.notificationActions}>
+                  {!notif.read && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Check size={18} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAsRead(notif.id);
+                      }}
+                      title={t('mark_as_read') || 'Mark as read'}
+                    />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<Trash2 size={18} />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      markAsRead(notif.id);
+                      deleteNotification(notif.id);
                     }}
-                    className="btn-icon"
-                    title={t('mark_as_read') || 'Mark as read'}
-                  >
-                    <Check size={18} />
-                  </button>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteNotification(notif.id);
-                  }}
-                  className="btn-icon btn-danger"
-                  title={t('delete')}
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
+                    title={t('delete')}
+                    className={styles.dangerButton}
+                  />
+                </div>
+              </CardBody>
+            </Card>
           ))
         )}
       </div>
-    </div>
+    </Container>
   );
 };
 

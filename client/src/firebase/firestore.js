@@ -281,6 +281,31 @@ export const getUsers = async () => {
   }
 };
 
+export const getUser = async (uid) => {
+  if (!uid) {
+    return { success: false, error: 'uid required' };
+  }
+
+  try {
+    const ref = doc(db, 'users', uid);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      return { success: false, error: 'user_not_found' };
+    }
+
+    return {
+      success: true,
+      data: {
+        docId: uid,
+        ...snap.data()
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 // Allowlist
 export const getAllowlist = async () => {
   try {
@@ -420,6 +445,19 @@ export const addEnrollment = async (data) => {
     await setDoc(doc(db, 'enrollments', detId), { ...data, createdAt: Timestamp.now() }, { merge: true });
     // Keep users/{uid}.enrolledClasses in sync
     try { await updateDoc(doc(db, 'users', userId), { enrolledClasses: arrayUnion(classId) }); } catch {}
+    
+    // Update student progress
+    try {
+      const progressRef = doc(db, 'studentProgress', userId);
+      const progressSnap = await getDoc(progressRef);
+      if (progressSnap.exists()) {
+        await updateDoc(progressRef, {
+          enrolledClasses: increment(1),
+          updatedAt: serverTimestamp()
+        });
+      }
+    } catch (e) { console.warn('Failed to update student progress:', e); }
+    
     return { success: true, id: detId };
   } catch (error) { return { success: false, error: error.message }; }
 };

@@ -3,11 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { UserX, UserCheck, Search, Shield } from 'lucide-react';
+import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast } from '../components/ui';
+import { UserX, UserCheck, Search, Shield, AlertCircle } from 'lucide-react';
+import styles from './ManageEnrollmentsPage.module.css';
 
 const ManageEnrollmentsPage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
   const { t } = useLang();
+  const toast = useToast();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [students, setStudents] = useState([]);
@@ -79,7 +82,7 @@ const ManageEnrollmentsPage = () => {
       await loadStudents(selectedClass.id);
     } catch (e) {
       console.error('[ManageEnrollments] Error toggling access:', e);
-      alert('Failed to update: ' + (e?.message || 'unknown error'));
+      toast.error('Failed to update: ' + (e?.message || 'unknown error'));
     }
   };
 
@@ -95,64 +98,65 @@ const ManageEnrollmentsPage = () => {
 
   if (!isAdmin && !isInstructor) {
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <Shield size={48} style={{ color: '#ef4444', marginBottom: '1rem' }} />
+      <Container maxWidth="md" className={styles.accessDenied}>
+        <Shield size={48} className={styles.accessDeniedIcon} />
         <h2>Access Denied</h2>
         <p>This page is only accessible to instructors and admins.</p>
-      </div>
+      </Container>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1rem' }}>
-      <h1 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+    <Container maxWidth="xl" className={styles.page}>
+      <div className={styles.header}>
         <Shield size={28} />
-        {t('manage_enrollments') || 'Manage Student Access'}
-      </h1>
+        <h1>{t('manage_enrollments') || 'Manage Student Access'}</h1>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
+      <div className={styles.layout}>
         {/* Class List */}
-        <div style={{ padding: '1rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>{t('classes') || 'Classes'} ({classes.length})</div>
-          <div style={{ display: 'grid', gap: 8 }}>
+        <Card className={styles.classList}>
+          <CardBody>
+            <div className={styles.classListHeader}>{t('classes') || 'Classes'} ({classes.length})</div>
+            <div className={styles.classItems}>
             {classes.map((cls, idx) => {
               const isSelected = selectedClass?.id === cls.id;
               const uniqueKey = cls.id || `class-${idx}`;
               return (
                 <div
                   key={uniqueKey}
-                  onClick={() => { setSelectedClass(cls); loadStudents(cls.id); }}
-                  style={{
-                    padding: '0.75rem',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    background: isSelected ? 'rgba(102,126,234,0.12)' : '#fff',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
+                  onClick={() => { 
+                    if (cls.id) {
+                      setSelectedClass(cls); 
+                      loadStudents(cls.id);
+                    }
                   }}
+                  className={`${styles.classItem} ${isSelected ? styles.classItemSelected : ''}`}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{cls.name || cls.code}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                  <div className={styles.className}>{cls.name || cls.code}</div>
+                  <div className={styles.classInfo}>
                     {cls.term && `${cls.term}`} {cls.year && `• ${cls.year}`}
                   </div>
                 </div>
               );
             })}
-          </div>
-        </div>
+            </div>
+          </CardBody>
+        </Card>
 
         {/* Students List */}
-        <div style={{ padding: '1.5rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
+        <Card className={styles.studentsPanel}>
+          <CardBody>
           {!selectedClass ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
-              <Search size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <div>{t('select_class') || 'Select a class to manage student access'}</div>
-            </div>
+            <EmptyState
+              icon={Search}
+              title={t('select_class') || 'Select a class to manage student access'}
+            />
           ) : (
             <>
-              <div style={{ marginBottom: 16 }}>
-                <h2 style={{ margin: 0, fontSize: 20 }}>{selectedClass.name || selectedClass.code}</h2>
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+              <div className={styles.selectedClassHeader}>
+                <h2>{selectedClass.name || selectedClass.code}</h2>
+                <div className={styles.stats}>
                   {t('total_students') || 'Total Students'}: {students.length}
                   {' • '}
                   {t('disabled') || 'Disabled'}: {students.filter(s => s.isDisabled).length}
@@ -160,111 +164,79 @@ const ManageEnrollmentsPage = () => {
               </div>
 
               {/* Search */}
-              <div style={{ marginBottom: 16 }}>
-                <input
-                  type="text"
-                  placeholder={t('search_students') || 'Search students...'}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    fontSize: 14
-                  }}
-                />
-              </div>
+              <Input
+                type="text"
+                placeholder={t('search_students') || 'Search students...'}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                icon={<Search size={16} />}
+                className={styles.searchInput}
+              />
 
               {/* Info Box */}
-              <div style={{ marginBottom: 16, padding: '1rem', background: '#eff6ff', border: '1px solid #3b82f6', borderRadius: 8, fontSize: 13 }}>
-                <strong>ℹ️ Info:</strong> Disabling a student prevents them from:
-                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-                  <li>Accessing class chat</li>
-                  <li>Viewing class activities</li>
-                  <li>Submitting assignments</li>
-                  <li>Scanning attendance (if implemented)</li>
-                </ul>
-                You can re-enable access anytime.
+              <div className={styles.infoBox}>
+                <AlertCircle size={16} />
+                <div>
+                  <strong>Info:</strong> Disabling a student prevents them from:
+                  <ul>
+                    <li>Accessing class chat</li>
+                    <li>Viewing class activities</li>
+                    <li>Submitting assignments</li>
+                    <li>Scanning attendance (if implemented)</li>
+                  </ul>
+                  You can re-enable access anytime.
+                </div>
               </div>
 
               {/* Students Table */}
               {loading ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
-                  {t('loading') || 'Loading...'}
+                <div className={styles.loadingState}>
+                  <Spinner size="lg" />
                 </div>
               ) : filteredStudents.length === 0 ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
-                  {searchTerm ? (t('no_students_found') || 'No students found') : (t('no_students_enrolled') || 'No students enrolled in this class')}
-                </div>
+                <EmptyState
+                  icon={Search}
+                  title={searchTerm ? (t('no_students_found') || 'No students found') : (t('no_students_enrolled') || 'No students enrolled in this class')}
+                />
               ) : (
-                <div style={{ display: 'grid', gap: 8, maxHeight: 500, overflowY: 'auto' }}>
+                <div className={styles.studentsList}>
                   {filteredStudents.map(student => (
                     <div
                       key={student.id}
-                      style={{
-                        padding: '1rem',
-                        border: '1px solid var(--border)',
-                        borderRadius: 8,
-                        background: student.isDisabled ? '#fee2e2' : '#fff',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
+                      className={`${styles.studentItem} ${student.isDisabled ? styles.studentDisabled : ''}`}
                     >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className={styles.studentInfo}>
+                        <div className={styles.studentName}>
                           {student.displayName || student.email}
                           {student.isDisabled && (
-                            <span style={{ fontSize: 11, padding: '2px 6px', background: '#ef4444', color: 'white', borderRadius: 4, fontWeight: 600 }}>
-                              DISABLED
-                            </span>
+                            <Badge variant="danger" size="sm">DISABLED</Badge>
                           )}
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                        <div className={styles.studentEmail}>
                           {student.email}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        <div className={styles.studentId}>
                           ID: {student.id}
                         </div>
                       </div>
-                      <button
+                      <Button
                         onClick={() => toggleStudentAccess(student.id, student.isDisabled)}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          border: 'none',
-                          borderRadius: 8,
-                          background: student.isDisabled ? '#10b981' : '#ef4444',
-                          color: 'white',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          fontSize: 13
-                        }}
+                        variant={student.isDisabled ? 'success' : 'danger'}
+                        size="sm"
+                        icon={student.isDisabled ? <UserCheck size={16} /> : <UserX size={16} />}
                       >
-                        {student.isDisabled ? (
-                          <>
-                            <UserCheck size={16} />
-                            {t('enable') || 'Enable'}
-                          </>
-                        ) : (
-                          <>
-                            <UserX size={16} />
-                            {t('disable') || 'Disable'}
-                          </>
-                        )}
-                      </button>
+                        {student.isDisabled ? (t('enable') || 'Enable') : (t('disable') || 'Disable')}
+                      </Button>
                     </div>
                   ))}
                 </div>
               )}
             </>
           )}
-        </div>
+          </CardBody>
+        </Card>
       </div>
-    </div>
+    </Container>
   );
 };
 

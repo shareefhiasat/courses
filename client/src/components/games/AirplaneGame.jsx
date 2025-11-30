@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Trophy } from 'lucide-react';
+import { useLang } from '../../contexts/LangContext';
 
 export default function AirplaneGame({ questions, settings, onComplete }) {
+  const { t, lang } = useLang();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -35,7 +37,7 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
     if (!gameStarted || gameOver) return;
 
     const interval = setInterval(() => {
-      setClouds(prev => 
+      setClouds(prev =>
         prev.map(cloud => ({
           ...cloud,
           y: cloud.y + cloud.speed
@@ -52,16 +54,16 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
     const isCorrect = cloud.correct;
     setShowFeedback({ correct: isCorrect, text: cloud.text });
 
-    const newAnswers = [...answers, { 
-      questionId: currentQuestion.id, 
-      answer: cloud.text, 
-      correct: isCorrect 
+    const newAnswers = [...answers, {
+      questionId: currentQuestion.id,
+      answer: cloud.text,
+      correct: isCorrect
     }];
     setAnswers(newAnswers);
 
     if (isCorrect) {
       setScore(score + (currentQuestion.points || 1));
-      
+
       setTimeout(() => {
         setShowFeedback(null);
         if (currentIndex < questions.length - 1) {
@@ -81,7 +83,7 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
     } else {
       const newLives = lives - 1;
       setLives(newLives);
-      
+
       setTimeout(() => {
         setShowFeedback(null);
         if (newLives === 0) {
@@ -109,30 +111,20 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
 
   if (!gameStarted) {
     return (
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: 64, marginBottom: '1rem' }}>✈️</div>
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '1rem' }}>Airplane Game</h1>
-        <p style={{ fontSize: 18, color: 'var(--muted)', marginBottom: '1rem' }}>
-          Fly your plane into the correct answers!
+      <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="text-6xl mb-4">✈️</div>
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('airplane_game') || 'Airplane Game'}</h1>
+        <p className="text-lg text-gray-500 dark:text-gray-400 mb-4">
+          {t('fly_instruction') || 'Fly your plane into the correct answers!'}
         </p>
-        <p style={{ fontSize: 16, color: 'var(--muted)', marginBottom: '2rem' }}>
-          {questions.length} questions • 3 lives
+        <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
+          {questions.length} {t('questions') || 'questions'} • 3 {t('lives') || 'lives'}
         </p>
         <button
           onClick={() => setGameStarted(true)}
-          style={{
-            padding: '1rem 3rem',
-            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 12,
-            fontSize: 18,
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
-          }}
+          className="px-12 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-blue-500/30 transform hover:scale-105 transition-all"
         >
-          START FLYING
+          {t('start_flying') || 'START FLYING'}
         </button>
       </div>
     );
@@ -141,49 +133,50 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
   if (gameOver) {
     const percentage = (score / questions.reduce((sum, q) => sum + (q.points || 1), 0)) * 100;
     return (
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <Trophy size={64} style={{ color: '#f59e0b', marginBottom: '1rem' }} />
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: '1rem' }}>
-          {lives > 0 ? 'Mission Complete!' : 'Game Over'}
+      <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">
+          {lives > 0 ? (t('mission_complete') || 'Mission Complete!') : (t('game_over') || 'Game Over')}
         </h1>
-        <div style={{ fontSize: 48, fontWeight: 800, color: '#3b82f6', marginBottom: '1rem' }}>
+        <div className="text-5xl font-extrabold text-blue-500 dark:text-blue-400 mb-4">
           {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
         </div>
-        <div style={{ fontSize: 18, color: 'var(--muted)', marginBottom: '1rem' }}>
-          {percentage.toFixed(1)}% Score
+        <div className="text-lg text-gray-500 dark:text-gray-400 mb-4">
+          {percentage.toFixed(1)}% {t('score') || 'Score'}
         </div>
-        <div style={{ fontSize: 16, color: 'var(--muted)' }}>
-          Lives remaining: {lives}
+        <div className="text-base text-gray-500 dark:text-gray-400">
+          {t('lives_remaining') || 'Lives remaining'}: {lives}
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '1rem' }}>
+    <div className="max-w-5xl mx-auto p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '1rem', background: 'white', borderRadius: 12 }}>
+      <div className="flex justify-between items-center mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div>
-          <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: '0.25rem' }}>
-            Question {currentIndex + 1} of {questions.length}
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+            {t('question') || 'Question'} {currentIndex + 1} {t('of') || 'of'} {questions.length}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>
+          <div className="text-lg font-bold text-gray-900 dark:text-white">
             {currentQuestion.question}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div className="flex gap-6 items-center">
+          <div className="flex items-center gap-1">
             {[...Array(3)].map((_, idx) => (
               <Heart
                 key={idx}
                 size={24}
                 fill={idx < lives ? '#ef4444' : 'none'}
                 stroke={idx < lives ? '#ef4444' : '#d1d5db'}
+                className="transition-all"
               />
             ))}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#3b82f6' }}>
-            Score: {score}
+          <div className="text-lg font-bold text-blue-500 dark:text-blue-400">
+            {t('score') || 'Score'}: {score}
           </div>
         </div>
       </div>
@@ -192,40 +185,19 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
       <div
         ref={gameAreaRef}
         onMouseMove={handleMouseMove}
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: 600,
-          background: 'linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%)',
-          borderRadius: 16,
-          overflow: 'hidden',
-          cursor: 'none',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-        }}
+        className="relative w-full h-[600px] bg-gradient-to-b from-sky-300 to-sky-100 rounded-2xl overflow-hidden cursor-none shadow-inner"
       >
         {/* Clouds with answers */}
         {clouds.map(cloud => (
           <div
             key={cloud.id}
             onClick={() => handleCloudClick(cloud)}
+            className="absolute px-6 py-4 bg-white rounded-full shadow-lg cursor-pointer text-base font-bold whitespace-nowrap z-10 hover:scale-110 transition-transform"
             style={{
-              position: 'absolute',
               left: `${cloud.x}%`,
               top: `${cloud.y}%`,
               transform: 'translate(-50%, -50%)',
-              padding: '1rem 1.5rem',
-              background: 'white',
-              borderRadius: 999,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              cursor: 'pointer',
-              fontSize: 16,
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              transition: 'transform 0.2s',
-              zIndex: 5
             }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)'}
           >
             {cloud.text}
           </div>
@@ -233,15 +205,11 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
 
         {/* Airplane */}
         <div
+          className="absolute text-5xl transition-[left] duration-100 z-20 drop-shadow-lg"
           style={{
-            position: 'absolute',
             left: `${planePosition}%`,
             bottom: '10%',
             transform: 'translateX(-50%)',
-            fontSize: 48,
-            transition: 'left 0.1s',
-            zIndex: 10,
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
           }}
         >
           ✈️
@@ -250,42 +218,15 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
         {/* Feedback */}
         {showFeedback && (
           <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              padding: '2rem 3rem',
-              background: showFeedback.correct ? '#d1fae5' : '#fee2e2',
-              border: `3px solid ${showFeedback.correct ? '#10b981' : '#ef4444'}`,
-              borderRadius: 16,
-              fontSize: 24,
-              fontWeight: 800,
-              color: showFeedback.correct ? '#065f46' : '#991b1b',
-              zIndex: 20,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-            }}
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-12 py-8 rounded-2xl text-2xl font-extrabold z-30 shadow-2xl border-4 ${showFeedback.correct ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-100 border-red-500 text-red-800'}`}
           >
-            {showFeedback.correct ? '✓ Correct!' : '✗ Wrong!'}
+            {showFeedback.correct ? (t('correct') || '✓ Correct!') : (t('wrong') || '✗ Wrong!')}
           </div>
         )}
 
         {/* Instruction */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 20,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '0.5rem 1rem',
-            background: 'rgba(255,255,255,0.9)',
-            borderRadius: 8,
-            fontSize: 14,
-            color: 'var(--muted)',
-            zIndex: 15
-          }}
-        >
-          Move your mouse to fly the plane
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/90 rounded-lg text-sm text-gray-600 font-medium z-20 backdrop-blur-sm">
+          {t('move_mouse_instruction') || 'Move your mouse to fly the plane'}
         </div>
       </div>
     </div>

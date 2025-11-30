@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Compact inline Timer & Stopwatch widget
 // - Stopwatch: start/pause/reset
@@ -29,14 +30,112 @@ const usePersistedState = (key, initial) => {
   return [state, setState];
 };
 
-const ProgressBar = ({ value }) => (
-  <div style={{ height: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 4, overflow: 'hidden' }}>
-    <div style={{ width: `${Math.min(100, Math.max(0, value))}%`, height: '100%', background: '#22c55e', transition: 'width 0.2s' }} />
-  </div>
-);
-
 const TimerStopwatch = ({ compact = false, showTest = false }) => {
-  const [mode, setMode] = usePersistedState('ts_mode', 'stopwatch'); // 'stopwatch' | 'timer'
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
+  const palette = useMemo(() => {
+    if (isDark) {
+      return {
+        containerBg: 'rgba(15, 23, 42, 0.78)',
+        containerBorder: '1px solid rgba(148, 163, 184, 0.25)',
+        text: '#f8fafc',
+        subtleText: 'rgba(226, 232, 240, 0.85)',
+        modeActiveBg: '#6366f1',
+        modeActiveText: '#ffffff',
+        modeBorder: '1px solid rgba(148, 163, 184, 0.3)',
+        modeInactiveBg: 'rgba(255, 255, 255, 0.05)',
+        modeInactiveText: '#e2e8f0',
+        neutralBg: 'rgba(255, 255, 255, 0.08)',
+        neutralBgHover: 'rgba(255, 255, 255, 0.16)',
+        neutralText: '#f8fafc',
+        neutralBorder: '1px solid rgba(148, 163, 184, 0.25)',
+        track: 'rgba(255, 255, 255, 0.18)',
+        surfaceShadow: '0 12px 32px rgba(15, 23, 42, 0.45)',
+        iconInactiveBg: 'rgba(255, 255, 255, 0.05)',
+        iconInactiveText: '#e2e8f0',
+      };
+    }
+    return {
+      containerBg: 'rgba(255, 255, 255, 0.9)',
+      containerBorder: '1px solid rgba(15, 23, 42, 0.08)',
+      text: '#1f2937',
+      subtleText: 'rgba(71, 85, 105, 0.85)',
+      modeActiveBg: '#4f46e5',
+      modeActiveText: '#ffffff',
+      modeBorder: '1px solid rgba(148, 163, 184, 0.35)',
+      modeInactiveBg: 'rgba(15, 23, 42, 0.05)',
+      modeInactiveText: '#1f2937',
+      neutralBg: 'rgba(15, 23, 42, 0.06)',
+      neutralBgHover: 'rgba(15, 23, 42, 0.12)',
+      neutralText: '#1f2937',
+      neutralBorder: '1px solid rgba(15, 23, 42, 0.12)',
+      track: 'rgba(15, 23, 42, 0.12)',
+      surfaceShadow: '0 12px 32px rgba(15, 23, 42, 0.12)',
+      iconInactiveBg: 'rgba(15, 23, 42, 0.05)',
+      iconInactiveText: '#1f2937',
+    };
+  }, [isDark]);
+
+  const containerStyle = useMemo(() => ({
+    background: palette.containerBg,
+    border: palette.containerBorder,
+    borderRadius: 12,
+    padding: compact ? '0.65rem' : '0.9rem',
+    color: palette.text,
+    boxShadow: palette.surfaceShadow,
+    backdropFilter: 'blur(10px)',
+    minWidth: compact ? 0 : 240,
+  }), [palette, compact]);
+
+  const modeButtonStyle = (active) => ({
+    padding: '0.25rem 0.6rem',
+    borderRadius: 6,
+    border: active ? '1px solid rgba(99, 102, 241, 0.6)' : palette.modeBorder,
+    background: active ? palette.modeActiveBg : palette.modeInactiveBg,
+    color: active ? palette.modeActiveText : palette.modeInactiveText,
+    fontWeight: 600,
+    fontSize: '0.8rem',
+    minWidth: 40,
+    transition: 'background 0.2s ease, color 0.2s ease',
+  });
+
+  const iconButtonStyle = (active) => ({
+    padding: '0.15rem 0.35rem',
+    borderRadius: 999,
+    border: '1px solid transparent',
+    background: active ? 'rgba(34,197,94,0.15)' : 'transparent',
+    color: active ? '#16a34a' : palette.iconInactiveText,
+    fontSize: '0.8rem',
+    lineHeight: 1,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 0,
+    transition: 'background 0.15s ease, color 0.15s ease',
+  });
+
+  const neutralButtonStyle = {
+    padding: '0.35rem 0.7rem',
+    borderRadius: 6,
+    border: palette.neutralBorder,
+    background: palette.neutralBg,
+    color: palette.neutralText,
+    transition: 'background 0.2s ease, color 0.2s ease',
+  };
+
+  const neutralHoverStyle = {
+    background: palette.neutralBgHover,
+    color: palette.neutralText,
+  };
+
+  const ProgressBar = ({ value }) => (
+    <div style={{ height: 6, background: palette.track, borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ width: `${Math.min(100, Math.max(0, value))}%`, height: '100%', background: '#22c55e', transition: 'width 0.2s ease' }} />
+    </div>
+  );
+
+  const [mode, setMode] = usePersistedState('ts_mode', 'timer'); // 'stopwatch' | 'timer'
 
   // Stopwatch
   const [swRunning, setSwRunning] = usePersistedState('sw_running', false);
@@ -118,35 +217,88 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
 
   const timerPct = useMemo(() => tmTotal ? (100 * (tmTotal - tmRemain)) / tmTotal : 0, [tmTotal, tmRemain]);
 
+  const actionButtonBase = {
+    padding: '0.4rem 0.75rem',
+    borderRadius: 8,
+    fontWeight: 600,
+    minWidth: 72,
+    transition: 'opacity 0.2s ease',
+  };
+
+  const startBtnStyle = {
+    ...actionButtonBase,
+    background: '#22c55e',
+    border: 'none',
+    color: '#ffffff',
+  };
+
+  const pauseBtnStyle = {
+    ...actionButtonBase,
+    background: '#f59e0b',
+    border: 'none',
+    color: '#ffffff',
+  };
+
+  const resetBtnStyle = {
+    ...actionButtonBase,
+    background: palette.neutralBg,
+    border: palette.neutralBorder,
+    color: palette.neutralText,
+  };
+
+  const timerPresetStyle = {
+    ...neutralButtonStyle,
+    padding: '0.2rem 0.45rem',
+    borderRadius: 999,
+    border: palette.modeBorder,
+    fontSize: '0.75rem',
+    minWidth: 0,
+    color: palette.modeInactiveText,
+  };
+
+  const titleStyle = {
+    fontSize: compact ? '1.25rem' : '1.5rem',
+    fontWeight: 700,
+    textAlign: 'center',
+    marginBottom: 6,
+    color: palette.text,
+  };
+
   return (
-    <div style={{
-      background: 'rgba(255,255,255,0.06)',
-      border: '1px solid rgba(255,255,255,0.12)',
-      borderRadius: 10,
-      padding: compact ? '0.6rem' : '0.9rem',
-      color: 'white'
-    }}>
+    <div style={containerStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setMode('stopwatch')} style={{
-            padding: '0.25rem 0.5rem', borderRadius: 6,
-            background: mode==='stopwatch'?'#667eea':'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)'
-          }}>SW</button>
-          <button onClick={() => setMode('timer')} style={{
-            padding: '0.25rem 0.5rem', borderRadius: 6,
-            background: mode==='timer'?'#667eea':'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)'
-          }}>T</button>
+          <button onClick={() => setMode('stopwatch')} style={modeButtonStyle(mode === 'stopwatch')}>SW</button>
+          <button onClick={() => setMode('timer')} style={modeButtonStyle(mode === 'timer')}>T</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <button onClick={() => setSoundOn(v=>!v)} title={soundOn? 'Sound: On' : 'Sound: Off'} style={{ padding: '0.25rem 0.5rem', borderRadius: 6, background: soundOn?'#22c55e':'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}>🔊</button>
+          <button
+            onClick={() => setSoundOn(v => !v)}
+            title={soundOn ? 'Sound: On' : 'Sound: Off'}
+            style={iconButtonStyle(soundOn)}
+          >
+            🔊
+          </button>
           {showTest && (
-            <button onClick={() => { playBeep().catch(()=>{}); }} title="Test" style={{ padding: '0.25rem 0.5rem', borderRadius: 6, background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}>Test</button>
+            <button
+              onClick={() => { playBeep().catch(() => {}); }}
+              title="Test"
+              style={iconButtonStyle(false)}
+            >
+              Test
+            </button>
           )}
           {mode === 'timer' && (
             <div style={{ display: 'flex', gap: 4 }}>
-              {[60_000, 5*60_000, 10*60_000].map(ms => (
-                <button key={ms} onClick={() => startTimer(ms)} style={{ padding: '0.25rem 0.4rem', borderRadius: 6, background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  {Math.floor(ms/60000)}m
+              {[60_000, 5 * 60_000].map(ms => (
+                <button
+                  key={ms}
+                  onClick={() => startTimer(ms)}
+                  style={{
+                    ...timerPresetStyle,
+                  }}
+                >
+                  {Math.floor(ms / 60000)}m
                 </button>
               ))}
             </div>
@@ -156,31 +308,41 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
 
       {mode === 'stopwatch' ? (
         <div>
-          <div style={{ fontSize: compact ? '1.25rem' : '1.5rem', fontWeight: 700, textAlign: 'center', marginBottom: 6 }}>
+          <div style={titleStyle}>
             {formatMs(swElapsed)}
           </div>
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
             {!swRunning ? (
-              <button onClick={() => setSwRunning(true)} style={{ padding: '0.35rem 0.7rem', borderRadius: 6, background: '#22c55e', color: 'white', border: 'none' }}>Start</button>
+              <button onClick={() => setSwRunning(true)} style={startBtnStyle}>Start</button>
             ) : (
-              <button onClick={() => setSwRunning(false)} style={{ padding: '0.35rem 0.7rem', borderRadius: 6, background: '#f59e0b', color: 'white', border: 'none' }}>Pause</button>
+              <button onClick={() => setSwRunning(false)} style={pauseBtnStyle}>Pause</button>
             )}
-            <button onClick={resetStopwatch} style={{ padding: '0.35rem 0.7rem', borderRadius: 6, background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}>Reset</button>
+            <button onClick={resetStopwatch} style={resetBtnStyle}>Reset</button>
           </div>
         </div>
       ) : (
         <div>
-          <div style={{ fontSize: compact ? '1.25rem' : '1.5rem', fontWeight: 700, textAlign: 'center', marginBottom: 6 }}>
+          <div style={titleStyle}>
             {formatMs(tmRemain)}
           </div>
           <ProgressBar value={timerPct} />
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 6 }}>
             {!tmRunning ? (
-              <button onClick={() => setTmRunning(true)} disabled={tmRemain<=0} style={{ padding: '0.35rem 0.7rem', borderRadius: 6, background: '#22c55e', color: 'white', border: 'none', opacity: tmRemain<=0?0.6:1 }}>Start</button>
+              <button
+                onClick={() => setTmRunning(true)}
+                disabled={tmRemain <= 0}
+                style={{
+                  ...startBtnStyle,
+                  opacity: tmRemain <= 0 ? 0.6 : 1,
+                  cursor: tmRemain <= 0 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Start
+              </button>
             ) : (
-              <button onClick={() => setTmRunning(false)} style={{ padding: '0.35rem 0.7rem', borderRadius: 6, background: '#f59e0b', color: 'white', border: 'none' }}>Pause</button>
+              <button onClick={() => setTmRunning(false)} style={pauseBtnStyle}>Pause</button>
             )}
-            <button onClick={resetTimer} style={{ padding: '0.35rem 0.7rem', borderRadius: 6, background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}>Reset</button>
+            <button onClick={resetTimer} style={resetBtnStyle}>Reset</button>
           </div>
         </div>
       )}

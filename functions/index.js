@@ -159,9 +159,12 @@ exports.attendanceScan = onCall(async (req) => {
     status: status || 'present', // present|absent|late|leave
     deviceHash: deviceHash || null,
     at: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   };
   if (status === 'leave' && reason) {
-    markData.reason = reason; // medical|official|other
+    markData.reason = reason; // medical|official|humanitarian|personal
+    // Determine if leave is excused (medical, official, humanitarian are excused)
+    markData.excused = ['medical', 'official', 'humanitarian'].includes(reason);
   }
   if (note) {
     markData.note = note;
@@ -228,9 +231,16 @@ exports.attendanceManualOverride = onCall(async (req) => {
     status: status, // present|absent|late|leave
     overriddenBy: req.auth.uid,
     overriddenAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
     manual: true,
   };
-  if (reason) markData.reason = reason;
+  if (reason) {
+    markData.reason = reason;
+    // Determine if leave is excused
+    if (status === 'leave') {
+      markData.excused = ['medical', 'official', 'humanitarian'].includes(reason);
+    }
+  }
   if (note) markData.note = note;
   
   await sessionRef.collection('marks').doc(uid).set(markData, { merge: true });

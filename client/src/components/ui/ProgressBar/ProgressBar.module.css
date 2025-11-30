@@ -1,0 +1,117 @@
+/* Wrapper */
+.wrapper {
+  width: 100%;
+}
+
+/* Label Wrapper */
+.labelWrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.label {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--text, #212529);
+}
+
+.percentage {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--text-muted, #666);
+}
+
+/* Progress */
+.progress {
+  width: 100%;
+  background: var(--color-gray-200, #e9ecef);
+  border-radius: var(--radius-full, 9999px);
+  overflow: hidden;
+}
+
+/* Sizes */
+.sm {
+  height: 4px;
+}
+
+.md {
+  height: 8px;
+}
+
+.lg {
+  height: 12px;
+}
+
+.xl {
+  height: 16px;
+}
+
+/* Bar */
+.bar {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: var(--radius-full, 9999px);
+}
+
+/* Colors */
+.primary {
+  background: linear-gradient(90deg, var(--color-primary, #800020), var(--color-primary-light, #a0002a));
+}
+
+.success {
+  background: linear-gradient(90deg, var(--color-success, #28a745), var(--color-success-light, #34ce57));
+}
+
+.warning {
+  background: linear-gradient(90deg, var(--color-warning, #ffc107), var(--color-warning-light, #ffcd39));
+}
+
+.danger {
+  background: linear-gradient(90deg, var(--color-danger, #dc3545), var(--color-danger-light, #e4606d));
+}
+
+.info {
+  background: linear-gradient(90deg, var(--color-info, #17a2b8), var(--color-info-light, #3ab5c9));
+}
+
+/* Striped */
+.striped {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+}
+
+/* Animated */
+.animated {
+  animation: progress-stripes 1s linear infinite;
+}
+
+@keyframes progress-stripes {
+  0% {
+    background-position: 1rem 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .progress {
+    background: var(--color-gray-800, #343a40);
+  }
+  
+  .label {
+    color: var(--text, #f5f5f5);
+  }
+}

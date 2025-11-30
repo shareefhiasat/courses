@@ -39,12 +39,13 @@
   cursor: pointer;
   transition: all 0.3s;
   font-weight: 600;
+  color: #6b7280;
 }
 
 .auth-tab.active {
-  background: white;
-  color: #667eea;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg, #800020, #600018);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(128, 0, 32, 0.25);
 }
 
 .form-group {
@@ -87,26 +88,27 @@
 .auth-button:disabled {
   opacity: 1;
   cursor: not-allowed;
-  background: linear-gradient(135deg, #b8a3e8, #c4b5e8);
-  color: #667eea;
+  background: linear-gradient(135deg, #a01234, #800020);
+  color: #fff;
   font-weight: 700;
 }
 
 .reset-link {
-  display: block;
-  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: none;
   border: none;
-  color: #667eea;
+  color: #800020;
   cursor: pointer;
+  font-size: 0.92rem;
+  padding: 0.5rem 0;
+  font-weight: 600;
   text-decoration: underline;
-  font-size: 0.95rem;
-  padding: 0.75rem 0;
-  font-weight: 500;
 }
 
 .reset-link:hover {
-  color: #764ba2;
+  color: #a01234;
   text-decoration: none;
 }
 

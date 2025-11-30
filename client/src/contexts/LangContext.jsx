@@ -813,16 +813,10 @@ const DICT = {
     description_english: 'الوصف (إنجليزي)',
     description_arabic: 'الوصف (عربي)',
     image_url: 'رابط الصورة',
-    activity_url_label: 'رابط النشاط',
-    show_to_students: 'إظهار للطلاب',
-    allow_retakes: 'السماح بإعادة المحاولة',
-    create_activity: 'إنشاء نشاط',
-    update_activity: 'تحديث النشاط',
     existing_activities: 'الأنشطة الموجودة',
-    existing_classes: 'الصفوف الموجودة',
-    enrollments_management: 'إدارة التسجيلات',
-    users_management: 'إدارة المستخدمين',
-    resources_management: 'إدارة الموارد',
+    // enrollments_management defined above
+    // users_management defined above
+    // resources_management defined above
     student_submissions: 'تسليمات الطلاب',
     assignments_due_date: 'موعد تسليم الواجب',
     send_email_notification: 'إرسال إشعار بريد إلكتروني',

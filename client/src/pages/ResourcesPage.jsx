@@ -5,11 +5,11 @@ import { getResources } from '../firebase/firestore';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { addActivityLog } from '../firebase/firestore';
-import { useToast } from '../components/ToastProvider';
-import Loading from '../components/Loading';
+import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Loading } from '../components/ui';
 import './ResourcesPage.css';
 import { formatDateTime } from '../utils/date';
-import { FileText, Link2, Video, Star, X } from 'lucide-react';
+import { FileText, Link2, Video, Star, X, BookOpen, Filter } from 'lucide-react';
+import styles from './ResourcesPage.module.css';
 
 const ResourcesPage = () => {
   const { user, loading: authLoading, isAdmin } = useAuth();
@@ -43,7 +43,7 @@ const ResourcesPage = () => {
       }
     } catch (error) {
       console.error('Error loading resources:', error);
-      toast?.showError('Error loading resources');
+      toast.error('Error loading resources');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ const ResourcesPage = () => {
 
     // Prevent students from unmarking once completed
     if (isCompleted && !isAdmin) {
-      toast?.showInfo('This resource is already completed. Contact admin to reopen.');
+      toast.info('This resource is already completed. Contact admin to reopen.');
       return;
     }
     const newProgress = {
@@ -108,13 +108,15 @@ const ResourcesPage = () => {
         }
       }
       
-      toast?.showSuccess(
-        !isCompleted ? 'Resource marked as completed!' : 'Resource marked as incomplete'
-      );
+      if (!isCompleted) {
+        toast.success('Resource marked as complete!');
+      } else {
+        toast.info('Resource marked as incomplete');
+      }
     } catch (error) {
       // Revert on error
       setUserProgress(userProgress);
-      toast?.showError('Error updating progress: ' + error.message);
+      toast.error('Error updating progress');
     }
   };
 
@@ -159,8 +161,14 @@ const ResourcesPage = () => {
     return dueDate < now && !userProgress[rid]?.completed;
   };
 
-  if (authLoading) {
-    return <Loading message={t('loading')} />;
+  if (authLoading || loading) {
+    return (
+      <Loading
+        variant="overlay"
+        fullscreen
+        message={t('loading_resources') || t('loading') || 'Loading resources...'}
+      />
+    );
   }
 
   if (!user) {

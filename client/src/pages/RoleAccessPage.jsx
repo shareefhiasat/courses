@@ -3,8 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Shield, Check, X } from 'lucide-react';
-import Loading from '../components/Loading';
+import { Container, Card, CardBody, Button, Input, Select, Spinner, Badge, useToast } from '../components/ui';
+import { Shield, Check, X, Save, Search } from 'lucide-react';
+import styles from './RoleAccessPage.module.css';
 
 const RoleAccessPage = () => {
   const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
@@ -12,7 +13,7 @@ const RoleAccessPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [roleScreens, setRoleScreens] = useState({});
-  const [message, setMessage] = useState('');
+  const toast = useToast();
   const [activeRole, setActiveRole] = useState('admin');
   const [q, setQ] = useState('');
 
@@ -161,42 +162,35 @@ const RoleAccessPage = () => {
 
   const saveRoleScreens = async () => {
     setSaving(true);
-    setMessage('');
     try {
       const docRef = doc(db, 'config', 'roleScreens');
       await setDoc(docRef, roleScreens);
-      setMessage(t('role_access_updated'));
-      setTimeout(() => setMessage(''), 3000);
+      toast.success(t('role_access_updated') || 'Role access updated successfully');
     } catch (error) {
       console.error('Error saving role screens:', error);
-      setMessage('Error saving role access');
+      toast.error('Error saving role access');
     } finally {
       setSaving(false);
     }
   };
 
-  if (authLoading) {
-    return <Loading fullscreen message={t('loading')} />;
-  }
-
-  if (!(isSuperAdmin || isAdmin)) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
-        <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
-          <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-            Access Denied
-          </h2>
-          <p className="text-gray-600 dark:text-gray-300">
-            Only admins can access this page.
-          </p>
-        </div>
-      </div>
+      <Container className={styles.loadingWrapper}>
+        <Spinner size="lg" />
+        <p>Loading...</p>
+      </Container>
     );
   }
 
-  if (loading) {
-    return <Loading fullscreen message={t('loading')} />;
+  if (!isAdmin && !isSuperAdmin) {
+    return (
+      <Container className={styles.accessDenied}>
+        <Shield size={64} className={styles.accessDeniedIcon} />
+        <h2>Access Denied</h2>
+        <p>You do not have permission to view this page.</p>
+      </Container>
+    );
   }
 
   return (
@@ -239,13 +233,13 @@ const RoleAccessPage = () => {
             </div>
             <div className="ml-auto flex items-center gap-2">
               <label className="text-sm text-gray-600 dark:text-gray-400">Role</label>
-              <select
+              <Select
+                searchable
+                size="small"
                 value={activeRole}
                 onChange={(e)=>setActiveRole(e.target.value)}
-                className="px-2 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 capitalize"
-              >
-                {roles.map(r => (<option key={`role_${r}`} value={r} className="capitalize">{r}</option>))}
-              </select>
+                options={roles.map(r => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }))}
+              />
               <button
                 onClick={()=>{
                   const allOn = {}; filteredScreens.forEach(s=>{ allOn[s.id] = true; });
