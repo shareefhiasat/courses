@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { notifyQuizAvailable } from '../firebase/quizNotifications';
+import { getEnrollments, getUsers } from '../firebase/firestore';
 import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading } from '../components/ui';
 import ToggleSwitch from '../components/ToggleSwitch';
 import styles from './QuizBuilderPage.module.css';
@@ -101,6 +103,7 @@ export default function QuizBuilderPage() {
       allowRetake: true,
       showCorrectAnswers: true,
       randomizeOrder: false,
+      shuffleOptions: false,
       passingScore: 70
     }
   }), []);
@@ -312,6 +315,48 @@ export default function QuizBuilderPage() {
         }
 
         await setDoc(doc(db, 'activities', targetQuizId), activityData, { merge: true });
+
+        // Send notifications for new quizzes
+        if (!quizId && targetQuizId) {
+          try {
+            // Get students to notify based on assigned classes
+            const assignedClassIds = quizData.assignedClassIds || (quizData.classId ? [quizData.classId] : []);
+            
+            if (assignedClassIds.length > 0) {
+              // Get enrollments for assigned classes
+              const enrollmentsResult = await getEnrollments();
+              const usersResult = await getUsers();
+              
+              if (enrollmentsResult.success && usersResult.success) {
+                const enrollments = enrollmentsResult.data || [];
+                const users = usersResult.data || [];
+                const usersMap = new Map(users.map(u => [u.id || u.docId, u]));
+                
+                // Filter students enrolled in assigned classes
+                const studentIds = new Set(
+                  enrollments
+                    .filter(e => assignedClassIds.includes(e.classId) && e.role !== 'instructor')
+                    .map(e => e.userId)
+                );
+                
+                const studentsToNotify = Array.from(studentIds)
+                  .map(id => usersMap.get(id))
+                  .filter(Boolean);
+                
+                if (studentsToNotify.length > 0) {
+                  await notifyQuizAvailable(
+                    { id: targetQuizId, title: quizData.title, description: quizData.description, settings: quizData.settings },
+                    studentsToNotify
+                  );
+                  console.log(`Notified ${studentsToNotify.length} students about new quiz`);
+                }
+              }
+            }
+          } catch (notifyError) {
+            console.warn('Failed to send quiz notifications:', notifyError);
+            // Don't fail the save operation if notifications fail
+          }
+        }
       }
 
     } catch (error) {
@@ -641,6 +686,28 @@ export default function QuizBuilderPage() {
                     onChange={(checked) => setQuizData(prev => ({
                       ...prev,
                       settings: { ...prev.settings, allowRetake: checked }
+                    }))}
+                  />
+                </div>
+
+                <div className={`${styles.formRow} ${styles.toggleRow}`}>
+                  <ToggleSwitch
+                    label="Shuffle question order for each student"
+                    checked={quizData.settings?.randomizeOrder || false}
+                    onChange={(checked) => setQuizData(prev => ({
+                      ...prev,
+                      settings: { ...prev.settings, randomizeOrder: checked }
+                    }))}
+                  />
+                </div>
+
+                <div className={`${styles.formRow} ${styles.toggleRow}`}>
+                  <ToggleSwitch
+                    label="Shuffle answer options within questions"
+                    checked={quizData.settings?.shuffleOptions || false}
+                    onChange={(checked) => setQuizData(prev => ({
+                      ...prev,
+                      settings: { ...prev.settings, shuffleOptions: checked }
                     }))}
                   />
                 </div>

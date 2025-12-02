@@ -2252,7 +2252,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               pageSizeOptions={[5, 10, 20, 50]}
               checkboxSelection
             />
-            </div>
           </div>
         )}
 
@@ -2840,7 +2839,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {/* Smart Email Composer Modal */}

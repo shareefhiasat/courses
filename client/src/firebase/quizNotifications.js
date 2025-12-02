@@ -8,9 +8,11 @@ import {
   query, 
   where, 
   getDocs, 
+  getDoc,
+  doc,
   addDoc, 
   serverTimestamp 
-} from 'firestore';
+} from 'firebase/firestore';
 import { db } from './config';
 import { sendEmail } from './firestore';
 

@@ -11,14 +11,14 @@ import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ProgressPage from './pages/ProgressPage';
 import ChatPage from './pages/ChatPage';
-import LeaderboardPage from './pages/LeaderboardPage';
+// LeaderboardPage - DEPRECATED (removed)
 import ActivitiesPage from './pages/ActivitiesPage';
 import ActivityDetailPage from './pages/ActivityDetailPage';
 import StudentProgressPage from './pages/StudentProgressPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
 import ResourcesPage from './pages/ResourcesPage';
 import SMTPConfigPage from './pages/SMTPConfigPage';
-import AwardMedalsPage from './pages/AwardMedalsPage';
+// AwardMedalsPage - DEPRECATED (removed)
 import NotificationsPage from './pages/NotificationsPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import AttendancePage from './pages/AttendancePage';
@@ -60,15 +60,16 @@ const AppContent = () => {
           <Route path="/student-progress" element={<StudentProgressPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/chat" element={<ChatPage />} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
+          {/* LeaderboardPage route removed - DEPRECATED */}
           <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/smtp-config" element={<SMTPConfigPage />} />
           <Route path="/enrollments" element={<EnrollmentsPage />} />
-          <Route path="/award-medals/:classId" element={<AwardMedalsPage />} />
+          {/* AwardMedalsPage route removed - DEPRECATED */}
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/profile" element={<ProfileSettingsPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/attendance-management" element={<ManualAttendancePage />} />
+          <Route path="/manual-attendance" element={<ManualAttendancePage />} />
           <Route path="/my-attendance" element={<StudentAttendancePage />} />
           <Route path="/hr-attendance" element={<HRAttendancePage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />

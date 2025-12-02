@@ -7,7 +7,9 @@ import {
   getAttendanceByClass, 
   getAttendanceByStudent, 
   markAttendance,
-  getAttendanceStats 
+  getAttendanceStats,
+  ATTENDANCE_STATUS,
+  ATTENDANCE_STATUS_LABELS
 } from '../firebase/attendance';
 import { addActivityLog } from '../firebase/firestore';
 import { Container, Loading, Button, Select, Card, EmptyState } from '../components/ui';
@@ -260,21 +262,31 @@ const ManualAttendancePage = () => {
     }
   }, [selectedClass, viewMode]);
 
-  const handleMarkAttendance = async (studentId, status) => {
+  const handleMarkAttendance = async (studentId, status, notes = '') => {
     try {
+      const student = users.find(u => u.docId === studentId);
+      const classData = classes.find(c => c.docId === selectedClass || c.id === selectedClass);
+      
       const result = await markAttendance({
         classId: selectedClass,
         studentId,
         date: selectedDate,
         status,
         markedBy: user.uid,
-        method: 'manual'
+        method: 'manual',
+        notes,
+        // Pass student info for notifications
+        studentInfo: student ? {
+          email: student.email,
+          displayName: student.displayName || student.email
+        } : null,
+        className: classData?.name || classData?.code || 'Class',
+        sendNotification: true
       });
 
       if (result.success) {
         // Log attendance marking
         try {
-          const student = users.find(u => u.docId === studentId);
           await addActivityLog({
             type: 'attendance_marked',
             userId: user.uid,
@@ -286,8 +298,11 @@ const ManualAttendancePage = () => {
               studentName: student?.displayName || student?.email || 'Unknown', 
               classId: selectedClass, 
               date: selectedDate, 
-              status, 
-              markedBy: user.uid 
+              status,
+              statusLabel: ATTENDANCE_STATUS_LABELS[status]?.en || status,
+              markedBy: user.uid,
+              isUpdate: result.isUpdate,
+              statusChanged: result.statusChanged
             }
           });
         } catch (e) { 
@@ -385,10 +400,16 @@ const ManualAttendancePage = () => {
     return <Loading variant="fullscreen" message={t('loading') || 'Loading...'} />;
   }
 
+  // Get students enrolled in selected class (exclude instructors)
   const studentsInClass = enrollments
-    .filter(e => e.classId === selectedClass && e.role === 'student')
+    .filter(e => {
+      const matchesClass = e.classId === selectedClass;
+      // Include if role is 'student' OR if role is not set (default to student) OR if role is not 'instructor'
+      const isStudent = !e.role || e.role === 'student' || (e.role !== 'instructor' && e.role !== 'admin');
+      return matchesClass && isStudent;
+    })
     .map(e => {
-      const student = users.find(u => u.docId === e.userId);
+      const student = users.find(u => u.docId === e.userId || u.id === e.userId);
       return {
         id: e.userId,
         name: student?.displayName || student?.email || e.userId,
@@ -398,10 +419,19 @@ const ManualAttendancePage = () => {
     })
     .filter(s => filterStatus === 'all' || s.status === filterStatus);
 
-  const presentCount = Object.values(attendance).filter(s => s === 'present').length;
-  const absentCount = Object.values(attendance).filter(s => s === 'absent').length;
-  const lateCount = Object.values(attendance).filter(s => s === 'late').length;
-  const totalStudents = enrollments.filter(e => e.classId === selectedClass && e.role === 'student').length;
+  const presentCount = Object.values(attendance).filter(s => s === 'present' || s === ATTENDANCE_STATUS.PRESENT).length;
+  const absentCount = Object.values(attendance).filter(s => 
+    s === 'absent' || s === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE || s === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE
+  ).length;
+  const lateCount = Object.values(attendance).filter(s => s === 'late' || s === ATTENDANCE_STATUS.LATE).length;
+  const excusedCount = Object.values(attendance).filter(s => 
+    s === ATTENDANCE_STATUS.EXCUSED_LEAVE || s === ATTENDANCE_STATUS.HUMAN_CASE
+  ).length;
+  const totalStudents = enrollments.filter(e => {
+    const matchesClass = e.classId === selectedClass;
+    const isStudent = !e.role || e.role === 'student' || (e.role !== 'instructor' && e.role !== 'admin');
+    return matchesClass && isStudent;
+  }).length;
   const attendanceRate = totalStudents > 0 
     ? ((presentCount / totalStudents) * 100).toFixed(1) 
     : 0;
@@ -460,9 +490,9 @@ const ManualAttendancePage = () => {
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
                   options={[
-                    { value: '', label: t('select_class') || 'Select a class' },
+                    { value: '__placeholder__', label: t('select_class') || 'Select Class' },
                     ...classes.map(cls => ({ 
-                      value: cls.id, 
+                      value: cls.docId || cls.id, 
                       label: cls.name || cls.code || cls.id 
                     }))
                   ]}
@@ -534,7 +564,7 @@ const ManualAttendancePage = () => {
           </div>
 
           {/* Stats Cards (Mark View Only) */}
-          {selectedClass && viewMode === 'mark' && (
+          {selectedClass && selectedClass !== '__placeholder__' && viewMode === 'mark' && (
             <div className={styles.statsGrid}>
               <div className={`${styles.statCard} ${styles.statCardPresent}`}>
                 <div className={styles.statLabel}>{t('present') || 'Present'}</div>
@@ -563,8 +593,17 @@ const ManualAttendancePage = () => {
             </div>
           )}
 
+          {/* Prompt to select class */}
+          {viewMode === 'mark' && (!selectedClass || selectedClass === '__placeholder__') && (
+            <div className={styles.emptyState}>
+              <Calendar size={64} className={styles.emptyStateIcon} />
+              <h3>{t('select_class_prompt') || 'Select a Class'}</h3>
+              <p>{t('select_class_desc') || 'Please select a class from the dropdown above to manage attendance'}</p>
+            </div>
+          )}
+
           {/* Mark Attendance View */}
-          {viewMode === 'mark' && selectedClass && (
+          {viewMode === 'mark' && selectedClass && selectedClass !== '__placeholder__' && (
             <div className={styles.markView}>
               <div className={styles.markHeader}>
                 <h2 className={styles.markTitle}>
@@ -631,43 +670,62 @@ const ManualAttendancePage = () => {
                           <div className={styles.studentEmail}>{student.email}</div>
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <span className={`${styles.statusBadge} ${
-                            student.status === 'present' ? styles.statusPresent :
-                            student.status === 'late' ? styles.statusLate :
-                            styles.statusAbsent
-                          }`}>
-                            {student.status === 'present' && <CheckCircle size={14} />}
+                          <span 
+                            className={styles.statusBadge}
+                            style={{ 
+                              backgroundColor: ATTENDANCE_STATUS_LABELS[student.status]?.color || '#6b7280',
+                              color: '#fff'
+                            }}
+                          >
+                            {student.status === ATTENDANCE_STATUS.PRESENT && <CheckCircle size={14} />}
+                            {student.status === ATTENDANCE_STATUS.LATE && <Clock size={14} />}
+                            {student.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE && <XCircle size={14} />}
+                            {student.status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE && <AlertCircle size={14} />}
+                            {student.status === ATTENDANCE_STATUS.EXCUSED_LEAVE && <UserIcon size={14} />}
+                            {student.status === ATTENDANCE_STATUS.HUMAN_CASE && <Activity size={14} />}
+                            {/* Legacy statuses */}
                             {student.status === 'absent' && <XCircle size={14} />}
-                            {student.status === 'late' && <Clock size={14} />}
-                            {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
+                            {student.status === 'excused' && <AlertCircle size={14} />}
+                            {ATTENDANCE_STATUS_LABELS[student.status]?.en || student.status}
                           </span>
                         </td>
                         <td>
                           <div className={styles.actionButtons}>
                             <button
-                              onClick={() => handleMarkAttendance(student.id, 'present')}
-                              disabled={student.status === 'present'}
+                              onClick={() => handleMarkAttendance(student.id, ATTENDANCE_STATUS.PRESENT)}
+                              disabled={student.status === ATTENDANCE_STATUS.PRESENT}
                               className={`${styles.actionButton} ${styles.actionButtonPresent}`}
+                              title="حاضر"
                             >
                               <CheckCircle size={16} />
                               {t('present') || 'Present'}
                             </button>
                             <button
-                              onClick={() => handleMarkAttendance(student.id, 'late')}
-                              disabled={student.status === 'late'}
+                              onClick={() => handleMarkAttendance(student.id, ATTENDANCE_STATUS.LATE)}
+                              disabled={student.status === ATTENDANCE_STATUS.LATE}
                               className={`${styles.actionButton} ${styles.actionButtonLate}`}
+                              title="متأخر"
                             >
                               <Clock size={16} />
                               {t('late') || 'Late'}
                             </button>
-                            <button
-                              onClick={() => handleMarkAttendance(student.id, 'absent')}
-                              disabled={student.status === 'absent'}
-                              className={`${styles.actionButton} ${styles.actionButtonAbsent}`}
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  handleMarkAttendance(student.id, e.target.value);
+                                  e.target.value = '';
+                                }
+                              }}
+                              className={styles.statusSelect}
+                              title="More options"
                             >
-                              <XCircle size={16} />
-                              {t('absent') || 'Absent'}
-                            </button>
+                              <option value="">More...</option>
+                              <option value={ATTENDANCE_STATUS.ABSENT_NO_EXCUSE}>❌ Absent (No Excuse) - غياب بدون عذر</option>
+                              <option value={ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE}>📝 Absent (Excused) - غياب بعذر</option>
+                              <option value={ATTENDANCE_STATUS.EXCUSED_LEAVE}>🚪 Excused Leave - استئذان</option>
+                              <option value={ATTENDANCE_STATUS.HUMAN_CASE}>💜 Human Case - حالة إنسانية</option>
+                            </select>
                           </div>
                         </td>
                       </tr>

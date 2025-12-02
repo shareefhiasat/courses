@@ -1309,7 +1309,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 exportFileName="announcements"
                 exportLabel={t('export') || 'Export'}
               />
-              </div>
             </div>
           )}
 
@@ -1629,8 +1628,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               </div>
             </div>
           )}
+        </div>
 
-          {/* Grade Submission Modal */}
+        {/* Grade Submission Modal */}
         <Modal
           isOpen={gradingModalOpen && !!gradingSubmission}
           onClose={() => {
@@ -1791,8 +1791,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 />
               </div>
 
-              <div className="form-actions" style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-start' }}>
-                <Button type="submit" variant="primary" disabled={loading} size="medium">
+              <div className="form-actions" style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-start' }}>
+                <Button type="submit" variant="primary" disabled={loading}>
                   {t('save') || 'Save'}
                 </Button>
               </div>
@@ -1801,13 +1801,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             <div style={{ marginTop: '1rem' }}>
               <AdvancedDataGrid
                 rows={enrollments}
-                getRowId={(row) => row.docId || row.id}
-                columns={[
+              getRowId={(row) => row.docId || row.id}
+              columns={[
                 {
                   field: 'userId', headerName: t('user_col'), flex: 1, minWidth: 250,
                   renderCell: (params) => {
                     const user = users.find(u => (u.docId || u.id) === params.value);
-                    return user ? `${user.displayName || user.realName || '—'}${user.email ? ` (${user.email})` : ''}` : params.value;
+                    return user ? `${user.email}${user.displayName ? ` (${user.displayName})` : ''}` : params.value;
                   }
                 },
                 {
@@ -1860,7 +1860,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               showExportButton
               exportLabel={t('export') || 'Export'}
             />
-            </div>
           </div>
         )}
 
@@ -2252,7 +2251,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               pageSizeOptions={[5, 10, 20, 50]}
               checkboxSelection
             />
-            </div>
           </div>
         )}
 
@@ -2551,7 +2549,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               pageSizeOptions={[5, 10, 20, 50]}
               checkboxSelection
             />
-            </div>
           </div>
         )}
 
@@ -2840,7 +2837,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {/* Smart Email Composer Modal */}
