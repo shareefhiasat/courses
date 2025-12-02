@@ -6,6 +6,7 @@ import { getQuiz, submitQuiz } from '../firebase/quizzes';
 import { addActivityLog } from '../firebase/firestore';
 import { updateProgressAfterQuiz } from '../firebase/studentProgress';
 import { useTimeTracking } from '../hooks/useTimeTracking';
+import { randomizeQuestions, randomizeOptions } from '../utils/quizRandomization';
 import { Container, Card, CardBody, Button, Badge, ProgressBar, Loading, Spinner, useToast, Tooltip } from '../components/ui';
 import {
   Play, Clock, Trophy, AlertCircle, CheckCircle, XCircle,
@@ -49,6 +50,7 @@ export default function StudentQuizPage() {
   const [savedProgress, setSavedProgress] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [questionTimes, setQuestionTimes] = useState({}); // { [questionId]: seconds }
+  const [shuffledQuestions, setShuffledQuestions] = useState(null); // Shuffled questions for this attempt
   const questionTimerRef = useRef({ questionId: null, startedAt: null });
   const toast = useToast();
 
@@ -58,17 +60,23 @@ export default function StudentQuizPage() {
   const [showFormulas, setShowFormulas] = useState(false);
   const [showDetailedResults, setShowDetailedResults] = useState(false);
 
-  const totalQuestions = quiz?.questions?.length || 0;
+  // Use shuffled questions when quiz is started, otherwise original questions
+  const activeQuestions = useMemo(() => {
+    if (started && shuffledQuestions) return shuffledQuestions;
+    return quiz?.questions || [];
+  }, [started, shuffledQuestions, quiz?.questions]);
+
+  const totalQuestions = activeQuestions.length;
   const answeredCount = useMemo(() => {
-    if (!quiz?.questions) return 0;
-    return quiz.questions.reduce((count, question) => {
+    if (!activeQuestions.length) return 0;
+    return activeQuestions.reduce((count, question) => {
       const response = answers[question.id];
       if (Array.isArray(response)) {
         return count + (response.length > 0 ? 1 : 0);
       }
       return count + (response !== undefined && response !== null && response !== '' ? 1 : 0);
     }, 0);
-  }, [answers, quiz]);
+  }, [answers, activeQuestions]);
 
   const markedCount = useMemo(() => markedForReview.size, [markedForReview]);
 
@@ -159,8 +167,24 @@ export default function StudentQuizPage() {
     setElapsedTime(0);
     setQuestionTimes({});
 
+    // Apply shuffle settings
+    let questionsToUse = quiz?.questions || [];
+    const settings = quiz?.settings || {};
+    
+    // Shuffle question order if enabled
+    if (settings.randomizeOrder || settings.shuffleQuestions) {
+      questionsToUse = randomizeQuestions(questionsToUse, user?.uid);
+    }
+    
+    // Shuffle options within each question if enabled
+    if (settings.shuffleOptions) {
+      questionsToUse = questionsToUse.map(q => randomizeOptions(q, user?.uid));
+    }
+    
+    setShuffledQuestions(questionsToUse);
+
     // Start per-question timer on first question
-    const firstQuestion = quiz?.questions?.[0];
+    const firstQuestion = questionsToUse[0];
     if (firstQuestion) {
       questionTimerRef.current = {
         questionId: firstQuestion.id,
@@ -254,7 +278,7 @@ export default function StudentQuizPage() {
   };
 
   const handleMultipleChoiceAnswer = (questionId, optionId) => {
-    const question = quiz.questions.find(q => q.id === questionId);
+    const question = activeQuestions.find(q => q.id === questionId);
     if (!question) return;
 
     const currentAnswers = answers[questionId] || [];
@@ -270,7 +294,7 @@ export default function StudentQuizPage() {
   };
 
   function goToQuestionIndex(targetIndex) {
-    if (!quiz?.questions || !quiz.questions[targetIndex]) return;
+    if (!activeQuestions.length || !activeQuestions[targetIndex]) return;
 
     // Flush time spent on current question
     const { questionId, startedAt } = questionTimerRef.current || {};
@@ -285,14 +309,14 @@ export default function StudentQuizPage() {
     }
 
     setCurrentQuestionIndex(targetIndex);
-    const nextQuestion = quiz.questions[targetIndex];
+    const nextQuestion = activeQuestions[targetIndex];
     questionTimerRef.current = nextQuestion
       ? { questionId: nextQuestion.id, startedAt: Date.now() }
       : { questionId: null, startedAt: null };
   }
 
   const nextQuestion = () => {
-    if (currentQuestionIndex < quiz.questions.length - 1) {
+    if (currentQuestionIndex < activeQuestions.length - 1) {
       goToQuestionIndex(currentQuestionIndex + 1);
     }
   };
@@ -304,11 +328,11 @@ export default function StudentQuizPage() {
   };
 
   const goToNextMatchingQuestion = (predicate, emptyMessage) => {
-    if (!quiz?.questions?.length) return;
-    const total = quiz.questions.length;
+    if (!activeQuestions.length) return;
+    const total = activeQuestions.length;
     for (let offset = 1; offset <= total; offset += 1) {
       const idx = (currentQuestionIndex + offset) % total;
-      if (predicate(quiz.questions[idx])) {
+      if (predicate(activeQuestions[idx])) {
         goToQuestionIndex(idx);
         return;
       }
@@ -671,7 +695,16 @@ export default function StudentQuizPage() {
                     className={styles.retakeButton}
                   >
                     <Play size={16} />
-                    Retake
+                    Retake Quiz
+                    {quiz.difficulty && (
+                      <Badge 
+                        variant={quiz.difficulty === 'beginner' ? 'success' : quiz.difficulty === 'intermediate' ? 'warning' : 'danger'}
+                        size="sm"
+                        style={{ marginLeft: 8 }}
+                      >
+                        {quiz.difficulty}
+                      </Badge>
+                    )}
                   </Button>
                 )}
               </div>
@@ -682,8 +715,8 @@ export default function StudentQuizPage() {
     );
   }
 
-  const currentQuestion = quiz.questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
+  const currentQuestion = activeQuestions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / activeQuestions.length) * 100;
 
   return (
     <div className={styles.quizTaking}>
@@ -722,9 +755,9 @@ export default function StudentQuizPage() {
             )}
           </div>
           
-          {quiz.questions.length > 1 && (
+          {activeQuestions.length > 1 && (
             <div className={styles.paletteQuestions}>
-              {quiz.questions.map((q, idx) => {
+              {activeQuestions.map((q, idx) => {
                 const isAnswered = answers[q.id] !== undefined;
                 const isMarked = markedForReview.has(q.id);
                 const isCurrent = idx === currentQuestionIndex;
@@ -753,7 +786,7 @@ export default function StudentQuizPage() {
         <div className={styles.quizTitleSection}>
           <h2 className={styles.quizTitle}>{quiz.title}</h2>
           <span className={styles.questionProgress}>
-            Question {currentQuestionIndex + 1} of {quiz.questions.length}
+            Question {currentQuestionIndex + 1} of {activeQuestions.length}
           </span>
         </div>
 
@@ -852,7 +885,7 @@ export default function StudentQuizPage() {
                     variant="ghost"
                     size="md"
                     onClick={goToNextUnanswered}
-                    disabled={answeredCount === quiz.questions.length}
+                    disabled={answeredCount === activeQuestions.length}
                     className={styles.navIconBtn}
                   >
                     <Circle size={18} />
@@ -885,13 +918,13 @@ export default function StudentQuizPage() {
                     variant="ghost"
                     size="md"
                     onClick={nextQuestion}
-                    disabled={currentQuestionIndex === quiz.questions.length - 1}
+                    disabled={currentQuestionIndex === activeQuestions.length - 1}
                     className={styles.navIconBtn}
                   >
                     <ChevronRight size={20} />
                   </Button>
                 </Tooltip>
-                <Tooltip content={currentQuestionIndex === quiz.questions.length - 1 ? "Submit Quiz" : "Skip to Submit"}>
+                <Tooltip content={currentQuestionIndex === activeQuestions.length - 1 ? "Submit Quiz" : "Skip to Submit"}>
                   <Button
                     variant="primary"
                     size="lg"
@@ -971,7 +1004,7 @@ export default function StudentQuizPage() {
             <p>You have an in-progress attempt for this quiz.</p>
             <div className={styles.progressInfo}>
               <div className={styles.progressItem}>
-                <strong>Progress:</strong> {savedProgress.currentQuestionIndex + 1} / {quiz.questions.length} questions
+                <strong>Progress:</strong> {savedProgress.currentQuestionIndex + 1} / {quiz?.questions?.length || 0} questions
               </div>
               <div className={styles.progressItem}>
                 <strong>Answers:</strong> {Object.keys(savedProgress.answers || {}).length} saved

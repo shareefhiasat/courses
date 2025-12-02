@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { getAttendanceByStudent, getAttendanceStats } from '../firebase/attendance';
+import { getAttendanceByStudent, getAttendanceStats, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../firebase/attendance';
 import { getUserBadges, getUserStats } from '../firebase/badges';
 import styles from './StudentDashboardPage_NEW.module.css';
 
@@ -538,6 +538,13 @@ function OverviewView({ urgentTasks, tasks, attendance, attendanceStats, badges,
               <h3>Recent Attendance</h3>
             </div>
           </div>
+          {attendance.length === 0 ? (
+            <div className={styles.emptyWidget}>
+              <CalendarCheck size={40} className={styles.emptyIcon} />
+              <p>No attendance records yet</p>
+              <span className={styles.emptyHint}>Your attendance will appear here once classes begin</span>
+            </div>
+          ) : (
           <div className={styles.attendanceOverview}>
             <div className={styles.attendanceStats}>
               <div className={styles.attendanceStat}>
@@ -560,20 +567,69 @@ function OverviewView({ urgentTasks, tasks, attendance, attendanceStats, badges,
                     {new Date(record.date).toLocaleDateString('en-GB')}
                   </div>
                   <Badge 
-                    variant={record.status === 'present' ? 'success' : record.status === 'absent' ? 'danger' : 'warning'}
+                    variant={
+                      record.status === ATTENDANCE_STATUS.PRESENT || record.status === 'present' ? 'success' : 
+                      record.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE || record.status === 'absent' ? 'danger' : 
+                      'warning'
+                    }
                     size="sm"
+                    style={ATTENDANCE_STATUS_LABELS[record.status] ? { 
+                      backgroundColor: ATTENDANCE_STATUS_LABELS[record.status].color,
+                      color: '#fff'
+                    } : {}}
                   >
-                    {record.status}
+                    {ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status}
                   </Badge>
                 </div>
               ))}
             </div>
           </div>
+          )}
           <Button variant="ghost" size="sm" className={styles.viewAllButton} onClick={() => setViewMode('attendance')}>
             View Full History <ChevronRight size={16} />
           </Button>
         </CardBody>
       </Card>
+
+      {/* Upcoming Tasks Widget - Show when no urgent tasks */}
+      {urgentTasks.length === 0 && (
+        <Card className={styles.upcomingTasksCard}>
+          <CardBody>
+            <div className={styles.cardHeader}>
+              <div className={styles.cardTitle}>
+                <CheckCircle size={20} />
+                <h3>My Tasks</h3>
+              </div>
+              <Badge variant="success" size="sm">{tasks.length}</Badge>
+            </div>
+            {tasks.length === 0 ? (
+              <div className={styles.emptyWidget}>
+                <Inbox size={40} className={styles.emptyIcon} />
+                <p>No tasks assigned yet</p>
+                <span className={styles.emptyHint}>Quizzes, homework, and resources will appear here</span>
+              </div>
+            ) : (
+              <div className={styles.tasksSummary}>
+                <div className={styles.taskStat}>
+                  <span className={styles.taskStatValue}>{tasks.filter(t => t.status === 'pending').length}</span>
+                  <span className={styles.taskStatLabel}>Pending</span>
+                </div>
+                <div className={styles.taskStat}>
+                  <span className={styles.taskStatValue}>{tasks.filter(t => t.status === 'completed').length}</span>
+                  <span className={styles.taskStatLabel}>Completed</span>
+                </div>
+                <div className={styles.taskStat}>
+                  <span className={styles.taskStatValue}>{tasks.filter(t => t.status === 'overdue').length}</span>
+                  <span className={styles.taskStatLabel}>Overdue</span>
+                </div>
+              </div>
+            )}
+            <Button variant="ghost" size="sm" className={styles.viewAllButton} onClick={() => setViewMode('tasks')}>
+              View All Tasks <ChevronRight size={16} />
+            </Button>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Achievements Widget */}
       <Card className={styles.achievementsCard}>
@@ -852,12 +908,19 @@ function AttendanceView({ attendance, attendanceStats, classes }) {
                   </div>
                   <Badge 
                     variant={
-                      record.status === 'present' ? 'success' : 
-                      record.status === 'absent' ? 'danger' : 
-                      record.status === 'late' ? 'warning' : 'default'
+                      record.status === ATTENDANCE_STATUS.PRESENT || record.status === 'present' ? 'success' : 
+                      record.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE || record.status === 'absent' ? 'danger' : 
+                      record.status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE ? 'warning' :
+                      record.status === ATTENDANCE_STATUS.LATE || record.status === 'late' ? 'warning' : 
+                      record.status === ATTENDANCE_STATUS.EXCUSED_LEAVE ? 'info' :
+                      record.status === ATTENDANCE_STATUS.HUMAN_CASE ? 'info' : 'default'
                     }
+                    style={ATTENDANCE_STATUS_LABELS[record.status] ? { 
+                      backgroundColor: ATTENDANCE_STATUS_LABELS[record.status].color,
+                      color: '#fff'
+                    } : {}}
                   >
-                    {record.status}
+                    {ATTENDANCE_STATUS_LABELS[record.status]?.[lang === 'ar' ? 'ar' : 'en'] || record.status}
                   </Badge>
                 </div>
               ))}

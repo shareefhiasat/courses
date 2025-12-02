@@ -47,11 +47,7 @@
 
 /* Variants */
 .primary {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary, #800020),
-    var(--color-primary-dark, #600018)
-  );
+  background: linear-gradient(135deg, var(--color-primary, #800020), var(--color-primary-dark, #600018));
   color: white;
   box-shadow: 0 2px 4px rgba(128, 0, 32, 0.2);
 }
@@ -165,20 +161,20 @@
   .button {
     color-scheme: dark;
   }
-
+  
   .outline {
     border-color: var(--color-primary, #a02040);
     color: var(--color-primary, #a02040);
   }
-
+  
   .outline:hover:not(:disabled) {
     background: var(--color-primary, #a02040);
   }
-
+  
   .ghost {
     color: var(--color-primary, #a02040);
   }
-
+  
   .ghost:hover:not(:disabled) {
     background: rgba(160, 32, 64, 0.1);
   }

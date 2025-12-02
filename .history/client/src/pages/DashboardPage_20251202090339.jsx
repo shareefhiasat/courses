@@ -2840,7 +2840,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {/* Smart Email Composer Modal */}

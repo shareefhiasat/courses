@@ -67,6 +67,33 @@ service cloud.firestore {
 
       // Write: the user themselves OR an admin
       allow write: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+
+      // Subcollection: badges under user (used by StudentDashboard achievements)
+      match /badges/{badgeId} {
+        // Student can read their own badges; admins can read all
+        allow read: if isSignedIn() && (
+          request.auth.uid == userId ||
+          isAdmin()
+        );
+        // Student can create their own badge docs; admins can manage all
+        allow create: if isSignedIn() && request.auth.uid == userId;
+        allow update, delete: if isAdmin();
+      }
+
+      // Subcollection: stats under user (used by StudentDashboard performance widgets)
+      match /stats/{statId} {
+        // Student can read their own stats; admins can read all
+        allow read: if isSignedIn() && (
+          request.auth.uid == userId ||
+          isAdmin()
+        );
+        // Student can create/update their own stats; admins can manage all
+        allow create, update: if isSignedIn() && (
+          request.auth.uid == userId ||
+          isAdmin()
+        );
+        allow delete: if isAdmin();
+      }
     }
 
     // Leaderboard: public read; only signed-in can write
@@ -123,9 +150,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Enrollments: Admin write, user can read their own enrollment
+    // Enrollments: Admin write, user can read their own enrollment, instructors can read all
     match /enrollments/{enrollmentId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow read: if isSignedIn() && (
+        isAdmin() || 
+        request.auth.uid == resource.data.userId ||
+        request.auth.token.instructor == true
+      );
       allow write: if isAdmin();
     }
 
@@ -241,14 +272,21 @@ service cloud.firestore {
 
     // Flat attendance collection used by dashboard and legacy attendance APIs
     match /attendance/{recordId} {
-      // Students can read their own records; admins can read all
+      // Students can read their own records; admins/instructors can read all
       allow read: if isSignedIn() && (
         request.auth.uid == resource.data.studentId ||
-        isAdmin()
+        isAdmin() ||
+        request.auth.token.instructor == true
       );
 
-      // Only admins can write/delete attendance records from the client
-      allow create, update, delete: if isAdmin();
+      // Admins and instructors can write attendance records
+      allow create, update: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true
+      );
+      
+      // Only admins can delete attendance records
+      allow delete: if isAdmin();
     }
 
     // User badges (achievements) used by dashboard

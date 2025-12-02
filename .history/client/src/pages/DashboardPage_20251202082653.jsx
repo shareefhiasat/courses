@@ -184,6 +184,8 @@ const DashboardPage = () => {
   const [smtpLoading, setSmtpLoading] = useState(false);
   const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
+  const [testSmtpDialogOpen, setTestSmtpDialogOpen] = useState(false);
+  const [testSmtpEmail, setTestSmtpEmail] = useState('');
   // Smart email composer
   const [smartComposerOpen, setSmartComposerOpen] = useState(false);
   // User deletion modal
@@ -767,7 +769,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         />
 
         <div className="tab-content">
-          {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} />}
+          {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />}
           
           {activeTab === 'activities' && (
             <div className="activities-tab">
@@ -1142,11 +1144,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 pageSize={10}
                 pageSizeOptions={[10, 20, 50, 100]}
                 checkboxSelection
-                exportFileName="activities"
-                showExportButton
-                exportLabel={t('export') || 'Export'}
-                loadingOverlayMessage="Loading..."
-              />
+                  exportFileName="activities"
+                  showExportButton
+                  exportLabel={t('export') || 'Export'}
+                  loadingOverlayMessage="Loading..."
+                />
               </div>
             </div>
           )}
@@ -1308,7 +1310,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 showExportButton
                 exportFileName="announcements"
                 exportLabel={t('export') || 'Export'}
-              />
+                />
               </div>
             </div>
           )}
@@ -1367,9 +1369,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   placeholder={t('to') || 'To'}
                   fullWidth
                 />
-                <Button onClick={loadData} variant="outline" size="small" title={t('refresh') || 'Refresh'}>
-                  ⟳
-                </Button>
+                <Button onClick={loadData} variant="primary">{t('refresh')}</Button>
               </div>
               <AdvancedDataGrid
                 rows={filteredLoginLogs().slice(0, 500)}
@@ -1401,7 +1401,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   },
                   {
                     field: 'displayName', headerName: t('user_col'), flex: 1, minWidth: 150,
-                    renderCell: (params) => params.value || '—'
+                    renderCell: (params) => {
+                      const log = params.row;
+                      return log.displayName || log.user || '—';
+                    }
                   },
                   {
                     field: 'email', headerName: t('email_col'), flex: 1, minWidth: 200,
@@ -1538,7 +1541,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 <div className="form-actions">
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                     <Button type="submit" variant="primary" loading={loading}>
-                      {(editingClass ? t('update') : t('save'))}
+                      {(editingClass ? (t('update') || 'Update') : (t('save') || 'Save'))}
                     </Button>
                     {editingClass && (
                       <Button type="button" variant="outline" onClick={() => {
@@ -1625,12 +1628,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 exportFileName="classes"
                 showExportButton
                 exportLabel={t('export') || 'Export'}
-              />
+                />
               </div>
             </div>
           )}
+        </div>
 
-          {/* Grade Submission Modal */}
+        {/* Grade Submission Modal */}
         <Modal
           isOpen={gradingModalOpen && !!gradingSubmission}
           onClose={() => {
@@ -1791,8 +1795,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 />
               </div>
 
-              <div className="form-actions" style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-start' }}>
-                <Button type="submit" variant="primary" disabled={loading} size="medium">
+              <div className="form-actions" style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-start' }}>
+                <Button type="submit" variant="primary" disabled={loading}>
                   {t('save') || 'Save'}
                 </Button>
               </div>
@@ -1801,13 +1805,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             <div style={{ marginTop: '1rem' }}>
               <AdvancedDataGrid
                 rows={enrollments}
-                getRowId={(row) => row.docId || row.id}
-                columns={[
+              getRowId={(row) => row.docId || row.id}
+              columns={[
                 {
                   field: 'userId', headerName: t('user_col'), flex: 1, minWidth: 250,
                   renderCell: (params) => {
                     const user = users.find(u => (u.docId || u.id) === params.value);
-                    return user ? `${user.displayName || user.realName || '—'}${user.email ? ` (${user.email})` : ''}` : params.value;
+                    return user ? `${user.email}${user.displayName ? ` (${user.displayName})` : ''}` : params.value;
                   }
                 },
                 {
@@ -1859,7 +1863,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               exportFileName="enrollments"
               showExportButton
               exportLabel={t('export') || 'Export'}
-            />
+              />
             </div>
           </div>
         )}
@@ -2139,7 +2143,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               <div className="form-actions">
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <Button type="submit" variant="primary" loading={loading}>
-                    {(editingUser ? t('update') : t('save'))}
+                    {(editingUser ? (t('update') || 'Update') : (t('save') || 'Save'))}
                   </Button>
                   {editingUser && (
                     <Button type="button" variant="outline" onClick={() => {
@@ -2153,9 +2157,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               </div>
             </form>
 
-            <div style={{ marginTop: '1rem' }}>
-              <AdvancedDataGrid
-                rows={users}
+            <AdvancedDataGrid
+              rows={users}
               getRowId={(row) => row.docId || row.id}
               columns={[
                 { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
@@ -2252,7 +2255,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               pageSizeOptions={[5, 10, 20, 50]}
               checkboxSelection
             />
-            </div>
           </div>
         )}
 
@@ -2447,7 +2449,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               <div className="form-actions">
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <Button type="submit" variant="primary" loading={loading}>
-                    {(editingResource ? t('update') : t('save'))}
+                    {(editingResource ? (t('update') || 'Update') : (t('save') || 'Save'))}
                   </Button>
                   {editingResource && (
                     <Button type="button" variant="outline" onClick={() => {
@@ -2612,27 +2614,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
                   <Button
                     variant="success"
-                    onClick={async () => {
-                      try {
-                        setSmtpTesting(true);
-                        const { httpsCallable } = await import('firebase/functions');
-                        const { functions } = await import('../firebase/config');
-                        const testSMTP = httpsCallable(functions, 'testSMTP');
-                        const result = await testSMTP({ to: user?.email || smtpConfig.user });
-                        if (result.data.success) {
-                          toast?.showSuccess('Test email sent! Check your inbox.');
-                        } else {
-                          toast?.showError('Test failed: ' + result.data.error);
-                        }
-                      } catch (error) {
-                        toast?.showError('Test failed: ' + (error.message || 'Unknown error'));
-                      } finally {
-                        setSmtpTesting(false);
-                      }
+                    onClick={() => {
+                      setTestSmtpEmail(user?.email || smtpConfig.user || '');
+                      setTestSmtpDialogOpen(true);
                     }}
-                    disabled={smtpTesting}
                   >
-                    {smtpTesting ? 'Testing...' : '📧 Test SMTP'}
+                    📧 Test SMTP
                   </Button>
                   <Button
                     variant="primary"
@@ -2843,6 +2830,63 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         </div>
       </div>
 
+      {/* Test SMTP Dialog */}
+      <Modal
+        isOpen={testSmtpDialogOpen}
+        onClose={() => setTestSmtpDialogOpen(false)}
+        title="Test SMTP Configuration"
+        size="small"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <Input
+            label="Email Address"
+            type="email"
+            value={testSmtpEmail}
+            onChange={(e) => setTestSmtpEmail(e.target.value)}
+            placeholder="Enter email address to send test email"
+            fullWidth
+          />
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <Button
+              variant="outline"
+              onClick={() => setTestSmtpDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="success"
+              onClick={async () => {
+                if (!testSmtpEmail.trim()) {
+                  toast?.showError('Please enter an email address');
+                  return;
+                }
+                try {
+                  setSmtpTesting(true);
+                  const { httpsCallable } = await import('firebase/functions');
+                  const { functions } = await import('../firebase/config');
+                  const testSMTP = httpsCallable(functions, 'testSMTP');
+                  const result = await testSMTP({ to: testSmtpEmail });
+                  if (result.data.success) {
+                    toast?.showSuccess('Test email sent! Check your inbox.');
+                    setTestSmtpDialogOpen(false);
+                  } else {
+                    toast?.showError('Test failed: ' + result.data.error);
+                  }
+                } catch (error) {
+                  toast?.showError('Test failed: ' + (error.message || 'Unknown error'));
+                } finally {
+                  setSmtpTesting(false);
+                }
+              }}
+              disabled={smtpTesting}
+              loading={smtpTesting}
+            >
+              {smtpTesting ? 'Sending...' : 'Send Test Email'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Smart Email Composer Modal */}
       <SmartEmailComposer
         open={smartComposerOpen}
@@ -2995,7 +3039,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         }}
       />
 
-    </div >
+    </div>
   );
 };
 

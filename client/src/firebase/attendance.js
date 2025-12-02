@@ -1,6 +1,30 @@
 import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, getDocs, query, where, getDoc, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './config';
+import { addNotification } from './notifications';
+import { sendEmail } from './firestore';
+
+/**
+ * Attendance Status Types
+ * These are the official attendance statuses used throughout the system
+ */
+export const ATTENDANCE_STATUS = {
+  PRESENT: 'present',
+  ABSENT_NO_EXCUSE: 'absent_no_excuse',      // غياب بدون عذر
+  ABSENT_WITH_EXCUSE: 'absent_with_excuse',  // غياب بعذر
+  LATE: 'late',                               // تأخر على الحصة
+  EXCUSED_LEAVE: 'excused_leave',            // استئذان
+  HUMAN_CASE: 'human_case'                   // حالة إنسانية
+};
+
+export const ATTENDANCE_STATUS_LABELS = {
+  present: { en: 'Present', ar: 'حاضر', color: '#22c55e' },
+  absent_no_excuse: { en: 'Absent (No Excuse)', ar: 'غياب بدون عذر', color: '#ef4444' },
+  absent_with_excuse: { en: 'Absent (Excused)', ar: 'غياب بعذر', color: '#f97316' },
+  late: { en: 'Late', ar: 'متأخر', color: '#eab308' },
+  excused_leave: { en: 'Excused Leave', ar: 'استئذان', color: '#3b82f6' },
+  human_case: { en: 'Human Case', ar: 'حالة إنسانية', color: '#8b5cf6' }
+};
 
 // Minimal helper scaffolding for Attendance sessions and marks
 // Collections:
@@ -113,26 +137,112 @@ export function simpleDeviceHash() {
 
 /**
  * Mark attendance manually for a student
+ * @param {Object} params
+ * @param {string} params.classId - Class ID
+ * @param {string} params.studentId - Student user ID
+ * @param {string} params.date - Date string (YYYY-MM-DD)
+ * @param {string} params.status - One of ATTENDANCE_STATUS values
+ * @param {string} params.markedBy - User ID who marked attendance
+ * @param {string} params.method - 'qr' | 'manual'
+ * @param {string} params.notes - Optional notes
+ * @param {Object} params.studentInfo - Optional { email, displayName } for notifications
+ * @param {string} params.className - Optional class name for notifications
+ * @param {boolean} params.sendNotification - Whether to send notification (default: true)
+ * @param {string} params.previousStatus - Previous status if this is an update
  */
-export async function markAttendance({ classId, studentId, date, status, markedBy, method = 'manual', notes = '' }) {
+export async function markAttendance({ 
+  classId, 
+  studentId, 
+  date, 
+  status, 
+  markedBy, 
+  method = 'manual', 
+  notes = '',
+  studentInfo = null,
+  className = '',
+  sendNotification = true,
+  previousStatus = null
+}) {
   try {
     const attendanceRef = collection(db, 'attendance');
     const attendanceId = `${classId}_${studentId}_${date}`;
     const docRef = doc(attendanceRef, attendanceId);
     
+    // Check if this is an update (status change)
+    const existingDoc = await getDoc(docRef);
+    const isUpdate = existingDoc.exists();
+    const oldStatus = existingDoc.exists() ? existingDoc.data().status : null;
+    const statusChanged = isUpdate && oldStatus !== status;
+    
     await setDoc(docRef, {
       classId,
       studentId,
       date,
-      status, // 'present' | 'absent' | 'late' | 'excused'
+      status,
       markedBy,
-      method, // 'qr' | 'manual'
+      method,
       notes,
       timestamp: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      // Track history of changes
+      ...(statusChanged ? {
+        history: [...(existingDoc.data().history || []), {
+          from: oldStatus,
+          to: status,
+          changedBy: markedBy,
+          changedAt: new Date().toISOString(),
+          notes
+        }]
+      } : {})
     }, { merge: true });
 
-    return { success: true };
+    // Send notification to student if status is not 'present' or if status changed
+    if (sendNotification && studentId && (status !== ATTENDANCE_STATUS.PRESENT || statusChanged)) {
+      try {
+        const statusLabel = ATTENDANCE_STATUS_LABELS[status] || { en: status, ar: status };
+        const formattedDate = new Date(date).toLocaleDateString('en-GB');
+        
+        // In-app notification
+        await addNotification({
+          userId: studentId,
+          title: statusChanged ? '📋 Attendance Updated' : '📋 Attendance Recorded',
+          message: `Your attendance for ${className || 'class'} on ${formattedDate}: ${statusLabel.en}${notes ? ` - ${notes}` : ''}`,
+          type: 'attendance',
+          data: { 
+            classId, 
+            date, 
+            status,
+            previousStatus: statusChanged ? oldStatus : null
+          }
+        });
+
+        // Email notification for non-present statuses
+        if (studentInfo?.email && status !== ATTENDANCE_STATUS.PRESENT) {
+          try {
+            await sendEmail({
+              to: studentInfo.email,
+              template: 'attendanceNotification',
+              data: {
+                studentName: studentInfo.displayName || studentInfo.email,
+                className: className || 'Class',
+                date: formattedDate,
+                status: statusLabel.en,
+                statusAr: statusLabel.ar,
+                notes: notes || '',
+                isUpdate: statusChanged,
+                previousStatus: statusChanged ? (ATTENDANCE_STATUS_LABELS[oldStatus]?.en || oldStatus) : null
+              }
+            });
+          } catch (emailError) {
+            console.warn('Failed to send attendance email:', emailError);
+          }
+        }
+      } catch (notifyError) {
+        console.warn('Failed to send attendance notification:', notifyError);
+      }
+    }
+
+    return { success: true, isUpdate, statusChanged };
   } catch (error) {
     const code = error?.code || '';
     if (code === 'permission-denied') {
@@ -199,6 +309,7 @@ export async function getAttendanceByStudent(studentId, startDate = null, endDat
 
 /**
  * Get attendance statistics for a class
+ * Returns detailed breakdown by all status types for HR analytics
  */
 export async function getAttendanceStats(classId, startDate = null, endDate = null) {
   try {
@@ -215,18 +326,64 @@ export async function getAttendanceStats(classId, startDate = null, endDate = nu
     const snapshot = await getDocs(q);
     const records = snapshot.docs.map(doc => doc.data());
 
+    // Detailed stats by all status types
     const stats = {
       totalRecords: records.length,
-      present: records.filter(r => r.status === 'present').length,
-      absent: records.filter(r => r.status === 'absent').length,
-      late: records.filter(r => r.status === 'late').length,
-      excused: records.filter(r => r.status === 'excused').length,
-      attendanceRate: 0
+      // Core statuses
+      present: records.filter(r => r.status === ATTENDANCE_STATUS.PRESENT).length,
+      late: records.filter(r => r.status === ATTENDANCE_STATUS.LATE).length,
+      // Absence types
+      absentNoExcuse: records.filter(r => r.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE).length,
+      absentWithExcuse: records.filter(r => r.status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE).length,
+      excusedLeave: records.filter(r => r.status === ATTENDANCE_STATUS.EXCUSED_LEAVE).length,
+      humanCase: records.filter(r => r.status === ATTENDANCE_STATUS.HUMAN_CASE).length,
+      // Legacy support (count old 'absent' and 'excused' statuses)
+      legacyAbsent: records.filter(r => r.status === 'absent').length,
+      legacyExcused: records.filter(r => r.status === 'excused').length,
+      // Computed totals
+      totalAbsent: 0,
+      totalExcused: 0,
+      attendanceRate: 0,
+      // By student breakdown
+      byStudent: {}
     };
 
+    // Calculate totals
+    stats.totalAbsent = stats.absentNoExcuse + stats.legacyAbsent;
+    stats.totalExcused = stats.absentWithExcuse + stats.excusedLeave + stats.humanCase + stats.legacyExcused;
+
+    // Calculate attendance rate (present + late counts as attended)
     if (stats.totalRecords > 0) {
-      stats.attendanceRate = ((stats.present / stats.totalRecords) * 100).toFixed(2);
+      const attended = stats.present + stats.late;
+      stats.attendanceRate = ((attended / stats.totalRecords) * 100).toFixed(2);
     }
+
+    // Group by student for detailed analytics
+    records.forEach(r => {
+      if (!stats.byStudent[r.studentId]) {
+        stats.byStudent[r.studentId] = {
+          present: 0,
+          late: 0,
+          absentNoExcuse: 0,
+          absentWithExcuse: 0,
+          excusedLeave: 0,
+          humanCase: 0,
+          total: 0
+        };
+      }
+      const s = stats.byStudent[r.studentId];
+      s.total++;
+      switch (r.status) {
+        case ATTENDANCE_STATUS.PRESENT: s.present++; break;
+        case ATTENDANCE_STATUS.LATE: s.late++; break;
+        case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE: s.absentNoExcuse++; break;
+        case ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE: s.absentWithExcuse++; break;
+        case ATTENDANCE_STATUS.EXCUSED_LEAVE: s.excusedLeave++; break;
+        case ATTENDANCE_STATUS.HUMAN_CASE: s.humanCase++; break;
+        case 'absent': s.absentNoExcuse++; break; // Legacy
+        case 'excused': s.absentWithExcuse++; break; // Legacy
+      }
+    });
 
     return { success: true, data: stats };
   } catch (error) {

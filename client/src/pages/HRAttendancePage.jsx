@@ -3,8 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, query, where, orderBy, limit, getDoc } from 'firebase/firestore';
-import { FileDown, Search, Filter, Calendar, User, AlertCircle } from 'lucide-react';
+import { FileDown, Search, Filter, Calendar, User, AlertCircle, Clock, CheckCircle, XCircle, Activity } from 'lucide-react';
 import { Button, Select, Loading, DatePicker } from '../components/ui';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../firebase/attendance';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin } = useAuth();

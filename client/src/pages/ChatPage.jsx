@@ -1109,16 +1109,18 @@ const ChatPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Check file size (10MB for videos, 5MB for others)
+    // Check file size (10MB for videos/audio, 5MB for others)
     const isVideo = file.type.startsWith('video/');
-    const maxSize = isVideo ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    const isAudio = file.type.startsWith('audio/');
+    const maxSize = (isVideo || isAudio) ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast?.showError(`File size must be less than ${isVideo ? '10MB' : '5MB'}`);
+      toast?.showError(`File size must be less than ${(isVideo || isAudio) ? '10MB' : '5MB'}`);
       e.target.value = '';
       return;
     }
     
     setAttachedFile(file);
+    toast?.showSuccess?.(`File "${file.name}" attached`);
   };
 
   const startRecording = async () => {
@@ -1881,19 +1883,19 @@ const ChatPage = () => {
                           cursor: 'pointer',
                           transition: 'color 0.2s'
                         };
-                        const tooltip = `Seen by ${readCount} of ${recipients.length}`;
+                        const tooltip = `Seen by ${readCount} of ${recips.length}`;
                         return (
                           <span
                             style={style}
                             title={tooltip}
                             onClick={(e)=>{
                               e.stopPropagation();
-                              const list = (recipients||[]).map(uid => ({
+                              const list = (recips||[]).map(uid => ({
                                 uid,
                                 name: (allUsers||[]).find(u=>u.docId===uid)?.displayName || (allUsers||[]).find(u=>u.docId===uid)?.email || uid,
                                 readAt: memberReads[uid]
                               })).sort((a,b)=> (b.readAt?.getTime?.()||0) - (a.readAt?.getTime?.()||0));
-                              setReceiptsFor({ id: msg.id, list, readCount, total: recipients.length });
+                              setReceiptsFor({ id: msg.id, list, readCount, total: recips.length });
                             }}
                           >{anyRead ? '✓✓' : '✓'}</span>
                         );
@@ -2390,7 +2392,7 @@ const ChatPage = () => {
                   type="file"
                   onChange={handleFileSelect}
                   style={{ display: 'none' }}
-                  accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx,.zip,.rar"
                 />
               </label>
             )}

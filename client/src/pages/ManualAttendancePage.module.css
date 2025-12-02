@@ -358,15 +358,54 @@
   background: #d97706;
 }
 
+/* Status Select Dropdown */
+.statusSelect {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  min-width: 100px;
+  transition: all 0.2s ease;
+}
+
+.statusSelect:hover {
+  border-color: #800020;
+}
+
+.statusSelect:focus {
+  outline: none;
+  border-color: #800020;
+  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+}
+
 .emptyState {
-  padding: 3rem;
+  padding: 4rem 2rem;
   text-align: center;
   color: #64748b;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.emptyState h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 1rem 0 0.5rem;
+}
+
+.emptyState p {
+  color: #64748b;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .emptyStateIcon {
   margin: 0 auto 1rem;
-  color: #cbd5e1;
+  color: #800020;
+  opacity: 0.6;
 }
 
 /* History View */
