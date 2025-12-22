@@ -1047,7 +1047,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   padding: '1rem',
                   background: '#f0f8ff',
                   borderRadius: '8px',
-                  border: '2px solid #800020'
+                  border: '2px solid var(--color-primary, #800020)'
                 }}>
                   <ToggleSwitch
                     label={t('send_email_to_students') || 'Send email to students'}
@@ -1586,11 +1586,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           });
                         }}>
                           {t('edit') || 'Edit'}
-                        </Button>
-                        <Button size="sm" variant="primary" disabled title="Feature not completed yet" onClick={() => {
-                          navigate(`/award-medals/${params.row.docId || params.row.id}`);
-                        }}>
-                          🎖️ {t('award_medals') || 'Medals'}
                         </Button>
                         <Button size="sm" variant="danger" onClick={async () => {
                           const classItem = params.row;
@@ -2180,7 +2175,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     return (
                       <a
                         href={`/student-progress?userId=${params.row.docId}`}
-                        style={{ color: '#800020', textDecoration: 'none', fontWeight: '600' }}
+                        style={{ color: 'var(--color-primary, #800020)', textDecoration: 'none', fontWeight: '600' }}
                         onClick={(e) => {
                           e.preventDefault();
                           window.location.href = `/student-progress?userId=${params.row.docId}`;

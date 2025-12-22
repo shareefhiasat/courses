@@ -203,8 +203,8 @@ const NotificationBell = () => {
       
       navigate(url);
     } else if (n.type === 'announcement') {
-      // Announcements go to home page
-      navigate('/');
+      // Announcements go to notifications page
+      navigate('/notifications');
     } else {
       // Default: go to home
       navigate('/');

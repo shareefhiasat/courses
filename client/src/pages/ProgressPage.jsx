@@ -167,7 +167,7 @@ const ProgressPage = () => {
       {/* Show message if no progress */}
       {activityCompletedCount === 0 && resourceCompletedCount === 0 ? (
         <EmptyState
-          icon={<Trophy size={64} />}
+          icon={Trophy}
           title={t('no_progress_yet') || 'No progress yet'}
           description={t('start_completing') || 'Start completing activities to see your progress here'}
         />

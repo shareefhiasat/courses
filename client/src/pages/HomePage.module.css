@@ -51,6 +51,11 @@
   font-weight: 700;
 }
 
+.largeTitle {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+}
+
 /* Filter Buttons */
 .filterButtons {
   display: flex;

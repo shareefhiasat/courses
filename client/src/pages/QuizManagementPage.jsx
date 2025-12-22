@@ -285,15 +285,6 @@ export default function QuizManagementPage() {
   return (
     <div className={styles.quizManagement}>
       <Container maxWidth="lg">
-        {/* Header */}
-        <div className={styles.pageHeader}>
-          <div className={styles.headerContent}>
-            <h1 className={styles.pageTitle}>Quiz Management</h1>
-            <p className={styles.pageDescription}>
-              Create, edit, and manage your quizzes
-            </p>
-          </div>
-        </div>
 
         {/* Stats Cards */}
         <div className={styles.statsSection}>
@@ -302,11 +293,10 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <ListChecks size={24} style={{ color: '#8b5cf6' }} />
+                    <ListChecks size={16} style={{ color: '#8b5cf6' }} />
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{quizzes.length}</h3>
-                    <p className={styles.statLabel}>Total Quizzes</p>
                   </div>
                 </div>
               </CardBody>
@@ -316,13 +306,10 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <Users size={24} style={{ color: '#10b981' }} />
+                    <Users size={16} style={{ color: '#10b981' }} />
                   </div>
                   <div className={styles.statInfo}>
-                    <h3 className={styles.statValue}>
-                      {totalAttempts}
-                    </h3>
-                    <p className={styles.statLabel}>Total Attempts</p>
+                    <h3 className={styles.statValue}>{totalAttempts}</h3>
                   </div>
                 </div>
               </CardBody>
@@ -332,13 +319,40 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <CheckCircle size={24} style={{ color: '#f59e0b' }} />
+                    <CheckCircle size={16} style={{ color: '#f59e0b' }} />
+                  </div>
+                  <div className={styles.statInfo}>
+                    <h3 className={styles.statValue}>{averageScore}%</h3>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+            
+            <Card className={styles.statCard}>
+              <CardBody>
+                <div className={styles.statContent}>
+                  <div className={styles.statIcon}>
+                    <Clock size={16} style={{ color: '#6366f1' }} />
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>
-                      {averageScore}%
+                      {quizzes.reduce((sum, q) => sum + (q.estimatedTime || 0), 0)}
                     </h3>
-                    <p className={styles.statLabel}>Average Score</p>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+            
+            <Card className={styles.statCard}>
+              <CardBody>
+                <div className={styles.statContent}>
+                  <div className={styles.statIcon}>
+                    <HelpCircle size={16} style={{ color: '#ec4899' }} />
+                  </div>
+                  <div className={styles.statInfo}>
+                    <h3 className={styles.statValue}>
+                      {quizzes.reduce((sum, q) => sum + (q.questionCount || 0), 0)}
+                    </h3>
                   </div>
                 </div>
               </CardBody>
@@ -384,14 +398,6 @@ export default function QuizManagementPage() {
                         )}
 
                         <div className={styles.quizStats}>
-                          <div className={styles.statItem}>
-                            <HelpCircle size={14} style={{ color: '#64748b' }} />
-                            <span>{quiz.questionCount || 0} questions</span>
-                          </div>
-                          <div className={styles.statItem}>
-                            <Clock size={14} style={{ color: '#64748b' }} />
-                            <span>{quiz.estimatedTime || 0} min</span>
-                          </div>
                           <div className={styles.statItem}>
                             <Users size={14} style={{ color: '#64748b' }} />
                             <span>{quiz.totalAttempts || 0} attempts</span>

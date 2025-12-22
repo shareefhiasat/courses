@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { sendEmail } from './firestore';
+import { addNotification } from './notifications';
 
 /**
  * Send quiz availability notification
@@ -25,14 +26,18 @@ export async function notifyQuizAvailable(quiz, students) {
 
     for (const student of students) {
       // In-app notification
-      await addDoc(collection(db, 'notifications'), {
+      await addNotification({
         userId: student.id,
         title: 'New Quiz Available',
         message: `${quiz.title} is now available. Due: ${formatDate(quiz.settings.dueDate)}`,
-        type: 'quiz_available',
-        data: { quizId: quiz.id },
-        read: false,
-        createdAt: serverTimestamp()
+        type: 'quiz',
+        classId: quiz.classId || null,
+        metadata: {
+          quizId: quiz.id,
+          quizTitle: quiz.title,
+          dueDate: quiz.settings.dueDate
+        },
+        data: { quizId: quiz.id }
       });
 
       // Email notification
@@ -40,6 +45,8 @@ export async function notifyQuizAvailable(quiz, students) {
         await sendEmail({
           to: student.email,
           template: 'quizAvailable',
+          type: 'quiz',
+          classId: quiz.classId || null,
           data: {
             studentName: student.displayName || student.email,
             quizTitle: quiz.title,
@@ -47,6 +54,11 @@ export async function notifyQuizAvailable(quiz, students) {
             dueDate: formatDate(quiz.settings.dueDate),
             quizUrl: `${window.location.origin}/quiz/${quiz.id}`,
             estimatedTime: quiz.estimatedTime || 30
+          },
+          metadata: {
+            quizId: quiz.id,
+            quizTitle: quiz.title,
+            classId: quiz.classId
           }
         });
       } catch (emailError) {
@@ -127,6 +139,8 @@ export async function sendDeadlineReminders() {
             await sendEmail({
               to: userData.email,
               template: 'quizDeadlineReminder',
+              type: 'quiz',
+              classId: quiz.classId || null,
               data: {
                 studentName: userData.displayName || userData.email,
                 quizTitle: quiz.title,
@@ -135,6 +149,11 @@ export async function sendDeadlineReminders() {
                 hoursRemaining: Math.round(
                   (new Date(quiz.settings.dueDate) - now) / (1000 * 60 * 60)
                 )
+              },
+              metadata: {
+                quizId: quiz.id,
+                quizTitle: quiz.title,
+                classId: quiz.classId
               }
             });
           }
@@ -159,14 +178,19 @@ export async function sendDeadlineReminders() {
 export async function notifyGradeReleased(quiz, submission) {
   try {
     // In-app notification
-    await addDoc(collection(db, 'notifications'), {
+    await addNotification({
       userId: submission.userId,
       title: 'Quiz Graded',
       message: `Your quiz "${quiz.title}" has been graded. Score: ${submission.percentage}%`,
-      type: 'grade_released',
-      data: { quizId: quiz.id, submissionId: submission.id },
-      read: false,
-      createdAt: serverTimestamp()
+      type: 'quiz',
+      classId: quiz.classId || null,
+      metadata: {
+        quizId: quiz.id,
+        submissionId: submission.id,
+        score: submission.score,
+        percentage: submission.percentage
+      },
+      data: { quizId: quiz.id, submissionId: submission.id }
     });
 
     // Email notification
@@ -177,6 +201,8 @@ export async function notifyGradeReleased(quiz, submission) {
         await sendEmail({
           to: userData.email,
           template: 'quizGradeReleased',
+          type: 'quiz',
+          classId: quiz.classId || null,
           data: {
             studentName: userData.displayName || userData.email,
             quizTitle: quiz.title,
@@ -186,6 +212,11 @@ export async function notifyGradeReleased(quiz, submission) {
             passed: submission.percentage >= (quiz.settings.passingScore || 70),
             resultsUrl: `${window.location.origin}/quiz/${quiz.id}/results/${submission.id}`,
             instructorFeedback: submission.instructorFeedback || ''
+          },
+          metadata: {
+            quizId: quiz.id,
+            submissionId: submission.id,
+            classId: quiz.classId
           }
         });
       }

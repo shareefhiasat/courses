@@ -738,3 +738,38 @@
 .upcomingTasksCard {
   grid-column: span 1;
 }
+
+/* Performance Summary Card */
+.performanceSummaryCard {
+  border-left: 4px solid #667eea;
+}
+
+.performanceSummary {
+  display: flex;
+  justify-content: space-around;
+  padding: 1rem 0;
+  gap: 1rem;
+}
+
+.performanceSummaryItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.performanceSummaryValue {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.performanceSummaryLabel {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}

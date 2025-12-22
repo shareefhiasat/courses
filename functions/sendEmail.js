@@ -73,14 +73,19 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
     
     // Log successful email to Firestore
     await admin.firestore().collection('emailLogs').add({
-      to: data.to,
+      to: Array.isArray(data.to) ? data.to : [data.to],
       subject: data.subject,
+      type: data.type || 'custom', // system, class, quiz, attendance, newsletter, custom
+      classId: data.classId || null,
+      templateId: data.template || null,
+      recipientCount: Array.isArray(data.to) ? data.to.length : 1,
       status: 'sent',
       messageId: info.messageId,
       response: info.response,
       sentAt: admin.firestore.FieldValue.serverTimestamp(),
-      sentBy: context.auth.uid,
-      senderEmail: context.auth.token.email || 'unknown'
+      sentBy: context.auth?.uid || 'system',
+      senderEmail: context.auth?.token?.email || 'system',
+      metadata: data.metadata || {}
     });
     
     return { 
@@ -95,14 +100,19 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
     // Log failed email to Firestore
     try {
       await admin.firestore().collection('emailLogs').add({
-        to: data.to,
+        to: Array.isArray(data.to) ? data.to : [data.to],
         subject: data.subject,
+        type: data.type || 'custom',
+        classId: data.classId || null,
+        templateId: data.template || null,
+        recipientCount: Array.isArray(data.to) ? data.to.length : 1,
         status: 'failed',
         error: error.message,
         errorCode: error.code || 'unknown',
         attemptedAt: admin.firestore.FieldValue.serverTimestamp(),
-        sentBy: context.auth.uid,
-        senderEmail: context.auth.token.email || 'unknown'
+        sentBy: context.auth?.uid || 'system',
+        senderEmail: context.auth?.token?.email || 'system',
+        metadata: data.metadata || {}
       });
     } catch (logError) {
       console.error('Error logging failed email:', logError);

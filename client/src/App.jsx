@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LangProvider } from './contexts/LangContext';
 import Navbar from './components/Navbar';
@@ -58,7 +58,7 @@ const AppContent = () => {
           <Route path="/activity/:activityId" element={<ActivityDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/student-progress" element={<StudentProgressPage />} />
-          <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/progress" element={<Navigate to="/student-dashboard" replace />} />
           <Route path="/chat" element={<ChatPage />} />
           {/* LeaderboardPage route removed - DEPRECATED */}
           <Route path="/resources" element={<ResourcesPage />} />
@@ -68,7 +68,6 @@ const AppContent = () => {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/profile" element={<ProfileSettingsPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
-          <Route path="/attendance-management" element={<ManualAttendancePage />} />
           <Route path="/manual-attendance" element={<ManualAttendancePage />} />
           <Route path="/my-attendance" element={<StudentAttendancePage />} />
           <Route path="/hr-attendance" element={<HRAttendancePage />} />

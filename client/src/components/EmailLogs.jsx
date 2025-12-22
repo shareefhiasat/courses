@@ -345,7 +345,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             {/* Header */}
             <div style={{
               padding: '0.75rem 1rem',
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              background: 'var(--color-primary, #800020)',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',

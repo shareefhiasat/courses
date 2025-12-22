@@ -34,14 +34,17 @@ const Input = forwardRef(({
   required = false,
   prefix,
   suffix,
+  icon,
   size = 'medium',
   fullWidth = false,
   className = '',
   ...rest
 }, ref) => {
+  const computedPrefix = prefix || icon;
   const wrapperClasses = [
     styles.inputWrapper,
     fullWidth && styles.fullWidth,
+    disabled && styles.disabledWrapper,
     className
   ].filter(Boolean).join(' ');
 
@@ -49,7 +52,7 @@ const Input = forwardRef(({
     styles.input,
     styles[size],
     error && styles.error,
-    prefix && styles.hasPrefix,
+    computedPrefix && styles.hasPrefix,
     suffix && styles.hasSuffix,
   ].filter(Boolean).join(' ');
 
@@ -63,7 +66,7 @@ const Input = forwardRef(({
       )}
       
       <div className={styles.inputContainer}>
-        {prefix && <span className={styles.prefix}>{prefix}</span>}
+        {computedPrefix && <span className={styles.prefix}>{computedPrefix}</span>}
         
         <input
           ref={ref}

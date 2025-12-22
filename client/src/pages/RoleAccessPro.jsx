@@ -3,8 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Shield, Settings2, Save, Search } from 'lucide-react';
-import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast } from '../components/ui';
+import { Shield, Settings2, Save, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '../components/ui';
 import styles from './RoleAccessPro.module.css';
 
 export default function RoleAccessPro() {
@@ -18,34 +18,86 @@ export default function RoleAccessPro() {
   const [message, setMessage] = useState('');
   const [activeRole, setActiveRole] = useState('admin');
   const [q, setQ] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState({});
 
   const roles = ['admin', 'instructor', 'hr', 'student'];
 
   const screens = [
-    { id: 'dashboard', name: 'Dashboard', group: 'General' },
-    { id: 'activities', name: 'Activities', group: 'Learning' },
-    { id: 'resources', name: 'Resources', group: 'Learning' },
-    { id: 'classes', name: 'Classes', group: 'Learning' },
-    { id: 'attendance', name: 'Attendance (Instructor)', group: 'Attendance' },
-    { id: 'myAttendance', name: 'My Attendance (Student)', group: 'Attendance' },
-    { id: 'hrAttendance', name: 'HR Attendance', group: 'Attendance' },
-    { id: 'analytics', name: 'Analytics', group: 'Insights' },
-    { id: 'studentProfile', name: 'Student Profile', group: 'Students' },
-    { id: 'classSchedule', name: 'Class Schedule', group: 'Learning' },
-    { id: 'manageEnrollments', name: 'Manage Enrollments', group: 'Admin' },
-    { id: 'enrollments', name: 'Enrollments', group: 'Admin' },
-    { id: 'chat', name: 'Chat', group: 'Engagement' },
-    { id: 'leaderboard', name: 'Leaderboard', group: 'Engagement' },
-    { id: 'progress', name: 'Progress', group: 'Insights' },
-    { id: 'notifications', name: 'Notifications', group: 'General' },
-    { id: 'profile', name: 'Profile Settings', group: 'General' },
+    // MAIN
+    { id: 'home', name: 'Home', group: 'MAIN', description: 'Main landing page with activities and announcements' },
+    { id: 'dashboard', name: 'Dashboard', group: 'MAIN', description: 'Admin dashboard for system overview' },
+    { id: 'studentDashboard', name: 'Student Dashboard', group: 'MAIN', description: 'Student dashboard with progress and stats' },
+    { id: 'studentProgress', name: 'Student Progress', group: 'MAIN', description: 'View individual student progress' },
+    { id: 'activities', name: 'Activities', group: 'MAIN', description: 'Browse and complete learning activities' },
+    { id: 'progress', name: 'Progress', group: 'MAIN', description: 'Track your learning progress' },
+    // QUIZ
+    { id: 'quizManagement', name: 'Quiz Management', group: 'QUIZ', description: 'Manage and organize quizzes' },
+    { id: 'quizBuilder', name: 'Quiz Builder', group: 'QUIZ', description: 'Create and edit quizzes' },
+    { id: 'quizResults', name: 'Quiz Results', group: 'QUIZ', description: 'View quiz results and analytics' },
+    // CLASSES
+    { id: 'classSchedules', name: 'Class Schedule', group: 'CLASSES', description: 'View class schedules and timetables' },
+    { id: 'manageEnrollments', name: 'Manage Enrollments', group: 'CLASSES', description: 'Manage student enrollments in classes' },
+    { id: 'myEnrollments', name: 'My Enrollments', group: 'CLASSES', description: 'View your enrolled classes' },
+    // ATTENDANCE
+    { id: 'attendance', name: 'Attendance (Instructor)', group: 'ATTENDANCE', description: 'Take attendance for classes' },
+    { id: 'manualAttendance', name: 'Manual Attendance', group: 'ATTENDANCE', description: 'Manually record attendance' },
+    { id: 'hrAttendance', name: 'HR Attendance', group: 'ATTENDANCE', description: 'HR attendance tracking and management' },
+    { id: 'myAttendance', name: 'My Attendance (Student)', group: 'ATTENDANCE', description: 'View your attendance records' },
+    // ANALYTICS
+    { id: 'analytics', name: 'Analytics', group: 'ANALYTICS', description: 'View system analytics and reports' },
+    { id: 'advancedAnalytics', name: 'Advanced Analytics', group: 'ANALYTICS', description: 'Advanced analytics with custom widgets' },
+    // COMMUNITY
+    { id: 'chat', name: 'Chat', group: 'COMMUNITY', description: 'Communicate with students and instructors' },
+    { id: 'resources', name: 'Resources', group: 'COMMUNITY', description: 'Access learning resources and materials' },
+    // TOOLS
+    { id: 'timer', name: 'Timer', group: 'TOOLS', description: 'Timer tool for tracking study time' },
+    // WORKSPACE SETTINGS / SETTINGS
+    { id: 'notifications', name: 'Notifications', group: 'SETTINGS', description: 'Manage your notifications' },
+    { id: 'studentProfile', name: 'Student Profile', group: 'SETTINGS', description: 'View and manage student profiles' },
+    { id: 'profile', name: 'Profile Settings', group: 'SETTINGS', description: 'Manage your profile and preferences' },
   ];
 
   const defaultRoleScreens = {
-    admin: { dashboard: true, activities: true, resources: true, classes: true, attendance: true, analytics: true, studentProfile: true, classSchedule: true, manageEnrollments: true, enrollments: true, chat: true, leaderboard: true, progress: true, notifications: true, profile: true, hrAttendance: true, myAttendance: false },
-    instructor: { dashboard: false, activities: true, resources: true, classes: true, attendance: true, analytics: true, studentProfile: true, classSchedule: true, manageEnrollments: true, enrollments: true, chat: true, leaderboard: true, progress: true, notifications: true, profile: true, hrAttendance: false, myAttendance: false },
-    hr: { dashboard: false, activities: false, resources: false, classes: true, attendance: false, analytics: true, studentProfile: true, classSchedule: false, manageEnrollments: false, enrollments: true, chat: false, leaderboard: false, progress: false, notifications: true, profile: true, hrAttendance: true, myAttendance: false },
-    student: { dashboard: false, activities: true, resources: true, classes: true, attendance: false, analytics: false, studentProfile: true, classSchedule: false, manageEnrollments: false, enrollments: true, chat: true, leaderboard: true, progress: true, notifications: true, profile: true, hrAttendance: false, myAttendance: true },
+    admin: { 
+      home: true, dashboard: true, studentDashboard: true, studentProgress: true, activities: true, progress: true,
+      quizManagement: true, quizBuilder: true, quizResults: true,
+      classSchedules: true, manageEnrollments: true, myEnrollments: true,
+      attendance: true, manualAttendance: true, hrAttendance: true, myAttendance: false,
+      analytics: true, advancedAnalytics: true,
+      chat: true, resources: true,
+      timer: true,
+      notifications: true, studentProfile: true, profile: true
+    },
+    instructor: { 
+      home: true, dashboard: false, studentDashboard: false, studentProgress: true, activities: true, progress: false,
+      quizManagement: true, quizBuilder: true, quizResults: true,
+      classSchedules: true, manageEnrollments: true, myEnrollments: false,
+      attendance: true, manualAttendance: false, hrAttendance: false, myAttendance: false,
+      analytics: true, advancedAnalytics: false,
+      chat: true, resources: true,
+      timer: true,
+      notifications: true, studentProfile: true, profile: true
+    },
+    hr: { 
+      home: true, dashboard: false, studentDashboard: false, studentProgress: false, activities: false, progress: false,
+      quizManagement: false, quizBuilder: false, quizResults: false,
+      classSchedules: false, manageEnrollments: false, myEnrollments: false,
+      attendance: false, manualAttendance: false, hrAttendance: true, myAttendance: false,
+      analytics: true, advancedAnalytics: false,
+      chat: false, resources: false,
+      timer: true,
+      notifications: true, studentProfile: true, profile: true
+    },
+    student: { 
+      home: true, dashboard: false, studentDashboard: true, studentProgress: false, activities: true, progress: true,
+      quizManagement: false, quizBuilder: false, quizResults: true,
+      classSchedules: false, manageEnrollments: false, myEnrollments: true,
+      attendance: false, attendanceManagement: false, manualAttendance: false, hrAttendance: false, myAttendance: true,
+      analytics: false, advancedAnalytics: false,
+      chat: true, resources: true,
+      timer: true,
+      notifications: true, studentProfile: true, profile: true
+    },
   };
 
   useEffect(() => {
@@ -99,11 +151,7 @@ export default function RoleAccessPro() {
   }, [q]);
 
   if (authLoading || loading) {
-    return (
-      <div className={styles.loadingWrapper}>
-        <Spinner size="lg" />
-      </div>
-    );
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading role access...'} />;
   }
   
   if (!(isSuperAdmin || isAdmin)) {
@@ -125,17 +173,13 @@ export default function RoleAccessPro() {
       <Card>
         <CardBody>
           <div className={styles.header}>
-            <div className={styles.headerContent}>
+            <div className={styles.headerContent} style={{ display: 'none' }}>
               <Settings2 size={32} className={styles.headerIcon} />
-              <div>
-                <h1 className={styles.title}>Role Access</h1>
-                <p className={styles.subtitle}>Enable/disable screens per role</p>
-              </div>
+              {/* Title removed per user request */}
             </div>
             
             <div className={styles.controls}>
               <Input
-                icon={<Search size={16} />}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search screens..."
@@ -147,11 +191,8 @@ export default function RoleAccessPro() {
                   value={activeRole}
                   onChange={(e) => setActiveRole(e.target.value)}
                   label="Role"
-                >
-                  {roles.map(r => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </Select>
+                  options={roles.map(r => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }))}
+                />
                 
                 <Button
                   variant="outline"
@@ -183,61 +224,80 @@ export default function RoleAccessPro() {
           <div className={styles.groups}>
             {filteredScreens.map(({ group, items }) => (
               <div key={group} className={styles.group}>
-                <div className={styles.groupHeader}>
-                  <h3>{group}</h3>
-                  <Badge variant="subtle">{items.length} screens</Badge>
+                <div 
+                  className={styles.groupHeader}
+                  onClick={() => setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }))}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {expandedGroups[group] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                    <h3>{group}</h3>
+                  </div>
+                  <Badge variant="subtle" color="default" style={{ color: '#000' }}>{items.length} screens</Badge>
                 </div>
                 
-                {/* Role Header Row */}
-                <div className={styles.screenRow} style={{ paddingTop: '.75rem', paddingBottom: '.75rem' }}>
-                  <div className={styles.screenInfo}>
-                    <div className={styles.screenName} style={{ opacity: .7 }}>Screen</div>
-                  </div>
-                  <div className={styles.roleToggles}>
-                    {roles.map(r => (
-                      <div key={`role-head-${r}`} style={{
-                        minWidth: 64,
-                        textTransform: 'capitalize',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: r === activeRole ? 'var(--color-primary, #800020)' : 'var(--text-muted, #666)'
-                      }}>
-                        {r}
+                {expandedGroups[group] && (
+                  <>
+                    {/* Role Header Row */}
+                    <div className={styles.screenRow} style={{ paddingTop: '.75rem', paddingBottom: '.75rem', background: 'var(--panel-hover, #f8f9fa)' }}>
+                      <div className={styles.screenInfo} style={{ flex: 1, minWidth: 0 }}>
+                        <div className={styles.screenName} style={{ opacity: .7, fontWeight: 600 }}>Screen</div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.screensList}>
-                  {items.map((s, idx) => (
-                    <div key={s.id} className={`${styles.screenRow} ${idx % 2 ? styles.alt : ''}`}>
-                      <div className={styles.screenInfo}>
-                        <div className={styles.screenName}>{s.name}</div>
-                        <div className={styles.screenId}>{s.id}</div>
-                      </div>
-                      
-                      <div className={styles.roleToggles}>
-                        {roles.map(r => {
-                          const on = !!(roleScreens[r]?.[s.id]);
-                          return (
-                            <button
-                              key={`${s.id}_${r}`}
-                              type="button"
-                              onClick={(e) => { e.preventDefault(); toggleScreen(r, s.id); }}
-                              role="switch"
-                              aria-checked={on}
-                              className={`${styles.toggle} ${on ? styles.toggleOn : styles.toggleOff}`}
-                              title={`${r} toggle`}
-                              style={r === activeRole ? { outline: '2px solid rgba(128,0,32,0.25)' } : undefined}
-                            >
-                              <span className={styles.toggleKnob} />
-                            </button>
-                          );
-                        })}
+                      <div className={styles.roleToggles} style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexShrink: 0 }}>
+                        {roles.map(r => (
+                          <div key={`role-head-${r}`} style={{
+                            minWidth: 64,
+                            textTransform: 'capitalize',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: r === activeRole ? 'var(--color-primary, #800020)' : 'var(--text-muted, #666)',
+                            display: 'flex',
+                            justifyContent: 'center'
+                          }}>
+                            {r}
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    <div className={styles.screensList}>
+                      {items.map((s, idx) => (
+                        <div key={s.id} className={`${styles.screenRow} ${idx % 2 ? styles.alt : ''}`}>
+                          <div className={styles.screenInfo} style={{ flex: 1, minWidth: 0 }}>
+                            <div className={styles.screenName}>{s.name}</div>
+                            {s.description && (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #666)', marginTop: '0.25rem' }}>
+                                {s.description}
+                              </div>
+                            )}
+                            <div className={styles.screenId}>{s.id}</div>
+                          </div>
+                          
+                          <div className={styles.roleToggles} style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexShrink: 0 }}>
+                            {roles.map(r => {
+                              const on = !!(roleScreens[r]?.[s.id]);
+                              return (
+                                <div key={`${s.id}_${r}`} style={{ minWidth: 64, display: 'flex', justifyContent: 'center' }}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); toggleScreen(r, s.id); }}
+                                    role="switch"
+                                    aria-checked={on}
+                                    className={`${styles.toggle} ${on ? styles.toggleOn : styles.toggleOff}`}
+                                    title={`${r} toggle`}
+                                    style={r === activeRole ? { outline: '2px solid rgba(128,0,32,0.25)' } : undefined}
+                                  >
+                                    <span className={styles.toggleKnob} />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

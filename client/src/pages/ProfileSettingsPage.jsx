@@ -7,9 +7,10 @@ import { db } from '../firebase/config';
 import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '../components/ui';
 import styles from './ProfileSettingsPage.module.css';
+import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '../utils/color';
 
 const ProfileSettingsPage = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
   const { t, lang, toggleLang } = useLang();
   const toast = useToast();
   
@@ -20,9 +21,10 @@ const ProfileSettingsPage = () => {
     realName: '',
     studentNumber: '',
     phoneNumber: '',
-    messageColor: '#8B5CF6',
+    messageColor: DEFAULT_ACCENT,
     preferOTPLogin: false
   });
+  const [customColorInput, setCustomColorInput] = useState(DEFAULT_ACCENT);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -32,19 +34,28 @@ const ProfileSettingsPage = () => {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
+          const resolvedColor = normalizeHexColor(data.messageColor, DEFAULT_ACCENT);
           setProfileData({
             displayName: data.displayName || user.displayName || '',
             realName: data.realName || '',
             studentNumber: data.studentNumber || '',
             phoneNumber: data.phoneNumber || '',
-            messageColor: data.messageColor || '#8B5CF6',
+            messageColor: resolvedColor,
             preferOTPLogin: data.preferOTPLogin || false
           });
+          setCustomColorInput(resolvedColor);
+          // Apply color on load
+          applyAccentColorGlobally(resolvedColor);
         } else {
+          const fallbackColor = normalizeHexColor(null, DEFAULT_ACCENT);
           setProfileData(prev => ({
             ...prev,
-            displayName: user.displayName || ''
+            displayName: user.displayName || '',
+            messageColor: fallbackColor
           }));
+          setCustomColorInput(fallbackColor);
+          // Apply fallback color on load
+          applyAccentColorGlobally(fallbackColor);
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -62,16 +73,20 @@ const ProfileSettingsPage = () => {
 
     setSaving(true);
     try {
+      const normalizedColor = normalizeHexColor(profileData.messageColor, DEFAULT_ACCENT);
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         displayName: profileData.displayName,
         realName: profileData.realName,
         studentNumber: profileData.studentNumber,
         phoneNumber: profileData.phoneNumber,
-        messageColor: profileData.messageColor,
+        messageColor: normalizedColor,
         preferOTPLogin: profileData.preferOTPLogin
       });
 
+      // Apply color globally immediately
+      applyAccentColorGlobally(normalizedColor);
+      
       toast.success(t('profile_updated') || 'Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -88,6 +103,10 @@ const ProfileSettingsPage = () => {
     }));
   };
 
+  useEffect(() => {
+    setCustomColorInput(normalizeHexColor(profileData.messageColor, DEFAULT_ACCENT));
+  }, [profileData.messageColor]);
+
   if (authLoading || loading) {
     return (
       <div className={styles.loadingWrapper}>
@@ -96,6 +115,21 @@ const ProfileSettingsPage = () => {
     );
   }
   if (!user) return <Navigate to="/login" />;
+
+  const handleCustomColorInput = (value) => {
+    setCustomColorInput(value);
+    const normalized = trySanitizeHexColor(value);
+    if (normalized) {
+      handleChange('messageColor', normalized);
+    }
+  };
+
+  const handleColorSelection = (value) => {
+    const normalized = normalizeHexColor(value, DEFAULT_ACCENT);
+    handleChange('messageColor', normalized);
+    // Apply color immediately for preview
+    applyAccentColorGlobally(normalized);
+  };
 
   const colorOptions = [
     '#8B5CF6', // Purple
@@ -126,6 +160,30 @@ const ProfileSettingsPage = () => {
               <h2>{t('personal_information') || 'Personal Information'}</h2>
             </div>
 
+            {/* Role Display */}
+            <div style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>Your Role</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                {isSuperAdmin && (
+                  <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
+                    <Shield size={14} /> Super Admin
+                  </span>
+                )}
+                {isAdmin && !isSuperAdmin && (
+                  <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>Admin</span>
+                )}
+                {isInstructor && (
+                  <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>Instructor</span>
+                )}
+                {isHR && (
+                  <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>HR</span>
+                )}
+                {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
+                  <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>Student</span>
+                )}
+              </div>
+            </div>
+
             <div className={styles.formSection}>
               <Input
                 id="email"
@@ -133,7 +191,6 @@ const ProfileSettingsPage = () => {
                 label={t('email')}
                 value={user.email || ''}
                 disabled
-                icon={<Mail size={18} />}
                 helperText={t('email_cannot_be_changed') || 'Email address cannot be changed'}
               />
 
@@ -144,7 +201,6 @@ const ProfileSettingsPage = () => {
                 value={profileData.displayName}
                 onChange={(e) => handleChange('displayName', e.target.value)}
                 placeholder={t('display_name_placeholder') || 'Enter your display name'}
-                icon={<User size={18} />}
               />
 
               <Input
@@ -154,7 +210,6 @@ const ProfileSettingsPage = () => {
                 value={profileData.realName}
                 onChange={(e) => handleChange('realName', e.target.value)}
                 placeholder={t('real_name_placeholder')}
-                icon={<User size={18} />}
               />
 
               <Input
@@ -164,7 +219,6 @@ const ProfileSettingsPage = () => {
                 value={profileData.studentNumber}
                 onChange={(e) => handleChange('studentNumber', e.target.value)}
                 placeholder={t('student_number_placeholder')}
-                icon={<Hash size={18} />}
               />
 
               <Input
@@ -174,7 +228,6 @@ const ProfileSettingsPage = () => {
                 value={profileData.phoneNumber}
                 onChange={(e) => handleChange('phoneNumber', e.target.value)}
                 placeholder={t('phone_number_placeholder') || 'Enter your phone number'}
-                icon={<Phone size={18} />}
               />
             </div>
           </CardBody>
@@ -196,10 +249,37 @@ const ProfileSettingsPage = () => {
                       key={color}
                       className={`${styles.colorOption} ${profileData.messageColor === color ? styles.selected : ''}`}
                       style={{ backgroundColor: color }}
-                      onClick={() => handleChange('messageColor', color)}
+                      onClick={() => handleColorSelection(color)}
                       title={color}
                     />
                   ))}
+                </div>
+                <div className={styles.customColorControls}>
+                  <div className={styles.customColorRow}>
+                    <label htmlFor="customAccent" className={styles.customColorLabel}>
+                      {t('custom_accent_color') || 'Custom Accent Color'}
+                    </label>
+                    <div className={styles.customColorInputs}>
+                      <input
+                        id="customAccent"
+                        type="color"
+                        className={styles.nativeColorInput}
+                        value={normalizeHexColor(customColorInput || profileData.messageColor, DEFAULT_ACCENT)}
+                        onChange={(e) => handleColorSelection(e.target.value)}
+                      />
+                      <Input
+                        label="HEX"
+                        value={customColorInput}
+                        onChange={(e) => handleCustomColorInput(e.target.value)}
+                        placeholder="#667EEA"
+                        size="small"
+                        fullWidth
+                      />
+                    </div>
+                    <p className={styles.colorNote}>
+                      {t('accent_color_description') || 'This accent updates chat bubbles and the primary interface color.'}
+                    </p>
+                  </div>
                 </div>
                 <div className={styles.colorPreview}>
                   <div className={styles.previewLabel}>{t('preview')}:</div>
@@ -273,6 +353,23 @@ const ProfileSettingsPage = () => {
       </div>
     </Container>
   );
+};
+
+// Apply accent color globally to all components
+const applyAccentColorGlobally = (color) => {
+  if (typeof document === 'undefined') return;
+  const accent = normalizeHexColor(color, DEFAULT_ACCENT);
+  const root = document.documentElement;
+  root.style.setProperty('--color-primary', accent);
+  root.style.setProperty('--color-primary-light', adjustColor(accent, 15));
+  root.style.setProperty('--color-primary-dark', adjustColor(accent, -15));
+  root.style.setProperty('--color-primary-rgb', hexToRgbString(accent));
+  root.style.setProperty('--input-focus', accent);
+  // Apply to navbar and other components
+  root.style.setProperty('--navbar-bg', accent);
+  root.style.setProperty('--accent-color', accent);
+  // Dispatch event for other components to react
+  window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: { color: accent } }));
 };
 
 export default ProfileSettingsPage;

@@ -208,6 +208,14 @@ export async function markAttendance({
           title: statusChanged ? '📋 Attendance Updated' : '📋 Attendance Recorded',
           message: `Your attendance for ${className || 'class'} on ${formattedDate}: ${statusLabel.en}${notes ? ` - ${notes}` : ''}`,
           type: 'attendance',
+          classId: classId,
+          metadata: {
+            date,
+            status,
+            previousStatus: statusChanged ? oldStatus : null,
+            className: className,
+            method: method
+          },
           data: { 
             classId, 
             date, 
@@ -222,6 +230,8 @@ export async function markAttendance({
             await sendEmail({
               to: studentInfo.email,
               template: 'attendanceNotification',
+              type: 'attendance',
+              classId: classId,
               data: {
                 studentName: studentInfo.displayName || studentInfo.email,
                 className: className || 'Class',
@@ -231,6 +241,13 @@ export async function markAttendance({
                 notes: notes || '',
                 isUpdate: statusChanged,
                 previousStatus: statusChanged ? (ATTENDANCE_STATUS_LABELS[oldStatus]?.en || oldStatus) : null
+              },
+              metadata: {
+                classId,
+                className,
+                date,
+                status,
+                method
               }
             });
           } catch (emailError) {

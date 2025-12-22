@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             adminFromDoc = (userData.role === 'admin' || userData.role === 'super_admin') || userData.isAdmin === true;
-            superAdminFromDoc = userData.role === 'super_admin';
+            superAdminFromDoc = userData.role === 'super_admin' || userData.isSuperAdmin === true;
             hr = userData.role === 'hr' || userData.isHR === true;
             instructor = userData.role === 'instructor' || userData.isInstructor === true;
             

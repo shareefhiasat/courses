@@ -5,6 +5,19 @@
   gap: 0.375rem;
 }
 
+.inputWrapper.disabledWrapper .label {
+  color: var(--text-muted, #6b7280);
+}
+
+.inputWrapper.disabledWrapper .helperText {
+  color: var(--text-muted, #94a3b8);
+}
+
+.inputWrapper.disabledWrapper .prefix,
+.inputWrapper.disabledWrapper .suffix {
+  color: var(--text-muted, #94a3b8);
+}
+
 .fullWidth {
   width: 100%;
 }
@@ -58,9 +71,16 @@
 }
 
 .input:disabled {
-  background: #f5f5f5;
+  background: var(--input-disabled-bg, #f0f2f5);
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 1;
+  color: var(--text-muted, #6b7280);
+  border-color: var(--border, #d1d5db);
+  box-shadow: none;
+}
+
+.input:disabled::placeholder {
+  color: var(--text-muted, #94a3b8);
 }
 
 /* Sizes */
@@ -84,7 +104,7 @@
 
 /* With Prefix/Suffix */
 .hasPrefix {
-  padding-left: 2.5rem;
+  padding-left: 2.75rem;
 }
 
 .hasSuffix {
@@ -99,14 +119,19 @@
   justify-content: center;
   color: var(--muted, #666);
   pointer-events: none;
+  z-index: 1;
 }
 
 .prefix {
-  left: 0.75rem;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .suffix {
   right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* Error State */
@@ -144,7 +169,14 @@
   }
   
   .input:disabled {
-    background: #2a2a2a;
+    background: var(--panel, #2a2a2a);
+    border-color: #3f3f46;
+    color: var(--text-muted, #a1a1aa);
+  }
+  
+  .input[readonly] {
+    background: var(--panel, #1a1a1a);
+    color: var(--text, #f5f5f5);
   }
   
   .input::placeholder {

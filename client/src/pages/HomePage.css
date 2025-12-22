@@ -126,21 +126,22 @@
 
 .activities-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
   margin-top: 2rem;
 }
 
 .activity-card {
   background: white;
   border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: all 0.3s ease;
   border: 1px solid #eee;
   display: flex;
   flex-direction: column;
-  min-height: 260px;
+  min-height: auto;
+  max-height: none;
 }
 
 .activity-card:hover {

@@ -17,6 +17,7 @@
 .titleWrap { display: inline-flex; align-items:center; gap:.5rem; }
 .icon { display:inline-flex; align-items:center; }
 .title { font-weight: 700; font-size: .95rem; }
+.title.largeTitle { font-size: 1.5rem !important; font-weight: 700 !important; }
 .headerRight { display: inline-flex; align-items:center; gap:.5rem; color: var(--muted, #6b7280); }
 .contentOuter {
   overflow: hidden;

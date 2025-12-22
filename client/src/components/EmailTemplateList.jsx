@@ -232,14 +232,15 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
             border: '1px solid #ddd',
             borderRadius: 8,
             width: 300,
-            fontSize: '0.95rem'
+            fontSize: '0.95rem',
+            background: 'white'
           }}
         />
         <button
           onClick={onCreateNew}
           style={{
             padding: '10px 20px',
-            background: 'linear-gradient(135deg, #800020, #600018)',
+            background: 'var(--color-primary, #800020)',
             color: 'white',
             border: 'none',
             borderRadius: 8,
@@ -248,7 +249,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
             fontSize: '0.95rem'
           }}
         >
-          <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}><Plus size={16} /> Create New Template</span>
+          Create New Template
         </button>
       </div>
 
@@ -268,7 +269,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
               onClick={onCreateNew}
               style={{
                 padding: '12px 24px',
-                background: 'linear-gradient(135deg, #800020, #600018)',
+                background: 'var(--color-primary, #800020)',
                 color: 'white',
                 border: 'none',
                 borderRadius: 8,
