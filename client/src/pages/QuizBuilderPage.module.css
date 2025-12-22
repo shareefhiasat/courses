@@ -301,7 +301,32 @@
   border: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
+}
+
+.setupForm .toggleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.setupForm .toggleRow:last-child {
+  border-bottom: none;
+}
+
+.togglesContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
 .formGrid {
@@ -345,7 +370,12 @@
 }
 
 .explanationSection {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
+}
+
+.explanationSection :global(.ql-editor) {
+  min-height: 120px !important;
+  padding: 0.75rem 1rem !important;
 }
 
 .previewExplanationContent {
@@ -518,6 +548,25 @@
   transition: all 0.2s ease;
   margin-bottom: 0.5rem;
   text-align: left;
+  position: relative;
+}
+
+.questionTab[draggable="true"] {
+  cursor: grab;
+}
+
+.questionTab[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.dragHandle {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.questionTab:hover .dragHandle {
+  opacity: 1;
 }
 
 .questionTab:hover {
@@ -549,6 +598,22 @@
   color: #1e293b;
   font-weight: 500;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.questionTypeIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #64748b;
+}
+
+.questionPreview {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -588,8 +653,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -600,10 +665,67 @@
   color: #1e293b;
 }
 
+.questionTypeSelector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.questionTypeSelector label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.questionTypeSelector > div {
+  flex: 1;
+  max-width: 200px;
+  min-width: 180px;
+}
+
+.questionTypeSelector :global(.selectWrapper) {
+  width: 100%;
+}
+
+.questionTypeSelector :global(.selectContainer) {
+  width: 100%;
+}
+
+.questionTypeSelector :global(.select) {
+  min-height: 40px;
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.questionTypeSelector :global(.selectWrapper) {
+  width: 100%;
+}
+
+.questionTypeSelector :global(.select) {
+  min-height: 40px;
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  width: 100%;
+}
+
 .questionForm {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+}
+
+.questionForm > div:first-child {
+  margin-bottom: 0;
+}
+
+.questionTextEditor :global(.ql-editor) {
+  padding: 0.5rem 0.75rem !important;
+  min-height: 100px !important;
 }
 
 .questionInput {

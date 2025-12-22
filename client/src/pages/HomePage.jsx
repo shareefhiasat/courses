@@ -1,42 +1,112 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Globe2, Code2, Monitor, Sigma, BookOpen, BarChart3, Megaphone, Link2, MessageSquareText, RotateCcw, FileText, AlertCircle, Leaf, TrendingUp, Flame, Award, HelpCircle, ClipboardList, Play, Info, StarOff, Hourglass, Repeat, CheckCircle } from 'lucide-react';
-import { getActivities, getAnnouncements, getCourses } from '../firebase/firestore';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import Joyride from 'react-joyride';
+import { Globe2, Code2, Monitor, Sigma, BookOpen, Award, HelpCircle, ClipboardList, Play, StarOff, Hourglass, Repeat, CheckCircle, Star, Pin, Clock, AlertCircle, FileText, Link2, Video, LayoutGrid, Plus, Calendar } from 'lucide-react';
+import { getActivities, getAnnouncements, getCourses, getResources } from '../firebase/firestore';
+import { getAllQuizzes } from '../firebase/quizzes';
+import { getUserSubmissions } from '../firebase/submissions';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useLang } from '../contexts/LangContext';
 import { formatDateTime } from '../utils/date';
-import { Container, Card, CardBody, Button, Badge, Spinner, ExpandablePanel, Loading } from '../components/ui';
+import { Loading, Tabs } from '../components/ui';
+import UnifiedCard from '../components/UnifiedCard';
 import AuthForm from '../components/AuthForm';
-import RankDisplay from '../components/RankDisplay';
-import RecentMedals from '../components/RecentMedals';
-import styles from './HomePage.module.css';
 import './HomePage.css';
 
 const HomePage = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
-  const [activities, setActivities] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState(''); // Default to "ALL" (empty string)
-  const [announcementFilter, setAnnouncementFilter] = useState('all');
-  const [announcementSearch, setAnnouncementSearch] = useState('');
-  const [activityTypeFilter, setActivityTypeFilter] = useState('all');
-  const [difficultyFilter, setDifficultyFilter] = useState('all');
   const { lang, t } = useLang();
-  const [enrolledClasses, setEnrolledClasses] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [expandedAnnouncements, setExpandedAnnouncements] = useState({});
-  const [annCollapsed, setAnnCollapsed] = useState(true);
-  const [userData, setUserData] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Mode: 'activities' | 'resources' | 'quizzes'
+  const mode = searchParams.get('mode') || 'activities';
+  
+  // Filter view mode: 'full' | 'minified'
+  const [filterViewMode, setFilterViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('filterViewMode') || 'full';
+    } catch {
+      return 'full';
+    }
+  });
 
+  // Help tour state
+  const [showHelp, setShowHelp] = useState(false);
+  const filtersRef = useRef(null);
+  const gridRef = useRef(null);
+  const tourSeenKey = 'homePageHelpSeen';
+  
+  // Data states
+  const [activities, setActivities] = useState([]);
+  const [resources, setResources] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('');
+  
+  // User data
+  const [enrolledClasses, setEnrolledClasses] = useState([]);
+  const [userData, setUserData] = useState(null);
+  const [submissions, setSubmissions] = useState({});
+  const [bookmarks, setBookmarks] = useState({ activities: {}, resources: {}, quizzes: {} });
+  const [userProgress, setUserProgress] = useState({});
+  
+  // Common filters (visible for all modes)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [bookmarkFilter, setBookmarkFilter] = useState(false);
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [completedFilter, setCompletedFilter] = useState(false);
+  const [requiredFilter, setRequiredFilter] = useState(false);
+  const [optionalFilter, setOptionalFilter] = useState(false);
+  const [overdueFilter, setOverdueFilter] = useState(false);
+  const [pendingFilter, setPendingFilter] = useState(false);
+  const [retakableFilter, setRetakableFilter] = useState(false);
+  const [featuredFilter, setFeaturedFilter] = useState(false);
+  const [gradedFilter, setGradedFilter] = useState('all'); // 'all' | 'graded' | 'not_graded'
+  
+  // Mode-specific filters
+  const [activityTypeFilter, setActivityTypeFilter] = useState('all'); // For activities
+  const [resourceTypeFilter, setResourceTypeFilter] = useState('all'); // For resources
+  const [classFilter, setClassFilter] = useState('all'); // For quizzes
+
+  // Save filter view mode preference
   useEffect(() => {
-    console.log('[Home] authLoading:', authLoading, 'user:', !!user, 'uid:', user?.uid);
+    try {
+      localStorage.setItem('filterViewMode', filterViewMode);
+    } catch {}
+  }, [filterViewMode]);
+
+  // Listen for filter view mode changes from navbar
+  useEffect(() => {
+    const handler = (e) => {
+      if (e?.detail?.filterViewMode) {
+        setFilterViewMode(e.detail.filterViewMode);
+      }
+    };
+    window.addEventListener('filter-view-mode-changed', handler);
+    return () => window.removeEventListener('filter-view-mode-changed', handler);
+  }, []);
+
+  // Initialize mode from URL
+  useEffect(() => {
+    const urlMode = searchParams.get('mode');
+    if (urlMode && ['activities', 'resources', 'quizzes'].includes(urlMode)) {
+      // Mode is already set via searchParams
+    }
+  }, [searchParams]);
+
+  // Load user data
+  useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      // Avoid querying protected collections when not signed in
-      console.log('[Home] No user, skipping data loads');
       setActivities([]);
+      setResources([]);
+      setQuizzes([]);
       setAnnouncements([]);
       setCourses([]);
       return;
@@ -44,15 +114,31 @@ const HomePage = () => {
     loadData();
   }, [authLoading, user]);
 
+  // Load user enrollments, bookmarks, progress
   useEffect(() => {
-    const loadEnrollments = async () => {
+    const loadUserData = async () => {
       if (!user) return;
       try {
-        console.log('[Home] Fetching user enrollments for', user.uid);
         const snap = await getDoc(doc(db, 'users', user.uid));
         const data = snap.exists() ? snap.data() : {};
         setEnrolledClasses(Array.isArray(data.enrolledClasses) ? data.enrolledClasses : []);
         setUserData(data);
+        setBookmarks({
+          activities: (data.bookmarks && data.bookmarks.activities) || {},
+          resources: (data.bookmarks && data.bookmarks.resources) || {},
+          quizzes: (data.bookmarks && data.bookmarks.quizzes) || {}
+        });
+        setUserProgress(data.resourceProgress || {});
+        
+        // Load submissions
+        const submissionsResult = await getUserSubmissions(user.uid);
+        if (submissionsResult.success) {
+          const subs = {};
+          submissionsResult.data.forEach(sub => {
+            subs[sub.activityId] = sub;
+          });
+          setSubmissions(subs);
+        }
       } catch (e) {
         if (e?.code === 'permission-denied') {
           console.warn('[Home] permission-denied reading users/', user.uid);
@@ -61,126 +147,339 @@ const HomePage = () => {
         }
       }
     };
-    loadEnrollments();
+    loadUserData();
   }, [user]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      console.log('[Home] Loading activities/announcements/courses...');
-      const [activitiesResult, announcementsResult, coursesResult] = await Promise.all([
+      const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult] = await Promise.all([
         getActivities(),
+        getResources(),
+        getAllQuizzes(),
         getAnnouncements(),
         getCourses()
       ]);
       
-      if (activitiesResult.success) {
-        setActivities(activitiesResult.data);
-        console.log('[Home] activities count:', activitiesResult.data?.length || 0);
-      } else if (activitiesResult.error) {
-        console.warn('[Home] activities error:', activitiesResult.error);
-      }
-      if (announcementsResult.success) {
-        setAnnouncements(announcementsResult.data);
-        console.log('[Home] announcements count:', announcementsResult.data?.length || 0);
-      } else if (announcementsResult.error) {
-        console.warn('[Home] announcements error:', announcementsResult.error);
-      }
-      if (coursesResult.success) {
-        const list = coursesResult.data || [];
-        setCourses(list);
-        console.log('[Home] courses count:', list.length);
-      } else if (coursesResult.error) {
-        console.warn('[Home] courses error:', coursesResult.error);
-      }
+      if (activitiesResult.success) setActivities(activitiesResult.data || []);
+      if (resourcesResult.success) setResources(resourcesResult.data || []);
+      if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
+      if (announcementsResult.success) setAnnouncements(announcementsResult.data || []);
+      if (coursesResult.success) setCourses(coursesResult.data || []);
     } catch (error) {
-      if (error?.code === 'permission-denied') {
-        console.warn('[Home] permission-denied in loadData()');
-      } else {
         console.error('Error loading data:', error);
-      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter announcements by date - MUST BE BEFORE CONDITIONAL RETURNS
-  const filteredAnnouncements = useMemo(() => {
-    let filtered = announcements;
-    
-    if (announcementFilter !== 'all') {
-      const now = Date.now();
-      const dayInMs = 24 * 60 * 60 * 1000;
-      const filterDays = {
-        '3days': 3,
-        '7days': 7,
-        '30days': 30
-      };
-      
-      const days = filterDays[announcementFilter];
-      if (days) {
-        const cutoffDate = now - (days * dayInMs);
-        filtered = filtered.filter(a => {
-          const date = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
-          return date >= cutoffDate;
-        });
-      }
+  // Get current items based on mode and course tab
+  const getCurrentItems = () => {
+    if (mode === 'resources') return resources;
+    if (mode === 'quizzes') return quizzes;
+    // Filter activities by course tab
+    if (activeTab === '') {
+      return activities.filter(a => a.show !== false && (!a.classId || enrolledClasses.includes(a.classId)));
     }
-    // Search by title/content
-    const q = (announcementSearch || '').trim().toLowerCase();
-    if (q) {
-      filtered = filtered.filter(a => {
-        const title = (a.title || '').toLowerCase();
-        const content = ((lang === 'ar' ? (a.content_ar || a.content) : (a.content || a.content_ar)) || '').toLowerCase();
-        return title.includes(q) || content.includes(q);
+    return activities.filter(a => 
+      (a.course || 'general') === activeTab && 
+      a.show !== false && 
+      (!a.classId || enrolledClasses.includes(a.classId))
+    );
+  };
+
+  // Filter items based on mode and filters
+  const filteredItems = useMemo(() => {
+    const items = getCurrentItems();
+    let filtered = [...items];
+
+    // Common: Search
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      filtered = filtered.filter(item => {
+        if (mode === 'quizzes') {
+          return (item.title || '').toLowerCase().includes(q) ||
+                 (item.description || '').toLowerCase().includes(q);
+        }
+        if (mode === 'resources') {
+          const titleEn = (item.title_en || item.title || '').toLowerCase();
+          const titleAr = (item.title_ar || '').toLowerCase();
+          const descEn = (item.description_en || item.description || '').toLowerCase();
+          const descAr = (item.description_ar || '').toLowerCase();
+          return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
+        }
+        // Activities
+        const titleEn = (item.title_en || '').toLowerCase();
+        const titleAr = (item.title_ar || '').toLowerCase();
+        const descEn = (item.description_en || '').toLowerCase();
+        const descAr = (item.description_ar || '').toLowerCase();
+        return titleEn.includes(q) || titleAr.includes(q) || descEn.includes(q) || descAr.includes(q);
       });
     }
-    // Sort desc by createdAt
-    filtered = [...filtered].sort((a,b)=>{
-      const ad = a.createdAt?.seconds ? a.createdAt.seconds*1000 : new Date(a.createdAt || 0).getTime();
-      const bd = b.createdAt?.seconds ? b.createdAt.seconds*1000 : new Date(b.createdAt || 0).getTime();
-      return bd - ad;
-    });
-    return filtered.slice(0, 20);
-  }, [announcements, announcementFilter, announcementSearch, lang]);
 
-  // Filter activities by type and difficulty
-  const filterActivities = (courseActivities) => {
-    let filtered = courseActivities;
-
-    if (activityTypeFilter !== 'all') {
-      filtered = filtered.filter(a => a.type === activityTypeFilter);
+    // Common: Bookmark
+    if (bookmarkFilter) {
+      filtered = filtered.filter(item => {
+        const id = item.docId || item.id;
+        return !!bookmarks[mode]?.[id];
+      });
     }
 
+    // Common: Difficulty
     if (difficultyFilter !== 'all') {
-      filtered = filtered.filter(a => a.difficulty === difficultyFilter);
+      filtered = filtered.filter(item => {
+        const level = (item.level || item.difficulty || 'beginner').toLowerCase();
+        return level === difficultyFilter.toLowerCase();
+      });
     }
-    // Enrollment gate: if activity.classId exists, only show when user enrolled
-    filtered = filtered.filter(a => a.show !== false && (!a.classId || (enrolledClasses || []).includes(a.classId)));
-    return filtered.sort((x, y) => (x.order || 0) - (y.order || 0));
+
+    // Common: Completed
+    if (completedFilter) {
+      filtered = filtered.filter(item => {
+        const id = item.docId || item.id;
+        if (mode === 'resources') {
+          return userProgress[id]?.completed;
+        }
+        if (mode === 'activities') {
+          return submissions[id]?.status === 'graded';
+        }
+        // Quizzes - check submissions
+        return false; // TODO: implement quiz completion check
+      });
+    }
+
+    // Common: Required
+    if (requiredFilter) {
+      filtered = filtered.filter(item => !item.optional);
+    }
+
+    // Common: Optional
+    if (optionalFilter) {
+      filtered = filtered.filter(item => !!item.optional);
+    }
+
+    // Common: Overdue
+    if (overdueFilter) {
+      filtered = filtered.filter(item => {
+        if (!item.dueDate) return false;
+        const dueDate = item.dueDate?.seconds ? new Date(item.dueDate.seconds * 1000) : new Date(item.dueDate);
+        const now = new Date();
+        const id = item.docId || item.id;
+        const isCompleted = mode === 'resources' 
+          ? userProgress[id]?.completed 
+          : (mode === 'activities' ? submissions[id]?.status === 'graded' : false);
+        return dueDate < now && !isCompleted;
+      });
+    }
+
+    // Common: Pending
+    if (pendingFilter) {
+      filtered = filtered.filter(item => {
+        const id = item.docId || item.id;
+        if (mode === 'resources') {
+          return !userProgress[id]?.completed;
+        }
+        if (mode === 'activities') {
+          return !submissions[id] || submissions[id]?.status !== 'graded';
+        }
+        return true; // Quizzes are always pending until taken
+      });
+    }
+
+    // Common: Retakable
+    if (retakableFilter) {
+      filtered = filtered.filter(item => !!(item.allowRetake || item.retakeAllowed));
+    }
+
+    // Common: Featured
+    if (featuredFilter) {
+      filtered = filtered.filter(item => !!item.featured);
+    }
+
+    // Common: Graded (only for activities/quizzes with submissions)
+    if (gradedFilter === 'graded') {
+      filtered = filtered.filter(item => {
+        const id = item.docId || item.id;
+        return submissions[id]?.status === 'graded';
+      });
+    } else if (gradedFilter === 'not_graded') {
+      filtered = filtered.filter(item => {
+        const id = item.docId || item.id;
+        return !submissions[id] || submissions[id]?.status !== 'graded';
+      });
+    }
+
+    // Mode-specific filters
+    if (mode === 'activities' && activityTypeFilter !== 'all') {
+      filtered = filtered.filter(item => item.type === activityTypeFilter);
+    }
+
+    if (mode === 'resources' && resourceTypeFilter !== 'all') {
+      filtered = filtered.filter(item => item.type === resourceTypeFilter);
+    }
+
+    if (mode === 'quizzes' && classFilter !== 'all') {
+      filtered = filtered.filter(item => 
+        item.classId === classFilter || item.className === classFilter
+      );
+    }
+
+    // Sort by created date (newest first)
+    filtered.sort((a, b) => {
+      const aDate = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
+      const bDate = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
+      return (bDate || 0) - (aDate || 0);
+    });
+
+    return filtered;
+  }, [
+    mode, activities, resources, quizzes, searchTerm, bookmarkFilter, difficultyFilter,
+    completedFilter, requiredFilter, optionalFilter, overdueFilter, pendingFilter,
+    retakableFilter, featuredFilter, gradedFilter, activityTypeFilter, resourceTypeFilter,
+    classFilter, bookmarks, userProgress, submissions, enrolledClasses, activeTab
+  ]);
+
+  // Get available classes for quiz filter
+  const availableClasses = useMemo(() => {
+    if (mode !== 'quizzes') return [];
+    const classes = new Set();
+    quizzes.forEach(q => {
+      if (q.classId) classes.add(q.classId);
+      if (q.className) classes.add(q.className);
+    });
+    return Array.from(classes);
+  }, [mode, quizzes]);
+
+  // Calculate comprehensive stats for all modes
+  const stats = useMemo(() => {
+    const items = getCurrentItems();
+    const now = new Date();
+    
+    if (mode === 'resources') {
+      const completedCount = Object.values(userProgress).filter(p => p.completed).length;
+      const requiredTotal = items.filter(r => !r.optional).length;
+      const requiredCompleted = items.filter(r => !r.optional).filter(r => {
+        const rid = r.docId || r.id;
+        return userProgress[rid]?.completed;
+      }).length;
+      const requiredRemaining = Math.max(0, requiredTotal - requiredCompleted);
+      const overdueCount = items.filter(r => {
+        if (!r.dueDate) return false;
+        const dueDate = r.dueDate?.seconds ? new Date(r.dueDate.seconds * 1000) : new Date(r.dueDate);
+        const rid = r.docId || r.id;
+        return dueDate < now && !userProgress[rid]?.completed;
+      }).length;
+      const optionalCount = items.filter(r => r.optional).length;
+      const pendingCount = items.filter(r => {
+        const rid = r.docId || r.id;
+        return !userProgress[rid]?.completed;
+      }).length;
+      const featuredCount = items.filter(r => r.featured).length;
+      return { 
+        completed: completedCount, 
+        required: requiredRemaining, 
+        overdue: overdueCount,
+        optional: optionalCount,
+        pending: pendingCount,
+        featured: featuredCount
+      };
+    } else if (mode === 'activities') {
+      const completedCount = items.filter(a => {
+        const aid = a.docId || a.id;
+        return submissions[aid]?.status === 'graded';
+      }).length;
+      const pendingCount = items.filter(a => {
+        const aid = a.docId || a.id;
+        return !submissions[aid] || submissions[aid]?.status !== 'graded';
+      }).length;
+      const overdueCount = items.filter(a => {
+        if (!a.dueDate) return false;
+        const dueDate = a.dueDate?.seconds ? new Date(a.dueDate.seconds * 1000) : new Date(a.dueDate);
+        const aid = a.docId || a.id;
+        return dueDate < now && submissions[aid]?.status !== 'graded';
+      }).length;
+      const optionalCount = items.filter(a => a.optional).length;
+      const requiredCount = items.filter(a => !a.optional).length;
+      const featuredCount = items.filter(a => a.featured).length;
+      return {
+        completed: completedCount,
+        pending: pendingCount,
+        overdue: overdueCount,
+        optional: optionalCount,
+        required: requiredCount,
+        featured: featuredCount
+      };
+    } else if (mode === 'quizzes') {
+      const totalCount = items.length;
+      const featuredCount = items.filter(q => q.featured).length;
+      const retakableCount = items.filter(q => !!(q.allowRetake || q.retakeAllowed)).length;
+      // For quizzes, we can't easily determine completion without quiz submissions
+      return {
+        total: totalCount,
+        featured: featuredCount,
+        retakable: retakableCount
+      };
+    }
+    return null;
+  }, [mode, activities, resources, quizzes, userProgress, submissions, enrolledClasses, activeTab]);
+
+  const handleModeChange = (newMode) => {
+    setSearchParams({ mode: newMode });
   };
 
-  const typeLabels = {
-    en: { training: 'Training', homework: 'Homework', quiz: 'Quiz', all: 'All Types' },
-    ar: { training: 'تدريب', homework: 'واجب', quiz: 'اختبار', all: 'كل الأنواع' }
-  };
-  const courseName = (courseId) => {
-    const c = (courses || []).find(x => (x.docId || x.id) === courseId);
-    if (!c) return courseId || '';
-    return lang === 'ar' ? (c.name_ar || c.name_en || courseId) : (c.name_en || courseId);
+  const handleBookmark = async (itemId, itemMode) => {
+    if (!user) return;
+    try {
+      const next = { ...bookmarks };
+      const isAdding = !next[itemMode][itemId];
+      if (next[itemMode][itemId]) {
+        delete next[itemMode][itemId];
+      } else {
+        next[itemMode][itemId] = true;
+      }
+      setBookmarks(next);
+      await setDoc(doc(db, 'users', user.uid), { 
+        bookmarks: {
+          activities: next.activities,
+          resources: next.resources,
+          quizzes: next.quizzes
+        }
+      }, { merge: true });
+    } catch (e) {
+      console.error('Failed to update bookmark:', e);
+    }
   };
 
-  const currentCourseActivities = activeTab === '' 
-    ? activities.filter(a => a.show !== false && (!a.classId || (enrolledClasses || []).includes(a.classId)))
-    : activities.filter(a => (a.course || 'general') === activeTab)
-        .filter(a => a.show !== false && (!a.classId || (enrolledClasses || []).includes(a.classId)));
-
-  const difficultyLabels = {
-    en: { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', all: 'All Levels' },
-    ar: { beginner: 'مبتدئ', intermediate: 'متوسط', advanced: 'متقدم', all: 'كل المستويات' }
+  const handleResourceComplete = async (resourceId) => {
+    if (!user) return;
+    const isCompleted = userProgress[resourceId]?.completed || false;
+    const newProgress = {
+      ...userProgress,
+      [resourceId]: {
+        completed: !isCompleted,
+        completedAt: !isCompleted ? new Date() : null
+      }
+    };
+    setUserProgress(newProgress);
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        resourceProgress: newProgress
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error updating progress:', error);
+      setUserProgress(userProgress); // Revert on error
+    }
   };
 
-  // Early returns AFTER all hooks
+  // Get primary color from CSS variable
+  const getPrimaryColor = () => {
+    if (typeof window === 'undefined') return '#800020';
+    const root = document.documentElement;
+    return getComputedStyle(root).getPropertyValue('--color-primary').trim() || '#800020';
+  };
+
+  const primaryColor = getPrimaryColor();
+
   if (authLoading) {
     return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
   }
@@ -188,361 +487,938 @@ const HomePage = () => {
   if (!user) {
     return (
       <div className="home-page">
-        <div className="hero-section">
-          <div className="hero-content">
-            <h1 className="hero-title">Learning Hub</h1>
-            <p className="hero-subtitle">
-              Interactive exercises and games for mastering programming concepts
-            </p>
-          </div>
-        </div>
         <AuthForm />
       </div>
     );
   }
-  return (
-    <div className="home-page">
-      {!isAdmin && (
-        <>
-          {/* Military Rank Display for Students */}
-          <div className={styles.rankSection}>
-            <RankDisplay 
-              totalPoints={userData?.totalPoints || 0}
-              studentName={userData?.displayName || user?.displayName || user?.email}
-              showProgress={true}
-            />
-          </div>
-          
-          {/* Dashboard Grid */}
-          <div className={styles.dashboardGrid}>
-            {/* Recent Medals */}
-            <RecentMedals studentId={user?.uid} limit={5} />
-            
-            {/* Stats Card - Activities Progress */}
-            <div className="stats-card">
-              <div className="stats-card-header">
-                <span className="stats-card-icon"><BarChart3 size={16} /></span>
-                <span>{t('your_progress') || 'Your Progress'}</span>
-              </div>
-              <div className="stats-card-value">
-                {activities.filter(a => a.show !== false && (!a.classId || enrolledClasses.includes(a.classId))).length}
-              </div>
-              <div className="stats-card-label">{t('total_activities') || 'Total Activities'}</div>
-            </div>
-          </div>
-        </>
-      )}
-      
-      {!isAdmin && (
-      <div className={styles.heroSection}>
-        <div className="hero-content">
-          <h1 className="hero-title">Learning Hub</h1>
-          <p className="hero-subtitle">
-            Interactive exercises and games for mastering programming concepts
-          </p>
-        </div>
-      </div>
-      )}
 
-      {announcements.length > 0 && (
-        <ExpandablePanel
-          title={lang==='ar' ? 'الإعلانات' : 'Announcements'}
-          icon={<Megaphone size={16} />}
-          isOpen={!annCollapsed}
-          onToggle={(open)=>setAnnCollapsed(!open)}
-          duration={200}
-          accentColor="#800020"
-          className={styles.announcementsCard}
-        >
-            {/* Search */}
-            <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:12 }}>
+  const isMinified = filterViewMode === 'minified';
+
+  return (
+    <div className="home-page" style={{ padding: '1rem 0', position: 'relative' }}>
+      {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />}
+      <div className="content-section" style={{ position: 'relative' }}>
+        {/* Mode Switcher */}
+        <div 
+          data-tour="mode-switcher"
+          style={{ 
+            display: 'flex', 
+            gap: '0.5rem', 
+            marginBottom: '1.5rem',
+            background: 'white',
+            padding: '0.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+          <button
+            onClick={() => handleModeChange('activities')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: mode === 'activities' ? primaryColor : '#f3f4f6',
+              color: mode === 'activities' ? '#fff' : '#374151',
+              fontWeight: mode === 'activities' ? 700 : 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <ClipboardList size={16} />
+            {t('activities') || 'Activities'}
+          </button>
+          <button
+            onClick={() => handleModeChange('resources')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: mode === 'resources' ? primaryColor : '#f3f4f6',
+              color: mode === 'resources' ? '#fff' : '#374151',
+              fontWeight: mode === 'resources' ? 700 : 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <BookOpen size={16} />
+            {t('resources') || 'Resources'}
+          </button>
+          <button
+            onClick={() => handleModeChange('quizzes')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: mode === 'quizzes' ? primaryColor : '#f3f4f6',
+              color: mode === 'quizzes' ? '#fff' : '#374151',
+              fontWeight: mode === 'quizzes' ? 700 : 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <HelpCircle size={16} />
+            {t('quizzes') || 'Quizzes'}
+          </button>
+        </div>
+
+        {/* Unified Filters Section */}
+        <div 
+          ref={filtersRef}
+          data-tour="filters"
+          className="filters-section" 
+          style={{
+            background: 'white',
+            padding: '0.75rem 1rem',
+            borderRadius: '12px',
+            marginBottom: '1.5rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            position: 'relative'
+          }}>
+          {/* Row 1: Search + Stats (compact) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+            {/* Comprehensive Stats for all modes */}
+            {stats && (
+              <div 
+                data-tour="stats"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.375rem 0.625rem',
+                  background: '#f9fafb',
+                  borderRadius: 8,
+                  border: '1px solid #e5e7eb',
+                  fontSize: '0.8125rem',
+                  flexWrap: 'wrap'
+                }}>
+                {stats.completed !== undefined && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <CheckCircle size={14} style={{ color: '#16a34a' }} />
+                    <span style={{ fontWeight: 700, color: '#16a34a' }}>{stats.completed}</span>
+                  </div>
+                )}
+                {stats.pending !== undefined && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Hourglass size={14} style={{ color: '#f59e0b' }} />
+                    <span style={{ fontWeight: 700, color: '#f59e0b' }}>{stats.pending}</span>
+                  </div>
+                )}
+                {stats.overdue !== undefined && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Clock size={14} style={{ color: '#dc2626' }} />
+                    <span style={{ fontWeight: 700, color: '#dc2626' }}>{stats.overdue}</span>
+                  </div>
+                )}
+                {stats.required !== undefined && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <AlertCircle size={14} style={{ color: '#b91c1c' }} />
+                    <span style={{ fontWeight: 700, color: '#b91c1c' }}>{stats.required}</span>
+                  </div>
+                )}
+                {stats.optional !== undefined && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <BookOpen size={14} style={{ color: '#f57c00' }} />
+                    <span style={{ fontWeight: 700, color: '#f57c00' }}>{stats.optional}</span>
+                  </div>
+                )}
+                {stats.featured !== undefined && stats.featured > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('featured') || 'Featured'}>
+                    <Pin size={14} style={{ color: '#4f46e5' }} />
+                    <span style={{ fontWeight: 700, color: '#4f46e5' }}>{stats.featured}</span>
+                  </div>
+                )}
+                {stats.bookmarked !== undefined && stats.bookmarked > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('bookmarked') || 'Bookmarked'}>
+                    <Star size={14} style={{ color: '#f5c518' }} fill="#f5c518" />
+                    <span style={{ fontWeight: 700, color: '#f5c518' }}>{stats.bookmarked}</span>
+                  </div>
+                )}
+                {stats.retakable !== undefined && stats.retakable > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('retake_allowed') || 'Retake Allowed'}>
+                    <Repeat size={14} style={{ color: '#0ea5e9' }} />
+                    <span style={{ fontWeight: 700, color: '#0ea5e9' }}>{stats.retakable}</span>
+                  </div>
+                )}
+                {stats.total !== undefined && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('total') || 'Total'}>
+                    <HelpCircle size={14} style={{ color: primaryColor }} />
+                    <span style={{ fontWeight: 700, color: primaryColor }}>{stats.total}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div style={{ position: 'relative', flex: 1, minWidth: 200 }} data-tour="search">
               <input
                 type="search"
-                placeholder={lang==='ar'?'ابحث في الإعلانات':'Search announcements'}
-                value={announcementSearch}
-                onChange={(e)=>setAnnouncementSearch(e.target.value)}
-                style={{ flex:1, padding:'10px 12px', border:'1px solid #e5e7eb', borderRadius:10 }}
+                placeholder={
+                  mode === 'resources' ? (t('search_resources') || 'Search resources...') :
+                  mode === 'quizzes' ? (t('search_quizzes') || 'Search quizzes...') :
+                  (t('search_activities') || 'Search activities...')
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  padding: '8px 12px', 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: 8,
+                  fontSize: '0.875rem'
+                }}
+                title={t('search') || 'Search'}
               />
             </div>
-
-            {/* Date Filters */}
-            <div className={styles.filterButtons}>
-            {[
-              { key: 'all', label: 'All' },
-              { key: '3days', label: lang === 'en' ? 'Last 3 Days' : 'آخر 3 أيام' },
-              { key: '7days', label: lang === 'en' ? 'Last 7 Days' : 'آخر 7 أيام' },
-              { key: '30days', label: lang === 'en' ? 'Last 30 Days' : 'آخر 30 يوم' }
-              ].map(filter => (
-                <Button
-                  key={filter.key}
-                  onClick={() => setAnnouncementFilter(filter.key)}
-                  variant={announcementFilter === filter.key ? 'primary' : 'outline'}
-                  size="sm"
-                >
-                  {filter.label}
-                </Button>
-              ))}
-            </div>
-
-            <div className={styles.announcementsList}>
-            {filteredAnnouncements.map(announcement => {
-              const announcementId = announcement.docId || announcement.id;
-              const content = lang === 'ar' && announcement.content_ar ? announcement.content_ar : announcement.content;
-              const isLong = content && content.length > 200;
-              const expanded = expandedAnnouncements[announcementId] || false;
-              const dtMs = announcement.createdAt?.seconds ? announcement.createdAt.seconds*1000 : new Date(announcement.createdAt || 0).getTime();
-              const dateObj = new Date(dtMs || Date.now());
-              
-              return (
-                <Card key={announcementId} className={styles.announcementItem}>
-                  <CardBody>
-                    <div style={{ display:'grid', gridTemplateColumns:'100px 1fr', gap:12, alignItems:'stretch' }}>
-                      {/* Left date rail */}
-                      <div style={{ textAlign:'right', color:'#6b7280', fontSize:13, paddingRight:12, borderRight:'1px solid #e5e7eb', height:'100%' }}>
-                        <div>{dateObj.toLocaleDateString(undefined, { month:'short', day:'2-digit' })}</div>
-                        <div style={{ fontSize:12, opacity:.9 }}>{dateObj.getFullYear()}</div>
-                      </div>
-                      <div>
-                        <h3 className={styles.announcementTitle} style={{ marginTop:0 }}>{announcement.title}</h3>
-                        <p className={`${styles.announcementContent} ${isLong && !expanded ? styles.collapsed : ''}`} style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
-                          {content}
-                        </p>
-                      </div>
-                    </div>
-                    {announcement.link && (
-                      <div className={styles.announcementLink}>
-                        <a href={announcement.link} target="_blank" rel="noopener noreferrer">
-                          <Link2 size={14} /> Link: {announcement.link}
-                        </a>
-                      </div>
-                    )}
-                    {isLong && (
-                      <Button
-                        onClick={() => setExpandedAnnouncements(prev => ({
-                          ...prev,
-                          [announcementId]: !prev[announcementId]
-                        }))}
-                        variant="ghost"
-                        size="sm"
-                        className={styles.expandButton}
-                      >
-                        {expanded ? (lang === 'en' ? '▲ Show Less' : '▲ عرض أقل') : (lang === 'en' ? '▼ Read More' : '▼ اقرأ المزيد')}
-                      </Button>
-                    )}
-                    <div className={styles.announcementDate}>
-                      <small>{announcement.createdAt ? formatDateTime(announcement.createdAt) : ''}</small>
-                    </div>
-                  </CardBody>
-                </Card>
-              );
-            })}
-              {filteredAnnouncements.length === 0 && (
-                <div className={styles.emptyAnnouncements}>
-                  {lang === 'en' ? 'No announcements in this period' : 'لا توجد إعلانات في هذه الفترة'}
                 </div>
-              )}
-            </div>
-        </ExpandablePanel>
-      )}
 
-      <div className="content-section">
-        <div className="tabs">
-          {/* All Tab */}
-          <button
-            className={`tab-btn ${activeTab === '' ? 'active' : ''}`}
-            onClick={() => setActiveTab('')}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
-            title={lang==='en' ? 'All' : 'الكل'}
-          >
-            <Globe2 size={16} />
-            <span>{lang==='en' ? 'All' : 'الكل'} ({activities.length})</span>
-          </button>
-          
-          {/* Category Tabs */}
-          {(courses.length ? courses : [
-            { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
-            { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
-            { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
-            { docId: 'general', name_en: 'General', name_ar: 'عام' }
-          ]).map(c => {
-            const categoryActivities = activities.filter(a => a.course === c.docId);
-            const Icon = c.docId === 'programming' ? Code2
-              : c.docId === 'computing' ? Monitor
-              : c.docId === 'algorithm' ? Sigma
-              : BookOpen;
-            return (
+          {/* Row 2: Common Filter Chips - Show word+icon or icon-only based on view mode */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+            {/* Status chips - word+icon (full) or icon-only (minified) */}
+            {isMinified ? (
+              <>
+                <button
+                  onClick={() => setCompletedFilter(v => !v)}
+                  title={t('completed') || 'Completed'}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    border: '1px solid #bbf7d0',
+                    background: completedFilter ? '#16a34a' : '#ecfdf5',
+                    color: completedFilter ? '#fff' : '#16a34a',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  <CheckCircle size={14} />
+                </button>
+                
+                <button
+                  onClick={() => setPendingFilter(v => !v)}
+                  title={t('pending') || 'Pending'}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    border: '1px solid #fde68a',
+                    background: pendingFilter ? '#f59e0b' : '#fffbeb',
+                    color: pendingFilter ? '#fff' : '#b45309',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  <Hourglass size={14} />
+                </button>
+
+                <button
+                  onClick={() => setRequiredFilter(v => !v)}
+                  title={t('required') || 'Required'}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    border: '1px solid #fecaca',
+                    background: requiredFilter ? '#b91c1c' : '#fee2e2',
+                    color: requiredFilter ? '#fff' : '#b91c1c',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  <AlertCircle size={14} />
+                </button>
+
+                <button
+                  onClick={() => setOptionalFilter(v => !v)}
+                  title={t('optional') || 'Optional'}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    border: '1px solid #fed7aa',
+                    background: optionalFilter ? '#f57c00' : '#fff3e0',
+                    color: optionalFilter ? '#fff' : '#b45309',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  <BookOpen size={14} />
+                </button>
+
+                <button
+                  onClick={() => setOverdueFilter(v => !v)}
+                  title={t('overdue') || 'Overdue'}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    border: '1px solid #fecaca',
+                    background: overdueFilter ? '#dc2626' : '#fee2e2',
+                    color: overdueFilter ? '#fff' : '#dc2626',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  <Clock size={14} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setCompletedFilter(v => !v)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    border: '1px solid #bbf7d0',
+                    background: completedFilter ? '#16a34a' : '#ecfdf5',
+                    color: completedFilter ? '#fff' : '#16a34a',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <CheckCircle size={12} />
+                  {t('completed') || 'Completed'}
+                </button>
+                
+                <button
+                  onClick={() => setPendingFilter(v => !v)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    border: '1px solid #fde68a',
+                    background: pendingFilter ? '#f59e0b' : '#fffbeb',
+                    color: pendingFilter ? '#fff' : '#b45309',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Hourglass size={12} />
+                  {t('pending') || 'Pending'}
+                </button>
+
+                <button
+                  onClick={() => setRequiredFilter(v => !v)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    border: '1px solid #fecaca',
+                    background: requiredFilter ? '#b91c1c' : '#fee2e2',
+                    color: requiredFilter ? '#fff' : '#b91c1c',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <AlertCircle size={12} />
+                  {t('required') || 'Required'}
+                </button>
+
+                <button
+                  onClick={() => setOptionalFilter(v => !v)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    border: '1px solid #fed7aa',
+                    background: optionalFilter ? '#f57c00' : '#fff3e0',
+                    color: optionalFilter ? '#fff' : '#b45309',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <BookOpen size={12} />
+                  {t('optional') || 'Optional'}
+                </button>
+
+                <button
+                  onClick={() => setOverdueFilter(v => !v)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    border: '1px solid #fecaca',
+                    background: overdueFilter ? '#dc2626' : '#fee2e2',
+                    color: overdueFilter ? '#fff' : '#dc2626',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Clock size={12} />
+                  {t('overdue') || 'Overdue'}
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Row 3: Difficulty + Mode-specific + Icon toggles */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Difficulty chips - Show first */}
+            <div style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
               <button
-                key={c.docId}
-                className={`tab-btn ${activeTab === c.docId ? 'active' : ''}`}
-                onClick={() => setActiveTab(c.docId)}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
-                title={lang==='ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)}
+                onClick={() => setDifficultyFilter('all')}
+                title={t('all_levels') || 'All Levels'}
+                style={{
+                  padding: isMinified ? '4px 8px' : '4px 10px',
+                  borderRadius: 999,
+                  border: '1px solid rgba(0,0,0,0.06)',
+                  background: difficultyFilter === 'all' ? primaryColor : '#fff',
+                  color: difficultyFilter === 'all' ? '#fff' : primaryColor,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: isMinified ? 0 : 4
+                }}
               >
-                <Icon size={16} />
-                <span>{lang==='ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)} ({categoryActivities.length})</span>
+                <Globe2 size={12} />
+                {!isMinified && <span>{t('all_levels') || 'All Levels'}</span>}
               </button>
-            );
-          })}
-        </div>
+              {[
+                { id: 'beginner', label: t('beginner') || 'Beginner', bg: '#e8f5e9', fg: '#2e7d32' },
+                { id: 'intermediate', label: t('intermediate') || 'Intermediate', bg: '#fff7ed', fg: '#b45309' },
+                { id: 'advanced', label: t('advanced') || 'Advanced', bg: '#fee2e2', fg: '#b91c1c' }
+              ].map(lv => {
+                const active = difficultyFilter === lv.id;
+                return (
+                  <button
+                    key={lv.id}
+                    onClick={() => setDifficultyFilter(active ? 'all' : lv.id)}
+                    style={{
+                      padding: isMinified ? '4px 8px' : '4px 10px',
+                      borderRadius: 999,
+                      border: '1px solid transparent',
+                      background: active ? lv.fg : lv.bg,
+                      color: active ? '#fff' : lv.fg,
+                      fontSize: '0.75rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: isMinified ? 0 : 4,
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                    title={lv.label}
+                    aria-label={lv.label}
+                  >
+                    <Award size={12} />
+                    {!isMinified && <span>{lv.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
 
-        <div className="tab-content">
-          {activeTab !== null && (
-            <div className="course-content">
-              {/* Type chips (same style as ActivitiesPage) */}
-              <div style={{ display:'inline-flex', gap:8, flexWrap:'wrap', margin:'0.75rem 0', marginRight:12 }}>
+            {/* Mode-specific type filters */}
+            {mode === 'activities' && (
+              <div style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setActivityTypeFilter('all')}
-                  style={{ padding:'6px 12px', borderRadius:999, border:'1px solid rgba(0,0,0,0.06)', background:activityTypeFilter==='all'?'#800020':'#fff', color:activityTypeFilter==='all'?'#fff':'#800020', fontWeight:700 }}
+                  title={t('all_types') || 'All Types'}
+                  style={{
+                    padding: isMinified ? '4px 8px' : '4px 10px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    background: activityTypeFilter === 'all' ? primaryColor : '#fff',
+                    color: activityTypeFilter === 'all' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: isMinified ? 0 : 4
+                  }}
                 >
-                  {typeLabels[lang === 'ar' ? 'ar' : 'en'].all}
+                  <Globe2 size={12} />
+                  {!isMinified && <span>{t('all_types') || 'All Types'}</span>}
                 </button>
                 <button
                   onClick={() => setActivityTypeFilter('training')}
-                  style={{ padding:'6px 12px', borderRadius:999, border:'1px solid #bbdefb', background:activityTypeFilter==='training'?'#1976d2':'#e3f2fd', color:activityTypeFilter==='training'?'#fff':'#1976d2', display:'inline-flex', alignItems:'center', gap:6 }}
+                  style={{
+                    padding: isMinified ? '4px 8px' : '4px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${primaryColor}40`,
+                    background: activityTypeFilter === 'training' ? primaryColor : `${primaryColor}15`,
+                    color: activityTypeFilter === 'training' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: isMinified ? 0 : 4
+                  }}
+                  title={t('training') || 'Training'}
                 >
-                  <BookOpen size={14}/> {typeLabels[lang === 'ar' ? 'ar' : 'en'].training}
+                  <BookOpen size={12} />
+                  {!isMinified && <span>{t('training') || 'Training'}</span>}
                 </button>
                 <button
                   onClick={() => setActivityTypeFilter('homework')}
-                  style={{ padding:'6px 12px', borderRadius:999, border:'1px solid #ffe0b2', background:activityTypeFilter==='homework'?'#f57c00':'#fff3e0', color:activityTypeFilter==='homework'?'#fff':'#b45309', display:'inline-flex', alignItems:'center', gap:6 }}
+                  style={{
+                    padding: isMinified ? '4px 8px' : '4px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${primaryColor}40`,
+                    background: activityTypeFilter === 'homework' ? primaryColor : `${primaryColor}15`,
+                    color: activityTypeFilter === 'homework' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: isMinified ? 0 : 4
+                  }}
+                  title={t('homework') || 'Homework'}
                 >
-                  <ClipboardList size={14}/> {typeLabels[lang === 'ar' ? 'ar' : 'en'].homework}
+                  <ClipboardList size={12} />
+                  {!isMinified && <span>{t('homework') || 'Homework'}</span>}
                 </button>
                 <button
                   onClick={() => setActivityTypeFilter('quiz')}
-                  style={{ padding:'6px 12px', borderRadius:999, border:'1px solid #e0e7ff', background:activityTypeFilter==='quiz'?'#6366f1':'#eef2ff', color:activityTypeFilter==='quiz'?'#fff':'#4f46e5', display:'inline-flex', alignItems:'center', gap:6 }}
+                  style={{
+                    padding: isMinified ? '4px 8px' : '4px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${primaryColor}40`,
+                    background: activityTypeFilter === 'quiz' ? primaryColor : `${primaryColor}15`,
+                    color: activityTypeFilter === 'quiz' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: isMinified ? 0 : 4
+                  }}
+                  title={t('quiz') || 'Quiz'}
                 >
-                  <HelpCircle size={14}/> {typeLabels[lang === 'ar' ? 'ar' : 'en'].quiz}
+                  <HelpCircle size={12} />
+                  {!isMinified && <span>{t('quiz') || 'Quiz'}</span>}
                 </button>
               </div>
+            )}
 
-              {/* Difficulty chips */}
-              <div style={{ display:'inline-flex', gap:8, flexWrap:'wrap', marginBottom:'1rem' }}>
-                {[ 
-                  {id:'all', key:'all', bg:'#f3f4f6', fg:'#374151'},
-                  {id:'beginner', key:'beginner', bg:'#e8f5e9', fg:'#2e7d32'},
-                  {id:'intermediate', key:'intermediate', bg:'#fff7ed', fg:'#b45309'},
-                  {id:'advanced', key:'advanced', bg:'#fee2e2', fg:'#b91c1c'}
-                ].map(lv => {
-                  const active = difficultyFilter === lv.id;
-                  const labels = difficultyLabels[lang === 'ar' ? 'ar' : 'en'];
+            {mode === 'resources' && (
+              <div style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setResourceTypeFilter('all')}
+                  title={t('all_types') || 'All Types'}
+                  style={{
+                    padding: isMinified ? '4px 8px' : '4px 10px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    background: resourceTypeFilter === 'all' ? primaryColor : '#fff',
+                    color: resourceTypeFilter === 'all' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: isMinified ? 0 : 4
+                  }}
+                >
+                  <Globe2 size={12} />
+                  {!isMinified && <span>{t('all_types') || 'All Types'}</span>}
+                </button>
+                <button
+                  onClick={() => setResourceTypeFilter('video')}
+                  style={{
+                    padding: isMinified ? '4px 8px' : '4px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${primaryColor}40`,
+                    background: resourceTypeFilter === 'video' ? primaryColor : `${primaryColor}15`,
+                    color: resourceTypeFilter === 'video' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: isMinified ? 0 : 4
+                  }}
+                  title={t('video') || 'Video'}
+                >
+                  <Video size={12} />
+                  {!isMinified && <span>{t('video') || 'Video'}</span>}
+                </button>
+                <button
+                  onClick={() => setResourceTypeFilter('link')}
+                  style={{
+                    padding: isMinified ? '4px 8px' : '4px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${primaryColor}40`,
+                    background: resourceTypeFilter === 'link' ? primaryColor : `${primaryColor}15`,
+                    color: resourceTypeFilter === 'link' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: isMinified ? 0 : 4
+                  }}
+                  title={t('link') || 'Link'}
+                >
+                  <Link2 size={12} />
+                  {!isMinified && <span>{t('link') || 'Link'}</span>}
+                </button>
+                <button
+                  onClick={() => setResourceTypeFilter('document')}
+                  style={{
+                    padding: isMinified ? '4px 8px' : '4px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${primaryColor}40`,
+                    background: resourceTypeFilter === 'document' ? primaryColor : `${primaryColor}15`,
+                    color: resourceTypeFilter === 'document' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: isMinified ? 0 : 4
+                  }}
+                  title={t('document') || 'Document'}
+                >
+                  <FileText size={12} />
+                  {!isMinified && <span>{t('document') || 'Document'}</span>}
+                </button>
+              </div>
+            )}
+
+            {/* Class filter for quizzes */}
+            {mode === 'quizzes' && availableClasses.length > 0 && (
+              <div style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setClassFilter('all')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(0,0,0,0.06)',
+                    background: classFilter === 'all' ? primaryColor : '#fff',
+                    color: classFilter === 'all' ? '#fff' : primaryColor,
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}
+                >
+                  {t('all_classes') || 'All Classes'}
+                </button>
+                {availableClasses.map(cls => {
+                  const active = classFilter === cls;
                   return (
                     <button
-                      key={lv.id}
-                      onClick={() => setDifficultyFilter(lv.id)}
+                      key={cls}
+                      onClick={() => setClassFilter(active ? 'all' : cls)}
                       style={{
-                        padding:'6px 12px',
-                        borderRadius:999,
-                        border:`1px solid ${active ? lv.fg : lv.fg + '55'}`,
-                        background: active ? lv.fg : lv.bg,
-                        color: active ? '#fff' : lv.fg,
-                        display:'inline-flex',
-                        alignItems:'center',
-                        gap:6,
-                        fontWeight:600
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        border: '1px solid #cbd5e1',
+                        background: active ? '#475569' : '#f1f5f9',
+                        color: active ? '#fff' : '#475569',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
                       }}
                     >
-                      <Award size={14}/> {labels[lv.key]}
+                      {cls}
                     </button>
                   );
                 })}
               </div>
+            )}
 
-              
+            {/* Icon toggles - Always icon-only, but show word+icon in full mode for bookmark/featured */}
+            <div style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap', marginLeft: 'auto' }}>
+              {isMinified ? (
+                <>
+                  <button
+                    onClick={() => setBookmarkFilter(v => !v)}
+                    title={t('bookmarked') || 'Bookmarked'}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 999,
+                      border: '1px solid #f5c518',
+                      background: bookmarkFilter ? '#f5c518' : '#fff',
+                      color: bookmarkFilter ? '#1f2937' : '#b45309',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    {bookmarkFilter ? <Star size={14} fill="#f5c518" /> : <StarOff size={14} />}
+                  </button>
+                  <button
+                    onClick={() => setFeaturedFilter(v => !v)}
+                    title={t('featured') || 'Featured'}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 999,
+                      border: '1px solid #c7d2fe',
+                      background: featuredFilter ? '#4f46e5' : '#eef2ff',
+                      color: featuredFilter ? '#fff' : '#4f46e5',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    <Pin size={14} />
+                  </button>
+                  <button
+                    onClick={() => setRetakableFilter(v => !v)}
+                    title={t('retake_allowed') || 'Retake'}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 999,
+                      border: '1px solid #bae6fd',
+                      background: retakableFilter ? '#0ea5e9' : '#ecfeff',
+                      color: retakableFilter ? '#fff' : '#0ea5e9',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    <Repeat size={14} />
+                  </button>
+                  <button
+                    onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
+                    title={t('graded') || 'Graded'}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 999,
+                      border: '1px solid #bbf7d0',
+                      background: gradedFilter === 'graded' ? '#16a34a' : '#ecfdf5',
+                      color: gradedFilter === 'graded' ? '#fff' : '#16a34a',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    <CheckCircle size={14} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setBookmarkFilter(v => !v)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      border: '1px solid #f5c518',
+                      background: bookmarkFilter ? '#f5c518' : '#fff',
+                      color: bookmarkFilter ? '#1f2937' : '#b45309',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {bookmarkFilter ? <Star size={12} fill="#f5c518" /> : <StarOff size={12} />}
+                    {t('bookmarked') || 'Bookmarked'}
+                  </button>
+                  <button
+                    onClick={() => setFeaturedFilter(v => !v)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      border: '1px solid #c7d2fe',
+                      background: featuredFilter ? '#4f46e5' : '#eef2ff',
+                      color: featuredFilter ? '#fff' : '#4f46e5',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Pin size={12} />
+                    {t('featured') || 'Featured'}
+                  </button>
+                  <button
+                    onClick={() => setRetakableFilter(v => !v)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      border: '1px solid #bae6fd',
+                      background: retakableFilter ? '#0ea5e9' : '#ecfeff',
+                      color: retakableFilter ? '#fff' : '#0ea5e9',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Repeat size={12} />
+                    {t('retake_allowed') || 'Retake'}
+                  </button>
+                  <button
+                    onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      border: '1px solid #bbf7d0',
+                      background: gradedFilter === 'graded' ? '#16a34a' : '#ecfdf5',
+                      color: gradedFilter === 'graded' ? '#fff' : '#16a34a',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <CheckCircle size={12} />
+                    {t('graded') || 'Graded'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Course Tabs (only for activities) - Below filters */}
+        {mode === 'activities' && (
+          <Tabs
+            tabs={[
+              {
+                value: '',
+                label: lang === 'en' ? 'All' : 'الكل',
+                icon: <Globe2 size={16} />,
+                badge: activities.length
+              },
+              ...(courses.length ? courses : [
+                { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
+                { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
+                { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
+                { docId: 'general', name_en: 'General', name_ar: 'عام' }
+              ]).map(c => {
+                const categoryActivities = activities.filter(a => a.course === c.docId);
+                const Icon = c.docId === 'programming' ? Code2
+                  : c.docId === 'computing' ? Monitor
+                  : c.docId === 'algorithm' ? Sigma
+                  : BookOpen;
+                return {
+                  value: c.docId,
+                  label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId),
+                  icon: <Icon size={16} />,
+                  badge: categoryActivities.length
+                };
+              })
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            variant="default"
+          />
+        )}
+
+        {/* Items Grid */}
               {loading ? (
                 <Loading variant="overlay" message={t('loading') || 'Loading...'} />
               ) : (
-                <div className="activities-grid">
-                  {filterActivities(currentCourseActivities).map(activity => {
-                    const key = activity.docId || activity.id;
-                    const title = lang === 'ar'
-                      ? (activity.title_ar || activity.title_en || key)
-                      : (activity.title_en || activity.title_ar || key);
-                    const description = lang === 'ar'
-                      ? (activity.description_ar || activity.description_en || '—')
-                      : (activity.description_en || activity.description_ar || '—');
+                <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+            {filteredItems.length === 0 ? (
+              <div style={{
+                gridColumn: '1 / -1',
+                textAlign: 'center',
+                padding: '3rem',
+                color: '#666'
+              }}>
+                <h3>{t('no_items_found') || 'No items found'}</h3>
+                <p>{t('try_adjusting_filters') || 'Try adjusting your filters'}</p>
+              </div>
+            ) : (
+              filteredItems.map(item => {
+                const itemId = item.docId || item.id;
+                let isCompleted = false;
+                let completedAt = null;
+                let isBookmarked = false;
+                let dueDate = null;
+
+                if (mode === 'resources') {
+                  isCompleted = userProgress[itemId]?.completed || false;
+                  completedAt = userProgress[itemId]?.completedAt;
+                  isBookmarked = !!bookmarks.resources[itemId];
+                  dueDate = item.dueDate;
+                } else if (mode === 'activities') {
+                  const submission = submissions[itemId];
+                  isCompleted = submission?.status === 'graded';
+                  completedAt = submission?.completedAt || submission?.submittedAt;
+                  isBookmarked = !!bookmarks.activities[itemId];
+                  dueDate = item.dueDate;
+                } else if (mode === 'quizzes') {
+                  isBookmarked = !!bookmarks.quizzes[itemId];
+                  // TODO: Add quiz completion logic
+                }
 
                     return (
-                      <div key={key} className="activity-card">
-                        <h3 style={{ margin: 0, display:'flex', alignItems:'center', justifyContent:'space-between', gap:'0.5rem' }}>
-                          <span style={{ display:'flex', alignItems:'center', gap:'0.45rem', flexWrap:'wrap' }}>
-                            <span>{title}</span>
-                            {activity.allowRetake && (
-                              <span
-                                title={lang==='ar' ? 'يسمح بالإعادة' : 'Retake allowed'}
-                                style={{ background:'#17a2b8', color:'#fff', padding:4, borderRadius:6, display:'inline-flex', alignItems:'center', justifyContent:'center', width:24, height:24 }}
-                              >
-                                <RotateCcw size={14} />
-                              </span>
-                            )}
-                          </span>
-
-                          {/* Compact details icon in header */}
-                          <button
-                            type="button"
-                            onClick={() => { /* navigate to details view when implemented */ }}
-                            aria-label={lang==='ar' ? 'التفاصيل' : 'Details'}
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 999,
-                              border: '1px solid #e5e7eb',
-                              background: '#f9fafb',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Info size={14} />
-                          </button>
-                        </h3>
-
-                        <p style={{ color:'#666', fontSize:'0.84rem', margin:0 }}>
-                          {description}
-                        </p>
-
-                        <div style={{ display:'flex', gap:'0.35rem', flexWrap:'wrap' }}>
-                          <span style={{ background:'#e8f5e9', color:'#2e7d32', padding:'0.25rem 0.75rem', borderRadius:12, fontSize:'0.85rem', display:'inline-flex', alignItems:'center', gap:6 }}>
-                            <Award size={14}/> {difficultyLabels[lang === 'ar' ? 'ar' : 'en'][activity.difficulty || 'beginner']}
-                          </span>
-                          <span style={{ background:'#e3f2fd', color:'#1976d2', padding:'0.25rem 0.75rem', borderRadius:12, fontSize:'0.85rem', display:'inline-flex', alignItems:'center', gap:6 }}>
-                            {activity.type==='quiz' ? <HelpCircle size={14}/> : activity.type==='homework' ? <ClipboardList size={14}/> : <BookOpen size={14}/>} {typeLabels[lang === 'ar' ? 'ar' : 'en'][activity.type || 'training']}
-                          </span>
-                          {activity.optional && (
-                            <span style={{ background:'#fff3e0', color:'#f57c00', padding:'0.25rem 0.75rem', borderRadius:12, fontSize:'0.85rem' }}>{lang==='ar' ? 'اختياري' : 'Optional'}</span>
-                          )}
-                        </div>
-
-                        {/* Icon-only buttons: Start + Details */}
-                        <div style={{ marginTop:'auto', display:'flex', gap:'0.5rem' }}>
-                          <Button
-                            variant="success"
-                            size="small"
-                            style={{ width: 40, height: 40, padding: 0, borderRadius: 999 }}
-                            onClick={() => window.open(activity.url, '_blank')}
-                            aria-label={lang==='ar' ? 'ابدأ' : 'Start'}
-                          >
-                            <Play size={18} />
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="small"
-                            style={{ width: 40, height: 40, padding: 0, borderRadius: 999, background: '#f5f5f5', color: '#333', border: '1px solid #e5e5e5' }}
-                            onClick={() => { /* Navigate to details */ }}
-                            aria-label={lang==='ar' ? 'التفاصيل' : 'Details'}
-                          >
-                            <Info size={18} />
-                          </Button>
-                        </div>
-                      </div>
+                      <UnifiedCard
+                        key={itemId}
+                        flavor={mode === 'quizzes' ? 'quiz' : mode === 'resources' ? 'resource' : 'activity'}
+                        item={item}
+                        lang={lang}
+                        t={t}
+                        isCompleted={isCompleted}
+                        completedAt={completedAt}
+                        isBookmarked={isBookmarked}
+                        dueDate={dueDate}
+                        isMinified={isMinified}
+                        primaryColor={primaryColor}
+                        onStart={() => {
+                          if (mode === 'quizzes') {
+                            window.location.href = `/student-quiz/${itemId}`;
+                          } else if (mode === 'resources') {
+                            if (item.url) {
+                              window.open(item.url, '_blank');
+                            }
+                          } else {
+                            // Activities
+                            const isQuiz = item.type === 'quiz' || !!item.internalQuizId;
+                            if (isQuiz) {
+                              window.location.href = `/student-quiz/${item.internalQuizId || itemId}`;
+                            } else {
+                              window.open(item.url, '_blank');
+                            }
+                          }
+                        }}
+                        onComplete={mode === 'resources' ? () => handleResourceComplete(itemId) : undefined}
+                        onBookmark={() => handleBookmark(itemId, mode)}
+                      />
                     );
-                  })}
-                </div>
+              })
               )}
             </div>
           )}
-        </div>
       </div>
     </div>
   );

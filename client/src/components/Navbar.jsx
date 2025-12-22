@@ -7,13 +7,16 @@ import SideDrawer from './SideDrawer';
 import { useLang } from '../contexts/LangContext';
 import { getUsers, updateUser } from '../firebase/firestore';
 import './Navbar.css';
-import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle } from 'lucide-react';
+import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List } from 'lucide-react';
 import { LanguageSwitcher } from './ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { getTimeFormatPreference, setTimeFormatPreference } from '../utils/date';
+import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
+
+const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
 const Navbar = () => {
-  const { user, isAdmin, isSuperAdmin, impersonating } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, impersonating } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -22,7 +25,7 @@ const Navbar = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [realName, setRealName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
-  const [messageColor, setMessageColor] = useState('#667eea');
+  const [messageColor, setMessageColor] = useState(ACCENT_FALLBACK);
   const [timeFormat, setTimeFormat] = useState(() => getTimeFormatPreference());
   const { lang, toggleLang, t } = useLang();
   const { theme, toggleTheme } = useTheme();
@@ -41,6 +44,36 @@ const Navbar = () => {
     window.addEventListener('openProfile', openProfileHandler);
     return () => window.removeEventListener('openProfile', openProfileHandler);
   }, []);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setMessageColor(ACCENT_FALLBACK);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../firebase/config');
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (!cancelled) {
+          const storedColor = snap.exists() ? snap.data().messageColor : null;
+          setMessageColor(normalizeHexColor(storedColor, ACCENT_FALLBACK));
+        }
+      } catch {
+        if (!cancelled) {
+          setMessageColor(ACCENT_FALLBACK);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
+
+  useEffect(() => {
+    applyAccentColor(messageColor);
+  }, [messageColor]);
 
   useEffect(() => {
     try { localStorage.setItem('density', density); } catch {}
@@ -89,7 +122,7 @@ const Navbar = () => {
       }
       setDisplayName(user?.displayName || me?.displayName || '');
       setPhoneNumber(me?.phoneNumber || '');
-      setMessageColor(me?.messageColor || '#667eea');
+      setMessageColor(normalizeHexColor(me?.messageColor, ACCENT_FALLBACK));
       setRealName(me?.realName || '');
       setStudentNumber(me?.studentNumber || '');
       setNotifLang(me?.notifLang || 'auto');
@@ -108,7 +141,7 @@ const Navbar = () => {
       const dataToSave = {
         displayName: displayName || null,
         phoneNumber: phoneNumber || null,
-        messageColor: messageColor || '#667eea',
+        messageColor: normalizeHexColor(messageColor, ACCENT_FALLBACK),
         realName: realName || null,
         studentNumber: studentNumber || null,
         email: user.email,
@@ -137,7 +170,7 @@ const Navbar = () => {
     <>
       <SideDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
       
-      <nav className="navbar" style={{ padding: '0.5rem 0' }}>
+      <nav className="navbar" style={{ padding: '0.35rem 0' }}>
         <div className="navbar-container">
           {/* Hamburger Menu */}
           {user && (
@@ -167,13 +200,14 @@ const Navbar = () => {
           {/* Brand */}
           <div className="navbar-brand" style={{ 
             fontWeight: 700, 
-            fontSize: '1.25rem', 
+            fontSize: '1.1rem', 
             color: 'white',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem'
+            gap: '0.5rem',
+            marginLeft: '0.5rem'
           }}>
-            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/2/21/Seal_of_the_Qatar_Armed_Forces_General_Command.png/255px-Seal_of_the_Qatar_Armed_Forces_General_Command.png" alt="QAF" style={{ width: 20, height: 20, objectFit: 'cover', borderRadius: '50%' }} /> QAF
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/2/21/Seal_of_the_Qatar_Armed_Forces_General_Command.png/255px-Seal_of_the_Qatar_Armed_Forces_General_Command.png" alt="QAF" style={{ width: 18, height: 18, objectFit: 'cover', borderRadius: '50%' }} /> QAF
           </div>
 
           {/* Impersonation Banner */}
@@ -215,40 +249,45 @@ const Navbar = () => {
                   }}
                   title={t('help') || 'Help'}
                   aria-label={t('help') || 'Help'}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    border: '2px solid #D4AF37',
-                    background: 'transparent',
-                    color: '#D4AF37',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
                 >
                   <HelpCircle size={16} />
                 </button>
 
                 <LanguageSwitcher compact />
                 <button
+                  className="nav-icon-btn"
                   onClick={toggleTheme}
                   title={theme==='light'?'Dark':'Light'}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    border: '2px solid #D4AF37',
-                    background: 'transparent',
-                    color: '#D4AF37',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
                 >
-                  {theme==='light'?<Moon size={15} />:<Sun size={15} />}
+                  {theme==='light'?<Moon size={16} />:<Sun size={16} />}
+                </button>
+                <button
+                  className="nav-icon-btn"
+                  onClick={() => {
+                    try {
+                      const current = localStorage.getItem('filterViewMode') || 'full';
+                      const next = current === 'full' ? 'minified' : 'full';
+                      localStorage.setItem('filterViewMode', next);
+                      window.dispatchEvent(new CustomEvent('filter-view-mode-changed', { detail: { filterViewMode: next } }));
+                    } catch {}
+                  }}
+                  title={(() => {
+                    try {
+                      const current = localStorage.getItem('filterViewMode') || 'full';
+                      return current === 'full' ? 'Minified Filters' : 'Full Filters';
+                    } catch {
+                      return 'Toggle Filter View';
+                    }
+                  })()}
+                >
+                  {(() => {
+                    try {
+                      const current = localStorage.getItem('filterViewMode') || 'full';
+                      return current === 'full' ? <LayoutGrid size={16} /> : <List size={16} />;
+                    } catch {
+                      return <LayoutGrid size={16} />;
+                    }
+                  })()}
                 </button>
               </div>
 
@@ -286,23 +325,28 @@ const Navbar = () => {
                 )}
                 {showDropdown && (
                   <div className="dropdown-menu" style={{ right: 0, top: 48, zIndex: 9999 }}>
-                    <div className="dropdown-item user-info" style={{ padding: '10px 12px', borderBottom: '1px solid #eee' }}>
-                      <div className="user-email" style={{ fontWeight: 600 }}>{user.displayName || user.email}</div>
-                      {(isSuperAdmin || isAdmin) && (
-                        <div className="admin-badge" style={{ marginTop: 6, display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'#4f46e5', fontWeight:700, padding:'4px 8px', borderRadius:999, border:'1.5px solid #4f46e5', background:'transparent' }}>
-                          {isSuperAdmin ? <><Crown size={14} /> Super Admin</> : <>Admin</>}
-                        </div>
-                      )}
+                    <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
+                      <div className="user-email" style={{ fontWeight: 600, marginBottom: 8 }}>{user.displayName || user.email}</div>
+                      <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems:'center' }}>
+                        {isSuperAdmin && (
+                          <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            <Crown size={14} /> Super Admin
+                          </span>
+                        )}
+                        {isAdmin && !isSuperAdmin && (
+                          <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>Admin</span>
+                        )}
+                        {isInstructor && (
+                          <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>Instructor</span>
+                        )}
+                        {isHR && (
+                          <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>HR</span>
+                        )}
+                        {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
+                          <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>Student</span>
+                        )}
+                      </div>
                     </div>
-                    <Link to="/profile" onClick={(e)=>{ setShowDropdown(false); }} className="dropdown-item" style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', textDecoration:'none', color:'inherit' }}>
-                      My Settings
-                    </Link>
-                    <Link to="/progress" onClick={(e)=>{ setShowDropdown(false); }} className="dropdown-item" style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', textDecoration:'none', color:'inherit' }}>
-                      My Badges
-                    </Link>
-                    <button className="dropdown-item sign-out-btn" style={{ width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color:'#b91c1c', fontWeight:600 }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDropdown(false); setTimeout(() => handleSignOut(), 0); }}>
-                      Sign Out
-                    </button>
                   </div>
                 )}
               </div>
@@ -333,7 +377,6 @@ const Navbar = () => {
                 {t('course_progress') || 'Course Progress'}
               </NavLink>
               <NavLink to="/chat" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('chat')}</NavLink>
-              <NavLink to="/leaderboard" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('leaderboard')}</NavLink>
               <NavLink to="/resources" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('resources')}</NavLink>
 
               {isAdmin && (
@@ -480,3 +523,14 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
+const applyAccentColor = (color) => {
+  if (typeof document === 'undefined') return;
+  const accent = normalizeHexColor(color, ACCENT_FALLBACK);
+  const root = document.documentElement;
+  root.style.setProperty('--color-primary', accent);
+  root.style.setProperty('--color-primary-light', adjustColor(accent, 15));
+  root.style.setProperty('--color-primary-dark', adjustColor(accent, -15));
+  root.style.setProperty('--color-primary-rgb', hexToRgbString(accent));
+  root.style.setProperty('--input-focus', accent);
+};

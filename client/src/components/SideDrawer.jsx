@@ -8,7 +8,7 @@ import { signOutUser } from '../firebase/auth';
 import {
   Home, ClipboardList, BarChart3, Trophy, MessageSquare,
   BookOpen, Users, Settings, LogOut, Languages, LayoutDashboard,
-  X, QrCode, User as UserIcon, Theater, Bell, ExternalLink, Activity, Timer as TimerIcon, Pin, PinOff, Sun, Moon, Shield, UserX, Calendar, Gamepad2, ListChecks, ChevronDown, ChevronRight, ChevronLeft
+  X, QrCode, User as UserIcon, Theater, Bell, ExternalLink, Activity, Timer as TimerIcon, Pin, PinOff, Sun, Moon, Shield, UserX, Calendar, Gamepad2, ListChecks, ChevronDown, ChevronRight, ChevronLeft, GripVertical
 } from 'lucide-react';
 import TimerStopwatch from './TimerStopwatch';
 
@@ -19,7 +19,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [drawerWidth, setDrawerWidth] = useState(() => {
-    try { return Math.min(480, Math.max(280, parseInt(localStorage.getItem('drawer_width') || '320', 10))); } catch { return 320; }
+    try { return Math.min(480, Math.max(260, parseInt(localStorage.getItem('drawer_width') || '280', 10))); } catch { return 280; }
   });
   const [density, setDensity] = useState(() => {
     try { return document.documentElement.getAttribute('data-density') || 'compact'; } catch { return 'compact'; }
@@ -34,6 +34,13 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const [pinTimer, setPinTimer] = useState(() => {
     try { return localStorage.getItem('pin_timer_widget') === 'true'; } catch { return false; }
   });
+  const [stickyMode, setStickyMode] = useState(() => {
+    try { 
+      const saved = localStorage.getItem('drawer_sticky_mode');
+      if (saved === null) return true; // Default to sticky
+      return saved === 'true'; 
+    } catch { return true; }
+  });
 
   useEffect(() => {
     try { localStorage.setItem('pin_timer_widget', String(pinTimer)); } catch {}
@@ -44,6 +51,37 @@ const SideDrawer = ({ isOpen, onClose }) => {
   useEffect(() => {
     try { localStorage.setItem('drawer_collapsed', String(collapsed)); } catch {}
   }, [collapsed]);
+  useEffect(() => {
+    try { localStorage.setItem('drawer_sticky_mode', String(stickyMode)); } catch {}
+    // Check if mobile (screen width < 768px)
+    const isMobile = window.innerWidth < 768;
+    // Update CSS variable for main content margin when sticky mode is enabled (desktop only)
+    if (stickyMode && isOpen && !collapsed && !isMobile) {
+      const width = collapsed ? 64 : drawerWidth;
+      document.documentElement.style.setProperty('--drawer-width', `${width}px`);
+      document.documentElement.classList.add('drawer-sticky-open');
+    } else {
+      document.documentElement.style.removeProperty('--drawer-width');
+      document.documentElement.classList.remove('drawer-sticky-open');
+    }
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      if (mobile) {
+        document.documentElement.style.removeProperty('--drawer-width');
+        document.documentElement.classList.remove('drawer-sticky-open');
+      } else if (stickyMode && isOpen && !collapsed) {
+        const width = collapsed ? 64 : drawerWidth;
+        document.documentElement.style.setProperty('--drawer-width', `${width}px`);
+        document.documentElement.classList.add('drawer-sticky-open');
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.documentElement.style.removeProperty('--drawer-width');
+      document.documentElement.classList.remove('drawer-sticky-open');
+    };
+  }, [stickyMode, isOpen, collapsed, drawerWidth]);
   useEffect(() => {
     const handler = (e) => setDensity((e && e.detail && e.detail.density) ? e.detail.density : (document.documentElement.getAttribute('data-density') || 'compact'));
     window.addEventListener('density-change', handler);
@@ -204,45 +242,49 @@ const SideDrawer = ({ isOpen, onClose }) => {
     main: {
       label: 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: t('home') || 'home' },
+        { path: '/', icon: <Home size={18} />, label: (t('home') || 'Home').charAt(0).toUpperCase() + (t('home') || 'Home').slice(1) },
         { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-        { path: '/progress', icon: <BarChart3 size={18} />, label: 'Progress' },
-        { path: '/leaderboard', icon: <Trophy size={18} />, label: t('leaderboard') || 'Leaderboard' },
-        { path: '/activities', icon: <Activity size={18} />, label: t('activities') || 'Activities' },
+        { path: '/student-dashboard', icon: <BarChart3 size={18} />, label: 'Progress' },
+        { path: '/?mode=activities', icon: <Activity size={18} />, label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
       ]
     },
     quiz: {
       label: 'QUIZ',
       items: [
-        { path: '/quiz-results', icon: <ListChecks size={18} />, label: t('quiz_results') || 'Quiz Results' },
+        { path: '/?mode=quizzes', icon: <ListChecks size={18} />, label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     classes: {
       label: 'CLASSES',
       items: [
         { path: '/my-enrollments', icon: <BookOpen size={18} />, label: 'My Enrollments' },
-        { path: '/class-schedules', icon: <Calendar size={18} />, label: t('class_schedules') || 'Class Schedules' },
+        { path: '/class-schedules', icon: <Calendar size={18} />, label: (t('class_schedules') || 'Class Schedules').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     attendance: {
       label: 'ATTENDANCE',
       items: [
-        { path: '/my-attendance', icon: <QrCode size={18} />, label: t('my_attendance') || 'My Attendance' },
+        { path: '/my-attendance', icon: <QrCode size={18} />, label: (t('my_attendance') || 'My Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     community: {
       label: 'COMMUNITY',
       items: [
-        { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
-        { path: '/resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
+        { path: '/chat', icon: <MessageSquare size={18} />, label: (t('chat') || 'Chat').charAt(0).toUpperCase() + (t('chat') || 'Chat').slice(1) },
+        { path: '/?mode=resources', icon: <BookOpen size={18} />, label: (t('resources') || 'Resources').charAt(0).toUpperCase() + (t('resources') || 'Resources').slice(1) },
+      ]
+    },
+    tools: {
+      label: 'TOOLS',
+      items: [
+        { key: 'timerControl', icon: <TimerIcon size={18} />, label: (t('timer') || 'Timer').charAt(0).toUpperCase() + (t('timer') || 'Timer').slice(1) }
       ]
     },
     settings: {
       label: 'SETTINGS',
       items: [
-        { path: '/notifications', icon: <Bell size={18} />, label: t('notifications') || 'Notifications' },
-        { path: '/profile', icon: <Settings size={18} />, label: t('settings') || 'Settings' },
-        { key: 'timerControl', icon: <TimerIcon size={18} />, label: t('timer') || 'Timer' }
+        { path: '/notifications', icon: <Bell size={18} />, label: (t('notifications') || 'Notifications').charAt(0).toUpperCase() + (t('notifications') || 'Notifications').slice(1) },
+        { path: '/profile', icon: <Settings size={18} />, label: (t('settings') || 'Settings').charAt(0).toUpperCase() + (t('settings') || 'Settings').slice(1) },
       ]
     }
   };
@@ -256,7 +298,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/dashboard', icon: <LayoutDashboard size={18} />, label: t('dashboard') || 'Dashboard' },
         { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Student Dashboard' },
         { path: '/student-progress', icon: <BarChart3 size={18} />, label: t('student_progress') || 'Student Progress' },
-        { path: '/activities', icon: <Activity size={18} />, label: t('activities') || 'Activities' },
+        { path: '/?mode=activities', icon: <Activity size={18} />, label: t('activities') || 'Activities' },
         // Role Access only visible for SuperAdmin (conditionally added below)
       ]
     },
@@ -265,7 +307,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/quiz-management', icon: <ClipboardList size={18} />, label: 'Quiz Management' },
         { path: '/quiz-builder', icon: <Gamepad2 size={18} />, label: 'Quiz Builder' },
-        { path: '/quiz-results', icon: <ListChecks size={18} />, label: 'Quiz Results' },
+        { path: '/?mode=quizzes', icon: <ListChecks size={18} />, label: 'Quiz Results' },
       ]
     },
     classes: {
@@ -278,10 +320,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
     attendance: {
       label: 'ATTENDANCE',
       items: [
-        { path: '/attendance', icon: <QrCode size={18} />, label: t('attendance') || 'attendance' },
-        { path: '/attendance-management', icon: <ClipboardList size={18} />, label: t('attendance_management') || 'Attendance Management' },
-        { path: '/manual-attendance', icon: <ClipboardList size={18} />, label: t('manual_attendance') || 'Manual Attendance' },
-        { path: '/hr-attendance', icon: <QrCode size={18} />, label: t('hr_attendance') || 'HR Attendance' },
+        { path: '/attendance', icon: <QrCode size={18} />, label: (t('attendance') || 'Attendance').charAt(0).toUpperCase() + (t('attendance') || 'Attendance').slice(1) },
+        { path: '/manual-attendance', icon: <ClipboardList size={18} />, label: (t('manual_attendance') || 'Manual Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/hr-attendance', icon: <QrCode size={18} />, label: (t('hr_attendance') || 'HR Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     analytics: {
@@ -289,14 +330,13 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/analytics', icon: <BarChart3 size={18} />, label: t('analytics') || 'Analytics' },
         { path: '/advanced-analytics', icon: <BarChart3 size={18} />, label: 'Advanced Analytics' },
-        { path: '/leaderboard', icon: <Trophy size={18} />, label: t('leaderboard') || 'Leaderboard' },
       ]
     },
     community: {
       label: 'COMMUNITY',
       items: [
         { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
-        { path: '/resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
+        { path: '/?mode=resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
       ]
     },
     tools: {
@@ -320,7 +360,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: 'MAIN',
       items: [
         { path: '/', icon: <Home size={18} />, label: t('home') || 'Home' },
-        { path: '/progress', icon: <Trophy size={18} />, label: t('my_badges') || 'My Badges' },
         { path: '/hr-attendance', icon: <QrCode size={18} />, label: t('hr_attendance') || 'HR Attendance' },
         { path: '/analytics', icon: <BarChart3 size={18} />, label: t('analytics') || 'Analytics' },
       ]
@@ -377,7 +416,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     <AnimatePresence>
       {isOpen && (
         <>
-          {(!collapsed && !(autoHide && !isHovering)) ? (
+          {isOpen && !stickyMode && !collapsed && !(autoHide && !isHovering) ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -440,18 +479,19 @@ const SideDrawer = ({ isOpen, onClose }) => {
           <motion.div
             initial={{ x: 0 }}
             animate={{
-              x: (autoHide && !isHovering && !collapsed)
+              x: (stickyMode ? 0 : (autoHide && !isHovering && !collapsed))
                 ? (lang==='ar' ? (drawerWidth - 8) : -(drawerWidth - 8))
                 : 0
             }}
-            exit={{ x: -drawerWidth }}
+            exit={{ x: stickyMode ? 0 : (lang==='ar' ? drawerWidth : -drawerWidth) }}
             transition={{ type: 'tween', ease: 'easeInOut' }}
             style={{
-              position: 'fixed',
+              position: stickyMode ? 'fixed' : 'fixed',
               top: 0,
-              left: lang==='ar' ? 'auto' : 0,
-              right: lang==='ar' ? 0 : 'auto',
+              left: lang==='ar' ? 'auto' : (stickyMode && isOpen ? 0 : (autoHide && !isHovering && !collapsed ? -(drawerWidth - 8) : 0)),
+              right: lang==='ar' ? (stickyMode && isOpen ? 0 : (autoHide && !isHovering && !collapsed ? -(drawerWidth - 8) : 0)) : 'auto',
               bottom: 0,
+              height: '100vh',
               // Width rules:
               // - Collapsed: fixed 64px (icons only)
               // - Auto-hide (not hovering): keep full width so hover area expands smoothly; we shift with x
@@ -461,15 +501,17 @@ const SideDrawer = ({ isOpen, onClose }) => {
               borderRight: lang==='ar' ? 'none' : (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)'),
               borderLeft: lang==='ar' ? (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)') : 'none',
               color: theme === 'light' ? '#0f172a' : 'white',
-              zIndex: 1001,
+              zIndex: stickyMode ? 100 : 1001,
+              top: stickyMode ? 0 : 0,
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '2px 0 10px rgba(0, 0, 0, 0.1)',
+              boxShadow: stickyMode ? 'none' : '2px 0 10px rgba(0, 0, 0, 0.1)',
               overflow: 'hidden',
-              transition: 'width 0.3s ease-in-out'
+              transition: stickyMode ? 'none' : 'width 0.3s ease-in-out',
+              flexShrink: 0
             }}
-            onMouseEnter={() => (autoHide && !collapsed) ? setIsHovering(true) : null}
-            onMouseLeave={() => (autoHide && !collapsed) ? setIsHovering(false) : null}
+            onMouseEnter={() => (autoHide && !collapsed && !stickyMode) ? setIsHovering(true) : null}
+            onMouseLeave={() => (autoHide && !collapsed && !stickyMode) ? setIsHovering(false) : null}
           >
             {/* Magic arrow for collapsed (icons-only) restore */}
             {collapsed && (
@@ -607,6 +649,23 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         onMouseLeave={onHeaderButtonLeave}
                       >
                         <Theater size={18} />
+                      </button>
+                      <button
+                        onClick={() => setStickyMode(v => !v)}
+                        title={stickyMode ? (t('disable_sticky') || 'Disable Sticky Mode') : (t('enable_sticky') || 'Enable Sticky Mode')}
+                        data-base-bg={stickyMode ? accentBg : neutralBg}
+                        data-hover-bg={stickyMode ? accentHover : neutralHover}
+                        style={{
+                          background: stickyMode ? accentBg : neutralBg,
+                          border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
+                          padding: '0.4rem', borderRadius: '10px', width: '36px', height: '36px',
+                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6,
+                          transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseEnter={onHeaderButtonEnter}
+                        onMouseLeave={onHeaderButtonLeave}
+                      >
+                        {stickyMode ? <PinOff size={18} /> : <Pin size={18} />}
                       </button>
                       <button
                         onClick={onClose}
@@ -781,7 +840,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       ) : (
                         <Link
                           to={link.path}
-                          onClick={() => { if (!collapsed && !autoHide) onClose(); }}
+                          onClick={() => { if (!collapsed && !autoHide && !stickyMode) onClose(); }}
                           title={link.label}
                           style={{
                           display: 'flex',
@@ -902,6 +961,36 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}><Languages size={16} /></span>
                 {!collapsed && <span>{lang === 'en' ? 'العربية' : 'English'}</span>}
               </button>
+
+              {/* Sticky Mode Toggle - Pin Icon */}
+              {!collapsed && (
+                <button
+                  onClick={() => setStickyMode(v => !v)}
+                  title={stickyMode ? (t('disable_sticky') || 'Disable Sticky Mode') : (t('enable_sticky') || 'Enable Sticky Mode')}
+                  style={{
+                    width: collapsed ? 40 : '100%',
+                    padding: '0.6rem',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 8,
+                    background: stickyMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.06)',
+                    color: stickyMode ? '#10b981' : 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    marginBottom: '0.6rem',
+                    fontWeight: 500,
+                    fontSize: '0.85rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={onFooterHover}
+                  onMouseLeave={onFooterLeave}
+                >
+                  {stickyMode ? <PinOff size={14} /> : <Pin size={14} />}
+                  {!collapsed && <span>{stickyMode ? 'Sticky On' : 'Sticky Off'}</span>}
+                </button>
+              )}
 
               {/* Logout */}
               <button

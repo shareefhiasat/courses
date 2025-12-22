@@ -164,6 +164,13 @@
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.roleToggles > div {
+  min-width: 64px;
+  display: flex;
+  justify-content: center;
 }
 
 .toggle {

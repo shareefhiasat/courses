@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LangContext';
 import { getAllQuizzes, getQuizSubmissions, getQuizAnalytics } from '../firebase/quizzes';
 import { Container, Card, CardBody, Button, Spinner, Badge, Loading, Chart, EmptyState, Input, Select, SearchBar } from '../components/ui';
-import { Trophy, Users, BarChart3, Download, Eye, Edit, ArrowLeft, Filter, TrendingUp, Calendar } from 'lucide-react';
+import { Trophy, Users, BarChart3, Download, Eye, Edit, ArrowLeft, Filter, TrendingUp, Calendar, Clock, CheckCircle, HelpCircle, Repeat, Award, Star, StarOff, Pin, Hourglass } from 'lucide-react';
+import UnifiedCard from '../components/UnifiedCard';
 import styles from './QuizResultsPage.module.css';
 
 export default function QuizResultsPage() {
-  const { user, isAdmin, isInstructor } = useAuth();
+  const { user, isAdmin, isInstructor, loading: authLoading } = useAuth();
+  const { t, lang } = useLang();
   const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,11 +23,41 @@ export default function QuizResultsPage() {
   const [classFilter, setClassFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [studentFilter, setStudentFilter] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [bookmarkFilter, setBookmarkFilter] = useState(false);
+  const [featuredFilter, setFeaturedFilter] = useState(false);
+  const [retakeFilter, setRetakeFilter] = useState(false);
+  const [gradedFilter, setGradedFilter] = useState('all'); // 'all', 'graded', 'not_graded'
+
+  // Get unique classes from quizzes - must be before early returns
+  const availableClasses = React.useMemo(() => {
+    const classes = new Set();
+    quizzes.forEach(q => {
+      if (q.classId) classes.add(q.classId);
+      if (q.className) classes.add(q.className);
+    });
+    return Array.from(classes);
+  }, [quizzes]);
+
+  // Filter quizzes - must be before early returns
+  const filteredQuizzes = React.useMemo(() => {
+    return quizzes.filter(q => {
+      const matchSearch = !searchTerm || 
+        q.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchClass = classFilter === 'all' || q.classId === classFilter || q.className === classFilter;
+      // Bookmark filter would need bookmarks state - skip for now
+      const matchDifficulty = difficultyFilter === 'all' || (q.difficulty || '').toLowerCase() === difficultyFilter.toLowerCase();
+      return matchSearch && matchClass && matchDifficulty;
+    });
+  }, [quizzes, searchTerm, classFilter, difficultyFilter]);
 
   useEffect(() => {
-    loadQuizzes();
-  }, []);
+    if (user) {
+      loadQuizzes();
+    }
+  }, [user]);
+
 
   const loadQuizzes = async () => {
     setLoading(true);
@@ -356,129 +389,161 @@ export default function QuizResultsPage() {
     );
   }
 
-  return (
-    <Container maxWidth="xl" className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1>Quiz Results</h1>
-          <p>View and manage quiz submissions</p>
-        </div>
-        <Button
-          onClick={() => navigate('/quiz-builder')}
-          variant="primary"
-        >
-          + Create New Quiz
-        </Button>
-      </div>
 
-      {/* Filters Section */}
-      <Card className={styles.filtersCard}>
-        <CardBody>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
-            <Button
-              onClick={() => setShowFilters(!showFilters)}
-              variant="outline"
-              icon={<Filter size={16} />}
-            >
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </Button>
-            <SearchBar
+  return (
+    <div className="content-section" style={{ padding: '1rem 0' }}>
+      <Container maxWidth="xl">
+      {/* Unified Filters Section (same style as ActivitiesPage) */}
+      <div className="filters-section" style={{
+        background: 'white',
+        padding: '1rem 1.5rem',
+        borderRadius: '12px',
+        marginBottom: '2rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        position: 'relative'
+      }}>
+        {/* Row: Search + View Toggle + Create Button */}
+        <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+            <input
+              type="search"
+              placeholder={t('search_quizzes') || 'Search quizzes...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search quizzes..."
-              style={{ flex: 1 }}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 10 }}
             />
           </div>
-          
-          {showFilters && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-              <Select
-                value={classFilter}
-                onChange={(e) => setClassFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Classes' },
-                  { value: 'class1', label: 'Class 1' },
-                  { value: 'class2', label: 'Class 2' }
-                ]}
-                placeholder="Filter by class"
-              />
-              <Select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Time' },
-                  { value: 'today', label: 'Today' },
-                  { value: 'week', label: 'This Week' },
-                  { value: 'month', label: 'This Month' }
-                ]}
-                placeholder="Filter by date"
-              />
-            </div>
-          )}
-        </CardBody>
-      </Card>
+        </div>
 
-      <div className={styles.quizList}>
-        {quizzes
-          .filter(q => {
-            const matchSearch = !searchTerm || 
-              q.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              q.description?.toLowerCase().includes(searchTerm.toLowerCase());
-            return matchSearch;
-          })
-          .map(quiz => (
-          <Card
-            key={quiz.id}
-            className={styles.quizCard}
+        {/* Difficulty chips */}
+        <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap', marginRight: 12 }}>
+          <button 
+            onClick={() => setDifficultyFilter('all')} 
+            title={t('all_difficulties') || 'All Difficulties'} 
+            style={{ 
+              padding: '6px 12px', 
+              borderRadius: 999, 
+              border: '1px solid rgba(0,0,0,0.06)', 
+              background: difficultyFilter === 'all' ? 'var(--color-primary, #800020)' : '#fff', 
+              color: difficultyFilter === 'all' ? '#fff' : 'var(--color-primary, #800020)', 
+              fontWeight: 700 
+            }}
           >
-            <CardBody>
-              <div 
-                className={styles.quizContent}
-                style={{ cursor: 'pointer' }}
-                onClick={() => loadQuizDetails(quiz)}
+            {t('all_difficulties') || 'All Difficulties'}
+          </button>
+          {[
+            { id: 'beginner', label: t('beginner') || 'Beginner', bg: '#e8f5e9', fg: '#2e7d32' },
+            { id: 'intermediate', label: t('intermediate') || 'Intermediate', bg: '#fff7ed', fg: '#b45309' },
+            { id: 'advanced', label: t('advanced') || 'Advanced', bg: '#fee2e2', fg: '#b91c1c' }
+          ].map(lv => {
+            const active = difficultyFilter === lv.id;
+            return (
+              <button 
+                key={lv.id} 
+                onClick={() => setDifficultyFilter(active ? 'all' : lv.id)} 
+                title={lv.label}
+                style={{ 
+                  padding: '6px 12px', 
+                  borderRadius: 999, 
+                  border: '1px solid transparent', 
+                  background: active ? lv.fg : lv.bg, 
+                  color: active ? '#fff' : lv.fg, 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: 6, 
+                  fontWeight: 600 
+                }}
               >
-                <div className={styles.quizInfo}>
-                  <h3>{quiz.title}</h3>
-                  <p>{quiz.description}</p>
-                  <div className={styles.quizMeta}>
-                    <span>📝 {quiz.questions?.length || 0} questions</span>
-                    <span>🎮 {quiz.template}</span>
-                    {quiz.assignment?.isAssignment && (
-                      <Badge variant="warning" size="sm">Assignment</Badge>
-                    )}
-                  </div>
-                </div>
-                <div 
-                  className={styles.quizActions}
-                  onClick={(e) => e.stopPropagation()}
+                <Award size={14} /> {lv.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Status toggles: bookmark, featured, retake, graded, pending */}
+        <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => setBookmarkFilter(v => !v)} title={t('bookmarked') || 'Bookmarked'} style={{ width: 32, height: 32, borderRadius: 999, border: '1px solid #f5c518', background: bookmarkFilter ? '#f5c518' : '#fff', color: bookmarkFilter ? '#1f2937' : '#b45309', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            {bookmarkFilter ? <Star size={16} fill="#f5c518" /> : <StarOff size={16} />}
+          </button>
+          <button onClick={() => setFeaturedFilter(v => !v)} title={t('featured') || 'Featured'} style={{ width: 32, height: 32, borderRadius: 999, border: '1px solid #c7d2fe', background: featuredFilter ? '#4f46e5' : '#eef2ff', color: featuredFilter ? '#fff' : '#4f46e5', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Pin size={16} />
+          </button>
+          <button onClick={() => setRetakeFilter(v => !v)} title={t('retake_allowed') || 'Retake'} style={{ width: 32, height: 32, borderRadius: 999, border: '1px solid #bae6fd', background: retakeFilter ? '#0ea5e9' : '#ecfeff', color: retakeFilter ? '#fff' : '#0ea5e9', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Repeat size={16} />
+          </button>
+          <button onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')} title={t('graded') || 'Graded'} style={{ width: 32, height: 32, borderRadius: 999, border: '1px solid #bbf7d0', background: gradedFilter === 'graded' ? '#16a34a' : '#ecfdf5', color: gradedFilter === 'graded' ? '#fff' : '#16a34a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CheckCircle size={16} />
+          </button>
+          <button onClick={() => setGradedFilter(p => p === 'not_graded' ? 'all' : 'not_graded')} title={t('pending') || 'Pending'} style={{ width: 32, height: 32, borderRadius: 999, border: '1px solid #fde68a', background: gradedFilter === 'not_graded' ? '#f59e0b' : '#fffbeb', color: gradedFilter === 'not_graded' ? '#fff' : '#b45309', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Hourglass size={16} />
+          </button>
+        </div>
+
+        {/* Class filter chips */}
+        {availableClasses.length > 0 && (
+          <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap', marginRight: 12, marginTop: '0.5rem' }}>
+            <button 
+              onClick={() => setClassFilter('all')} 
+              title={t('all_classes') || 'All Classes'} 
+              style={{ 
+                padding: '6px 12px', 
+                borderRadius: 999, 
+                border: '1px solid rgba(0,0,0,0.06)', 
+                background: classFilter === 'all' ? 'var(--color-primary, #800020)' : '#fff', 
+                color: classFilter === 'all' ? '#fff' : 'var(--color-primary, #800020)', 
+                fontWeight: 700 
+              }}
+            >
+              {t('all_classes') || 'All Classes'}
+            </button>
+            {availableClasses.map(cls => {
+              const active = classFilter === cls;
+              return (
+                <button 
+                  key={cls} 
+                  onClick={() => setClassFilter(active ? 'all' : cls)} 
+                  title={cls}
+                  style={{ 
+                    padding: '6px 12px', 
+                    borderRadius: 999, 
+                    border: '1px solid #cbd5e1', 
+                    background: active ? '#475569' : '#f1f5f9', 
+                    color: active ? '#fff' : '#475569', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: 6, 
+                    fontWeight: 600 
+                  }}
                 >
-                  <Button
-                    onClick={() => navigate(`/quiz-builder?id=${quiz.id}`)}
-                    variant="ghost"
-                    size="sm"
-                    icon={<Edit size={16} />}
-                  />
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
-        {quizzes.length === 0 && (
-          <EmptyState
-            icon={Trophy}
-            title="No Quizzes Yet"
-            description="Create your first quiz to get started"
-            action={
-              <Button
-                onClick={() => navigate('/quiz-builder')}
-                variant="primary"
-              >
-                Create Quiz
-              </Button>
-            }
-          />
+                  {cls}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
-    </Container>
+
+      <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+        {filteredQuizzes.length === 0 ? (
+          <EmptyState 
+            title={t('no_quizzes_found') || 'No quizzes found'} 
+            message={t('try_adjusting_filters') || 'Try adjusting your filters'} 
+          />
+        ) : (
+          filteredQuizzes.map(quiz => (
+            <UnifiedCard
+              key={quiz.id}
+              flavor="quiz"
+              item={quiz}
+              lang={lang}
+              t={t}
+              onStart={() => loadQuizDetails(quiz)}
+              onDetails={() => loadQuizDetails(quiz)}
+            />
+          ))
+        )}
+      </div>
+      </Container>
+    </div>
   );
 }

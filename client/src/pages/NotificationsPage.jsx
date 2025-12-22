@@ -4,7 +4,7 @@ import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { Bell, Check, Trash2, Mail, MessageCircle, ArrowDownWideNarrow, ArrowUpWideNarrow } from 'lucide-react';
+import { Bell, Trash2, Mail, MessageCircle } from 'lucide-react';
 import { Container, Card, CardBody, Button, SearchBar, Badge, Spinner, EmptyState } from '../components/ui';
 import { formatDateTime } from '../utils/date';
 import styles from './NotificationsPage.module.css';
@@ -16,8 +16,7 @@ const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
+  // Sort ASC by default, no filters needed
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -91,25 +90,19 @@ const NotificationsPage = () => {
 
   const filteredNotifications = notifications
     .filter(notif => {
-      if (filterType === 'unread' && notif.read) return false;
-      if (filterType === 'read' && !notif.read) return false;
-      
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const title = (notif.title || '').toLowerCase();
         const message = (notif.message || '').toLowerCase();
         return title.includes(query) || message.includes(query);
       }
-      
       return true;
     })
     .sort((a, b) => {
       const aTime = a.createdAt?.toMillis?.() || 0;
       const bTime = b.createdAt?.toMillis?.() || 0;
-      return sortBy === 'newest' ? bTime - aTime : aTime - bTime;
+      return aTime - bTime; // ASC by default
     });
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   if (authLoading || loading) {
     return (
@@ -122,27 +115,16 @@ const NotificationsPage = () => {
   if (!user) return <Navigate to="/login" />;
 
   return (
-    <Container maxWidth="lg" className={styles.page}>
+    <Container maxWidth="xl" className={styles.page} style={{ padding: '1rem 0' }}>
       <div className={styles.header}>
-        <div className={styles.headerTop}>
-          <div className={styles.headerTitle}>
-            <Bell size={28} />
-            <h1>{t('notifications')}</h1>
-            {unreadCount > 0 && (
-              <Badge color="danger">{unreadCount}</Badge>
-            )}
-          </div>
-          <div className={styles.headerActions}>
-            {unreadCount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                icon={<Check size={18} />}
-                onClick={markAllAsRead}
-              >
-                {t('mark_all_read')}
-              </Button>
-            )}
+        <div className={styles.topBar}>
+          <div className={styles.searchAndFilters}>
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={t('search_notifications') || 'Search notifications...'}
+              style={{ flex: 1, minWidth: '250px' }}
+            />
             {notifications.length > 0 && (
               <Button
                 variant="danger"
@@ -155,62 +137,9 @@ const NotificationsPage = () => {
             )}
           </div>
         </div>
-
-        <div className={styles.searchFilterBar}>
-          <SearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder={t('search_notifications') || 'Search notifications...'}
-            fullWidth
-          />
-        </div>
-
-        <div className={styles.chipRow}>
-          <div className={styles.statusChips}>
-            <Button
-              variant={filterType === 'all' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setFilterType('all')}
-            >
-              {t('all')}
-            </Button>
-            <Button
-              variant={filterType === 'unread' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setFilterType('unread')}
-            >
-              {t('unread') || 'Unread'}
-            </Button>
-            <Button
-              variant={filterType === 'read' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setFilterType('read')}
-            >
-              {t('read') || 'Read'}
-            </Button>
-          </div>
-
-          <button
-            type="button"
-            className={styles.sortChip}
-            onClick={() => setSortBy(sortBy === 'newest' ? 'oldest' : 'newest')}
-          >
-            {sortBy === 'newest' ? (
-              <>
-                <ArrowDownWideNarrow size={16} />
-                <span>{t('newest_first') || 'Newest'}</span>
-              </>
-            ) : (
-              <>
-                <ArrowUpWideNarrow size={16} />
-                <span>{t('oldest_first') || 'Oldest'}</span>
-              </>
-            )}
-          </button>
-        </div>
       </div>
 
-      <div className={styles.notificationsList}>
+      <div className={`${styles.notificationsList} ${styles.cardsView}`}>
         {filteredNotifications.length === 0 ? (
           <EmptyState
             icon={Bell}
@@ -222,7 +151,8 @@ const NotificationsPage = () => {
             }
           />
         ) : (
-          filteredNotifications.map(notif => (
+          <div className={`${styles.notificationsList} ${styles.cardsView}`}>
+          {filteredNotifications.map(notif => (
             <Card
               key={notif.id}
               className={`${styles.notificationItem} ${notif.read ? styles.read : styles.unread}`}
@@ -282,7 +212,8 @@ const NotificationsPage = () => {
                 </div>
               </CardBody>
             </Card>
-          ))
+          ))}
+          </div>
         )}
       </div>
     </Container>

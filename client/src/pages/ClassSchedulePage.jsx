@@ -39,7 +39,18 @@ const ClassSchedulePage = () => {
   const availableYears = useMemo(() => {
     const years = new Set();
     classes.forEach(cls => {
-      if (cls.year) years.add(String(cls.year));
+      // Try to get year from separate field first, then from term string
+      if (cls.year) {
+        years.add(String(cls.year));
+      } else if (cls.term) {
+        const parts = cls.term.split(' ');
+        if (parts.length > 1) {
+          const yearPart = parts[parts.length - 1];
+          if (yearPart && !isNaN(yearPart)) {
+            years.add(yearPart);
+          }
+        }
+      }
     });
     return Array.from(years).sort((a, b) => Number(b) - Number(a));
   }, [classes]);
@@ -47,7 +58,11 @@ const ClassSchedulePage = () => {
   const availableTerms = useMemo(() => {
     const terms = new Set();
     classes.forEach(cls => {
-      if (cls.term) terms.add(cls.term);
+      if (cls.term) {
+        // Extract just the term part (e.g., "Fall" from "Fall 2025")
+        const termPart = cls.term.split(' ')[0];
+        if (termPart) terms.add(termPart);
+      }
     });
     return Array.from(terms).sort();
   }, [classes]);
@@ -56,11 +71,27 @@ const ClassSchedulePage = () => {
     let result = [...classes];
 
     if (yearFilter !== 'all') {
-      result = result.filter(cls => String(cls.year) === yearFilter);
+      result = result.filter(cls => {
+        // Check separate year field first
+        if (cls.year && String(cls.year) === yearFilter) return true;
+        // Otherwise extract from term string
+        if (cls.term) {
+          const parts = cls.term.split(' ');
+          if (parts.length > 1) {
+            const yearPart = parts[parts.length - 1];
+            return yearPart === yearFilter;
+          }
+        }
+        return false;
+      });
     }
 
     if (termFilter !== 'all') {
-      result = result.filter(cls => cls.term === termFilter);
+      result = result.filter(cls => {
+        if (!cls.term) return false;
+        const termPart = cls.term.split(' ')[0];
+        return termPart === termFilter;
+      });
     }
 
     switch (sortOption) {
@@ -210,9 +241,9 @@ const ClassSchedulePage = () => {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
         {/* Class List */}
-        <div style={{ padding: '1rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
-          <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+        <div style={{ padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
+          <div style={{ fontWeight: 600, marginBottom: 8, fontSize: '0.9rem' }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
+          <div style={{ display: 'grid', gap: 6, marginBottom: 8 }}>
             <Select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}

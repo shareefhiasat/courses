@@ -60,7 +60,6 @@ export const DEFAULT_QUIZ_SETTINGS = {
   
   // Gamification
   enableBadges: false,
-  showLeaderboard: false,
   bonusPoints: 0,
   streakBonus: false,
   

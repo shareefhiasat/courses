@@ -93,39 +93,33 @@ const EmailManager = ({
             disabled={!newEmail.trim()}
             style={{
               padding: '8px 14px',
-              background: 'linear-gradient(135deg, #800020, #600018)',
+              background: 'var(--color-primary, #800020)',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
               cursor: !newEmail.trim() ? 'not-allowed' : 'pointer',
               opacity: !newEmail.trim() ? 0.7 : 1,
               fontWeight: 600,
-              fontSize: '0.9rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6
+              fontSize: '0.9rem'
             }}
           >
-            ➕ {t('add')}
+            {t('add')}
           </button>
           <button
             onClick={importFromText}
             className="import-btn"
             style={{
               padding: '8px 14px',
-              background: '#16a34a',
+              background: 'var(--color-primary, #800020)',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
               cursor: 'pointer',
               fontWeight: 600,
-              fontSize: '0.9rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6
+              fontSize: '0.9rem'
             }}
           >
-            <span style={{color: 'white'}}>➕</span> Import
+            Import
           </button>
         </div>
 

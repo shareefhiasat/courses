@@ -1,39 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styles from './Tabs.module.css';
 
 /**
- * Tabs Component
- * 
- * A tabbed interface for organizing content.
+ * Modern Tabs Component
+ * Inspired by Dribbble designs - sleek, animated, professional
  */
-const Tabs = ({ tabs, defaultTab = 0, onChange, className = '' }) => {
-  const [activeTab, setActiveTab] = useState(defaultTab);
-
-  const handleTabClick = (index) => {
-    setActiveTab(index);
-    if (onChange) onChange(index);
-  };
-
+const Tabs = ({ 
+  tabs = [], 
+  activeTab, 
+  onTabChange,
+  variant = 'default', // 'default', 'pills', 'underline'
+  size = 'md', // 'sm', 'md', 'lg'
+  className = ''
+}) => {
   return (
-    <div className={`${styles.tabsContainer} ${className}`}>
-      <div className={styles.tabList} role="tablist">
-        {tabs.map((tab, index) => (
-          <button
-            key={index}
-            className={`${styles.tab} ${activeTab === index ? styles.active : ''}`}
-            onClick={() => handleTabClick(index)}
-            role="tab"
-            aria-selected={activeTab === index}
-          >
-            {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-      <div className={styles.tabPanel} role="tabpanel">
-        <div key={activeTab} className={styles.tabPanelInner}>
-          {tabs[activeTab]?.content}
-        </div>
+    <div className={`${styles.tabsContainer} ${styles[variant]} ${styles[size]} ${className}`}>
+      <div className={styles.tabsWrapper}>
+        {tabs.map((tab, index) => {
+          const isActive = activeTab === tab.value;
+          return (
+            <button
+              key={tab.value || index}
+              className={`${styles.tab} ${isActive ? styles.active : ''}`}
+              onClick={() => onTabChange?.(tab.value)}
+              type="button"
+            >
+              {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
+              <span className={styles.tabLabel}>{tab.label}</span>
+              {tab.badge !== undefined && (
+                <span className={`${styles.tabBadge} ${isActive ? styles.activeBadge : ''}`}>
+                  {tab.badge}
+                </span>
+              )}
+              {isActive && <span className={styles.activeIndicator} />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

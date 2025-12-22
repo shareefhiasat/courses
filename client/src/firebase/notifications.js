@@ -34,11 +34,37 @@ export const getNotifications = async (userId) => {
 
 export const addNotification = async (notification) => {
   try {
-    const ref = await addDoc(collection(db, 'notifications'), {
-      ...notification,
+    const notificationData = {
+      userId: notification.userId,
+      title: notification.title,
+      message: notification.message,
+      type: notification.type || 'info', // system, class, quiz, attendance, activity, info
+      classId: notification.classId || null,
+      metadata: notification.metadata || {},
+      deliveryStatus: 'sent', // sent, failed, pending
       read: false,
+      readAt: null,
       createdAt: serverTimestamp()
-    });
+    };
+    
+    // Preserve existing data field if provided
+    if (notification.data) {
+      notificationData.data = notification.data;
+    }
+    
+    const ref = await addDoc(collection(db, 'notifications'), notificationData);
+    
+    // Also log to notificationLogs for analytics
+    try {
+      await addDoc(collection(db, 'notificationLogs'), {
+        ...notificationData,
+        notificationId: ref.id,
+        timestamp: serverTimestamp()
+      });
+    } catch (logError) {
+      console.warn('Failed to log notification to notificationLogs:', logError);
+    }
+    
     return { success: true, id: ref.id };
   } catch (error) {
     return { success: false, error: error.message };

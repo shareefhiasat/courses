@@ -8,8 +8,9 @@ import { db } from '../firebase/config';
 import { doc, getDoc, setDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { submitActivity, getUserSubmissions, canRetakeActivity } from '../firebase/submissions';
 import { Loading, useToast, Button } from '../components/ui';
+import UnifiedCard from '../components/UnifiedCard';
 import './HomePage.css';
-import { CheckCircle, Hourglass, CalendarDays, Repeat, Star, StarOff, Pin, Award, MessageSquareText, Play, Info, Filter, BookOpen, ClipboardList, HelpCircle, Leaf, TrendingUp, Flame, Gamepad2, Edit } from 'lucide-react';
+import { CheckCircle, Hourglass, CalendarDays, Repeat, Star, StarOff, Pin, Award, MessageSquareText, Play, Info, Filter, BookOpen, ClipboardList, HelpCircle, Leaf, TrendingUp, Flame, Gamepad2, Edit, Clock } from 'lucide-react';
 import { addNotification } from '../firebase/notifications';
 import { sendEmail } from '../firebase/firestore';
 import { formatDateTime } from '../utils/date';
@@ -309,10 +310,10 @@ const ActivitiesPage = () => {
 
   if (!user) return <Navigate to="/login" />;
 
-  if (loading) return <Loading />;
+  if (loading) return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading activities...'} />;
 
   return (
-    <div className="activities-page" style={{ padding: '1rem 1.25rem' }}>
+    <div className="content-section" style={{ padding: '1rem 0' }}>
 
       {/* Filters */}
       <div className="filters-section" ref={filtersRef} style={{
@@ -393,82 +394,46 @@ const ActivitiesPage = () => {
       />
 
       {/* Activities Grid */}
-      <div data-tour="grid" ref={gridRef} style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+      <div data-tour="grid" ref={gridRef} style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
         {filteredActivities.map((activity) => {
           const aid = activity.docId || activity.id;
-          const medals = activityMedals[aid] || [];
           const isQuiz = activity.type === 'quiz' || !!activity.internalQuizId;
+          const submission = submissions[aid];
+          const isCompleted = submission?.status === 'graded';
+          const completedAt = submission?.completedAt || submission?.submittedAt;
+          const isBookmarked = !!bookmarks[aid];
+          const dueDate = activity.dueDate;
 
           return (
-            <div key={aid} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#fff', borderRadius: 12, padding: '0.6rem', boxShadow: '0 2px 5px rgba(0,0,0,0.06)' }}>
-              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                <span>{lang === 'ar' ? (activity.title_ar || activity.title_en || aid) : (activity.title_en || activity.title_ar || aid)}</span>
-                {activity.allowRetake && (
-                  <span title={t('retake_allowed') || 'Retake Allowed'} style={{ background: '#17a2b8', color: '#fff', padding: 4, borderRadius: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24 }}>
-                    <Repeat size={14} />
-                  </span>
-                )}
-              </h3>
-              <p style={{ color: '#666', fontSize: '0.84rem', margin: 0 }}>
-                {lang === 'ar' ? (activity.description_ar || activity.description_en || '—') : (activity.description_en || activity.description_ar || '—')}
-              </p>
-              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '0.25rem 0.75rem', borderRadius: 12, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <Award size={14} /> {t(activity.level || 'beginner')}
-                </span>
-                <span style={{ background: '#e3f2fd', color: '#1976d2', padding: '0.25rem 0.75rem', borderRadius: 12, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  {activity.type === 'quiz' ? <HelpCircle size={14} /> : activity.type === 'homework' ? <ClipboardList size={14} /> : <BookOpen size={14} />} {t(activity.type || 'training')}
-                </span>
-                {activity.optional && (
-                  <span style={{ background: '#fff3e0', color: '#f57c00', padding: '0.25rem 0.75rem', borderRadius: 12, fontSize: '0.85rem' }}>{t('optional')}</span>
-                )}
-                {/* Quiz-specific metadata */}
-                {isQuiz && (
-                  <>
-                    {activity.questionCount && (
-                      <span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0.25rem 0.75rem', borderRadius: 12, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <HelpCircle size={14} /> {activity.questionCount} questions
-                      </span>
-                    )}
-                    {activity.estimatedTime && (
-                      <span style={{ background: '#fef3c7', color: '#d97706', padding: '0.25rem 0.75rem', borderRadius: 12, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <Clock size={14} /> {activity.estimatedTime} min
-                      </span>
-                    )}
-                  </>
-                )}
-                {medals.map((m, i) => (
-                  <span key={i} style={{ background: 'linear-gradient(135deg, #D4AF37, #FFD700)', color: '#2E3B4E', padding: '0.25rem 0.75rem', borderRadius: 12, fontSize: '0.85rem', fontWeight: 600, border: '2px solid #D4AF37', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>🏅 +{m.points}</span>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
-                <Button
-                  variant="success"
-                  size="small"
-                  style={{ width: 40, height: 40, padding: 0, borderRadius: 999 }}
-                  onClick={() => {
-                    if (isQuiz) {
-                      window.location.href = `/student-quiz/${activity.internalQuizId || aid}`;
-                    } else {
-                      window.open(activity.url, '_blank');
-                    }
-                  }}
-                  aria-label={t('start') || 'Start'}
-                >
-                  <Play size={18} />
-                </Button>
-
-                <Button
-                  variant="secondary"
-                  size="small"
-                  style={{ width: 40, height: 40, padding: 0, borderRadius: 999, background: '#f5f5f5', color: '#333', border: '1px solid #e5e5e5' }}
-                  onClick={() => { /* Navigate to details */ }}
-                  aria-label={t('details') || 'Details'}
-                >
-                  <Info size={18} />
-                </Button>
-              </div>
-            </div>
+            <UnifiedCard
+              key={aid}
+              flavor="activity"
+              item={activity}
+              lang={lang}
+              t={t}
+              isCompleted={isCompleted}
+              completedAt={completedAt}
+              isBookmarked={isBookmarked}
+              dueDate={dueDate}
+              onStart={() => {
+                if (isQuiz) {
+                  window.location.href = `/student-quiz/${activity.internalQuizId || aid}`;
+                } else {
+                  window.open(activity.url, '_blank');
+                }
+              }}
+              onBookmark={async () => {
+                try {
+                  const next = { ...bookmarks };
+                  const isAdding = !next[aid];
+                  if (next[aid]) delete next[aid]; else next[aid] = true;
+                  setBookmarks(next);
+                  await setDoc(doc(db, 'users', user.uid), { bookmarks: { activities: next } }, { merge: true });
+                } catch (e) {
+                  toast?.showError(e.message || 'Failed to update bookmark');
+                }
+              }}
+            />
           );
         })}
       </div>

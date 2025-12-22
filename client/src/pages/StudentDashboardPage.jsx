@@ -1,6 +1,6 @@
 /**
- * World-Class Student Dashboard - Unified Performance & Attendance View
- * Modern, clean design inspired by leading SaaS products
+ * Student Dashboard - Refactored into modular components
+ * Modern, clean design for student learning management
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -8,23 +8,22 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { 
-  Container, Card, CardBody, Button, Badge, Grid, EmptyState, 
-  Select, Tabs, ProgressBar, useToast, Loading 
+  Container, Button, Select, Tabs, useToast, Loading 
 } from '../components/ui';
 import {
-  BookOpen, Clock, Trophy, Award, Target, TrendingUp, 
-  CheckCircle, XCircle, AlertCircle, FileText, FileQuestion,
-  Calendar, Bell, RefreshCw, Eye, BarChart3, Filter,
-  BookmarkCheck, Play, FileArchive, Inbox, ArrowRight,
-  Users, Flame, Zap, Star, Activity, PieChart, CalendarCheck,
-  CalendarX, CalendarClock, GraduationCap, Medal, ChevronRight,
-  Download, Upload, BookMarked, Sparkles
+  RefreshCw, BarChart3, CheckCircle, CalendarCheck, TrendingUp, Sparkles
 } from 'lucide-react';
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { getAttendanceByStudent, getAttendanceStats, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../firebase/attendance';
-import { getUserBadges, getUserStats } from '../firebase/badges';
+import { getAttendanceByStudent, getAttendanceStats } from '../firebase/attendance';
 import styles from './StudentDashboardPage_NEW.module.css';
+
+// Import dashboard components
+import StatsCards from '../components/studentDashboard/StatsCards';
+import OverviewView from '../components/studentDashboard/OverviewView';
+import TasksView from '../components/studentDashboard/TasksView';
+import AttendanceView from '../components/studentDashboard/AttendanceView';
+import PerformanceView from '../components/studentDashboard/PerformanceView';
 
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();
@@ -42,8 +41,6 @@ export default function StudentDashboardPage() {
   const [enrollments, setEnrollments] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [attendanceStats, setAttendanceStats] = useState(null);
-  const [badges, setBadges] = useState([]);
-  const [userStats, setUserStats] = useState(null);
   
   // Filters
   const [selectedClass, setSelectedClass] = useState('all');
@@ -191,16 +188,6 @@ export default function StudentDashboardPage() {
         setAttendanceStats(combinedStats);
       }
 
-      // Load badges and stats
-      const badgesResult = await getUserBadges(targetUserId);
-      if (badgesResult.success) {
-        setBadges(badgesResult.data);
-      }
-
-      const statsResult = await getUserStats(targetUserId);
-      if (statsResult.success) {
-        setUserStats(statsResult.data);
-      }
 
     } catch (error) {
       const message = String(error?.message || '').toLowerCase();
@@ -358,73 +345,7 @@ export default function StudentDashboardPage() {
         </div>
 
         {/* Quick Stats Cards */}
-        <div className={styles.statsGrid}>
-          <Card className={styles.statCard}>
-            <CardBody>
-              <div className={styles.statCardContent}>
-                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                  <BookOpen size={24} />
-                </div>
-                <div className={styles.statInfo}>
-                  <div className={styles.statValue}>{stats.enrolledClasses}</div>
-                  <div className={styles.statLabel}>Enrolled Classes</div>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card className={styles.statCard}>
-            <CardBody>
-              <div className={styles.statCardContent}>
-                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-                  <Target size={24} />
-                </div>
-                <div className={styles.statInfo}>
-                  <div className={styles.statValue}>{stats.completedTasks}/{stats.totalTasks}</div>
-                  <div className={styles.statLabel}>Tasks Completed</div>
-                  <ProgressBar 
-                    value={stats.completionRate} 
-                    max={100}
-                    variant="success"
-                    size="sm"
-                    className={styles.statProgress}
-                  />
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card className={styles.statCard}>
-            <CardBody>
-              <div className={styles.statCardContent}>
-                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-                  <Trophy size={24} />
-                </div>
-                <div className={styles.statInfo}>
-                  <div className={styles.statValue}>{stats.avgGrade}%</div>
-                  <div className={styles.statLabel}>Average Grade</div>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card className={styles.statCard}>
-            <CardBody>
-              <div className={styles.statCardContent}>
-                <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' }}>
-                  <CalendarCheck size={24} />
-                </div>
-                <div className={styles.statInfo}>
-                  <div className={styles.statValue}>{attendanceStats?.attendanceRate || 0}%</div>
-                  <div className={styles.statLabel}>Attendance Rate</div>
-                  <div className={styles.statSubtext}>
-                    {attendanceStats?.present || 0}/{attendanceStats?.totalSessions || 0} sessions
-                  </div>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+        <StatsCards stats={stats} attendanceStats={attendanceStats} />
 
         {/* View Mode Tabs */}
         <div className={styles.viewModeTabs}>
@@ -448,8 +369,6 @@ export default function StudentDashboardPage() {
             tasks={tasks}
             attendance={attendance}
             attendanceStats={attendanceStats}
-            badges={badges}
-            userStats={userStats}
             navigate={navigate}
             setViewMode={setViewMode}
           />
@@ -483,531 +402,9 @@ export default function StudentDashboardPage() {
             quizResults={quizResults}
             submissions={submissions}
             classes={classes}
-            badges={badges}
-            userStats={userStats}
           />
         )}
       </Container>
-    </div>
-  );
-}
-
-// Overview View Component
-function OverviewView({ urgentTasks, tasks, attendance, attendanceStats, badges, userStats, navigate, setViewMode }) {
-  return (
-    <Grid cols={3} gap="1.5rem" className={styles.overviewGrid}>
-      {/* Urgent Tasks Widget */}
-      {urgentTasks.length > 0 && (
-        <Card className={styles.urgentTasksCard}>
-          <CardBody>
-            <div className={styles.cardHeader}>
-              <div className={styles.cardTitle}>
-                <AlertCircle size={20} className={styles.urgentIcon} />
-                <h3>Urgent Tasks</h3>
-              </div>
-              <Badge variant="danger" size="sm">{urgentTasks.length}</Badge>
-            </div>
-            <div className={styles.urgentTasksList}>
-              {urgentTasks.map(task => (
-                <div key={task.id} className={styles.urgentTaskItem}>
-                  <div className={styles.urgentTaskInfo}>
-                    <div className={styles.urgentTaskTitle}>{task.title}</div>
-                    <div className={styles.urgentTaskMeta}>
-                      {task.className} • Due {new Date(task.deadline.toDate()).toLocaleDateString('en-GB')}
-                    </div>
-                  </div>
-                  <Button size="sm" variant="primary">
-                    {task.type === 'quiz' ? 'Start' : 'Submit'}
-                  </Button>
-                </div>
-              ))}
-            </div>
-            <Button variant="ghost" size="sm" className={styles.viewAllButton} onClick={() => setViewMode('tasks')}>
-              View All Tasks <ChevronRight size={16} />
-            </Button>
-          </CardBody>
-        </Card>
-      )}
-
-      {/* Recent Attendance Widget */}
-      <Card className={styles.attendanceCard}>
-        <CardBody>
-          <div className={styles.cardHeader}>
-            <div className={styles.cardTitle}>
-              <CalendarCheck size={20} />
-              <h3>Recent Attendance</h3>
-            </div>
-          </div>
-          {attendance.length === 0 ? (
-            <div className={styles.emptyWidget}>
-              <CalendarCheck size={40} className={styles.emptyIcon} />
-              <p>No attendance records yet</p>
-              <span className={styles.emptyHint}>Your attendance will appear here once classes begin</span>
-            </div>
-          ) : (
-          <div className={styles.attendanceOverview}>
-            <div className={styles.attendanceStats}>
-              <div className={styles.attendanceStat}>
-                <CheckCircle size={18} className={styles.presentIcon} />
-                <span>{attendanceStats?.present || 0} Present</span>
-              </div>
-              <div className={styles.attendanceStat}>
-                <XCircle size={18} className={styles.absentIcon} />
-                <span>{attendanceStats?.absent || 0} Absent</span>
-              </div>
-              <div className={styles.attendanceStat}>
-                <Clock size={18} className={styles.lateIcon} />
-                <span>{attendanceStats?.late || 0} Late</span>
-              </div>
-            </div>
-            <div className={styles.attendanceList}>
-              {attendance.slice(0, 5).map((record, idx) => (
-                <div key={idx} className={styles.attendanceItem}>
-                  <div className={styles.attendanceDate}>
-                    {new Date(record.date).toLocaleDateString('en-GB')}
-                  </div>
-                  <Badge 
-                    variant={
-                      record.status === ATTENDANCE_STATUS.PRESENT || record.status === 'present' ? 'success' : 
-                      record.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE || record.status === 'absent' ? 'danger' : 
-                      'warning'
-                    }
-                    size="sm"
-                    style={ATTENDANCE_STATUS_LABELS[record.status] ? { 
-                      backgroundColor: ATTENDANCE_STATUS_LABELS[record.status].color,
-                      color: '#fff'
-                    } : {}}
-                  >
-                    {ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-          )}
-          <Button variant="ghost" size="sm" className={styles.viewAllButton} onClick={() => setViewMode('attendance')}>
-            View Full History <ChevronRight size={16} />
-          </Button>
-        </CardBody>
-      </Card>
-
-      {/* Upcoming Tasks Widget - Show when no urgent tasks */}
-      {urgentTasks.length === 0 && (
-        <Card className={styles.upcomingTasksCard}>
-          <CardBody>
-            <div className={styles.cardHeader}>
-              <div className={styles.cardTitle}>
-                <CheckCircle size={20} />
-                <h3>My Tasks</h3>
-              </div>
-              <Badge variant="success" size="sm">{tasks.length}</Badge>
-            </div>
-            {tasks.length === 0 ? (
-              <div className={styles.emptyWidget}>
-                <Inbox size={40} className={styles.emptyIcon} />
-                <p>No tasks assigned yet</p>
-                <span className={styles.emptyHint}>Quizzes, homework, and resources will appear here</span>
-              </div>
-            ) : (
-              <div className={styles.tasksSummary}>
-                <div className={styles.taskStat}>
-                  <span className={styles.taskStatValue}>{tasks.filter(t => t.status === 'pending').length}</span>
-                  <span className={styles.taskStatLabel}>Pending</span>
-                </div>
-                <div className={styles.taskStat}>
-                  <span className={styles.taskStatValue}>{tasks.filter(t => t.status === 'completed').length}</span>
-                  <span className={styles.taskStatLabel}>Completed</span>
-                </div>
-                <div className={styles.taskStat}>
-                  <span className={styles.taskStatValue}>{tasks.filter(t => t.status === 'overdue').length}</span>
-                  <span className={styles.taskStatLabel}>Overdue</span>
-                </div>
-              </div>
-            )}
-            <Button variant="ghost" size="sm" className={styles.viewAllButton} onClick={() => setViewMode('tasks')}>
-              View All Tasks <ChevronRight size={16} />
-            </Button>
-          </CardBody>
-        </Card>
-      )}
-
-      {/* Achievements Widget */}
-      <Card className={styles.achievementsCard}>
-        <CardBody>
-          <div className={styles.cardHeader}>
-            <div className={styles.cardTitle}>
-              <Medal size={20} />
-              <h3>Achievements</h3>
-            </div>
-            <Badge variant="primary" size="sm">{badges.length}</Badge>
-          </div>
-          <div className={styles.badgesList}>
-            {badges.slice(0, 6).map((badge, idx) => (
-              <div key={idx} className={styles.badgeItem} title={badge.name}>
-                <div className={styles.badgeIcon}>{badge.icon || '🏆'}</div>
-              </div>
-            ))}
-          </div>
-          {badges.length === 0 && (
-            <EmptyState
-              icon={Medal}
-              title="No badges yet"
-              description="Complete tasks to earn achievements!"
-              size="sm"
-            />
-          )}
-          <Button variant="ghost" size="sm" className={styles.viewAllButton} onClick={() => setViewMode('performance')}>
-            View All Achievements <ChevronRight size={16} />
-          </Button>
-        </CardBody>
-      </Card>
-    </Grid>
-  );
-}
-
-// Tasks View Component
-function TasksView({ filteredTasks, classes, selectedClass, setSelectedClass, taskFilter, setTaskFilter, statusFilter, setStatusFilter, navigate }) {
-  return (
-    <div className={styles.tasksView}>
-      <Card>
-        <CardBody>
-          <div className={styles.tasksHeader}>
-            <h2>My Tasks</h2>
-            <div className={styles.tasksFilters}>
-              <Select 
-                searchable
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All Classes' },
-                  ...classes.map(cls => ({
-                    value: cls.id,
-                    label: cls.name
-                  }))
-                ]}
-                placeholder="Select Class"
-                size="sm"
-              />
-
-              <Tabs
-                value={taskFilter}
-                onChange={setTaskFilter}
-                tabs={[
-                  { value: 'all', label: 'All' },
-                  { value: 'quiz', label: 'Quizzes' },
-                  { value: 'homework', label: 'Homework' },
-                  { value: 'resource', label: 'Resources' }
-                ]}
-                size="sm"
-              />
-
-              <Tabs
-                value={statusFilter}
-                onChange={setStatusFilter}
-                tabs={[
-                  { value: 'all', label: 'All' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'completed', label: 'Completed' },
-                  { value: 'overdue', label: 'Overdue' }
-                ]}
-                size="sm"
-              />
-            </div>
-          </div>
-
-          {filteredTasks.length === 0 ? (
-            <EmptyState
-              icon={Inbox}
-              title="No tasks found"
-              description="You're all caught up! Check back later for new assignments."
-            />
-          ) : (
-            <div className={styles.tasksList}>
-              {filteredTasks.map(task => (
-                <TaskCard key={task.id} task={task} navigate={navigate} />
-              ))}
-            </div>
-          )}
-        </CardBody>
-      </Card>
-    </div>
-  );
-}
-
-// Task Card Component
-function TaskCard({ task, navigate }) {
-  const statusConfig = {
-    completed: { color: 'success', icon: CheckCircle, label: 'Completed' },
-    pending: { color: 'default', icon: Clock, label: 'Pending' },
-    urgent: { color: 'warning', icon: AlertCircle, label: 'Due Soon' },
-    overdue: { color: 'danger', icon: XCircle, label: 'Overdue' }
-  };
-
-  const typeConfig = {
-    quiz: { icon: FileQuestion, label: 'Quiz', color: '#667eea' },
-    homework: { icon: BookOpen, label: 'Homework', color: '#f59e0b' },
-    resource: { icon: FileArchive, label: 'Resource', color: '#10b981' }
-  };
-
-  const status = statusConfig[task.status] || statusConfig.pending;
-  const type = typeConfig[task.type] || typeConfig.homework;
-  const TypeIcon = type.icon;
-  const StatusIcon = status.icon;
-
-  return (
-    <div className={styles.taskCard}>
-      <div className={styles.taskCardHeader}>
-        <div className={styles.taskType}>
-          <TypeIcon size={18} style={{ color: type.color }} />
-          <span>{type.label}</span>
-        </div>
-        <Badge variant={status.color} size="sm">
-          <StatusIcon size={14} />
-          {status.label}
-        </Badge>
-      </div>
-
-      <h3 className={styles.taskTitle}>{task.title}</h3>
-      
-      <div className={styles.taskMeta}>
-        <span className={styles.className}>{task.className}</span>
-        {task.deadline && (
-          <span className={styles.deadline}>
-            <Clock size={14} />
-            {new Date(task.deadline.toDate()).toLocaleDateString('en-GB')}
-          </span>
-        )}
-      </div>
-
-      {task.isGraded && (
-        <div className={styles.taskScore}>
-          <Award size={16} />
-          <span className={styles.score}>{task.score}%</span>
-          <ProgressBar 
-            value={task.score} 
-            max={100}
-            variant={task.score >= 70 ? 'success' : 'danger'}
-            size="sm"
-          />
-        </div>
-      )}
-
-      <div className={styles.taskActions}>
-        {task.status === 'completed' ? (
-          <>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => navigate(`/quiz-results?id=${task.id}`)}
-            >
-              <Eye size={14} /> View Results
-            </Button>
-            {task.allowRetake && task.score < 70 && (
-              <Button 
-                size="sm" 
-                variant="primary"
-                onClick={() => navigate(`/quiz/${task.id}?retake=true`)}
-              >
-                <RefreshCw size={14} /> Retake
-              </Button>
-            )}
-          </>
-        ) : (
-          <Button 
-            size="sm" 
-            variant="primary"
-            onClick={() => navigate(task.type === 'quiz' ? `/quiz/${task.id}` : `/activity/${task.id}`)}
-          >
-            <Play size={14} /> {task.type === 'quiz' ? 'Start Quiz' : 'View Details'}
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Attendance View Component
-function AttendanceView({ attendance, attendanceStats, classes }) {
-  return (
-    <div className={styles.attendanceView}>
-      <Grid cols={2} gap="1.5rem">
-        {/* Attendance Summary */}
-        <Card>
-          <CardBody>
-            <h2>Attendance Summary</h2>
-            <div className={styles.attendanceSummaryGrid}>
-              <div className={styles.attendanceSummaryCard} style={{ background: 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)' }}>
-                <CheckCircle size={32} className={styles.summaryIcon} />
-                <div className={styles.summaryValue}>{attendanceStats?.present || 0}</div>
-                <div className={styles.summaryLabel}>Present</div>
-              </div>
-              <div className={styles.attendanceSummaryCard} style={{ background: 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)' }}>
-                <XCircle size={32} className={styles.summaryIcon} />
-                <div className={styles.summaryValue}>{attendanceStats?.absent || 0}</div>
-                <div className={styles.summaryLabel}>Absent</div>
-              </div>
-              <div className={styles.attendanceSummaryCard} style={{ background: 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)' }}>
-                <Clock size={32} className={styles.summaryIcon} />
-                <div className={styles.summaryValue}>{attendanceStats?.late || 0}</div>
-                <div className={styles.summaryLabel}>Late</div>
-              </div>
-              <div className={styles.attendanceSummaryCard} style={{ background: 'linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%)' }}>
-                <CalendarClock size={32} className={styles.summaryIcon} />
-                <div className={styles.summaryValue}>{attendanceStats?.totalSessions || 0}</div>
-                <div className={styles.summaryLabel}>Total Sessions</div>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-
-        {/* Attendance Rate */}
-        <Card>
-          <CardBody>
-            <h2>Attendance Rate</h2>
-            <div className={styles.attendanceRateDisplay}>
-              <div className={styles.rateCircle}>
-                <div className={styles.rateValue}>{attendanceStats?.attendanceRate || 0}%</div>
-              </div>
-              <ProgressBar 
-                value={attendanceStats?.attendanceRate || 0} 
-                max={100}
-                variant={attendanceStats?.attendanceRate >= 80 ? 'success' : attendanceStats?.attendanceRate >= 60 ? 'warning' : 'danger'}
-                size="lg"
-                className={styles.rateProgress}
-              />
-            </div>
-          </CardBody>
-        </Card>
-      </Grid>
-
-      {/* Attendance History */}
-      <Card className={styles.attendanceHistoryCard}>
-        <CardBody>
-          <h2>Attendance History</h2>
-          {attendance.length === 0 ? (
-            <EmptyState
-              icon={CalendarCheck}
-              title="No attendance records"
-              description="Your attendance will appear here once recorded."
-            />
-          ) : (
-            <div className={styles.attendanceHistory}>
-              {attendance.map((record, idx) => (
-                <div key={idx} className={styles.attendanceHistoryItem}>
-                  <div className={styles.historyDate}>
-                    <Calendar size={16} />
-                    {new Date(record.date).toLocaleDateString('en-GB', { 
-                      weekday: 'short', 
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
-                  </div>
-                  <div className={styles.historyClass}>
-                    {classes.find(c => c.id === record.classId)?.name || 'Unknown Class'}
-                  </div>
-                  <Badge 
-                    variant={
-                      record.status === ATTENDANCE_STATUS.PRESENT || record.status === 'present' ? 'success' : 
-                      record.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE || record.status === 'absent' ? 'danger' : 
-                      record.status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE ? 'warning' :
-                      record.status === ATTENDANCE_STATUS.LATE || record.status === 'late' ? 'warning' : 
-                      record.status === ATTENDANCE_STATUS.EXCUSED_LEAVE ? 'info' :
-                      record.status === ATTENDANCE_STATUS.HUMAN_CASE ? 'info' : 'default'
-                    }
-                    style={ATTENDANCE_STATUS_LABELS[record.status] ? { 
-                      backgroundColor: ATTENDANCE_STATUS_LABELS[record.status].color,
-                      color: '#fff'
-                    } : {}}
-                  >
-                    {ATTENDANCE_STATUS_LABELS[record.status]?.[lang === 'ar' ? 'ar' : 'en'] || record.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardBody>
-      </Card>
-    </div>
-  );
-}
-
-// Performance View Component
-function PerformanceView({ tasks, quizResults, submissions, classes, badges, userStats }) {
-  const performanceByType = useMemo(() => {
-    const types = ['quiz', 'homework', 'resource'];
-    return types.map(type => {
-      const typeTasks = tasks.filter(t => t.type === type);
-      const completed = typeTasks.filter(t => t.status === 'completed').length;
-      const total = typeTasks.length;
-      const graded = typeTasks.filter(t => t.isGraded && t.score != null);
-      const avgScore = graded.length > 0
-        ? Math.round(graded.reduce((sum, t) => sum + t.score, 0) / graded.length)
-        : 0;
-
-      return {
-        type,
-        completed,
-        total,
-        avgScore,
-        completionRate: total > 0 ? ((completed / total) * 100).toFixed(1) : 0
-      };
-    });
-  }, [tasks]);
-
-  return (
-    <div className={styles.performanceView}>
-      <Grid cols={3} gap="1.5rem">
-        {performanceByType.map(perf => (
-          <Card key={perf.type} className={styles.performanceCard}>
-            <CardBody>
-              <h3 className={styles.performanceTitle}>
-                {perf.type === 'quiz' ? 'Quiz' : perf.type === 'homework' ? 'Homework' : 'Resource'} Performance
-              </h3>
-              <div className={styles.performanceStats}>
-                <div className={styles.performanceStat}>
-                  <div className={styles.performanceValue}>{perf.completed}/{perf.total}</div>
-                  <div className={styles.performanceLabel}>Completed</div>
-                </div>
-                <div className={styles.performanceStat}>
-                  <div className={styles.performanceValue}>{perf.avgScore}%</div>
-                  <div className={styles.performanceLabel}>Avg Score</div>
-                </div>
-              </div>
-              <ProgressBar 
-                value={perf.completionRate} 
-                max={100}
-                variant="primary"
-                size="md"
-              />
-            </CardBody>
-          </Card>
-        ))}
-      </Grid>
-
-      {/* Badges Section */}
-      <Card className={styles.badgesSection}>
-        <CardBody>
-          <h2>Achievements & Badges</h2>
-          {badges.length === 0 ? (
-            <EmptyState
-              icon={Medal}
-              title="No achievements yet"
-              description="Complete tasks and maintain good attendance to earn badges!"
-            />
-          ) : (
-            <div className={styles.badgesGrid}>
-              {badges.map((badge, idx) => (
-                <div key={idx} className={styles.badgeCard}>
-                  <div className={styles.badgeIconLarge}>{badge.icon || '🏆'}</div>
-                  <div className={styles.badgeName}>{badge.name}</div>
-                  <div className={styles.badgeDescription}>{badge.description}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardBody>
-      </Card>
     </div>
   );
 }

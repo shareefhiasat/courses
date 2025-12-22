@@ -1,99 +1,211 @@
-/* Tabs Container */
+/* Modern Tabs Component - Dribbble-inspired design */
+
 .tabsContainer {
-  width: 100%;
-}
-
-/* Tab List */
-.tabList {
   display: flex;
-  gap: 0.25rem;
-  border-bottom: 2px solid var(--border, #e0e0e0);
-  overflow-x: auto;
-  scrollbar-width: none;
+  justify-content: center;
+  margin-bottom: 2rem;
 }
 
-.tabList::-webkit-scrollbar {
+.tabsWrapper {
+  display: inline-flex;
+  background: var(--panel, #ffffff);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border, #e5e7eb);
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Default variant - segmented control style */
+.default .tabsWrapper {
+  background: var(--panel, #ffffff);
+}
+
+/* Pills variant */
+.pills .tabsWrapper {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 8px;
+}
+
+/* Underline variant */
+.underline .tabsWrapper {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  border-bottom: 2px solid var(--border, #e5e7eb);
+  border-radius: 0;
+  gap: 0;
+}
+
+.underline .tab {
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.underline .tab.active {
+  background: transparent;
+  border-bottom-color: var(--color-primary, #800020);
+  color: var(--color-primary, #800020);
+}
+
+.underline .activeIndicator {
   display: none;
 }
 
-/* Tab */
+/* Tab button */
 .tab {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: none;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  cursor: pointer;
-  font-size: var(--font-size-md, 1rem);
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.95rem;
   font-weight: 500;
-  color: var(--muted, #666);
-  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  min-height: 40px;
 }
 
 .tab:hover {
-  color: var(--text, #212529);
-  background: rgba(128, 0, 32, 0.05);
+  background: var(--panel-hover, #f9fafb);
+  color: var(--text, #111827);
 }
 
 .tab.active {
-  color: var(--color-primary, #800020);
-  border-bottom-color: var(--color-primary, #800020);
+  background: var(--color-primary, #800020);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(128, 0, 32, 0.2);
 }
 
+.pills .tab.active {
+  background: var(--color-primary, #800020);
+  color: #ffffff;
+}
+
+/* Tab icon */
 .tabIcon {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.tabIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Tab label */
+.tabLabel {
+  display: inline-block;
+}
+
+/* Tab badge */
+.tabBadge {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: rgba(0, 0, 0, 0.1);
+  color: inherit;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
-/* Tab Panel */
-.tabPanel {
-  padding: 1.5rem 0;
+.tab.active .tabBadge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
 }
 
-/* Animated inner wrapper so key changes trigger entrance animation */
-.tabPanelInner {
-  animation: tabFadeSlideIn 220ms ease both;
+/* Active indicator (for default variant) */
+.activeIndicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 0 0 8px 8px;
 }
 
-@keyframes tabFadeSlideIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Sizes */
+.sm .tab {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  min-height: 32px;
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .tab {
-    padding: 0.5rem 1rem;
-    font-size: var(--font-size-sm, 0.875rem);
-  }
-  
-  .tabPanel {
-    padding: 1rem 0;
-  }
+.sm .tabIcon svg {
+  width: 14px;
+  height: 14px;
 }
 
-/* Dark Mode */
+.lg .tab {
+  padding: 14px 28px;
+  font-size: 1.1rem;
+  min-height: 48px;
+}
+
+.lg .tabIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Dark mode */
 @media (prefers-color-scheme: dark) {
-  .tabList {
-    border-bottom-color: var(--border, #333);
+  .tabsWrapper {
+    background: var(--panel, #1f2937);
+    border-color: var(--border, #374151);
   }
-  
+
   .tab {
-    color: var(--muted, #999);
+    color: var(--text-secondary, #9ca3af);
   }
-  
+
   .tab:hover {
-    color: var(--text, #f5f5f5);
-    background: rgba(160, 32, 64, 0.1);
+    background: var(--panel-hover, #374151);
+    color: var(--text, #f9fafb);
   }
-  
+
   .tab.active {
-    color: var(--color-primary, #ff6b9d);
-    border-bottom-color: var(--color-primary, #ff6b9d);
+    background: var(--color-primary, #800020);
+    color: #ffffff;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .tabsWrapper {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+  }
+
+  .tabLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }

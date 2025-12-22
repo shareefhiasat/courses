@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
-import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast } from '../components/ui';
+import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect } from '../components/ui';
 import { UserX, UserCheck, Search, Shield, AlertCircle } from 'lucide-react';
 import styles from './ManageEnrollmentsPage.module.css';
 
@@ -16,6 +16,66 @@ const ManageEnrollmentsPage = () => {
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [yearFilter, setYearFilter] = useState('all');
+  const [termFilter, setTermFilter] = useState('all');
+  const [sortOption, setSortOption] = useState('name_asc');
+
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    classes.forEach(cls => {
+      if (cls.year) {
+        years.add(String(cls.year));
+      } else if (cls.term) {
+        const parts = cls.term.split(' ');
+        if (parts.length > 1) {
+          const yearPart = parts[parts.length - 1];
+          if (yearPart && !isNaN(yearPart)) {
+            years.add(yearPart);
+          }
+        }
+      }
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [classes]);
+
+  const availableTerms = useMemo(() => {
+    const terms = new Set();
+    classes.forEach(cls => {
+      if (cls.term) {
+        const termPart = cls.term.split(' ')[0];
+        if (termPart) terms.add(termPart);
+      }
+    });
+    return Array.from(terms).sort();
+  }, [classes]);
+
+  const filteredClasses = useMemo(() => {
+    let result = [...classes];
+    if (yearFilter !== 'all') {
+      result = result.filter(cls => {
+        if (cls.year && String(cls.year) === yearFilter) return true;
+        if (cls.term) {
+          const parts = cls.term.split(' ');
+          if (parts.length > 1 && parts[parts.length - 1] === yearFilter) return true;
+        }
+        return false;
+      });
+    }
+    if (termFilter !== 'all') {
+      result = result.filter(cls => {
+        if (!cls.term) return false;
+        const termPart = cls.term.split(' ')[0];
+        return termPart === termFilter;
+      });
+    }
+    switch (sortOption) {
+      case 'name_asc':
+      default:
+        result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
+        break;
+    }
+    return result;
+  }, [classes, yearFilter, termFilter, sortOption]);
 
   useEffect(() => {
     loadClasses();
@@ -24,7 +84,11 @@ const ManageEnrollmentsPage = () => {
   const loadClasses = async () => {
     try {
       const snap = await getDocs(collection(db, 'classes'));
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const data = snap.docs.map(d => ({ 
+        id: d.id, 
+        docId: d.id,
+        ...d.data() 
+      }));
       setClasses(data);
     } catch (e) {
       console.error('[ManageEnrollments] Error loading classes:', e);
@@ -107,33 +171,55 @@ const ManageEnrollmentsPage = () => {
   }
 
   return (
-    <Container maxWidth="xl" className={styles.page}>
-      <div className={styles.header}>
-        <Shield size={28} />
-        <h1>{t('manage_enrollments') || 'Manage Student Access'}</h1>
-      </div>
-
+    <Container maxWidth="xl" className={styles.page} style={{ padding: '1rem 0' }}>
       <div className={styles.layout}>
         {/* Class List */}
         <Card className={styles.classList}>
           <CardBody>
-            <div className={styles.classListHeader}>{t('classes') || 'Classes'} ({classes.length})</div>
+            <div className={styles.classListHeader}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
+            
+            {/* Filters */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: '1rem' }}>
+              <Select
+                searchable
+                value={termFilter}
+                onChange={(e) => setTermFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_terms') || 'All Terms' },
+                  ...availableTerms.map(term => ({ value: term, label: term }))
+                ]}
+                fullWidth
+              />
+              <Select
+                searchable
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_years') || 'All Years' },
+                  ...availableYears.map(year => ({ value: year, label: year }))
+                ]}
+                fullWidth
+              />
+            </div>
+            
             <div className={styles.classItems}>
-            {classes.map((cls, idx) => {
-              const isSelected = selectedClass?.id === cls.id;
-              const uniqueKey = cls.id || `class-${idx}`;
+            {filteredClasses.map((cls, idx) => {
+              const classId = cls.id || cls.docId;
+              const isSelected = (selectedClass?.id === classId) || (selectedClass?.docId === classId);
+              const uniqueKey = classId || `class-${idx}`;
               return (
                 <div
                   key={uniqueKey}
                   onClick={() => { 
-                    if (cls.id) {
-                      setSelectedClass(cls); 
-                      loadStudents(cls.id);
+                    if (classId) {
+                      setSelectedClass({ ...cls, id: classId, docId: classId }); 
+                      loadStudents(classId);
                     }
                   }}
                   className={`${styles.classItem} ${isSelected ? styles.classItemSelected : ''}`}
+                  style={{ cursor: classId ? 'pointer' : 'default' }}
                 >
-                  <div className={styles.className}>{cls.name || cls.code}</div>
+                  <div className={styles.className}>{cls.name || cls.code || 'Unnamed Class'}</div>
                   <div className={styles.classInfo}>
                     {cls.term && `${cls.term}`} {cls.year && `• ${cls.year}`}
                   </div>
@@ -169,7 +255,6 @@ const ManageEnrollmentsPage = () => {
                 placeholder={t('search_students') || 'Search students...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                icon={<Search size={16} />}
                 className={styles.searchInput}
               />
 
@@ -214,9 +299,6 @@ const ManageEnrollmentsPage = () => {
                         </div>
                         <div className={styles.studentEmail}>
                           {student.email}
-                        </div>
-                        <div className={styles.studentId}>
-                          ID: {student.id}
                         </div>
                       </div>
                       <Button
