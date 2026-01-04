@@ -123,7 +123,7 @@ export default function StudentQuizPage() {
         <p style={{ color: 'var(--muted)', marginBottom: '2rem' }}>{error || 'This quiz does not exist or has been deleted.'}</p>
         <button
           onClick={() => navigate('/activities')}
-          style={{ padding: '0.75rem 2rem', background: '#667eea', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+          style={{ padding: '0.75rem 2rem', background: '#800020', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
         >
           Back to Activities
         </button>
@@ -202,7 +202,7 @@ export default function StudentQuizPage() {
             }}
             style={{
               padding: '1rem 3rem',
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              background: 'linear-gradient(135deg, #800020, #600018)',
               color: 'white',
               border: 'none',
               borderRadius: 12,

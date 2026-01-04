@@ -63,13 +63,13 @@
 }
 
 .classItem:hover {
-  border-color: var(--color-primary, #667eea);
+  border-color: var(--color-primary, #800020);
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
 }
 
 .classItemSelected {
   background: rgba(102, 126, 234, 0.12);
-  border-color: var(--color-primary, #667eea);
+  border-color: var(--color-primary, #800020);
 }
 
 .className {

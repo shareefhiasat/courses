@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthChange } from '../firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { getAllowlist, ensureUserDoc, addLoginLog } from '../firebase/firestore';
 import { signOutUser } from '../firebase/auth';
 import { ActivityLogger } from '../firebase/activityLogger';
+import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
 
 const AuthContext = createContext();
 
@@ -42,15 +43,20 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let userDocUnsub = null;
+    let hasLoggedInThisSession = false; // Track if we've logged this session
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
         setIsAdmin(false);
         setRole('guest');
         setLoading(false);
+        hasLoggedInThisSession = false; // Reset on logout
         return;
       }
 
+      // Only log login if this is a NEW session (user was null before)
+      const isNewLogin = !user && !hasLoggedInThisSession;
+      
       setUser(firebaseUser);
       try {
         // Ensure a user doc exists
@@ -102,7 +108,27 @@ export const AuthProvider = ({ children }) => {
             hr = userData.role === 'hr' || userData.isHR === true;
             instructor = userData.role === 'instructor' || userData.isInstructor === true;
             
-            // Store full profile with display name
+            // Load user enrollments for status check
+            let enrollments = [];
+            try {
+              const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', firebaseUser.uid)));
+              enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            } catch (e) {
+              console.warn('Failed to load enrollments for status check:', e);
+            }
+            
+            // Check user status
+            const userStatus = getUserStatus(userData, enrollments);
+            const statusSummary = getUserStatusSummary(userData, enrollments);
+            
+            // Prevent deleted users from logging in
+            if (!canUserLogin(userData)) {
+              console.warn('[Auth] User is deleted. Signing out.');
+              await signOutUser();
+              return;
+            }
+            
+            // Store full profile with display name and status
             profile = {
               uid: firebaseUser.uid,
               email: userData.email || firebaseUser.email,
@@ -111,6 +137,8 @@ export const AuthProvider = ({ children }) => {
               role: userData.role,
               studentNumber: userData.studentNumber,
               photoURL: userData.photoURL || firebaseUser.photoURL,
+              status: userStatus,
+              statusSummary,
               ...userData
             };
             
@@ -135,12 +163,15 @@ export const AuthProvider = ({ children }) => {
         
         setRole(userRole);
 
-        // Best-effort login log
-        try {
-          await addLoginLog({ userId: firebaseUser.uid, email: firebaseUser.email, displayName: firebaseUser.displayName || null });
-          // Log activity with new logger
-          await ActivityLogger.login();
-        } catch {}
+        // Only log login on actual login action (new session), not on every auth state change
+        if (isNewLogin) {
+          try {
+            await addLoginLog({ userId: firebaseUser.uid, email: firebaseUser.email, displayName: firebaseUser.displayName || null });
+            // Log activity with new logger - only on actual login
+            await ActivityLogger.login();
+            hasLoggedInThisSession = true; // Mark as logged for this session
+          } catch {}
+        }
 
         // Listen to user doc existence (sign out if removed)
         try {

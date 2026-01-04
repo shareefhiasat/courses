@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { useToast } from './ToastProvider';
 import { useLang } from '../contexts/LangContext';
+import InfoTooltip from './ui/InfoTooltip/InfoTooltip';
 
 const UserDeletionModal = ({ 
   open, 
@@ -16,6 +17,7 @@ const UserDeletionModal = ({
   const toast = useToast();
   const { t } = useLang();
   const [loading, setLoading] = useState(false);
+  const [archiveUser, setArchiveUser] = useState(false);
   const [relatedData, setRelatedData] = useState({
     enrollments: [],
     submissions: [],
@@ -58,7 +60,7 @@ const UserDeletionModal = ({
   const handleDelete = async () => {
     setLoading(true);
     try {
-      await onConfirmDelete(user, relatedData);
+      await onConfirmDelete(user, relatedData, archiveUser);
       onClose();
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -183,7 +185,10 @@ const UserDeletionModal = ({
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#800020' }}>
                 {relatedData.submissions.length}
               </div>
-              <div style={{ fontSize: '0.9rem', color: '#666' }}>📝 Submissions</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem', color: '#666' }}>
+                <span>📝 {t('submissions')}</span>
+                <InfoTooltip contentKey="submissions.tooltip" />
+              </div>
             </div>
 
             {/* Activities */}
@@ -241,6 +246,27 @@ const UserDeletionModal = ({
           )}
         </div>
 
+        {/* Archive Option */}
+        <div style={{
+          background: '#e7f3ff',
+          border: '2px solid #0066cc',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginBottom: '1rem'
+        }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={archiveUser}
+              onChange={(e) => setArchiveUser(e.target.checked)}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <span style={{ fontWeight: 600, color: '#004085' }}>
+              📦 Archive user instead of deleting (user will be disabled and hidden, but data preserved)
+            </span>
+          </label>
+        </div>
+
         {/* Confirmation Checkbox */}
         <div style={{
           background: '#f8d7da',
@@ -256,7 +282,7 @@ const UserDeletionModal = ({
               style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
             <span style={{ fontWeight: 600, color: '#721c24' }}>
-              I understand this will permanently delete the user and all {hasRelatedData ? 'related data' : 'their data'}
+              I understand this will {archiveUser ? 'archive' : 'permanently delete'} the user{!archiveUser && hasRelatedData ? ' and all related data' : ''}
             </span>
           </label>
         </div>
@@ -299,7 +325,7 @@ const UserDeletionModal = ({
               fontWeight: 600
             }}
           >
-            {loading ? 'Deleting...' : '🗑️ Delete User & All Data'}
+            {loading ? (archiveUser ? 'Archiving...' : 'Deleting...') : (archiveUser ? '📦 Archive User' : '🗑️ Delete User & All Data')}
           </button>
         </div>
       </div>

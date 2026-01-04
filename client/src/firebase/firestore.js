@@ -1,21 +1,21 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
   setDoc,
-  query, 
-  where, 
+  query,
+  where,
   orderBy,
   onSnapshot,
   Timestamp,
   arrayUnion,
-  arrayRemove
-} from 'firebase/firestore';
-import { db } from './config';
+  arrayRemove,
+} from "firebase/firestore";
+import { db } from "./config";
 
 // Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
 const _ensureUserDocOnce = new Set();
@@ -23,7 +23,7 @@ const _ensureUserDocOnce = new Set();
 // Helper: Convert ISO string to Firestore Timestamp
 const convertDatesToTimestamps = (data) => {
   const converted = { ...data };
-  if (converted.dueDate && typeof converted.dueDate === 'string') {
+  if (converted.dueDate && typeof converted.dueDate === "string") {
     const date = new Date(converted.dueDate);
     if (!isNaN(date.getTime())) {
       converted.dueDate = Timestamp.fromDate(date);
@@ -36,10 +36,10 @@ const convertDatesToTimestamps = (data) => {
 // Model: collection "courses" docs { id, name_en, name_ar, order }
 export const getCourses = async () => {
   try {
-    const q = query(collection(db, 'courses'), orderBy('order', 'asc'));
+    const q = query(collection(db, "courses"), orderBy("order", "asc"));
     const qs = await getDocs(q);
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
     // Fallback: no collection present
@@ -49,7 +49,7 @@ export const getCourses = async () => {
 
 export const setCourse = async (courseId, data) => {
   try {
-    await setDoc(doc(db, 'courses', courseId), data, { merge: true });
+    await setDoc(doc(db, "courses", courseId), data, { merge: true });
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -58,7 +58,7 @@ export const setCourse = async (courseId, data) => {
 
 export const deleteCourse = async (courseId) => {
   try {
-    await deleteDoc(doc(db, 'courses', courseId));
+    await deleteDoc(doc(db, "courses", courseId));
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -67,17 +67,17 @@ export const deleteCourse = async (courseId) => {
 
 // Ensure a deterministic users/{uid} doc exists
 export const ensureUserDoc = async (uid, data = {}) => {
-  if (!uid) return { success: false, error: 'uid required' };
+  if (!uid) return { success: false, error: "uid required" };
   if (_ensureUserDocOnce.has(uid)) return { success: true, skipped: true };
   try {
-    const ref = doc(db, 'users', uid);
+    const ref = doc(db, "users", uid);
     const snap = await getDoc(ref);
     const base = {
       email: data.email || null,
       displayName: data.displayName || null,
       realName: data.realName || null,
       studentNumber: data.studentNumber || null,
-      role: data.role || 'student',
+      role: data.role || "student",
       createdAt: Timestamp.now(),
     };
     await setDoc(ref, snap.exists() ? data : base, { merge: true });
@@ -85,10 +85,10 @@ export const ensureUserDoc = async (uid, data = {}) => {
     return { success: true };
   } catch (error) {
     // Ignore permission-denied to avoid noisy console during restricted environments
-    const code = error && (error.code || '').toString();
-    if (code === 'permission-denied') {
-      console.warn('ensureUserDoc permission denied for uid:', uid);
-      return { success: false, error: 'permission-denied' };
+    const code = error && (error.code || "").toString();
+    if (code === "permission-denied") {
+      console.warn("ensureUserDoc permission denied for uid:", uid);
+      return { success: false, error: "permission-denied" };
     }
     return { success: false, error: error.message };
   }
@@ -100,15 +100,17 @@ export const ensureUserDoc = async (uid, data = {}) => {
 export const addActivityLog = async (log = {}) => {
   try {
     const payload = {
-      type: log.type || 'login',
+      type: log.type || "login",
       userId: log.userId || null,
       email: log.email || null,
       displayName: log.displayName || null,
-      userAgent: log.userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : ''),
+      userAgent:
+        log.userAgent ||
+        (typeof navigator !== "undefined" ? navigator.userAgent : ""),
       when: Timestamp.now(),
-      metadata: log.metadata || {}
+      metadata: log.metadata || {},
     };
-    const ref = await addDoc(collection(db, 'activityLogs'), payload);
+    const ref = await addDoc(collection(db, "activityLogs"), payload);
     return { success: true, id: ref.id };
   } catch (error) {
     return { success: false, error: error.message };
@@ -117,15 +119,15 @@ export const addActivityLog = async (log = {}) => {
 
 // Legacy function for backward compatibility
 export const addLoginLog = async (log = {}) => {
-  return addActivityLog({ ...log, type: 'login' });
+  return addActivityLog({ ...log, type: "login" });
 };
 
 export const getLoginLogs = async () => {
   try {
-    const q = query(collection(db, 'activityLogs'), orderBy('when', 'desc'));
+    const q = query(collection(db, "activityLogs"), orderBy("when", "desc"));
     const qs = await getDocs(q);
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
     return { success: false, error: error.message };
@@ -135,7 +137,7 @@ export const getLoginLogs = async () => {
 // Activities
 export const getActivities = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'activities'));
+    const querySnapshot = await getDocs(collection(db, "activities"));
     const activities = [];
     querySnapshot.forEach((d) => {
       activities.push({ docId: d.id, ...d.data() });
@@ -149,7 +151,7 @@ export const getActivities = async () => {
 export const addActivity = async (activityData) => {
   try {
     const convertedData = convertDatesToTimestamps(activityData);
-    const docRef = await addDoc(collection(db, 'activities'), convertedData);
+    const docRef = await addDoc(collection(db, "activities"), convertedData);
     return { success: true, id: docRef.id };
   } catch (error) {
     return { success: false, error: error.message };
@@ -159,7 +161,7 @@ export const addActivity = async (activityData) => {
 export const updateActivity = async (id, activityData) => {
   try {
     const convertedData = convertDatesToTimestamps(activityData);
-    await updateDoc(doc(db, 'activities', id), convertedData);
+    await updateDoc(doc(db, "activities", id), convertedData);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -168,7 +170,7 @@ export const updateActivity = async (id, activityData) => {
 
 export const deleteActivity = async (id) => {
   try {
-    await deleteDoc(doc(db, 'activities', id));
+    await deleteDoc(doc(db, "activities", id));
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -178,7 +180,10 @@ export const deleteActivity = async (id) => {
 // Announcements
 export const getAnnouncements = async () => {
   try {
-    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+    const q = query(
+      collection(db, "announcements"),
+      orderBy("createdAt", "desc")
+    );
     const querySnapshot = await getDocs(q);
     const announcements = [];
     querySnapshot.forEach((d) => {
@@ -192,9 +197,9 @@ export const getAnnouncements = async () => {
 
 export const addAnnouncement = async (announcementData) => {
   try {
-    const docRef = await addDoc(collection(db, 'announcements'), {
+    const docRef = await addDoc(collection(db, "announcements"), {
       ...announcementData,
-      createdAt: Timestamp.now()
+      createdAt: Timestamp.now(),
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -204,7 +209,7 @@ export const addAnnouncement = async (announcementData) => {
 
 export const updateAnnouncement = async (id, announcementData) => {
   try {
-    await updateDoc(doc(db, 'announcements', id), announcementData);
+    await updateDoc(doc(db, "announcements", id), announcementData);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -213,7 +218,7 @@ export const updateAnnouncement = async (id, announcementData) => {
 
 export const deleteAnnouncement = async (id) => {
   try {
-    await deleteDoc(doc(db, 'announcements', id));
+    await deleteDoc(doc(db, "announcements", id));
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -223,7 +228,7 @@ export const deleteAnnouncement = async (id) => {
 // Resources
 export const getResources = async () => {
   try {
-    const q = query(collection(db, 'resources'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, "resources"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
     const resources = [];
     querySnapshot.forEach((d) => {
@@ -237,10 +242,12 @@ export const getResources = async () => {
 
 export const addResource = async (resourceData) => {
   try {
+    const { serverTimestamp } = await import("firebase/firestore");
     const convertedData = convertDatesToTimestamps(resourceData);
-    const docRef = await addDoc(collection(db, 'resources'), {
+    const docRef = await addDoc(collection(db, "resources"), {
       ...convertedData,
-      createdAt: Timestamp.now()
+      createdAt: serverTimestamp(), // Use serverTimestamp for UTC storage
+      updatedAt: serverTimestamp(),
     });
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -250,8 +257,12 @@ export const addResource = async (resourceData) => {
 
 export const updateResource = async (id, resourceData) => {
   try {
+    const { serverTimestamp } = await import("firebase/firestore");
     const convertedData = convertDatesToTimestamps(resourceData);
-    await updateDoc(doc(db, 'resources', id), convertedData);
+    await updateDoc(doc(db, "resources", id), {
+      ...convertedData,
+      updatedAt: serverTimestamp(), // Use serverTimestamp for UTC storage
+    });
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -260,7 +271,7 @@ export const updateResource = async (id, resourceData) => {
 
 export const deleteResource = async (id) => {
   try {
-    await deleteDoc(doc(db, 'resources', id));
+    await deleteDoc(doc(db, "resources", id));
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -270,7 +281,7 @@ export const deleteResource = async (id) => {
 // Users
 export const getUsers = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'users'));
+    const querySnapshot = await getDocs(collection(db, "users"));
     const users = [];
     querySnapshot.forEach((d) => {
       users.push({ docId: d.id, ...d.data() });
@@ -283,23 +294,23 @@ export const getUsers = async () => {
 
 export const getUser = async (uid) => {
   if (!uid) {
-    return { success: false, error: 'uid required' };
+    return { success: false, error: "uid required" };
   }
 
   try {
-    const ref = doc(db, 'users', uid);
+    const ref = doc(db, "users", uid);
     const snap = await getDoc(ref);
 
     if (!snap.exists()) {
-      return { success: false, error: 'user_not_found' };
+      return { success: false, error: "user_not_found" };
     }
 
     return {
       success: true,
       data: {
         docId: uid,
-        ...snap.data()
-      }
+        ...snap.data(),
+      },
     };
   } catch (error) {
     return { success: false, error: error.message };
@@ -309,13 +320,13 @@ export const getUser = async (uid) => {
 // Allowlist
 export const getAllowlist = async () => {
   try {
-    const docRef = doc(db, 'config', 'allowlist');
+    const docRef = doc(db, "config", "allowlist");
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return { success: true, data: docSnap.data() };
     } else {
-      return { success: false, error: 'No allowlist found' };
+      return { success: false, error: "No allowlist found" };
     }
   } catch (error) {
     return { success: false, error: error.message };
@@ -324,7 +335,7 @@ export const getAllowlist = async () => {
 
 export const updateAllowlist = async (allowlistData) => {
   try {
-    const docRef = doc(db, 'config', 'allowlist');
+    const docRef = doc(db, "config", "allowlist");
     await updateDoc(docRef, allowlistData);
     return { success: true };
   } catch (error) {
@@ -337,10 +348,14 @@ export const addUser = async (userData) => {
   try {
     // Enforce deterministic ID: uid is required
     if (!userData?.uid) {
-      return { success: false, error: 'uid is required for addUser' };
+      return { success: false, error: "uid is required for addUser" };
     }
     const { uid, ...rest } = userData;
-    await setDoc(doc(db, 'users', uid), { ...rest, createdAt: Timestamp.now() }, { merge: true });
+    await setDoc(
+      doc(db, "users", uid),
+      { ...rest, createdAt: Timestamp.now() },
+      { merge: true }
+    );
     return { success: true, id: uid };
   } catch (error) {
     return { success: false, error: error.message };
@@ -350,26 +365,69 @@ export const addUser = async (userData) => {
 // Admin cascade delete for a user
 export const deleteUserCascade = async (uid) => {
   try {
-    if (!uid) return { success: false, error: 'uid required' };
+    if (!uid) return { success: false, error: "uid required" };
     const deletions = [];
     // notifications
-    const nqs = await getDocs(query(collection(db, 'notifications'), where('userId', '==', uid)));
-    nqs.forEach(d => deletions.push(deleteDoc(doc(db, 'notifications', d.id))));
+    const nqs = await getDocs(
+      query(collection(db, "notifications"), where("userId", "==", uid))
+    );
+    nqs.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "notifications", d.id)))
+    );
     // enrollments
-    const eqs = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', uid)));
-    eqs.forEach(d => deletions.push(deleteDoc(doc(db, 'enrollments', d.id))));
+    const eqs = await getDocs(
+      query(collection(db, "enrollments"), where("userId", "==", uid))
+    );
+    eqs.forEach((d) => deletions.push(deleteDoc(doc(db, "enrollments", d.id))));
     // submissions
-    const sqs = await getDocs(query(collection(db, 'submissions'), where('userId', '==', uid)));
-    sqs.forEach(d => deletions.push(deleteDoc(doc(db, 'submissions', d.id))));
+    const sqs = await getDocs(
+      query(collection(db, "submissions"), where("userId", "==", uid))
+    );
+    sqs.forEach((d) => deletions.push(deleteDoc(doc(db, "submissions", d.id))));
+    // attendance records
+    const attQuery = await getDocs(
+      query(collection(db, "attendance"), where("studentId", "==", uid))
+    );
+    attQuery.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "attendance", d.id)))
+    );
+    // quiz submissions
+    const quizSubQuery = await getDocs(
+      query(collection(db, "quizSubmissions"), where("userId", "==", uid))
+    );
+    quizSubQuery.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "quizSubmissions", d.id)))
+    );
+    // quiz results
+    const quizResQuery = await getDocs(
+      query(collection(db, "quizResults"), where("userId", "==", uid))
+    );
+    quizResQuery.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "quizResults", d.id)))
+    );
+    // marks/grades
+    const marksQuery = await getDocs(
+      query(collection(db, "studentMarks"), where("studentId", "==", uid))
+    );
+    marksQuery.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "studentMarks", d.id)))
+    );
     // messages (sent by user)
-    const mqs = await getDocs(query(collection(db, 'messages'), where('senderId', '==', uid)));
-    mqs.forEach(d => deletions.push(deleteDoc(doc(db, 'messages', d.id))));
+    const mqs = await getDocs(
+      query(collection(db, "messages"), where("senderId", "==", uid))
+    );
+    mqs.forEach((d) => deletions.push(deleteDoc(doc(db, "messages", d.id))));
     // direct rooms containing user (delete room)
-    const rqs = await getDocs(query(collection(db, 'directRooms'), where('participants', 'array-contains', uid)));
-    rqs.forEach(d => deletions.push(deleteDoc(doc(db, 'directRooms', d.id))));
+    const rqs = await getDocs(
+      query(
+        collection(db, "directRooms"),
+        where("participants", "array-contains", uid)
+      )
+    );
+    rqs.forEach((d) => deletions.push(deleteDoc(doc(db, "directRooms", d.id))));
     await Promise.allSettled(deletions);
     // finally delete users/{uid}
-    await deleteDoc(doc(db, 'users', uid));
+    await deleteDoc(doc(db, "users", uid));
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -379,7 +437,7 @@ export const deleteUserCascade = async (uid) => {
 // Update user function
 export const updateUser = async (id, userData) => {
   try {
-    await updateDoc(doc(db, 'users', id), userData);
+    await updateDoc(doc(db, "users", id), userData);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -389,7 +447,7 @@ export const updateUser = async (id, userData) => {
 // Delete user function
 export const deleteUser = async (id) => {
   try {
-    await deleteDoc(doc(db, 'users', id));
+    await deleteDoc(doc(db, "users", id));
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -399,9 +457,9 @@ export const deleteUser = async (id) => {
 // ===== Classes =====
 export const getClasses = async () => {
   try {
-    const qs = await getDocs(collection(db, 'classes'));
+    const qs = await getDocs(collection(db, "classes"));
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
     return { success: false, error: error.message };
@@ -410,101 +468,178 @@ export const getClasses = async () => {
 
 export const addClass = async (data) => {
   try {
-    const ref = await addDoc(collection(db, 'classes'), data);
+    const ref = await addDoc(collection(db, "classes"), data);
     return { success: true, id: ref.id };
-  } catch (error) { return { success: false, error: error.message }; }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 export const updateClass = async (id, data) => {
-  try { await updateDoc(doc(db, 'classes', id), data); return { success: true }; }
-  catch (error) { return { success: false, error: error.message }; }
+  try {
+    await updateDoc(doc(db, "classes", id), data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 export const deleteClass = async (id) => {
-  try { await deleteDoc(doc(db, 'classes', id)); return { success: true }; }
-  catch (error) { return { success: false, error: error.message }; }
+  try {
+    // Cascade delete: enrollments, attendance, activities linked to this class
+    const deletions = [];
+
+    // Delete enrollments
+    const enrollmentsQuery = query(
+      collection(db, "enrollments"),
+      where("classId", "==", id)
+    );
+    const enrollmentsSnap = await getDocs(enrollmentsQuery);
+    enrollmentsSnap.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "enrollments", d.id)))
+    );
+
+    // Delete attendance records
+    const attendanceQuery = query(
+      collection(db, "attendance"),
+      where("classId", "==", id)
+    );
+    const attendanceSnap = await getDocs(attendanceQuery);
+    attendanceSnap.forEach((d) =>
+      deletions.push(deleteDoc(doc(db, "attendance", d.id)))
+    );
+
+    // Note: Activities with classId should be handled separately (they might be shared)
+    // Class schedules are stored in classes.schedule, so they're deleted with the class
+
+    await Promise.allSettled(deletions);
+    await deleteDoc(doc(db, "classes", id));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 // ===== Enrollments =====
 // Model: collection "enrollments" documents { userId, classId, role: 'student'|'ta'|'instructor', createdAt }
 export const getEnrollments = async () => {
   try {
-    const qs = await getDocs(collection(db, 'enrollments'));
+    const qs = await getDocs(collection(db, "enrollments"));
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
-  } catch (error) { return { success: false, error: error.message }; }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 export const addEnrollment = async (data) => {
   try {
     const { userId, classId } = data || {};
-    if (!userId || !classId) return { success: false, error: 'userId and classId are required' };
+    if (!userId || !classId)
+      return { success: false, error: "userId and classId are required" };
     const detId = `${userId}_${classId}`;
     // Write deterministic enrollment doc
-    await setDoc(doc(db, 'enrollments', detId), { ...data, createdAt: Timestamp.now() }, { merge: true });
+    await setDoc(
+      doc(db, "enrollments", detId),
+      { ...data, createdAt: Timestamp.now() },
+      { merge: true }
+    );
     // Keep users/{uid}.enrolledClasses in sync
-    try { await updateDoc(doc(db, 'users', userId), { enrolledClasses: arrayUnion(classId) }); } catch {}
-    
+    try {
+      await updateDoc(doc(db, "users", userId), {
+        enrolledClasses: arrayUnion(classId),
+      });
+    } catch {}
+
     // Update student progress
     try {
-      const progressRef = doc(db, 'studentProgress', userId);
+      const progressRef = doc(db, "studentProgress", userId);
       const progressSnap = await getDoc(progressRef);
       if (progressSnap.exists()) {
         await updateDoc(progressRef, {
           enrolledClasses: increment(1),
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
         });
       }
-    } catch (e) { console.warn('Failed to update student progress:', e); }
-    
+    } catch (e) {
+      console.warn("Failed to update student progress:", e);
+    }
+
     return { success: true, id: detId };
-  } catch (error) { return { success: false, error: error.message }; }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 export const deleteEnrollment = async (id) => {
-  try { await deleteDoc(doc(db, 'enrollments', id)); return { success: true }; }
-  catch (error) { return { success: false, error: error.message }; }
+  try {
+    const enrollmentDoc = await getDoc(doc(db, "enrollments", id));
+    if (enrollmentDoc.exists()) {
+      const enrollmentData = enrollmentDoc.data();
+      const userId = enrollmentData.userId;
+      const classId = enrollmentData.classId;
+
+      // Cascade delete: attendance records for this enrollment
+      const attendanceQuery = query(
+        collection(db, "attendance"),
+        where("studentId", "==", userId),
+        where("classId", "==", classId)
+      );
+      const attendanceSnap = await getDocs(attendanceQuery);
+      const attendanceDeletions = attendanceSnap.docs.map((d) =>
+        deleteDoc(doc(db, "attendance", d.id))
+      );
+      await Promise.allSettled(attendanceDeletions);
+    }
+
+    await deleteDoc(doc(db, "enrollments", id));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 // ===== Submissions =====
 // Model: collection "submissions" documents { userId, activityId, score, status, submittedAt, files:[], feedback }
 export const getSubmissions = async () => {
   try {
-    const qs = await getDocs(collection(db, 'submissions'));
+    const qs = await getDocs(collection(db, "submissions"));
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
-  } catch (error) { return { success: false, error: error.message }; }
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 export const gradeSubmission = async (id, update) => {
   try {
     // Update submission
-    await updateDoc(doc(db, 'submissions', id), update);
-    
+    await updateDoc(doc(db, "submissions", id), update);
+
     // Auto-award points based on score
-    if (update.score !== undefined && update.status === 'graded') {
-      const submissionDoc = await getDoc(doc(db, 'submissions', id));
+    if (update.score !== undefined && update.status === "graded") {
+      const submissionDoc = await getDoc(doc(db, "submissions", id));
       if (submissionDoc.exists()) {
         const submission = submissionDoc.data();
         const score = Number(update.score);
-        
+
         // Award points based on performance
         let pointsToAward = 0;
-        let category = 'completion';
-        
+        let category = "completion";
+
         if (score >= 90) {
           pointsToAward = 2; // Excellence
-          category = 'excellence';
+          category = "excellence";
         } else if (score >= 70) {
           pointsToAward = 1; // Good work
-          category = 'good_work';
+          category = "good_work";
         } else if (score >= 50) {
           pointsToAward = 1; // Completion
-          category = 'completion';
+          category = "completion";
         }
-        
+
         // Award points if score is passing
         if (pointsToAward > 0 && submission.userId) {
           await awardPoints({
@@ -512,14 +647,14 @@ export const gradeSubmission = async (id, update) => {
             points: pointsToAward,
             category: category,
             reason: `Activity graded: ${score}/100`,
-            awardedBy: update.gradedBy || 'system',
+            awardedBy: update.gradedBy || "system",
             classId: submission.classId || null,
-            activityId: submission.activityId || null
+            activityId: submission.activityId || null,
           });
         }
       }
     }
-    
+
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -527,25 +662,29 @@ export const gradeSubmission = async (id, update) => {
 };
 
 export const deleteSubmission = async (id) => {
-  try { 
-    await deleteDoc(doc(db, 'submissions', id)); 
-    return { success: true }; 
+  try {
+    await deleteDoc(doc(db, "submissions", id));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
-  catch (error) { return { success: false, error: error.message }; }
 };
 
 // ===== Email Functions =====
 export const sendEmail = async (emailData) => {
   try {
-    const { httpsCallable } = await import('firebase/functions');
-    const { functions } = await import('./config');
-    const sendEmailFunction = httpsCallable(functions, 'sendEmail');
+    const { httpsCallable } = await import("firebase/functions");
+    const { functions } = await import("./config");
+    const sendEmailFunction = httpsCallable(functions, "sendEmail");
     const result = await sendEmailFunction(emailData);
     return { success: true, data: result.data };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error("Error sending email:", error);
     // Surface more info when available
-    const message = (error && (error.message || error.code)) ? `${error.code || ''} ${error.message}`.trim() : 'Unknown error';
+    const message =
+      error && (error.message || error.code)
+        ? `${error.code || ""} ${error.message}`.trim()
+        : "Unknown error";
     return { success: false, error: message };
   }
 };
@@ -553,7 +692,7 @@ export const sendEmail = async (emailData) => {
 // ===== SMTP Configuration =====
 export const getSMTPConfig = async () => {
   try {
-    const docRef = doc(db, 'config', 'smtp');
+    const docRef = doc(db, "config", "smtp");
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return { success: true, data: docSnap.data() };
@@ -566,7 +705,7 @@ export const getSMTPConfig = async () => {
 
 export const updateSMTPConfig = async (smtpData) => {
   try {
-    const docRef = doc(db, 'config', 'smtp');
+    const docRef = doc(db, "config", "smtp");
     await setDoc(docRef, smtpData, { merge: true });
     return { success: true };
   } catch (error) {
@@ -579,7 +718,7 @@ export const updateSMTPConfig = async (smtpData) => {
 // ===== Email Logs (admin only via rules) =====
 export const addEmailLog = async (log) => {
   try {
-    const ref = await addDoc(collection(db, 'emailLogs'), {
+    const ref = await addDoc(collection(db, "emailLogs"), {
       ...log,
       timestamp: Timestamp.now(),
     });
@@ -591,10 +730,10 @@ export const addEmailLog = async (log) => {
 
 export const getEmailLogs = async () => {
   try {
-    const q = query(collection(db, 'emailLogs'), orderBy('timestamp', 'desc'));
+    const q = query(collection(db, "emailLogs"), orderBy("timestamp", "desc"));
     const qs = await getDocs(q);
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
     return { success: false, error: error.message };
@@ -603,7 +742,7 @@ export const getEmailLogs = async () => {
 
 export const deleteEmailLog = async (id) => {
   try {
-    await deleteDoc(doc(db, 'emailLogs', id));
+    await deleteDoc(doc(db, "emailLogs", id));
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -617,50 +756,62 @@ export const deleteEmailLog = async (id) => {
 // Award points to student(s)
 export const awardPoints = async (pointsData) => {
   try {
-    const { studentIds, points, category, reason, awardedBy, classId, activityId } = pointsData;
-    
-    const results = await Promise.all(studentIds.map(async (studentId) => {
-      // Get current rank before awarding
-      const studentRef = doc(db, 'users', studentId);
-      const studentSnap = await getDoc(studentRef);
-      const currentPoints = studentSnap.exists() ? (studentSnap.data().totalPoints || 0) : 0;
-      const oldRank = getStudentRank(currentPoints);
-      
-      // Add point record
-      await addDoc(collection(db, 'points'), {
-        studentId,
-        classId,
-        awardedBy,
-        points: Number(points),
-        category,
-        reason: reason || '',
-        activityId: activityId || null,
-        timestamp: Timestamp.now()
-      });
-      
-      // Update student's total points
-      const newPoints = currentPoints + Number(points);
-      if (studentSnap.exists()) {
-        await updateDoc(studentRef, {
-          totalPoints: newPoints,
-          lastPointsUpdate: Timestamp.now()
+    const {
+      studentIds,
+      points,
+      category,
+      reason,
+      awardedBy,
+      classId,
+      activityId,
+    } = pointsData;
+
+    const results = await Promise.all(
+      studentIds.map(async (studentId) => {
+        // Get current rank before awarding
+        const studentRef = doc(db, "users", studentId);
+        const studentSnap = await getDoc(studentRef);
+        const currentPoints = studentSnap.exists()
+          ? studentSnap.data().totalPoints || 0
+          : 0;
+        const oldRank = getStudentRank(currentPoints);
+
+        // Add point record
+        await addDoc(collection(db, "points"), {
+          studentId,
+          classId,
+          awardedBy,
+          points: Number(points),
+          category,
+          reason: reason || "",
+          activityId: activityId || null,
+          timestamp: Timestamp.now(),
         });
-      }
-      
-      // Check if rank changed
-      const newRank = getStudentRank(newPoints);
-      const rankChanged = oldRank.current.name !== newRank.current.name;
-      
-      return {
-        studentId,
-        oldRank: oldRank.current,
-        newRank: newRank.current,
-        rankChanged,
-        pointsAwarded: Number(points),
-        newTotalPoints: newPoints
-      };
-    }));
-    
+
+        // Update student's total points
+        const newPoints = currentPoints + Number(points);
+        if (studentSnap.exists()) {
+          await updateDoc(studentRef, {
+            totalPoints: newPoints,
+            lastPointsUpdate: Timestamp.now(),
+          });
+        }
+
+        // Check if rank changed
+        const newRank = getStudentRank(newPoints);
+        const rankChanged = oldRank.current.name !== newRank.current.name;
+
+        return {
+          studentId,
+          oldRank: oldRank.current,
+          newRank: newRank.current,
+          rankChanged,
+          pointsAwarded: Number(points),
+          newTotalPoints: newPoints,
+        };
+      })
+    );
+
     return { success: true, results };
   } catch (error) {
     return { success: false, error: error.message };
@@ -671,13 +822,13 @@ export const awardPoints = async (pointsData) => {
 export const getStudentPoints = async (studentId) => {
   try {
     const q = query(
-      collection(db, 'points'), 
-      where('studentId', '==', studentId),
-      orderBy('timestamp', 'desc')
+      collection(db, "points"),
+      where("studentId", "==", studentId),
+      orderBy("timestamp", "desc")
     );
     const qs = await getDocs(q);
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
     return { success: false, error: error.message };
@@ -688,13 +839,13 @@ export const getStudentPoints = async (studentId) => {
 export const getClassPoints = async (classId) => {
   try {
     const q = query(
-      collection(db, 'points'),
-      where('classId', '==', classId),
-      orderBy('timestamp', 'desc')
+      collection(db, "points"),
+      where("classId", "==", classId),
+      orderBy("timestamp", "desc")
     );
     const qs = await getDocs(q);
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
     return { success: false, error: error.message };
@@ -704,26 +855,93 @@ export const getClassPoints = async (classId) => {
 // Get student rank based on points
 export const getStudentRank = (totalPoints) => {
   const ranks = [
-    { name: 'Recruit', nameAr: 'مجند', icon: '🎖️', min: 0, max: 99, color: '#CD7F32' },
-    { name: 'Private', nameAr: 'جندي', icon: '🪖', min: 100, max: 249, color: '#CD7F32' },
-    { name: 'Corporal', nameAr: 'عريف', icon: '⭐', min: 250, max: 499, color: '#C0C0C0' },
-    { name: 'Sergeant', nameAr: 'رقيب', icon: '⌃', min: 500, max: 999, color: '#C0C0C0' },
-    { name: 'Lieutenant', nameAr: 'ملازم', icon: '━', min: 1000, max: 1999, color: '#D4AF37' },
-    { name: 'Captain', nameAr: 'نقيب', icon: '━━', min: 2000, max: 3999, color: '#D4AF37' },
-    { name: 'Major', nameAr: 'رائد', icon: '🍂', min: 4000, max: 6999, color: '#D4AF37' },
-    { name: 'Colonel', nameAr: 'عقيد', icon: '🦅', min: 7000, max: 9999, color: '#D4AF37' },
-    { name: 'General', nameAr: 'لواء', icon: '⭐', min: 10000, max: Infinity, color: '#D4AF37' }
+    {
+      name: "Recruit",
+      nameAr: "مجند",
+      icon: "🎖️",
+      min: 0,
+      max: 99,
+      color: "#CD7F32",
+    },
+    {
+      name: "Private",
+      nameAr: "جندي",
+      icon: "🪖",
+      min: 100,
+      max: 249,
+      color: "#CD7F32",
+    },
+    {
+      name: "Corporal",
+      nameAr: "عريف",
+      icon: "⭐",
+      min: 250,
+      max: 499,
+      color: "#C0C0C0",
+    },
+    {
+      name: "Sergeant",
+      nameAr: "رقيب",
+      icon: "⌃",
+      min: 500,
+      max: 999,
+      color: "#C0C0C0",
+    },
+    {
+      name: "Lieutenant",
+      nameAr: "ملازم",
+      icon: "━",
+      min: 1000,
+      max: 1999,
+      color: "#D4AF37",
+    },
+    {
+      name: "Captain",
+      nameAr: "نقيب",
+      icon: "━━",
+      min: 2000,
+      max: 3999,
+      color: "#D4AF37",
+    },
+    {
+      name: "Major",
+      nameAr: "رائد",
+      icon: "🍂",
+      min: 4000,
+      max: 6999,
+      color: "#D4AF37",
+    },
+    {
+      name: "Colonel",
+      nameAr: "عقيد",
+      icon: "🦅",
+      min: 7000,
+      max: 9999,
+      color: "#D4AF37",
+    },
+    {
+      name: "General",
+      nameAr: "لواء",
+      icon: "⭐",
+      min: 10000,
+      max: Infinity,
+      color: "#D4AF37",
+    },
   ];
-  
-  const currentRank = ranks.find(r => totalPoints >= r.min && totalPoints <= r.max) || ranks[0];
-  const nextRankIndex = ranks.findIndex(r => r.name === currentRank.name) + 1;
+
+  const currentRank =
+    ranks.find((r) => totalPoints >= r.min && totalPoints <= r.max) || ranks[0];
+  const nextRankIndex = ranks.findIndex((r) => r.name === currentRank.name) + 1;
   const nextRank = nextRankIndex < ranks.length ? ranks[nextRankIndex] : null;
-  
+
   return {
     current: currentRank,
     next: nextRank,
-    progress: nextRank ? ((totalPoints - currentRank.min) / (nextRank.min - currentRank.min)) * 100 : 100,
-    pointsToNext: nextRank ? nextRank.min - totalPoints : 0
+    progress: nextRank
+      ? ((totalPoints - currentRank.min) / (nextRank.min - currentRank.min)) *
+        100
+      : 100,
+    pointsToNext: nextRank ? nextRank.min - totalPoints : 0,
   };
 };
 
@@ -732,37 +950,37 @@ export const getClassLeaderboard = async (classId) => {
   try {
     // Get all enrollments for the class
     const enrollmentsQuery = query(
-      collection(db, 'enrollments'),
-      where('classId', '==', classId)
+      collection(db, "enrollments"),
+      where("classId", "==", classId)
     );
     const enrollmentsSnap = await getDocs(enrollmentsQuery);
-    
+
     const leaderboard = [];
-    
+
     for (const enrollDoc of enrollmentsSnap.docs) {
       const enrollment = enrollDoc.data();
-      const studentRef = doc(db, 'users', enrollment.userId);
+      const studentRef = doc(db, "users", enrollment.userId);
       const studentSnap = await getDoc(studentRef);
-      
+
       if (studentSnap.exists()) {
         const studentData = studentSnap.data();
         const totalPoints = studentData.totalPoints || 0;
         const rank = getStudentRank(totalPoints);
-        
+
         leaderboard.push({
           studentId: enrollment.userId,
-          displayName: studentData.displayName || 'Unknown',
+          displayName: studentData.displayName || "Unknown",
           email: studentData.email,
           totalPoints,
           rank: rank.current.name,
-          rankIcon: rank.current.icon
+          rankIcon: rank.current.icon,
         });
       }
     }
-    
+
     // Sort by points descending
     leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
-    
+
     return { success: true, data: leaderboard };
   } catch (error) {
     return { success: false, error: error.message };
@@ -774,12 +992,12 @@ export const saveSkill = async (skillData) => {
   try {
     const { docId, ...data } = skillData;
     if (docId) {
-      await updateDoc(doc(db, 'skills', docId), data);
+      await updateDoc(doc(db, "skills", docId), data);
       return { success: true, docId };
     } else {
-      const docRef = await addDoc(collection(db, 'skills'), {
+      const docRef = await addDoc(collection(db, "skills"), {
         ...data,
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
       });
       return { success: true, docId: docRef.id };
     }
@@ -791,13 +1009,10 @@ export const saveSkill = async (skillData) => {
 // Get skills for a class
 export const getClassSkills = async (classId) => {
   try {
-    const q = query(
-      collection(db, 'skills'),
-      where('classId', '==', classId)
-    );
+    const q = query(collection(db, "skills"), where("classId", "==", classId));
     const qs = await getDocs(q);
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
     return { success: false, error: error.message };
@@ -807,8 +1022,118 @@ export const getClassSkills = async (classId) => {
 // Delete skill
 export const deleteSkill = async (skillId) => {
   try {
-    await deleteDoc(doc(db, 'skills', skillId));
+    await deleteDoc(doc(db, "skills", skillId));
     return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ===== Scheduled Reports =====
+// Model: collection "scheduledReports" documents {
+//   userId, title, description, schedule (daily/weekly/custom),
+//   recipients (array of emails), templateId, reportType (analytics/student-dashboard),
+//   filters (object), enabled, nextRunAt, lastRunAt, createdAt, updatedAt
+// }
+export const getScheduledReports = async (userId = null) => {
+  try {
+    let q;
+    if (userId) {
+      q = query(
+        collection(db, "scheduledReports"),
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc")
+      );
+    } else {
+      q = query(
+        collection(db, "scheduledReports"),
+        orderBy("createdAt", "desc")
+      );
+    }
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach((d) => {
+      const data = d.data();
+      items.push({
+        docId: d.id,
+        ...data,
+        nextRunAt: data.nextRunAt?.toDate
+          ? data.nextRunAt.toDate()
+          : data.nextRunAt,
+        lastRunAt: data.lastRunAt?.toDate
+          ? data.lastRunAt.toDate()
+          : data.lastRunAt,
+        createdAt: data.createdAt?.toDate
+          ? data.createdAt.toDate()
+          : data.createdAt,
+        updatedAt: data.updatedAt?.toDate
+          ? data.updatedAt.toDate()
+          : data.updatedAt,
+      });
+    });
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const addScheduledReport = async (reportData) => {
+  try {
+    const data = {
+      ...reportData,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      enabled: reportData.enabled !== false,
+    };
+    if (data.nextRunAt && data.nextRunAt instanceof Date) {
+      data.nextRunAt = Timestamp.fromDate(data.nextRunAt);
+    }
+    const docRef = await addDoc(collection(db, "scheduledReports"), data);
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateScheduledReport = async (reportId, reportData) => {
+  try {
+    const data = {
+      ...reportData,
+      updatedAt: Timestamp.now(),
+    };
+    if (data.nextRunAt && data.nextRunAt instanceof Date) {
+      data.nextRunAt = Timestamp.fromDate(data.nextRunAt);
+    }
+    if (data.lastRunAt && data.lastRunAt instanceof Date) {
+      data.lastRunAt = Timestamp.fromDate(data.lastRunAt);
+    }
+    await updateDoc(doc(db, "scheduledReports", reportId), data);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteScheduledReport = async (reportId) => {
+  try {
+    await deleteDoc(doc(db, "scheduledReports", reportId));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ===== Email Templates =====
+export const getEmailTemplates = async () => {
+  try {
+    const q = query(
+      collection(db, "emailTemplates"),
+      orderBy("createdAt", "desc")
+    );
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
   } catch (error) {
     return { success: false, error: error.message };
   }

@@ -3,10 +3,10 @@
 
 export const defaultTemplates = [
   {
-    id: 'announcement_default',
-    name: 'Announcement Email - Bilingual',
-    type: 'announcement',
-    subject: '📢 New Announcement | إعلان جديد: {{title}}',
+    id: "announcement_default",
+    name: "Announcement Email - Bilingual",
+    type: "announcement",
+    subject: "📢 New Announcement | إعلان جديد: {{title}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -52,14 +52,24 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['recipientName', 'title', 'title_ar', 'content', 'content_ar', 'dateTime', 'link', 'siteName', 'currentDate']
+    variables: [
+      "recipientName",
+      "title",
+      "title_ar",
+      "content",
+      "content_ar",
+      "dateTime",
+      "link",
+      "siteName",
+      "currentDate",
+    ],
   },
-  
+
   {
-    id: 'activity_default',
-    name: 'New Activity Email - Bilingual',
-    type: 'activity',
-    subject: '📝 New Activity | نشاط جديد: {{activityTitle}}',
+    id: "activity_default",
+    name: "New Activity Email - Bilingual",
+    type: "activity",
+    subject: "📝 New Activity | نشاط جديد: {{activityTitle}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -109,14 +119,29 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['recipientName', 'activityTitle', 'activityTitle_ar', 'activityType', 'course', 'course_ar', 'description', 'description_ar', 'dueDateTime', 'maxScore', 'difficulty', 'link', 'siteName', 'currentDate']
+    variables: [
+      "recipientName",
+      "activityTitle",
+      "activityTitle_ar",
+      "activityType",
+      "course",
+      "course_ar",
+      "description",
+      "description_ar",
+      "dueDateTime",
+      "maxScore",
+      "difficulty",
+      "link",
+      "siteName",
+      "currentDate",
+    ],
   },
-  
+
   {
-    id: 'activity_graded_default',
-    name: 'Activity Graded Email - Bilingual',
-    type: 'activity_graded',
-    subject: '✅ Activity Graded | تم تقييم النشاط: {{activityTitle}}',
+    id: "activity_graded_default",
+    name: "Activity Graded Email - Bilingual",
+    type: "activity_graded",
+    subject: "✅ Activity Graded | تم تقييم النشاط: {{activityTitle}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -174,14 +199,26 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['studentName', 'activityTitle', 'activityTitle_ar', 'score', 'maxScore', 'dateTime', 'feedback', 'feedback_ar', 'link', 'siteName', 'currentDate']
+    variables: [
+      "studentName",
+      "activityTitle",
+      "activityTitle_ar",
+      "score",
+      "maxScore",
+      "dateTime",
+      "feedback",
+      "feedback_ar",
+      "link",
+      "siteName",
+      "currentDate",
+    ],
   },
-  
+
   {
-    id: 'enrollment_default',
-    name: 'Enrollment Welcome Email - Bilingual',
-    type: 'enrollment',
-    subject: '🎓 Welcome to {{className}} | مرحباً بك في {{className}}',
+    id: "enrollment_default",
+    name: "Enrollment Welcome Email - Bilingual",
+    type: "enrollment",
+    subject: "🎓 Welcome to {{className}} | مرحباً بك في {{className}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -243,14 +280,23 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['studentName', 'className', 'classCode', 'term', 'instructorName', 'siteUrl', 'siteName', 'currentDate']
+    variables: [
+      "studentName",
+      "className",
+      "classCode",
+      "term",
+      "instructorName",
+      "siteUrl",
+      "siteName",
+      "currentDate",
+    ],
   },
-  
+
   {
-    id: 'resource_default',
-    name: 'New Resource Email - Bilingual',
-    type: 'resource',
-    subject: '📚 New Resource Available | مورد جديد متاح: {{resourceTitle}}',
+    id: "resource_default",
+    name: "New Resource Email - Bilingual",
+    type: "resource",
+    subject: "📚 New Resource Available | مورد جديد متاح: {{resourceTitle}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -296,14 +342,24 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['recipientName', 'resourceTitle', 'resourceType', 'description', 'currentDateTime', 'link', 'siteName', 'currentDate']
+    variables: [
+      "recipientName",
+      "resourceTitle",
+      "resourceType",
+      "description",
+      "currentDateTime",
+      "link",
+      "siteName",
+      "currentDate",
+    ],
   },
-  
+
   {
-    id: 'activity_complete_default',
-    name: 'Activity Completed Notification - Bilingual',
-    type: 'activity_complete',
-    subject: '✅ Student Completed Activity | أكمل الطالب النشاط: {{activityTitle}}',
+    id: "activity_complete_default",
+    name: "Activity Completed Notification - Bilingual",
+    type: "activity_complete",
+    subject:
+      "✅ Student Completed Activity | أكمل الطالب النشاط: {{activityTitle}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -346,14 +402,24 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['studentName', 'studentEmail', 'militaryNumber', 'activityTitle', 'dateTime', 'link', 'siteName', 'currentDate']
+    variables: [
+      "studentName",
+      "studentEmail",
+      "militaryNumber",
+      "activityTitle",
+      "dateTime",
+      "link",
+      "siteName",
+      "currentDate",
+    ],
   },
-  
+
   {
-    id: 'chat_digest_default',
-    name: 'Chat Digest Email - Bilingual',
-    type: 'chat_digest',
-    subject: '💬 You have {{unreadCount}} unread messages | لديك {{unreadCount}} رسائل غير مقروءة',
+    id: "chat_digest_default",
+    name: "Chat Digest Email - Bilingual",
+    type: "chat_digest",
+    subject:
+      "💬 You have {{unreadCount}} unread messages | لديك {{unreadCount}} رسائل غير مقروءة",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -388,14 +454,20 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['recipientName', 'unreadCount', 'chatLink', 'siteName', 'currentDate']
+    variables: [
+      "recipientName",
+      "unreadCount",
+      "chatLink",
+      "siteName",
+      "currentDate",
+    ],
   },
-  
+
   {
-    id: 'password_reset_default',
-    name: 'Password Reset',
-    type: 'password_reset',
-    subject: '🔑 Reset Your Password | إعادة تعيين كلمة المرور',
+    id: "password_reset_default",
+    name: "Password Reset",
+    type: "password_reset",
+    subject: "🔑 Reset Your Password | إعادة تعيين كلمة المرور",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -452,14 +524,20 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['recipientName', 'userEmail', 'resetLink', 'siteName', 'currentDate']
+    variables: [
+      "recipientName",
+      "userEmail",
+      "resetLink",
+      "siteName",
+      "currentDate",
+    ],
   },
-  
+
   {
-    id: 'welcome_signup_default',
-    name: 'Welcome on Signup',
-    type: 'welcome_signup',
-    subject: '🎉 Welcome to {{siteName}} | مرحباً بك في {{siteName}}',
+    id: "welcome_signup_default",
+    name: "Welcome on Signup",
+    type: "welcome_signup",
+    subject: "🎉 Welcome to {{siteName}} | مرحباً بك في {{siteName}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -534,6 +612,200 @@ export const defaultTemplates = [
   </div>
 </div>
     `,
-    variables: ['recipientName', 'userEmail', 'displayName', 'platformUrl', 'siteName', 'currentDate']
-  }
+    variables: [
+      "recipientName",
+      "userEmail",
+      "displayName",
+      "platformUrl",
+      "siteName",
+      "currentDate",
+    ],
+  },
+  {
+    id: "marksEntered",
+    name: "Marks Entered Email - Bilingual",
+    type: "marks",
+    subject: "📊 Marks Entered | تم إدخال الدرجات: {{subjectName}}",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+  <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">📊 Marks Entered | تم إدخال الدرجات</h1>
+  </div>
+  
+  <div style="padding: 30px; background: #ffffff;">
+    <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{studentName}},</p>
+    
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+      <h2 style="color: #10b981; margin-top: 0; font-size: 22px;">Your marks have been entered</h2>
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>Subject:</strong> {{subjectCode}} - {{subjectName}}</p>
+      <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 15px 0;">
+        <div style="text-align: center;">
+          <div style="font-size: 48px; font-weight: bold; color: #10b981; margin-bottom: 10px;">{{totalScore}}%</div>
+          <div style="font-size: 24px; color: #059669; font-weight: 600;">Grade: {{grade}} ({{points}} points)</div>
+        </div>
+      </div>
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+        <p style="margin: 5px 0; color: #555;"><strong>Mid-Term Exam:</strong> {{midTerm}}%</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Final Exam:</strong> {{final}}%</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Homework:</strong> {{homework}}%</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Labs/Projects:</strong> {{labs}}%</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Quizzes:</strong> {{quizzes}}%</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Participation:</strong> {{participation}}%</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Attendance:</strong> {{attendance}}%</p>
+      </div>
+      {{#if isRetake}}
+      <p style="color: #f59e0b; font-size: 14px; margin-top: 15px; font-weight: 600;">⚠️ This is a retake course</p>
+      {{/if}}
+    </div>
+    
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #059669;">
+      <h2 style="color: #059669; margin-top: 0; font-size: 22px;">تم إدخال درجاتك</h2>
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>المادة:</strong> {{subjectCode}} - {{subjectName}}</p>
+      <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 15px 0;">
+        <div style="text-align: center;">
+          <div style="font-size: 48px; font-weight: bold; color: #10b981; margin-bottom: 10px;">{{totalScore}}%</div>
+          <div style="font-size: 24px; color: #059669; font-weight: 600;">التقدير: {{grade}} ({{points}} نقطة)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5;">
+    <p style="margin: 0;">{{siteName}} - {{currentDate}}</p>
+    <p style="margin: 5px 0 0 0;">This email was sent automatically | تم إرسال هذا البريد تلقائياً</p>
+  </div>
+</div>
+    `,
+    variables: [
+      "studentName",
+      "subjectCode",
+      "subjectName",
+      "totalScore",
+      "grade",
+      "points",
+      "midTerm",
+      "final",
+      "homework",
+      "labs",
+      "quizzes",
+      "participation",
+      "attendance",
+      "isRetake",
+    ],
+  },
+  {
+    id: "marksUpdated",
+    name: "Marks Updated Email - Bilingual",
+    type: "marks",
+    subject: "📊 Marks Updated | تم تحديث الدرجات: {{subjectName}}",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+  <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">📊 Marks Updated | تم تحديث الدرجات</h1>
+  </div>
+  
+  <div style="padding: 30px; background: #ffffff;">
+    <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{studentName}},</p>
+    
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+      <h2 style="color: #3b82f6; margin-top: 0; font-size: 22px;">Your marks have been updated</h2>
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>Subject:</strong> {{subjectCode}} - {{subjectName}}</p>
+      <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 15px 0;">
+        <div style="text-align: center;">
+          <div style="font-size: 48px; font-weight: bold; color: #3b82f6; margin-bottom: 10px;">{{totalScore}}%</div>
+          <div style="font-size: 24px; color: #2563eb; font-weight: 600;">Grade: {{grade}} ({{points}} points)</div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #2563eb;">
+      <h2 style="color: #2563eb; margin-top: 0; font-size: 22px;">تم تحديث درجاتك</h2>
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>المادة:</strong> {{subjectCode}} - {{subjectName}}</p>
+      <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 15px 0;">
+        <div style="text-align: center;">
+          <div style="font-size: 48px; font-weight: bold; color: #3b82f6; margin-bottom: 10px;">{{totalScore}}%</div>
+          <div style="font-size: 24px; color: #2563eb; font-weight: 600;">التقدير: {{grade}} ({{points}} نقطة)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5;">
+    <p style="margin: 0;">{{siteName}} - {{currentDate}}</p>
+    <p style="margin: 5px 0 0 0;">This email was sent automatically | تم إرسال هذا البريد تلقائياً</p>
+  </div>
+</div>
+    `,
+    variables: [
+      "studentName",
+      "subjectCode",
+      "subjectName",
+      "totalScore",
+      "grade",
+      "points",
+    ],
+  },
+  {
+    id: "penaltyRecorded",
+    name: "Penalty Recorded Email - Bilingual",
+    type: "penalty",
+    subject: "⚠️ Academic Penalty Recorded | تم تسجيل عقوبة أكاديمية",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+  <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Academic Penalty | عقوبة أكاديمية</h1>
+  </div>
+  
+  <div style="padding: 30px; background: #ffffff;">
+    <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{studentName}},</p>
+    
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ef4444;">
+      <h2 style="color: #ef4444; margin-top: 0; font-size: 22px;">Academic Penalty Recorded</h2>
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>Penalty Type:</strong> {{penaltyType}}</p>
+      {{#if subjectName}}
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>Subject:</strong> {{subjectName}}</p>
+      {{/if}}
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>Severity:</strong> {{severity}}</p>
+      {{#if description}}
+      <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0;">
+        <p style="color: #991b1b; margin: 0; font-size: 14px;"><strong>Description:</strong></p>
+        <p style="color: #555; margin: 5px 0 0 0; font-size: 14px;">{{description}}</p>
+      </div>
+      {{/if}}
+      {{#if action}}
+      <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0;">
+        <p style="color: #991b1b; margin: 0; font-size: 14px;"><strong>Action Taken:</strong></p>
+        <p style="color: #555; margin: 5px 0 0 0; font-size: 14px;">{{action}}</p>
+      </div>
+      {{/if}}
+      <p style="color: #999; font-size: 13px; margin-top: 15px; margin-bottom: 0;">📅 Date: {{date}}</p>
+    </div>
+    
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #dc2626;">
+      <h2 style="color: #dc2626; margin-top: 0; font-size: 22px;">تم تسجيل عقوبة أكاديمية</h2>
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>نوع العقوبة:</strong> {{penaltyTypeAr}}</p>
+      {{#if subjectName}}
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>المادة:</strong> {{subjectName}}</p>
+      {{/if}}
+      <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>الشدة:</strong> {{severity}}</p>
+    </div>
+  </div>
+  
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5;">
+    <p style="margin: 0;">{{siteName}} - {{currentDate}}</p>
+    <p style="margin: 5px 0 0 0;">This email was sent automatically | تم إرسال هذا البريد تلقائياً</p>
+  </div>
+</div>
+    `,
+    variables: [
+      "studentName",
+      "penaltyType",
+      "penaltyTypeAr",
+      "subjectName",
+      "description",
+      "severity",
+      "action",
+      "date",
+    ],
+  },
 ];

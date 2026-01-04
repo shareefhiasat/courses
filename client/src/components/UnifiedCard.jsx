@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from './ui';
-import { Play, Info, BookOpen, ClipboardList, HelpCircle, Award, Clock, Repeat, CheckCircle, Star, StarOff, Check, Calendar, AlertCircle, Link2, Video, FileText, Plus } from 'lucide-react';
+import { Play, Info, BookOpen, ClipboardList, HelpCircle, Award, Clock, Repeat, CheckCircle, Star, StarOff, Check, AlertCircle, Link2, Video, FileText, Plus, Pin, Calendar } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * Unified card component for activities, quizzes, resources, and home page items
@@ -35,9 +36,13 @@ export default function UnifiedCard({
   isMinified = false,
   primaryColor = '#800020'
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const getTitle = () => {
     if (flavor === 'quiz') {
-      return item.title || item.name || 'Untitled Quiz';
+      return lang === 'ar' 
+        ? (item.title_ar || item.title_en || item.title || item.name || 'Untitled Quiz')
+        : (item.title_en || item.title_ar || item.title || item.name || 'Untitled Quiz');
     }
     if (flavor === 'resource') {
       return lang === 'ar' 
@@ -51,7 +56,9 @@ export default function UnifiedCard({
 
   const getDescription = () => {
     if (flavor === 'quiz') {
-      return item.description || '';
+      return lang === 'ar'
+        ? (item.description_ar || item.description_en || item.description || '')
+        : (item.description_en || item.description_ar || item.description || '');
     }
     if (flavor === 'resource') {
       return lang === 'ar' 
@@ -132,6 +139,12 @@ export default function UnifiedCard({
 
   // Get primary color for border
   const cardBorderColor = primaryColor || '#800020';
+  const cardBg = isDark ? '#1a1a1a' : '#fff';
+  const cardText = isDark ? '#f8fafc' : '#111';
+  const cardBorder = isDark ? `1px solid ${cardBorderColor}40` : `1px solid ${cardBorderColor}20`;
+  const cardShadow = isDark 
+    ? `0 2px 8px ${cardBorderColor}25, 0 1px 3px rgba(0,0,0,0.3)`
+    : `0 2px 8px ${cardBorderColor}15, 0 1px 3px rgba(0,0,0,0.06)`;
   
   return (
     <div style={{ 
@@ -139,13 +152,14 @@ export default function UnifiedCard({
       display: 'flex', 
       flexDirection: 'column', 
       gap: '0.75rem', 
-      background: '#fff', 
+      background: cardBg, 
       borderRadius: 12, 
       padding: '0.75rem', 
-      border: `1px solid ${cardBorderColor}20`,
-      boxShadow: `0 2px 8px ${cardBorderColor}15, 0 1px 3px rgba(0,0,0,0.06)`,
+      border: cardBorder,
+      boxShadow: cardShadow,
       minHeight: '200px',
-      transition: 'all 0.2s'
+      transition: 'all 0.2s',
+      color: cardText
     }}>
       {/* Bookmark Button - Top Right Corner (matching Activities style) */}
       {onBookmark && (
@@ -188,8 +202,29 @@ export default function UnifiedCard({
       )}
 
       {/* Title */}
-      <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: onBookmark ? '2.5rem' : 0 }}>
+      <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: onBookmark ? '2.5rem' : 0, color: cardText }}>
         <span>{getTitle()}</span>
+        {item.featured && (
+          <button
+            type="button"
+            title={t('featured') || 'Featured'} 
+            style={{ 
+              width: 28,
+              height: 28,
+              padding: 0,
+              borderRadius: 999,
+              border: '1px solid #c7d2fe',
+              background: '#4f46e5',
+              color: '#fff',
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              cursor: 'default'
+            }}
+          >
+            <Pin size={14} />
+          </button>
+        )}
         {(item.allowRetake || item.retakeAllowed) && (
           <button
             type="button"
@@ -214,7 +249,7 @@ export default function UnifiedCard({
       </h3>
 
       {/* Description */}
-      <p style={{ color: '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}>
+      <p style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}>
         {getDescription()}
       </p>
 
@@ -238,19 +273,19 @@ export default function UnifiedCard({
           }
           return (
             <span style={{ 
-              padding: isMinified ? '4px 8px' : '6px 12px', 
+              padding: '4px 8px', 
               borderRadius: 999, 
               border: `1px solid ${border}`, 
               background: bg, 
               color: fg, 
-              fontSize: '0.85rem', 
+              fontSize: '0.75rem', 
               display: 'inline-flex', 
               alignItems: 'center', 
-              gap: isMinified ? 0 : 6,
+              gap: 4,
               fontWeight: 600
             }}>
-              <Award size={14} />
-              {!isMinified && <span>{getLevelLabel()}</span>}
+              <Award size={12} />
+              <span>{getLevelLabel()}</span>
             </span>
           );
         })()}
@@ -287,19 +322,19 @@ export default function UnifiedCard({
             <span 
               title={getTypeLabel()}
               style={{ 
-                padding: isMinified ? '4px 8px' : '6px 12px', 
+                padding: '4px 8px', 
                 borderRadius: 999, 
                 border: `1px solid ${border}`, 
                 background: bg, 
                 color: fg, 
-                fontSize: '0.85rem', 
+                fontSize: '0.75rem', 
                 display: 'inline-flex', 
                 alignItems: 'center', 
-                gap: isMinified ? 0 : 6,
+                gap: 4,
                 fontWeight: 600
               }}>
               {getTypeIcon()}
-              {!isMinified && <span>{getTypeLabel()}</span>}
+              <span>{getTypeLabel()}</span>
             </span>
           );
         })()}
@@ -325,14 +360,16 @@ export default function UnifiedCard({
           <span style={{ 
             background: '#fef3c7', 
             color: '#d97706', 
-            padding: '0.25rem 0.75rem', 
-            borderRadius: 12, 
-            fontSize: '0.85rem', 
+            padding: '4px 8px', 
+            borderRadius: 999, 
+            border: '1px solid #d97706',
+            fontSize: '0.75rem', 
             display: 'inline-flex', 
             alignItems: 'center', 
-            gap: 6 
+            gap: 4,
+            fontWeight: 600
           }}>
-            <Clock size={14} /> {item.estimatedTime} {t('min') || 'min'}
+            <Clock size={12} /> {item.estimatedTime} {t('min') || 'min'}
           </span>
         )}
 
@@ -383,10 +420,9 @@ export default function UnifiedCard({
             display: 'flex', 
             alignItems: 'center', 
             gap: 6, 
-            color: '#6b7280'
+            color: isDark ? '#94a3b8' : '#6b7280'
           }} title={t('created_at') || 'Created at'}>
             <Plus size={12} />
-            <Calendar size={12} />
             <span>{formatDate(item.createdAt)}</span>
           </div>
         )}

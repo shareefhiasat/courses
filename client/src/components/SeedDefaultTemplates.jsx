@@ -44,13 +44,13 @@ const SeedDefaultTemplates = ({ onComplete }) => {
   return (
     <div style={{
       background: '#f0f8ff',
-      border: '2px dashed #667eea',
+      border: '2px dashed #800020',
       borderRadius: 12,
       padding: '2rem',
       textAlign: 'center',
       margin: '2rem 0'
     }}>
-      <h3 style={{ color: '#667eea', margin: '0 0 1rem 0' }}>📧 Default Email Templates</h3>
+      <h3 style={{ color: '#800020', margin: '0 0 1rem 0' }}>📧 Default Email Templates</h3>
       <p style={{ color: '#666', marginBottom: '1.5rem', lineHeight: 1.6 }}>
         Create 7 professional bilingual email templates to get started quickly:
       </p>
@@ -89,7 +89,7 @@ const SeedDefaultTemplates = ({ onComplete }) => {
         <div style={{ marginBottom: '1rem' }}>
           <div style={{ background: '#e0e0e0', borderRadius: 8, height: 8, overflow: 'hidden' }}>
             <div style={{
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              background: 'linear-gradient(135deg, #800020, #600018)',
               height: '100%',
               width: `${(progress.current / progress.total) * 100}%`,
               transition: 'width 0.3s'
@@ -106,7 +106,7 @@ const SeedDefaultTemplates = ({ onComplete }) => {
         disabled={seeding}
         style={{
           padding: '12px 30px',
-          background: seeding ? '#ccc' : 'linear-gradient(135deg, #667eea, #764ba2)',
+          background: seeding ? '#ccc' : 'linear-gradient(135deg, #800020, #600018)',
           color: 'white',
           border: 'none',
           borderRadius: 8,

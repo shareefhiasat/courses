@@ -253,7 +253,7 @@ export default function StudentDashboardPage() {
     };
 
     const typeConfig = {
-      quiz: { icon: FileQuestion, label: 'Quiz', color: '#667eea' },
+      quiz: { icon: FileQuestion, label: 'Quiz', color: '#800020' },
       assignment: { icon: FileText, label: 'Assignment', color: '#0ea5e9' },
       homework: { icon: BookOpen, label: 'Homework', color: '#f59e0b' },
       resource: { icon: FileArchive, label: 'Resource', color: '#10b981' }

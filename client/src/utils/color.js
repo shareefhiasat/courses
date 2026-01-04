@@ -1,4 +1,4 @@
-const DEFAULT_ACCENT = '#667EEA';
+const DEFAULT_ACCENT = '#800020'; // Maroon
 
 const sanitizeHex = (value) => {
   if (!value) return null;

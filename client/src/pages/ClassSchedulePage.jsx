@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { getPrograms, getSubjects } from '../firebase/programs';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast } from '../components/ui';
 import { Calendar, Clock, Plus, Trash2, Save, AlertCircle } from 'lucide-react';
 import styles from './ClassSchedulePage.module.css';
@@ -12,10 +13,14 @@ const ClassSchedulePage = () => {
   const { t } = useLang();
   const toast = useToast();
   const [classes, setClasses] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
+  const [programFilter, setProgramFilter] = useState('all');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [termFilter, setTermFilter] = useState('all');
-  const [sortOption, setSortOption] = useState('name_asc');
   const [schedule, setSchedule] = useState({
     frequency: 'once', // once, twice, thrice
     days: [], // ['SUN', 'TUE', 'THU']
@@ -27,6 +32,7 @@ const ClassSchedulePage = () => {
   const [newHoliday, setNewHoliday] = useState('');
   const [newAbsent, setNewAbsent] = useState('');
   const [saving, setSaving] = useState(false);
+  const [classSearchTerm, setClassSearchTerm] = useState('');
 
   const dayOptions = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   const frequencyOptions = [
@@ -70,11 +76,35 @@ const ClassSchedulePage = () => {
   const filteredClasses = useMemo(() => {
     let result = [...classes];
 
+    // Filter by program
+    if (programFilter !== 'all') {
+      result = result.filter(cls => {
+        if (!cls.subjectId) return false;
+        const subject = subjects.find(s => (s.docId || s.id) === cls.subjectId);
+        if (!subject) return false;
+        return (subject.programId || '') === programFilter;
+      });
+    }
+
+    // Filter by subject
+    if (subjectFilter !== 'all') {
+      result = result.filter(cls => {
+        return (cls.subjectId || '') === subjectFilter;
+      });
+    }
+
+    // Filter by class
+    if (classFilter !== 'all') {
+      result = result.filter(cls => {
+        const classId = cls.id || cls.docId;
+        return String(classId) === String(classFilter);
+      });
+    }
+
+    // Filter by year
     if (yearFilter !== 'all') {
       result = result.filter(cls => {
-        // Check separate year field first
         if (cls.year && String(cls.year) === yearFilter) return true;
-        // Otherwise extract from term string
         if (cls.term) {
           const parts = cls.term.split(' ');
           if (parts.length > 1) {
@@ -86,6 +116,7 @@ const ClassSchedulePage = () => {
       });
     }
 
+    // Filter by term
     if (termFilter !== 'all') {
       result = result.filter(cls => {
         if (!cls.term) return false;
@@ -94,26 +125,11 @@ const ClassSchedulePage = () => {
       });
     }
 
-    switch (sortOption) {
-      case 'name_desc':
-        result.sort((a, b) => (b.name || b.code || '').localeCompare(a.name || a.code || ''));
-        break;
-      case 'recent':
-        result.sort((a, b) => {
-          const yearA = Number(a.year) || 0;
-          const yearB = Number(b.year) || 0;
-          if (yearA !== yearB) return yearB - yearA;
-          return (b.term || '').localeCompare(a.term || '');
-        });
-        break;
-      case 'name_asc':
-      default:
-        result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
-        break;
-    }
-
+    // Sort by name
+    result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
+    
     return result;
-  }, [classes, yearFilter, termFilter, sortOption]);
+  }, [classes, programs, subjects, programFilter, subjectFilter, classFilter, yearFilter, termFilter]);
 
   useEffect(() => {
     if (!user) return;
@@ -123,8 +139,13 @@ const ClassSchedulePage = () => {
 
   const loadClasses = async () => {
     try {
-      const snap = await getDocs(collection(db, 'classes'));
-      const data = snap.docs.map(d => {
+      const [classesSnap, programsRes, subjectsRes] = await Promise.all([
+        getDocs(collection(db, 'classes')),
+        getPrograms(),
+        getSubjects()
+      ]);
+      
+      const data = classesSnap.docs.map(d => {
         const docData = d.data();
         const docId = d.id;
         return {
@@ -134,6 +155,9 @@ const ClassSchedulePage = () => {
         };
       });
       setClasses(data);
+      
+      if (programsRes.success) setPrograms(programsRes.data || []);
+      if (subjectsRes.success) setSubjects(subjectsRes.data || []);
 
       const previouslySelectedId = selectedClass?.docId || selectedClass?.id;
       if (previouslySelectedId) {
@@ -245,6 +269,59 @@ const ClassSchedulePage = () => {
           <div style={{ fontWeight: 600, marginBottom: 8, fontSize: '0.9rem' }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
           <div style={{ display: 'grid', gap: 6, marginBottom: 8 }}>
             <Select
+              searchable
+              value={programFilter}
+              onChange={(e) => setProgramFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Programs' },
+                ...programs.map(p => ({
+                  value: p.docId || p.id,
+                  label: p.name_en || p.name_ar || p.code || p.docId
+                }))
+              ]}
+              fullWidth
+              placeholder="Filter by Program"
+            />
+            <Select
+              searchable
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Subjects' },
+                ...subjects
+                  .filter(s => programFilter === 'all' || s.programId === programFilter)
+                  .map(s => ({
+                    value: s.docId || s.id,
+                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+                  }))
+              ]}
+              fullWidth
+              placeholder="Filter by Subject"
+            />
+            <Select
+              searchable
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Classes' },
+                ...classes
+                  .filter(c => {
+                    if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
+                    if (programFilter !== 'all') {
+                      const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+                      if (!subject || subject.programId !== programFilter) return false;
+                    }
+                    return true;
+                  })
+                  .map(c => ({
+                    value: c.id || c.docId,
+                    label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`
+                  }))
+              ]}
+              fullWidth
+              placeholder="Filter by Class"
+            />
+            <Select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
               options={[
@@ -263,17 +340,6 @@ const ClassSchedulePage = () => {
               ]}
               fullWidth
               placeholder={t('filter_term') || 'Filter by term'}
-            />
-            <Select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-              options={[
-                { value: 'name_asc', label: t('sort_name_asc') || 'Name A → Z' },
-                { value: 'name_desc', label: t('sort_name_desc') || 'Name Z → A' },
-                { value: 'recent', label: t('sort_recent') || 'Most recent' }
-              ]}
-              fullWidth
-              placeholder={t('sort_classes') || 'Sort classes'}
             />
           </div>
           <div style={{ display: 'grid', gap: 8 }}>

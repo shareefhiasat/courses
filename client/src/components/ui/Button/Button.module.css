@@ -99,6 +99,17 @@
   background: rgba(128, 0, 32, 0.1);
 }
 
+/* Ghost variant with custom colors */
+.ghost.editHover:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.ghost.deleteHover:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
 .danger {
   background: var(--color-danger, #dc3545);
   color: white;

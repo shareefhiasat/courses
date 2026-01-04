@@ -1,0 +1,176 @@
+/* Wrapper */
+.wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Label Row */
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 500;
+  color: var(--text, #212529);
+}
+
+.required {
+  color: var(--color-danger, #dc3545);
+  margin-inline-start: 0.25rem;
+}
+
+.clearAllButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-muted, #666);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clearAllButton:hover:not(:disabled) {
+  color: var(--text, #212529);
+  background: var(--bg-hover, #f5f5f5);
+}
+
+.clearAllButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Inputs Container */
+.inputsContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Date Input Wrapper */
+.dateInputWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 150px;
+}
+
+.clearButton {
+  position: absolute;
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--text-muted, #666);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+[dir="rtl"] .clearButton {
+  right: auto;
+  left: 2.5rem;
+}
+
+.clearButton:hover:not(:disabled) {
+  color: var(--text, #212529);
+  background: var(--bg-hover, #f5f5f5);
+}
+
+.clearButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Separator */
+.separator {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  flex-shrink: 0;
+}
+
+.separatorText {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-muted, #666);
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+/* Helper Text */
+.helperText {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-muted, #666);
+}
+
+/* Error Text */
+.errorText {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-danger, #dc3545);
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .label {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .clearAllButton {
+    color: var(--text-muted, #999);
+  }
+  
+  .clearAllButton:hover:not(:disabled) {
+    color: var(--text, #f5f5f5);
+    background: var(--bg-hover, #2a2a2a);
+  }
+  
+  .clearButton {
+    color: var(--text-muted, #999);
+  }
+  
+  .clearButton:hover:not(:disabled) {
+    color: var(--text, #f5f5f5);
+    background: var(--bg-hover, #2a2a2a);
+  }
+  
+  .separatorText {
+    color: var(--text-muted, #999);
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .inputsContainer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .separator {
+    display: none;
+  }
+  
+  .dateInputWrapper {
+    min-width: 100%;
+  }
+}
+

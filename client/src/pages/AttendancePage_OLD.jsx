@@ -254,7 +254,7 @@ const AttendancePageEnhanced = () => {
 
       {/* Session Controls */}
       <div style={{ display:'flex', gap:12, marginBottom:16, flexWrap:'wrap' }}>
-        <button onClick={startSession} disabled={!classId || loading || sessionId} style={{ padding:'0.75rem 1.5rem', border:'none', borderRadius:8, background: sessionId ? '#9ca3af' : '#667eea', color:'white', fontWeight:600, cursor: sessionId ? 'not-allowed' : 'pointer' }}>
+        <button onClick={startSession} disabled={!classId || loading || sessionId} style={{ padding:'0.75rem 1.5rem', border:'none', borderRadius:8, background: sessionId ? '#9ca3af' : '#800020', color:'white', fontWeight:600, cursor: sessionId ? 'not-allowed' : 'pointer' }}>
           {loading ? (t('starting') || 'Starting...') : sessionId ? (t('session_active') || 'Session Active') : (t('start_session') || 'Start Session')}
         </button>
         {sessionId && (
@@ -297,7 +297,7 @@ const AttendancePageEnhanced = () => {
               </button>
             </div>
             <div style={{ alignSelf:'end' }}>
-              <button onClick={saveCfg} disabled={savingCfg} style={{ padding:'0.6rem 1.5rem', border:'none', borderRadius:8, background:'#667eea', color:'white', fontWeight:600 }}>
+              <button onClick={saveCfg} disabled={savingCfg} style={{ padding:'0.6rem 1.5rem', border:'none', borderRadius:8, background:'#800020', color:'white', fontWeight:600 }}>
                 {savingCfg ? (t('saving')||'Saving...') : (t('save_settings')||'Save Settings')}
               </button>
             </div>
@@ -310,9 +310,9 @@ const AttendancePageEnhanced = () => {
         <div>
           <canvas ref={qrCanvasRef} width={260} height={260} style={{ borderRadius: 8, background:'#fff', border:'2px solid var(--border)' }} />
           {sessionId && manualCode && (
-            <div style={{ marginTop:12, padding:'1rem', background:'#fff', border:'2px solid #667eea', borderRadius:8, textAlign:'center' }}>
+            <div style={{ marginTop:12, padding:'1rem', background:'#fff', border:'2px solid #800020', borderRadius:8, textAlign:'center' }}>
               <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', marginBottom:6 }}>MANUAL CODE</div>
-              <div style={{ fontSize:32, fontWeight:700, letterSpacing:'0.2em', color:'#667eea', fontFamily:'monospace' }}>{manualCode}</div>
+              <div style={{ fontSize:32, fontWeight:700, letterSpacing:'0.2em', color:'#800020', fontFamily:'monospace' }}>{manualCode}</div>
               <div style={{ fontSize:10, color:'var(--muted)', marginTop:6 }}>Rotates every {cfg.rotationSeconds}s</div>
               <div style={{ fontSize:9, color:'var(--muted)', marginTop:8, padding:'4px 8px', background:'#f3f4f6', borderRadius:4, fontFamily:'monospace' }}>
                 Session: {sessionId.slice(0,8)}...

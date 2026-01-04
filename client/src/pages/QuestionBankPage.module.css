@@ -24,7 +24,7 @@
 }
 
 .headerIcon {
-  color: #667eea;
+  color: #800020;
 }
 
 .headerLeft h1 {
@@ -100,7 +100,7 @@
   display: block;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #667eea;
+  color: #800020;
   margin-bottom: 0.25rem;
 }
 
@@ -127,7 +127,7 @@
 }
 
 .questionCard:hover {
-  border-color: #667eea;
+  border-color: #800020;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
@@ -198,7 +198,7 @@
 .points {
   margin-left: auto;
   font-weight: 600;
-  color: #667eea;
+  color: #800020;
 }
 
 @media (max-width: 768px) {

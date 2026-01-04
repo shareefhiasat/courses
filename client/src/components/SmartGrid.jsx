@@ -244,7 +244,7 @@ const SmartGrid = ({
                 padding: '8px 16px',
                 border: 'none',
                 borderRadius: '6px',
-                background: quickFilters.active === btn.key ? '#667eea' : '#ffffff',
+                background: quickFilters.active === btn.key ? '#800020' : '#ffffff',
                 color: quickFilters.active === btn.key ? '#ffffff' : '#333',
                 cursor: 'pointer',
                 fontWeight: quickFilters.active === btn.key ? '600' : '500',

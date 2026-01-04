@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useMemo } from 'react';
 import {
   DataGrid,
   GridToolbarContainer,
@@ -30,49 +30,91 @@ const AdvancedDataGrid = ({
   exportLabel = 'Export',
   ...rest
 }) => {
+  // Store rows in a ref so we can access them in valueGetter
+  const rowsRef = useRef(rows || []);
+  rowsRef.current = rows || [];
+
   // Ensure rows are valid objects and assign a fallback id when missing
-  const safeRows = (rows || [])
-    .filter(Boolean)
-    .map((r, i) => {
-      const obj = r && typeof r === 'object' ? r : {};
-      if (obj.id == null && obj.docId == null && obj.__rid == null) {
-        return { ...obj, __rid: `row_${i}` };
-      }
-      return obj;
-    });
+  const safeRows = useMemo(() => {
+    return (rows || [])
+      .filter(Boolean)
+      .map((r, i) => {
+        const obj = r && typeof r === 'object' ? r : {};
+        if (obj.id == null && obj.docId == null && obj.__rid == null) {
+          return { ...obj, __rid: `row_${i}` };
+        }
+        return obj;
+      });
+  }, [rows]);
 
   // Normalize params before passing to user callbacks
-  const normalizeParams = (p) => {
-    if (!p || typeof p !== 'object') return { row: {}, value: undefined };
-    
-    // If row is a string or primitive, skip this row entirely
-    if (typeof p.row === 'string' || (p.row && typeof p.row !== 'object')) {
-      console.warn('[AdvancedDataGrid] Invalid row data:', p.row);
-      return { row: {}, value: undefined };
+  const normalizeParams = (p, field) => {
+    // Handle case where MUI passes a primitive value directly (not an object)
+    if (!p || typeof p !== 'object') {
+      // MUI sometimes calls valueGetter with just the value - return it as-is
+      return { row: {}, value: p, field };
     }
     
+    // Preserve ALL original properties from MUI DataGrid
     const base = { ...p };
-    if (!base.row || typeof base.row !== 'object') base.row = {};
-    if (base.value === undefined && base.field && base.row) {
-      base.value = base.row[base.field];
+    
+    // CRITICAL: If row is empty or missing, try to find it from our rows array
+    if (!p.row || (typeof p.row === 'object' && Object.keys(p.row).length === 0)) {
+      // Try to find the row by ID from our rows array
+      if (p.id) {
+        const foundRow = rowsRef.current.find(r => {
+          const rowId = r.docId || r.id || r.__rid;
+          return rowId === p.id;
+        });
+        if (foundRow) {
+          base.row = foundRow;
+          // If value is undefined, get it from the found row
+          if (base.value === undefined && base.field && foundRow) {
+            base.value = foundRow[base.field];
+          }
+        } else {
+          base.row = {};
+        }
+      } else {
+        base.row = {};
+      }
+    } else if (p.row && typeof p.row === 'object' && !Array.isArray(p.row)) {
+      // Row is valid object - preserve it exactly as-is
+      base.row = p.row;
+      // If value is undefined, try to get it from row
+      if (base.value === undefined && base.field && base.row) {
+        base.value = base.row[base.field];
+      }
+    } else {
+      // Invalid row type
+      base.row = {};
     }
+    
     return base;
   };
 
   // Safely wrap column callbacks to avoid crashes when params is unexpected
-  const safeColumns = (columns || []).map((col) => {
-    const wrapped = { ...col };
-    if (typeof col.renderCell === 'function') {
-      wrapped.renderCell = (params) => col.renderCell(normalizeParams(params));
-    }
-    if (typeof col.valueGetter === 'function') {
-      wrapped.valueGetter = (params) => col.valueGetter(normalizeParams(params));
-    }
-    if (typeof col.valueFormatter === 'function') {
-      wrapped.valueFormatter = (params) => col.valueFormatter(normalizeParams(params));
-    }
-    return wrapped;
-  });
+  const safeColumns = useMemo(() => {
+    return (columns || []).map((col) => {
+      const wrapped = { ...col };
+      if (typeof col.renderCell === 'function') {
+        wrapped.renderCell = (params) => col.renderCell(normalizeParams(params, col.field));
+      }
+      if (typeof col.valueGetter === 'function') {
+        wrapped.valueGetter = (params) => {
+          // Handle case where MUI passes primitive value directly
+          if (params && typeof params !== 'object') {
+            return col.valueGetter({ row: {}, value: params, field: col.field });
+          }
+          return col.valueGetter(normalizeParams(params, col.field));
+        };
+      }
+      if (typeof col.valueFormatter === 'function') {
+        wrapped.valueFormatter = (params) => col.valueFormatter(normalizeParams(params, col.field));
+      }
+      return wrapped;
+    });
+  }, [columns]);
 
   // Compose a toolbar to guarantee Export presence across versions
   const Toolbar = () => (

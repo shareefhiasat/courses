@@ -25,7 +25,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { db, storage } from '../firebase/config';
 import { getClasses, getEnrollments, getUsers } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
-import { Loading, useToast } from '../components/ui';
+import { Loading, useToast, Input } from '../components/ui';
 import './ChatPage.css';
 import { formatDateTime, formatDate } from '../utils/date';
 import { MessageSquareText } from 'lucide-react';
@@ -49,6 +49,7 @@ const ChatPage = () => {
   const [memberSearch, setMemberSearch] = useState('');
   const [studentsOnly, setStudentsOnly] = useState(false);
   const [dmSearch, setDmSearch] = useState('');
+  const [globalChatSearch, setGlobalChatSearch] = useState('');
   const [chatReads, setChatReads] = useState({}); // { 'class:<id>': Timestamp, 'dm:<id>': Timestamp, 'global': Timestamp }
   const [unreadCounts, setUnreadCounts] = useState({}); // { 'class:<id>': number, 'dm:<id>': number, 'global': number }
   const [showDeleteDMConfirm, setShowDeleteDMConfirm] = useState(false);
@@ -976,6 +977,30 @@ const ChatPage = () => {
     
     if (!newMessage.trim() && !audioBlob && !attachedFile) return;
     
+    // Check if user can participate (not disabled/archived/deleted)
+    try {
+      const { canParticipate } = await import('../utils/userStatus');
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      const { db } = await import('../firebase/config');
+      
+      // Load user enrollments for status check
+      let enrollments = [];
+      try {
+        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', user.uid)));
+        enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {
+        console.warn('Failed to load enrollments for chat check:', e);
+      }
+      
+      if (!canParticipate(userProfile || user, enrollments)) {
+        toast?.showError?.('You cannot send messages. Your account is disabled, archived, or you have no active enrollments.');
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to check user status for chat:', error);
+      // Continue anyway - don't block if status check fails
+    }
+    
     try {
       const messageData = {
         senderId: user.uid,
@@ -1035,13 +1060,17 @@ const ChatPage = () => {
           // Notify the other participant
           const otherId = (directRooms.find(r => r.id === messageData.roomId)?.participants || []).find(p => p !== user.uid);
           if (otherId) {
-            await addNotification({
-              userId: otherId,
-              title: (profileName || user.displayName || user.email),
-              message: preview,
-              type: 'message',
-              data: { roomId: messageData.roomId, messageId: added.id }
-            });
+            try {
+              await addNotification({
+                userId: otherId,
+                title: (profileName || user.displayName || user.email),
+                message: preview,
+                type: 'message',
+                data: { roomId: messageData.roomId, messageId: added.id }
+              });
+            } catch (notifError) {
+              console.warn('Failed to send notification:', notifError);
+            }
           }
         } catch {}
       }
@@ -1060,13 +1089,17 @@ const ChatPage = () => {
             const enr = await getEnrollments();
             const targets = (enr.data || []).filter(e => e.classId === messageData.classId && e.userId !== user.uid);
             for (const t of targets) {
-              await addNotification({
-                userId: t.userId,
-                title: `💬 ${classes.find(c=>c.docId===messageData.classId)?.name || 'Class'}`,
-                message: `${(profileName || user.displayName || user.email)}: ${preview.substring(0, 120)}`,
-                type: 'chat',
-                data: { classId: messageData.classId, messageId: added.id }
-              });
+              try {
+                await addNotification({
+                  userId: t.userId,
+                  title: `💬 ${classes.find(c=>c.docId===messageData.classId)?.name || 'Class'}`,
+                  message: `${(profileName || user.displayName || user.email)}: ${preview.substring(0, 120)}`,
+                  type: 'chat',
+                  data: { classId: messageData.classId, messageId: added.id }
+                });
+              } catch (notifError) {
+                console.warn('Failed to send notification:', notifError);
+              }
             }
           } catch {}
         } catch {}
@@ -1301,12 +1334,18 @@ const ChatPage = () => {
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <div style={{ fontWeight: '600', flex:1 }}>{t('global_chat')}</div>
-                    {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'#667eea',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
+                    {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'#800020',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666' }}>All users</div>
-                  <div style={{ display:'flex', gap:8, marginTop:6 }}>
-                    {/* Future operations row for global if needed */}
-                  </div>
+                  {/* <div style={{ display:'flex', gap:8, marginTop:6 }}>
+                    <Input
+                      type="text"
+                      placeholder="Search messages or courses..."
+                      value={globalChatSearch || ''}
+                      onChange={(e) => setGlobalChatSearch(e.target.value)}
+                      style={{ flex: 1, padding: '6px 10px', fontSize: '0.9rem' }}
+                    />
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -1337,7 +1376,7 @@ const ChatPage = () => {
                       if (count > 0) {
                         return (
                           <span style={{
-                            background: '#667eea', color: 'white', borderRadius: '50%', minWidth: 20, height: 20,
+                            background: '#800020', color: 'white', borderRadius: '50%', minWidth: 20, height: 20,
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', padding: '0 6px'
                           }}>{count > 99 ? '99+' : count}</span>
                         );
@@ -1376,7 +1415,7 @@ const ChatPage = () => {
                         {instructor.docId !== user.uid && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openDMWith(instructor); }}
-                            style={{ padding: '2px 8px', borderRadius: 6, border: 'none', background: '#667eea', color: 'white', cursor: 'pointer', fontSize: 12 }}
+                            style={{ padding: '2px 8px', borderRadius: 6, border: 'none', background: '#800020', color: 'white', cursor: 'pointer', fontSize: 12 }}
                           >
                             Contact
                           </button>
@@ -1408,8 +1447,8 @@ const ChatPage = () => {
             <div style={{ padding: '0.4rem 0.6rem', color: 'var(--muted)' }}>No conversations</div>
           )}
           {(() => {
-            if (archivedRooms === null) return null; // Don't show until loaded
-            let filtered = directRooms;
+            if (archivedRooms === null) return []; // Return empty array instead of null
+            let filtered = Array.isArray(safeDirectRooms) ? safeDirectRooms : [];
             // hide archived unless showArchived is on
             filtered = filtered.filter(r => showArchived || !archivedRooms[r.id]);
             // favorites only filter
@@ -1418,9 +1457,9 @@ const ChatPage = () => {
             }
             if (dmSearch && isAdmin) {
               const search = dmSearch.toLowerCase();
-              filtered = directRooms.filter(room => {
+              filtered = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(room => {
                 const otherId = (room.participants || []).find(p => p !== user.uid);
-                const other = allUsers.find(u => u.docId === otherId);
+                const other = (Array.isArray(safeAllUsers) ? safeAllUsers : []).find(u => u.docId === otherId);
                 const name = other?.displayName || other?.email || '';
                 return name.toLowerCase().includes(search);
               });
@@ -1434,13 +1473,13 @@ const ChatPage = () => {
               const bTime = (b.lastMessageAt?.toDate?.() || b.createdAt?.toDate?.() || 0);
               return bTime - aTime;
             });
-            return Array.isArray(filtered) ? filtered : (filtered ? [filtered] : []);
+            return Array.isArray(filtered) ? filtered : [];
           })()
             .filter(Boolean)
             .flatMap(x => Array.isArray(x) ? x : [x])
             .map(room => {
             const otherId = (room.participants || []).find(p => p !== user.uid);
-            const other = allUsers.find(u => u.docId === otherId);
+            const other = (safeAllUsers || []).find(u => u.docId === otherId);
             const label = other?.displayName || other?.email || 'Conversation';
             const initial = (other?.displayName || other?.email || 'D')[0]?.toUpperCase();
             const lastTime = room.lastMessageAt?.toDate?.();
@@ -1456,15 +1495,40 @@ const ChatPage = () => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {other?.photoURL ? (
-                    <img src={other.photoURL} alt={label} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 14, fontWeight: 700 }}>{initial}</div>
-                  )}
+                  {(() => {
+                    // For DM: show X only if deleted or disabled on user level
+                    const isDeleted = !other || other.deleted;
+                    const isDisabled = other?.disabled || other?.isDisabled;
+                    const showIndicator = isDeleted || isDisabled;
+                    const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : '');
+                    return (
+                      <>
+                        {other?.photoURL ? (
+                          <div style={{ position: 'relative' }}>
+                            <img src={other.photoURL} alt={label} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', opacity: showIndicator ? 0.5 : 1 }} />
+                            {showIndicator && (
+                              <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
+                                <span style={{ fontSize: 8, color: 'white' }}>✕</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: showIndicator ? '#999' : 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 14, fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>{initial}</div>
+                            {showIndicator && (
+                              <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
+                                <span style={{ fontSize: 8, color: 'white' }}>✕</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1 }}>{label}</div>
-                      {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'#667eea',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
+                      <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: (!other || other.deleted) ? 0.6 : 1 }}>{label}</div>
+                      {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'#800020',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
                       <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{room.lastMessage || ''}</span>
@@ -1590,9 +1654,23 @@ const ChatPage = () => {
         }}>
           {(() => {
             const q = (msgQuery || '').trim().toLowerCase();
-            const list = q
-              ? (messages || []).filter(m => (m.content || '').toLowerCase().includes(q) || (m.fileName || '').toLowerCase().includes(q))
-              : (messages || []);
+            const globalSearch = selectedClass === 'global' ? (globalChatSearch || '').trim().toLowerCase() : '';
+            let list = messages || [];
+            
+            // Apply global chat search (search in messages and class names)
+            if (globalSearch && selectedClass === 'global') {
+              list = list.filter(m => {
+                const matchesMessage = (m.content || '').toLowerCase().includes(globalSearch) || (m.fileName || '').toLowerCase().includes(globalSearch);
+                const sender = allUsers.find(u => u.docId === m.senderId);
+                const matchesSender = sender && ((sender.displayName || '').toLowerCase().includes(globalSearch) || (sender.email || '').toLowerCase().includes(globalSearch));
+                return matchesMessage || matchesSender;
+              });
+            }
+            
+            // Apply regular message search
+            if (q) {
+              list = list.filter(m => (m.content || '').toLowerCase().includes(q) || (m.fileName || '').toLowerCase().includes(q));
+            }
             if (!list || list.length === 0) {
               return (
                 <div style={{
@@ -1638,7 +1716,7 @@ const ChatPage = () => {
               const isHighlighted = highlightedMsgId === msg.id;
               const myProfile = allUsers.find(u => u.docId === user?.uid);
               const bubbleColor = isOwnMessage
-                ? (myMessageColor || user?.messageColor || myProfile?.messageColor || '#667eea')
+                ? (myMessageColor || user?.messageColor || myProfile?.messageColor || '#800020')
                 : '#ffffff';
               // Smart contrast: if highlighted, force dark readable text
               const textColor = isHighlighted ? '#1e293b' : (isOwnMessage ? 'white' : '#000000');
@@ -1693,9 +1771,26 @@ const ChatPage = () => {
                         fontSize: '0.85rem',
                         fontWeight: '600',
                         marginBottom: '0.25rem',
-                        opacity: 0.8
+                        opacity: senderUser?.deleted || senderUser?.disabled || senderUser?.isDisabled ? 0.5 : 0.8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
                       }}>
                         {msg.senderName}
+                        {(senderUser?.deleted || senderUser?.disabled || senderUser?.isDisabled) && (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            background: '#dc2626',
+                            color: 'white',
+                            borderRadius: '50%',
+                            width: 14,
+                            height: 14,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            lineHeight: 1
+                          }} title={senderUser?.deleted ? 'Deleted User' : 'Disabled User'}>✕</span>
+                        )}
                       </div>
                     )}
 
@@ -2649,25 +2744,42 @@ const ChatPage = () => {
                 filtered = filtered.filter(m => m.role === 'student');
               }
               return filtered;
-            })().map(m => (
-              <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#667eea', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                    {(m.displayName || m.email || '?').charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {m.displayName || m.email}
-                      {m.role === 'admin' && (
-                        <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Admin</span>
+            })().map(m => {
+              // For class members: show X if unenrolled from this specific class
+              const isDeleted = !m || m.deleted;
+              const isDisabled = m?.disabled || m?.isDisabled;
+              const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
+                m.role === 'student' && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
+              const showIndicator = isDeleted || isDisabled || isUnenrolled;
+              const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
+              
+              return (
+                <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ position: 'relative' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: showIndicator ? '#999' : '#800020', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>
+                        {(m.displayName || m.email || '?').charAt(0).toUpperCase()}
+                      </div>
+                      {showIndicator && (
+                        <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
+                          <span style={{ fontSize: 8, color: 'white' }}>✕</span>
+                        </div>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: '#666' }}>{m.email}</div>
+                    <div>
+                      <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {m.displayName || m.email}
+                        {m.role === 'admin' && (
+                          <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Admin</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#666' }}>{m.email}</div>
+                    </div>
                   </div>
+                  <button onClick={()=>openDMWith(m)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', cursor: 'pointer' }}>Start DM</button>
                 </div>
-                <button onClick={()=>openDMWith(m)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', cursor: 'pointer' }}>Start DM</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

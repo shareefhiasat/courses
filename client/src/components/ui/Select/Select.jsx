@@ -1,4 +1,5 @@
-import React, { forwardRef, useState, useRef, useEffect } from 'react';
+import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Search, X } from 'lucide-react';
 import styles from './Select.module.css';
 
@@ -43,23 +44,72 @@ const Select = forwardRef(({
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+  const handleClickOutside = useCallback((event) => {
+    console.log('🔵 [Select] handleClickOutside triggered');
+    console.log('🔵 [Select] Event target:', event.target);
+    
+    // Don't close if clicking on the select itself or its children
+    if (containerRef.current && !containerRef.current.contains(event.target)) {
+      // Check if the click is on a dropdown option or inside the dropdown portal
+      const isOptionClick = event.target.closest(`.${styles.option}`) || 
+                           (dropdownRef.current && dropdownRef.current.contains(event.target));
+      
+      if (!isOptionClick) {
+        console.log('🔵 [Select] Click outside detected, closing dropdown');
         setIsOpen(false);
         setSearchTerm('');
+      } else {
+        console.log('🔵 [Select] Click on option/dropdown, keeping dropdown open');
       }
-    };
+    }
+  }, []);
 
+  // Add/remove click outside listener
+  useEffect(() => {
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      console.log('🔵 [Select] Adding click outside listener');
+      // Use a small delay to avoid immediate closure when opening
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('click', handleClickOutside, true); // Use capture phase
+      }, 10);
+      return () => {
+        console.log('🔵 [Select] Removing click outside listener');
+        clearTimeout(timeoutId);
+        document.removeEventListener('click', handleClickOutside, true);
+      };
+    }
+  }, [isOpen, handleClickOutside]);
+
+  // Calculate dropdown position when it opens and update on scroll/resize (for portal/fixed positioning)
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const updatePosition = () => {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width
+        });
+      };
+      
+      // Initial position
+      updatePosition();
+      
+      // Update on scroll and resize
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
     }
   }, [isOpen]);
 
-  // Focus search input when dropdown opens (position handled via CSS for better alignment)
+  // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen) {
       if (searchable && searchInputRef.current) {
@@ -69,25 +119,109 @@ const Select = forwardRef(({
   }, [isOpen, searchable]);
 
   // Filter options based on search term
+  const getOptionSearchText = (option) => {
+    if (!option) return '';
+    if (option.searchText) return String(option.searchText).toLowerCase();
+    if (option.displayLabel) return String(option.displayLabel).toLowerCase();
+    if (option.text) return String(option.text).toLowerCase();
+    if (typeof option.label === 'string') return option.label.toLowerCase();
+    if (typeof option.value === 'string') return option.value.toLowerCase();
+    return '';
+  };
+
   const filteredOptions = searchable && searchTerm
     ? options.filter(option =>
-        option.label.toLowerCase().includes(searchTerm.toLowerCase())
+        getOptionSearchText(option).includes(searchTerm.toLowerCase())
       )
     : options;
 
   // Get selected option label
   const selectedOption = options.find(opt => opt.value === value);
-  const displayValue = selectedOption ? selectedOption.label : placeholder;
+  const displayValue = selectedOption
+    ? (selectedOption.displayLabel ??
+        (typeof selectedOption.label === 'string'
+          ? selectedOption.label
+          : (selectedOption.text || selectedOption.value || placeholder)))
+    : placeholder;
 
   const handleSelect = (optionValue) => {
-    onChange({ target: { value: optionValue } });
-    setIsOpen(false);
-    setSearchTerm('');
+    console.log('🔵 [Select] handleSelect called with:', optionValue);
+    console.log('🔵 [Select] Current value before update:', value);
+    
+    try {
+      // Normalize the value to ensure it's a string
+      const normalizedValue = optionValue !== null && optionValue !== undefined 
+        ? String(optionValue) 
+        : '';
+      
+      console.log('🔵 [Select] Normalized value:', normalizedValue);
+      
+      // Create the event object
+      const event = { 
+        target: { 
+          value: normalizedValue,
+          name: rest.name || ''
+        },
+        currentTarget: {
+          value: normalizedValue,
+          name: rest.name || ''
+        },
+        // Add preventDefault and stopPropagation to match DOM event interface
+        preventDefault: () => {},
+        stopPropagation: () => {}
+      };
+      
+      console.log('🔵 [Select] Calling onChange with event:', event);
+      
+      // Call the onChange handler if it's a function
+      if (typeof onChange === 'function') {
+        console.log('🔵 [Select] Calling onChange handler');
+        // Call with the event object that has both target.value and a direct value property
+        const enhancedEvent = {
+          ...event,
+          value: normalizedValue, // Add direct value property for convenience
+          target: {
+            ...event.target,
+            value: normalizedValue
+          }
+        };
+        onChange(enhancedEvent);
+      } else {
+        console.error('❌ [Select] onChange is not a function:', onChange);
+      }
+      
+      // Close the dropdown and clear search
+      setIsOpen(false);
+      setSearchTerm('');
+      
+      console.log('✅ [Select] handleSelect completed for value:', normalizedValue);
+    } catch (error) {
+      console.error('❌ [Select] Error in handleSelect:', error);
+    }
   };
 
   const handleClear = (e) => {
+    console.log('🔄 [Select] handleClear called');
     e.stopPropagation();
-    onChange({ target: { value: '' } });
+    
+    const event = {
+      target: { 
+        value: '',
+        name: rest.name || ''
+      },
+      currentTarget: {
+        value: '',
+        name: rest.name || ''
+      }
+    };
+    
+    console.log('🔄 [Select] Calling onChange with clear event:', event);
+    
+    if (typeof onChange === 'function') {
+      onChange(event);
+    } else {
+      console.error('❌ [Select] onChange is not a function in handleClear:', onChange);
+    }
   };
   const wrapperClasses = [
     styles.selectWrapper,
@@ -188,14 +322,20 @@ const Select = forwardRef(({
           </div>
         </div>
 
-        {isOpen && (
+        {isOpen && createPortal(
           <div 
+            ref={dropdownRef}
             className={styles.dropdown}
             style={{
-              top: 'calc(100% + 4px)',
-              left: 0,
-              width: '100%'
+              position: 'fixed',
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`,
+              zIndex: 9999,
+              maxHeight: '300px',
+              overflowY: 'auto'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             {searchable && (
               <div className={styles.searchContainer}>
@@ -206,7 +346,7 @@ const Select = forwardRef(({
                   className={styles.searchInput}
                   placeholder="      Search..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value || '')}
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
@@ -216,20 +356,48 @@ const Select = forwardRef(({
               {filteredOptions.length === 0 ? (
                 <div className={styles.noOptions}>No options found</div>
               ) : (
-                filteredOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    className={`${styles.option} ${value === option.value ? styles.selected : ''}`}
-                    onClick={() => handleSelect(option.value)}
-                    role="option"
-                    aria-selected={value === option.value}
-                  >
-                    {option.label}
-                  </div>
-                ))
+                filteredOptions.map((option, index) => {
+                  const optionClasses = [
+                    styles.option,
+                    option.value === value && styles.selected,
+                    option.disabled && styles.disabled
+                  ].filter(Boolean).join(' ');
+
+                  const handleOptionClick = (e) => {
+                    console.log('🟢 [Select] Option clicked:', option.value);
+                    console.log('🟢 [Select] Event:', e);
+                    console.log('🟢 [Select] Current target:', e.currentTarget);
+                    
+                    // Prevent the event from bubbling up to document
+                    e.stopPropagation();
+                    if (e.nativeEvent) {
+                      e.nativeEvent.stopImmediatePropagation();
+                    }
+                    
+                    // Manually handle the selection
+                    handleSelect(option.value);
+                  };
+
+                  return (
+                    <div
+                      key={`${option.value}-${index}`}
+                      className={optionClasses}
+                      onClick={handleOptionClick}
+                      data-testid={`option-${option.value}`}
+                      style={{ 
+                        cursor: 'pointer',
+                        padding: '8px 12px',
+                        backgroundColor: option.value === value ? '#f0f0f0' : 'transparent'
+                      }}
+                    >
+                      {option.label}
+                    </div>
+                  );
+                })
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
       

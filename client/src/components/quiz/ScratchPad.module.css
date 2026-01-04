@@ -93,17 +93,17 @@
 
 .toolBtn:hover {
   background: #f3f4f6;
-  border-color: #667eea;
+  border-color: #800020;
 }
 
 [data-theme="dark"] .toolBtn:hover {
   background: #334155;
-  border-color: #667eea;
+  border-color: #800020;
 }
 
 .toolBtn.active {
-  background: #667eea;
-  border-color: #667eea;
+  background: #800020;
+  border-color: #800020;
   color: white;
 }
 
@@ -149,7 +149,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #667eea;
+  background: #800020;
   cursor: pointer;
 }
 
@@ -157,7 +157,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #667eea;
+  background: #800020;
   cursor: pointer;
   border: none;
 }
@@ -200,8 +200,8 @@
 
 .actionBtn:hover {
   background: #f3f4f6;
-  border-color: #667eea;
-  color: #667eea;
+  border-color: #800020;
+  color: #800020;
 }
 
 [data-theme="dark"] .actionBtn:hover {

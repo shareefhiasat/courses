@@ -574,7 +574,7 @@ const StudentAttendancePage = () => {
                 Enter the code shown on instructor's screen, or paste the full attendance link
               </div>
               <div style={{ marginTop: 8, display:'flex', gap: 8 }}>
-                <button onClick={handleManualSubmit} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#667eea', color:'#fff', fontWeight:600 }}>{(t('submit') || 'Submit').replaceAll('_',' ')}</button>
+                <button onClick={handleManualSubmit} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#800020', color:'#fff', fontWeight:600 }}>{(t('submit') || 'Submit').replaceAll('_',' ')}</button>
                 <div style={{ alignSelf:'center', color:'var(--muted)', fontSize: 12 }}>{scanning ? ((t('scanning')||'Scanning...').replaceAll('_',' ')) : ((t('scanner_idle')||'Scanner idle').replaceAll('_',' '))}</div>
               </div>
               {message && <div style={{ marginTop: 8, fontSize: 14 }}>{message}</div>}

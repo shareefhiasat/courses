@@ -51,12 +51,12 @@
 }
 
 .tab:hover {
-  color: #667eea;
+  color: #800020;
 }
 
 .tab.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
+  color: #800020;
+  border-bottom-color: #800020;
 }
 
 /* Questions Tab */
@@ -308,7 +308,7 @@
   gap: 0.5rem;
   margin: 0 0 0.5rem 0;
   font-size: 1.2rem;
-  color: #667eea;
+  color: #800020;
 }
 
 .retrySection p {
@@ -336,7 +336,7 @@
 }
 
 .scoreStat svg {
-  color: #667eea;
+  color: #800020;
 }
 
 .statLabel {

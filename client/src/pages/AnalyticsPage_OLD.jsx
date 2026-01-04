@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { BarChart3, TrendingUp, Users, Calendar, Award, FileText, Download } from 'lucide-react';
 
-const KPICard = ({ label, value, subtitle, icon: Icon, color = '#667eea', trend }) => (
+const KPICard = ({ label, value, subtitle, icon: Icon, color = '#800020', trend }) => (
   <div style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: 16, background: 'var(--panel)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
       <div>
@@ -28,7 +28,7 @@ const KPICard = ({ label, value, subtitle, icon: Icon, color = '#667eea', trend 
   </div>
 );
 
-const ProgressBar = ({ label, value, max, color = '#667eea', showPercentage = true }) => {
+const ProgressBar = ({ label, value, max, color = '#800020', showPercentage = true }) => {
   const pct = max ? Math.round((value / max) * 100) : 0;
   return (
     <div style={{ marginBottom: 16 }}>
@@ -198,7 +198,7 @@ export default function AnalyticsPage() {
         </div>
         <button
           onClick={exportCSV}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: '#667eea', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: '#800020', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
         >
           <Download size={18} />
           Export CSV
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <KPICard label="Total Sessions" value={attendanceStats.totalSessions} icon={Calendar} color="#667eea" />
+        <KPICard label="Total Sessions" value={attendanceStats.totalSessions} icon={Calendar} color="#800020" />
         <KPICard label="Total Students" value={studentStats.total} icon={Users} color="#10b981" />
         <KPICard label="Attendance Rate" value={attendanceRate + '%'} subtitle={`${attendanceStats.present} / ${attendanceStats.totalMarks} present`} icon={TrendingUp} color="#f59e0b" />
         <KPICard label="Avg Performance" value={performanceStats.avgScore} subtitle="Based on graded submissions" icon={Award} color="#8b5cf6" />

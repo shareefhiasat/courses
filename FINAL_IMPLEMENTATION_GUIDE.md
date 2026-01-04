@@ -3,9 +3,11 @@
 ## ✅ COMPLETED FEATURES
 
 ### 1. **Chat System with Voice Recording** ✅
+
 **File**: `client/src/pages/ChatPage_COMPLETE.jsx`
 
 **Features:**
+
 - ✅ Class-based chat rooms
 - ✅ Global chat (admin only)
 - ✅ Voice message recording & playback
@@ -17,6 +19,7 @@
 - ✅ Mobile responsive
 
 **Voice Recording:**
+
 - Click microphone button to start
 - Real-time duration counter
 - Stop to save, cancel to discard
@@ -24,9 +27,11 @@
 - Playback in chat with audio player
 
 ### 2. **SMTP Configuration System** ✅
+
 **File**: `client/src/pages/SMTPConfigPage.jsx`
 
 **Features:**
+
 - ✅ Full SMTP configuration UI
 - ✅ Gmail App Password support
 - ✅ Save to Firestore
@@ -34,9 +39,11 @@
 - ✅ Visual status indicators
 
 ### 3. **Email Notification System** ✅
+
 **File**: `EMAIL_SMTP_IMPLEMENTATION.md`
 
 **Features:**
+
 - ✅ Activity assignment emails
 - ✅ General announcement emails
 - ✅ Automatic notifications
@@ -63,10 +70,10 @@ In `client/src/App.jsx`:
 
 ```javascript
 // Add import
-import SMTPConfigPage from './pages/SMTPConfigPage';
+import SMTPConfigPage from "./pages/SMTPConfigPage";
 
 // Add route (line 34)
-<Route path="/smtp-config" element={<SMTPConfigPage />} />
+<Route path="/smtp-config" element={<SMTPConfigPage />} />;
 ```
 
 ### **Step 3: Add SMTP Link in Dashboard**
@@ -75,37 +82,39 @@ In `client/src/pages/DashboardPage.jsx`, add a new tab or button:
 
 ```javascript
 // In dashboard tabs section
-<button 
-  className={`tab-btn ${activeTab === 'smtp' ? 'active' : ''}`}
-  onClick={() => handleTabChange('smtp')}
+<button
+  className={`tab-btn ${activeTab === "smtp" ? "active" : ""}`}
+  onClick={() => handleTabChange("smtp")}
 >
   ⚙️ SMTP Config
-</button>
+</button>;
 
 // In tab content
-{activeTab === 'smtp' && (
-  <div className="smtp-tab">
-    <iframe 
-      src="/smtp-config" 
-      style={{ width: '100%', height: '800px', border: 'none' }}
-    />
-  </div>
-)}
+{
+  activeTab === "smtp" && (
+    <div className="smtp-tab">
+      <iframe
+        src="/smtp-config"
+        style={{ width: "100%", height: "800px", border: "none" }}
+      />
+    </div>
+  );
+}
 ```
 
 Or add a direct link:
 
 ```javascript
-<button 
-  onClick={() => navigate('/smtp-config')}
+<button
+  onClick={() => navigate("/smtp-config")}
   style={{
-    padding: '0.75rem 1.5rem',
-    background: '#667eea',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontWeight: '600'
+    padding: "0.75rem 1.5rem",
+    background: "#800020",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "600",
   }}
 >
   ⚙️ Configure Email (SMTP)
@@ -120,53 +129,63 @@ Add these fields to activity creation in `DashboardPage.jsx`:
 // Add to state
 const [emailOptions, setEmailOptions] = useState({
   sendEmail: false,
-  createAnnouncement: false
+  createAnnouncement: false,
 });
 
 // Add to form (after allowRetakes checkbox)
-<div style={{ 
-  display: 'grid', 
-  gridTemplateColumns: '1fr 1fr', 
-  gap: '1rem',
-  marginTop: '1rem',
-  padding: '1rem',
-  background: '#f9f9f9',
-  borderRadius: '8px'
-}}>
-  <label style={{ 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '0.5rem',
-    cursor: 'pointer'
-  }}>
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "1rem",
+    marginTop: "1rem",
+    padding: "1rem",
+    background: "#f9f9f9",
+    borderRadius: "8px",
+  }}
+>
+  <label
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      cursor: "pointer",
+    }}
+  >
     <input
       type="checkbox"
       checked={emailOptions.sendEmail}
-      onChange={(e) => setEmailOptions({
-        ...emailOptions,
-        sendEmail: e.target.checked
-      })}
+      onChange={(e) =>
+        setEmailOptions({
+          ...emailOptions,
+          sendEmail: e.target.checked,
+        })
+      }
     />
     <span>📧 Send email to students</span>
   </label>
 
-  <label style={{ 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '0.5rem',
-    cursor: 'pointer'
-  }}>
+  <label
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      cursor: "pointer",
+    }}
+  >
     <input
       type="checkbox"
       checked={emailOptions.createAnnouncement}
-      onChange={(e) => setEmailOptions({
-        ...emailOptions,
-        createAnnouncement: e.target.checked
-      })}
+      onChange={(e) =>
+        setEmailOptions({
+          ...emailOptions,
+          createAnnouncement: e.target.checked,
+        })
+      }
     />
     <span>📢 Create announcement</span>
   </label>
-</div>
+</div>;
 ```
 
 ### **Step 5: Handle Activity Submission with Notifications**
@@ -174,29 +193,29 @@ const [emailOptions, setEmailOptions] = useState({
 ```javascript
 const handleActivitySubmit = async (e) => {
   e.preventDefault();
-  
+
   try {
     // Create activity
     const result = await addActivity(activityForm);
-    
+
     if (result.success) {
       // Send email if checked
       if (emailOptions.sendEmail && activityForm.classId) {
         await sendActivityEmail(activityForm);
       }
-      
+
       // Create announcement if checked
       if (emailOptions.createAnnouncement) {
         await createActivityAnnouncement(activityForm);
       }
-      
-      toast?.showSuccess('Activity created successfully!');
-      
+
+      toast?.showSuccess("Activity created successfully!");
+
       // Reset form
       resetForm();
     }
   } catch (error) {
-    toast?.showError('Failed to create activity');
+    toast?.showError("Failed to create activity");
   }
 };
 
@@ -204,27 +223,28 @@ const sendActivityEmail = async (activity) => {
   try {
     // Get class enrollments
     const enrollments = await getEnrollments();
-    const classStudents = enrollments.data?.filter(e => 
-      e.classId === activity.classId
-    ) || [];
-    
+    const classStudents =
+      enrollments.data?.filter((e) => e.classId === activity.classId) || [];
+
     // Get student users
     const users = await getUsers();
-    const studentEmails = classStudents.map(enrollment => {
-      const user = users.data?.find(u => u.docId === enrollment.userId);
-      return user?.email;
-    }).filter(Boolean);
-    
+    const studentEmails = classStudents
+      .map((enrollment) => {
+        const user = users.data?.find((u) => u.docId === enrollment.userId);
+        return user?.email;
+      })
+      .filter(Boolean);
+
     if (studentEmails.length === 0) {
-      toast?.showWarning('No students found in this class');
+      toast?.showWarning("No students found in this class");
       return;
     }
-    
+
     // Format email
-    const dueDate = activity.dueDate 
-      ? new Date(activity.dueDate).toLocaleDateString('en-GB')
-      : 'No deadline';
-    
+    const dueDate = activity.dueDate
+      ? new Date(activity.dueDate).toLocaleDateString("en-GB")
+      : "No deadline";
+
     const emailBody = `
       <h2>📚 New Activity Assigned</h2>
       <p>A new activity has been added to your class!</p>
@@ -234,16 +254,22 @@ const sendActivityEmail = async (activity) => {
         <p><strong>Type:</strong> ${activity.type}</p>
         <p><strong>Level:</strong> ${activity.level}</p>
         <p><strong>Due Date:</strong> ${dueDate}</p>
-        <p><strong>Retakes:</strong> ${activity.allowRetakes ? 'Allowed ✅' : 'Not allowed ❌'}</p>
-        ${activity.optional ? '<p><strong>Status:</strong> Optional 💡</p>' : '<p><strong>Status:</strong> Required 📌</p>'}
+        <p><strong>Retakes:</strong> ${
+          activity.allowRetakes ? "Allowed ✅" : "Not allowed ❌"
+        }</p>
+        ${
+          activity.optional
+            ? "<p><strong>Status:</strong> Optional 💡</p>"
+            : "<p><strong>Status:</strong> Required 📌</p>"
+        }
       </div>
       
-      <p>${activity.description_en || ''}</p>
+      <p>${activity.description_en || ""}</p>
       
       <a href="${activity.url}" style="
         display: inline-block;
         padding: 12px 24px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: linear-gradient(135deg, #800020, #600018);
         color: white;
         text-decoration: none;
         border-radius: 8px;
@@ -256,51 +282,51 @@ const sendActivityEmail = async (activity) => {
         Good luck! 💪
       </p>
     `;
-    
+
     // Send email (you'll need to implement sendEmail in firestore.js)
     await sendEmail({
       to: studentEmails,
       subject: `New Activity: ${activity.title_en}`,
-      html: emailBody
+      html: emailBody,
     });
-    
+
     toast?.showSuccess(`Email sent to ${studentEmails.length} students`);
   } catch (error) {
-    console.error('Error sending email:', error);
-    toast?.showError('Failed to send email');
+    console.error("Error sending email:", error);
+    toast?.showError("Failed to send email");
   }
 };
 
 const createActivityAnnouncement = async (activity) => {
   try {
-    const dueDate = activity.dueDate 
-      ? new Date(activity.dueDate).toLocaleDateString('en-GB')
-      : 'No deadline';
-    
+    const dueDate = activity.dueDate
+      ? new Date(activity.dueDate).toLocaleDateString("en-GB")
+      : "No deadline";
+
     const announcement = {
       title: `New ${activity.type}: ${activity.title_en}`,
       message: `
 📚 ${activity.title_en}
 
-${activity.description_en || 'No description'}
+${activity.description_en || "No description"}
 
 📅 Due Date: ${dueDate}
 🎯 Level: ${activity.level}
-${activity.allowRetakes ? '🔄 Retakes allowed' : '⚠️ No retakes'}
-${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
+${activity.allowRetakes ? "🔄 Retakes allowed" : "⚠️ No retakes"}
+${activity.optional ? "💡 Optional activity" : "📌 Required activity"}
 
 🔗 Link: ${activity.url}
       `.trim(),
-      priority: activity.optional ? 'normal' : 'high',
+      priority: activity.optional ? "normal" : "high",
       classId: activity.classId || null,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
-    
+
     await addAnnouncement(announcement);
-    toast?.showSuccess('Announcement created');
+    toast?.showSuccess("Announcement created");
   } catch (error) {
-    console.error('Error creating announcement:', error);
-    toast?.showError('Failed to create announcement');
+    console.error("Error creating announcement:", error);
+    toast?.showError("Failed to create announcement");
   }
 };
 ```
@@ -310,28 +336,35 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 Create `functions/sendEmail.js`:
 
 ```javascript
-const functions = require('firebase-functions');
-const nodemailer = require('nodemailer');
-const admin = require('firebase-admin');
+const functions = require("firebase-functions");
+const nodemailer = require("nodemailer");
+const admin = require("firebase-admin");
 
 exports.sendEmail = functions.https.onCall(async (data, context) => {
   // Check authentication
   if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "Must be authenticated"
+    );
   }
-  
+
   // Get SMTP config from Firestore
-  const configDoc = await admin.firestore()
-    .collection('config')
-    .doc('smtp')
+  const configDoc = await admin
+    .firestore()
+    .collection("config")
+    .doc("smtp")
     .get();
-  
+
   if (!configDoc.exists) {
-    throw new functions.https.HttpsError('failed-precondition', 'SMTP not configured');
+    throw new functions.https.HttpsError(
+      "failed-precondition",
+      "SMTP not configured"
+    );
   }
-  
+
   const smtpConfig = configDoc.data();
-  
+
   // Create transporter
   const transporter = nodemailer.createTransport({
     host: smtpConfig.host,
@@ -339,45 +372,45 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
     secure: smtpConfig.port === 465,
     auth: {
       user: smtpConfig.user,
-      pass: smtpConfig.password
-    }
+      pass: smtpConfig.password,
+    },
   });
-  
+
   // Send email
   try {
     const info = await transporter.sendMail({
       from: `"${smtpConfig.senderName}" <${smtpConfig.user}>`,
-      to: Array.isArray(data.to) ? data.to.join(', ') : data.to,
+      to: Array.isArray(data.to) ? data.to.join(", ") : data.to,
       subject: data.subject,
       html: data.html || data.body,
-      text: data.text || data.body
+      text: data.text || data.body,
     });
-    
+
     // Log email
-    await admin.firestore().collection('emailLogs').add({
+    await admin.firestore().collection("emailLogs").add({
       to: data.to,
       subject: data.subject,
-      status: 'sent',
+      status: "sent",
       messageId: info.messageId,
       sentAt: admin.firestore.FieldValue.serverTimestamp(),
-      sentBy: context.auth.uid
+      sentBy: context.auth.uid,
     });
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending email:', error);
-    
+    console.error("Error sending email:", error);
+
     // Log error
-    await admin.firestore().collection('emailLogs').add({
+    await admin.firestore().collection("emailLogs").add({
       to: data.to,
       subject: data.subject,
-      status: 'failed',
+      status: "failed",
       error: error.message,
       attemptedAt: admin.firestore.FieldValue.serverTimestamp(),
-      sentBy: context.auth.uid
+      sentBy: context.auth.uid,
     });
-    
-    throw new functions.https.HttpsError('internal', 'Failed to send email');
+
+    throw new functions.https.HttpsError("internal", "Failed to send email");
   }
 });
 ```
@@ -400,41 +433,41 @@ firebase deploy --only functions:sendEmail
 Add to `client/src/firebase/firestore.js`:
 
 ```javascript
-import { httpsCallable } from 'firebase/functions';
-import { functions } from './config';
+import { httpsCallable } from "firebase/functions";
+import { functions } from "./config";
 
 export const sendEmail = async (emailData) => {
   try {
-    const sendEmailFunction = httpsCallable(functions, 'sendEmail');
+    const sendEmailFunction = httpsCallable(functions, "sendEmail");
     const result = await sendEmailFunction(emailData);
     return { success: true, data: result.data };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error("Error sending email:", error);
     return { success: false, error: error.message };
   }
 };
 
 export const getSMTPConfig = async () => {
   try {
-    const docRef = doc(db, 'config', 'smtp');
+    const docRef = doc(db, "config", "smtp");
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return { success: true, data: docSnap.data() };
     }
     return { success: true, data: null };
   } catch (error) {
-    console.error('Error getting SMTP config:', error);
+    console.error("Error getting SMTP config:", error);
     return { success: false, error: error.message };
   }
 };
 
 export const updateSMTPConfig = async (config) => {
   try {
-    await setDoc(doc(db, 'config', 'smtp'), config);
+    await setDoc(doc(db, "config", "smtp"), config);
     return { success: true };
   } catch (error) {
-    console.error('Error updating SMTP config:', error);
+    console.error("Error updating SMTP config:", error);
     return { success: false, error: error.message };
   }
 };
@@ -460,23 +493,23 @@ service cloud.firestore {
         request.resource.data.senderId == request.auth.uid;
       allow update: if request.auth != null;
     }
-    
+
     // Email logs (admin only)
     match /emailLogs/{logId} {
       allow read, write: if isAdmin(request.auth.uid);
     }
-    
+
     // SMTP config (admin only)
     match /config/smtp {
       allow read, write: if isAdmin(request.auth.uid);
     }
-    
+
     // Helper functions
     function isAdmin(uid) {
       return exists(/databases/$(database)/documents/users/$(uid)) &&
         get(/databases/$(database)/documents/users/$(uid)).data.role == 'admin';
     }
-    
+
     function isClassMember(uid, classId) {
       return exists(/databases/$(database)/documents/enrollments/$(uid + '_' + classId));
     }
@@ -505,16 +538,16 @@ service firebase.storage {
 
 ```javascript
 // messages index
-Collection: messages
-Fields: type (ASC), createdAt (ASC)
+Collection: messages;
+Fields: type(ASC), createdAt(ASC);
 
 // messages by class
-Collection: messages
-Fields: classId (ASC), createdAt (ASC)
+Collection: messages;
+Fields: classId(ASC), createdAt(ASC);
 
 // emailLogs
-Collection: emailLogs
-Fields: status (ASC), sentAt (DESC)
+Collection: emailLogs;
+Fields: status(ASC), sentAt(DESC);
 ```
 
 ---
@@ -522,6 +555,7 @@ Fields: status (ASC), sentAt (DESC)
 ## ✅ TESTING CHECKLIST
 
 ### **Chat System:**
+
 - [ ] Join global chat (admin)
 - [ ] Join class chat
 - [ ] Send text message
@@ -531,6 +565,7 @@ Fields: status (ASC), sentAt (DESC)
 - [ ] Mobile responsiveness
 
 ### **Email System:**
+
 - [ ] Configure SMTP
 - [ ] Create activity with email
 - [ ] Receive email notification
@@ -539,6 +574,7 @@ Fields: status (ASC), sentAt (DESC)
 - [ ] View email logs
 
 ### **Activity System:**
+
 - [ ] Create activity with class
 - [ ] Mark activity complete
 - [ ] View progress
@@ -567,6 +603,7 @@ firebase functions:log
 ## 🎉 SUMMARY
 
 **You now have:**
+
 - ✅ Complete chat system with voice recording
 - ✅ SMTP configuration UI
 - ✅ Email notifications for activities

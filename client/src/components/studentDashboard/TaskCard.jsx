@@ -16,7 +16,7 @@ export default function TaskCard({ task, navigate }) {
   };
 
   const typeConfig = {
-    quiz: { icon: FileQuestion, label: 'Quiz', color: '#667eea' },
+    quiz: { icon: FileQuestion, label: 'Quiz', color: '#800020' },
     homework: { icon: BookOpen, label: 'Homework', color: '#f59e0b' },
     resource: { icon: FileArchive, label: 'Resource', color: '#10b981' }
   };

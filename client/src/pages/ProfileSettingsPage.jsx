@@ -4,7 +4,7 @@ import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield } from 'lucide-react';
+import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '../components/ui';
 import styles from './ProfileSettingsPage.module.css';
 import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '../utils/color';
@@ -166,7 +166,7 @@ const ProfileSettingsPage = () => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
                 {isSuperAdmin && (
                   <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    <Shield size={14} /> Super Admin
+                    <Crown size={14} /> Super Admin
                   </span>
                 )}
                 {isAdmin && !isSuperAdmin && (

@@ -20,7 +20,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800020 0%, #600018 100%);
   color: white;
 }
 
@@ -54,7 +54,7 @@
   text-align: right;
   font-size: 2rem;
   font-weight: 600;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   min-height: 70px;
   word-wrap: break-word;
   color: #1e293b;
@@ -107,7 +107,7 @@
 }
 
 .operator {
-  background: #667eea !important;
+  background: #800020 !important;
   color: white !important;
   font-weight: 600 !important;
 }

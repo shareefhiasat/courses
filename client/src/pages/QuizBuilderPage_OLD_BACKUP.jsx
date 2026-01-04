@@ -36,7 +36,7 @@ const TEMPLATE_INFO = {
     name: 'Multiple Choice Quiz',
     icon: '📝',
     description: 'Classic quiz with multiple choice questions',
-    color: '#667eea'
+    color: '#800020'
   },
   [TEMPLATES.TRUE_FALSE]: {
     name: 'True or False',

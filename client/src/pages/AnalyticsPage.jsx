@@ -7,7 +7,7 @@ import { Container, Card, CardBody, Button, Badge, Grid, ProgressBar, Loading } 
 import { BarChart3, TrendingUp, Users, Calendar, Award, FileText, Download } from 'lucide-react';
 import styles from './AnalyticsPage.module.css';
 
-const KPICard = ({ label, value, subtitle, icon: Icon, color = '#667eea' }) => (
+const KPICard = ({ label, value, subtitle, icon: Icon, color = '#800020' }) => (
   <Card className={styles.kpiCard}>
     <CardBody>
       <div className={styles.kpiContent}>
@@ -193,7 +193,7 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div className={styles.kpiGrid}>
-        <KPICard label="Total Sessions" value={attendanceStats.totalSessions} icon={Calendar} color="#667eea" />
+        <KPICard label="Total Sessions" value={attendanceStats.totalSessions} icon={Calendar} color="#800020" />
         <KPICard label="Total Students" value={studentStats.total} icon={Users} color="#10b981" />
         <KPICard label="Attendance Rate" value={attendanceRate + '%'} subtitle={`${attendanceStats.present} / ${attendanceStats.totalMarks} present`} icon={TrendingUp} color="#f59e0b" />
         <KPICard label="Avg Performance" value={performanceStats.avgScore} subtitle="Based on graded submissions" icon={Award} color="#8b5cf6" />

@@ -1294,7 +1294,7 @@ const ChatPage = () => {
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <div style={{ fontWeight: '600', flex:1 }}>{t('global_chat')}</div>
-                    {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'#667eea',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
+                    {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'#800020',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666' }}>All users</div>
                   <div style={{ display:'flex', gap:8, marginTop:6 }}>
@@ -1330,7 +1330,7 @@ const ChatPage = () => {
                       if (count > 0) {
                         return (
                           <span style={{
-                            background: '#667eea', color: 'white', borderRadius: '50%', minWidth: 20, height: 20,
+                            background: '#800020', color: 'white', borderRadius: '50%', minWidth: 20, height: 20,
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', padding: '0 6px'
                           }}>{count > 99 ? '99+' : count}</span>
                         );
@@ -1369,7 +1369,7 @@ const ChatPage = () => {
                         {instructor.docId !== user.uid && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openDMWith(instructor); }}
-                            style={{ padding: '2px 8px', borderRadius: 6, border: 'none', background: '#667eea', color: 'white', cursor: 'pointer', fontSize: 12 }}
+                            style={{ padding: '2px 8px', borderRadius: 6, border: 'none', background: '#800020', color: 'white', cursor: 'pointer', fontSize: 12 }}
                           >
                             Contact
                           </button>
@@ -1457,7 +1457,7 @@ const ChatPage = () => {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                       <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1 }}>{label}</div>
-                      {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'#667eea',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
+                      {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'#800020',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
                       <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{room.lastMessage || ''}</span>
@@ -1631,7 +1631,7 @@ const ChatPage = () => {
               const isHighlighted = highlightedMsgId === msg.id;
               const myProfile = allUsers.find(u => u.docId === user?.uid);
               const bubbleColor = isOwnMessage
-                ? (myMessageColor || user?.messageColor || myProfile?.messageColor || '#667eea')
+                ? (myMessageColor || user?.messageColor || myProfile?.messageColor || '#800020')
                 : '#ffffff';
               // Smart contrast: if highlighted, force dark readable text
               const textColor = isHighlighted ? '#1e293b' : (isOwnMessage ? 'white' : '#000000');
@@ -2645,7 +2645,7 @@ const ChatPage = () => {
             })().map(m => (
               <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#667eea', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#800020', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
                     {(m.displayName || m.email || '?').charAt(0).toUpperCase()}
                   </div>
                   <div>

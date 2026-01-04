@@ -139,7 +139,7 @@ const AttendancePage = () => {
           <button onClick={async()=>{
             try { await startSession(); }
             catch(e){ setErr(e?.message || 'Failed to start session'); }
-          }} disabled={!classId || loading} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#667eea', color:'white', fontWeight:600 }}>
+          }} disabled={!classId || loading} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#800020', color:'white', fontWeight:600 }}>
             {loading ? (t('starting') || 'Starting...') : (t('start_session') || 'Start Session')}
           </button>
           {sessionId && (
@@ -204,7 +204,7 @@ const AttendancePage = () => {
               </button>
             </div>
             <div style={{ alignSelf:'end' }}>
-              <button onClick={saveCfg} disabled={savingCfg} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#667eea', color:'white', fontWeight:600 }}>
+              <button onClick={saveCfg} disabled={savingCfg} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#800020', color:'white', fontWeight:600 }}>
                 {savingCfg ? (t('saving')||'Saving...') : (t('save_settings')||'Save Settings')}
               </button>
             </div>

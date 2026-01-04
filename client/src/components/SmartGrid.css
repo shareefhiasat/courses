@@ -2,7 +2,7 @@
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
 }
 
@@ -42,7 +42,8 @@
   box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
 }
 
-.export-btn, .add-btn {
+.export-btn,
+.add-btn {
   padding: 0.75rem 1rem;
   border: none;
   border-radius: 8px;
@@ -113,7 +114,7 @@
 
 .sort-indicator {
   font-weight: bold;
-  color: #667eea;
+  color: #800020;
 }
 
 .smart-grid-table td {
@@ -130,7 +131,8 @@
   white-space: nowrap;
 }
 
-.edit-btn-small, .delete-btn-small {
+.edit-btn-small,
+.delete-btn-small {
   padding: 0.5rem 0.75rem;
   border: none;
   border-radius: 4px;
@@ -141,7 +143,7 @@
 }
 
 .edit-btn-small {
-  background: #667eea;
+  background: #800020;
   color: white;
 }
 
@@ -180,7 +182,7 @@
 
 .smart-grid-pagination button:hover:not(:disabled) {
   background: #f8f9fa;
-  border-color: #667eea;
+  border-color: #800020;
 }
 
 .smart-grid-pagination button:disabled {
@@ -206,25 +208,25 @@
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .smart-grid-actions {
     justify-content: space-between;
   }
-  
+
   .search-input {
     min-width: auto;
     flex: 1;
   }
-  
+
   .smart-grid-table {
     font-size: 0.8rem;
   }
-  
+
   .smart-grid-table th,
   .smart-grid-table td {
     padding: 0.75rem 0.5rem;
   }
-  
+
   .smart-grid-pagination {
     flex-direction: column;
     gap: 1rem;
