@@ -2,7 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
-import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, where } from 'firebase/firestore';
+import { getEnrollments } from '../firebase/firestore';
+import { getPrograms, getSubjects } from '../firebase/programs';
 import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect } from '../components/ui';
 import { UserX, UserCheck, Search, Shield, AlertCircle } from 'lucide-react';
 import styles from './ManageEnrollmentsPage.module.css';
@@ -12,13 +14,17 @@ const ManageEnrollmentsPage = () => {
   const { t } = useLang();
   const toast = useToast();
   const [classes, setClasses] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [programFilter, setProgramFilter] = useState('all');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [termFilter, setTermFilter] = useState('all');
-  const [sortOption, setSortOption] = useState('name_asc');
 
   const availableYears = useMemo(() => {
     const years = new Set();
@@ -51,6 +57,33 @@ const ManageEnrollmentsPage = () => {
 
   const filteredClasses = useMemo(() => {
     let result = [...classes];
+    
+    // Filter by program
+    if (programFilter !== 'all') {
+      result = result.filter(cls => {
+        if (!cls.subjectId) return false;
+        const subject = subjects.find(s => (s.docId || s.id) === cls.subjectId);
+        if (!subject) return false;
+        return (subject.programId || '') === programFilter;
+      });
+    }
+    
+    // Filter by subject
+    if (subjectFilter !== 'all') {
+      result = result.filter(cls => {
+        return (cls.subjectId || '') === subjectFilter;
+      });
+    }
+    
+    // Filter by class
+    if (classFilter !== 'all') {
+      result = result.filter(cls => {
+        const classId = cls.id || cls.docId;
+        return String(classId) === String(classFilter);
+      });
+    }
+    
+    // Filter by year
     if (yearFilter !== 'all') {
       result = result.filter(cls => {
         if (cls.year && String(cls.year) === yearFilter) return true;
@@ -61,6 +94,8 @@ const ManageEnrollmentsPage = () => {
         return false;
       });
     }
+    
+    // Filter by term
     if (termFilter !== 'all') {
       result = result.filter(cls => {
         if (!cls.term) return false;
@@ -68,30 +103,36 @@ const ManageEnrollmentsPage = () => {
         return termPart === termFilter;
       });
     }
-    switch (sortOption) {
-      case 'name_asc':
-      default:
-        result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
-        break;
-    }
+    
+    // Sort by name
+    result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
+    
     return result;
-  }, [classes, yearFilter, termFilter, sortOption]);
+  }, [classes, programs, subjects, programFilter, subjectFilter, classFilter, yearFilter, termFilter]);
 
   useEffect(() => {
-    loadClasses();
+    loadData();
   }, []);
 
-  const loadClasses = async () => {
+  const loadData = async () => {
     try {
-      const snap = await getDocs(collection(db, 'classes'));
-      const data = snap.docs.map(d => ({ 
+      const [classesSnap, programsRes, subjectsRes] = await Promise.all([
+        getDocs(collection(db, 'classes')),
+        getPrograms(),
+        getSubjects()
+      ]);
+      
+      const classesData = classesSnap.docs.map(d => ({ 
         id: d.id, 
         docId: d.id,
         ...d.data() 
       }));
-      setClasses(data);
+      setClasses(classesData);
+      
+      if (programsRes.success) setPrograms(programsRes.data || []);
+      if (subjectsRes.success) setSubjects(subjectsRes.data || []);
     } catch (e) {
-      console.error('[ManageEnrollments] Error loading classes:', e);
+      console.error('[ManageEnrollments] Error loading data:', e);
     }
   };
 
@@ -103,25 +144,138 @@ const ManageEnrollmentsPage = () => {
       const classData = classDoc.exists() ? classDoc.data() : {};
       const disabledStudents = classData.disabledStudents || [];
 
-      // Get all users
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      // Filter students enrolled in this class
-      const enrolledStudents = allUsers.filter(u => {
-        const enrolledClasses = u.enrolledClasses || [];
-        return enrolledClasses.includes(classId);
+      // Get enrollments for this class
+      const enrollmentsResult = await getEnrollments();
+      console.log('🔍 [ManageEnrollments] All enrollments:', enrollmentsResult.data);
+      const classEnrollments = (enrollmentsResult.data || []).filter(e => {
+        const eClassId = e.classId || e.classDocId;
+        const matchesClass = String(eClassId) === String(classId);
+        const isStudentRole = e.role === 'student' || e.role === 'Student';
+        console.log('🔍 [ManageEnrollments] Checking enrollment:', { 
+          eClassId, 
+          classId, 
+          matchesClass, 
+          role: e.role, 
+          isStudentRole,
+          enrollment: e 
+        });
+        return matchesClass && isStudentRole;
       });
+
+      console.log('🔍 [ManageEnrollments] Class ID:', classId);
+      console.log('🔍 [ManageEnrollments] Found enrollments:', classEnrollments.length, classEnrollments);
+
+      // Get user IDs from enrollments
+      const studentIds = classEnrollments.map(e => {
+        const uid = e.userId || e.userDocId;
+        console.log('🔍 [ManageEnrollments] Enrollment userId:', uid, 'from enrollment:', e);
+        return uid;
+      }).filter(Boolean);
+      
+      console.log('🔍 [ManageEnrollments] Student IDs to match:', studentIds);
+
+      // Get all users and filter by student role and enrollment
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const allUsers = usersSnap.docs.map(d => ({ docId: d.id, id: d.id, ...d.data() }));
+
+      console.log('🔍 [ManageEnrollments] Total users loaded:', allUsers.length);
+      console.log('🔍 [ManageEnrollments] ALL users details:', allUsers.map(u => ({ 
+        docId: u.docId, 
+        id: u.id, 
+        email: u.email, 
+        role: u.role,
+        archived: u.archived,
+        deleted: u.deleted
+      })));
+      console.log('🔍 [ManageEnrollments] Looking for student IDs:', studentIds);
+
+      // Filter: must be a student AND enrolled in this class
+      // IMPORTANT: Check enrollment role, not just user doc role (user might not have role set)
+      const enrolledStudents = allUsers.filter(u => {
+        const userId = u.docId || u.id;
+        
+        // Find enrollment for this user
+        const enrollmentForUser = classEnrollments.find(e => {
+          const eUserId = e.userId || e.userDocId;
+          return String(eUserId) === String(userId);
+        });
+        
+        // User is considered a student if:
+        // 1. They have an enrollment with role 'student', OR
+        // 2. Their user doc has role 'student' (fallback)
+        const isStudent = enrollmentForUser ? 
+          (enrollmentForUser.role === 'student' || enrollmentForUser.role === 'Student') :
+          (u.role === 'student' || u.role === 'Student');
+        
+        console.log('🔍 [ManageEnrollments] Processing user:', {
+          userId,
+          email: u.email,
+          userRole: u.role,
+          enrollmentRole: enrollmentForUser?.role,
+          isStudent,
+          hasEnrollment: !!enrollmentForUser,
+          docId: u.docId,
+          id: u.id,
+          archived: u.archived,
+          deleted: u.deleted
+        });
+        
+        // Check if user is archived or deleted - exclude them
+        if (u.archived || u.deleted) {
+          console.log('⚠️ [ManageEnrollments] Skipping archived/deleted user:', userId, u.email);
+          return false;
+        }
+        
+        // Try multiple matching strategies
+        const isEnrolled = studentIds.some(sid => {
+          // Normalize both IDs to strings for comparison
+          const normalizedSid = String(sid).trim();
+          const normalizedUserId = String(userId).trim();
+          const match = normalizedSid === normalizedUserId;
+          
+          if (match) {
+            console.log('✅ [ManageEnrollments] ID Match found:', { 
+              enrollmentUserId: sid, 
+              userDocId: userId, 
+              normalizedSid, 
+              normalizedUserId, 
+              match 
+            });
+          }
+          return match;
+        });
+        
+        console.log('🔍 [ManageEnrollments] User check result:', {
+          userId,
+          email: u.email,
+          isStudent,
+          isEnrolled,
+          willInclude: isStudent && isEnrolled
+        });
+        
+        if (isStudent && isEnrolled) {
+          console.log('✅ [ManageEnrollments] MATCHED STUDENT - Will include:', userId, u.email);
+        } else if (isStudent && !isEnrolled) {
+          console.log('❌ [ManageEnrollments] Student but NOT enrolled:', userId, u.email);
+        } else if (!isStudent && isEnrolled) {
+          console.log('❌ [ManageEnrollments] Enrolled but NOT a student:', userId, u.email, 'userRole:', u.role, 'enrollmentRole:', enrollmentForUser?.role);
+        }
+        
+        return isStudent && isEnrolled;
+      });
+      
+      console.log('🔍 [ManageEnrollments] Final enrolled students:', enrolledStudents.length, enrolledStudents.map(s => ({ id: s.docId || s.id, email: s.email, role: s.role })));
 
       // Add disabled status
       const studentsWithStatus = enrolledStudents.map(s => ({
         ...s,
-        isDisabled: disabledStudents.includes(s.id)
+        isDisabled: disabledStudents.includes(s.docId || s.id)
       }));
 
       setStudents(studentsWithStatus);
     } catch (e) {
       console.error('[ManageEnrollments] Error loading students:', e);
+      toast.error('Failed to load students: ' + (e?.message || 'unknown error'));
     } finally {
       setLoading(false);
     }
@@ -179,14 +333,54 @@ const ManageEnrollmentsPage = () => {
             <div className={styles.classListHeader}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
             
             {/* Filters */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: '1rem' }}>
               <Select
                 searchable
-                value={termFilter}
-                onChange={(e) => setTermFilter(e.target.value)}
+                value={programFilter}
+                onChange={(e) => setProgramFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_terms') || 'All Terms' },
-                  ...availableTerms.map(term => ({ value: term, label: term }))
+                  { value: 'all', label: 'All Programs' },
+                  ...programs.map(p => ({
+                    value: p.docId || p.id,
+                    label: p.name_en || p.name_ar || p.code || p.docId
+                  }))
+                ]}
+                fullWidth
+              />
+              <Select
+                searchable
+                value={subjectFilter}
+                onChange={(e) => setSubjectFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Subjects' },
+                  ...subjects
+                    .filter(s => programFilter === 'all' || s.programId === programFilter)
+                    .map(s => ({
+                      value: s.docId || s.id,
+                      label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+                    }))
+                ]}
+                fullWidth
+              />
+              <Select
+                searchable
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Classes' },
+                  ...classes
+                    .filter(c => {
+                      if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
+                      if (programFilter !== 'all') {
+                        const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+                        if (!subject || subject.programId !== programFilter) return false;
+                      }
+                      return true;
+                    })
+                    .map(c => ({
+                      value: c.id || c.docId,
+                      label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`
+                    }))
                 ]}
                 fullWidth
               />
@@ -197,6 +391,16 @@ const ManageEnrollmentsPage = () => {
                 options={[
                   { value: 'all', label: t('all_years') || 'All Years' },
                   ...availableYears.map(year => ({ value: year, label: year }))
+                ]}
+                fullWidth
+              />
+              <Select
+                searchable
+                value={termFilter}
+                onChange={(e) => setTermFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_terms') || 'All Terms' },
+                  ...availableTerms.map(term => ({ value: term, label: term }))
                 ]}
                 fullWidth
               />
@@ -276,7 +480,7 @@ const ManageEnrollmentsPage = () => {
               {/* Students Table */}
               {loading ? (
                 <div className={styles.loadingState}>
-                  <Spinner size="lg" />
+                  <Spinner size="large" color="primary" />
                 </div>
               ) : filteredStudents.length === 0 ? (
                 <EmptyState
@@ -303,7 +507,7 @@ const ManageEnrollmentsPage = () => {
                       </div>
                       <Button
                         onClick={() => toggleStudentAccess(student.id, student.isDisabled)}
-                        variant={student.isDisabled ? 'success' : 'danger'}
+                        variant={student.isDisabled ? 'primary' : 'danger'}
                         size="sm"
                         icon={student.isDisabled ? <UserCheck size={16} /> : <UserX size={16} />}
                       >

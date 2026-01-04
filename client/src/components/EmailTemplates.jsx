@@ -11,7 +11,7 @@ const EmailTemplates = () => {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [hasTemplates, setHasTemplates] = useState(null); // null = loading, true/false = loaded
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     checkTemplates();
@@ -65,23 +65,17 @@ const EmailTemplates = () => {
             </p>
           </div>
           
-          {checking ? (
-            <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />
-          ) : (
-            <>
-              {hasTemplates === false && (
-                <SeedDefaultTemplates 
-                  onComplete={() => setRefreshKey(prev => prev + 1)}
-                />
-              )}
-              
-              <EmailTemplateList 
-                key={refreshKey}
-                onEdit={handleEdit}
-                onCreateNew={handleCreateNew}
-              />
-            </>
+          {hasTemplates === false && (
+            <SeedDefaultTemplates 
+              onComplete={() => setRefreshKey(prev => prev + 1)}
+            />
           )}
+          
+          <EmailTemplateList 
+            key={refreshKey}
+            onEdit={handleEdit}
+            onCreateNew={handleCreateNew}
+          />
         </div>
       ) : (
         <EmailTemplateEditor

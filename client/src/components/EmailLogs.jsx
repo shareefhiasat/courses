@@ -10,7 +10,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const toast = useToast();
   const { t } = useLang();
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [missingIndexUrl, setMissingIndexUrl] = useState('');
   const [filters, setFilters] = useState({
     type: defaultTypeFilter,
@@ -133,10 +133,6 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
       return <span style={{ padding: '4px 8px', background: '#f8d7da', color: '#721c24', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600 }}>✗ {t('failed_status')}</span>;
     }
   };
-
-  if (loading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
-  }
 
   return (
     <div>
@@ -412,7 +408,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                             background: '#e7f3ff',
                             borderRadius: 4,
                             fontSize: '0.8rem',
-                            color: '#667eea',
+                            color: '#800020',
                             fontFamily: 'monospace'
                           }}
                         >

@@ -108,13 +108,36 @@ export const deleteNotification = async (notificationId) => {
   }
 };
 
+export const archiveNotification = async (notificationId) => {
+  try {
+    await updateDoc(doc(db, 'notifications', notificationId), { archived: true, archivedAt: serverTimestamp() });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const markNotificationUnread = async (notificationId) => {
+  try {
+    await updateDoc(doc(db, 'notifications', notificationId), { read: false, readAt: null });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 // Real-time notifications listener
-export const subscribeToNotifications = (userId, callback) => {
-  const q = query(
-    collection(db, 'notifications'),
+export const subscribeToNotifications = (userId, callback, includeArchived = false) => {
+  const constraints = [
     where('userId', '==', userId),
     orderBy('createdAt', 'desc')
-  );
+  ];
+  
+  if (!includeArchived) {
+    constraints.push(where('archived', '!=', true));
+  }
+  
+  const q = query(collection(db, 'notifications'), ...constraints);
   
   return onSnapshot(q, (snapshot) => {
     const notifications = [];

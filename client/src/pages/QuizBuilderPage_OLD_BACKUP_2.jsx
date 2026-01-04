@@ -23,7 +23,7 @@ const QUESTION_TYPE_INFO = {
     name: 'Multiple Choice',
     icon: <ListChecks size={20} />,
     description: 'Select one or more correct answers',
-    color: '#667eea'
+    color: '#800020'
   },
   [QUESTION_TYPES.SINGLE_CHOICE]: {
     name: 'Single Choice',

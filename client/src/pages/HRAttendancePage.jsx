@@ -6,6 +6,7 @@ import { collection, getDocs, doc, updateDoc, query, where, orderBy, limit, getD
 import { FileDown, Search, Filter, Calendar, User, AlertCircle, Clock, CheckCircle, XCircle, Activity, Users, Heart } from 'lucide-react';
 import { Button, Select, Loading, DatePicker } from '../components/ui';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../firebase/attendance';
+import { getPrograms, getSubjects } from '../firebase/programs';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin } = useAuth();
@@ -14,23 +15,35 @@ const HRAttendancePage = () => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [marks, setMarks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [programFilter, setProgramFilter] = useState('all');
+  const [subjectFilter, setSubjectFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
+  const [yearFilter, setYearFilter] = useState('all');
+  const [termFilter, setTermFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [classes, setClasses] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [editingMark, setEditingMark] = useState(null);
   const [savingMark, setSavingMark] = useState(null);
   const [reason, setReason] = useState('');
   const [feedback, setFeedback] = useState('');
 
-  // Load classes
+  // Load classes, programs, subjects
   useEffect(() => {
     (async () => {
       try {
-        const snap = await getDocs(collection(db, 'classes'));
-        const opts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const [classesSnap, programsRes, subjectsRes] = await Promise.all([
+          getDocs(collection(db, 'classes')),
+          getPrograms(),
+          getSubjects()
+        ]);
+        const opts = classesSnap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
         setClasses(opts);
+        if (programsRes.success) setPrograms(programsRes.data || []);
+        if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       } catch {}
     })();
   }, []);
@@ -38,7 +51,7 @@ const HRAttendancePage = () => {
   // Load attendance sessions
   useEffect(() => {
     loadSessions();
-  }, [classFilter, dateFrom, dateTo]);
+  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo]);
 
   const loadSessions = async () => {
     setLoading(true);
@@ -76,8 +89,53 @@ const HRAttendancePage = () => {
       
       // Apply filters
       let filtered = enriched;
+      
+      // Filter by program
+      if (programFilter !== 'all') {
+        filtered = filtered.filter(s => {
+          if (!s.classId) return false;
+          const classItem = classes.find(c => (c.id || c.docId) === s.classId);
+          if (!classItem || !classItem.subjectId) return false;
+          const subject = subjects.find(sub => (sub.docId || sub.id) === classItem.subjectId);
+          if (!subject) return false;
+          return (subject.programId || '') === programFilter;
+        });
+      }
+      
+      // Filter by subject
+      if (subjectFilter !== 'all') {
+        filtered = filtered.filter(s => {
+          if (!s.classId) return false;
+          const classItem = classes.find(c => (c.id || c.docId) === s.classId);
+          if (!classItem) return false;
+          return (classItem.subjectId || '') === subjectFilter;
+        });
+      }
+      
+      // Filter by class
       if (classFilter !== 'all') {
         filtered = filtered.filter(s => s.classId === classFilter);
+      }
+      
+      // Filter by year
+      if (yearFilter !== 'all') {
+        filtered = filtered.filter(s => {
+          if (s.classYear && String(s.classYear) === yearFilter) return true;
+          if (s.classTerm) {
+            const parts = s.classTerm.split(' ');
+            if (parts.length > 1 && parts[parts.length - 1] === yearFilter) return true;
+          }
+          return false;
+        });
+      }
+      
+      // Filter by term
+      if (termFilter !== 'all') {
+        filtered = filtered.filter(s => {
+          if (!s.classTerm) return false;
+          const termPart = s.classTerm.split(' ')[0];
+          return termPart === termFilter;
+        });
       }
       if (dateFrom) {
         const from = new Date(dateFrom);
@@ -309,14 +367,93 @@ const HRAttendancePage = () => {
           <div>
             <Select
               searchable
+              value={programFilter}
+              onChange={(e) => setProgramFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Programs' },
+                ...programs.map(p => ({
+                  value: p.docId || p.id,
+                  label: p.name_en || p.name_ar || p.code || p.docId
+                }))
+              ]}
+              fullWidth
+              placeholder="Program"
+            />
+          </div>
+          <div>
+            <Select
+              searchable
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Subjects' },
+                ...subjects
+                  .filter(s => programFilter === 'all' || s.programId === programFilter)
+                  .map(s => ({
+                    value: s.docId || s.id,
+                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+                  }))
+              ]}
+              fullWidth
+              placeholder="Subject"
+            />
+          </div>
+          <div>
+            <Select
+              searchable
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
               options={[
                 { value: 'all', label: t('all_classes') || 'All Classes' },
-                ...classes.map(c => ({ value: c.id, label: c.name || c.code || c.id }))
+                ...classes
+                  .filter(c => {
+                    if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
+                    if (programFilter !== 'all') {
+                      const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+                      if (!subject || subject.programId !== programFilter) return false;
+                    }
+                    return true;
+                  })
+                  .map(c => ({ value: c.id || c.docId, label: c.name || c.code || c.id }))
               ]}
               fullWidth
               placeholder={t('class') || 'Class'}
+            />
+          </div>
+          <div>
+            <Select
+              searchable
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Years' },
+                ...Array.from(new Set(classes.map(c => {
+                  if (c.year) return String(c.year);
+                  if (c.term) {
+                    const parts = c.term.split(' ');
+                    if (parts.length > 1) return parts[parts.length - 1];
+                  }
+                  return null;
+                }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(year => ({ value: year, label: year }))
+              ]}
+              fullWidth
+              placeholder="Year"
+            />
+          </div>
+          <div>
+            <Select
+              searchable
+              value={termFilter}
+              onChange={(e) => setTermFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Terms' },
+                ...Array.from(new Set(classes.map(c => {
+                  if (c.term) return c.term.split(' ')[0];
+                  return null;
+                }).filter(Boolean))).sort().map(term => ({ value: term, label: term }))
+              ]}
+              fullWidth
+              placeholder="Term"
             />
           </div>
           <div>
@@ -340,7 +477,7 @@ const HRAttendancePage = () => {
           <div>
             <DatePicker
               type="date"
-              value={dateFrom}
+              value={dateFrom ? (dateFrom.includes('/') ? new Date(dateFrom.split('/').reverse().join('-')).toISOString().split('T')[0] : dateFrom) : ''}
               onChange={(iso) => setDateFrom(iso ? new Date(iso).toLocaleDateString('en-CA') : '')}
               placeholder={t('from_date') || 'From Date'}
               fullWidth
@@ -349,7 +486,7 @@ const HRAttendancePage = () => {
           <div>
             <DatePicker
               type="date"
-              value={dateTo}
+              value={dateTo ? (dateTo.includes('/') ? new Date(dateTo.split('/').reverse().join('-')).toISOString().split('T')[0] : dateTo) : ''}
               onChange={(iso) => setDateTo(iso ? new Date(iso).toLocaleDateString('en-CA') : '')}
               placeholder={t('to_date') || 'To Date'}
               fullWidth
@@ -515,7 +652,7 @@ const HRAttendancePage = () => {
                               {statusLabel}
                             </div>
                             {!isEditing && (
-                              <button onClick={() => { setEditingMark(mark); setReason(mark.reason || ''); setFeedback(mark.feedback || ''); }} style={{ padding: '0.3rem 0.6rem', border: '1px solid var(--border)', borderRadius: 6, background: '#667eea', color: 'white', fontSize: 11, fontWeight: 600 }}>
+                              <button onClick={() => { setEditingMark(mark); setReason(mark.reason || ''); setFeedback(mark.feedback || ''); }} style={{ padding: '0.3rem 0.6rem', border: '1px solid var(--border)', borderRadius: 6, background: '#800020', color: 'white', fontSize: 11, fontWeight: 600 }}>
                                 {t('edit') || 'Edit'}
                               </button>
                             )}

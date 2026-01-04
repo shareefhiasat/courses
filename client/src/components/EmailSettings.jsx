@@ -278,7 +278,7 @@ const EmailSettings = ({ onEditTemplate }) => {
           disabled={loading}
           style={{
             padding: '12px 24px',
-            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+            background: 'linear-gradient(135deg, #800020, #600018)',
             color: 'white',
             border: 'none',
             borderRadius: 8,

@@ -60,7 +60,7 @@ export default function BarChart({ data = [], width = 400, height = 300, horizon
         const barHeight = (value / maxValue) * chartHeight;
         const x = padding.left + idx * barWidth + barGap / 2;
         const y = padding.top + chartHeight - barHeight;
-        const color = item.color || '#667eea';
+        const color = item.color || '#800020';
 
         return (
           <g key={idx}>

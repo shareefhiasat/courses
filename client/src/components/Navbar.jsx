@@ -7,7 +7,7 @@ import SideDrawer from './SideDrawer';
 import { useLang } from '../contexts/LangContext';
 import { getUsers, updateUser } from '../firebase/firestore';
 import './Navbar.css';
-import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List } from 'lucide-react';
+import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List, Info } from 'lucide-react';
 import { LanguageSwitcher } from './ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { getTimeFormatPreference, setTimeFormatPreference } from '../utils/date';
@@ -16,7 +16,14 @@ import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '
 const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
 const Navbar = () => {
-  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, impersonating } = useAuth();
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    // AuthProvider not available yet, return null
+    return null;
+  }
+  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, impersonating, stopImpersonation } = authContext;
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -50,6 +57,17 @@ const Navbar = () => {
       setMessageColor(ACCENT_FALLBACK);
       return;
     }
+    
+    // Try to load from localStorage cache first (quick fix to prevent flash)
+    try {
+      const cachedColor = localStorage.getItem(`accent_color_${user.uid}`);
+      if (cachedColor) {
+        const cached = normalizeHexColor(cachedColor, ACCENT_FALLBACK);
+        setMessageColor(cached);
+        applyAccentColor(cached);
+      }
+    } catch {}
+    
     let cancelled = false;
     (async () => {
       try {
@@ -58,7 +76,12 @@ const Navbar = () => {
         const snap = await getDoc(doc(db, 'users', user.uid));
         if (!cancelled) {
           const storedColor = snap.exists() ? snap.data().messageColor : null;
-          setMessageColor(normalizeHexColor(storedColor, ACCENT_FALLBACK));
+          const normalized = normalizeHexColor(storedColor, ACCENT_FALLBACK);
+          setMessageColor(normalized);
+          // Cache in localStorage
+          try {
+            localStorage.setItem(`accent_color_${user.uid}`, normalized);
+          } catch {}
         }
       } catch {
         if (!cancelled) {
@@ -122,7 +145,12 @@ const Navbar = () => {
       }
       setDisplayName(user?.displayName || me?.displayName || '');
       setPhoneNumber(me?.phoneNumber || '');
-      setMessageColor(normalizeHexColor(me?.messageColor, ACCENT_FALLBACK));
+      const color = normalizeHexColor(me?.messageColor, ACCENT_FALLBACK);
+      setMessageColor(color);
+      // Cache in localStorage
+      try {
+        if (user?.uid) localStorage.setItem(`accent_color_${user.uid}`, color);
+      } catch {}
       setRealName(me?.realName || '');
       setStudentNumber(me?.studentNumber || '');
       setNotifLang(me?.notifLang || 'auto');
@@ -141,7 +169,14 @@ const Navbar = () => {
       const dataToSave = {
         displayName: displayName || null,
         phoneNumber: phoneNumber || null,
-        messageColor: normalizeHexColor(messageColor, ACCENT_FALLBACK),
+        messageColor: (() => {
+          const color = normalizeHexColor(messageColor, ACCENT_FALLBACK);
+          // Cache in localStorage
+          try {
+            if (user?.uid) localStorage.setItem(`accent_color_${user.uid}`, color);
+          } catch {}
+          return color;
+        })(),
         realName: realName || null,
         studentNumber: studentNumber || null,
         email: user.email,
@@ -212,19 +247,31 @@ const Navbar = () => {
 
           {/* Impersonation Banner */}
           {impersonating && (
-            <div style={{
-              padding: '0.5rem 1rem',
-              background: '#ff9800',
-              color: 'white',
-              borderRadius: '20px',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <User size={16} /> {t('viewing_as_student') || 'Viewing as Student'}
-            </div>
+            <button
+              onClick={() => {
+                stopImpersonation();
+                navigate('/dashboard');
+              }}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#ff9800',
+                color: 'white',
+                border: 'none',
+                borderRadius: '20px',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#f57c00'}
+              onMouseLeave={(e) => e.target.style.background = '#ff9800'}
+              title={t('exit_impersonation') || 'Exit Impersonation'}
+            >
+              <User size={16} /> {t('viewing_as_student') || 'Viewing as Student'} <span style={{ marginLeft: '0.5rem' }}>✕</span>
+            </button>
           )}
           
           <div style={{ flex: 1 }} />
@@ -244,7 +291,7 @@ const Navbar = () => {
                   className="nav-icon-btn nav-help"
                   onClick={() => {
                     try {
-                      window.dispatchEvent(new CustomEvent('app:help', { detail: { route: location?.pathname || '/' } }));
+                      window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: location?.pathname || '/' } }));
                     } catch {}
                   }}
                   title={t('help') || 'Help'}
@@ -253,11 +300,48 @@ const Navbar = () => {
                   <HelpCircle size={16} />
                 </button>
 
-                <LanguageSwitcher compact />
                 <button
                   className="nav-icon-btn"
-                  onClick={toggleTheme}
+                  onClick={() => {
+                    try {
+                      // Toggle help drawer
+                      window.dispatchEvent(new CustomEvent('app:help:toggle', { detail: { route: location?.pathname || '/' } }));
+                    } catch {}
+                  }}
+                  title={t('information') || 'Information'}
+                  aria-label={t('information') || 'Information'}
+                  style={{
+                    border: '1px solid var(--border)',
+                    background: 'var(--panel)',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <Info size={18} />
+                </button>
+
+                <button
+                  className="nav-icon-btn"
                   title={theme==='light'?'Dark':'Light'}
+                  onClick={toggleTheme}
+                  style={{
+                    border: '1px solid var(--border)',
+                    background: 'var(--panel)',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)'
+                  }}
                 >
                   {theme==='light'?<Moon size={16} />:<Sun size={16} />}
                 </button>
@@ -299,24 +383,40 @@ const Navbar = () => {
                     width: '40px',
                     height: '40px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
+                    background: messageColor && messageColor !== ACCENT_FALLBACK 
+                      ? `linear-gradient(135deg, ${messageColor}, ${adjustColor(messageColor, 10)})`
+                      : 'rgba(255,255,255,0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1.25rem',
                     fontWeight: 700,
-                    color: '#2E3B4E',
+                    color: messageColor && messageColor !== ACCENT_FALLBACK ? '#fff' : '#2E3B4E',
                     cursor: 'pointer',
                     border: '2px solid rgba(255,255,255,0.6)',
-                    transition: 'transform 0.2s',
-                    overflow: 'hidden'
+                    transition: 'transform 0.2s, background 0.3s',
+                    overflow: 'hidden',
+                    position: 'relative'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                   aria-haspopup="menu"
                   aria-expanded={showDropdown}
                 >
-                  {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+                  {(!messageColor || messageColor === ACCENT_FALLBACK) && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'rgba(255,255,255,0.5)',
+                      backdropFilter: 'blur(4px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }} />
+                  )}
+                  <span style={{ position: 'relative', zIndex: 1 }}>
+                    {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+                  </span>
                 </div>
                 {isSuperAdmin && (
                   <div title="Super Admin" style={{ position:'absolute', right:-6, top:-6, background:'#4f46e5', color:'#fff', borderRadius:'50%', width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
@@ -512,7 +612,7 @@ const Navbar = () => {
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
               <button onClick={()=>setShowProfile(false)} style={{ padding: '0.5rem 1rem', background: theme==='light' ? '#6b7280' : '#374151', color: 'white', border: 'none', borderRadius: 6 }}>{t('cancel')}</button>
-              <button onClick={saveProfile} style={{ padding: '0.5rem 1rem', background: theme==='light' ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#4f46e5', color: 'white', border: 'none', borderRadius: 6 }}>{t('save')}</button>
+              <button onClick={saveProfile} style={{ padding: '0.5rem 1rem', background: theme==='light' ? 'linear-gradient(135deg, #800020, #600018)' : '#4f46e5', color: 'white', border: 'none', borderRadius: 6 }}>{t('save')}</button>
             </div>
           </div>
         </div>

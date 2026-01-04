@@ -22,6 +22,31 @@
   font-size: 1.5rem;
 }
 
+[data-theme="dark"] .auth-title {
+  color: #800020;
+}
+
+[data-theme="dark"] .auth-form {
+  background: #1a1a2e;
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .form-input {
+  background: #0f0f1e;
+  border-color: rgba(255,255,255,0.2);
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .form-input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+[data-theme="dark"] .form-input:focus {
+  border-color: #800020;
+  background: #0f0f1e;
+  color: #e5e7eb;
+}
+
 .auth-tabs {
   display: flex;
   margin-bottom: 1.5rem;

@@ -6,9 +6,66 @@
   padding: 2rem 0;
 }
 
+.compactView {
+  /* Compact view styles - more condensed layout */
+}
+
+.fullView {
+  /* Full view styles - standard layout */
+}
+
 /* Header */
 .header {
   margin-bottom: 2rem;
+}
+
+/* Action Buttons */
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.actionButton {
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.actionButton:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+.actionButton:active {
+  transform: translateY(0);
+}
+
+/* Refresh button specific styles */
+button[onClick*="loadDashboardData"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  color: #212529;
+}
+
+button[onClick*="loadDashboardData"]:hover {
+  background-color: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+button[onClick*="loadDashboardData"]:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 .headerContent {
@@ -32,7 +89,7 @@
 .welcomeTitle {
   font-size: 2.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800020 0%, #600018 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -71,9 +128,9 @@
 /* Stats Grid */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .statCard {
@@ -94,9 +151,9 @@
 }
 
 .statIcon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -112,14 +169,14 @@
 }
 
 .statValue {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #1e293b;
   line-height: 1;
 }
 
 .statLabel {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: #64748b;
   font-weight: 500;
 }
@@ -470,7 +527,7 @@
   width: 160px;
   height: 160px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800020 0%, #600018 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -534,7 +591,7 @@
 }
 
 .performanceCard {
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #800020;
 }
 
 .performanceTitle {
@@ -616,6 +673,7 @@
 
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
 
   .overviewGrid {
@@ -642,6 +700,7 @@
 
   .statsGrid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .headerContent {
@@ -741,7 +800,7 @@
 
 /* Performance Summary Card */
 .performanceSummaryCard {
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #800020;
 }
 
 .performanceSummary {
@@ -762,7 +821,7 @@
 .performanceSummaryValue {
   font-size: 2rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800020 0%, #600018 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

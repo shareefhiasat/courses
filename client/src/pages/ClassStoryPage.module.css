@@ -58,7 +58,7 @@
 
 .textarea:focus {
   outline: none;
-  border-color: var(--color-primary, #667eea);
+  border-color: var(--color-primary, #800020);
 }
 
 /* Posts Feed */
@@ -101,6 +101,6 @@
   }
 
   .textarea:focus {
-    border-color: var(--color-primary, #667eea);
+    border-color: var(--color-primary, #800020);
   }
 }

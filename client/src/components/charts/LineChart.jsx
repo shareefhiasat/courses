@@ -8,7 +8,7 @@ import React from 'react';
  * @param {String} color - Line color
  * @param {Boolean} showArea - Fill area under line
  */
-export default function LineChart({ data = [], width = 400, height = 300, color = '#667eea', showArea = true, showPoints = true, showGrid = true }) {
+export default function LineChart({ data = [], width = 400, height = 300, color = '#800020', showArea = true, showPoints = true, showGrid = true }) {
   if (!data || data.length === 0) {
     return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>No data</div>;
   }

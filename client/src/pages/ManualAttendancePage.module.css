@@ -257,7 +257,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800020 0%, #600018 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -550,7 +550,7 @@
 
 .trendBar {
   flex: 1;
-  background: linear-gradient(to top, #667eea, #764ba2);
+  background: linear-gradient(to top, #800020, #600018);
   border-radius: 4px 4px 0 0;
   min-height: 20px;
   position: relative;
@@ -594,7 +594,7 @@
 
 .classBreakdownRate {
   font-weight: 600;
-  color: #667eea;
+  color: #800020;
   font-size: 0.875rem;
 }
 

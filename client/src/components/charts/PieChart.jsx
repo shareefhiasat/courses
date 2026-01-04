@@ -21,7 +21,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
   const radius = Math.min(size / 2 - 40, 120);
   const innerRadius = donut ? radius * 0.6 : 0;
 
-  const colors = ['#667eea', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
+  const colors = ['#800020', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 
   let currentAngle = -90; // Start from top
 

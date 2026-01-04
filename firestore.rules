@@ -157,7 +157,14 @@ service cloud.firestore {
         request.auth.uid == resource.data.userId ||
         request.auth.token.instructor == true
       );
-      allow write: if isAdmin();
+      allow create: if isAdmin();
+      // Allow instructors/admins to update marks field in enrollment
+      allow update: if isAdmin() || 
+        (isSignedIn() && request.auth.token.instructor == true && 
+         // Only allow updating marks field and related fields
+         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['marks', 'updatedAt']) ||
+          // Or allow full update if admin
+          isAdmin()));
     }
 
     // Homework Submissions: tracks metadata about uploaded files
@@ -300,6 +307,130 @@ service cloud.firestore {
       // Students can create their own badge docs (if any client-side flow does this); admins can manage all
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
       allow update, delete: if isAdmin();
+    }
+
+    // Programs: Admin write, authenticated read
+    match /programs/{programId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Subjects: Admin/instructor write, authenticated read
+    match /subjects/{subjectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.instructor == true);
+    }
+
+    // Subject Enrollments: Admin/instructor write, students can read their own
+    match /subjectEnrollments/{enrollmentId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.uid == resource.data.studentId
+      );
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.instructor == true);
+    }
+
+    // Program Grading Rules: Admin write, authenticated read
+    match /programGradingRules/{programId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Subject Marks Distribution: Admin/instructor write, authenticated read
+    match /subjectMarksDistribution/{subjectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.instructor == true);
+    }
+
+    // Student Marks: Admin/instructor write, students can read their own
+    match /studentMarks/{markId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.uid == resource.data.studentId
+      );
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.instructor == true);
+    }
+
+    // Penalties: Admin/instructor/HR write, students can read their own
+    match /penalties/{penaltyId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.token.hr == true ||
+        request.auth.uid == resource.data.studentId
+      );
+      allow write: if isAdmin() || (isSignedIn() && (request.auth.token.instructor == true || request.auth.token.hr == true));
+      allow delete: if isAdmin() || (isSignedIn() && (request.auth.token.instructor == true || request.auth.token.hr == true));
+    }
+    // Allow listing all penalties for instructors/HR/admins
+    match /penalties {
+      allow list: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.token.hr == true
+      );
+    }
+
+    // Absences: Admin/instructor write, students can read their own
+    match /absences/{absenceId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.uid == resource.data.studentId
+      );
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.instructor == true);
+    }
+
+    // Participations: Admin/instructor/HR can read all, students can read their own
+    match /participations/{participationId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.token.hr == true ||
+        request.auth.uid == resource.data.studentId
+      );
+      allow write: if isAdmin() || (isSignedIn() && (request.auth.token.instructor == true || request.auth.token.hr == true));
+    }
+    // Allow listing all participations for instructors/HR/admins
+    // Students can query their own through individual document reads
+    match /participations {
+      allow list: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.token.hr == true
+      );
+    }
+
+    // Behaviors: Admin/instructor/HR can read all, students can read their own
+    match /behaviors/{behaviorId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.token.hr == true ||
+        request.auth.uid == resource.data.studentId
+      );
+      allow write: if isAdmin() || (isSignedIn() && (request.auth.token.instructor == true || request.auth.token.hr == true));
+    }
+    // Allow listing all behaviors for instructors/HR/admins
+    // Students can query their own through individual document reads
+    match /behaviors {
+      allow list: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true ||
+        request.auth.token.hr == true
+      );
+    }
+
+    // Scheduled Reports: Users can manage their own, admins can manage all
+    match /scheduledReports/{reportId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.uid == resource.data.userId
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
     }
   }
 }

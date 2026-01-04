@@ -3,9 +3,11 @@
 ## ✅ What I've Created
 
 ### **1. SMTP Configuration Page** ✅
+
 **File**: `client/src/pages/SMTPConfigPage.jsx`
 
 **Features:**
+
 - Full SMTP configuration UI
 - Gmail App Password setup instructions
 - Save configuration to Firestore
@@ -22,10 +24,10 @@
 
 ```javascript
 // Add import
-import SMTPConfigPage from './pages/SMTPConfigPage';
+import SMTPConfigPage from "./pages/SMTPConfigPage";
 
 // Add route
-<Route path="/smtp-config" element={<SMTPConfigPage />} />
+<Route path="/smtp-config" element={<SMTPConfigPage />} />;
 ```
 
 ### **Step 2: Add Link in Dashboard**
@@ -33,15 +35,15 @@ import SMTPConfigPage from './pages/SMTPConfigPage';
 Add a button in `DashboardPage.jsx` to access SMTP config:
 
 ```javascript
-<button 
-  onClick={() => navigate('/smtp-config')}
+<button
+  onClick={() => navigate("/smtp-config")}
   style={{
-    padding: '0.75rem 1.5rem',
-    background: '#667eea',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer'
+    padding: "0.75rem 1.5rem",
+    background: "#800020",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
   }}
 >
   ⚙️ Configure SMTP
@@ -58,8 +60,15 @@ const [emailNotification, setEmailNotification] = useState(false);
 const [createAnnouncement, setCreateAnnouncement] = useState(false);
 
 // In the form
-<div style={{ display: 'flex', gap: '2rem', marginTop: '1rem' }}>
-  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+<div style={{ display: "flex", gap: "2rem", marginTop: "1rem" }}>
+  <label
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      cursor: "pointer",
+    }}
+  >
     <input
       type="checkbox"
       checked={emailNotification}
@@ -68,7 +77,14 @@ const [createAnnouncement, setCreateAnnouncement] = useState(false);
     <span>📧 Send email notification to class</span>
   </label>
 
-  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+  <label
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      cursor: "pointer",
+    }}
+  >
     <input
       type="checkbox"
       checked={createAnnouncement}
@@ -76,7 +92,7 @@ const [createAnnouncement, setCreateAnnouncement] = useState(false);
     />
     <span>📢 Create announcement</span>
   </label>
-</div>
+</div>;
 ```
 
 ### **Step 4: Handle Email Sending on Activity Creation**
@@ -84,22 +100,22 @@ const [createAnnouncement, setCreateAnnouncement] = useState(false);
 ```javascript
 const handleActivitySubmit = async (e) => {
   e.preventDefault();
-  
+
   // Save activity
   const result = await addActivity(activityForm);
-  
+
   if (result.success) {
     // Send email notification if checked
     if (emailNotification && activityForm.classId) {
       await sendActivityNotification(activityForm);
     }
-    
+
     // Create announcement if checked
     if (createAnnouncement) {
       await createAnnouncementFromActivity(activityForm);
     }
-    
-    toast?.showSuccess('Activity created successfully');
+
+    toast?.showSuccess("Activity created successfully");
   }
 };
 
@@ -107,10 +123,10 @@ const handleActivitySubmit = async (e) => {
 const sendActivityNotification = async (activity) => {
   // Get students in class
   const enrollments = await getEnrollments();
-  const classStudents = enrollments.data.filter(e => 
-    e.classId === activity.classId && e.role === 'student'
+  const classStudents = enrollments.data.filter(
+    (e) => e.classId === activity.classId && e.role === "student"
   );
-  
+
   // Get student emails
   const studentEmails = await Promise.all(
     classStudents.map(async (enrollment) => {
@@ -118,12 +134,12 @@ const sendActivityNotification = async (activity) => {
       return user.email;
     })
   );
-  
+
   // Format due date
-  const dueDate = activity.dueDate 
-    ? new Date(activity.dueDate).toLocaleDateString('en-GB')
-    : 'No deadline';
-  
+  const dueDate = activity.dueDate
+    ? new Date(activity.dueDate).toLocaleDateString("en-GB")
+    : "No deadline";
+
   // Send email
   await sendEmail({
     to: studentEmails,
@@ -135,7 +151,7 @@ const sendActivityNotification = async (activity) => {
       Type: ${activity.type}
       Level: ${activity.level}
       Due Date: ${dueDate}
-      ${activity.allowRetakes ? '✅ Retakes allowed' : '❌ No retakes'}
+      ${activity.allowRetakes ? "✅ Retakes allowed" : "❌ No retakes"}
       
       ${activity.description_en}
       
@@ -143,16 +159,16 @@ const sendActivityNotification = async (activity) => {
       
       Good luck! 🎯
     `,
-    type: 'activity_notification'
+    type: "activity_notification",
   });
 };
 
 // Create announcement function
 const createAnnouncementFromActivity = async (activity) => {
-  const dueDate = activity.dueDate 
-    ? new Date(activity.dueDate).toLocaleDateString('en-GB')
-    : 'No deadline';
-    
+  const dueDate = activity.dueDate
+    ? new Date(activity.dueDate).toLocaleDateString("en-GB")
+    : "No deadline";
+
   await addAnnouncement({
     title: `New ${activity.type}: ${activity.title_en}`,
     message: `
@@ -162,13 +178,13 @@ const createAnnouncementFromActivity = async (activity) => {
       
       📅 Due Date: ${dueDate}
       🎯 Level: ${activity.level}
-      ${activity.allowRetakes ? '🔄 Retakes allowed' : '⚠️ No retakes'}
-      ${activity.optional ? '💡 Optional' : '📌 Required'}
+      ${activity.allowRetakes ? "🔄 Retakes allowed" : "⚠️ No retakes"}
+      ${activity.optional ? "💡 Optional" : "📌 Required"}
       
       🔗 Start Activity: ${activity.url}
     `,
-    priority: activity.optional ? 'normal' : 'high',
-    classId: activity.classId
+    priority: activity.optional ? "normal" : "high",
+    classId: activity.classId,
   });
 };
 ```
@@ -200,7 +216,7 @@ Add action buttons in SmartGrid for existing activities:
       >
         📧
       </button>
-      
+
       <button
         onClick={() => createAnnouncementFromActivity(activity)}
         title="Create announcement"
@@ -227,107 +243,114 @@ Add action buttons in SmartGrid for existing activities:
 Add a "Send Email" tab in Dashboard:
 
 ```javascript
-{activeTab === 'email-notifications' && (
-  <div className="email-notifications-tab">
-    <h2>📨 Send Email Notification</h2>
-    
-    <form onSubmit={handleSendGeneralEmail}>
-      <div style={{ display: 'grid', gap: '1rem' }}>
-        {/* Recipient Type */}
-        <div>
-          <label>To</label>
-          <select
-            value={emailRecipients}
-            onChange={(e) => setEmailRecipients(e.target.value)}
-          >
-            <option value="all">All Users</option>
-            <option value="students">All Students</option>
-            <option value="class">Specific Class</option>
-            <option value="custom">Custom Selection</option>
-          </select>
-        </div>
-        
-        {/* Class Selection (if class selected) */}
-        {emailRecipients === 'class' && (
+{
+  activeTab === "email-notifications" && (
+    <div className="email-notifications-tab">
+      <h2>📨 Send Email Notification</h2>
+
+      <form onSubmit={handleSendGeneralEmail}>
+        <div style={{ display: "grid", gap: "1rem" }}>
+          {/* Recipient Type */}
           <div>
-            <label>Select Class</label>
-            <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
-              {classes.map(c => (
-                <option key={c.docId} value={c.docId}>{c.name}</option>
-              ))}
+            <label>To</label>
+            <select
+              value={emailRecipients}
+              onChange={(e) => setEmailRecipients(e.target.value)}
+            >
+              <option value="all">All Users</option>
+              <option value="students">All Students</option>
+              <option value="class">Specific Class</option>
+              <option value="custom">Custom Selection</option>
             </select>
           </div>
-        )}
-        
-        {/* Subject */}
-        <div>
-          <label>Subject</label>
-          <input
-            type="text"
-            value={emailSubject}
-            onChange={(e) => setEmailSubject(e.target.value)}
-            placeholder="Enter email subject..."
-            required
-          />
-        </div>
-        
-        {/* Message */}
-        <div>
-          <label>Message</label>
-          <textarea
-            value={emailMessage}
-            onChange={(e) => setEmailMessage(e.target.value)}
-            placeholder="Enter your message..."
-            rows={8}
-            required
-          />
-        </div>
-        
-        {/* Priority */}
-        <div>
-          <label>Priority</label>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <label>
-              <input
-                type="radio"
-                value="normal"
-                checked={emailPriority === 'normal'}
-                onChange={(e) => setEmailPriority(e.target.value)}
-              />
-              Normal
-            </label>
-            <label>
-              <input
-                type="radio"
-                value="high"
-                checked={emailPriority === 'high'}
-                onChange={(e) => setEmailPriority(e.target.value)}
-              />
-              High Priority
-            </label>
+
+          {/* Class Selection (if class selected) */}
+          {emailRecipients === "class" && (
+            <div>
+              <label>Select Class</label>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+              >
+                {classes.map((c) => (
+                  <option key={c.docId} value={c.docId}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Subject */}
+          <div>
+            <label>Subject</label>
+            <input
+              type="text"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="Enter email subject..."
+              required
+            />
           </div>
+
+          {/* Message */}
+          <div>
+            <label>Message</label>
+            <textarea
+              value={emailMessage}
+              onChange={(e) => setEmailMessage(e.target.value)}
+              placeholder="Enter your message..."
+              rows={8}
+              required
+            />
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label>Priority</label>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              <label>
+                <input
+                  type="radio"
+                  value="normal"
+                  checked={emailPriority === "normal"}
+                  onChange={(e) => setEmailPriority(e.target.value)}
+                />
+                Normal
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  value="high"
+                  checked={emailPriority === "high"}
+                  onChange={(e) => setEmailPriority(e.target.value)}
+                />
+                High Priority
+              </label>
+            </div>
+          </div>
+
+          {/* Send Button */}
+          <button
+            type="submit"
+            style={{
+              padding: "1rem",
+              background: "linear-gradient(135deg, #800020, #600018)",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: "1rem",
+              fontWeight: "600",
+              cursor: "pointer",
+            }}
+          >
+            📤 Send Email
+          </button>
         </div>
-        
-        {/* Send Button */}
-        <button
-          type="submit"
-          style={{
-            padding: '1rem',
-            background: 'linear-gradient(135deg, #667eea, #764ba2)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '1rem',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
-        >
-          📤 Send Email
-        </button>
-      </div>
-    </form>
-  </div>
-)}
+      </form>
+    </div>
+  );
+}
 ```
 
 ---
@@ -335,6 +358,7 @@ Add a "Send Email" tab in Dashboard:
 ## 🎯 Email Templates
 
 ### **Activity Assignment Email:**
+
 ```
 Subject: New Activity: [Activity Title]
 
@@ -353,6 +377,7 @@ Good luck! 🎯
 ```
 
 ### **General Announcement Email:**
+
 ```
 Subject: [Custom Subject]
 
@@ -363,6 +388,7 @@ CS Learning Hub Team
 ```
 
 ### **Activity Update Email:**
+
 ```
 Subject: Activity Updated: [Activity Title]
 
@@ -383,16 +409,19 @@ Activity Link: [Link]
 Configure automatic emails for:
 
 1. **New Activity Assignment**
+
    - Trigger: Activity created with classId
    - Recipients: All students in class
    - Template: Activity assignment email
 
 2. **Activity Due Soon**
+
    - Trigger: 24 hours before due date
    - Recipients: Students who haven't completed
    - Template: Reminder email
 
 3. **Activity Graded**
+
    - Trigger: Instructor grades submission
    - Recipients: Student who submitted
    - Template: Grade notification
@@ -424,11 +453,13 @@ Configure automatic emails for:
 ## 🚀 Quick Start
 
 1. **Configure SMTP:**
+
    - Navigate to `/smtp-config`
    - Enter Gmail credentials
    - Save configuration
 
 2. **Create Activity with Email:**
+
    - Go to Dashboard > Activities
    - Fill activity form
    - ✅ Check "Send email notification"

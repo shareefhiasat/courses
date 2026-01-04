@@ -6,24 +6,26 @@ import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
 import useRealTimeUpdates from './hooks/useRealTimeUpdates';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ColorThemeProvider } from './contexts/ColorThemeContext';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ProgressPage from './pages/ProgressPage';
 import ChatPage from './pages/ChatPage';
-// LeaderboardPage - DEPRECATED (removed)
-import ActivitiesPage from './pages/ActivitiesPage';
+import { HelpProvider } from './contexts/HelpContext';
+import HelpDrawer from './components/HelpDrawer';
+// ActivitiesPage, ResourcesPage, QuizResultsPage - DEPRECATED (unified in HomePage)
 import ActivityDetailPage from './pages/ActivityDetailPage';
-import StudentProgressPage from './pages/StudentProgressPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
-import ResourcesPage from './pages/ResourcesPage';
 import SMTPConfigPage from './pages/SMTPConfigPage';
-// AwardMedalsPage - DEPRECATED (removed)
 import NotificationsPage from './pages/NotificationsPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import AttendancePage from './pages/AttendancePage';
 import StudentAttendancePage from './pages/StudentAttendancePage';
 import HRAttendancePage from './pages/HRAttendancePage';
+import HRPenaltiesPage from './pages/HRPenaltiesPage';
+import InstructorParticipationPage from './pages/InstructorParticipationPage';
+import InstructorBehaviorPage from './pages/InstructorBehaviorPage';
 import ManualAttendancePage from './pages/ManualAttendancePage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
 import ManageEnrollmentsPage from './pages/ManageEnrollmentsPage';
@@ -34,34 +36,42 @@ import RoleAccessPro from './pages/RoleAccessPro';
 import StudentProfilePage from './pages/StudentProfilePage';
 import StudentDashboardPage from './pages/StudentDashboardPage';
 import CourseProgressDetailPage from './pages/CourseProgressDetailPage';
-import QuizManagementPage from './pages/QuizManagementPage';
+import QuizzesPage from './pages/QuizzesPage';
 import QuizPreviewPage from './pages/QuizPreviewPage';
-import QuizBuilderPage from './pages/QuizBuilderPage';
 import MyEnrollmentsPage from './pages/MyEnrollmentsPage';
 import StudentQuizPage from './pages/StudentQuizPage';
-import QuizResultsPage from './pages/QuizResultsPage';
 import QuestionBankPage from './pages/QuestionBankPage';
+import QuizResultsPage from './pages/QuizResultsPage';
+import ReviewResultsPage from './pages/ReviewResultsPage';
+import ProgramsManagementPage from './pages/ProgramsManagementPage';
+import SubjectsManagementPage from './pages/SubjectsManagementPage';
+import MarksEntryPage from './pages/MarksEntryPage';
+import ScheduledReportsPage from './pages/ScheduledReportsPage';
 import './App.css';
 import './styles/colors.css';
+import './styles/theme.css';
 
 const AppContent = () => {
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
   
   return (
     <div className="app">
-      <Navbar />
-      <main className="main-content">
+<HelpProvider>
+        <Navbar />
+        <HelpDrawer />
+        <main className="main-content">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/activities" element={<ActivitiesPage />} />
+          {/* ActivitiesPage, ResourcesPage, QuizResultsPage routes removed - unified in HomePage with ?mode= */}
+          <Route path="/activities" element={<Navigate to="/?mode=activities" replace />} />
+          <Route path="/resources" element={<Navigate to="/?mode=resources" replace />} />
+          <Route path="/quiz-results" element={<Navigate to="/review-results?mode=quiz" replace />} />
+          <Route path="/review-results" element={<ReviewResultsPage />} />
           <Route path="/activity/:activityId" element={<ActivityDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/student-progress" element={<StudentProgressPage />} />
           <Route path="/progress" element={<Navigate to="/student-dashboard" replace />} />
           <Route path="/chat" element={<ChatPage />} />
-          {/* LeaderboardPage route removed - DEPRECATED */}
-          <Route path="/resources" element={<ResourcesPage />} />
           <Route path="/smtp-config" element={<SMTPConfigPage />} />
           <Route path="/enrollments" element={<EnrollmentsPage />} />
           {/* AwardMedalsPage route removed - DEPRECATED */}
@@ -71,6 +81,9 @@ const AppContent = () => {
           <Route path="/manual-attendance" element={<ManualAttendancePage />} />
           <Route path="/my-attendance" element={<StudentAttendancePage />} />
           <Route path="/hr-attendance" element={<HRAttendancePage />} />
+          <Route path="/hr-penalties" element={<HRPenaltiesPage />} />
+          <Route path="/instructor-participation" element={<InstructorParticipationPage />} />
+          <Route path="/instructor-behavior" element={<InstructorBehaviorPage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />
           <Route path="/manage-enrollments" element={<ManageEnrollmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
@@ -82,14 +95,21 @@ const AppContent = () => {
           <Route path="/student-dashboard" element={<StudentDashboardPage />} />
           <Route path="/my-enrollments" element={<MyEnrollmentsPage />} />
           <Route path="/course-progress/:courseId" element={<CourseProgressDetailPage />} />
-          <Route path="/quiz-management" element={<QuizManagementPage />} />
+          <Route path="/quizzes" element={<QuizzesPage />} />
+          <Route path="/quiz-management" element={<Navigate to="/quizzes" replace />} />
+          <Route path="/quiz-builder" element={<Navigate to="/quizzes?mode=add" replace />} />
           <Route path="/quiz-preview/:quizId" element={<QuizPreviewPage />} />
-          <Route path="/quiz-builder" element={<QuizBuilderPage />} />
           <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
-          <Route path="/quiz-results" element={<QuizResultsPage />} />
+          {/* QuizResultsPage route removed - unified in HomePage with ?mode=quizzes */}
+          {/* Programs & Subjects Management */}
+          <Route path="/programs" element={<ProgramsManagementPage />} />
+          <Route path="/subjects" element={<SubjectsManagementPage />} />
+          <Route path="/marks-entry" element={<MarksEntryPage />} />
+          <Route path="/scheduled-reports" element={<ScheduledReportsPage />} />
           {/* Class Story removed */}
         </Routes>
-      </main>
+        </main>
+      </HelpProvider>
     </div>
   );
 };
@@ -98,15 +118,17 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <LangProvider>
-          <AuthProvider>
-            <Router>
-              <ErrorBoundary>
-                <AppContent />
-              </ErrorBoundary>
-            </Router>
-          </AuthProvider>
-        </LangProvider>
+        <ColorThemeProvider>
+          <LangProvider>
+            <AuthProvider>
+              <Router>
+                <ErrorBoundary>
+                  <AppContent />
+                </ErrorBoundary>
+              </Router>
+            </AuthProvider>
+          </LangProvider>
+        </ColorThemeProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

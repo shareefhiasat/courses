@@ -189,7 +189,7 @@ export default function SpinWheelGame({ questions, settings, onComplete }) {
 
           {/* Center Circle */}
           <circle cx="250" cy="250" r="40" fill="white" stroke="#ddd" strokeWidth="3" />
-          <text x="250" y="255" fill="#667eea" fontSize="20" fontWeight="800" textAnchor="middle">
+          <text x="250" y="255" fill="#800020" fontSize="20" fontWeight="800" textAnchor="middle">
             SPIN
           </text>
         </svg>

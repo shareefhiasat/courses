@@ -88,8 +88,8 @@
 }
 
 .paletteCurrent {
-  border-color: #667eea;
-  background: #667eea;
+  border-color: #800020;
+  background: #800020;
   color: white;
 }
 
@@ -122,7 +122,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #667eea;
+  background: #800020;
 }
 
 /* ========== QUIZ TITLE SECTION ========== */
@@ -206,7 +206,7 @@
 .questionPoints {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #667eea;
+  color: #800020;
 }
 
 .questionText {
@@ -248,7 +248,7 @@
 }
 
 .optionButton:hover {
-  border-color: #667eea;
+  border-color: #800020;
   background: white;
   transform: translateX(4px);
 }
@@ -258,7 +258,7 @@
 }
 
 .optionButton.selected {
-  border-color: #667eea;
+  border-color: #800020;
   background: #eff6ff;
 }
 
@@ -268,7 +268,7 @@
 
 .optionIndicator {
   flex-shrink: 0;
-  color: #667eea;
+  color: #800020;
 }
 
 .optionRadio {
@@ -366,7 +366,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800020 0%, #600018 100%);
   color: white;
   border: none;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);

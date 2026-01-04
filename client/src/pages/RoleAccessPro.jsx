@@ -34,10 +34,22 @@ export default function RoleAccessPro() {
     { id: 'quizManagement', name: 'Quiz Management', group: 'QUIZ', description: 'Manage and organize quizzes' },
     { id: 'quizBuilder', name: 'Quiz Builder', group: 'QUIZ', description: 'Create and edit quizzes' },
     { id: 'quizResults', name: 'Quiz Results', group: 'QUIZ', description: 'View quiz results and analytics' },
+    { id: 'reviewResults', name: 'Review Results', group: 'QUIZ', description: 'Review and evaluate quiz results' },
     // CLASSES
     { id: 'classSchedules', name: 'Class Schedule', group: 'CLASSES', description: 'View class schedules and timetables' },
     { id: 'manageEnrollments', name: 'Manage Enrollments', group: 'CLASSES', description: 'Manage student enrollments in classes' },
     { id: 'myEnrollments', name: 'My Enrollments', group: 'CLASSES', description: 'View your enrolled classes' },
+    // ACADEMIC
+    { id: 'programs', name: 'Programs', group: 'ACADEMIC', description: 'Manage academic programs' },
+    { id: 'subjects', name: 'Subjects', group: 'ACADEMIC', description: 'Manage subjects within programs' },
+    { id: 'classes', name: 'Classes', group: 'ACADEMIC', description: 'Manage classes for subjects' },
+    { id: 'enrollments', name: 'Enrollments', group: 'ACADEMIC', description: 'Manage student enrollments' },
+    { id: 'marksEntry', name: 'Marks Entry', group: 'ACADEMIC', description: 'Enter and manage student marks' },
+    { id: 'classSchedule', name: 'Class Schedule', group: 'ACADEMIC', description: 'Manage class schedules' },
+    { id: 'reviewResults', name: 'Review Results', group: 'ACADEMIC', description: 'Review quiz, homework, training, and lab & project results' },
+    { id: 'hrPenalties', name: 'HR Penalties', group: 'ACADEMIC', description: 'HR penalties management' },
+    { id: 'instructorParticipation', name: 'Instructor Participation', group: 'ACADEMIC', description: 'Track student participation (+1 points)' },
+    { id: 'instructorBehavior', name: 'Instructor Behavior', group: 'ACADEMIC', description: 'Track student behavior (-1 points)' },
     // ATTENDANCE
     { id: 'attendance', name: 'Attendance (Instructor)', group: 'ATTENDANCE', description: 'Take attendance for classes' },
     { id: 'manualAttendance', name: 'Manual Attendance', group: 'ATTENDANCE', description: 'Manually record attendance' },
@@ -49,6 +61,8 @@ export default function RoleAccessPro() {
     // COMMUNITY
     { id: 'chat', name: 'Chat', group: 'COMMUNITY', description: 'Communicate with students and instructors' },
     { id: 'resources', name: 'Resources', group: 'COMMUNITY', description: 'Access learning resources and materials' },
+    // COMMUNICATION
+    { id: 'scheduledReports', name: 'Scheduled Reports', group: 'COMMUNICATION', description: 'Schedule automated reports to be sent via email' },
     // TOOLS
     { id: 'timer', name: 'Timer', group: 'TOOLS', description: 'Timer tool for tracking study time' },
     // WORKSPACE SETTINGS / SETTINGS
@@ -66,7 +80,9 @@ export default function RoleAccessPro() {
       analytics: true, advancedAnalytics: true,
       chat: true, resources: true,
       timer: true,
-      notifications: true, studentProfile: true, profile: true
+      notifications: true, studentProfile: true, profile: true,
+      programs: false, subjects: false, classes: false, enrollments: false, marksEntry: false, classSchedule: false,
+      reviewResults: false, hrPenalties: false, instructorParticipation: false, instructorBehavior: false
     },
     instructor: { 
       home: true, dashboard: false, studentDashboard: false, studentProgress: true, activities: true, progress: false,
@@ -76,7 +92,10 @@ export default function RoleAccessPro() {
       analytics: true, advancedAnalytics: false,
       chat: true, resources: true,
       timer: true,
-      notifications: true, studentProfile: true, profile: true
+      notifications: true, studentProfile: true, profile: true,
+      programs: false, subjects: false, classes: false, enrollments: false, marksEntry: true, classSchedule: false,
+      reviewResults: false, hrPenalties: false, instructorParticipation: true, instructorBehavior: true,
+      scheduledReports: false
     },
     hr: { 
       home: true, dashboard: false, studentDashboard: false, studentProgress: false, activities: false, progress: false,
@@ -86,7 +105,10 @@ export default function RoleAccessPro() {
       analytics: true, advancedAnalytics: false,
       chat: false, resources: false,
       timer: true,
-      notifications: true, studentProfile: true, profile: true
+      notifications: true, studentProfile: true, profile: true,
+      programs: false, subjects: false, classes: false, enrollments: false, marksEntry: false, classSchedule: false,
+      reviewResults: false, hrPenalties: true, instructorParticipation: false, instructorBehavior: false,
+      scheduledReports: false // HR cannot manage scheduled reports by default
     },
     student: { 
       home: true, dashboard: false, studentDashboard: true, studentProgress: false, activities: true, progress: true,
@@ -96,7 +118,10 @@ export default function RoleAccessPro() {
       analytics: false, advancedAnalytics: false,
       chat: true, resources: true,
       timer: true,
-      notifications: true, studentProfile: true, profile: true
+      notifications: true, studentProfile: true, profile: true,
+      programs: false, subjects: false, classes: false, enrollments: false, marksEntry: false, classSchedule: false,
+      reviewResults: false, hrPenalties: false, instructorParticipation: false, instructorBehavior: false,
+      scheduledReports: false // Students cannot manage scheduled reports
     },
   };
 
@@ -170,6 +195,19 @@ export default function RoleAccessPro() {
 
   return (
     <Container maxWidth="xl" className={styles.page}>
+      {isSuperAdmin && (
+        <div style={{ 
+          padding: '0.75rem 1rem', 
+          marginBottom: '1rem', 
+          background: 'rgba(128, 0, 32, 0.1)', 
+          border: '1px solid rgba(128, 0, 32, 0.3)', 
+          borderRadius: 8,
+          fontSize: '0.875rem',
+          color: 'var(--color-primary, #800020)'
+        }}>
+          <strong>Super Admin Note:</strong> Super admins bypass all role restrictions and have access to all screens regardless of these settings.
+        </div>
+      )}
       <Card>
         <CardBody>
           <div className={styles.header}>

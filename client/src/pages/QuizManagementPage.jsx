@@ -10,7 +10,9 @@ import {
 import { getAllQuizzes, getQuizzesByCreator, deleteQuiz } from '../firebase/quizzes';
 import { getUser } from '../firebase/firestore';
 import { db } from '../firebase/config';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import styles from './QuizManagementPage.module.css';
 
 export default function QuizManagementPage() {
@@ -22,6 +24,7 @@ export default function QuizManagementPage() {
   const [quizzes, setQuizzes] = useState([]);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null });
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -63,8 +66,8 @@ export default function QuizManagementPage() {
 
     return {
       id: quiz.id,
-      title: quiz.title || 'Untitled Quiz',
-      description: quiz.description || '',
+      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || 'Untitled Quiz'),
+      description: lang === 'ar' ? (quiz.description_ar || quiz.description_en || quiz.description || '') : (quiz.description_en || quiz.description_ar || quiz.description || ''),
       type: quiz.type || 'multiple_choice',
       difficulty: (quiz.difficulty || settings.difficulty || 'general').toLowerCase(),
       estimatedTime: Number.isFinite(quiz.estimatedTime) ? quiz.estimatedTime : (settings.timeLimit || 0),
@@ -128,29 +131,89 @@ export default function QuizManagementPage() {
   };
 
   const handleDelete = async (quizId) => {
-    if (!window.confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
-      return;
-    }
+    const quiz = quizzes.find(q => q.id === quizId);
+    if (!quiz) return;
 
-    setDeleting(quizId);
+    // Check for related data (quiz submissions)
     try {
-      const result = await deleteQuiz(quizId);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete quiz');
-      }
+      const submissionsQuery = query(
+        collection(db, 'quizSubmissions'),
+        where('quizId', '==', quizId)
+      );
+      const submissionsSnap = await getDocs(submissionsQuery);
+      const quizSubmissions = submissionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // Best-effort clean up of mirrored activity document
-      try {
-        await deleteDoc(doc(db, 'activities', quizId));
-      } catch {
-        // ignore if no activity doc exists
-      }
+      // Create readable item name
+      const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || 'Untitled Quiz');
 
-      setQuizzes(prev => prev.filter(q => q.id !== quizId));
+      setDeleteModal({
+        open: true,
+        item: { ...quiz, _displayName: itemName },
+        onConfirm: async () => {
+          setDeleting(quizId);
+          try {
+            const result = await deleteQuiz(quizId);
+            if (!result.success) {
+              throw new Error(result.error || 'Failed to delete quiz');
+            }
+
+            // Log activity
+            try {
+              await logActivity(ACTIVITY_TYPES.QUIZ_DELETED, {
+                quizId,
+                quizTitle: quiz?.title || quiz?.name || 'Unknown'
+              });
+            } catch (e) { console.warn('Failed to log activity:', e); }
+
+            // Best-effort clean up of mirrored activity document
+            try {
+              await deleteDoc(doc(db, 'activities', quizId));
+            } catch {
+              // ignore if no activity doc exists
+            }
+
+            setQuizzes(prev => prev.filter(q => q.id !== quizId));
+            setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null });
+          } catch (error) {
+            alert('Failed to delete quiz: ' + error.message);
+          } finally {
+            setDeleting(null);
+          }
+        },
+        relatedData: {
+          'Quiz Submissions': quizSubmissions.map(s => ({
+            ...s,
+            _label: `Quiz Submission`
+          }))
+        },
+        warningMessage: quizSubmissions.length > 0 
+          ? `This quiz has ${quizSubmissions.length} submission(s) that should be deleted first.`
+          : null
+      });
     } catch (error) {
-      alert('Failed to delete quiz: ' + error.message);
-    } finally {
-      setDeleting(null);
+      console.error('Failed to check related data:', error);
+      // Still show modal but without related data
+      setDeleteModal({
+        open: true,
+        item: { ...quiz, _displayName: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || 'Untitled Quiz') },
+        onConfirm: async () => {
+          setDeleting(quizId);
+          try {
+            const result = await deleteQuiz(quizId);
+            if (!result.success) {
+              throw new Error(result.error || 'Failed to delete quiz');
+            }
+            setQuizzes(prev => prev.filter(q => q.id !== quizId));
+            setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null });
+          } catch (error) {
+            alert('Failed to delete quiz: ' + error.message);
+          } finally {
+            setDeleting(null);
+          }
+        },
+        relatedData: null,
+        warningMessage: null
+      });
     }
   };
 
@@ -297,6 +360,7 @@ export default function QuizManagementPage() {
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{quizzes.length}</h3>
+                    <p className={styles.statLabel}>Total Quizzes</p>
                   </div>
                 </div>
               </CardBody>
@@ -310,6 +374,7 @@ export default function QuizManagementPage() {
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{totalAttempts}</h3>
+                    <p className={styles.statLabel}>Total Attempts</p>
                   </div>
                 </div>
               </CardBody>
@@ -323,6 +388,7 @@ export default function QuizManagementPage() {
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{averageScore}%</h3>
+                    <p className={styles.statLabel}>Average Score</p>
                   </div>
                 </div>
               </CardBody>
@@ -338,6 +404,7 @@ export default function QuizManagementPage() {
                     <h3 className={styles.statValue}>
                       {quizzes.reduce((sum, q) => sum + (q.estimatedTime || 0), 0)}
                     </h3>
+                    <p className={styles.statLabel}>Total Minutes</p>
                   </div>
                 </div>
               </CardBody>
@@ -353,6 +420,7 @@ export default function QuizManagementPage() {
                     <h3 className={styles.statValue}>
                       {quizzes.reduce((sum, q) => sum + (q.questionCount || 0), 0)}
                     </h3>
+                    <p className={styles.statLabel}>Total Questions</p>
                   </div>
                 </div>
               </CardBody>
@@ -392,9 +460,17 @@ export default function QuizManagementPage() {
                     <div className={styles.quizHeader}>
                       <div className={styles.quizInfo}>
                         {renderMetaChips(quiz)}
-                        <h3 className={styles.quizTitle}>{quiz.title}</h3>
-                        {quiz.description && (
-                          <p className={styles.quizDescription}>{quiz.description}</p>
+                        <h3 className={styles.quizTitle}>
+                          {lang === 'ar' 
+                            ? (quiz.title_ar || quiz.title_en || quiz.title || 'Untitled Quiz')
+                            : (quiz.title_en || quiz.title_ar || quiz.title || 'Untitled Quiz')}
+                        </h3>
+                        {(quiz.description_en || quiz.description_ar || quiz.description) && (
+                          <p className={styles.quizDescription}>
+                            {lang === 'ar'
+                              ? (quiz.description_ar || quiz.description_en || quiz.description || '')
+                              : (quiz.description_en || quiz.description_ar || quiz.description || '')}
+                          </p>
                         )}
 
                         <div className={styles.quizStats}>
@@ -460,6 +536,19 @@ export default function QuizManagementPage() {
           )}
         </div>
       </Container>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        open={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null })}
+        onConfirm={deleteModal.onConfirm || (() => {})}
+        title="Delete Quiz"
+        message="Are you sure you want to delete this quiz? This action cannot be undone."
+        itemName={deleteModal.item?._displayName || deleteModal.item?.title || deleteModal.item?.name || deleteModal.item?.id}
+        relatedData={deleteModal.relatedData}
+        warningMessage={deleteModal.warningMessage}
+        loading={deleting !== null}
+      />
     </div>
   );
 }

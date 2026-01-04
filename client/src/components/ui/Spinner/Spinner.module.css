@@ -14,8 +14,9 @@
 
 /* Circle Variant */
 .circle {
-  border: 3px solid rgba(0, 0, 0, 0.1);
+  border: 4px solid rgba(128, 0, 32, 0.2);
   border-top-color: currentColor;
+  box-shadow: 0 0 10px rgba(128, 0, 32, 0.3);
 }
 
 /* Dots Variant */
@@ -56,15 +57,15 @@
 }
 
 .medium.circle {
-  width: 24px;
-  height: 24px;
-  border-width: 3px;
+  width: 32px;
+  height: 32px;
+  border-width: 4px;
 }
 
 .large.circle {
-  width: 40px;
-  height: 40px;
-  border-width: 4px;
+  width: 48px;
+  height: 48px;
+  border-width: 5px;
 }
 
 .small.pulse {
@@ -165,7 +166,9 @@
 }
 
 @keyframes bounce {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0);
     opacity: 0.5;
   }
@@ -176,7 +179,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }

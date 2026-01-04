@@ -23,6 +23,8 @@ export { default as Chart } from './Chart';
 
 // Form Components
 export { default as DatePicker } from './DatePicker';
+export { default as DateRangeSlider } from './DateRangeSlider';
+export { default as DateRangePicker } from './DateRangePicker';
 export { default as FileUpload } from './FileUpload';
 export { default as UrlInput } from './UrlInput/UrlInput';
 export { default as Checkbox } from './Checkbox';
@@ -37,6 +39,7 @@ export { default as Pagination } from './Pagination';
 export { default as SearchBar } from './SearchBar';
 export { default as Steps } from './Steps';
 export { default as Drawer } from './Drawer';
+export { default as StudentSelectOption } from './StudentSelectOption/StudentSelectOption';
 
 // Feedback & Status
 export { default as Tag } from './Tag';

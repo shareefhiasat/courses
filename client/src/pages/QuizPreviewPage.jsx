@@ -4,9 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { getQuiz } from '../firebase/quizzes';
 import { getUser } from '../firebase/firestore';
-import { Container, Card, CardBody, Button, Spinner, Badge, Loading } from '../components/ui';
+import { Container, Card, CardBody, Button, Spinner, Badge, Loading, useToast } from '../components/ui';
 import {
-  ArrowLeft, Clock, CheckCircle, HelpCircle, ListChecks, Play, Edit, Trophy
+  Clock, CheckCircle, HelpCircle, ListChecks, Play, Edit, Circle, Shuffle, Repeat, Award, ArrowLeft
 } from 'lucide-react';
 import styles from './QuizPreviewPage.module.css';
 
@@ -15,6 +15,7 @@ export default function QuizPreviewPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { quizId } = useParams();
+  const toast = useToast();
   
   const [loading, setLoading] = useState(true);
   const [quizData, setQuizData] = useState(null);
@@ -120,11 +121,12 @@ export default function QuizPreviewPage() {
   };
 
   const handleStartQuiz = () => {
+    toast?.showInfo?.('Starting quiz...');
     navigate(`/quiz/${quizId}`);
   };
 
   const handleEditQuiz = () => {
-    navigate(`/quiz-builder?id=${quizId}`);
+    navigate(`/quizzes?id=${quizId}`);
   };
 
   if (loading) {
@@ -159,155 +161,160 @@ export default function QuizPreviewPage() {
     <div className={styles.quizPreview}>
       <Container maxWidth="lg">
         {/* Header */}
-        <div className={styles.previewHeader}>
-          <div className={styles.previewTopBar}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/quiz-management')}
-              title="Back"
-              aria-label="Back to quiz management"
-            >
-              <ArrowLeft size={16} />
-            </Button>
-
-            <div className={styles.previewActions}>
+        <div className={styles.previewHeader} style={{ marginBottom: '2rem', padding: '2rem', background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '2rem' }}>
+            <div style={{ flex: 1 }}>
+              <Badge
+                variant="outline"
+                color="default"
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', marginBottom: '1.5rem' }}
+                onClick={() => navigate('/quizzes')}
+              >
+                <ArrowLeft size={14} />
+                Back to Edit
+              </Badge>
+              <h1 className={styles.quizTitle} style={{ marginBottom: '0.75rem', fontSize: '2rem', fontWeight: 700, color: '#1f2937' }}>{quizData.title}</h1>
+              {quizData.description && (
+                <p className={styles.quizDescription} style={{ color: '#6b7280', marginBottom: '1.25rem', fontSize: '1.1rem', lineHeight: '1.6' }}>{quizData.description}</p>
+              )}
+              <div className={styles.metaGrid} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <Badge variant="subtle" color="primary" size="medium">
+                  {getQuestionIcon(quizData.type)}
+                  <span style={{ marginLeft: '0.5rem', fontSize: '0.875rem' }}>{getQuestionTypeLabel(quizData.type)}</span>
+                </Badge>
+                <Badge variant="subtle" color="info" size="medium">
+                  <ListChecks size={14} style={{ marginRight: '0.5rem' }} />
+                  {quizData.questions.length} {quizData.questions.length === 1 ? 'question' : 'questions'}
+                </Badge>
+                <Badge variant="subtle" color="warning" size="medium">
+                  <Award size={14} style={{ marginRight: '0.5rem' }} />
+                  {quizData.questions.reduce((sum, q) => sum + (q.points || 1), 0)} points
+                </Badge>
+                {(quizData.settings?.timeLimit > 0) ? (
+                  <Badge variant="outline" color="danger" size="medium">
+                    <Clock size={14} style={{ marginRight: '0.5rem' }} />
+                    {quizData.settings.timeLimit} min limit
+                  </Badge>
+                ) : (
+                  <Badge variant="subtle" color="info" size="medium">
+                    <Clock size={14} style={{ marginRight: '0.5rem' }} />
+                    {quizData.estimatedTime} min
+                  </Badge>
+                )}
+                <Badge variant="subtle" color={getDifficultyColor(quizData.difficulty)} size="medium">
+                  {getDifficultyLabel(quizData.difficulty)}
+                </Badge>
+                {quizData.settings?.allowRetake && (
+                  <Badge variant="outline" color="info" size="medium">
+                    <Repeat size={14} style={{ marginRight: '0.5rem' }} />
+                    Retake allowed
+                  </Badge>
+                )}
+                {quizData.settings?.randomizeOrder && (
+                  <Badge variant="outline" color="primary" size="medium">
+                    <Shuffle size={14} style={{ marginRight: '0.5rem' }} />
+                    Shuffle questions
+                  </Badge>
+                )}
+                {quizData.settings?.shuffleOptions && (
+                  <Badge variant="outline" color="primary" size="medium">
+                    <Shuffle size={14} style={{ marginRight: '0.5rem' }} />
+                    Shuffle options
+                  </Badge>
+                )}
+                {quizData.creatorName && quizData.creatorName !== 'Unknown' && (
+                  <Badge variant="outline" color="default" size="medium">
+                    Created by {quizData.creatorName}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
               {user?.uid === quizData.createdBy || user?.isAdmin ? (
-                <Button
+                <Badge
                   variant="outline"
-                  size="sm"
+                  color="primary"
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
                   onClick={handleEditQuiz}
                   title="Edit quiz"
-                  aria-label="Edit quiz"
                 >
-                  <Edit size={16} />
-                </Button>
+                  <Edit size={14} />
+                  Edit
+                </Badge>
               ) : null}
-              <Button
-                variant="primary"
-                size="lg"
+              <Badge
+                variant="solid"
+                color="success"
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', fontSize: '0.95rem', fontWeight: 600 }}
                 onClick={handleStartQuiz}
-                className={styles.startButton}
               >
-                <Play size={18} style={{ marginRight: 8 }} />
+                <Play size={16} />
                 Start Quiz
-              </Button>
-            </div>
-          </div>
-
-          <div className={styles.previewHero}>
-            <div className={styles.previewIcon}>
-              <Trophy size={40} />
-            </div>
-            <div className={styles.quizInfo}>
-              <h1 className={styles.quizTitle}>{quizData.title}</h1>
-              <p className={styles.quizDescription}>{quizData.description}</p>
-            </div>
-          </div>
-
-          <div className={styles.metaGrid}>
-            <div className={styles.metaChip}>
-              <span className={styles.metaIcon}><ListChecks size={16} /></span>
-              <span>{quizData.questions.length} questions</span>
-            </div>
-            <div className={styles.metaChip}>
-              <span className={styles.metaIcon}><Clock size={16} /></span>
-              <span>{quizData.estimatedTime} minutes</span>
-            </div>
-            <div className={styles.metaChip}>
-              <Badge variant={getDifficultyColor(quizData.difficulty)} size="sm">
-                <span className={styles.metaIcon}><Trophy size={14} /></span>
-                <span>{getDifficultyLabel(quizData.difficulty)}</span>
               </Badge>
-            </div>
-            <div className={styles.metaChip}>
-              <span className={styles.metaLabel}>Created by</span>
-              <span>{quizData.creatorName || 'Unknown'}</span>
             </div>
           </div>
         </div>
 
         {/* Questions */}
-        <div className={styles.questionsSection}>
-          <h2 className={styles.sectionTitle}>Question Breakdown</h2>
-          <div className={styles.questionsList}>
+        <div className={styles.questionsSection} style={{ marginTop: '2rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1f2937', marginBottom: '1.5rem' }}>Questions Preview</h2>
+          <div className={styles.questionsList} style={{ display: 'grid', gap: '1.25rem' }}>
             {quizData.questions.map((question, qIndex) => (
-              <Card key={question.id} className={styles.questionCard}>
-                <CardBody>
-                  <div className={styles.questionHeader}>
-                    <div className={styles.questionNumber}>#{qIndex + 1}</div>
-                    <div className={styles.questionType}>
+              <Card key={question.id} className={styles.questionCard} style={{ padding: '1.5rem', background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <CardBody style={{ padding: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <Badge variant="subtle" color="primary" size="medium">#{qIndex + 1}</Badge>
+                    <Badge variant="outline" color="info" size="medium">
                       {getQuestionIcon(question.type)}
-                      <span>{getQuestionTypeLabel(question.type)}</span>
-                    </div>
-                    <div className={styles.questionPoints}>
+                      <span style={{ marginLeft: '0.5rem' }}>{getQuestionTypeLabel(question.type)}</span>
+                    </Badge>
+                    <Badge variant="subtle" color="default" size="medium">
                       {question.points || 1} point{question.points !== 1 ? 's' : ''}
-                    </div>
+                    </Badge>
                   </div>
 
                   <div 
                     className={styles.questionText}
-                    dangerouslySetInnerHTML={{ __html: question.question }}
+                    style={{ marginBottom: '1.25rem', fontSize: '1.05rem', lineHeight: '1.7', color: '#374151' }}
+                    dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question) : (question.question_en || question.question)) }}
                   />
 
-                  <div className={styles.optionsList}>
+                  <div className={styles.optionsList} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {question.options?.map((option) => (
                       <div
                         key={option.id}
                         className={`${styles.optionItem} ${option.correct ? styles.correct : ''}`}
+                        style={{ 
+                          padding: '1rem', 
+                          borderRadius: '8px', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.75rem',
+                          background: option.correct ? '#f0fdf4' : '#f9fafb',
+                          border: option.correct ? '1px solid #86efac' : '1px solid #e5e7eb'
+                        }}
                       >
                         <div className={styles.optionIndicator}>
                           {option.correct ? (
-                            <CheckCircle size={18} />
+                            <CheckCircle size={20} style={{ color: '#10b981' }} />
                           ) : (
-                            <div className={styles.optionRadio} />
+                            <Circle size={20} style={{ color: '#9ca3af' }} />
                           )}
                         </div>
                         <div 
                           className={styles.optionText}
+                          style={{ fontSize: '0.95rem', color: '#374151', lineHeight: '1.6' }}
                           dangerouslySetInnerHTML={{ __html: option.text }}
                         />
                       </div>
                     ))}
                   </div>
-
-                  {question.explanation && (
-                    <div className={styles.explanationSection}>
-                      <h4>Explanation</h4>
-                      <div dangerouslySetInnerHTML={{ __html: question.explanation }} />
-                    </div>
-                  )}
-
-                  {question.timeLimit > 0 && (
-                    <div className={styles.timeLimit}>
-                      <Clock size={14} style={{ marginRight: 4 }} />
-                      Time limit: {question.timeLimit} seconds
-                    </div>
-                  )}
                 </CardBody>
               </Card>
             ))}
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className={styles.footerActions}>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => navigate('/quiz-management')}
-          >
-            Back to Quiz Management
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handleStartQuiz}
-          >
-            <Play size={18} style={{ marginRight: 8 }} />
-            Start Quiz
-          </Button>
-        </div>
       </Container>
     </div>
   );

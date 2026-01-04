@@ -9,7 +9,7 @@ export default function StatsCards({ stats, attendanceStats }) {
       <Card className={styles.statCard}>
         <CardBody>
           <div className={styles.statCardContent}>
-            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #800020 0%, #600018 100%)' }}>
               <BookOpen size={24} />
             </div>
             <div className={styles.statInfo}>

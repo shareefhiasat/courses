@@ -322,12 +322,12 @@ const StudentProgressPage = () => {
                 padding: '1rem',
                 borderRadius: '8px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                borderLeft: `4px solid ${typeColors[type] || '#667eea'}`
+                borderLeft: `4px solid ${typeColors[type] || '#800020'}`
               }}>
                 <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
                   {type}
                 </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: typeColors[type] || '#667eea' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: typeColors[type] || '#800020' }}>
                   {stats.completed}/{stats.total}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#999' }}>

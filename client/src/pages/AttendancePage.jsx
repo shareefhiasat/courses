@@ -7,6 +7,7 @@ import { db } from '../firebase/config';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { Info, Users, Calendar, Download, ChevronDown, ChevronUp, Maximize2, Minimize2, PlayCircle, Square } from 'lucide-react';
 import { Button, Select, Loading, YearSelect } from '../components/ui';
+import { getPrograms, getSubjects } from '../firebase/programs';
 import styles from './AttendancePage.module.css';
 
 const AttendancePageEnhanced = () => {
@@ -26,9 +27,14 @@ const AttendancePageEnhanced = () => {
   const [classOptions, setClassOptions] = useState([]);
   const [err, setErr] = useState('');
   const [attendanceCount, setAttendanceCount] = useState(0);
+  const [programFilter, setProgramFilter] = useState('all');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('all');
   const [termFilter, setTermFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [instructorFilter, setInstructorFilter] = useState('all');
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [collapsedSections, setCollapsedSections] = useState(() => {
     try { return JSON.parse(localStorage.getItem('attendance_collapsed') || '{"class":false,"settings":true}'); } catch { return { class: false, settings: true }; }
   });
@@ -44,32 +50,60 @@ const AttendancePageEnhanced = () => {
   const years = useMemo(() => [...new Set(classOptions.map(c => c.year).filter(Boolean))], [classOptions]);
   const instructors = useMemo(() => [...new Set(classOptions.map(c => c.instructorId || c.instructor).filter(Boolean))], [classOptions]);
 
-  // Filtered classes based on term/year/instructor
+  // Filtered classes based on program/subject/class/term/year/instructor
   const filteredClasses = useMemo(() => {
     return classOptions.filter(c => {
+      // Filter by program
+      if (programFilter !== 'all') {
+        if (!c.subjectId) return false;
+        const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+        if (!subject || (subject.programId || '') !== programFilter) return false;
+      }
+      
+      // Filter by subject
+      if (subjectFilter !== 'all' && (c.subjectId || '') !== subjectFilter) return false;
+      
+      // Filter by class
+      if (classFilter !== 'all') {
+        const classId = c.id || c.docId;
+        if (String(classId) !== String(classFilter)) return false;
+      }
+      
+      // Filter by term
       if (termFilter !== 'all' && c.term !== termFilter) return false;
+      
+      // Filter by year
       if (yearFilter !== 'all' && c.year !== yearFilter) return false;
+      
+      // Filter by instructor
       if (instructorFilter !== 'all' && (c.instructorId !== instructorFilter && c.instructor !== instructorFilter)) return false;
+      
       return true;
     });
-  }, [classOptions, termFilter, yearFilter, instructorFilter]);
+  }, [classOptions, programs, subjects, programFilter, subjectFilter, classFilter, termFilter, yearFilter, instructorFilter]);
 
-  // Load classes (authorized roles only)
+  // Load classes, programs, subjects (authorized roles only)
   useEffect(() => {
     if (!user) return;
     if (!(isAdmin || isInstructor || isHR)) return;
     (async () => {
       try {
-        const snap = await getDocs(collection(db, 'classes'));
+        const [classesSnap, programsRes, subjectsRes] = await Promise.all([
+          getDocs(collection(db, 'classes')),
+          getPrograms(),
+          getSubjects()
+        ]);
         const opts = [];
-        snap.forEach(d => {
+        classesSnap.forEach(d => {
           const data = d.data() || {};
           opts.push({ ...(data), id: d.id, docId: d.id });
         });
         setClassOptions(opts);
+        if (programsRes.success) setPrograms(programsRes.data || []);
+        if (subjectsRes.success) setSubjects(subjectsRes.data || []);
         if (!classId && opts.length === 1) setClassId(opts[0].id);
       } catch (e) {
-        if (e?.code !== 'permission-denied') console.error('[Attendance] load classes:', e);
+        if (e?.code !== 'permission-denied') console.error('[Attendance] load data:', e);
       }
     })();
   }, [user, isAdmin, isInstructor, isHR]);
@@ -330,6 +364,65 @@ const AttendancePageEnhanced = () => {
           <div>
             <Select
               searchable
+              value={programFilter}
+              onChange={(e) => setProgramFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Programs' },
+                ...programs.map(p => ({
+                  value: p.docId || p.id,
+                  label: p.name_en || p.name_ar || p.code || p.docId
+                }))
+              ]}
+              fullWidth
+              placeholder="Program"
+            />
+          </div>
+          <div>
+            <Select
+              searchable
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Subjects' },
+                ...subjects
+                  .filter(s => programFilter === 'all' || s.programId === programFilter)
+                  .map(s => ({
+                    value: s.docId || s.id,
+                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+                  }))
+              ]}
+              fullWidth
+              placeholder="Subject"
+            />
+          </div>
+          <div>
+            <Select
+              searchable
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Classes' },
+                ...filteredClasses
+                  .filter(c => {
+                    if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
+                    if (programFilter !== 'all') {
+                      const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+                      if (!subject || subject.programId !== programFilter) return false;
+                    }
+                    return true;
+                  })
+                  .map(c => ({
+                    value: c.id || c.docId,
+                    label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`
+                  }))
+              ]}
+              fullWidth
+              placeholder="Class"
+            />
+          </div>
+          <div>
+            <Select
+              searchable
               value={termFilter}
               onChange={(e)=>setTermFilter(e.target.value)}
               options={[
@@ -445,7 +538,7 @@ const AttendancePageEnhanced = () => {
                   </button>
                 </div>
                 <div style={{ alignSelf:'end' }}>
-                  <button onClick={saveCfg} disabled={savingCfg} style={{ padding:'0.4rem 1rem', border:'none', borderRadius:6, background:'#667eea', color:'white', fontWeight:600, fontSize: '0.8rem' }}>
+                  <button onClick={saveCfg} disabled={savingCfg} style={{ padding:'0.4rem 1rem', border:'none', borderRadius:6, background:'#800020', color:'white', fontWeight:600, fontSize: '0.8rem' }}>
                     {savingCfg ? (t('saving')||'Saving...') : (t('save_settings')||'Save Settings')}
                   </button>
                 </div>
@@ -522,9 +615,9 @@ const AttendancePageEnhanced = () => {
               }}
             />
             {sessionId && manualCode && (
-              <div style={{ marginTop:12, padding:'1rem', background:'#fff', border:'2px solid #667eea', borderRadius:8, textAlign:'center' }}>
+              <div style={{ marginTop:12, padding:'1rem', background:'#fff', border:'2px solid #800020', borderRadius:8, textAlign:'center' }}>
                 <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', marginBottom:6 }}>MANUAL CODE</div>
-                <div style={{ fontSize:32, fontWeight:700, letterSpacing:'0.2em', color:'#667eea', fontFamily:'monospace' }}>{manualCode}</div>
+                <div style={{ fontSize:32, fontWeight:700, letterSpacing:'0.2em', color:'#800020', fontFamily:'monospace' }}>{manualCode}</div>
                 <div style={{ fontSize:10, color:'var(--muted)', marginTop:6 }}>Rotates every {cfg.rotationSeconds}s</div>
                 <div style={{ fontSize:9, color:'var(--muted)', marginTop:8, padding:'4px 8px', background:'#f3f4f6', borderRadius:4, fontFamily:'monospace' }}>
                   Session: {sessionId.slice(0,8)}...
@@ -591,7 +684,7 @@ const AttendancePageEnhanced = () => {
                 padding:'0.5rem 1.5rem',
                 border:'none',
                 borderRadius:8,
-                background: !classId || loading ? '#9ca3af' : '#667eea',
+                background: !classId || loading ? '#9ca3af' : '#800020',
                 color:'white',
                 fontWeight:600,
                 cursor: !classId || loading ? 'not-allowed' : 'pointer',

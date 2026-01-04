@@ -24,15 +24,28 @@
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   font-family: inherit;
-  color: var(--text, #212529);
-  background: var(--input-bg, #fff);
-  border: 1px solid var(--input-border, #e5e7eb);
+  color: #212529;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   outline: none;
   resize: vertical;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   line-height: 1.5;
   min-height: 80px;
+}
+
+/* Force light mode styling */
+[data-theme="light"] .textarea,
+:not([data-theme]) .textarea {
+  background: #ffffff !important;
+  color: #212529 !important;
+  border-color: #e5e7eb !important;
+}
+
+[data-theme="light"] .textarea::placeholder,
+:not([data-theme]) .textarea::placeholder {
+  color: #9ca3af !important;
 }
 
 .textarea:focus {
@@ -95,18 +108,38 @@
   min-height: 120px;
 }
 
+/* Dark Mode Support */
+[data-theme="dark"] .textarea {
+  background: #1a1a1a !important;
+  color: #f5f5f5 !important;
+  border-color: #333 !important;
+}
+
+[data-theme="dark"] .textarea:disabled {
+  background: #262626 !important;
+}
+
+[data-theme="dark"] .label {
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .textarea::placeholder {
+  color: #999 !important;
+}
+
+/* Fallback for prefers-color-scheme (only if no data-theme is set) */
 @media (prefers-color-scheme: dark) {
-  .textarea {
+  :not([data-theme]) .textarea {
     background: #1a1a1a;
     color: #f5f5f5;
     border-color: #333;
   }
   
-  .textarea:disabled {
+  :not([data-theme]) .textarea:disabled {
     background: #262626;
   }
   
-  .label {
+  :not([data-theme]) .label {
     color: #f5f5f5;
   }
 }

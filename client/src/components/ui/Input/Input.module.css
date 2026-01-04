@@ -48,12 +48,26 @@
   width: 100%;
   font-family: inherit;
   font-size: var(--font-size-md, 1rem);
-  color: var(--text, #212529);
-  background: var(--panel, white);
-  border: 1px solid var(--border, #e0e0e0);
+  color: #212529;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
   border-radius: var(--radius-md, 8px);
   transition: all 0.2s ease;
   outline: none;
+}
+
+/* Force light mode styling */
+[data-theme="light"] .input,
+:not([data-theme]) .input {
+  background: #ffffff !important;
+  color: #212529 !important;
+  border-color: #e0e0e0 !important;
+}
+
+[data-theme="light"] .input::placeholder,
+:not([data-theme]) .input::placeholder {
+  color: #666 !important;
+  opacity: 0.6;
 }
 
 .input::placeholder {
@@ -157,29 +171,55 @@
 }
 
 /* Dark Mode Support */
+[data-theme="dark"] .input {
+  background: #1a1a1a !important;
+  border-color: #333 !important;
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .input:disabled {
+  background: #2a2a2a !important;
+  border-color: #3f3f46 !important;
+  color: #a1a1aa !important;
+}
+
+[data-theme="dark"] .input[readonly] {
+  background: #1a1a1a !important;
+  color: #f5f5f5 !important;
+}
+
+[data-theme="dark"] .input::placeholder {
+  color: #999 !important;
+}
+
+[data-theme="dark"] .label {
+  color: #f5f5f5 !important;
+}
+
+/* Fallback for prefers-color-scheme (only if no data-theme is set) */
 @media (prefers-color-scheme: dark) {
-  .label {
+  :not([data-theme]) .label {
     color: var(--text, #f5f5f5);
   }
   
-  .input {
+  :not([data-theme]) .input {
     background: var(--panel, #1a1a1a);
     border-color: var(--border, #333);
     color: var(--text, #f5f5f5);
   }
   
-  .input:disabled {
+  :not([data-theme]) .input:disabled {
     background: var(--panel, #2a2a2a);
     border-color: #3f3f46;
     color: var(--text-muted, #a1a1aa);
   }
   
-  .input[readonly] {
+  :not([data-theme]) .input[readonly] {
     background: var(--panel, #1a1a1a);
     color: var(--text, #f5f5f5);
   }
   
-  .input::placeholder {
+  :not([data-theme]) .input::placeholder {
     color: var(--muted, #999);
   }
 }

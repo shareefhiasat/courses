@@ -32,7 +32,7 @@ const TEMPLATE_INFO = {
     name: 'Multiple Choice Quiz',
     icon: '📝',
     description: 'Classic quiz with multiple choice questions',
-    color: '#667eea'
+    color: '#800020'
   },
   [TEMPLATES.TRUE_FALSE]: {
     name: 'True or False',
@@ -340,7 +340,7 @@ export default function QuizBuilderPage() {
             </button>
             <button
               onClick={() => setStep('preview')}
-              style={{ padding: '0.75rem 1.5rem', background: '#667eea', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              style={{ padding: '0.75rem 1.5rem', background: '#800020', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
             >
               <Eye size={18} />
               Preview
@@ -387,7 +387,7 @@ export default function QuizBuilderPage() {
               gap: 8,
               fontSize: 16,
               fontWeight: 600,
-              color: '#667eea'
+              color: '#800020'
             }}
           >
             <Plus size={20} />

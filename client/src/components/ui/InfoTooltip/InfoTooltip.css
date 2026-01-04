@@ -1,0 +1,104 @@
+.info-tooltip-container {
+  display: inline-flex;
+  position: relative;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.info-tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e9ecef;
+  color: #6c757d;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: bold;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.info-tooltip-trigger:hover {
+  background: #dee2e6;
+  color: #495057;
+}
+
+.info-tooltip-trigger:focus {
+  outline: 2px solid #4dabf7;
+  outline-offset: 2px;
+}
+
+.info-tooltip-content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: white;
+  color: #212529;
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  font-size: 0.85rem;
+  font-weight: normal;
+  text-align: left;
+  white-space: normal;
+  max-width: 300px;
+  z-index: 10000;
+  border: 1px solid #e9ecef;
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+.info-tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-8px);
+  }
+}
+
+/* RTL support */
+[dir='rtl'] .info-tooltip-content {
+  left: auto;
+  right: 50%;
+  transform: translateX(50%) translateY(-8px);
+}
+
+[dir='rtl'] .info-tooltip-content::after {
+  left: auto;
+  right: 50%;
+  transform: translateX(50%);
+}
+
+@keyframes tooltipFadeInRTL {
+  from {
+    opacity: 0;
+    transform: translateX(50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(50%) translateY(-8px);
+  }
+}
+
+[dir='rtl'] .info-tooltip-content {
+  animation-name: tooltipFadeInRTL;
+}

@@ -799,7 +799,7 @@ const ManualAttendancePage = () => {
                       <div className={styles.analyticsCardHeader}>
                         <div 
                           className={styles.analyticsCardIcon}
-                          style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                          style={{ background: 'linear-gradient(135deg, #800020, #600018)' }}
                         >
                           <TrendingUp size={24} />
                         </div>

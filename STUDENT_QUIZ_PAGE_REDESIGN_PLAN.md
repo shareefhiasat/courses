@@ -20,6 +20,7 @@
 ## 🎯 **Design Goals**
 
 ### **1. Compact Question Palette (Top)**
+
 **Current:** Right sidebar with legend  
 **New:** Horizontal strip at top
 
@@ -32,27 +33,30 @@
 ```
 
 **Benefits:**
+
 - More horizontal space for questions
 - Cleaner, modern look
 - Easy to see all questions at once
 - Compact legend
 
 ### **2. Icon-Only Buttons**
+
 **Current:** "Exit", "Previous", "Next", "Next Unanswered", "Mark", etc.  
 **New:** Icons with tooltips
 
-| Button | Icon | Tooltip |
-|--------|------|---------|
-| Exit | `←` (ArrowLeft) | "Exit Quiz" |
-| Save | `💾` (Save) | "Save Progress" |
-| Previous | `◄` (ChevronLeft) | "Previous Question" |
-| Next | `►` (ChevronRight) | "Next Question" |
-| Next Unanswered | `⊙` (Circle) | "Next Unanswered" |
-| Next Marked | `⚑` (Flag) | "Next Marked" |
-| Mark | `⚑` (Flag) | "Mark for Review" |
-| Submit | `✓` (CheckCircle) | "Submit Quiz" |
+| Button          | Icon               | Tooltip             |
+| --------------- | ------------------ | ------------------- |
+| Exit            | `←` (ArrowLeft)    | "Exit Quiz"         |
+| Save            | `💾` (Save)        | "Save Progress"     |
+| Previous        | `◄` (ChevronLeft)  | "Previous Question" |
+| Next            | `►` (ChevronRight) | "Next Question"     |
+| Next Unanswered | `⊙` (Circle)       | "Next Unanswered"   |
+| Next Marked     | `⚑` (Flag)         | "Next Marked"       |
+| Mark            | `⚑` (Flag)         | "Mark for Review"   |
+| Submit          | `✓` (CheckCircle)  | "Submit Quiz"       |
 
 ### **3. Floating Action Buttons (FABs)**
+
 **Current:** Toolbar buttons at top  
 **New:** FABs in bottom-right corner
 
@@ -63,6 +67,7 @@
 ```
 
 **Style:**
+
 - Circular buttons
 - Purple gradient background
 - Float above content
@@ -70,21 +75,26 @@
 - Expand/collapse animation
 
 ### **4. Expanded Question Area**
+
 **Current:** 70% width (sidebar takes 30%)  
 **New:** 100% width
 
 **Benefits:**
+
 - More space for long questions
 - Better for images and code
 - Cleaner layout
 
 ### **5. Clean Bottom Navigation**
+
 **Current:**
+
 ```
 [Previous] [Next Unanswered] [Next Marked] [Submit Quiz]
 ```
 
 **New:**
+
 ```
 [◄] [⊙] [⚑] [Progress: 0/20] [━━━━━━] [✓]
 ```
@@ -125,15 +135,18 @@
 ### **Phase 1: Top Palette Redesign** (1 hour)
 
 #### **Step 1.1: Create Horizontal Palette Component**
+
 ```jsx
 <div className={styles.topPalette}>
   <div className={styles.paletteHeader}>
     <Button icon={<ArrowLeft />} size="sm" variant="ghost" onClick={exit} />
     <Button icon={<Save />} size="sm" variant="ghost" onClick={saveProgress} />
-    <span className={styles.progress}>Answered: {answeredCount}/{totalQuestions}</span>
+    <span className={styles.progress}>
+      Answered: {answeredCount}/{totalQuestions}
+    </span>
     <span className={styles.timer}>⏱ {formatTime(elapsedTime)}</span>
   </div>
-  
+
   <div className={styles.paletteQuestions}>
     {questions.map((q, i) => (
       <button
@@ -146,16 +159,23 @@
       </button>
     ))}
   </div>
-  
+
   <div className={styles.paletteLegend}>
-    <span><div className={styles.legendCurrent}>●</div> Current</span>
-    <span><CheckCircle size={14} /> Answered</span>
-    <span><Flag size={14} /> Marked</span>
+    <span>
+      <div className={styles.legendCurrent}>●</div> Current
+    </span>
+    <span>
+      <CheckCircle size={14} /> Answered
+    </span>
+    <span>
+      <Flag size={14} /> Marked
+    </span>
   </div>
 </div>
 ```
 
 #### **Step 1.2: Add CSS for Horizontal Layout**
+
 ```css
 .topPalette {
   background: white;
@@ -184,8 +204,8 @@
 }
 
 .paletteQuestions button.current {
-  border-color: #667eea;
-  background: #667eea;
+  border-color: #800020;
+  background: #800020;
   color: white;
 }
 
@@ -207,32 +227,33 @@
 ### **Phase 2: FABs for Tools** (45 min)
 
 #### **Step 2.1: Create FAB Container**
+
 ```jsx
 <div className={styles.fabContainer}>
   {quiz.allowCalculator && (
     <Tooltip content="Calculator">
-      <button 
-        className={`${styles.fab} ${showCalculator ? styles.active : ''}`}
+      <button
+        className={`${styles.fab} ${showCalculator ? styles.active : ""}`}
         onClick={() => setShowCalculator(!showCalculator)}
       >
         <CalcIcon size={20} />
       </button>
     </Tooltip>
   )}
-  
+
   <Tooltip content="Scratch Pad">
-    <button 
-      className={`${styles.fab} ${showScratchPad ? styles.active : ''}`}
+    <button
+      className={`${styles.fab} ${showScratchPad ? styles.active : ""}`}
       onClick={() => setShowScratchPad(!showScratchPad)}
     >
       <Edit3 size={20} />
     </button>
   </Tooltip>
-  
+
   {quiz.formulas && (
     <Tooltip content="Formulas">
-      <button 
-        className={`${styles.fab} ${showFormulas ? styles.active : ''}`}
+      <button
+        className={`${styles.fab} ${showFormulas ? styles.active : ""}`}
         onClick={() => setShowFormulas(!showFormulas)}
       >
         <BookOpen size={20} />
@@ -243,6 +264,7 @@
 ```
 
 #### **Step 2.2: FAB Styles**
+
 ```css
 .fabContainer {
   position: fixed;
@@ -258,7 +280,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800020 0%, #600018 100%);
   color: white;
   border: none;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
@@ -288,6 +310,7 @@
 ### **Phase 3: Icon-Only Bottom Navigation** (45 min)
 
 #### **Step 3.1: Redesign Navigation Bar**
+
 ```jsx
 <div className={styles.bottomNav}>
   <div className={styles.navLeft}>
@@ -300,7 +323,7 @@
         disabled={currentQuestionIndex === 0}
       />
     </Tooltip>
-    
+
     <Tooltip content="Next Unanswered">
       <Button
         icon={<Circle />}
@@ -309,26 +332,21 @@
         onClick={nextUnanswered}
       />
     </Tooltip>
-    
+
     <Tooltip content="Next Marked">
-      <Button
-        icon={<Flag />}
-        size="md"
-        variant="ghost"
-        onClick={nextMarked}
-      />
+      <Button icon={<Flag />} size="md" variant="ghost" onClick={nextMarked} />
     </Tooltip>
   </div>
-  
+
   <div className={styles.navCenter}>
-    <ProgressBar 
-      value={progress} 
+    <ProgressBar
+      value={progress}
       max={100}
       showLabel
       label={`${answeredCount}/${totalQuestions}`}
     />
   </div>
-  
+
   <div className={styles.navRight}>
     <Tooltip content="Next Question">
       <Button
@@ -339,7 +357,7 @@
         disabled={currentQuestionIndex === totalQuestions - 1}
       />
     </Tooltip>
-    
+
     <Tooltip content="Submit Quiz">
       <Button
         icon={<CheckCircle />}
@@ -354,6 +372,7 @@
 ```
 
 #### **Step 3.2: Bottom Nav Styles**
+
 ```css
 .bottomNav {
   position: fixed;
@@ -390,6 +409,7 @@
 ### **Phase 4: Expand Question Area** (30 min)
 
 #### **Step 4.1: Remove Sidebar Layout**
+
 ```jsx
 // OLD: Two-column layout with sidebar
 <div className={styles.quizLayout}>
@@ -408,6 +428,7 @@
 ```
 
 #### **Step 4.2: Update Layout CSS**
+
 ```css
 .questionArea {
   width: 100%;
@@ -427,6 +448,7 @@
 ## 📱 **Mobile Responsiveness**
 
 ### **Adjustments for Small Screens**
+
 ```css
 @media (max-width: 768px) {
   .paletteQuestions button {
@@ -434,21 +456,21 @@
     height: 32px;
     font-size: 0.875rem;
   }
-  
+
   .fabContainer {
     right: 1rem;
     bottom: 80px;
   }
-  
+
   .fab {
     width: 48px;
     height: 48px;
   }
-  
+
   .bottomNav {
     padding: 0 1rem;
   }
-  
+
   .navCenter {
     margin: 0 1rem;
     max-width: 200px;
@@ -480,35 +502,39 @@
 
 ## 🎨 **Color Scheme**
 
-| Element | Color | Usage |
-|---------|-------|-------|
-| Primary Purple | `#667eea` | Current question, active states |
-| Success Green | `#10b981` | Answered questions, submit |
-| Warning Orange | `#f59e0b` | Marked questions |
-| Gray | `#e5e7eb` | Borders, inactive states |
-| White | `#ffffff` | Backgrounds |
-| Text | `#1e293b` | Main text |
+| Element        | Color     | Usage                           |
+| -------------- | --------- | ------------------------------- |
+| Primary Purple | `#800020` | Current question, active states |
+| Success Green  | `#10b981` | Answered questions, submit      |
+| Warning Orange | `#f59e0b` | Marked questions                |
+| Gray           | `#e5e7eb` | Borders, inactive states        |
+| White          | `#ffffff` | Backgrounds                     |
+| Text           | `#1e293b` | Main text                       |
 
 ---
 
 ## 📝 **Implementation Notes**
 
 ### **Key Files to Modify**
+
 1. `client/src/pages/StudentQuizPage.jsx` - Main logic
 2. `client/src/pages/StudentQuizPage.module.css` - All styles
 3. `client/src/components/ui/Tooltip.jsx` - May need to create if doesn't exist
 
 ### **Dependencies**
+
 - `lucide-react` icons (already installed)
 - UI components (Button, ProgressBar, Card, etc.)
 - Tooltip component (create if needed)
 
 ### **Breaking Changes**
+
 - Old question palette on right will be removed
 - Tools toolbar at top will be removed
 - Bottom navigation completely redesigned
 
 ### **Backward Compatibility**
+
 - All existing functionality maintained
 - No data structure changes
 - Same props and state management
@@ -518,12 +544,14 @@
 ## 🚀 **Rollout Strategy**
 
 ### **Option A: Big Bang** (Recommended)
+
 - Implement all changes at once
 - Test thoroughly
 - Deploy as new version
 - Time: 3 hours
 
 ### **Option B: Incremental**
+
 - Phase 1: Top palette (1 hour)
 - Phase 2: FABs (45 min)
 - Phase 3: Bottom nav (45 min)
@@ -535,6 +563,7 @@
 ## 📊 **Expected Improvements**
 
 ### **User Experience**
+
 - ✅ 40% more space for questions
 - ✅ Cleaner, modern interface
 - ✅ Faster navigation (visual question grid)
@@ -542,6 +571,7 @@
 - ✅ Better mobile experience
 
 ### **Performance**
+
 - ✅ Same performance (no new queries)
 - ✅ Lighter DOM (fewer elements)
 - ✅ Smoother animations (CSS transitions)

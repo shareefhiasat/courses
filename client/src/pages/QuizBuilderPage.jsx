@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +12,7 @@ import { notifyQuizAvailable } from '../firebase/quizNotifications';
 import { getEnrollments, getUsers } from '../firebase/firestore';
 import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading } from '../components/ui';
 import ToggleSwitch from '../components/ToggleSwitch';
+import LanguageToggle from '../components/LanguageToggle';
 import styles from './QuizBuilderPage.module.css';
 
 // Simplified question types
@@ -52,23 +53,23 @@ function getDefaultOptions(type = QUESTION_TYPES.MULTIPLE_CHOICE) {
   switch (type) {
     case QUESTION_TYPES.TRUE_FALSE:
       return [
-        { id: '1', text: 'True', correct: false },
-        { id: '2', text: 'False', correct: false }
+        { id: '1', text: 'True', text_en: 'True', text_ar: 'True', correct: false },
+        { id: '2', text: 'False', text_en: 'False', text_ar: 'False', correct: false }
       ];
     case QUESTION_TYPES.SINGLE_CHOICE:
       return [
-        { id: '1', text: '', correct: false },
-        { id: '2', text: '', correct: false },
-        { id: '3', text: '', correct: false },
-        { id: '4', text: '', correct: false }
+        { id: '1', text: '', text_en: '', text_ar: '', correct: false },
+        { id: '2', text: '', text_en: '', text_ar: '', correct: false },
+        { id: '3', text: '', text_en: '', text_ar: '', correct: false },
+        { id: '4', text: '', text_en: '', text_ar: '', correct: false }
       ];
     case QUESTION_TYPES.MULTIPLE_CHOICE:
     default:
       return [
-        { id: '1', text: '', correct: false },
-        { id: '2', text: '', correct: false },
-        { id: '3', text: '', correct: false },
-        { id: '4', text: '', correct: false }
+        { id: '1', text: '', text_en: '', text_ar: '', correct: false },
+        { id: '2', text: '', text_en: '', text_ar: '', correct: false },
+        { id: '3', text: '', text_en: '', text_ar: '', correct: false },
+        { id: '4', text: '', text_en: '', text_ar: '', correct: false }
       ];
   }
 }
@@ -90,10 +91,17 @@ export default function QuizBuilderPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [questionLang, setQuestionLang] = useState('en'); // 'en' or 'ar' for question text
+  const [optionLang, setOptionLang] = useState('en'); // 'en' or 'ar' for option text
+  const [quizLang, setQuizLang] = useState('en'); // 'en' or 'ar' for quiz title/description
 
   const defaultQuizTemplate = useMemo(() => ({
     title: '',
+    title_en: '',
+    title_ar: '',
     description: '',
+    description_en: '',
+    description_ar: '',
     type: QUESTION_TYPES.MULTIPLE_CHOICE,
     difficulty: 'beginner',
     estimatedTime: 10,
@@ -120,6 +128,16 @@ export default function QuizBuilderPage() {
     const questionText = question.question || question.question_en || '';
     const questionTextAr = question.question_ar || questionText;
 
+    // Normalize options to support bilingual text
+    const normalizedOptions = baseOptions.length > 0 
+      ? baseOptions.map(opt => ({
+          ...opt,
+          text: opt.text || opt.text_en || '',
+          text_en: opt.text_en || opt.text || '',
+          text_ar: opt.text_ar || opt.text || ''
+        }))
+      : getDefaultOptions(resolvedType);
+
     return {
       id: question.id || generateUniqueId(),
       type: resolvedType,
@@ -133,8 +151,7 @@ export default function QuizBuilderPage() {
       points: Number.isFinite(question.points) ? question.points : 1,
       timeLimit: Number.isFinite(question.timeLimit) ? question.timeLimit : 0,
       difficulty: question.difficulty || 'medium',
-      topic: question.topic || 'General',
-      options: baseOptions.length > 0 ? baseOptions : getDefaultOptions(resolvedType)
+      options: normalizedOptions
     };
   };
 
@@ -252,6 +269,7 @@ export default function QuizBuilderPage() {
   }, [quizId, initialQuizFromState]);
 
   const loadQuiz = async (id) => {
+    // Ensure we initialize title_en, title_ar, description_en, description_ar when loading
     setLoading(true);
     try {
       const { getQuiz } = await import('../firebase/quizzes');
@@ -271,8 +289,10 @@ export default function QuizBuilderPage() {
   };
 
   const saveQuiz = async () => {
-    if (!quizData.title.trim()) {
-      toast?.showError?.('Please enter a quiz title');
+    const titleEn = (quizData.title_en || quizData.title || '').trim();
+    const titleAr = (quizData.title_ar || quizData.title || '').trim();
+    if (!titleEn || !titleAr) {
+      toast?.showError?.('Please enter quiz title in both English and Arabic');
       return;
     }
     if (quizData.questions.length === 0) {
@@ -307,10 +327,10 @@ export default function QuizBuilderPage() {
       // Sync to Activities collection
       if (targetQuizId) {
         const activityData = {
-          title_en: quizData.title,
-          title_ar: quizData.title,
-          description_en: quizData.description || '',
-          description_ar: quizData.description || '',
+          title_en: quizData.title_en || quizData.title || '',
+          title_ar: quizData.title_ar || quizData.title || '',
+          description_en: quizData.description_en || quizData.description || '',
+          description_ar: quizData.description_ar || quizData.description || '',
           type: 'quiz',
           level: quizData.difficulty,
           internalQuizId: targetQuizId,
@@ -434,16 +454,29 @@ export default function QuizBuilderPage() {
     });
   };
 
-  const updateOption = (questionIndex, optionId, updates) => {
-    const question = quizData.questions[questionIndex];
-    if (!question) return;
-
-    updateQuestion(questionIndex, {
-      options: question.options.map(opt =>
-        opt.id === optionId ? { ...opt, ...updates } : opt
-      )
+  // Also, let's add logging to the updateOption function
+  const updateOption = useCallback((questionIndex, optionId, updates) => {
+    console.log('Updating option:', { questionIndex, optionId, updates });
+    setQuizData(prev => {
+      const updatedQuestions = [...prev.questions];
+      const question = updatedQuestions[questionIndex];
+      if (question) {
+        const optionIndex = question.options.findIndex(opt => opt.id === optionId);
+        if (optionIndex !== -1) {
+          updatedQuestions[questionIndex] = {
+            ...question,
+            options: [
+              ...question.options.slice(0, optionIndex),
+              { ...question.options[optionIndex], ...updates },
+              ...question.options.slice(optionIndex + 1)
+            ]
+          };
+          console.log('Options after update:', updatedQuestions[questionIndex].options);
+        }
+      }
+      return { ...prev, questions: updatedQuestions };
     });
-  };
+  }, []);
 
   const deleteOption = (questionIndex, optionId) => {
     const question = quizData.questions[questionIndex];
@@ -533,7 +566,7 @@ export default function QuizBuilderPage() {
                   ← Back to Edit
                 </Button>
                 <div className={styles.headerSummary}>
-                  <h1 className={styles.quizTitle}>{quizData.title}</h1>
+                  <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.title_ar || quizData.title) : (quizData.title_en || quizData.title)}</h1>
                   {renderMetaChips()}
                 </div>
                 <div className={styles.previewActions}>
@@ -595,7 +628,7 @@ export default function QuizBuilderPage() {
                                 </div>
                                 <div 
                                   className={styles.optionText}
-                                  dangerouslySetInnerHTML={{ __html: option.text || `Option ${oIndex + 1}` }}
+                                  dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (option.text_ar || option.text_en || option.text) : (option.text_en || option.text_ar || option.text)) || `Option ${oIndex + 1}` }}
                                 />
                               </div>
                             ))}
@@ -652,76 +685,40 @@ export default function QuizBuilderPage() {
               </div>
 
               <div className={styles.setupForm}>
+                <LanguageToggle value={quizLang} onChange={setQuizLang} style={{ marginLeft: 'auto', marginBottom: '0.5rem' }} />
                 <div className={styles.formGrid}>
                   <div className={styles.formField}>
                     <Input
-                      placeholder="Quiz Title"
-                      value={quizData.title}
-                      onChange={(e) => setQuizData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder={quizLang === 'en' ? "Quiz Title (English)" : "عنوان الاختبار (عربي)"}
+                      value={quizLang === 'en' ? (quizData.title_en || quizData.title || '') : (quizData.title_ar || quizData.title || '')}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setQuizData(prev => ({
+                          ...prev,
+                          title: quizLang === 'en' ? value : (prev.title_en || prev.title || ''),
+                          [quizLang === 'en' ? 'title_en' : 'title_ar']: value
+                        }));
+                      }}
                       className={styles.titleInput}
                     />
                   </div>
                   <div className={styles.formField}>
                     <Input
-                      placeholder="Quiz Description (optional)"
-                      value={quizData.description}
-                      onChange={(e) => setQuizData(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder={quizLang === 'en' ? "Quiz Description (optional)" : "وصف الاختبار (اختياري)"}
+                      value={quizLang === 'en' ? (quizData.description_en || quizData.description || '') : (quizData.description_ar || quizData.description || '')}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setQuizData(prev => ({
+                          ...prev,
+                          description: quizLang === 'en' ? value : (prev.description_en || prev.description || ''),
+                          [quizLang === 'en' ? 'description_en' : 'description_ar']: value
+                        }));
+                      }}
                       className={styles.descriptionInput}
                     />
                   </div>
                 </div>
 
-                <div className={styles.formRow}>
-                  <Select
-                    value={quizData.difficulty}
-                    onChange={(e) => setQuizData(prev => ({ ...prev, difficulty: e.target.value }))}
-                    options={[
-                      { value: 'beginner', label: 'Beginner' },
-                      { value: 'intermediate', label: 'Intermediate' },
-                      { value: 'advanced', label: 'Advanced' }
-                    ]}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Estimated time (minutes)"
-                    value={quizData.estimatedTime}
-                    onChange={(e) => setQuizData(prev => ({ ...prev, estimatedTime: parseInt(e.target.value) || 10 }))}
-                    min="1"
-                    max="180"
-                  />
-                </div>
-
-                <div className={styles.togglesContainer}>
-                  <ToggleSwitch
-                    label="Beginner"
-                    checked={quizData.difficulty === 'beginner'}
-                    onChange={(checked) => setQuizData(prev => ({ ...prev, difficulty: checked ? 'beginner' : 'intermediate' }))}
-                  />
-                  <ToggleSwitch
-                    label="Allow retake"
-                    checked={quizData.settings?.allowRetake || false}
-                    onChange={(checked) => setQuizData(prev => ({
-                      ...prev,
-                      settings: { ...prev.settings, allowRetake: checked }
-                    }))}
-                  />
-                  <ToggleSwitch
-                    label="Shuffle question order"
-                    checked={quizData.settings?.randomizeOrder || false}
-                    onChange={(checked) => setQuizData(prev => ({
-                      ...prev,
-                      settings: { ...prev.settings, randomizeOrder: checked }
-                    }))}
-                  />
-                  <ToggleSwitch
-                    label="Shuffle answer options"
-                    checked={quizData.settings?.shuffleOptions || false}
-                    onChange={(checked) => setQuizData(prev => ({
-                      ...prev,
-                      settings: { ...prev.settings, shuffleOptions: checked }
-                    }))}
-                  />
-                </div>
               </div>
 
               <div className={styles.setupActions}>
@@ -737,7 +734,7 @@ export default function QuizBuilderPage() {
                     setQuizData(prev => ({ ...prev, type: selectedType }));
                     setStep('build');
                   }}
-                  disabled={!quizData.title.trim()}
+                  disabled={!((quizData.title_en || quizData.title || '').trim() && (quizData.title_ar || quizData.title || '').trim())}
                 >
                   Continue to Questions
                 </Button>
@@ -762,7 +759,7 @@ export default function QuizBuilderPage() {
               ← Back
             </Button>
             <div className={styles.headerSummary}>
-              <h1 className={styles.quizTitle}>{quizData.title}</h1>
+              <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.title_ar || quizData.title) : (quizData.title_en || quizData.title)}</h1>
               {renderMetaChips()}
             </div>
           </div>
@@ -937,34 +934,34 @@ export default function QuizBuilderPage() {
 
                   <div className={styles.questionForm}>
                     <div className={styles.questionTextEditor}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <label style={{ fontSize: 14, fontWeight: 500 }}>
+                          {lang === 'ar' ? 'نص السؤال' : 'Question Text'}
+                        </label>
+                        <LanguageToggle value={questionLang} onChange={setQuestionLang} />
+                      </div>
                       <RichTextEditor
-                        key={`question-text-en-${quizData.questions[activeQuestionIndex]?.id || activeQuestionIndex}`}
-                        label={lang === 'ar' ? 'نص السؤال (إنجليزي)' : 'Question Text (English)'}
-                        placeholder={lang === 'ar' ? 'أدخل سؤالك هنا...' : 'Enter your question here...'}
-                        value={quizData.questions[activeQuestionIndex]?.question_en || quizData.questions[activeQuestionIndex]?.question || ''}
+                        key={`question-text-${questionLang}-${quizData.questions[activeQuestionIndex]?.id || activeQuestionIndex}`}
+                        label={questionLang === 'en' 
+                          ? (lang === 'ar' ? 'نص السؤال (إنجليزي)' : 'Question Text (English)')
+                          : (lang === 'ar' ? 'نص السؤال (عربي)' : 'Question Text (Arabic)')}
+                        placeholder={questionLang === 'en'
+                          ? (lang === 'ar' ? 'أدخل سؤالك هنا...' : 'Enter your question here...')
+                          : (lang === 'ar' ? 'أدخل سؤالك بالعربية هنا...' : 'Enter your question in Arabic here...')}
+                        value={questionLang === 'en'
+                          ? (quizData.questions[activeQuestionIndex]?.question_en || quizData.questions[activeQuestionIndex]?.question || '')
+                          : (quizData.questions[activeQuestionIndex]?.question_ar || '')}
                         onChange={(html) => {
                           const currentQuestion = quizData.questions[activeQuestionIndex];
                           if (currentQuestion && currentQuestion.id) {
-                            updateQuestion(activeQuestionIndex, { 
-                              question: html, // Keep for backward compatibility
-                              question_en: html 
-                            });
-                          }
-                        }}
-                        height={120}
-                        className={styles.questionInput}
-                      />
-                    </div>
-                    <div className={styles.questionTextEditor} style={{ marginTop: '1rem' }}>
-                      <RichTextEditor
-                        key={`question-text-ar-${quizData.questions[activeQuestionIndex]?.id || activeQuestionIndex}`}
-                        label={lang === 'ar' ? 'نص السؤال (عربي)' : 'Question Text (Arabic)'}
-                        placeholder={lang === 'ar' ? 'أدخل سؤالك بالعربية هنا...' : 'Enter your question in Arabic here...'}
-                        value={quizData.questions[activeQuestionIndex]?.question_ar || ''}
-                        onChange={(html) => {
-                          const currentQuestion = quizData.questions[activeQuestionIndex];
-                          if (currentQuestion && currentQuestion.id) {
-                            updateQuestion(activeQuestionIndex, { question_ar: html });
+                            if (questionLang === 'en') {
+                              updateQuestion(activeQuestionIndex, { 
+                                question: html, // Keep for backward compatibility
+                                question_en: html 
+                              });
+                            } else {
+                              updateQuestion(activeQuestionIndex, { question_ar: html });
+                            }
                           }
                         }}
                         height={120}
@@ -972,19 +969,22 @@ export default function QuizBuilderPage() {
                       />
                     </div>
 
-                    <div className={styles.optionsSection}>
-                      <div className={styles.optionsHeader}>
+                      <div className={styles.optionsSection}>
+                      <div className={styles.optionsHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h4>Answer Options</h4>
-                        {quizData.questions[activeQuestionIndex]?.type !== QUESTION_TYPES.TRUE_FALSE && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addOption(activeQuestionIndex)}
-                            title="Add option"
-                          >
-                            <Plus size={14} />
-                          </Button>
-                        )}
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <LanguageToggle value={optionLang} onChange={setOptionLang} />
+                          {quizData.questions[activeQuestionIndex]?.type !== QUESTION_TYPES.TRUE_FALSE && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addOption(activeQuestionIndex)}
+                              title="Add option"
+                            >
+                              <Plus size={14} />
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       <div className={styles.optionsList}>
@@ -1005,17 +1005,26 @@ export default function QuizBuilderPage() {
                               </button>
                               <div style={{ flex: 1 }}>
                                 <RichTextEditor
-                                  key={`option-${option.id}-${quizData.questions[activeQuestionIndex]?.id || activeQuestionIndex}`}
-                                  placeholder={`Option ${optIndex + 1}`}
-                                  value={option.text || ''}
-                                  onChange={(html) => {
-                                    const currentQuestion = quizData.questions[activeQuestionIndex];
-                                    if (currentQuestion && currentQuestion.id && option.id) {
-                                      updateOption(activeQuestionIndex, option.id, { text: html });
-                                    }
-                                  }}
-                                  height={100}
-                                  className={styles.optionInput}
+                                    key={`option-${option.id}-${optionLang}-${activeQuestionIndex}-${quizData.questions[activeQuestionIndex]?.id || 'new'}`}
+                                    placeholder={`Option ${optIndex + 1}`}
+                                    value={optionLang === 'en' 
+                                      ? (option.text_en || option.text || '')
+                                      : (option.text_ar || option.text || '')}
+                                    onChange={(html) => {
+                                      const currentQuestion = quizData.questions[activeQuestionIndex];
+                                      if (currentQuestion && currentQuestion.id && option.id) {
+                                        if (optionLang === 'en') {
+                                          updateOption(activeQuestionIndex, option.id, { 
+                                            text: html, // Keep for backward compatibility
+                                            text_en: html 
+                                          });
+                                        } else {
+                                          updateOption(activeQuestionIndex, option.id, { text_ar: html });
+                                        }
+                                      }
+                                    }}
+                                    height={100}
+                                    className={styles.optionInput}
                                 />
                               </div>
                               {quizData.questions[activeQuestionIndex]?.type !== QUESTION_TYPES.TRUE_FALSE && (
@@ -1050,7 +1059,7 @@ export default function QuizBuilderPage() {
                         />
                       </div>
                       <div className={styles.settingRow}>
-                        <label>Time Limit (seconds)</label>
+                        <label>Time Limit (seconds per question, 0 = unlimited)</label>
                         <Input
                           type="number"
                           value={quizData.questions[activeQuestionIndex]?.timeLimit || 0}
@@ -1058,8 +1067,13 @@ export default function QuizBuilderPage() {
                           min="0"
                           max="600"
                           placeholder="No limit"
-                          style={{ width: '120px' }}
+                          style={{ width: '150px' }}
                         />
+                        {quizData.questions[activeQuestionIndex]?.timeLimit > 0 && (
+                          <span style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+                            (Total: {Math.round((quizData.questions[activeQuestionIndex]?.timeLimit || 0) * quizData.questions.length / 60)} min)
+                          </span>
+                        )}
                       </div>
                       <div className={styles.settingRow}>
                         <label>Difficulty</label>
@@ -1074,14 +1088,34 @@ export default function QuizBuilderPage() {
                           style={{ width: '120px' }}
                         />
                       </div>
-                      <div className={styles.settingRow}>
-                        <label>Topic</label>
-                        <Input
-                          type="text"
-                          value={quizData.questions[activeQuestionIndex]?.topic || 'General'}
-                          onChange={(e) => updateQuestion(activeQuestionIndex, { topic: e.target.value })}
-                          placeholder="e.g., Algebra, History"
-                          style={{ width: '180px' }}
+                    </div>
+
+                    <div className={styles.quizSettingsSection} style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
+                      <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Quiz Settings</h4>
+                      <div className={styles.togglesContainer}>
+                        <ToggleSwitch
+                          label="Allow retake"
+                          checked={quizData.settings?.allowRetake || false}
+                          onChange={(checked) => setQuizData(prev => ({
+                            ...prev,
+                            settings: { ...prev.settings, allowRetake: checked }
+                          }))}
+                        />
+                        <ToggleSwitch
+                          label="Shuffle question order"
+                          checked={quizData.settings?.randomizeOrder || false}
+                          onChange={(checked) => setQuizData(prev => ({
+                            ...prev,
+                            settings: { ...prev.settings, randomizeOrder: checked }
+                          }))}
+                        />
+                        <ToggleSwitch
+                          label="Shuffle answer options"
+                          checked={quizData.settings?.shuffleOptions || false}
+                          onChange={(checked) => setQuizData(prev => ({
+                            ...prev,
+                            settings: { ...prev.settings, shuffleOptions: checked }
+                          }))}
                         />
                       </div>
                     </div>
@@ -1133,7 +1167,7 @@ export default function QuizBuilderPage() {
                   ← Back to Edit
                 </Button>
                 <div>
-                  <h1 className={styles.quizTitle}>{quizData.title}</h1>
+                  <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.title_ar || quizData.title) : (quizData.title_en || quizData.title)}</h1>
                   <p className={styles.quizMeta}>
                     {quizData.questions.length} questions • {quizData.estimatedTime} min • {quizData.difficulty}
                   </p>

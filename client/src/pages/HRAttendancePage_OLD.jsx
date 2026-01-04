@@ -319,7 +319,7 @@ const HRAttendancePage = () => {
                         {mark.reason && <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}><strong>Reason:</strong> {mark.reason}</div>}
                         {mark.feedback && <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}><strong>Feedback:</strong> {mark.feedback}</div>}
                         {!isEditing && (
-                          <button onClick={() => { setEditingMark(mark); setReason(mark.reason || ''); setFeedback(mark.feedback || ''); }} style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border)', borderRadius: 6, background: '#667eea', color: 'white', fontSize: 12, fontWeight: 600, marginTop: 8 }}>
+                          <button onClick={() => { setEditingMark(mark); setReason(mark.reason || ''); setFeedback(mark.feedback || ''); }} style={{ padding: '0.4rem 0.75rem', border: '1px solid var(--border)', borderRadius: 6, background: '#800020', color: 'white', fontSize: 12, fontWeight: 600, marginTop: 8 }}>
                             {t('edit') || 'Edit'}
                           </button>
                         )}

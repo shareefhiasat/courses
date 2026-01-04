@@ -153,83 +153,81 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
       open={open}
       onClose={onClose}
       title="📧 Smart Email Composer"
-      size="large"
+      size="fullscreen"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: 'calc(100vh - 120px)', overflow: 'hidden' }}>
         
-        {/* Quick Class Selection */}
-        <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
-          <h4 style={{ margin: '0 0 0.75rem 0', color: '#800020' }}>📚 Quick Select by Class</h4>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {classes.map(cls => {
-              const enrollmentCount = enrollments.filter(e => e.classId === (cls.docId || cls.id)).length;
-              return (
-                <button
-                  key={cls.docId || cls.id}
-                  onClick={() => handleSelectClass(cls.docId || cls.id)}
-                  style={{
-                    padding: '8px 12px',
-                    background: 'white',
-                    border: '2px solid #800020',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    color: '#800020'
-                  }}
-                >
-                  {cls.name} ({enrollmentCount})
-                </button>
-              );
-            })}
+        {/* Compact Header Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          {/* Quick Class Selection */}
+          <div style={{ background: '#f8f9fa', padding: '0.75rem', borderRadius: '6px' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#800020', marginBottom: '0.5rem' }}>📚 Quick Select by Class</div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {classes.map(cls => {
+                const enrollmentCount = enrollments.filter(e => e.classId === (cls.docId || cls.id)).length;
+                return (
+                  <button
+                    key={cls.docId || cls.id}
+                    onClick={() => handleSelectClass(cls.docId || cls.id)}
+                    style={{
+                      padding: '6px 10px',
+                      background: 'white',
+                      border: '1px solid #800020',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: '#800020'
+                    }}
+                  >
+                    {cls.name} ({enrollmentCount})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div style={{ background: '#f8f9fa', padding: '0.75rem', borderRadius: '6px' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#800020', marginBottom: '0.5rem' }}>🔍 Filter Recipients</div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Input
+                type="text"
+                placeholder="Search by name or email..."
+                value={filters.searchTerm}
+                onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
+                style={{ flex: 1 }}
+              />
+              <Button
+                onClick={handleSelectAll}
+                variant="primary"
+                size="sm"
+              >
+                ✓ Select All ({filteredUsers.length})
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
-          <h4 style={{ margin: '0 0 0.75rem 0', color: '#800020' }}>🔍 Filter Recipients</h4>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <Input
-              type="text"
-              placeholder="Search by name or email..."
-              value={filters.searchTerm}
-              onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-            />
-            <button
-              onClick={handleSelectAll}
-              style={{
-                padding: '8px 16px',
-                background: 'linear-gradient(135deg, #800020, #600018)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600
-              }}
-            >
-              ✓ Select All Filtered ({filteredUsers.length})
-            </button>
-          </div>
-        </div>
-
-        {/* Selected Recipients */}
-        <div>
-          <label style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block', color: '#800020' }}>
+        {/* Selected Recipients - Compact */}
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: '#800020' }}>
             📬 Recipients ({emailData.to.length})
-          </label>
+          </div>
           <div style={{ 
-            minHeight: '60px',
-            maxHeight: '150px',
+            minHeight: '50px',
+            maxHeight: '100px',
             overflowY: 'auto',
-            padding: '8px',
-            border: '2px dashed #ddd',
-            borderRadius: '6px',
+            padding: '6px',
+            border: '1px dashed #ddd',
+            borderRadius: '4px',
             display: 'flex',
             flexWrap: 'wrap',
-            gap: '6px'
+            gap: '4px',
+            background: '#fafafa'
           }}>
             {emailData.to.length === 0 ? (
-              <span style={{ color: '#999', fontSize: '0.9rem' }}>No recipients selected</span>
+              <span style={{ color: '#999', fontSize: '0.8rem' }}>No recipients selected</span>
             ) : (
               emailData.to.map(email => (
                 <div
@@ -237,9 +235,9 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
                   style={{
                     background: '#fff0f3',
                     color: '#800020',
-                    padding: '4px 8px',
-                    borderRadius: '16px',
-                    fontSize: '0.85rem',
+                    padding: '3px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -254,9 +252,10 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
                       border: 'none',
                       color: '#800020',
                       cursor: 'pointer',
-                      padding: '0 4px',
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold'
+                      padding: '0',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      lineHeight: 1
                     }}
                   >
                     ×
@@ -267,11 +266,9 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
           </div>
         </div>
 
-        {/* Subject */}
-        <div>
-          <label style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>
-            📝 Subject
-          </label>
+        {/* Subject - Compact */}
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>📝 Subject</div>
           <Input
             type="text"
             value={emailData.subject}
@@ -281,25 +278,17 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
           />
         </div>
 
-        {/* HTML Body */}
-        <div>
+        {/* HTML Body - Full Height */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <label style={{ fontWeight: 600 }}>
-              ✉️ Email Content (HTML)
-            </label>
-            <button
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>✉️ Email Content (HTML)</div>
+            <Button
               onClick={() => setShowPreview(!showPreview)}
-              style={{
-                padding: '6px 12px',
-                background: '#f0f0f0',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.85rem'
-              }}
+              variant="outline"
+              size="sm"
             >
               {showPreview ? '📝 Edit' : '👁️ Preview'}
-            </button>
+            </Button>
           </div>
           
           {!showPreview ? (
@@ -307,17 +296,17 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
               value={emailData.htmlBody}
               onChange={(e) => setEmailData(prev => ({ ...prev, htmlBody: e.target.value }))}
               placeholder="Paste your HTML here... You can use variables: %DISPLAY_NAME%, %EMAIL%, %APP_NAME%"
-              rows={12}
+              style={{ flex: 1, minHeight: 0, fontFamily: 'monospace', fontSize: '0.85rem' }}
               fullWidth
             />
           ) : (
             <div
               style={{
-                width: '100%',
-                minHeight: '300px',
-                padding: '20px',
-                borderRadius: '6px',
-                border: '2px solid #800020',
+                flex: 1,
+                minHeight: 0,
+                padding: '16px',
+                borderRadius: '4px',
+                border: '1px solid #800020',
                 background: 'white',
                 overflow: 'auto'
               }}
@@ -329,17 +318,18 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
               }}
             />
           )}
-          <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
-            💡 Available variables: <code>%DISPLAY_NAME%</code>, <code>%EMAIL%</code>, <code>%APP_NAME%</code>
+          <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.5rem' }}>
+            💡 Variables: <code>%DISPLAY_NAME%</code>, <code>%EMAIL%</code>, <code>%APP_NAME%</code>
           </div>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
+        {/* Actions - Fixed Footer */}
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid #eee', paddingTop: '0.75rem', flexShrink: 0 }}>
           <Button
             variant="outline"
             onClick={onClose}
             disabled={loading}
+            size="sm"
           >
             Cancel
           </Button>
@@ -347,8 +337,9 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
             variant="primary"
             onClick={handleSend}
             disabled={loading || emailData.to.length === 0}
+            size="sm"
           >
-            {loading ? '📤 Sending...' : `📧 Send to ${emailData.to.length} Recipients`}
+            {loading ? '📤 Sending...' : `📧 Send to ${emailData.to.length}`}
           </Button>
         </div>
       </div>

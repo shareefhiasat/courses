@@ -24,6 +24,10 @@
   padding: 2.5rem 1rem;
 }
 
+.darkHero {
+  background: linear-gradient(135deg, #800020 0%, #600018 100%);
+}
+
 .heroTopRow {
   display: flex;
   justify-content: flex-end;

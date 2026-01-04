@@ -133,7 +133,7 @@ const VariableHelper = ({ templateType = 'custom' }) => {
             onClick={() => setActiveCategory(category)}
             style={{
               padding: '6px 12px',
-              background: activeCategory === category ? '#667eea' : '#f8f9fa',
+              background: activeCategory === category ? '#800020' : '#f8f9fa',
               color: activeCategory === category ? 'white' : '#666',
               border: 'none',
               borderRadius: 6,
@@ -150,7 +150,7 @@ const VariableHelper = ({ templateType = 'custom' }) => {
 
       {/* Active Category Variables */}
       <div>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#667eea', fontSize: '1rem' }}>
+        <h4 style={{ margin: '0 0 0.5rem 0', color: '#800020', fontSize: '1rem' }}>
           {variables[activeCategory].title}
         </h4>
         <p style={{ margin: '0 0 1rem 0', color: '#999', fontSize: '0.85rem' }}>
@@ -172,7 +172,7 @@ const VariableHelper = ({ templateType = 'custom' }) => {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#e7f3ff';
-                e.currentTarget.style.borderColor = '#667eea';
+                e.currentTarget.style.borderColor = '#800020';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = '#f8f9fa';
@@ -185,7 +185,7 @@ const VariableHelper = ({ templateType = 'custom' }) => {
                   padding: '4px 8px',
                   borderRadius: 4,
                   fontSize: '0.85rem',
-                  color: '#667eea',
+                  color: '#800020',
                   fontWeight: 600
                 }}>
                   {`{{${variable.name}}}`}

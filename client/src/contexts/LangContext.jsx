@@ -10,6 +10,11 @@ const LangContext = createContext({
 
 const DICT = {
   en: {
+    // Tooltips
+    'info_tooltip.trigger_aria_label': 'Show information',
+    'submissions.tooltip': 'Includes: Quizzes, Homework assignments, Projects, Essays, Lab reports, and other course-related work',
+    
+    // UI Elements
     admin_dashboard: 'Admin Dashboard',
     manage_platform: 'Manage your learning platform',
     activities: 'Activities',
@@ -110,7 +115,12 @@ const DICT = {
     no_students_match: 'No students match your search criteria.',
     detailed_progress: 'Detailed Progress',
     status: 'Status',
-    score: 'Score',
+    status_active: 'Active',
+    status_disabled: 'Disabled',
+    status_archived: 'Archived',
+    program: 'Program',
+    subject: 'Subject',
+    type: 'Type',
     completed_at: 'Completed At',
     notes: 'Notes',
     activities_completed: 'Activities Completed',
@@ -137,7 +147,6 @@ const DICT = {
     completed: 'Completed',
     pending: 'Pending',
     featured: 'Featured',
-    type: 'Type',
     level: 'Level',
     all_types: 'All Types',
     all_levels: 'All Levels',
@@ -529,6 +538,11 @@ const DICT = {
     role_access_updated: 'Role access updated successfully',
   },
   ar: {
+    // Tooltips
+    'info_tooltip.trigger_aria_label': 'عرض المعلومات',
+    'submissions.tooltip': 'يتضمن: الاختبارات القصيرة، الواجبات المنزلية، المشاريع، المقالات، تقارير المختبر، وأعمال أخرى متعلقة بالدورة',
+    
+    // UI Elements
     admin_dashboard: 'لوحة تحكم المشرف',
     manage_platform: 'إدارة منصة التعلم',
     activities: 'الأنشطة',
@@ -630,7 +644,10 @@ const DICT = {
     no_students_match: 'لا يوجد طلاب مطابقون لبحثك.',
     detailed_progress: 'تفاصيل التقدم',
     status: 'الحالة',
-    score: 'الدرجة',
+    status_active: 'نشط',
+    status_disabled: 'معطل',
+    status_archived: 'مؤرشف',
+    type: 'النوع',
     completed_at: 'تاريخ الإكمال',
     notes: 'ملاحظات',
     activities_completed: 'الأنشطة المكتملة',

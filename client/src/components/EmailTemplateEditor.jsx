@@ -329,7 +329,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                         background: '#e7f3ff',
                         borderRadius: 4,
                         fontSize: '0.8rem',
-                        color: '#667eea',
+                        color: '#800020',
                         fontFamily: 'monospace'
                       }}
                     >
@@ -347,7 +347,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
               disabled={loading}
               style={{
                 padding: '12px 24px',
-                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                background: 'linear-gradient(135deg, #800020, #600018)',
                 color: 'white',
                 border: 'none',
                 borderRadius: 8,
@@ -460,7 +460,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
             {/* Header */}
             <div style={{
               padding: '1.5rem',
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              background: 'linear-gradient(135deg, #800020, #600018)',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',

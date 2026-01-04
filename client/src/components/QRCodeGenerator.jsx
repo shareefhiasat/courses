@@ -83,7 +83,7 @@ export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) 
           onClick={handleCopyLink}
           style={{
             padding: '0.75rem 1.5rem',
-            background: '#667eea',
+            background: '#800020',
             color: 'white',
             border: 'none',
             borderRadius: 8,

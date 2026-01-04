@@ -199,7 +199,7 @@ const ClassSchedulePage = () => {
                         padding: '0.75rem',
                         border: '1px solid var(--border)',
                         borderRadius: 8,
-                        background: schedule.frequency === opt.value ? '#667eea' : '#fff',
+                        background: schedule.frequency === opt.value ? '#800020' : '#fff',
                         color: schedule.frequency === opt.value ? 'white' : 'inherit',
                         fontWeight: 600,
                         cursor: 'pointer'
@@ -336,7 +336,7 @@ const ClassSchedulePage = () => {
                   padding: '1rem',
                   border: 'none',
                   borderRadius: 8,
-                  background: schedule.days.length === 0 ? '#9ca3af' : '#667eea',
+                  background: schedule.days.length === 0 ? '#9ca3af' : '#800020',
                   color: 'white',
                   fontWeight: 600,
                   fontSize: 16,

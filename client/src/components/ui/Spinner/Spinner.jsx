@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../../../contexts/AuthContext';
 import styles from './Spinner.module.css';
 
 /**
@@ -22,6 +23,8 @@ const Spinner = ({
   label = 'Loading...',
   className = '',
 }) => {
+  const { userAccentColor } = useAuth();
+  const primaryColor = userAccentColor || '#800020';
   const spinnerClasses = [
     styles.spinner,
     styles[size],
@@ -29,22 +32,24 @@ const Spinner = ({
     styles[variant],
     className
   ].filter(Boolean).join(' ');
+  
+  const spinnerStyle = color === 'primary' ? { color: primaryColor, borderTopColor: primaryColor } : {};
 
   const renderSpinner = () => {
     switch (variant) {
       case 'dots':
         return (
-          <div className={spinnerClasses}>
-            <div className={styles.dot}></div>
-            <div className={styles.dot}></div>
-            <div className={styles.dot}></div>
+          <div className={spinnerClasses} style={spinnerStyle}>
+            <div className={styles.dot} style={{ backgroundColor: primaryColor }}></div>
+            <div className={styles.dot} style={{ backgroundColor: primaryColor }}></div>
+            <div className={styles.dot} style={{ backgroundColor: primaryColor }}></div>
           </div>
         );
       case 'pulse':
-        return <div className={spinnerClasses}></div>;
+        return <div className={spinnerClasses} style={{ ...spinnerStyle, backgroundColor: primaryColor }}></div>;
       case 'circle':
       default:
-        return <div className={spinnerClasses}></div>;
+        return <div className={spinnerClasses} style={spinnerStyle}></div>;
     }
   };
 

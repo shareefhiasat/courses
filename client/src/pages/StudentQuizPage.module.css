@@ -48,7 +48,11 @@
   padding: 3rem;
   align-items: center;
   text-align: center;
-  background: radial-gradient(circle at top left, rgba(139, 92, 246, 0.12), transparent 55%);
+  background: radial-gradient(
+    circle at top left,
+    rgba(139, 92, 246, 0.12),
+    transparent 55%
+  );
 }
 
 .startContent .quizHeader {
@@ -120,9 +124,9 @@
 }
 
 .toolsToolbar button.active {
-  background: #667eea;
+  background: #800020;
   color: white;
-  border-color: #667eea;
+  border-color: #800020;
 }
 
 .quizTaking .quizHeader {
@@ -432,7 +436,11 @@
   gap: 2.5rem;
   padding: 3rem 3.5rem;
   text-align: center;
-  background: radial-gradient(circle at top right, rgba(234, 179, 8, 0.16), transparent 55%);
+  background: radial-gradient(
+    circle at top right,
+    rgba(234, 179, 8, 0.16),
+    transparent 55%
+  );
 }
 
 .resultsHeader {

@@ -1,0 +1,81 @@
+/* Custom theme styles for buttons and form controls */
+
+/* Primary button styles */
+button[type="submit"],
+button.primary,
+button[data-variant="primary"] {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+}
+
+button[type="submit"]:hover,
+button.primary:hover,
+button[data-variant="primary"]:hover {
+  background-color: var(--primary-600);
+  border-color: var(--primary-600);
+}
+
+button[type="submit"]:active,
+button.primary:active,
+button[data-variant="primary"]:active {
+  background-color: var(--primary-700);
+  border-color: var(--primary-700);
+}
+
+/* Radio button styles */
+input[type="radio"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+input[type="radio"]:checked {
+  border-color: var(--primary-500);
+}
+
+input[type="radio"]:checked::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--primary-500);
+  transform: scale(0);
+  transition: transform 0.2s ease-in-out;
+}
+
+input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+
+/* Focus styles for accessibility */
+input[type="radio"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(var(--primary-500-rgb), 0.2);
+}
+
+/* Add CSS variables for primary color with RGB values */
+:root {
+  --primary-500: #3b82f6; /* Default blue-500 */
+  --primary-600: #2563eb; /* Default blue-600 */
+  --primary-700: #1d4ed8; /* Default blue-700 */
+  --primary-500-rgb: 59, 130, 246; /* RGB values for primary-500 */
+}
+
+/* Update the variables when the primary color changes */
+[data-theme] {
+  --primary-500: var(--primary-500, #3b82f6);
+  --primary-600: var(--primary-600, #2563eb);
+  --primary-700: var(--primary-700, #1d4ed8);
+  --primary-500-rgb: var(--primary-500-rgb, 59, 130, 246);
+}

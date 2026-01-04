@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { collection, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
+import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
 import AreaChart from './charts/AreaChart';
-import { Plus, X, Download, Filter, BarChart3, LineChart as LineIcon, PieChart as PieIcon, TrendingUp, Save, Trash2, GripVertical } from 'lucide-react';
-import { Select, YearSelect, Loading } from './ui';
+import { Plus, X, Download, Filter, BarChart3, LineChart as LineIcon, PieChart as PieIcon, TrendingUp, Save, Trash2, GripVertical, Calendar } from 'lucide-react';
+import { Select, YearSelect, Loading, DateRangeSlider } from './ui';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 
@@ -41,6 +42,74 @@ function ChartSizer({ children }) {
 export default function AdvancedAnalytics() {
   const { t } = useLang();
   const { user, isAdmin } = useAuth();
+  const [userAccentColor, setUserAccentColor] = useState(null); // Start with null to avoid flash of wrong color
+  
+  // Load user's accent color
+  useEffect(() => {
+    if (!user?.uid) {
+      // Try to get from localStorage cache first
+      try {
+        const cachedColor = localStorage.getItem(`accent_color_${user?.uid}`);
+        if (cachedColor) {
+          setUserAccentColor(normalizeHexColor(cachedColor, DEFAULT_ACCENT));
+          return;
+        }
+      } catch {}
+      setUserAccentColor(DEFAULT_ACCENT);
+      return;
+    }
+    
+    // Try localStorage cache first for instant load
+    try {
+      const cachedColor = localStorage.getItem(`accent_color_${user.uid}`);
+      if (cachedColor) {
+        setUserAccentColor(normalizeHexColor(cachedColor, DEFAULT_ACCENT));
+      }
+    } catch {}
+    
+    const loadAccentColor = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          const color = normalizeHexColor(data.messageColor, DEFAULT_ACCENT);
+          setUserAccentColor(color);
+          // Cache in localStorage
+          try {
+            localStorage.setItem(`accent_color_${user.uid}`, color);
+          } catch {}
+        } else {
+          setUserAccentColor(DEFAULT_ACCENT);
+        }
+      } catch (e) {
+        console.warn('[AdvancedAnalytics] Error loading accent color:', e);
+        setUserAccentColor(DEFAULT_ACCENT);
+      }
+    };
+    loadAccentColor();
+    
+    // Listen for accent color changes
+    const handler = (e) => {
+      if (e?.detail?.color) {
+        const color = normalizeHexColor(e.detail.color, DEFAULT_ACCENT);
+        setUserAccentColor(color);
+        try {
+          localStorage.setItem(`accent_color_${user.uid}`, color);
+        } catch {}
+      }
+    };
+    window.addEventListener('accent-color-changed', handler);
+    return () => window.removeEventListener('accent-color-changed', handler);
+  }, [user]);
+  
+  // Use userAccentColor or fallback to DEFAULT_ACCENT
+  // Only use DEFAULT_ACCENT if userAccentColor is explicitly null (not loaded yet)
+  const accentColor = userAccentColor !== null ? (userAccentColor || DEFAULT_ACCENT) : DEFAULT_ACCENT;
+  
+  // Debug log
+  useEffect(() => {
+    console.log('🎨 [AdvancedAnalytics] Accent color:', accentColor, 'userAccentColor:', userAccentColor, 'DEFAULT_ACCENT:', DEFAULT_ACCENT);
+  }, [accentColor, userAccentColor]);
   
   const [loading, setLoading] = useState(false);
   const [permErrors, setPermErrors] = useState({});
@@ -57,7 +126,7 @@ export default function AdvancedAnalytics() {
     notifications: [],
     emailLogs: []
   });
-  const [globalFilters, setGlobalFilters] = useState({ classId: '', term: '', year: '' });
+  const [globalFilters, setGlobalFilters] = useState({ classId: '', term: '', year: '', programId: '', subjectId: '', semester: '' });
   
   const [widgets, setWidgets] = useState([]);
   const [showBuilder, setShowBuilder] = useState(false);
@@ -111,7 +180,7 @@ export default function AdvancedAnalytics() {
     setLoading(true);
     try {
       const errors = {};
-      const next = { activities: [], submissions: [], users: [], classes: [], attendance: [], activityLogs: [], enrollments: [], quizzes: [], quizSubmissions: [], notifications: [], emailLogs: [] };
+      const next = { activities: [], submissions: [], users: [], classes: [], attendance: [], activityLogs: [], enrollments: [], quizzes: [], quizSubmissions: [], notifications: [], emailLogs: [], programs: [], subjects: [], penalties: [], absences: [], studentMarks: [] };
 
       const safeLoad = async (key, loader) => {
         try {
@@ -124,6 +193,8 @@ export default function AdvancedAnalytics() {
         }
       };
 
+      const { getPrograms, getSubjects } = await import('../firebase/programs');
+      
       await Promise.all([
         safeLoad('activities', () => getDocs(collection(db, 'activities'))),
         safeLoad('submissions', () => getDocs(collection(db, 'submissions'))),
@@ -135,7 +206,18 @@ export default function AdvancedAnalytics() {
         safeLoad('quizzes', () => getDocs(collection(db, 'quizzes'))),
         safeLoad('quizSubmissions', () => getDocs(collection(db, 'quizSubmissions'))),
         safeLoad('notifications', () => getDocs(query(collection(db, 'notifications'), orderBy('createdAt', 'desc')))),
-        safeLoad('emailLogs', () => getDocs(query(collection(db, 'emailLogs'), orderBy('timestamp', 'desc'))))
+        safeLoad('emailLogs', () => getDocs(query(collection(db, 'emailLogs'), orderBy('timestamp', 'desc')))),
+        safeLoad('programs', async () => {
+          const res = await getPrograms();
+          return { docs: (res.data || []).map(p => ({ id: p.docId, data: () => p })) };
+        }),
+        safeLoad('subjects', async () => {
+          const res = await getSubjects();
+          return { docs: (res.data || []).map(s => ({ id: s.docId, data: () => s })) };
+        }),
+        safeLoad('penalties', () => getDocs(collection(db, 'penalties'))),
+        safeLoad('absences', () => getDocs(collection(db, 'absences'))),
+        safeLoad('studentMarks', () => getDocs(collection(db, 'studentMarks')))
       ]);
 
       setRawData(next);
@@ -204,6 +286,17 @@ export default function AdvancedAnalytics() {
     if (globalFilters.term) dataset = dataset.filter(i => (i.term || i.sessionTerm) === globalFilters.term);
     if (globalFilters.year) dataset = dataset.filter(i => String(i.year || i.academicYear) === String(globalFilters.year));
     if (globalFilters.semester) dataset = dataset.filter(i => (i.semester || i.sessionSemester) === globalFilters.semester);
+    if (globalFilters.programId) {
+      // Filter by program - need to check if class/subject belongs to program
+      const programClasses = rawData.classes.filter(c => c.programId === globalFilters.programId).map(c => c.docId || c.id);
+      const programSubjects = rawData.subjects.filter(s => s.programId === globalFilters.programId).map(s => s.docId || s.id);
+      dataset = dataset.filter(i => {
+        const classId = i.classId || i.class || i.class_id;
+        const subjectId = i.subjectId || i.subject || i.subject_id;
+        return programClasses.includes(classId) || programSubjects.includes(subjectId);
+      });
+    }
+    if (globalFilters.subjectId) dataset = dataset.filter(i => (i.subjectId || i.subject || i.subject_id) === globalFilters.subjectId);
 
     // Apply filters
     filters.forEach(filter => {
@@ -223,16 +316,24 @@ export default function AdvancedAnalytics() {
 
     // Apply date range with comparison offset
     if (dateRange && dateRange !== 'all') {
-      const now = Date.now();
-      const ranges = {
-        today: 24 * 60 * 60 * 1000,
-        last7: 7 * 24 * 60 * 60 * 1000,
-        last30: 30 * 24 * 60 * 60 * 1000,
-        last90: 90 * 24 * 60 * 60 * 1000
-      };
-      const rangeMs = ranges[dateRange] || 0;
-      const cutoff = now - rangeMs - (comparisonOffset * rangeMs);
-      const upperBound = comparisonOffset > 0 ? now - (comparisonOffset * rangeMs) : now;
+      let cutoff, upperBound;
+      
+      // Check if custom dates are provided
+      if (dateRange === 'custom' && widget.customDateFrom && widget.customDateTo) {
+        cutoff = new Date(widget.customDateFrom).getTime();
+        upperBound = new Date(widget.customDateTo).getTime() + (24 * 60 * 60 * 1000) - 1; // End of day
+      } else {
+        const now = Date.now();
+        const ranges = {
+          today: 24 * 60 * 60 * 1000,
+          last7: 7 * 24 * 60 * 60 * 1000,
+          last30: 30 * 24 * 60 * 60 * 1000,
+          last90: 90 * 24 * 60 * 60 * 1000
+        };
+        const rangeMs = ranges[dateRange] || 0;
+        cutoff = now - rangeMs - (comparisonOffset * rangeMs);
+        upperBound = comparisonOffset > 0 ? now - (comparisonOffset * rangeMs) : now;
+      }
       
       dataset = dataset.filter(item => {
         const timestamp = item.when?.seconds ? item.when.seconds * 1000 : 
@@ -288,6 +389,83 @@ export default function AdvancedAnalytics() {
           grouped[key] = (grouped[key] || 0) + 1;
         }
       });
+    } else if (dataSource === 'penalties') {
+      if (groupBy === 'penaltyType' || groupBy === 'type') {
+        dataset.forEach(item => {
+          const penaltyType = item.type || 'Unknown';
+          const typeLabel = PENALTY_TYPES.find(pt => pt.id === penaltyType)?.label_en || penaltyType;
+          grouped[typeLabel] = (grouped[typeLabel] || 0) + 1;
+        });
+      } else {
+        dataset.forEach(item => {
+          const key = item[groupBy] || 'Unknown';
+          grouped[key] = (grouped[key] || 0) + 1;
+        });
+      }
+    } else if (dataSource === 'absences') {
+      if (groupBy === 'absenceType' || groupBy === 'type') {
+        dataset.forEach(item => {
+          const absenceType = item.type || 'Unknown';
+          const typeLabel = ABSENCE_TYPES.find(at => at.id === absenceType)?.label_en || absenceType;
+          grouped[typeLabel] = (grouped[typeLabel] || 0) + 1;
+        });
+      } else {
+        dataset.forEach(item => {
+          const key = item[groupBy] || 'Unknown';
+          grouped[key] = (grouped[key] || 0) + 1;
+        });
+      }
+    } else if (dataSource === 'studentMarks') {
+      if (groupBy === 'markType') {
+        dataset.forEach(item => {
+          ['midTermExam', 'finalExam', 'homework', 'labsProjectResearch', 'quizzes', 'participation', 'attendance'].forEach(key => {
+            if (typeof item[key] === 'number') {
+              const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+              if (!grouped[label]) grouped[label] = { sum: 0, count: 0 };
+              grouped[label].sum += item[key];
+              grouped[label].count += 1;
+            }
+          });
+        });
+        // Convert to average if needed
+        if (aggregation === 'avg') {
+          Object.keys(grouped).forEach(key => {
+            if (grouped[key].count > 0) {
+              grouped[key] = grouped[key].sum / grouped[key].count;
+            } else {
+              grouped[key] = 0;
+            }
+          });
+        } else if (aggregation === 'sum') {
+          Object.keys(grouped).forEach(key => {
+            grouped[key] = grouped[key].sum;
+          });
+        } else {
+          Object.keys(grouped).forEach(key => {
+            grouped[key] = grouped[key].count;
+          });
+        }
+      } else {
+        dataset.forEach(item => {
+          const key = item[groupBy] || 'Unknown';
+          const value = parseFloat(item.score || item.value || item.grade || item.percentage || 0);
+          if (aggregation === 'count') {
+            grouped[key] = (grouped[key] || 0) + 1;
+          } else if (aggregation === 'sum') {
+            grouped[key] = (grouped[key] || 0) + value;
+          } else if (aggregation === 'avg') {
+            if (!grouped[key]) grouped[key] = { sum: 0, count: 0 };
+            grouped[key].sum += value;
+            grouped[key].count += 1;
+          } else if (aggregation === 'min') {
+            grouped[key] = grouped[key] === undefined ? value : Math.min(grouped[key], value);
+          } else if (aggregation === 'max') {
+            grouped[key] = grouped[key] === undefined ? value : Math.max(grouped[key], value);
+          } else {
+            grouped[key] = (grouped[key] || 0) + 1;
+          }
+        });
+      }
     } else if (dataSource === 'attendance') {
       // Attendance analytics with detailed status types
       if (groupBy === 'status' || groupBy === 'attendanceStatus') {
@@ -328,6 +506,93 @@ export default function AdvancedAnalytics() {
           grouped[key] = (grouped[key] || 0) + 1;
         });
       }
+    } else if (groupBy === 'programId' || groupBy === 'program') {
+      // Group by program - need to resolve through classes/subjects
+      dataset.forEach(item => {
+        const classId = item.classId || item.class || item.class_id;
+        const subjectId = item.subjectId || item.subject || item.subject_id;
+        let programId = 'Unknown';
+        
+        if (classId) {
+          const classItem = rawData.classes.find(c => (c.id || c.docId) === classId);
+          if (classItem?.programId) programId = classItem.programId;
+        }
+        if (programId === 'Unknown' && subjectId) {
+          const subjectItem = rawData.subjects.find(s => (s.id || s.docId) === subjectId);
+          if (subjectItem?.programId) programId = subjectItem.programId;
+        }
+        
+        const program = rawData.programs.find(p => (p.id || p.docId) === programId);
+        const label = program ? (program.name_en || program.name || program.code || programId) : programId;
+        
+        if (aggregation === 'count') {
+          grouped[label] = (grouped[label] || 0) + 1;
+        } else {
+          const value = parseFloat(item.score || item.value || item.grade || item.percentage || 0);
+          if (aggregation === 'sum') {
+            grouped[label] = (grouped[label] || 0) + value;
+          } else if (aggregation === 'avg') {
+            if (!grouped[label]) grouped[label] = { sum: 0, count: 0 };
+            grouped[label].sum += value;
+            grouped[label].count += 1;
+          } else if (aggregation === 'min') {
+            grouped[label] = grouped[label] === undefined ? value : Math.min(grouped[label], value);
+          } else if (aggregation === 'max') {
+            grouped[label] = grouped[label] === undefined ? value : Math.max(grouped[label], value);
+          } else {
+            grouped[label] = (grouped[label] || 0) + 1;
+          }
+        }
+      });
+    } else if (groupBy === 'subjectId' || groupBy === 'subject') {
+      // Group by subject
+      dataset.forEach(item => {
+        const subjectId = item.subjectId || item.subject || item.subject_id || 'Unknown';
+        const subject = rawData.subjects.find(s => (s.id || s.docId) === subjectId);
+        const label = subject ? `${subject.code || ''} - ${subject.name_en || subject.name || subjectId}`.trim() : subjectId;
+        
+        if (aggregation === 'count') {
+          grouped[label] = (grouped[label] || 0) + 1;
+        } else {
+          const value = parseFloat(item.score || item.value || item.grade || item.percentage || 0);
+          if (aggregation === 'sum') {
+            grouped[label] = (grouped[label] || 0) + value;
+          } else if (aggregation === 'avg') {
+            if (!grouped[label]) grouped[label] = { sum: 0, count: 0 };
+            grouped[label].sum += value;
+            grouped[label].count += 1;
+          } else if (aggregation === 'min') {
+            grouped[label] = grouped[label] === undefined ? value : Math.min(grouped[label], value);
+          } else if (aggregation === 'max') {
+            grouped[label] = grouped[label] === undefined ? value : Math.max(grouped[label], value);
+          } else {
+            grouped[label] = (grouped[label] || 0) + 1;
+          }
+        }
+      });
+    } else if (groupBy === 'semester') {
+      // Group by semester
+      dataset.forEach(item => {
+        const semester = item.semester || item.sessionSemester || 'Unknown';
+        if (aggregation === 'count') {
+          grouped[semester] = (grouped[semester] || 0) + 1;
+        } else {
+          const value = parseFloat(item.score || item.value || item.grade || item.percentage || 0);
+          if (aggregation === 'sum') {
+            grouped[semester] = (grouped[semester] || 0) + value;
+          } else if (aggregation === 'avg') {
+            if (!grouped[semester]) grouped[semester] = { sum: 0, count: 0 };
+            grouped[semester].sum += value;
+            grouped[semester].count += 1;
+          } else if (aggregation === 'min') {
+            grouped[semester] = grouped[semester] === undefined ? value : Math.min(grouped[semester], value);
+          } else if (aggregation === 'max') {
+            grouped[semester] = grouped[semester] === undefined ? value : Math.max(grouped[semester], value);
+          } else {
+            grouped[semester] = (grouped[semester] || 0) + 1;
+          }
+        }
+      });
     } else if (groupBy === 'date') {
       // Time series grouping
       dataset.forEach(item => {
@@ -520,7 +785,7 @@ export default function AdvancedAnalytics() {
   return (
     <div style={{ padding: '2rem', minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Custom Styles for React Grid Layout */}
-      <style>{`
+      <style key={`accent-${accentColor}`}>{`
         .react-grid-item {
           transition: all 200ms ease;
           transition-property: left, top, width, height;
@@ -552,14 +817,14 @@ export default function AdvancedAnalytics() {
           transition-duration: 100ms;
           z-index: 2;
           border-radius: 16px;
-          border: 2px dashed #8b5cf6;
+          border: 2px dashed ${accentColor || DEFAULT_ACCENT};
         }
         
         .react-resizable-handle {
           position: absolute;
           width: 20px;
           height: 20px;
-          background-color: #8b5cf6;
+          background-color: ${accentColor || DEFAULT_ACCENT};
           border-radius: 50%;
           opacity: 0;
           transition: opacity 0.2s ease;
@@ -634,7 +899,7 @@ export default function AdvancedAnalytics() {
           </div>
           {autoRefreshMs > 0 && (
             <div style={{ width: 160, height: 6, background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }} title="Next auto refresh">
-              <div style={{ height: '100%', width: `${Math.min(100, ((nowTick - lastUpdatedAt) % autoRefreshMs) / autoRefreshMs * 100)}%`, background: '#8b5cf6', transition: 'width 0.25s linear' }} />
+              <div style={{ height: '100%', width: `${Math.min(100, ((nowTick - lastUpdatedAt) % autoRefreshMs) / autoRefreshMs * 100)}%`, background: accentColor, transition: 'width 0.25s linear' }} />
             </div>
           )}
           <button onClick={()=>loadAllData()} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
@@ -651,8 +916,15 @@ export default function AdvancedAnalytics() {
             Export
           </button>
           <button
+            onClick={() => window.location.href = '/scheduled-reports'}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: accentColor, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+          >
+            <Calendar size={18} />
+            Schedule Report
+          </button>
+          <button
             onClick={() => setShowBuilder(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
             <Plus size={18} />
             Add Widget
@@ -673,7 +945,35 @@ export default function AdvancedAnalytics() {
       )}
 
       {/* Global Filters */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <Select
+          value={globalFilters.programId}
+          onChange={(e)=>setGlobalFilters({ ...globalFilters, programId: e.target.value, subjectId: '' })}
+          options={[
+            { value: '', label: 'All Programs' },
+            ...(rawData.programs || []).map(p => ({
+              value: p.docId || p.id,
+              label: p.name_en || p.name || p.code || p.docId
+            }))
+          ]}
+          searchable
+          fullWidth
+        />
+        <Select
+          value={globalFilters.subjectId}
+          onChange={(e)=>setGlobalFilters({ ...globalFilters, subjectId: e.target.value })}
+          options={[
+            { value: '', label: 'All Subjects' },
+            ...(rawData.subjects || [])
+              .filter(s => !globalFilters.programId || s.programId === globalFilters.programId)
+              .map(s => ({
+                value: s.docId || s.id,
+                label: `${s.code || ''} - ${s.name_en || s.name || s.docId}`.trim()
+              }))
+          ]}
+          searchable
+          fullWidth
+        />
         <Select
           value={globalFilters.classId}
           onChange={(e)=>setGlobalFilters({ ...globalFilters, classId: e.target.value })}
@@ -702,6 +1002,16 @@ export default function AdvancedAnalytics() {
               const m = /^(Spring|Summer|Fall|Winter)/i.exec(t);
               return m ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}` : (t || '');
             }).filter(Boolean))).map(v => ({ value: v, label: v }))
+          ]}
+          searchable
+          fullWidth
+        />
+        <Select
+          value={globalFilters.semester}
+          onChange={(e)=>setGlobalFilters({ ...globalFilters, semester: e.target.value })}
+          options={[
+            { value: '', label: 'All Semesters' },
+            ...Array.from(new Set((rawData.subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
           ]}
           searchable
           fullWidth
@@ -770,7 +1080,7 @@ export default function AdvancedAnalytics() {
               </div>
               {editLayout && (
                 <div className="drag-handle" style={{ cursor: 'grab', display: 'flex', alignItems: 'center', marginRight: 8, position: 'absolute', left: -32, top: '50%', transform: 'translateY(-50%)' }}>
-                  <GripVertical size={18} style={{ color: '#8b5cf6' }} />
+                  <GripVertical size={18} style={{ color: accentColor }} />
                 </div>
               )}
               <div className="widget-actions" style={{ display: 'flex', gap: 4, opacity: 0, transition: 'opacity 0.2s' }}>
@@ -860,7 +1170,7 @@ export default function AdvancedAnalytics() {
                       onClick={() => setWidgetConfig({ ...widgetConfig, chartType: type })}
                       style={{
                         padding: '1rem',
-                        border: widgetConfig.chartType === type ? '2px solid #667eea' : '1px solid var(--border)',
+                        border: widgetConfig.chartType === type ? `2px solid ${accentColor}` : '1px solid var(--border)',
                         borderRadius: 8,
                         background: widgetConfig.chartType === type ? 'rgba(102,126,234,0.1)' : 'transparent',
                         cursor: 'pointer',
@@ -888,6 +1198,16 @@ export default function AdvancedAnalytics() {
                   <option value="activities">Activities</option>
                   <option value="users">Users</option>
                   <option value="classes">Classes</option>
+                  <option value="programs">Programs</option>
+                  <option value="enrollments">Enrollments</option>
+                  <option value="quizzes">Quizzes</option>
+                  <option value="quizSubmissions">Quiz Submissions</option>
+                  <option value="attendance">Attendance</option>
+                  <option value="penalties">Penalties</option>
+                  <option value="absences">Absences</option>
+                  <option value="notifications">Notifications</option>
+                  <option value="studentMarks">Student Marks</option>
+                  <option value="subjects">Subjects</option>
                   <option value="attendance">Attendance</option>
                   <option value="activityLogs">Activity Logs</option>
                   <option value="enrollments">Enrollments</option>
@@ -909,8 +1229,19 @@ export default function AdvancedAnalytics() {
                     <option value="status">Status</option>
                     <option value="type">Type</option>
                     <option value="classId">Class</option>
+                    <option value="programId">Program</option>
+                    <option value="subjectId">Subject</option>
+                    <option value="semester">Semester</option>
+                    <option value="term">Term</option>
+                    <option value="year">Year</option>
                     <option value="userId">User</option>
                     <option value="date">Date</option>
+                    <option value="penaltyType">Penalty Type</option>
+                    <option value="absenceType">Absence Type</option>
+                    <option value="attendanceStatus">Attendance Status</option>
+                    <option value="activityType">Activity Type</option>
+                    <option value="notificationType">Notification Type</option>
+                    <option value="markType">Mark Type (Mid-Term, Final, etc.)</option>
                   </select>
                 </div>
 
@@ -935,15 +1266,26 @@ export default function AdvancedAnalytics() {
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Date Range</label>
                 <select
                   value={widgetConfig.dateRange}
-                  onChange={(e) => setWidgetConfig({ ...widgetConfig, dateRange: e.target.value })}
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)' }}
+                  onChange={(e) => setWidgetConfig({ ...widgetConfig, dateRange: e.target.value, customDateFrom: '', customDateTo: '' })}
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)', marginBottom: widgetConfig.dateRange === 'custom' ? 12 : 0 }}
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
                   <option value="last7">Last 7 Days</option>
                   <option value="last30">Last 30 Days</option>
                   <option value="last90">Last 90 Days</option>
+                  <option value="custom">Custom Range</option>
                 </select>
+                {widgetConfig.dateRange === 'custom' && (
+                  <DateRangeSlider
+                    fromDate={widgetConfig.customDateFrom}
+                    toDate={widgetConfig.customDateTo}
+                    onChange={({ fromDate, toDate }) => setWidgetConfig({ ...widgetConfig, customDateFrom: fromDate, customDateTo: toDate })}
+                    placeholderFrom="From Date"
+                    placeholderTo="To Date"
+                    fullWidth
+                  />
+                )}
               </div>
 
               <div>
@@ -977,7 +1319,7 @@ export default function AdvancedAnalytics() {
               </button>
               <button
                 onClick={editingWidget ? updateWidget : addWidget}
-                style={{ padding: '0.75rem 1.5rem', background: '#667eea', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+                style={{ padding: '0.75rem 1.5rem', background: accentColor, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
               >
                 <Save size={18} style={{ display: 'inline', marginRight: 8 }} />
                 {editingWidget ? 'Update' : 'Create'}

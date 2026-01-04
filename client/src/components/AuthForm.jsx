@@ -5,6 +5,8 @@ import { signIn, signUp, resetPassword } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { getAllowlist } from '../firebase/firestore';
 import { useLang } from '../contexts/LangContext';
+import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
+import ToggleSwitch from './ToggleSwitch';
 import './AuthForm.css';
 
 // Helper function to translate Firebase errors to user-friendly messages
@@ -136,6 +138,19 @@ const AuthForm = () => {
               realName: realName || null,
               studentNumber: studentNumber || null,
             }, { merge: true });
+            
+            // Log user creation activity
+            try {
+              await logActivity(ACTIVITY_TYPES.USER_CREATED, {
+                userId: result.user.uid,
+                userEmail: email,
+                userDisplayName: displayName || null,
+                userRealName: realName || null,
+                userStudentNumber: studentNumber || null
+              });
+            } catch (logError) {
+              console.warn('Failed to log user creation activity:', logError);
+            }
             
             // Send welcome email
             try {
@@ -308,15 +323,11 @@ const AuthForm = () => {
 
           {mode === 'login' && (
             <div className="form-group" style={{ marginTop: '8px', marginBottom: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ cursor: 'pointer' }}
-                />
-                <span>Remember me</span>
-              </label>
+              <ToggleSwitch
+                label="Remember me"
+                checked={rememberMe}
+                onChange={setRememberMe}
+              />
             </div>
           )}
 

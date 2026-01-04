@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -7,16 +7,17 @@ import { addActivityLog } from '../firebase/firestore';
 import { updateProgressAfterQuiz } from '../firebase/studentProgress';
 import { useTimeTracking } from '../hooks/useTimeTracking';
 import { randomizeQuestions, randomizeOptions } from '../utils/quizRandomization';
-import { Container, Card, CardBody, Button, Badge, ProgressBar, Loading, Spinner, useToast, Tooltip } from '../components/ui';
+import { Container, Card, CardBody, Button, Badge, ProgressBar, Loading, Spinner, useToast, Tooltip, Modal } from '../components/ui';
 import {
   Play, Clock, Trophy, AlertCircle, CheckCircle, XCircle,
   HelpCircle, ListChecks, ArrowLeft, ArrowRight, Flag, Save, RotateCcw, BookmarkCheck,
-  Calculator as CalcIcon, Edit3, BookOpen, ChevronLeft, ChevronRight, Circle
+  Calculator as CalcIcon, Edit3, BookOpen, ChevronLeft, ChevronRight, Circle, Shuffle, Repeat, Award
 } from 'lucide-react';
 import Calculator from '../components/quiz/Calculator';
 import ScratchPad from '../components/quiz/ScratchPad';
 import FormulaSheet from '../components/quiz/FormulaSheet';
 import DetailedResults from '../components/quiz/DetailedResults';
+import LanguageToggle from '../components/LanguageToggle';
 import styles from './StudentQuizPage.module.css';
 
 // Simplified question types matching the builder
@@ -38,6 +39,7 @@ export default function StudentQuizPage() {
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [quizLang, setQuizLang] = useState('auto'); // 'auto' | 'en' | 'ar'
   const [started, setStarted] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -53,6 +55,8 @@ export default function StudentQuizPage() {
   const [shuffledQuestions, setShuffledQuestions] = useState(null); // Shuffled questions for this attempt
   const questionTimerRef = useRef({ questionId: null, startedAt: null });
   const toast = useToast();
+  const [lastSaved, setLastSaved] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Phase 4 tools
   const [showCalculator, setShowCalculator] = useState(false);
@@ -65,6 +69,21 @@ export default function StudentQuizPage() {
     if (started && shuffledQuestions) return shuffledQuestions;
     return quiz?.questions || [];
   }, [started, shuffledQuestions, quiz?.questions]);
+
+  const resolvedQuizLang = useMemo(() => {
+    if (quizLang === 'en' || quizLang === 'ar') return quizLang;
+    return lang === 'ar' ? 'ar' : 'en';
+  }, [quizLang, lang]);
+
+  const getQuizText = useCallback((obj, key) => {
+    if (!obj) return '';
+    const enKey = `${key}_en`;
+    const arKey = `${key}_ar`;
+    if (resolvedQuizLang === 'ar') {
+      return obj[arKey] || obj[enKey] || obj[key] || '';
+    }
+    return obj[enKey] || obj[arKey] || obj[key] || '';
+  }, [resolvedQuizLang]);
 
   const totalQuestions = activeQuestions.length;
   const answeredCount = useMemo(() => {
@@ -82,8 +101,14 @@ export default function StudentQuizPage() {
 
   useEffect(() => {
     loadQuiz();
-    checkSavedProgress();
   }, [quizId]);
+
+  useEffect(() => {
+    // Check for saved progress after quiz loads and before starting
+    if (quiz && !started && !showResults && user?.uid && quizId) {
+      checkSavedProgress();
+    }
+  }, [quiz, started, showResults, user?.uid, quizId]);
 
   useEffect(() => {
     let timer;
@@ -94,6 +119,46 @@ export default function StudentQuizPage() {
     }
     return () => clearInterval(timer);
   }, [started, showResults]);
+
+  // Auto-save progress for unlimited quizzes (timeLimit = 0) or any quiz
+  // lastSaved state is already declared at the top of the component
+  
+  useEffect(() => {
+    if (!started || showResults || !user?.uid || !quizId) return;
+    
+    const saveProgress = () => {
+      const progressKey = `quiz_progress_${user.uid}_${quizId}`;
+      const progress = {
+        currentQuestionIndex,
+        answers,
+        markedForReview: Array.from(markedForReview),
+        elapsedTime,
+        savedAt: new Date().toISOString()
+      };
+      try {
+        localStorage.setItem(progressKey, JSON.stringify(progress));
+        setLastSaved(new Date());
+        setIsSaving(false);
+        console.log('[Auto-save] Progress saved:', { 
+          quizId, 
+          questionIndex: currentQuestionIndex, 
+          answersCount: Object.keys(answers).length,
+          timestamp: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error('[Auto-save] Failed to save progress:', err);
+        setIsSaving(false);
+      }
+    };
+    
+    // Auto-save every 30 seconds
+    const autoSaveInterval = setInterval(() => {
+      setIsSaving(true);
+      setTimeout(() => saveProgress(), 100); // Small delay to show "Saving..." state
+    }, 30000); // Auto-save every 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [started, showResults, currentQuestionIndex, answers, markedForReview, elapsedTime, user?.uid, quizId]);
 
   useEffect(() => {
     let timer;
@@ -120,7 +185,15 @@ export default function StudentQuizPage() {
       if (saved) {
         const progress = JSON.parse(saved);
         setSavedProgress(progress);
-        setShowResumeModal(true);
+        // Show resume modal if quiz hasn't started yet
+        if (!started && !showResults) {
+          setShowResumeModal(true);
+        }
+        console.log('[Auto-save] Found saved progress:', {
+          questionIndex: progress.currentQuestionIndex,
+          answersCount: Object.keys(progress.answers || {}).length,
+          savedAt: progress.savedAt
+        });
       }
     } catch (err) {
       console.error('Error checking saved progress:', err);
@@ -133,7 +206,9 @@ export default function StudentQuizPage() {
       const result = await getQuiz(quizId);
       if (result.success) {
         setQuiz(result.data);
-        setTimeLeft(result.data.settings?.timeLimit * 60 || 0);
+        // If timeLimit is 0, it's unlimited - don't set a timer
+        const timeLimit = result.data.settings?.timeLimit || 0;
+        setTimeLeft(timeLimit > 0 ? timeLimit * 60 : 0);
         
         // Log quiz view
         if (user) {
@@ -144,7 +219,7 @@ export default function StudentQuizPage() {
               email: user.email,
               displayName: user.displayName || user.email,
               userAgent: navigator.userAgent,
-              metadata: { quizId, quizTitle: result.data?.title || 'Untitled Quiz', activityType: 'quiz' }
+              metadata: { quizId, quizTitle: getQuizText(result.data, 'title') || 'Untitled Quiz', activityType: 'quiz' }
             });
           } catch (e) { console.warn('Failed to log quiz view:', e); }
         }
@@ -194,23 +269,50 @@ export default function StudentQuizPage() {
       questionTimerRef.current = { questionId: null, startedAt: null };
     }
 
-    if (quiz?.settings?.timeLimit) {
-      setTimeLeft(quiz.settings.timeLimit * 60);
+    // If timeLimit is 0, it's unlimited - don't set a timer
+    const timeLimit = quiz?.settings?.timeLimit || 0;
+    if (timeLimit > 0) {
+      setTimeLeft(timeLimit * 60);
+    } else {
+      setTimeLeft(0); // Unlimited
     }
-    clearSavedProgress();
+    // Don't clear saved progress for unlimited quizzes - allow resume
+    if (timeLimit > 0) {
+      clearSavedProgress();
+    }
   };
 
   const resumeQuiz = () => {
-    if (savedProgress) {
+    if (savedProgress && quiz) {
+      // Apply shuffling if needed (same as startQuiz)
+      const settings = quiz.settings || {};
+      let questionsToUse = [...quiz.questions];
+      
+      // Shuffle questions if enabled
+      if (settings.randomizeOrder) {
+        questionsToUse = randomizeQuestions(questionsToUse, user?.uid);
+      }
+      
+      // Shuffle options within each question if enabled
+      if (settings.shuffleOptions) {
+        questionsToUse = questionsToUse.map(q => randomizeOptions(q, user?.uid));
+      }
+      
+      setShuffledQuestions(questionsToUse);
+      
+      // Restore saved state
+      const savedIdx = savedProgress.currentQuestionIndex || 0;
+      // Map saved index to shuffled questions if needed
+      const actualIdx = Math.min(savedIdx, questionsToUse.length - 1);
+      
       setStarted(true);
-      const idx = savedProgress.currentQuestionIndex || 0;
-      setCurrentQuestionIndex(idx);
+      setCurrentQuestionIndex(actualIdx);
       setAnswers(savedProgress.answers || {});
       setMarkedForReview(new Set(savedProgress.markedForReview || []));
       setElapsedTime(savedProgress.elapsedTime || 0);
       setQuestionTimes({});
 
-      const question = quiz?.questions?.[idx];
+      const question = questionsToUse[actualIdx];
       if (question) {
         questionTimerRef.current = {
           questionId: question.id,
@@ -218,6 +320,14 @@ export default function StudentQuizPage() {
         };
       } else {
         questionTimerRef.current = { questionId: null, startedAt: null };
+      }
+
+      // Set time limit if applicable
+      const timeLimit = quiz.settings?.timeLimit || 0;
+      if (timeLimit > 0) {
+        setTimeLeft(timeLimit * 60);
+      } else {
+        setTimeLeft(0); // Unlimited
       }
 
       setShowResumeModal(false);
@@ -271,10 +381,33 @@ export default function StudentQuizPage() {
   };
 
   const handleAnswer = (questionId, answer) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: answer
-    }));
+    setAnswers(prev => {
+      const newAnswers = {
+        ...prev,
+        [questionId]: answer
+      };
+      // Auto-save immediately when answer changes (for unlimited quizzes)
+      if (started && !showResults && user?.uid && quizId) {
+        const timeLimit = quiz?.settings?.timeLimit || 0;
+        if (timeLimit === 0) {
+          // Auto-save for unlimited quizzes
+          try {
+            const progressKey = `quiz_progress_${user.uid}_${quizId}`;
+            const progress = {
+              currentQuestionIndex,
+              answers: newAnswers,
+              markedForReview: Array.from(markedForReview),
+              elapsedTime,
+              savedAt: new Date().toISOString()
+            };
+            localStorage.setItem(progressKey, JSON.stringify(progress));
+          } catch (err) {
+            console.warn('Failed to auto-save on answer change:', err);
+          }
+        }
+      }
+      return newAnswers;
+    });
   };
 
   const handleMultipleChoiceAnswer = (questionId, optionId) => {
@@ -313,6 +446,28 @@ export default function StudentQuizPage() {
     questionTimerRef.current = nextQuestion
       ? { questionId: nextQuestion.id, startedAt: Date.now() }
       : { questionId: null, startedAt: null };
+
+    // Auto-save when navigating to a new question (for unlimited quizzes)
+    if (started && !showResults && user?.uid && quizId) {
+      const timeLimit = quiz?.settings?.timeLimit || 0;
+      if (timeLimit === 0) {
+        try {
+          const progressKey = `quiz_progress_${user.uid}_${quizId}`;
+          const progress = {
+            currentQuestionIndex: targetIndex,
+            answers,
+            markedForReview: Array.from(markedForReview),
+            elapsedTime,
+            savedAt: new Date().toISOString()
+          };
+          localStorage.setItem(progressKey, JSON.stringify(progress));
+          setLastSaved(new Date());
+          console.log('[Auto-save] Saved on navigation:', { from: currentQuestionIndex, to: targetIndex });
+        } catch (err) {
+          console.error('[Auto-save] Failed to save on navigation:', err);
+        }
+      }
+    }
   }
 
   const nextQuestion = () => {
@@ -421,17 +576,32 @@ export default function StudentQuizPage() {
         userEmail: user?.email || null,
         answers: detailedAnswers,
         score: score.correct,
+        maxScore: score.total,
         totalPoints: score.total,
         percentage: score.percentage,
         timeSpent: totalTimeSeconds,
         startedAt: quizStartedAt,
         completedAt,
         reviewedByInstructor: false,
-        instructorFeedback: ''
+        instructorFeedback: '',
+        classId: quiz.classId || null
       };
 
+      console.log('[Submit] Submitting quiz:', { quizId, userId: user?.uid, answersCount: Object.keys(detailedAnswers).length, score });
+      toast?.showInfo?.('Submitting quiz...');
       const result = await submitQuiz(submission);
+      console.log('[Submit] Result:', result);
+      
       if (result.success) {
+        // Show retake feedback if applicable
+        if (result.isRetake) {
+          if (result.newPercentage >= (result.previousPercentage || 0)) {
+            toast?.showSuccess?.(`Your score improved! New: ${result.newPercentage}% (Previous: ${result.previousPercentage || 0}%)`);
+          } else if (result.message) {
+            toast?.showInfo?.(result.message);
+          }
+        }
+        
         setResults(score);
         setShowResults(true);
         clearSavedProgress();
@@ -445,7 +615,9 @@ export default function StudentQuizPage() {
               totalPoints: score.total,
               percentage: score.percentage
             });
-          } catch (e) { console.warn('Failed to update student progress:', e); }
+          } catch (e) { 
+            console.warn('[Submit] Failed to update student progress:', e); 
+          }
         }
         
         // Log quiz submission
@@ -457,19 +629,25 @@ export default function StudentQuizPage() {
               email: user.email,
               displayName: user.displayName || user.email,
               userAgent: navigator.userAgent,
-              metadata: { quizId, quizTitle: quiz?.title || 'Untitled Quiz', score: score.percentage }
+              metadata: { quizId, quizTitle: getQuizText(quiz, 'title') || 'Untitled Quiz', score: score.percentage }
             });
-          } catch (e) { console.warn('Failed to log quiz submission:', e); }
+          } catch (e) { 
+            console.warn('[Submit] Failed to log quiz submission:', e); 
+          }
         }
         
         toast?.showSuccess?.('Quiz submitted successfully!');
       } else {
-        setError('Failed to submit quiz');
-        toast?.showError?.('Failed to submit quiz');
+        const errorMsg = result.error || 'Failed to submit quiz';
+        setError(errorMsg);
+        console.error('[Submit] Error:', errorMsg, result);
+        toast?.showError?.(errorMsg);
       }
     } catch (err) {
-      setError('Failed to submit quiz');
-      console.error(err);
+      const errorMsg = err?.message || 'Failed to submit quiz';
+      setError(errorMsg);
+      console.error('[Submit] Exception:', err);
+      toast?.showError?.(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -543,52 +721,114 @@ export default function StudentQuizPage() {
           <Card>
             <CardBody className={styles.startContent}>
               <div className={styles.quizHeader}>
-                <div className={styles.quizIcon}>
-                  <Trophy size={48} style={{ color: '#8b5cf6' }} />
-                </div>
-                <div>
-                  <h1 className={styles.quizTitle}>{quiz.title}</h1>
-                  <p className={styles.quizDescription}>{quiz.description}</p>
+                <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <h1 className={styles.quizTitle}>{getQuizText(quiz, 'title')}</h1>
+                    {getQuizText(quiz, 'description') && (
+                      <p className={styles.quizDescription}>{getQuizText(quiz, 'description')}</p>
+                    )}
+                  </div>
+                  <LanguageToggle
+                    value={resolvedQuizLang}
+                    onChange={(v) => setQuizLang(v)}
+                    style={{ alignSelf: 'flex-start' }}
+                  />
                 </div>
               </div>
 
-              <div className={styles.quizInfo}>
-                <div className={styles.infoItem}>
-                  <HelpCircle size={16} style={{ color: '#6b7280' }} />
-                  <span>{quiz.questions.length} questions</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <Clock size={16} style={{ color: '#6b7280' }} />
-                  <span>{quiz.estimatedTime || 10} min estimated</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <Trophy size={16} style={{ color: '#6b7280' }} />
-                  <span>{quiz.difficulty}</span>
-                </div>
-                {quiz.settings?.timeLimit > 0 && (
-                  <div className={styles.infoItem}>
-                    <Clock size={16} style={{ color: '#ef4444' }} />
-                    <span>{quiz.settings.timeLimit} min time limit</span>
-                  </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                <Badge variant="subtle" color="primary" size="small">
+                  {getQuestionIcon(quiz.type)}
+                  <span style={{ marginLeft: '0.25rem' }}>{getQuestionTypeLabel(quiz.type)}</span>
+                </Badge>
+                <Badge variant="subtle" color="info" size="small">
+                  <ListChecks size={12} style={{ marginRight: '0.25rem' }} />
+                  {quiz.questions.length} {quiz.questions.length === 1 ? 'question' : 'questions'}
+                </Badge>
+                <Badge variant="subtle" color="warning" size="small">
+                  <Award size={12} style={{ marginRight: '0.25rem' }} />
+                  {quiz.questions.reduce((sum, q) => sum + (q.points || 1), 0)} points
+                </Badge>
+                {quiz.settings?.timeLimit > 0 ? (
+                  <Badge variant="outline" color="danger" size="small">
+                    <Clock size={12} style={{ marginRight: '0.25rem' }} />
+                    {quiz.settings.timeLimit} min limit
+                  </Badge>
+                ) : (
+                  <Badge variant="subtle" color="info" size="small">
+                    <Clock size={12} style={{ marginRight: '0.25rem' }} />
+                    {quiz.estimatedTime || 10} min
+                  </Badge>
+                )}
+                <Badge variant="subtle" color={quiz.difficulty === 'beginner' ? 'success' : quiz.difficulty === 'intermediate' ? 'warning' : 'danger'} size="small">
+                  {quiz.difficulty || 'General'}
+                </Badge>
+                {quiz.settings?.allowRetake && (
+                  <Badge variant="outline" color="info" size="small">
+                    <Repeat size={12} style={{ marginRight: '0.25rem' }} />
+                    Retake allowed
+                  </Badge>
+                )}
+                {quiz.settings?.randomizeOrder && (
+                  <Badge variant="outline" color="primary" size="small">
+                    <Shuffle size={12} style={{ marginRight: '0.25rem' }} />
+                    Shuffle questions
+                  </Badge>
+                )}
+                {quiz.settings?.shuffleOptions && (
+                  <Badge variant="outline" color="primary" size="small">
+                    <Shuffle size={12} style={{ marginRight: '0.25rem' }} />
+                    Shuffle options
+                  </Badge>
                 )}
               </div>
 
-              <div className={styles.startActions}>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/activities')}
-                >
-                  Back
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={startQuiz}
-                  size="lg"
-                  className={styles.inlineButton}
-                >
-                  <Play size={20} />
-                  Start
-                </Button>
+              {savedProgress && !showResumeModal && (
+                <div style={{ 
+                  padding: '1rem', 
+                  background: '#f0fdf4', 
+                  border: '1px solid #86efac', 
+                  borderRadius: '8px', 
+                  marginBottom: '1rem' 
+                }}>
+                  <p style={{ margin: 0, color: '#166534', fontWeight: 500 }}>
+                    📌 You have saved progress. Click "Continue Quiz" to resume or "Start Fresh" to begin again.
+                  </p>
+                </div>
+              )}
+
+              <div className={styles.startActions} style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                {savedProgress && !showResumeModal ? (
+                  <>
+                    <Badge
+                      variant="outline"
+                      color="default"
+                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                      onClick={startFresh}
+                    >
+                      Start Fresh
+                    </Badge>
+                    <Badge
+                      variant="solid"
+                      color="success"
+                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', fontSize: '0.95rem', fontWeight: 600 }}
+                      onClick={resumeQuiz}
+                    >
+                      <Play size={16} />
+                      Continue Quiz
+                    </Badge>
+                  </>
+                ) : (
+                  <Badge
+                    variant="solid"
+                    color="success"
+                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', fontSize: '0.95rem', fontWeight: 600 }}
+                    onClick={startQuiz}
+                  >
+                    <Play size={16} />
+                    Start Quiz
+                  </Badge>
+                )}
               </div>
             </CardBody>
           </Card>
@@ -637,9 +877,8 @@ export default function StudentQuizPage() {
           <Card>
             <CardBody className={styles.resultsContent}>
               <div className={styles.resultsHeader}>
-                <Trophy size={64} style={{ color: results.percentage >= 70 ? '#10b981' : '#f59e0b' }} />
                 <h1>Quiz Completed!</h1>
-                <p className={styles.resultsTitle}>{quiz.title}</p>
+                <p className={styles.resultsTitle}>{getQuizText(quiz, 'title')}</p>
               </div>
 
               <div className={styles.scoreDisplay}>
@@ -753,6 +992,11 @@ export default function StudentQuizPage() {
                 <Clock size={14} /> {formatTime(timeLeft)}
               </span>
             )}
+            {quiz?.settings?.timeLimit === 0 && lastSaved && (
+              <span className={styles.paletteTimer} style={{ color: '#10b981', fontSize: '0.75rem' }}>
+                {isSaving ? 'Saving...' : `Saved ${lastSaved.toLocaleTimeString()}`}
+              </span>
+            )}
           </div>
           
           {activeQuestions.length > 1 && (
@@ -784,7 +1028,10 @@ export default function StudentQuizPage() {
 
         {/* Compact Quiz Title */}
         <div className={styles.quizTitleSection}>
-          <h2 className={styles.quizTitle}>{quiz.title}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', width: '100%' }}>
+            <h2 className={styles.quizTitle} style={{ margin: 0 }}>{getQuizText(quiz, 'title')}</h2>
+            <LanguageToggle value={resolvedQuizLang} onChange={(v) => setQuizLang(v)} />
+          </div>
           <span className={styles.questionProgress}>
             Question {currentQuestionIndex + 1} of {activeQuestions.length}
           </span>
@@ -827,7 +1074,7 @@ export default function StudentQuizPage() {
 
                 <h3
                   className={styles.questionText}
-                  dangerouslySetInnerHTML={{ __html: currentQuestion.question }}
+                  dangerouslySetInnerHTML={{ __html: getQuizText(currentQuestion, 'question') }}
                 />
 
                 <div className={styles.optionsList}>
@@ -857,7 +1104,7 @@ export default function StudentQuizPage() {
                         </div>
                         <span
                           className={styles.optionText}
-                          dangerouslySetInnerHTML={{ __html: option.text }}
+                          dangerouslySetInnerHTML={{ __html: getQuizText(option, 'text') }}
                         />
                       </button>
                     );

@@ -5,10 +5,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { signOutUser } from '../firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '../utils/color';
 import {
   Home, ClipboardList, BarChart3, Trophy, MessageSquare,
   BookOpen, Users, Settings, LogOut, Languages, LayoutDashboard,
-  X, QrCode, User as UserIcon, Theater, Bell, ExternalLink, Activity, Timer as TimerIcon, Pin, PinOff, Sun, Moon, Shield, UserX, Calendar, Gamepad2, ListChecks, ChevronDown, ChevronRight, ChevronLeft, GripVertical
+  X, QrCode, User as UserIcon, Theater, Bell, ExternalLink, Activity, Timer as TimerIcon, Pin, PinOff, Sun, Moon, Shield, UserX, Calendar, Gamepad2, ListChecks, ChevronDown, ChevronRight, ChevronLeft, GripVertical, Award, AlertTriangle, AlertCircle, FileText
 } from 'lucide-react';
 import TimerStopwatch from './TimerStopwatch';
 
@@ -41,7 +44,35 @@ const SideDrawer = ({ isOpen, onClose }) => {
       return saved === 'true'; 
     } catch { return true; }
   });
-
+  const [userAccentColor, setUserAccentColor] = useState(DEFAULT_ACCENT);
+  
+  // Load user's accent color
+  useEffect(() => {
+    if (!user?.uid) return;
+    const loadAccentColor = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          const color = normalizeHexColor(data.messageColor, DEFAULT_ACCENT);
+          setUserAccentColor(color);
+        }
+      } catch (e) {
+        console.warn('[SideDrawer] Error loading accent color:', e);
+      }
+    };
+    loadAccentColor();
+    
+    // Listen for accent color changes
+    const handler = (e) => {
+      if (e?.detail?.color) {
+        setUserAccentColor(normalizeHexColor(e.detail.color, DEFAULT_ACCENT));
+      }
+    };
+    window.addEventListener('accent-color-changed', handler);
+    return () => window.removeEventListener('accent-color-changed', handler);
+  }, [user]);
+  
   useEffect(() => {
     try { localStorage.setItem('pin_timer_widget', String(pinTimer)); } catch {}
   }, [pinTimer]);
@@ -117,7 +148,12 @@ const SideDrawer = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path, hash = null) => {
+    if (hash) {
+      return location.pathname === path && location.hash === hash;
+    }
+    return location.pathname === path;
+  };
   const [showTimerPanel, setShowTimerPanel] = useState(false);
 
   // Collapsible sections state
@@ -242,23 +278,27 @@ const SideDrawer = ({ isOpen, onClose }) => {
     main: {
       label: 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: (t('home') || 'Home').charAt(0).toUpperCase() + (t('home') || 'Home').slice(1) },
+        { path: '/', icon: <Home size={18} />, label: 'Home' },
         { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
         { path: '/student-dashboard', icon: <BarChart3 size={18} />, label: 'Progress' },
         { path: '/?mode=activities', icon: <Activity size={18} />, label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
+        { path: '/?mode=quizzes', icon: <Gamepad2 size={18} />, label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
       ]
     },
     quiz: {
       label: 'QUIZ',
       items: [
-        { path: '/?mode=quizzes', icon: <ListChecks size={18} />, label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/quiz-results', icon: <ListChecks size={18} />, label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/?mode=quizzes', icon: <ListChecks size={18} />, label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
+        { path: '/?mode=activities', icon: <Activity size={18} />, label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
+        { path: '/?mode=homework', icon: <FileText size={18} />, label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
       ]
     },
     classes: {
       label: 'CLASSES',
       items: [
         { path: '/my-enrollments', icon: <BookOpen size={18} />, label: 'My Enrollments' },
-        { path: '/class-schedules', icon: <Calendar size={18} />, label: (t('class_schedules') || 'Class Schedules').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/class-schedules', icon: <Calendar size={18} />, label: t('schedules') || 'Schedules' },
       ]
     },
     attendance: {
@@ -294,10 +334,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
     main: {
       label: 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: t('home') || 'home' },
+        { path: '/', icon: <Home size={18} />, label: 'Home' },
         { path: '/dashboard', icon: <LayoutDashboard size={18} />, label: t('dashboard') || 'Dashboard' },
         { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Student Dashboard' },
-        { path: '/student-progress', icon: <BarChart3 size={18} />, label: t('student_progress') || 'Student Progress' },
         { path: '/?mode=activities', icon: <Activity size={18} />, label: t('activities') || 'Activities' },
         // Role Access only visible for SuperAdmin (conditionally added below)
       ]
@@ -305,15 +344,32 @@ const SideDrawer = ({ isOpen, onClose }) => {
     quiz: {
       label: 'QUIZ',
       items: [
-        { path: '/quiz-management', icon: <ClipboardList size={18} />, label: 'Quiz Management' },
-        { path: '/quiz-builder', icon: <Gamepad2 size={18} />, label: 'Quiz Builder' },
-        { path: '/?mode=quizzes', icon: <ListChecks size={18} />, label: 'Quiz Results' },
+        { path: '/quizzes', icon: <Gamepad2 size={18} />, label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
+        { path: '/quiz-results', icon: <ListChecks size={18} />, label: 'Quiz Results' },
       ]
     },
+    academic: isSuperAdmin || isInstructor || isAdmin ? {
+      label: 'ACADEMIC',
+      items: [
+        { path: '/dashboard', hash: '#programs', icon: <BookOpen size={18} />, label: 'Programs' },
+        { path: '/dashboard', hash: '#subjects', icon: <BookOpen size={18} />, label: 'Subjects' },
+        { path: '/dashboard', hash: '#classes', icon: <Calendar size={18} />, label: t('classes') || 'Classes' },
+        { path: '/dashboard', hash: '#enrollments', icon: <Users size={18} />, label: t('enrollments') || 'Enrollments' },
+        { path: '/dashboard', hash: '#marks', icon: <Award size={18} />, label: 'Marks Entry' },
+        { path: '/dashboard', hash: '#class-schedule', icon: <Calendar size={18} />, label: t('class_schedules') || 'Class Schedule' },
+        { path: '/review-results?mode=quiz', icon: <ListChecks size={18} />, label: 'Review Quiz Results' },
+        { path: '/review-results?mode=homework', icon: <FileText size={18} />, label: 'Review Homework Results' },
+        { path: '/review-results?mode=training', icon: <Activity size={18} />, label: 'Review Training Results' },
+        { path: '/review-results?mode=labandproject', icon: <ClipboardList size={18} />, label: 'Review Lab Results' },
+        { path: '/hr-penalties', icon: <AlertTriangle size={18} />, label: 'HR Penalties' },
+        { path: '/instructor-participation', icon: <Award size={18} />, label: 'Participation' },
+        { path: '/instructor-behavior', icon: <AlertCircle size={18} />, label: 'Behavior' },
+      ]
+    } : null,
     classes: {
       label: 'CLASSES',
       items: [
-        { path: '/class-schedules', icon: <Calendar size={18} />, label: t('class_schedules') || 'Class Schedules' },
+        { path: '/class-schedules', icon: <Calendar size={18} />, label: t('schedules') || 'Schedules' },
         { path: '/manage-enrollments', icon: <Users size={18} />, label: t('manage_enrollments') || 'Manage Enrollments' },
       ]
     },
@@ -332,11 +388,23 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/advanced-analytics', icon: <BarChart3 size={18} />, label: 'Advanced Analytics' },
       ]
     },
+    communication: {
+      label: 'COMMUNICATION',
+      items: [
+        { path: '/scheduled-reports', icon: <Calendar size={18} />, label: 'Scheduled Reports' },
+      ]
+    },
     community: {
       label: 'COMMUNITY',
       items: [
         { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
         { path: '/?mode=resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
+      ]
+    },
+    communication: {
+      label: 'COMMUNICATION',
+      items: [
+        { path: '/scheduled-reports', icon: <Calendar size={18} />, label: 'Scheduled Reports' },
       ]
     },
     tools: {
@@ -359,7 +427,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     main: {
       label: 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: t('home') || 'Home' },
+        { path: '/', icon: <Home size={18} />, label: 'Home' },
         { path: '/hr-attendance', icon: <QrCode size={18} />, label: t('hr_attendance') || 'HR Attendance' },
         { path: '/analytics', icon: <BarChart3 size={18} />, label: t('analytics') || 'Analytics' },
       ]
@@ -392,9 +460,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
       links = {
         main: { ...adminLinks.main, items: [...adminLinks.main.items] },
         quiz: { ...adminLinks.quiz, items: [...adminLinks.quiz.items] },
+        ...(adminLinks.academic ? { academic: adminLinks.academic } : {}),
         classes: { ...adminLinks.classes, items: [...adminLinks.classes.items] },
         attendance: { ...adminLinks.attendance, items: [...adminLinks.attendance.items] },
         analytics: { ...adminLinks.analytics, items: [...adminLinks.analytics.items] },
+        ...(adminLinks.communication ? { communication: adminLinks.communication } : {}),
         community: { ...adminLinks.community, items: [...adminLinks.community.items] },
         tools: { ...adminLinks.tools, items: [...adminLinks.tools.items] },
         settings: { ...adminLinks.settings, items: [...adminLinks.settings.items] }
@@ -585,8 +655,10 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 {(() => {
                   const neutralBg = theme==='light' ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.1)';
                   const neutralHover = theme==='light' ? 'rgba(15,23,42,0.12)' : 'rgba(255,255,255,0.2)';
-                  const accentBg = theme==='light' ? 'rgba(251, 191, 36, 0.25)' : 'rgba(212,175,55,0.2)';
-                  const accentHover = theme==='light' ? 'rgba(251, 191, 36, 0.4)' : 'rgba(212,175,55,0.3)';
+                  // Use user's accent color instead of hardcoded gold
+                  const rgb = hexToRgbString(userAccentColor);
+                  const accentBg = theme==='light' ? `rgba(${rgb}, 0.25)` : `rgba(${rgb}, 0.2)`;
+                  const accentHover = theme==='light' ? `rgba(${rgb}, 0.4)` : `rgba(${rgb}, 0.3)`;
                   return (
                     <>
                       <button
@@ -599,17 +671,17 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           border: 'none',
                           color: theme==='light' ? '#111' : 'white',
                           cursor: 'pointer',
-                          padding: '0.4rem',
-                          borderRadius: '10px',
-                          width: '36px',
-                          height: '36px',
-                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6,
+                          padding: '0.3rem',
+                          borderRadius: '8px',
+                          width: '28px',
+                          height: '28px',
+                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 4,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {theme==='light' ? <Moon size={18} /> : <Sun size={18} />}
+                        {theme==='light' ? <Moon size={14} /> : <Sun size={14} />}
                       </button>
                       <button
                         onClick={() => {
@@ -624,14 +696,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         style={{
                           background: collapsed ? accentBg : neutralBg,
                           border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
-                          padding: '0.4rem', borderRadius: '10px', width: '36px', height: '36px',
-                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6,
+                          padding: '0.3rem', borderRadius: '8px', width: '28px', height: '28px',
+                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 4,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
                       </button>
                       <button
                         onClick={() => setAutoHide(v=>!v)}
@@ -641,14 +713,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         style={{
                           background: autoHide ? accentBg : neutralBg,
                           border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
-                          padding: '0.4rem', borderRadius: '10px', width: '36px', height: '36px',
-                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6,
+                          padding: '0.3rem', borderRadius: '8px', width: '28px', height: '28px',
+                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 4,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        <Theater size={18} />
+                        <Theater size={14} />
                       </button>
                       <button
                         onClick={() => setStickyMode(v => !v)}
@@ -658,14 +730,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         style={{
                           background: stickyMode ? accentBg : neutralBg,
                           border: 'none', color: theme==='light' ? '#111' : 'white', cursor: 'pointer',
-                          padding: '0.4rem', borderRadius: '10px', width: '36px', height: '36px',
-                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 6,
+                          padding: '0.3rem', borderRadius: '8px', width: '28px', height: '28px',
+                          display:'flex', alignItems:'center', justifyContent:'center', marginRight: 4,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {stickyMode ? <PinOff size={18} /> : <Pin size={18} />}
+                        {stickyMode ? <PinOff size={14} /> : <Pin size={14} />}
                       </button>
                       <button
                         onClick={onClose}
@@ -677,20 +749,20 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           color: theme==='light' ? '#111' : 'white',
                           fontSize: '1.2rem',
                           cursor: 'pointer',
-                          padding: '0.4rem',
-                          borderRadius: '10px',
+                          padding: '0.3rem',
+                          borderRadius: '8px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '36px',
-                          height: '36px',
+                          width: '28px',
+                          height: '28px',
                           flexShrink: 0,
                           transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease'
                         }}
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        <X size={18} />
+                        <X size={14} />
                       </button>
                     </>
                   );
@@ -822,8 +894,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       transition={{ duration: 0.2, ease: 'easeInOut' }}
                       style={{ overflow: 'hidden' }}
                     >
-                    {group.items.map((link) => (
-                    <div key={link.key || link.path} style={{ display:'flex', alignItems:'center', gap:8, margin:'0 0.5rem' }}>
+                    {group.items.map((link, idx) => (
+                    <div key={link.key || `${groupKey}-${link.path}${link.hash || ''}-${idx}`} style={{ display:'flex', alignItems:'center', gap:8, margin:'0 0.5rem' }}>
                       {link.key === 'timerControl' ? (
                         <button
                           onClick={() => setShowTimerPanel(v=>!v)}
@@ -839,8 +911,27 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         </button>
                       ) : (
                         <Link
-                          to={link.path}
-                          onClick={() => { if (!collapsed && !autoHide && !stickyMode) onClose(); }}
+                          to={link.hash ? `${link.path}${link.hash}` : link.path}
+                          onClick={(e) => { 
+                            if (link.hash) {
+                              e.preventDefault();
+                              navigate(`${link.path}${link.hash}`);
+                              // Map hash to tab for dashboard
+                              const hashToTabMap = {
+                                '#programs': 'programs',
+                                '#subjects': 'subjects',
+                                '#classes': 'classes',
+                                '#enrollments': 'manage-enrollments',
+                                '#marks': 'marks',
+                                '#class-schedule': 'class-schedule'
+                              };
+                              if (link.path === '/dashboard' && hashToTabMap[link.hash]) {
+                                localStorage.setItem('dashboardActiveTab', hashToTabMap[link.hash]);
+                                window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab: hashToTabMap[link.hash] } }));
+                              }
+                            }
+                            if (!collapsed && !autoHide && !stickyMode) onClose(); 
+                          }}
                           title={link.label}
                           style={{
                           display: 'flex',
@@ -849,25 +940,25 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           gap: '0.85rem',
                           padding: ( (autoHide && !isHovering) || collapsed ) ? '0.7rem' : '0.7rem 1rem',
                           borderRadius: '8px',
-                          color: isActive(link.path)
-                            ? (theme==='light' ? '#92400e' : '#FFD700')
+                          color: isActive(link.path, link.hash)
+                            ? userAccentColor
                             : (theme==='light' ? '#111827' : 'rgba(255,255,255,0.85)'),
                           textDecoration: 'none',
-                          background: isActive(link.path)
-                            ? (theme==='light' ? 'rgba(251, 191, 36, 0.15)' : 'rgba(212, 175, 55, 0.15)')
+                          background: isActive(link.path, link.hash)
+                            ? (theme==='light' ? `rgba(${hexToRgbString(userAccentColor)}, 0.15)` : `rgba(${hexToRgbString(userAccentColor)}, 0.15)`)
                             : 'transparent',
                           transition: 'all 0.2s',
-                          fontWeight: isActive(link.path) ? 600 : 400,
+                          fontWeight: isActive(link.path, link.hash) ? 600 : 400,
                           fontSize: '0.95rem',
                           flex: 1
                           }}
                           onMouseEnter={(e) => {
-                          if (!isActive(link.path)) {
+                          if (!isActive(link.path, link.hash)) {
                             e.currentTarget.style.background = theme==='light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
                           }
                           }}
                           onMouseLeave={(e) => {
-                          if (!isActive(link.path)) {
+                          if (!isActive(link.path, link.hash)) {
                             e.currentTarget.style.background = 'transparent';
                           }
                           }}
@@ -904,13 +995,13 @@ const SideDrawer = ({ isOpen, onClose }) => {
                             onClick={() => link.key==='timerControl' ? setPinTimer(v=>!v) : togglePinLink(link.path)}
                             style={{
                               background: pinned
-                                ? (theme==='light' ? 'rgba(251, 191, 36, 0.25)' : 'rgba(212,175,55,0.2)')
+                                ? (theme==='light' ? `rgba(${hexToRgbString(userAccentColor)}, 0.25)` : `rgba(${hexToRgbString(userAccentColor)}, 0.2)`)
                                 : (theme==='light' ? '#ffffff' : 'rgba(255,255,255,0.06)'),
                               border: pinned
-                                ? (theme==='light' ? '1px solid rgba(251, 191, 36, 0.6)' : '1px solid rgba(212,175,55,0.6)')
+                                ? (theme==='light' ? `1px solid rgba(${hexToRgbString(userAccentColor)}, 0.6)` : `1px solid rgba(${hexToRgbString(userAccentColor)}, 0.6)`)
                                 : (theme==='light' ? '1px solid rgba(17,24,39,0.15)' : '1px solid rgba(255,255,255,0.2)'),
                               color: pinned
-                                ? (theme==='light' ? '#92400e' : '#FFD700')
+                                ? userAccentColor
                                 : (theme==='light' ? '#111827' : '#e5e7eb'),
                               borderRadius: 6,
                               width: 28,

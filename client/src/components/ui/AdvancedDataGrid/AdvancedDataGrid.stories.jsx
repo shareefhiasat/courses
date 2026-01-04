@@ -227,7 +227,7 @@ export const WithActions = () => {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button 
                   onClick={() => alert(`Edit user ${params.row.name}`)}
-                  style={{ padding: '4px 8px', background: '#667eea', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                  style={{ padding: '4px 8px', background: '#800020', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
                 >
                   Edit
                 </button>

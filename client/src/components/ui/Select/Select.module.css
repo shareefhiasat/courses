@@ -135,14 +135,13 @@
 
 /* Dropdown menu */
 .dropdown {
-  position: absolute;
+  position: fixed; /* Changed from absolute to fixed for portal rendering */
   min-width: 220px;
-  width: 100%;
   background: var(--card-bg, #ffffff);
   border: 1px solid var(--border, #e5e7eb);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  z-index: 9999 !important; /* High z-index to appear above all containers */
   max-height: 300px;
   overflow: hidden;
   animation: slideDown 0.2s ease;
@@ -192,7 +191,7 @@
 }
 
 .searchInput:focus {
-  border-color: var(--primary, #667eea);
+  border-color: var(--primary, #800020);
 }
 
 /* Options list */
@@ -217,7 +216,7 @@
 
 .option.selected {
   background: var(--primary-light, #eef2ff);
-  color: var(--primary, #667eea);
+  color: var(--primary, #800020);
   font-weight: 500;
 }
 
@@ -255,17 +254,17 @@
   .label {
     color: var(--text, #f5f5f5);
   }
-  
+
   .select {
     background: var(--panel, #1a1a1a);
     border-color: var(--border, #333);
     color: var(--text, #f5f5f5);
   }
-  
+
   .select:disabled {
     background: #2a2a2a;
   }
-  
+
   .arrow {
     color: var(--muted, #999);
   }
@@ -288,15 +287,45 @@
 }
 
 /* Theme attribute support */
-:global([data-theme="dark"]) .select { background: #1a1a1a; border-color: #333; color: #f5f5f5; }
-:global([data-theme="dark"]) .dropdown { background: #111827; border-color: #333; }
-:global([data-theme="dark"]) .searchInput { background: #1f2937; color: #e5e7eb; border-color: #374151; }
-:global([data-theme="dark"]) .option { color: #e5e7eb; }
-:global([data-theme="dark"]) .option:hover { background: #374151; }
+:global([data-theme="dark"]) .select {
+  background: #1a1a1a;
+  border-color: #333;
+  color: #f5f5f5;
+}
+:global([data-theme="dark"]) .dropdown {
+  background: #111827;
+  border-color: #333;
+}
+:global([data-theme="dark"]) .searchInput {
+  background: #1f2937;
+  color: #e5e7eb;
+  border-color: #374151;
+}
+:global([data-theme="dark"]) .option {
+  color: #e5e7eb;
+}
+:global([data-theme="dark"]) .option:hover {
+  background: #374151;
+}
 
 /* Force light palette when explicitly set */
-:global([data-theme="light"]) .select { background: #ffffff; border-color: #e5e7eb; color: #111827; }
-:global([data-theme="light"]) .dropdown { background: #ffffff; border-color: #e5e7eb; }
-:global([data-theme="light"]) .searchInput { background: #ffffff; color: #1f2937; border-color: #e5e7eb; }
-:global([data-theme="light"]) .option { color: #1f2937; }
-:global([data-theme="light"]) .option:hover { background: #f3f4f6; }
+:global([data-theme="light"]) .select {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #111827;
+}
+:global([data-theme="light"]) .dropdown {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+:global([data-theme="light"]) .searchInput {
+  background: #ffffff;
+  color: #1f2937;
+  border-color: #e5e7eb;
+}
+:global([data-theme="light"]) .option {
+  color: #1f2937;
+}
+:global([data-theme="light"]) .option:hover {
+  background: #f3f4f6;
+}
