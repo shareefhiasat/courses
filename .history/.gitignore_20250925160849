@@ -46,6 +46,3 @@ credentials.json
 *.bak
 *.tmp
 *.log
-
-#.continue/
-# .continue/

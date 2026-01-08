@@ -81,15 +81,7 @@ export const HelpProvider = ({ children }) => {
     };
     
     // Help content for available resources
-    const availableResources = {
-      title: t('available_resources') || 'Available Resources',
-      items: [
-        { text: t('study_materials') || 'Study Materials', description: t('study_materials_desc') || 'Access to lecture notes, presentations, and readings' },
-        { text: t('additional_resources') || 'Additional Resources', description: t('additional_resources_desc') || 'Supplementary materials for further learning' },
-        { text: t('access_help') || 'Access Help', description: t('access_help_desc') || 'Contact support if you have trouble accessing any resources' }
-      ]
-    };
-    
+    const availableResources = null;
     // Default help content - show all rules (penalties, participation, behavior)
     const defaultHelp = {
       title: '', // No title for default
@@ -141,6 +133,85 @@ export const HelpProvider = ({ children }) => {
     // Create the help content with available resources
     const content = {};
     
+    // Communication help content - Newsletter
+    content['/dashboard?tab=newsletter'] = {
+      title: t('newsletter_help_title', 'Newsletter Help'),
+      content: [
+        {
+          title: t('newsletter_overview_title', 'Newsletter Overview'),
+          items: [
+            {
+              text: t('purpose', 'Purpose'),
+              description: t('newsletter_purpose', 'Newsletters are used for regular communications with users, typically containing multiple pieces of content, updates, and resources.')
+            },
+            {
+              text: t('key_features', 'Key Features'),
+              description: [
+                t('newsletter_feature1', '• Send to specific groups or all users'),
+                t('newsletter_feature2', '• Rich HTML content support'),
+                t('newsletter_feature3', '• Email tracking and analytics'),
+                t('newsletter_feature4', '• Scheduled sending options')
+              ].join('\n')
+            },
+            {
+              text: t('common_use_cases', 'Common Use Cases'),
+              description: [
+                t('newsletter_usecase1', '• Monthly program updates'),
+                t('newsletter_usecase2', '• Weekly learning digests'),
+                t('newsletter_usecase3', '• Event announcements'),
+                t('newsletter_usecase4', '• System updates and news')
+              ].join('\n')
+            }
+          ]
+        }
+      ]
+    };
+
+    // Communication help content - Announcements
+    content['/dashboard?tab=announcements'] = {
+      title: t('announcements_help_title', 'Announcements Help'),
+      content: [
+        {
+          title: t('announcements_overview_title', 'Announcements Overview'),
+          items: [
+            {
+              text: t('purpose', 'Purpose'),
+              description: t('announcements_purpose', 'Announcements are for time-sensitive, important information that needs immediate attention across the platform.')
+            },
+            {
+              text: t('key_features', 'Key Features'),
+              description: [
+                t('announcement_feature1', '• Send urgent notifications to all users or specific groups'),
+                t('announcement_feature2', '• Appear as popup notifications'),
+                t('announcement_feature3', '• Can be targeted to specific user roles or classes'),
+                t('announcement_feature4', '• Optional email notifications')
+              ].join('\n')
+            },
+            {
+              text: t('common_use_cases', 'Common Use Cases'),
+              description: [
+                t('announcement_usecase1', '• Class cancellations or room changes'),
+                t('announcement_usecase2', '• Deadline reminders and extensions'),
+                t('announcement_usecase3', '• Urgent system maintenance alerts'),
+                t('announcement_usecase4', '• Important policy or schedule updates'),
+                t('announcement_usecase5', '• Emergency notifications')
+              ].join('\n')
+            },
+            {
+              text: t('best_practices', 'Best Practices'),
+              description: [
+                t('announcement_practice1', '• Keep messages short and to the point'),
+                t('announcement_practice2', '• Use clear, action-oriented language'),
+                t('announcement_practice3', '• Include all necessary details in the announcement'),
+                t('announcement_practice4', '• Use sparingly to maintain effectiveness'),
+                t('announcement_practice5', '• Consider time zones when sending time-sensitive announcements')
+              ].join('\n')
+            }
+          ]
+        }
+      ]
+    };
+
     // Dashboard help content
     content['/dashboard'] = {
       title: t('dashboard_help_title') || 'Dashboard Help',
@@ -299,22 +370,63 @@ export const HelpProvider = ({ children }) => {
       ]
     };
     
-    // Add available resources to each route's content
-    Object.keys(content).forEach(route => {
-      if (content[route] && Array.isArray(content[route].content)) {
-        content[route].content = [...content[route].content, availableResources];
-      }
-    });
+    // Add available resources to each route's content if available
+    if (availableResources) {
+      Object.keys(content).forEach(route => {
+        if (content[route] && Array.isArray(content[route].content)) {
+          content[route].content = [...content[route].content, availableResources];
+        }
+      });
+    }
     
-    return { content, defaultHelp, availableResources };
+    return { content, defaultHelp, availableResources: availableResources || { title: '', items: [] } };
   }, [t, lang]);
   
 
   // Get help content for the current route
-  const getHelpForRoute = useCallback((pathname) => {
+  const getHelpForRoute = useCallback((pathname, search = '') => {
     if (!pathname) return defaultHelp;
     
-    console.log(`[HelpContext] Getting help content for path: ${pathname}`);
+    console.log(`[HelpContext] Getting help content for path: ${pathname}${search}`);
+    
+    // Check if we're on the dashboard and need to check the active tab
+    if (pathname === '/dashboard') {
+      try {
+        // First try to get tab from URL search params
+        const searchParams = new URLSearchParams(search);
+        const tabFromUrl = searchParams.get('tab');
+        
+        if (tabFromUrl) {
+          console.log(`[HelpContext] Found tab in URL params: ${tabFromUrl}`);
+          const helpKey = `/dashboard?tab=${tabFromUrl}`;
+          const help = helpContent[helpKey];
+          if (help) {
+            console.log(`[HelpContext] Returning help content for key: ${helpKey}`);
+            return help;
+          } else {
+            console.warn(`[HelpContext] No help content found for key: ${helpKey}`);
+          }
+        } else {
+          console.log('[HelpContext] No tab parameter in URL');
+        }
+        
+        // Fallback to localStorage if no tab in URL (for backward compatibility)
+        const dashboardActiveTab = localStorage.getItem('dashboardActiveTab');
+        console.log(`[HelpContext] Fallback to localStorage tab: ${dashboardActiveTab}`);
+        
+        // Check for specific dashboard tabs with custom help content
+        if (dashboardActiveTab === 'newsletter') {
+          console.log('[HelpContext] Returning newsletter help content');
+          return helpContent['/dashboard?tab=newsletter'] || defaultHelp;
+        }
+        if (dashboardActiveTab === 'announcements') {
+          console.log('[HelpContext] Returning announcements help content');
+          return helpContent['/dashboard?tab=announcements'] || defaultHelp;
+        }
+      } catch (error) {
+        console.error('[HelpContext] Error determining active tab:', error);
+      }
+    }
     
     // Special handling for known routes
     let route = Object.keys(helpContent).find(key => pathname.startsWith(key));
@@ -338,9 +450,9 @@ export const HelpProvider = ({ children }) => {
 
   // Update help content when location changes
   useEffect(() => {
-    if (location && location.pathname) {
-      const help = getHelpForRoute(location.pathname);
-      console.log(`[HelpContext] Updating help content for route: ${location.pathname}`);
+    if (location?.pathname) {
+      const help = getHelpForRoute(location.pathname, location.search);
+      console.log(`[HelpContext] Updating help content for route: ${location.pathname}${location.search}`);
       setCurrentHelp(help);
     }
   }, [location, getHelpForRoute]);
@@ -362,16 +474,25 @@ export const HelpProvider = ({ children }) => {
     const handleHelpEvent = (e) => {
       console.log('[HelpContext] Received app:help event with detail:', e.detail);
       const route = e.detail?.route || location.pathname;
-      console.log(`[HelpContext] Processing help request for route: ${route}`);
-      const help = getHelpForRoute(route);
-      if (help) {
-        console.log('[HelpContext] Setting current help content:', help);
-        setCurrentHelp(help);
-        setIsOpen(true);
-        console.log('[HelpContext] Help drawer should now be open');
-      } else {
-        console.warn('[HelpContext] No help content found for route:', route);
-      }
+      const search = e.detail?.search || location.search;
+      console.log(`[HelpContext] Processing help request for route: ${route}${search}`);
+      
+      // Force a re-render by setting a small delay
+      setTimeout(() => {
+        const help = getHelpForRoute(route, search);
+        console.log('[HelpContext] Help content from getHelpForRoute:', help);
+        
+        if (help) {
+          console.log('[HelpContext] Setting current help content:', help);
+          setCurrentHelp(help);
+          setIsOpen(true);
+          console.log('[HelpContext] Help drawer should now be open');
+        } else {
+          console.warn('[HelpContext] No help content found, using default');
+          setCurrentHelp(defaultHelp);
+          setIsOpen(true);
+        }
+      }, 50);
     };
 
     console.log('[HelpContext] Adding app:help event listener');
