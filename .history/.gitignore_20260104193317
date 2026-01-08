@@ -48,4 +48,4 @@ credentials.json
 *.log
 
 #.continue/
-# .continue/
+.continue/

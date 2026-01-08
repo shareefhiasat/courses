@@ -1,0 +1,23 @@
+# Standard ignore
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Prisma & DB
+# Don't ignore schema.prisma, but ignore generated clients
+**/generated/
+**/migrations/
+
+# Logs & Cache
+.turbo/
+.cache/
+*.log
+.env*
+
+# Large Assets
+public/assets/
+**/*.png
+**/*.jpg
+**/*.svg

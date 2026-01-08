@@ -95,8 +95,6 @@ const DashboardPage = () => {
   const [activityNowTick, setActivityNowTick] = useState(Date.now());
 
   const handleTabChange = (tab) => {
-    console.log('[DashboardPage] Tab changed to:', tab);
-    
     // Check if this tab has a path (external navigation)
     const tabItem = ribbonCategories
       .flatMap(cat => cat.items)
@@ -104,7 +102,6 @@ const DashboardPage = () => {
     
     if (tabItem?.path) {
       // Navigate to external page
-      console.log('[DashboardPage] Navigating to external page:', tabItem.path);
       navigate(tabItem.path);
       return;
     }
@@ -112,33 +109,20 @@ const DashboardPage = () => {
     setActiveTab(tab);
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
-    
-    // Tabs that should update the URL with query parameters
-    const queryParamTabs = ['newsletter', 'announcements', 'smtp', 'emailTemplates', 'emailLogs'];
-    
-    // Update URL with tab parameter for relevant tabs
-    if (queryParamTabs.includes(tab)) {
-      const searchParams = new URLSearchParams(location.search);
-      searchParams.set('tab', tab);
-      const newUrl = `${location.pathname}?${searchParams.toString()}`;
-      console.log('[DashboardPage] Updating URL with tab parameter:', newUrl);
-      window.history.replaceState(null, '', newUrl);
-    } 
-    // Handle hash navigation for specific tabs
-    else {
-      const tabToHashMap = {
-        'programs': '#programs',
-        'subjects': '#subjects',
-        'classes': '#classes',
-        'manage-enrollments': '#enrollments',
-        'marks': '#marks',
-        'class-schedule': '#class-schedule'
-      };
-      
-      if (tabToHashMap[tab]) {
-        window.history.replaceState(null, '', `${location.pathname}${tabToHashMap[tab]}`);
-      } else if (location.search || location.hash) {
-        // Clear any existing query parameters or hash
+    // Update URL hash if it's a hash-navigable tab
+    const tabToHashMap = {
+      'programs': '#programs',
+      'subjects': '#subjects',
+      'classes': '#classes',
+      'manage-enrollments': '#enrollments',
+      'marks': '#marks',
+      'class-schedule': '#class-schedule'
+    };
+    if (tabToHashMap[tab]) {
+      window.history.replaceState(null, '', `${location.pathname}${tabToHashMap[tab]}`);
+    } else {
+      // Clear hash for tabs that don't use hash navigation
+      if (location.hash) {
         window.history.replaceState(null, '', location.pathname);
       }
     }
@@ -156,56 +140,48 @@ const DashboardPage = () => {
     return () => window.removeEventListener('dashboard-tab-change', handleTabChangeEvent);
   }, []);
 
-  const categories = [
-    { id: 'content', label: t('content') },
-    { id: 'users', label: t('users') },
-    { id: 'academic', label: t('academic') },
-    { id: 'communication', label: t('communication') },
-    { id: 'settings', label: t('settings') },
-  ];
-
   const ribbonCategories = [
     {
-      key: 'content', label: t('content'), items: [
+      key: 'content', label: 'Content', items: [
         { key: 'activities', label: t('activities') },
         { key: 'announcements', label: t('announcements') },
         { key: 'resources', label: t('resources') },
       ]
     },
     {
-      key: 'users', label: t('users'), items: [
+      key: 'users', label: 'Users', items: [
         { key: 'users', label: t('users') },
         { key: 'allowlist', label: t('allowlist') },
       ]
     },
     {
-      key: 'academic', label: t('academic'), items: [
-        { key: 'programs', label: t('programs') },
-        { key: 'subjects', label: t('subjects') },
+      key: 'academic', label: 'Academic', items: [
+        { key: 'programs', label: 'Programs' },
+        { key: 'subjects', label: 'Subjects' },
         { key: 'classes', label: t('classes') },
         { key: 'enrollments', label: t('enrollments') },
-        { key: 'manage-enrollments', label: t('manage_enrollments') },
-        { key: 'marks', label: t('mark_entry') },
+        { key: 'manage-enrollments', label: 'Manage Enrollments' },
+        { key: 'marks', label: 'Marks Entry' },
         { key: 'class-schedule', label: t('class_schedules') || 'Class Schedule' },
-        { key: 'hr-penalties', label: t('hr_penalties') },
-        { key: 'instructor-participation', label: t('participation') },
-        { key: 'instructor-behavior', label: t('behavior') },
+        { key: 'hr-penalties', label: 'HR Penalties' },
+        { key: 'instructor-participation', label: 'Participation' },
+        { key: 'instructor-behavior', label: 'Behavior' },
         // { key: 'submissions', label: t('submissions') }, // Disabled - not completed yet
       ]
     },
     {
-      key: 'communication', label: t('communication'), items: [
+      key: 'communication', label: 'Communication', items: [
         { key: 'smtp', label: t('smtp') },
         { key: 'newsletter', label: t('newsletter') },
-        { key: 'emailTemplates', label: t('templates') },
-        { key: 'emailLogs', label: t('logs') },
-        { key: 'scheduled-reports', label: t('scheduled_reports') },
+        { key: 'emailTemplates', label: 'Templates' },
+        { key: 'emailLogs', label: 'Logs' },
+        { key: 'scheduled-reports', label: 'Scheduled Reports' },
       ]
     },
     {
-      key: 'settings', label: t('settings'), items: [
+      key: 'settings', label: 'Settings', items: [
         { key: 'categories', label: t('categories') },
-        { key: 'login', label: t('activity') },
+        { key: 'login', label: 'Activity' },
       ]
     },
   ];
@@ -552,7 +528,7 @@ const DashboardPage = () => {
   // Activity Form - Program Options
   const activityProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('select_program') }
+      { value: '', label: t('select_program') || 'Select Program' }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
@@ -569,7 +545,7 @@ const DashboardPage = () => {
   // Activity Form - Subject Options
   const activitySubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('select_subject') }
+      { value: '', label: t('select_subject') || 'Select Subject' }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -614,22 +590,19 @@ const DashboardPage = () => {
   // Enrollment Form - Program Options
   const enrollmentProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_programs') }
+      { value: '', label: t('all_programs') || 'All Programs' }
     ];
-    const validPrograms = programs.map(p => {
-      const value = ensureString(p.docId || p.id);
-      const label = lang === 'ar' 
-        ? (p.name_ar || p.name_en || p.code || value)
-        : (p.name_en || p.name_ar || p.code || value);
-      return { value, label };
-    });
+    const validPrograms = programs.map(p => ({
+      value: ensureString(p.docId || p.id),
+      label: p.name_en || p.name || p.code || p.docId
+    }));
     return [...opts, ...validPrograms];
-  }, [programs, lang, t]);
+  }, [programs, t]);
 
   // Enrollment Form - Subject Options
   const enrollmentSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects') }
+      { value: '', label: t('all_subjects') || 'All Subjects' }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -638,20 +611,17 @@ const DashboardPage = () => {
         const formProgramId = ensureString(enrollmentForm.programId);
         return subProgramId === formProgramId;
       })
-      .map(s => {
-        const value = ensureString(s.docId || s.id);
-        const label = lang === 'ar'
-          ? (s.name_ar || s.name_en || s.code || value)
-          : (s.name_en || s.name_ar || s.code || value);
-        return { value, label };
-      });
+      .map(s => ({
+        value: ensureString(s.docId || s.id),
+        label: s.name_en || s.name || s.code || s.docId
+      }));
     return [...opts, ...validSubjects];
-  }, [subjects, enrollmentForm.programId, lang, t]);
+  }, [subjects, enrollmentForm.programId, t]);
 
   // Enrollment Form - Class Options
   const enrollmentClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('select_class') }
+      { value: '', label: t('select_class') || 'Select Class' }
     ];
     const validClasses = classes
       .filter(c => {
@@ -682,22 +652,19 @@ const DashboardPage = () => {
   // Enrollment Filters - Program Options
   const enrollmentFilterProgramOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_programs') }
+      { value: 'all', label: t('all_programs') || 'All Programs' }
     ];
-    const validPrograms = programs.map(p => {
-      const value = ensureString(p.docId || p.id);
-      const label = lang === 'ar' 
-        ? (p.name_ar || p.name_en || p.code || value)
-        : (p.name_en || p.name_ar || p.code || value);
-      return { value, label };
-    });
+    const validPrograms = programs.map(p => ({
+      value: ensureString(p.docId || p.id),
+      label: p.name_en || p.name || p.code || p.docId
+    }));
     return [...opts, ...validPrograms];
-  }, [programs, lang, t]);
+  }, [programs, t]);
 
   // Enrollment Filters - Subject Options
   const enrollmentFilterSubjectOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_subjects') }
+      { value: 'all', label: t('all_subjects') || 'All Subjects' }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -706,20 +673,17 @@ const DashboardPage = () => {
         const filterProgramId = ensureString(enrollmentProgramFilter);
         return subProgramId === filterProgramId;
       })
-      .map(s => {
-        const value = ensureString(s.docId || s.id);
-        const label = lang === 'ar'
-          ? (s.name_ar || s.name_en || s.code || value)
-          : (s.name_en || s.name_ar || s.code || value);
-        return { value, label };
-      });
+      .map(s => ({
+        value: ensureString(s.docId || s.id),
+        label: s.name_en || s.name || s.code || s.docId
+      }));
     return [...opts, ...validSubjects];
-  }, [subjects, enrollmentProgramFilter, lang, t]);
+  }, [subjects, enrollmentProgramFilter, t]);
 
   // Enrollment Filters - Class Options
   const enrollmentFilterClassOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_classes') }
+      { value: 'all', label: t('all_classes') || 'All Classes' }
     ];
     const validClasses = classes
       .filter(c => {
@@ -750,16 +714,12 @@ const DashboardPage = () => {
   // Class Form - Subject Options
   const classFormSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('select_subject') }
+      { value: '', label: t('select_subject') || 'Select Subject' }
     ];
-    const validSubjects = subjects.map(subject => {
-      const value = ensureString(subject.docId || subject.id);
-      const name = lang === 'ar' 
-        ? (subject.name_ar || subject.name_en || '')
-        : (subject.name_en || subject.name_ar || '');
-      const label = `${name}${subject.code ? ` (${subject.code})` : ''}`;
-      return { value, label };
-    });
+    const validSubjects = subjects.map(subject => ({
+      value: ensureString(subject.docId),
+      label: `${lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en}${subject.code ? ` (${subject.code})` : ''}`
+    }));
     return [...opts, ...validSubjects];
   }, [subjects, lang, t]);
 
@@ -788,35 +748,11 @@ const DashboardPage = () => {
   }, [enrollmentForm.programId, enrollmentForm.subjectId, enrollmentForm.classId, 
       enrollmentProgramOptions.length, enrollmentSubjectOptions.length, enrollmentClassOptions.length]);
 
-  // Listen for URL changes (hash or search params) from sidebar or direct navigation
+  // Handle hash navigation from sidebar (only on initial load or hash change from external source)
   const [hashProcessed, setHashProcessed] = useState(false);
   useEffect(() => {
-    console.log('[DashboardPage] URL changed:', { 
-      pathname: location.pathname, 
-      search: location.search, 
-      hash: location.hash,
-      hashProcessed 
-    });
-
-    // First check for tab in query parameters
-    if (location.search) {
-      const searchParams = new URLSearchParams(location.search);
-      const tabFromUrl = searchParams.get('tab');
-      
-      if (tabFromUrl && tabFromUrl !== activeTab) {
-        console.log('[DashboardPage] Found tab in URL params:', tabFromUrl);
-        setActiveTab(tabFromUrl);
-        localStorage.setItem('dashboardActiveTab', tabFromUrl);
-        setHashProcessed(true);
-        return;
-      }
-    }
-    
-    // Then check for hash navigation (legacy support)
     if (location.hash && !hashProcessed) {
       const hash = location.hash.substring(1); // Remove #
-      console.log('[DashboardPage] Processing hash navigation:', hash);
-      
       const hashToTabMap = {
         'programs': 'programs',
         'subjects': 'subjects',
@@ -825,17 +761,14 @@ const DashboardPage = () => {
         'marks': 'marks',
         'class-schedule': 'class-schedule'
       };
-      
       const tab = hashToTabMap[hash];
       if (tab && tab !== activeTab) {
-        console.log('[DashboardPage] Setting tab from hash:', tab);
         setActiveTab(tab);
         localStorage.setItem('dashboardActiveTab', tab);
         setHashProcessed(true);
       }
     } else if (!location.hash && hashProcessed) {
       // Hash was cleared, reset flag
-      console.log('[DashboardPage] Hash was cleared, resetting flag');
       setHashProcessed(false);
     }
   }, [location.hash]);
