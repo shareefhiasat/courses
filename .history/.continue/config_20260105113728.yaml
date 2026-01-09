@@ -1,8 +1,0 @@
-name: Test
-schema: v1
-models:
-  - name: "Test Sonnet"
-    provider: openrouter
-    model: anthropic/claude-sonnet-4.5
-    apiBase: https://openrouter.ai/api/v1
-    apiKey: "sk-or-v1-..."
