@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getUsers, getClasses, getEnrollments } from '../firebase/firestore';
+import { getPrograms, getSubjects } from '../firebase/programs';
 import { useLang } from '../contexts/LangContext';
 import Modal from './Modal';
 import { useToast } from './ToastProvider';
-import { Input, Textarea, Button } from './ui';
+import { Input, Textarea, Button, Select } from './ui';
 
 const SmartEmailComposer = ({ open, onClose, onSend }) => {
   const { t, lang } = useLang();
@@ -11,6 +12,9 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
   const [users, setUsers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [quickSelect, setQuickSelect] = useState({ programId: '', subjectId: '', classId: '' });
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
@@ -27,6 +31,20 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
     searchTerm: ''
   });
 
+  // Debug logging for dropdown state
+  useEffect(() => {
+    if (open) {
+      console.log('🔍 [SmartEmailComposer] State:', {
+        quickSelect,
+        programsCount: programs.length,
+        subjectsCount: subjects.length,
+        classesCount: classes.length,
+        usersCount: users.length,
+        enrollmentsCount: enrollments.length
+      });
+    }
+  }, [open, quickSelect, programs.length, subjects.length, classes.length, users.length, enrollments.length]);
+
   useEffect(() => {
     if (open) {
       loadData();
@@ -36,15 +54,19 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [usersRes, classesRes, enrollmentsRes] = await Promise.all([
+      const [usersRes, classesRes, enrollmentsRes, programsRes, subjectsRes] = await Promise.all([
         getUsers(),
         getClasses(),
-        getEnrollments()
+        getEnrollments(),
+        getPrograms(),
+        getSubjects()
       ]);
       
       if (usersRes.success) setUsers(usersRes.data || []);
       if (classesRes.success) setClasses(classesRes.data || []);
       if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
+      if (programsRes.success) setPrograms(programsRes.data || []);
+      if (subjectsRes.success) setSubjects(subjectsRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
       toast?.showError('Failed to load data');
@@ -162,28 +184,46 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
           {/* Quick Class Selection */}
           <div style={{ background: '#f8f9fa', padding: '0.75rem', borderRadius: '6px' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#800020', marginBottom: '0.5rem' }}>📚 Quick Select by Class</div>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {classes.map(cls => {
-                const enrollmentCount = enrollments.filter(e => e.classId === (cls.docId || cls.id)).length;
-                return (
-                  <button
-                    key={cls.docId || cls.id}
-                    onClick={() => handleSelectClass(cls.docId || cls.id)}
-                    style={{
-                      padding: '6px 10px',
-                      background: 'white',
-                      border: '1px solid #800020',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      color: '#800020'
-                    }}
-                  >
-                    {cls.name} ({enrollmentCount})
-                  </button>
-                );
-              })}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
+              <Select
+                placeholder="Select Program"
+                value={quickSelect.programId}
+                onChange={(val) => {
+                  const value = (val && typeof val === 'object' && 'value' in val) ? val.value : (val?.target?.value !== undefined ? val.target.value : val);
+                  console.log('🔄 [SmartEmailComposer] Program changed:', value);
+                  setQuickSelect({ programId: value || '', subjectId: '', classId: '' });
+                }}
+                options={[{ value: '', label: 'All Programs' }, ...programs.map(p => ({ value: p.docId || p.id, label: lang === 'ar' ? (p.name_ar || p.name_en) : (p.name_en || p.name_ar) })) ]}
+              />
+              <Select
+                placeholder="Select Subject"
+                value={quickSelect.subjectId}
+                onChange={(val) => {
+                  const value = (val && typeof val === 'object' && 'value' in val) ? val.value : (val?.target?.value !== undefined ? val.target.value : val);
+                  console.log('🔄 [SmartEmailComposer] Subject changed:', value);
+                  setQuickSelect(prev => ({ ...prev, subjectId: value || '', classId: '' }));
+                }}
+                options={[{ value: '', label: 'All Subjects' }, ...subjects.filter(s => !quickSelect.programId || (s.programId || s.program) === quickSelect.programId).map(s => ({ value: s.docId || s.id, label: lang === 'ar' ? (s.name_ar || s.name_en) : (s.name_en || s.name_ar) })) ]}
+                disabled={!quickSelect.programId}
+              />
+              <Select
+                placeholder="Select Class"
+                value={quickSelect.classId}
+                onChange={(val) => {
+                  const value = (val && typeof val === 'object' && 'value' in val) ? val.value : (val?.target?.value !== undefined ? val.target.value : val);
+                  console.log('🔄 [SmartEmailComposer] Class changed:', value);
+                  setQuickSelect(prev => ({...prev, classId: value || ''}));
+                }}
+                options={[{ value: '', label: 'All Classes' }, ...classes.filter(c => !quickSelect.subjectId || (c.subjectId || c.subject) === quickSelect.subjectId).map(c => ({ value: c.docId || c.id, label: lang === 'ar' ? (c.name_ar || c.name) : (c.name || c.name_ar) })) ]}
+                disabled={!quickSelect.subjectId}
+              />
+              <Button
+                onClick={() => {
+                  console.log('🔵 [SmartEmailComposer] Add button clicked. classId:', quickSelect.classId);
+                  handleSelectClass(quickSelect.classId);
+                }}
+                disabled={!quickSelect.classId}
+              >Add</Button>
             </div>
           </div>
 

@@ -75,7 +75,7 @@ const DashboardPage = () => {
       activities: 'content', announcements: 'content', resources: 'content',
       users: 'users', allowlist: 'users',
       classes: 'academic', enrollments: 'academic', submissions: 'academic',
-      smtp: 'communication', newsletter: 'communication', emailTemplates: 'communication', emailLogs: 'communication',
+      smtp: 'communication', emailTemplates: 'communication', emailLogs: 'communication',
       categories: 'settings', login: 'settings'
     };
     return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
@@ -88,6 +88,16 @@ const DashboardPage = () => {
   const [activityFilter, setActivityFilter] = useState('all');
   const [submissionStudentFilter, setSubmissionStudentFilter] = useState('all');
   const [submissionScoreFilter, setSubmissionScoreFilter] = useState('all');
+  // Activity and Announcement filters for summary cards
+  const [activityProgramFilter, setActivityProgramFilter] = useState('all');
+  const [activitySubjectFilter, setActivitySubjectFilter] = useState('all');
+  const [activityClassFilter, setActivityClassFilter] = useState('all');
+  const [announcementProgramFilter, setAnnouncementProgramFilter] = useState('all');
+  const [announcementSubjectFilter, setAnnouncementSubjectFilter] = useState('all');
+  const [announcementClassFilter, setAnnouncementClassFilter] = useState('all');
+  const [resourceProgramFilter, setResourceProgramFilter] = useState('all');
+  const [resourceSubjectFilter, setResourceSubjectFilter] = useState('all');
+  const [resourceClassFilter, setResourceClassFilter] = useState('all');
   const [emailComposerOpen, setEmailComposerOpen] = useState(false);
   const [userQuickFilter, setUserQuickFilter] = useState('all');
   const [activityAutoRefreshMs, setActivityAutoRefreshMs] = useState(0);
@@ -114,7 +124,7 @@ const DashboardPage = () => {
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
     
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = ['newsletter', 'announcements', 'smtp', 'emailTemplates', 'emailLogs'];
+    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'class-schedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', 'smtp', 'emailTemplates', 'emailLogs', 'scheduled-reports', 'categories', 'login'];
     
     // Update URL with tab parameter for relevant tabs
     if (queryParamTabs.includes(tab)) {
@@ -196,7 +206,6 @@ const DashboardPage = () => {
     {
       key: 'communication', label: t('communication'), items: [
         { key: 'smtp', label: t('smtp') },
-        { key: 'newsletter', label: t('newsletter') },
         { key: 'emailTemplates', label: t('templates') },
         { key: 'emailLogs', label: t('logs') },
         { key: 'scheduled-reports', label: t('scheduled_reports') },
@@ -210,14 +219,6 @@ const DashboardPage = () => {
     },
   ];
 
-  // Load email logs when newsletter tab is opened
-  useEffect(() => {
-    const loadLogs = async () => {
-      const res = await getEmailLogs();
-      if (res.success) setEmailLogs(res.data || []);
-    };
-    if (activeTab === 'newsletter') loadLogs();
-  }, [activeTab]);
 
   // Auto-refresh for Activity tab
   useEffect(() => {
@@ -460,7 +461,10 @@ const DashboardPage = () => {
     title: '',
     content: '',
     content_ar: '',
-    target: 'global'
+    target: 'global',
+    programId: '',
+    subjectId: '',
+    classId: ''
   });
   const [announcementEmailOptions, setAnnouncementEmailOptions] = useState({ sendEmail: false, lang: 'both' });
   const [resourceEmailOptions, setResourceEmailOptions] = useState({ sendEmail: false, createAnnouncement: false });
@@ -516,7 +520,10 @@ const DashboardPage = () => {
     type: 'link',
     dueDate: '',
     optional: false,
-    featured: false
+    featured: false,
+    programId: '',
+    subjectId: '',
+    classId: ''
   });
 
   // ========== MEMOIZED DROPDOWN OPTIONS ==========
@@ -1233,7 +1240,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           await logActivity(editingAnnouncement ? ACTIVITY_TYPES.ANNOUNCEMENT_UPDATED : ACTIVITY_TYPES.ANNOUNCEMENT_CREATED, {
             announcementId: editingAnnouncement?.docId || result.id,
             announcementTitle: announcementForm.title,
-            target: announcementForm.target
+            target: announcementForm.target,
+            programId: announcementForm.programId,
+            subjectId: announcementForm.subjectId,
+            classId: announcementForm.classId
           });
         } catch (e) { console.warn('Failed to log activity:', e); }
         
@@ -1246,27 +1256,56 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               email: user.email,
               displayName: user.displayName || user.email,
               userAgent: navigator.userAgent,
-              metadata: { announcementId: result.id, title: announcementForm.title, target: announcementForm.target }
+              metadata: {
+                announcementId: result.id,
+                title: announcementForm.title,
+                target: announcementForm.target,
+                programId: announcementForm.programId,
+                subjectId: announcementForm.subjectId,
+                classId: announcementForm.classId
+              }
             });
           } catch (e) { console.warn('Failed to log announcement:', e); }
         }
         // Send notifications only for new announcements
         if (!editingAnnouncement) {
-          if (announcementForm.target === 'global') {
-            await notifyAllUsers(
-              `📢 ${announcementForm.title}`,
-              announcementForm.content,
-              'announcement'
-            );
-          } else if (announcementForm.target.startsWith('class:')) {
-            const classId = announcementForm.target.replace('class:', '');
+          const { programId, subjectId, classId } = announcementForm;
+          let notificationSent = false;
+
+          if (classId) {
+            console.log(`Sending notification to class: ${classId}`);
             await notifyUsersByClass(
               classId,
               `📢 ${announcementForm.title}`,
               announcementForm.content,
               'announcement'
             );
+            notificationSent = true;
           }
+          // TODO: Implement notifyUsersBySubject and notifyUsersByProgram if needed
+          /*
+          else if (subjectId) {
+            // Placeholder for future implementation
+            console.log(`Sending notification to subject: ${subjectId}`);
+            await notifyUsersBySubject(subjectId, `📢 ${announcementForm.title}`, announcementForm.content, 'announcement');
+            notificationSent = true;
+          } else if (programId) {
+            // Placeholder for future implementation
+            console.log(`Sending notification to program: ${programId}`);
+            await notifyUsersByProgram(programId, `📢 ${announcementForm.title}`, announcementForm.content, 'announcement');
+            notificationSent = true;
+          }
+          */
+
+          if (!notificationSent) {
+            console.log('Sending global notification');
+            await notifyAllUsers(
+              `📢 ${announcementForm.title}`,
+              announcementForm.content,
+              'announcement'
+            );
+          }
+
           // Optional email blast
           if (announcementEmailOptions.sendEmail) {
             const buildBody = () => {
@@ -1275,7 +1314,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               // Always send bilingual when available: EN first, then AR if provided
               return [`<div>${en || ''}</div>`, ar ? `<hr/><div dir="rtl" style="text-align:right">${ar}</div>` : ''].join('');
             };
-            const recipients = users.map(u => u.email).filter(Boolean);
+            // Determine recipients based on target
+            let recipients = [];
+            if (classId) {
+               const enrollmentsResult = await getEnrollments({ classId });
+               const userIds = (enrollmentsResult.data || []).map(e => e.userId);
+               recipients = users.filter(u => userIds.includes(u.docId)).map(u => u.email).filter(Boolean);
+             } else {
+               // For now, non-class targets are global. This can be expanded.
+               recipients = users.map(u => u.email).filter(Boolean);
+             }
+
             if (recipients.length > 0) {
               const sendRes = await sendEmail({
                 to: recipients,
@@ -1286,13 +1335,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               if (!sendRes.success) {
                 console.warn('Announcement email failed:', sendRes.error);
                 toast?.showError('Announcement created, but email failed: ' + sendRes.error);
+              } else {
+                toast?.showSuccess(`Email sent to ${recipients.length} recipients.`);
               }
+            } else {
+               toast?.showInfo('No recipients found for this announcement.');
             }
           }
         }
 
         await loadData();
-        setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global' });
+        setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
         setAnnouncementEmailOptions({ sendEmail: false, lang: 'both' });
         setEditingAnnouncement(null);
         toast?.showSuccess(editingAnnouncement ?
@@ -1500,6 +1553,15 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     if (enrollmentClassFilter !== 'all') {
                       return a.classId === enrollmentClassFilter;
                     }
+                    if (enrollmentSubjectFilter !== 'all') {
+                      const classItem = classes.find(c => (c.id || c.docId) === a.classId);
+                      return classItem?.subjectId === enrollmentSubjectFilter;
+                    }
+                    if (enrollmentProgramFilter !== 'all') {
+                      const classItem = classes.find(c => (c.id || c.docId) === a.classId);
+                      const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
+                      return subject?.programId === enrollmentProgramFilter;
+                    }
                     if (isInstructor && !isAdmin && !isSuperAdmin) {
                       const classItem = classes.find(c => (c.id || c.docId) === a.classId);
                       return classItem && (classItem.instructorId === user.uid || classItem.ownerEmail === user.email || classItem.instructor === user.email);
@@ -1522,6 +1584,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const activity = activities.find(a => a.id === s.activityId);
                       return activity?.classId === enrollmentClassFilter;
                     }
+                    if (enrollmentSubjectFilter !== 'all') {
+                      const activity = activities.find(a => a.id === s.activityId);
+                      if (!activity) return false;
+                      const classItem = classes.find(c => (c.id || c.docId) === activity.classId);
+                      return classItem?.subjectId === enrollmentSubjectFilter;
+                    }
+                    if (enrollmentProgramFilter !== 'all') {
+                      const activity = activities.find(a => a.id === s.activityId);
+                      if (!activity) return false;
+                      const classItem = classes.find(c => (c.id || c.docId) === activity.classId);
+                      const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
+                      return subject?.programId === enrollmentProgramFilter;
+                    }
                     if (isInstructor && !isAdmin && !isSuperAdmin) {
                       const activity = activities.find(a => a.id === s.activityId);
                       if (!activity) return false;
@@ -1541,13 +1616,40 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 // Announcements
                 {
                   type: 'announcements',
-                  value: announcements.length,
+                  value: announcements.filter(a => {
+                    if (enrollmentClassFilter !== 'all') {
+                      return a.classId === enrollmentClassFilter;
+                    }
+                    if (enrollmentSubjectFilter !== 'all') {
+                      return a.subjectId === enrollmentSubjectFilter;
+                    }
+                    if (enrollmentProgramFilter !== 'all') {
+                      return a.programId === enrollmentProgramFilter;
+                    }
+                    return true;
+                  }).length,
                   tooltip: 'Total number of announcements'
                 },
                 // Resources
                 {
                   type: 'resources',
-                  value: resources.length,
+                  value: resources.filter(r => {
+                    // If resource has no program/subject/class, it's public and should be included
+                    if (!r.programId && !r.subjectId && !r.classId) {
+                      return true;
+                    }
+                    
+                    if (enrollmentClassFilter !== 'all') {
+                      return r.classId === enrollmentClassFilter;
+                    }
+                    if (enrollmentSubjectFilter !== 'all') {
+                      return r.subjectId === enrollmentSubjectFilter;
+                    }
+                    if (enrollmentProgramFilter !== 'all') {
+                      return r.programId === enrollmentProgramFilter;
+                    }
+                    return true;
+                  }).length,
                   tooltip: 'Total number of resources'
                 }
               ].map((stat, idx) => {
@@ -1598,6 +1700,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         <div className="tab-content">
           {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} />}
           
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t(activeTab)}</h2>
+            <InfoTooltip contentKey={`help.${activeTab}`} />
+          </div>
+
           {activeTab === 'activities' && (
             <div className="activities-tab">
               {editingActivity && (
@@ -2101,7 +2208,21 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               </form>
               <div style={{ marginTop: '1rem' }}>
                 <AdvancedDataGrid
-                  rows={activities}
+                  rows={activities.filter(a => {
+                    if (enrollmentClassFilter !== 'all') {
+                      return a.classId === enrollmentClassFilter;
+                    }
+                    if (enrollmentSubjectFilter !== 'all') {
+                      const classItem = classes.find(c => (c.id || c.docId) === a.classId);
+                      return classItem?.subjectId === enrollmentSubjectFilter;
+                    }
+                    if (enrollmentProgramFilter !== 'all') {
+                      const classItem = classes.find(c => (c.id || c.docId) === a.classId);
+                      const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
+                      return subject?.programId === enrollmentProgramFilter;
+                    }
+                    return true;
+                  })}
                 getRowId={(row) => row.docId || row.id}
                 columns={[
                   { field: 'id', headerName: t('id_col'), width: 90 },
@@ -2266,38 +2387,15 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           )}
 
-          {activeTab === 'newsletter' && (
-            /* ... */
-            <div className="newsletter-tab">
-              <div style={{ marginBottom: '1rem' }}>
-                <h2 style={{ margin: 0, display: 'none' }}>{t('newsletter')}</h2>
-                <p style={{ color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>{t('send_bulk_emails_view')}</p>
-              </div>
-              <EmailLogs
-                defaultTypeFilter="newsletter"
-                actionsSlot={(
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => setSmartComposerOpen(true)}
-                  >
-                    {t('compose_email') || 'Compose Email'}
-                  </Button>
-                )}
-              />
-            </div>
-          )}
 
           {activeTab === 'announcements' && (
             <div className="announcements-tab">
-              <h2 style={{ display: 'none' }}>{t('announcements_management')}</h2>
-
               {editingAnnouncement && (
-                <div style={{ 
-                  padding: '0.75rem 1rem', 
-                  background: '#fef3c7', 
-                  border: '1px solid #fbbf24', 
-                  borderRadius: '8px', 
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  background: '#fef3c7',
+                  border: '1px solid #fbbf24',
+                  borderRadius: '8px',
                   marginBottom: '1rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -2316,14 +2414,30 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
                     required
                   />
+                </div>
+                <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                   <Select
                     searchable
-                    placeholder={t('target') || 'Target Audience'}
-                    value={announcementForm.target}
-                    onChange={(e) => setAnnouncementForm({ ...announcementForm, target: e.target.value })}
-                    options={[
-                      { value: 'global', label: t('all_users') || 'All Users' }
-                    ]}
+                    placeholder={t('program') || 'Program (Optional)'}
+                    value={announcementForm.programId}
+                    onChange={handleDropdownChange(setAnnouncementForm, 'programId', ['subjectId', 'classId'])}
+                    options={activityProgramOptions}
+                  />
+                  <Select
+                    searchable
+                    placeholder={t('subject') || 'Subject (Optional)'}
+                    value={announcementForm.subjectId}
+                    onChange={handleDropdownChange(setAnnouncementForm, 'subjectId', ['classId'])}
+                    options={activitySubjectOptions.filter(o => !announcementForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === announcementForm.programId)}
+                    disabled={!announcementForm.programId}
+                  />
+                  <Select
+                    searchable
+                    placeholder={t('class') || 'Class (Optional)'}
+                    value={announcementForm.classId}
+                    onChange={handleDropdownChange(setAnnouncementForm, 'classId')}
+                    options={activityClassOptions.filter(o => !announcementForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === announcementForm.subjectId)}
+                    disabled={!announcementForm.subjectId}
                   />
                 </div>
                 <div className="form-row">
@@ -2350,14 +2464,21 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     checked={announcementEmailOptions.sendEmail}
                     onChange={(checked) => setAnnouncementEmailOptions({ ...announcementEmailOptions, sendEmail: checked })}
                   />
-                  <div style={{ marginLeft: 'auto' }}>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setSmartComposerOpen(true)}
+                    >
+                      {t('compose_email') || 'Compose Email'}
+                    </Button>
                     <Button type="submit" variant="primary" loading={loading}>
                       {(editingAnnouncement ? (t('update') || 'Update') : (t('save') || 'Save'))}
                     </Button>
                     {editingAnnouncement && (
                       <Button type="button" variant="outline" onClick={() => {
                         setEditingAnnouncement(null);
-                        setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global' });
+                        setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
                       }} style={{ marginLeft: '0.5rem' }}>
                         {t('cancel_edit') || 'Cancel Edit'}
                       </Button>
@@ -2368,7 +2489,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
               <div style={{ marginTop: '1rem' }}>
                 <AdvancedDataGrid
-                  rows={announcements}
+                  rows={announcements.filter(a => {
+                    if (enrollmentClassFilter !== 'all') {
+                      return a.classId === enrollmentClassFilter;
+                    }
+                    if (enrollmentSubjectFilter !== 'all') {
+                      return a.subjectId === enrollmentSubjectFilter;
+                    }
+                    if (enrollmentProgramFilter !== 'all') {
+                      return a.programId === enrollmentProgramFilter;
+                    }
+                    return true;
+                  })}
                 getRowId={(row) => row.docId || row.id}
                 columns={[
                   { field: 'title', headerName: 'Title', flex: 1, minWidth: 200 },
@@ -2377,8 +2509,50 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     renderCell: (params) => params.value ? (params.value.length > 100 ? params.value.substring(0, 100) + '...' : params.value) : 'No content'
                   },
                   {
-                    field: 'target', headerName: 'Target', width: 150,
-                    renderCell: (params) => params.value === 'global' ? 'All Users' : params.value
+                    field: 'programId',
+                    headerName: t('program') || 'Program',
+                    width: 150,
+                    renderCell: (params) => {
+                      const programId = params.value || params.row?.programId;
+                      if (!programId) return '—';
+                      const program = programs.find(p => (p.docId || p.id) === programId);
+                      if (!program) return programId;
+                      return lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                    }
+                  },
+                  {
+                    field: 'subjectId',
+                    headerName: t('subject') || 'Subject',
+                    width: 150,
+                    renderCell: (params) => {
+                      const subjectId = params.value || params.row?.subjectId;
+                      if (!subjectId) return '—';
+                      const subject = subjects.find(s => (s.docId || s.id) === subjectId);
+                      if (!subject) return subjectId;
+                      return lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                    }
+                  },
+                  {
+                    field: 'classId',
+                    headerName: t('class_col') || 'Class',
+                    width: 150,
+                    renderCell: (params) => {
+                      const classId = params.value || params.row?.classId;
+                      if (!classId) return '—';
+                      const classItem = classes.find(c => (c.docId || c.id) === classId);
+                      if (!classItem) return classId;
+                      return `${classItem.name}${classItem.code ? ` (${classItem.code})` : ''}`;
+                    }
+                  },
+                  {
+                    field: 'target', headerName: 'Target', width: 120,
+                    renderCell: (params) => {
+                       const { programId, subjectId, classId } = params.row;
+                       if (classId) return 'Class';
+                       if (subjectId) return 'Subject';
+                       if (programId) return 'Program';
+                       return 'Global';
+                    }
                   },
                   {
                     field: 'createdAt', headerName: 'Created', width: 180,
@@ -2399,7 +2573,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             title: params.row.title || '',
                             content: params.row.content || '',
                             content_ar: params.row.content_ar || '',
-                            target: params.row.target || 'global'
+                            target: params.row.target || 'global',
+                            programId: params.row.programId || '',
+                            subjectId: params.row.subjectId || '',
+                            classId: params.row.classId || ''
                           });
                         }}>
                           Edit
@@ -2461,27 +2638,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           )}
 
-          {activeTab === 'newsletter' && (
-            /* ... */
-            <div className="newsletter-tab">
-              <div style={{ marginBottom: '1rem' }}>
-                <h2 style={{ margin: 0, display: 'none' }}>{t('newsletter')}</h2>
-                <p style={{ color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>{t('send_bulk_emails_view')}</p>
-              </div>
-              <EmailLogs
-                defaultTypeFilter="newsletter"
-                actionsSlot={(
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => setSmartComposerOpen(true)}
-                  >
-                    {t('compose_email') || 'Compose Email'}
-                  </Button>
-                )}
-              />
-            </div>
-          )}
 
           {activeTab === 'programs' && isSuperAdmin && (
             <ProgramsManagementPage />
@@ -2521,7 +2677,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
           {activeTab === 'login' && (
             <div className="login-activity-tab">
-              <h2 style={{ display: 'none' }}>{t('activity_logs')}</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, margin: '0.5rem 0 1rem' }}>
                 <Select value={activityTypeFilter} onChange={(e) => setActivityTypeFilter(e.target.value)} options={[
                   { value: 'all', label: t('all_activity_types') || 'All Activity Types' },
@@ -2756,8 +2911,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
           {activeTab === 'classes' && (
             <div className="classes-tab">
-              <h2 style={{ display: 'none' }}>{t('classes_management')}</h2>
-
               {editingClass && (
                 <div style={{ 
                   padding: '0.75rem 1rem', 
@@ -4071,8 +4224,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
         {activeTab === 'resources' && (
           <div className="resources-tab">
-            <h2 style={{ display: 'none' }}>{t('resources_management')}</h2>
-
             {editingResource && (
               <div style={{ 
                 padding: '0.75rem 1rem', 
@@ -4097,9 +4248,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
               setLoading(true);
               try {
+                // Prepare resource data with program/subject/class
+                const resourceData = {
+                  ...resourceForm,
+                  programId: resourceForm.programId || null,
+                  subjectId: resourceForm.subjectId || null,
+                  classId: resourceForm.classId || null
+                };
+                
                 const result = editingResource ?
-                  await updateResource(editingResource.docId, resourceForm) :
-                  await addResource(resourceForm);
+                  await updateResource(editingResource.docId, resourceData) :
+                  await addResource(resourceData);
 
                 if (result.success) {
                   const resourceId = editingResource?.docId || result?.id;
@@ -4116,14 +4275,43 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   // Send email notification if requested (only for new resources)
                   if (!editingResource && resourceEmailOptions.sendEmail) {
                     try {
-                      const emailResult = await sendEmail({
-                        to: 'all_students',
-                        subject: `New Resource: ${resourceForm.title}`,
-                        message: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
-                        type: 'resource'
-                      });
-                      if (emailResult.success) {
-                        console.log('Resource notification email sent successfully');
+                      // Determine recipients based on resource scope
+                      let recipients = [];
+                      if (resourceData.classId) {
+                        const enrollmentsResult = await getEnrollments({ classId: resourceData.classId });
+                        const userIds = (enrollmentsResult.data || []).map(e => e.userId);
+                        recipients = users.filter(u => userIds.includes(u.docId)).map(u => u.email).filter(Boolean);
+                      } else if (resourceData.subjectId) {
+                        // Get all classes for this subject, then all enrollments
+                        const subjectClasses = classes.filter(c => c.subjectId === resourceData.subjectId);
+                        const classIds = subjectClasses.map(c => c.docId || c.id);
+                        const enrollmentsResult = await getEnrollments();
+                        const userIds = (enrollmentsResult.data || []).filter(e => classIds.includes(e.classId)).map(e => e.userId);
+                        recipients = users.filter(u => userIds.includes(u.docId)).map(u => u.email).filter(Boolean);
+                      } else if (resourceData.programId) {
+                        // Get all subjects for this program, then all classes, then all enrollments
+                        const programSubjects = subjects.filter(s => s.programId === resourceData.programId);
+                        const subjectIds = programSubjects.map(s => s.docId || s.id);
+                        const programClasses = classes.filter(c => subjectIds.includes(c.subjectId));
+                        const classIds = programClasses.map(c => c.docId || c.id);
+                        const enrollmentsResult = await getEnrollments();
+                        const userIds = (enrollmentsResult.data || []).filter(e => classIds.includes(e.classId)).map(e => e.userId);
+                        recipients = users.filter(u => userIds.includes(u.docId)).map(u => u.email).filter(Boolean);
+                      } else {
+                        // Public resource - send to all users
+                        recipients = users.map(u => u.email).filter(Boolean);
+                      }
+
+                      if (recipients.length > 0) {
+                        const emailResult = await sendEmail({
+                          to: recipients,
+                          subject: `New Resource: ${resourceForm.title}`,
+                          html: `<div><h2>New Resource: ${resourceForm.title}</h2><p>${resourceForm.description || ''}</p><p><a href="${resourceForm.url}">Access Resource</a></p></div>`,
+                          type: 'resource'
+                        });
+                        if (emailResult.success) {
+                          console.log(`Resource notification email sent to ${recipients.length} recipients`);
+                        }
                       }
                     } catch (emailError) {
                       console.warn('Failed to send resource email:', emailError);
@@ -4136,7 +4324,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const announcementData = {
                         title: `New Resource Available`,
                         content: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
-                        target: 'global',
+                        target: resourceData.classId ? 'class' : (resourceData.subjectId ? 'subject' : (resourceData.programId ? 'program' : 'global')),
+                        programId: resourceData.programId || null,
+                        subjectId: resourceData.subjectId || null,
+                        classId: resourceData.classId || null,
                         type: 'resource',
                         resourceId: resourceId
                       };
@@ -4144,12 +4335,23 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const addAnnouncement = (await import('../firebase/firestore')).addAnnouncement;
                       await addAnnouncement(announcementData);
                       console.log('Resource announcement created successfully');
+                      
+                      // Send notifications based on scope
                       try {
-                        await notifyAllUsers(
-                          `📚 New Resource: ${resourceForm.title}`,
-                          resourceForm.description || 'New resource available',
-                          'resource'
-                        );
+                        if (resourceData.classId) {
+                          await notifyUsersByClass(
+                            resourceData.classId,
+                            `📚 New Resource: ${resourceForm.title}`,
+                            resourceForm.description || 'New resource available',
+                            'resource'
+                          );
+                        } else {
+                          await notifyAllUsers(
+                            `📚 New Resource: ${resourceForm.title}`,
+                            resourceForm.description || 'New resource available',
+                            'resource'
+                          );
+                        }
                       } catch (notifErr) {
                         console.warn('Failed to send bell notification for resource:', notifErr);
                       }
@@ -4161,18 +4363,27 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   // If no announcement requested, still send bell notification for visibility
                   if (!editingResource && !resourceEmailOptions.createAnnouncement) {
                     try {
-                      await notifyAllUsers(
-                        `📚 New Resource: ${resourceForm.title}`,
-                        resourceForm.description || 'New resource available',
-                        'resource'
-                      );
+                      if (resourceData.classId) {
+                        await notifyUsersByClass(
+                          resourceData.classId,
+                          `📚 New Resource: ${resourceForm.title}`,
+                          resourceForm.description || 'New resource available',
+                          'resource'
+                        );
+                      } else {
+                        await notifyAllUsers(
+                          `📚 New Resource: ${resourceForm.title}`,
+                          resourceForm.description || 'New resource available',
+                          'resource'
+                        );
+                      }
                     } catch (notifErr) {
                       console.warn('Failed to send bell notification for resource:', notifErr);
                     }
                   }
 
                   await loadData();
-                  setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false });
+                  setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '' });
                   setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
                   setEditingResource(null);
                   toast?.showSuccess(editingResource ? 'Resource updated successfully!' : 'Resource created successfully!');
@@ -4209,6 +4420,32 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     { value: 'link', label: '🔗 Link' },
                     { value: 'video', label: '📺 Video' }
                   ]}
+                />
+              </div>
+
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <Select
+                  searchable
+                  placeholder={t('program') || 'Program (Optional - Public if empty)'}
+                  value={resourceForm.programId || ''}
+                  onChange={handleDropdownChange(setResourceForm, 'programId', ['subjectId', 'classId'])}
+                  options={activityProgramOptions}
+                />
+                <Select
+                  searchable
+                  placeholder={t('subject') || 'Subject (Optional)'}
+                  value={resourceForm.subjectId || ''}
+                  onChange={handleDropdownChange(setResourceForm, 'subjectId', ['classId'])}
+                  options={activitySubjectOptions.filter(o => !resourceForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceForm.programId)}
+                  disabled={!resourceForm.programId}
+                />
+                <Select
+                  searchable
+                  placeholder={t('class') || 'Class (Optional)'}
+                  value={resourceForm.classId || ''}
+                  onChange={handleDropdownChange(setResourceForm, 'classId')}
+                  options={activityClassOptions.filter(o => !resourceForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === resourceForm.subjectId)}
+                  disabled={!resourceForm.subjectId}
                 />
               </div>
 
@@ -4276,7 +4513,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {editingResource && (
                     <Button type="button" variant="outline" onClick={() => {
                       setEditingResource(null);
-                      setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false });
+                      setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '' });
                       setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
                     }}>
                       {t('cancel_edit') || 'Cancel Edit'}
@@ -4288,7 +4525,23 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
             <div style={{ marginTop: '1rem' }}>
               <AdvancedDataGrid
-                rows={resources}
+                rows={resources.filter(r => {
+                  // If resource has no program/subject/class, it's public and should be included
+                  if (!r.programId && !r.subjectId && !r.classId) {
+                    return true;
+                  }
+                  
+                  if (enrollmentClassFilter !== 'all') {
+                    return r.classId === enrollmentClassFilter;
+                  }
+                  if (enrollmentSubjectFilter !== 'all') {
+                    return r.subjectId === enrollmentSubjectFilter;
+                  }
+                  if (enrollmentProgramFilter !== 'all') {
+                    return r.programId === enrollmentProgramFilter;
+                  }
+                  return true;
+                })}
               getRowId={(row) => row.docId || row.id}
               columns={[
                 { field: 'title', headerName: t('title_col'), flex: 1, minWidth: 200 },
@@ -4301,6 +4554,53 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       'video': '📺 Video'
                     };
                     return typeMap[params.value] || params.value;
+                  }
+                },
+                {
+                  field: 'programId',
+                  headerName: t('program') || 'Program',
+                  width: 150,
+                  valueGetter: (params) => {
+                    const row = params?.row || {};
+                    return row.programId || params?.value || null;
+                  },
+                  renderCell: (params) => {
+                    const programId = params.value || params.row?.programId;
+                    if (!programId) return 'Public';
+                    const program = programs.find(p => (p.docId || p.id) === programId);
+                    if (!program) return '—';
+                    return lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                  }
+                },
+                {
+                  field: 'subjectId',
+                  headerName: t('subject') || 'Subject',
+                  width: 150,
+                  valueGetter: (params) => {
+                    const row = params?.row || {};
+                    return row.subjectId || params?.value || null;
+                  },
+                  renderCell: (params) => {
+                    const subjectId = params.value || params.row?.subjectId;
+                    if (!subjectId) return '—';
+                    const subject = subjects.find(s => (s.docId || s.id) === subjectId);
+                    if (!subject) return '—';
+                    return lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                  }
+                },
+                {
+                  field: 'classId',
+                  headerName: t('class_col') || 'Class',
+                  width: 180,
+                  valueGetter: (params) => {
+                    const row = params?.row || {};
+                    return row.classId || params?.value || null;
+                  },
+                  renderCell: (params) => {
+                    if (!params.value) return '—';
+                    const classItem = classes.find(c => (c.docId || c.id) === params.value);
+                    if (!classItem) return params.value;
+                    return `${classItem.name}${classItem.code ? ` (${classItem.code})` : ''}`;
                   }
                 },
                 {
@@ -4348,7 +4648,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             type: params.row.type || 'link',
                             dueDate: params.row.dueDate || '',
                             optional: params.row.optional || false,
-                            featured: params.row.featured || false
+                            featured: params.row.featured || false,
+                            programId: params.row.programId || '',
+                            subjectId: params.row.subjectId || '',
+                            classId: params.row.classId || ''
                           });
                         }}>
                           Edit
@@ -4669,8 +4972,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
         {activeTab === 'allowlist' && (
           <div className="allowlist-tab">
-            <h2 style={{ display: 'none' }}>{t('allowlist_management')}</h2>
-
             <EmailManager
               emails={allowlist.allowedEmails || []}
               onEmailsChange={(emails) => setAllowlist({ ...allowlist, allowedEmails: emails })}

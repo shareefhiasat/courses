@@ -157,7 +157,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
 
         {/* Filters */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-          <Select
+         {defaultTypeFilter === 'all' && <Select
             value={filters.type}
             onChange={(e) => setFilters({ ...filters, type: e.target.value })}
             options={[
@@ -173,7 +173,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             ]}
             fullWidth
             searchable
-          />
+          />}
 
           <Select
             value={filters.status}

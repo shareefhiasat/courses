@@ -304,8 +304,17 @@ const Navbar = () => {
                   className="nav-icon-btn"
                   onClick={() => {
                     try {
-                      // Toggle help drawer
-                      window.dispatchEvent(new CustomEvent('app:help:toggle', { detail: { route: location?.pathname || '/' } }));
+                      // Toggle help drawer with full path including search params and hash
+                      const fullPath = location?.pathname || '/';
+                      const search = location?.search || '';
+                      const hash = location?.hash || '';
+                      window.dispatchEvent(new CustomEvent('app:help:toggle', { 
+                        detail: { 
+                          route: fullPath,
+                          search: search,
+                          hash: hash
+                        } 
+                      }));
                     } catch {}
                   }}
                   title={t('information') || 'Information'}
