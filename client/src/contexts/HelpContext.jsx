@@ -416,13 +416,24 @@ export const HelpProvider = ({ children }) => {
         {
           title: t('overview') || 'Overview',
           items: [
-            { 
-              text: t('purpose') || 'Purpose', 
-              description: t('help.activities') || 'Manage learning activities like quizzes, homework, and training. You can assign them to specific programs, subjects, or classes.'
+            {
+              text: t('purpose') || 'Purpose',
+              description: t('help.activities') || 'Manage learning activities like quizzes, homework, training, and lab projects. Activities are the core learning materials that students engage with. You can assign them to specific programs, subjects, or classes, or make them generally available.'
             },
             {
               text: t('summary_cards') || 'Summary Cards',
-              description: t('help_activities_cards') || 'The summary cards at the top show filtered counts. Use the Program/Subject/Class filters to see counts for specific scopes.'
+              description: t('help_activities_cards') || 'The summary cards at the top show filtered counts of activities. Use the Program/Subject/Class filters to see counts for specific scopes. This helps you understand the distribution of activities across your academic structure.'
+            },
+            {
+              text: t('key_features') || 'Key Features',
+              description: [
+                t('activities_feature1', '• Create multiple types of activities (quizzes, homework, training, labs)'),
+                t('activities_feature2', '• Assign activities to specific academic scopes (programs, subjects, classes)'),
+                t('activities_feature3', '• Set due dates, difficulty levels, and scoring'),
+                t('activities_feature4', '• Configure visibility and participation options'),
+                t('activities_feature5', '• Link activities to existing quiz templates'),
+                t('activities_feature6', '• Send email notifications and create announcements')
+              ].join('\n')
             }
           ]
         },
@@ -718,15 +729,51 @@ export const HelpProvider = ({ children }) => {
       content: [
         {
           title: t('overview') || 'Overview',
-          items: [{ text: t('purpose') || 'Purpose', description: t('help_smtp_purpose') || 'Configure the outgoing email server (SMTP) settings for system notifications and newsletters.' }]
+          items: [
+            {
+              text: t('purpose') || 'Purpose',
+              description: t('help_smtp_purpose') || 'Configure the outgoing email server (SMTP) settings for system notifications and newsletters. SMTP (Simple Mail Transfer Protocol) is the standard protocol for sending emails over the internet. This configuration allows the system to send transactional emails, notifications, and newsletters to users.'
+            },
+            {
+              text: t('key_features') || 'Key Features',
+              description: [
+                t('smtp_feature1', '• Configure SMTP server connection settings'),
+                t('smtp_feature2', '• Support for secure connections (SSL/TLS)'),
+                t('smtp_feature3', '• Test email functionality to verify configuration'),
+                t('smtp_feature4', '• Custom sender name for brand consistency')
+              ].join('\n')
+            }
+          ]
         },
         {
           title: t('fields') || 'Fields',
           items: [
-            { text: t('host') || 'Host', description: t('help_smtp_host') || 'SMTP server address (e.g., smtp.gmail.com).' },
-            { text: t('port') || 'Port', description: t('help_smtp_port') || 'SMTP port (usually 587 or 465).' },
-            { text: t('user') || 'User', description: t('help_smtp_user') || 'Email address used for authentication.' },
-            { text: t('password') || 'Password', description: t('help_smtp_pass') || 'App password or email password.' }
+            { text: t('host') || 'Host', description: t('help_smtp_host') || 'SMTP server address (e.g., smtp.gmail.com, smtp.office365.com, or your custom SMTP server).' },
+            { text: t('port') || 'Port', description: t('help_smtp_port') || 'SMTP port (usually 587 for TLS, 465 for SSL, or 25 for unencrypted connections).' },
+            { text: t('user') || 'User', description: t('help_smtp_user') || 'Email address used for authentication with the SMTP server.' },
+            { text: t('password') || 'Password', description: t('help_smtp_pass') || 'App password or email password. For security, use app-specific passwords when available.' },
+            { text: t('sender_name') || 'Sender Name', description: t('help_smtp_sender') || 'Custom name that appears as the sender in outgoing emails for brand consistency.' }
+          ]
+        },
+        {
+          title: t('best_practices') || 'Best Practices',
+          items: [
+            {
+              text: t('security') || 'Security',
+              description: [
+                t('smtp_practice1', '• Always use encrypted connections (SSL/TLS)'),
+                t('smtp_practice2', '• Use app-specific passwords instead of your main email password'),
+                t('smtp_practice3', '• Never share SMTP credentials or store them insecurely')
+              ].join('\n')
+            },
+            {
+              text: t('troubleshooting') || 'Troubleshooting',
+              description: [
+                t('smtp_practice4', '• Test configuration before saving'),
+                t('smtp_practice5', '• Check spam folders if test emails don\'t arrive'),
+                t('smtp_practice6', '• Verify firewall settings allow outbound SMTP traffic')
+              ].join('\n')
+            }
           ]
         }
       ]
@@ -792,14 +839,49 @@ export const HelpProvider = ({ children }) => {
       content: [
         {
           title: t('overview') || 'Overview',
-          items: [{ text: t('purpose') || 'Purpose', description: t('help_categories_purpose') || 'Manage content categories that drive the activity organization and home page tabs.' }]
+          items: [
+            {
+              text: t('purpose') || 'Purpose',
+              description: t('help_categories_purpose') || 'Manage content categories that organize activities and drive the home page tabs. Categories help classify and group related content together, making it easier for users to navigate and find relevant materials.'
+            },
+            {
+              text: t('key_features') || 'Key Features',
+              description: [
+                t('categories_feature1', '• Create, edit, and delete content categories'),
+                t('categories_feature2', '• Set display order for categories'),
+                t('categories_feature3', '• Support for bilingual names (English and Arabic)'),
+                t('categories_feature4', '• Categories appear as tabs on the student dashboard')
+              ].join('\n')
+            }
+          ]
         },
         {
           title: t('fields') || 'Fields',
           items: [
-            { text: t('id') || 'ID', description: t('help_category_id') || 'Unique identifier for the category (e.g., "programming").' },
-            { text: t('name') || 'Name', description: t('help_category_name') || 'Display name in English and Arabic.' },
-            { text: t('order') || 'Order', description: t('help_category_order') || 'Sort order for display.' }
+            { text: t('id') || 'ID', description: t('help_category_id') || 'Unique identifier for the category (e.g., "programming", "computing", "algorithm"). Used internally for referencing.' },
+            { text: t('name') || 'Name', description: t('help_category_name') || 'Display name in English and Arabic that appears to users in the interface.' },
+            { text: t('order') || 'Order', description: t('help_category_order') || 'Sort order for display. Categories are displayed in ascending order (lower numbers appear first).' }
+          ]
+        },
+        {
+          title: t('best_practices') || 'Best Practices',
+          items: [
+            {
+              text: t('naming_conventions') || 'Naming Conventions',
+              description: [
+                t('categories_practice1', '• Use clear, descriptive names that users will understand'),
+                t('categories_practice2', '• Keep category names concise but meaningful'),
+                t('categories_practice3', '• Ensure Arabic translations are accurate and consistent')
+              ].join('\n')
+            },
+            {
+              text: t('organization_tips') || 'Organization Tips',
+              description: [
+                t('categories_practice4', '• Group related activities together under appropriate categories'),
+                t('categories_practice5', '• Use order field to prioritize important categories'),
+                t('categories_practice6', '• Avoid creating too many categories to prevent user confusion')
+              ].join('\n')
+            }
           ]
         }
       ]
@@ -850,6 +932,68 @@ export const HelpProvider = ({ children }) => {
         }
       ]
     };
+
+    // HR Penalties Dashboard Tab Help
+    content['/dashboard?tab=hr-penalties'] = {
+      title: t('hr_penalties_help_title') || 'HR Penalties Help',
+      content: [
+        {
+          title: t('penalty_rules') || 'Penalty Rules',
+          items: (PENALTY_TYPES || []).map((penalty) => ({
+            text: penalty[`label_${lang}`] || penalty.label_en || penalty.id,
+            deduction: penalty?.points
+              ? `-${penalty.points} ${t('points') || 'points'}`
+              : t('no_deduction') || 'No deduction',
+            description: penalty[`description_${lang}`] || penalty.description_en || penalty.description || t('no_description_available') || 'No description available'
+          }))
+        },
+        {
+          title: t('absence_rules') || 'Absence Rules',
+          items: (ABSENCE_TYPES || []).map((absence) => ({
+            text: absence[`label_${lang}`] || absence.label_en || absence.id,
+            deduction: absence?.deduction
+              ? `-${absence.deduction} ${t('points_per_session') || 'points per session'}`
+              : t('no_deduction') || 'No deduction',
+            description: absence[`description_${lang}`] || absence.description_en || absence.description || t('no_description_available') || 'No description available'
+          }))
+        }
+      ]
+    };
+
+    // Instructor Participation Dashboard Tab Help
+    content['/dashboard?tab=instructor-participation'] = {
+      title: t('participation_help_title') || 'Instructor Participation Help',
+      content: [
+        {
+          title: t('participation_rules') || 'Participation Types',
+          items: (PARTICIPATION_TYPES || []).map((participation) => ({
+            text: participation[`label_${lang}`] || participation.label_en || participation.id,
+            points: `+${participation.points} ${t('points') || 'points'}`,
+            description: participation[`description_${lang}`] || participation.description || t('points_awarded') || 'Points awarded for active participation'
+          }))
+        }
+      ]
+    };
+
+    // Instructor Behavior Dashboard Tab Help
+    content['/dashboard?tab=instructor-behavior'] = {
+      title: t('behavior_help_title') || 'Instructor Behavior Help',
+      content: [
+        {
+          title: t('behavior_rules') || 'Behavior Types',
+          items: [
+            { text: t('talk_in_class') || 'Talk in Class', description: t('talk_in_class_desc') || 'Student talking during class without permission' },
+            { text: t('sleep') || 'Sleep', description: t('sleep_desc') || 'Student sleeping during class' },
+            { text: t('bathroom_requests') || 'Frequent Bathroom Requests', description: t('bathroom_requests_desc') || 'Excessive requests to leave class' },
+            { text: t('mobile_in_class') || 'Mobile Phone in Class', description: t('mobile_in_class_desc') || 'Using mobile phone during class' },
+            { text: t('disruptive') || 'Disruptive Behavior', description: t('disruptive_desc') || 'Behavior that disrupts the learning environment' },
+            { text: t('late_arrival') || 'Late Arrival', description: t('late_arrival_desc') || 'Arriving late to class' },
+            { text: t('inappropriate_language') || 'Inappropriate Language', description: t('inappropriate_language_desc') || 'Using inappropriate language' },
+            { text: t('other') || 'Other', description: t('other_behavior_desc') || 'Other behavior incidents' }
+          ]
+        }
+      ]
+    };
     
     // Add available resources to each route's content if available
     if (availableResources) {
@@ -894,6 +1038,14 @@ export const HelpProvider = ({ children }) => {
       console.log(`[HelpContext] getHelpForRoute - Case 1: helpContent[helpKey] =`, help);
       if (!help) {
         console.warn(`[HelpContext] No specific help content found for dashboard tab: ${tab}`);
+        // Try to find help for similar tabs
+        if (tab === 'hr-penalties') {
+          help = helpContent['/dashboard?tab=hr-penalties'] || helpContent['/hr-penalties'];
+        } else if (tab === 'instructor-participation') {
+          help = helpContent['/dashboard?tab=instructor-participation'] || helpContent['/instructor-participation'];
+        } else if (tab === 'instructor-behavior') {
+          help = helpContent['/dashboard?tab=instructor-behavior'] || helpContent['/instructor-behavior'];
+        }
       }
     } else if (pathname === '/dashboard') {
       // Case 2: General dashboard help (no specific tab)
@@ -922,14 +1074,42 @@ export const HelpProvider = ({ children }) => {
     return safeHelp;
   }, [helpContent, defaultHelp]);
 
-  // Update help content when location changes
+  // Update help content when location or help content changes
   useEffect(() => {
     if (location?.pathname) {
-      const help = getHelpForRoute(location.pathname, location.search, location.hash);
-      console.log(`[HelpContext] Updating help content for route: ${location.pathname}${location.search}${location.hash}`);
-      setCurrentHelp(help);
+      console.log('[HelpContext] Location changed:', {
+        pathname: location.pathname,
+        search: location.search,
+        hash: location.hash
+      });
+      
+      // Use a small timeout to ensure the URL has been fully updated
+      const timer = setTimeout(() => {
+        const help = getHelpForRoute(location.pathname, location.search, location.hash);
+        console.log('[HelpContext] Setting new help content:', help);
+        // Force a re-render by creating a new object reference
+        setCurrentHelp(prev => {
+          // Only update if the content is actually different
+          const isSameContent = JSON.stringify(prev?.content) === JSON.stringify(help?.content);
+          if (isSameContent) {
+            console.log('[HelpContext] Help content is the same, skipping update');
+            return prev;
+          }
+          return { ...help, _timestamp: Date.now() };
+        });
+      }, 50);
+      
+      return () => clearTimeout(timer);
     }
-  }, [location, getHelpForRoute]);
+  }, [location, getHelpForRoute, helpContent]);
+  
+  // Force help drawer to refresh when help content changes
+  const [helpKey, setHelpKey] = useState(0);
+  
+  // Update help key when help content changes
+  useEffect(() => {
+    setHelpKey(prev => prev + 1);
+  }, [helpContent, location]);
 
   // Handle help button click
   const openHelp = useCallback(() => {
@@ -1011,6 +1191,34 @@ export const HelpProvider = ({ children }) => {
       window.removeEventListener('app:help:toggle', handleHelpToggle);
     };
   }, [location.pathname, getHelpForRoute]);
+
+  // Listen for dashboard tab changes to update help content
+  useEffect(() => {
+    const handleDashboardTabChange = (e) => {
+      const tab = e.detail?.tab;
+      if (!tab) return;
+
+      console.log('[HelpContext] Dashboard tab changed to:', tab);
+
+      // Always derive help via route helper to keep behavior consistent
+      const help = getHelpForRoute('/dashboard', `?tab=${tab}`);
+      console.log('[HelpContext] Setting help content for tab:', tab, help);
+
+      setCurrentHelp(prev => {
+        const isSameContent = JSON.stringify(prev?.content) === JSON.stringify(help?.content);
+        if (isSameContent) {
+          console.log('[HelpContext] Help content is the same, skipping update');
+          return prev;
+        }
+        return { ...help, _timestamp: Date.now() };
+      });
+    };
+
+    window.addEventListener('dashboard-tab-change', handleDashboardTabChange);
+    return () => {
+      window.removeEventListener('dashboard-tab-change', handleDashboardTabChange);
+    };
+  }, [getHelpForRoute]);
 
   return (
     <HelpContext.Provider value={{ isOpen, currentHelp, openHelp, closeHelp }}>

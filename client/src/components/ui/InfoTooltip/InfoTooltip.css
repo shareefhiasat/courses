@@ -42,19 +42,20 @@
   color: #212529;
   padding: 8px 12px;
   border-radius: 6px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   font-size: 0.85rem;
   font-weight: normal;
   text-align: left;
   white-space: normal;
   max-width: 300px;
-  z-index: 10000;
+  z-index: 1000;
   border: 1px solid #e9ecef;
   animation: tooltipFadeIn 0.15s ease-out;
 }
 
 .info-tooltip-content::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 100%;
   left: 50%;
@@ -76,13 +77,13 @@
 }
 
 /* RTL support */
-[dir='rtl'] .info-tooltip-content {
+[dir="rtl"] .info-tooltip-content {
   left: auto;
   right: 50%;
   transform: translateX(50%) translateY(-8px);
 }
 
-[dir='rtl'] .info-tooltip-content::after {
+[dir="rtl"] .info-tooltip-content::after {
   left: auto;
   right: 50%;
   transform: translateX(50%);
@@ -99,6 +100,6 @@
   }
 }
 
-[dir='rtl'] .info-tooltip-content {
+[dir="rtl"] .info-tooltip-content {
   animation-name: tooltipFadeInRTL;
 }

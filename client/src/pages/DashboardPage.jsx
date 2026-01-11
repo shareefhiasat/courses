@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import {
@@ -104,38 +104,64 @@ const DashboardPage = () => {
   const [activityLastUpdatedAt, setActivityLastUpdatedAt] = useState(Date.now());
   const [activityNowTick, setActivityNowTick] = useState(Date.now());
 
-  const handleTabChange = (tab) => {
-    console.log('[DashboardPage] Tab changed to:', tab);
-    
+  const handleTabChange = (tab, { source = 'user', shouldEmit = true } = {}) => {
+    console.log('[DashboardPage] Tab change requested:', {
+      tab,
+      source,
+      shouldEmit,
+      currentPath: location.pathname,
+      currentSearch: location.search,
+      currentHash: location.hash
+    });
+
+    if (!tab) {
+      console.warn('[DashboardPage] handleTabChange called without a tab value. Ignoring.');
+      return;
+    }
+
     // Check if this tab has a path (external navigation)
     const tabItem = ribbonCategories
       .flatMap(cat => cat.items)
       .find(item => item.key === tab);
-    
+
     if (tabItem?.path) {
-      // Navigate to external page
-      console.log('[DashboardPage] Navigating to external page:', tabItem.path);
+      console.log('[DashboardPage] Navigating to external page via tab path:', {
+        path: tabItem.path,
+        source
+      });
       navigate(tabItem.path);
       return;
     }
-    
+
+    console.log('[DashboardPage] Updating active tab state + persistence:', { tab, source });
     setActiveTab(tab);
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
-    
+
     // Tabs that should update the URL with query parameters
     const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'class-schedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', 'smtp', 'emailTemplates', 'emailLogs', 'scheduled-reports', 'categories', 'login'];
-    
-    // Update URL with tab parameter for relevant tabs
+
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
-      const newUrl = `${location.pathname}?${searchParams.toString()}`;
-      console.log('[DashboardPage] Updating URL with tab parameter:', newUrl);
-      window.history.replaceState(null, '', newUrl);
-    } 
-    // Handle hash navigation for specific tabs
-    else {
+      const newSearch = `?${searchParams.toString()}`;
+      const nextUrl = `${location.pathname}${newSearch}`;
+      const currentUrl = `${location.pathname}${location.search}`;
+
+      if (currentUrl !== nextUrl) {
+        console.log('[DashboardPage] Updating router URL for tab (query param tab sync):', {
+          nextUrl,
+          previousUrl: currentUrl,
+          source
+        });
+        navigate(nextUrl, { replace: true, state: { __source: 'dashboard-tab-update', __from: source } });
+      } else {
+        console.log('[DashboardPage] URL already matches requested tab, skipping navigate:', {
+          url: nextUrl,
+          source
+        });
+      }
+    } else {
       const tabToHashMap = {
         'programs': '#programs',
         'subjects': '#subjects',
@@ -144,27 +170,65 @@ const DashboardPage = () => {
         'marks': '#marks',
         'class-schedule': '#class-schedule'
       };
-      
+
       if (tabToHashMap[tab]) {
-        window.history.replaceState(null, '', `${location.pathname}${tabToHashMap[tab]}`);
+        const hashTarget = `${location.pathname}${tabToHashMap[tab]}`;
+        console.log('[DashboardPage] Navigating via hash update for tab:', {
+          hashTarget,
+          source
+        });
+        navigate(hashTarget, { replace: true, state: { __source: 'dashboard-tab-hash', __from: source } });
       } else if (location.search || location.hash) {
-        // Clear any existing query parameters or hash
-        window.history.replaceState(null, '', location.pathname);
+        console.log('[DashboardPage] Clearing existing search/hash for non-hash tab:', {
+          tab,
+          source
+        });
+        navigate(location.pathname, { replace: true, state: { __source: 'dashboard-tab-clear', __from: source } });
       }
+    }
+
+    if (shouldEmit) {
+      console.log('[DashboardPage] Emitting dashboard-tab-change event for help sync:', {
+        tab,
+        source
+      });
+      window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab, source: 'dashboard-page' } }));
+    } else {
+      console.log('[DashboardPage] Skipping dashboard-tab-change emit (already handled externally):', {
+        tab,
+        source
+      });
     }
   };
 
-  // Listen for external tab change events (from sidebar)
+  const latestHandleTabChange = useRef(handleTabChange);
+  useEffect(() => {
+    latestHandleTabChange.current = handleTabChange;
+  }, [handleTabChange]);
+
+  // Listen for external tab change events (from sidebar/other modules)
   useEffect(() => {
     const handleTabChangeEvent = (e) => {
-      if (e.detail?.tab) {
-        setActiveTab(e.detail.tab);
-        localStorage.setItem('dashboardActiveTab', e.detail.tab);
+      const eventTab = e.detail?.tab;
+      const eventSource = e.detail?.source || 'external';
+
+      if (!eventTab) {
+        console.warn('[DashboardPage] Received dashboard-tab-change event without tab detail.', e.detail);
+        return;
       }
+
+      if (eventSource === 'dashboard-page') {
+        console.log('[DashboardPage] Ignoring self-originated dashboard-tab-change event:', e.detail);
+        return;
+      }
+
+      console.log('[DashboardPage] Processing external dashboard-tab-change event:', e.detail);
+      latestHandleTabChange.current?.(eventTab, { source: `event:${eventSource}`, shouldEmit: false });
     };
+
     window.addEventListener('dashboard-tab-change', handleTabChangeEvent);
     return () => window.removeEventListener('dashboard-tab-change', handleTabChangeEvent);
-  }, []);
+  }, [latestHandleTabChange]);
 
   const categories = [
     { id: 'content', label: t('content') },
@@ -176,47 +240,56 @@ const DashboardPage = () => {
 
   const ribbonCategories = [
     {
-      key: 'content', label: t('content'), items: [
-        { key: 'activities', label: t('activities') },
-        { key: 'announcements', label: t('announcements') },
-        { key: 'resources', label: t('resources') },
+      id: 'content',
+      label: t('content'),
+      items: [
+        { key: 'activities', label: t('activities'), icon: '📋' },
+        { key: 'announcements', label: t('announcements'), icon: '📢' },
+        { key: 'resources', label: t('resources'), icon: '📚' }
       ]
     },
     {
-      key: 'users', label: t('users'), items: [
-        { key: 'users', label: t('users') },
-        { key: 'allowlist', label: t('allowlist') },
+      id: 'users',
+      label: t('users'),
+      items: [
+        { key: 'users', label: t('users'), icon: '👥' },
+        { key: 'allowlist', label: t('allowlist'), icon: '✅' }
       ]
     },
     {
-      key: 'academic', label: t('academic'), items: [
-        { key: 'programs', label: t('programs') },
-        { key: 'subjects', label: t('subjects') },
-        { key: 'classes', label: t('classes') },
-        { key: 'enrollments', label: t('enrollments') },
-        { key: 'manage-enrollments', label: t('manage_enrollments') },
-        { key: 'marks', label: t('mark_entry') },
-        { key: 'class-schedule', label: t('class_schedules') || 'Class Schedule' },
-        { key: 'hr-penalties', label: t('hr_penalties') },
-        { key: 'instructor-participation', label: t('participation') },
-        { key: 'instructor-behavior', label: t('behavior') },
-        // { key: 'submissions', label: t('submissions') }, // Disabled - not completed yet
+      id: 'academic',
+      label: t('academic'),
+      items: [
+        { key: 'programs', label: t('programs'), icon: '🎓' },
+        { key: 'subjects', label: t('subjects'), icon: '📖' },
+        { key: 'classes', label: t('classes'), icon: '🏫' },
+        { key: 'manage-enrollments', label: t('manage_enrollments'), icon: '📝' },
+        { key: 'marks', label: t('mark_entry'), icon: '📊' },
+        { key: 'class-schedule', label: t('class_schedules'), icon: '📅' },
+        // { key: 'submissions', label: t('submissions'), icon: '📤' },
+        { key: 'hr-penalties', label: t('hr_penalties'), icon: '⚠️' },
+        { key: 'instructor-participation', label: t('participation'), icon: '📈' },
+        { key: 'instructor-behavior', label: t('behavior'), icon: '📝' }
       ]
     },
     {
-      key: 'communication', label: t('communication'), items: [
-        { key: 'smtp', label: t('smtp') },
-        { key: 'emailTemplates', label: t('templates') },
-        { key: 'emailLogs', label: t('logs') },
-        { key: 'scheduled-reports', label: t('scheduled_reports') },
+      id: 'communication',
+      label: t('communication'),
+      items: [
+        { key: 'smtp', label: t('smtp'), icon: '📧' },
+        { key: 'emailTemplates', label: t('templates'), icon: '📄' },
+        { key: 'emailLogs', label: t('logs'), icon: '📋' },
+        { key: 'scheduled-reports', label: t('scheduled_reports'), icon: '📊' }
       ]
     },
     {
-      key: 'settings', label: t('settings'), items: [
-        { key: 'categories', label: t('categories') },
-        { key: 'login', label: t('activity') },
+      id: 'settings',
+      label: t('settings'),
+      items: [
+        { key: 'categories', label: t('categories'), icon: '🏷️' },
+        { key: 'login', label: t('login'), icon: '🔐' }
       ]
-    },
+    }
   ];
 
 

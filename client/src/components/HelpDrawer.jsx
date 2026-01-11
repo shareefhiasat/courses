@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useHelp } from '../contexts/HelpContext';
 import { useLang } from '../contexts/LangContext';
 import { X, Search, ChevronDown, ChevronUp, ChevronsUpDown, ChevronsUp } from 'lucide-react';
@@ -11,44 +11,81 @@ const HelpDrawer = () => {
   const [filteredContent, setFilteredContent] = useState([]);
   const drawerRef = React.useRef(null);
   
-  // Ensure we have valid help content
-  const helpContent = currentHelp || {
-    title: t('help', 'Help'),
-    content: [{
-      title: t('no_help_available', 'No Help Available'),
-      items: [{
-        text: t('help_content_error', 'Help content could not be loaded'),
-        description: t('try_again_later', 'Please try again or contact support if the problem persists.')
-      }]
-    }]
-  };
+  // Using currentHelp from useHook context
 
-  // Filter content based on search term
+  // Reset state when help content changes or when drawer is opened
   useEffect(() => {
+    console.log('HelpDrawer - currentHelp changed or drawer opened:', {
+      isOpen,
+      title: currentHelp?.title,
+      contentLength: currentHelp?.content?.length,
+      timestamp: currentHelp?._timestamp
+    });
+    
+    if (currentHelp && isOpen) {
+      console.log('Resetting HelpDrawer state for new help content');
+      setSearchTerm('');
+      setExpandedSections({});
+      
+      // Always update the filtered content when the drawer is opened or help content changes
+      const newContent = Array.isArray(currentHelp.content) ? currentHelp.content : [];
+      console.log('Setting new filtered content with', newContent.length, 'sections');
+      setFilteredContent(newContent);
+    }
+  }, [currentHelp, isOpen, currentHelp?._timestamp]);
+  
+  // Handle search filtering and content updates
+  useEffect(() => {
+    console.log('HelpDrawer - Search effect running', {
+      isOpen,
+      hasHelpContent: !!currentHelp?.content,
+      searchTerm,
+      helpContentTitle: currentHelp?.title
+    });
+    
     if (!isOpen) {
-      setFilteredContent([]);
+      console.log('HelpDrawer - Drawer is closed, skipping filter');
       return;
     }
-    if (!helpContent?.content) {
+    
+    if (!currentHelp?.content) {
+      console.log('HelpDrawer - No help content available');
       setFilteredContent([]);
       return;
     }
     
-    const filtered = helpContent.content.map(section => {
-      if (!section.items || !Array.isArray(section.items)) return section;
-      
-      const filteredItems = searchTerm 
-        ? section.items.filter(item => 
-            (item.text && item.text.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-          )
-        : section.items;
-      
-      return { ...section, items: filteredItems };
-    }).filter(section => section.items && section.items.length > 0);
+    // If there's no search term, use the current help content directly
+    if (!searchTerm.trim()) {
+      console.log('HelpDrawer - No search term, using full help content');
+      setFilteredContent(Array.isArray(currentHelp.content) ? currentHelp.content : []);
+      return;
+    }
     
-    setFilteredContent(filtered);
-  }, [helpContent, searchTerm, isOpen]);
+    // Only filter if we have a search term and content
+    const filterContent = () => {
+      console.log('Filtering content with searchTerm:', searchTerm);
+      const filtered = currentHelp.content.map(section => {
+        if (!section.items || !Array.isArray(section.items)) return null;
+        
+        const filteredItems = section.items.filter(item => 
+          (item.text && item.text.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+        
+        return filteredItems.length > 0 ? { ...section, items: filteredItems } : null;
+      }).filter(Boolean); // Remove null/undefined sections
+      
+      console.log('Filtered content result:', {
+        originalSections: currentHelp.content.length,
+        filteredSections: filtered.length,
+        hasSearchTerm: !!searchTerm
+      });
+      
+      setFilteredContent(filtered);
+    };
+    
+    filterContent();
+  }, [searchTerm, currentHelp, isOpen]);
   
   // Handle click outside to close
   useEffect(() => {
@@ -143,27 +180,34 @@ const HelpDrawer = () => {
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #eee)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--panel-bg, #f5f5f5)'}
             >
-              <h3 style={{ 
-                margin: 0,
-                fontSize: '1rem',
-                fontWeight: 500,
-                color: 'var(--text-primary, #333)',
+              <h3 style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                margin: 0,
+                padding: '0.5rem 0',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: 600,
+                color: 'var(--text-primary, #333)'
               }}>
                 {section.title || t('untitled_section', 'Untitled Section')}
                 <span style={{ 
                   fontSize: '0.8rem',
                   color: 'var(--text-secondary, #666)',
-                  marginLeft: '0.5rem'
+                  marginLeft: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center'
                 }}>
-                  ({section.items?.length || 0})
+                  {isExpanded ? (
+                    <ChevronUp size={18} />
+                  ) : (
+                    <ChevronDown size={18} />
+                  )}
                 </span>
               </h3>
-              {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </div>
-            
+
             {isExpanded && hasItems && (
               <div style={{ 
                 backgroundColor: 'var(--bg-color, #fff)',
@@ -171,115 +215,109 @@ const HelpDrawer = () => {
               }}>
                 <ul style={{
                   listStyle: 'none',
-                  padding: 0,
                   margin: 0,
-                  display: 'flex',
-                  flexDirection: 'column'
+                  padding: 0
                 }}>
                   {section.items.map((item, itemIndex) => (
-                      <li 
-                        key={itemIndex}
-                        style={{
-                          padding: '0.75rem 1rem',
-                          borderBottom: '1px solid var(--border-color, #f0f0f0)',
-                          transition: 'background-color 0.2s',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #f9f9f9)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
+                    <li 
+                      key={itemIndex}
+                      style={{
+                        padding: '0.5rem 1.5rem',
+                        borderBottom: '1px solid var(--border-color, #f0f0f0)'
+                      }}
+                    >
+                      <div style={{ 
+                        fontWeight: 500,
+                        marginBottom: item.description ? '0.25rem' : 0,
+                        color: 'var(--text-color, #333)'
+                      }}>
+                        {item.text}
+                      </div>
+                      {item.description && (
                         <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: '0.25rem'
+                          fontSize: '0.9rem',
+                          color: 'var(--text-secondary, #666)',
+                          lineHeight: 1.5
                         }}>
-                          <span style={{
-                            fontWeight: 500,
-                            color: 'var(--text-primary, #333)',
-                            flex: 1
-                          }}>
-                            {item.text}
-                          </span>
-                          {item.points && (
-                            <span style={{
-                              backgroundColor: 'var(--success-light, #e8f5e9)',
-                              color: 'var(--success, #2e7d32)',
-                              padding: '0.2rem 0.5rem',
-                              borderRadius: '12px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              marginLeft: '0.5rem',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {item.points}
-                            </span>
-                          )}
-                          {item.deduction && (
-                            <span style={{
-                              backgroundColor: 'var(--error-light, #ffebee)',
-                              color: 'var(--error, #d32f2f)',
-                              padding: '0.2rem 0.5rem',
-                              borderRadius: '12px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              marginLeft: '0.5rem',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              {item.deduction}
-                            </span>
-                          )}
+                          {item.description}
                         </div>
-                        {item.description && (
-                          <div style={{
-                            fontSize: '0.9rem',
-                            color: 'var(--text-secondary, #666)',
-                            lineHeight: 1.5,
-                            marginTop: '0.5rem'
-                          }}>
-                            {item.description}
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          );
-        });
-      } catch (error) {
-        console.error('[HelpDrawer] Error rendering help content:', error);
-        return (
-          <div style={{ 
-            padding: '1rem',
-            backgroundColor: 'var(--danger-bg, #fff5f5)',
-            color: 'var(--danger-text, #dc3545)',
-            borderRadius: '4px',
-            margin: '1rem 0'
-          }}>
-            {t('error_loading_content', 'Error loading help content. Please try again later.')}
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         );
-      }
-    };
+      });
+    } catch (error) {
+      console.error('[HelpDrawer] Error rendering help content:', error);
+      return (
+        <div style={{ 
+          padding: '1rem',
+          backgroundColor: 'var(--danger-bg, #fff5f5)',
+          color: 'var(--danger-text, #dc3545)',
+          borderRadius: '4px',
+          margin: '1rem 0'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              {t('error_loading_content', 'Error loading help content. Please try again later.')}
+              {currentHelp?.title && (
+                <h2 style={{ 
+                  margin: '0.5rem 0 0 0', 
+                  fontSize: '1.25rem',
+                  fontWeight: 600,
+                  color: 'var(--primary-color, #D4AF37)'
+                }}>
+                  {currentHelp.title}
+                </h2>
+              )}
+            </div>
+            <button
+              onClick={closeHelp}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-color, #666)',
+                padding: '0.25rem',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #f5f5f5)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              aria-label={t('close_help', 'Close help')}
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+  };
 
-    return (
-      <div 
-        ref={drawerRef}
-        data-help-drawer
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: 'min(100%, 500px)',
-          backgroundColor: 'var(--bg-color, #fff)',
-          zIndex: 10000,
-          boxShadow: '-2px 0 10px rgba(0,0,0,0.1)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
+  return (
+    <div
+      ref={drawerRef}
+      style={{
+        position: 'fixed',
+        top: 0,
+        right: isOpen ? '0' : '-450px',
+        width: '450px',
+        height: '100vh',
+        backgroundColor: 'var(--bg-color, #fff)',
+        boxShadow: '-2px 0 10px rgba(0, 0, 0, 0.1)',
+        zIndex: 1000,
+        transition: 'right 0.3s ease-in-out',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ 
           padding: '1.25rem 1.5rem',
           borderBottom: '1px solid var(--border-color, #e0e0e0)',
@@ -294,14 +332,14 @@ const HelpDrawer = () => {
             alignItems: 'center',
             marginBottom: '1rem'
           }}>
-            {helpContent.title && (
+            {currentHelp?.title && (
               <h2 style={{ 
                 margin: 0, 
                 fontSize: '1.5rem',
                 fontWeight: 600,
                 color: 'var(--primary-color, #D4AF37)'
               }}>
-                {helpContent.title}
+                {currentHelp.title}
               </h2>
             )}
             <button
@@ -329,67 +367,66 @@ const HelpDrawer = () => {
           {/* Search Bar */}
           <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
             <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                placeholder={t('search_help', 'Search help...')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 1rem 0.6rem 2.5rem',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color, #ddd)',
-                  fontSize: '0.95rem',
-                  backgroundColor: 'var(--input-bg, #fff)',
-                  color: 'var(--text-color, #333)',
-                  outline: 'none',
-                  transition: 'border-color 0.2s, box-shadow 0.2s',
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--primary-color, #D4AF37)';
-                  e.target.style.boxShadow = '0 0 0 2px rgba(212, 175, 55, 0.2)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--border-color, #ddd)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-              <Search 
-                size={18} 
-                style={{
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  type="text"
+                  placeholder={t('search_help', 'Search help...')}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem 1rem 0.6rem 2.5rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color, #ddd)',
+                    fontSize: '0.95rem',
+                    backgroundColor: 'var(--input-bg, #fff)',
+                    color: 'var(--text-color, #333)',
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary-color, #D4AF37)';
+                    e.target.style.boxShadow = '0 0 0 2px rgba(212, 175, 55, 0.2)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border-color, #ddd)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+                <Search size={18} style={{
                   position: 'absolute',
                   left: '12px',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   color: 'var(--text-secondary, #999)'
-                }} 
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-secondary, #999)',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '50%',
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #f0f0f0)'}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  aria-label={t('clear_search', 'Clear search')}
-                >
-                  <X size={16} />
-                </button>
-              )}
+                }} />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-secondary, #999)',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      transition: 'background-color 0.2s',
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #f0f0f0)'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    aria-label={t('clear_search', 'Clear search')}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -469,6 +506,7 @@ const HelpDrawer = () => {
         }}>
           {renderContent()}
         </div>
+      </div>
     </div>
   );
 };
