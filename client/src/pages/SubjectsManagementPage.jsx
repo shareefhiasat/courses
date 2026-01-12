@@ -266,8 +266,8 @@ const SubjectsManagementPage = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+      <form onSubmit={handleSubmit} className="dashboard-form">
+        <div className="form-row">
           <Select
             value={formData.programId}
             onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
@@ -346,7 +346,7 @@ const SubjectsManagementPage = () => {
             helperText="Weekly contact hours"
           />
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
             {editingSubject ? 'Update' : 'Add Subject'}
           </Button>
@@ -365,7 +365,7 @@ const SubjectsManagementPage = () => {
         </div>
       </form>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0.5rem 0' }}>
         <Select
           value={filterProgram}
           onChange={(e) => setFilterProgram(e.target.value)}

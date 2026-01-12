@@ -982,8 +982,8 @@ const MarksEntryPage = () => {
           onClose={handleCloseModal}
           title={`Enter Marks: ${editingStudent.displayName || editingStudent.email}`}
         >
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.marksGrid}>
+          <form onSubmit={handleSubmit} className={`${styles.form} dashboard-form`}>
+            <div className={`${styles.marksGrid} form-row`}>
               <Input
                 label={`Mid-Term Exam (${marksDistribution.midTermExam}%)`}
                 type="number"
@@ -1056,7 +1056,7 @@ const MarksEntryPage = () => {
               <span>/ 100</span>
             </div>
 
-            <div className={styles.actions}>
+            <div className={`${styles.actions} form-actions`}>
               <Button
                 type="button"
                 variant="ghost"
@@ -1121,8 +1121,8 @@ const MarksEntryPage = () => {
               } finally {
                 setLoading(false);
               }
-            }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            }} className="dashboard-form">
+              <div className="form-row">
                 <Input
                   label="Mid-Term Exam (%)"
                   type="number"
@@ -1211,7 +1211,7 @@ const MarksEntryPage = () => {
                   </p>
                 )}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div className="form-actions">
                 <Button
                   type="submit"
                   variant="primary"

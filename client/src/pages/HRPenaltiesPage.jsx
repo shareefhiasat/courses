@@ -596,8 +596,8 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       )}
 
       {!isDashboardTab && (
-        <form onSubmit={handleSubmit} style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <form onSubmit={handleSubmit} className="dashboard-form">
+        <div className="form-row">
           <Select
             searchable
             value={formData.classId}
@@ -663,7 +663,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             placeholder="Severity"
           />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <div className="form-row">
           <Textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -677,7 +677,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             rows={3}
           />
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
             {editingPenalty ? 'Update' : 'Save'}
           </Button>

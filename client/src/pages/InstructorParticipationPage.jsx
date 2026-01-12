@@ -582,8 +582,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       )}
 
       {!isDashboardTab && (
-        <form onSubmit={handleSubmit} style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <form onSubmit={handleSubmit} className="dashboard-form">
+        <div className="form-row">
           <Select
             searchable
             value={formData.classId}
@@ -630,7 +630,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             required
           />
         </div>
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div className="form-row single-column">
           <Textarea
             value={formData.comment}
             onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
@@ -638,7 +638,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             rows={3}
           />
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
             {editingParticipation ? 'Update' : 'Save'}
           </Button>

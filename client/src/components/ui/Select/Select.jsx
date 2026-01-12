@@ -88,9 +88,11 @@ const Select = forwardRef(({
     if (isOpen && containerRef.current) {
       const updatePosition = () => {
         const rect = containerRef.current.getBoundingClientRect();
+        const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        const scrollX = window.scrollX || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
         setDropdownPosition({
-          top: rect.bottom + 4,
-          left: rect.left,
+          top: rect.bottom + scrollY + 4,
+          left: rect.left + scrollX,
           width: rect.width
         });
       };
@@ -327,7 +329,7 @@ const Select = forwardRef(({
             ref={dropdownRef}
             className={styles.dropdown}
             style={{
-              position: 'fixed',
+              position: 'absolute',
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
               width: `${dropdownPosition.width}px`,

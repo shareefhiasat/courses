@@ -112,7 +112,7 @@ const SMTPConfigPage = () => {
             </ol>
           </div>
 
-          <form onSubmit={handleSave} className={styles.form}>
+          <form onSubmit={handleSave} className={`${styles.form} dashboard-form`}>
             <Input
               type="text"
               label="🌐 SMTP Host"

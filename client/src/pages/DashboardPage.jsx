@@ -139,7 +139,7 @@ const DashboardPage = () => {
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
 
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'class-schedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', 'smtp', 'emailTemplates', 'emailLogs', 'scheduled-reports', 'categories', 'login'];
+    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', 'smtp', 'emailTemplates', 'emailLogs', 'scheduled-reports', 'categories', 'login'];
 
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
@@ -168,7 +168,7 @@ const DashboardPage = () => {
         'classes': '#classes',
         'manage-enrollments': '#enrollments',
         'marks': '#marks',
-        'class-schedule': '#class-schedule'
+        'classschedule': '#classschedule'
       };
 
       if (tabToHashMap[tab]) {
@@ -243,51 +243,51 @@ const DashboardPage = () => {
       id: 'content',
       label: t('content'),
       items: [
-        { key: 'activities', label: t('activities'), icon: '📋' },
-        { key: 'announcements', label: t('announcements'), icon: '📢' },
-        { key: 'resources', label: t('resources'), icon: '📚' }
+        { key: 'activities', label: t('activities') },
+        { key: 'announcements', label: t('announcements') },
+        { key: 'resources', label: t('resources') }
       ]
     },
     {
       id: 'users',
       label: t('users'),
       items: [
-        { key: 'users', label: t('users'), icon: '👥' },
-        { key: 'allowlist', label: t('allowlist'), icon: '✅' }
+        { key: 'users', label: t('users') },
+        { key: 'allowlist', label: t('allowlist') }
       ]
     },
     {
       id: 'academic',
       label: t('academic'),
       items: [
-        { key: 'programs', label: t('programs'), icon: '🎓' },
-        { key: 'subjects', label: t('subjects'), icon: '📖' },
-        { key: 'classes', label: t('classes'), icon: '🏫' },
-        { key: 'manage-enrollments', label: t('manage_enrollments'), icon: '📝' },
-        { key: 'marks', label: t('mark_entry'), icon: '📊' },
-        { key: 'class-schedule', label: t('class_schedules'), icon: '📅' },
-        // { key: 'submissions', label: t('submissions'), icon: '📤' },
-        { key: 'hr-penalties', label: t('hr_penalties'), icon: '⚠️' },
-        { key: 'instructor-participation', label: t('participation'), icon: '📈' },
-        { key: 'instructor-behavior', label: t('behavior'), icon: '📝' }
+        { key: 'programs', label: t('programs') },
+        { key: 'subjects', label: t('subjects') },
+        { key: 'classes', label: t('classes') },
+        { key: 'manage-enrollments', label: t('manage_enrollments') },
+        { key: 'marks', label: t('mark_entry') },
+        { key: 'classschedule', label: t('class_schedules') },
+        // { key: 'submissions', label: t('submissions') },
+        { key: 'hr-penalties', label: t('hr_penalties') },
+        { key: 'instructor-participation', label: t('participation') },
+        { key: 'instructor-behavior', label: t('behavior') }
       ]
     },
     {
       id: 'communication',
       label: t('communication'),
       items: [
-        { key: 'smtp', label: t('smtp'), icon: '📧' },
-        { key: 'emailTemplates', label: t('templates'), icon: '📄' },
-        { key: 'emailLogs', label: t('logs'), icon: '📋' },
-        { key: 'scheduled-reports', label: t('scheduled_reports'), icon: '📊' }
+        { key: 'smtp', label: t('smtp') },
+        { key: 'emailTemplates', label: t('templates') },
+        { key: 'emailLogs', label: t('logs') },
+        { key: 'scheduled-reports', label: t('scheduled_reports') }
       ]
     },
     {
       id: 'settings',
       label: t('settings'),
       items: [
-        { key: 'categories', label: t('categories'), icon: '🏷️' },
-        { key: 'login', label: t('login'), icon: '🔐' }
+        { key: 'categories', label: t('categories') },
+        { key: 'login', label: t('login') }
       ]
     }
   ];
@@ -903,7 +903,7 @@ const DashboardPage = () => {
         'classes': 'classes',
         'enrollments': 'manage-enrollments',
         'marks': 'marks',
-        'class-schedule': 'class-schedule'
+        'classschedule': 'classschedule'
       };
       
       const tab = hashToTabMap[hash];
@@ -1557,7 +1557,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
 
             {/* Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                gap: '0.75rem'
+              }}
+            >
               {[
                 // Programs - Super Admin only
                 ...(isSuperAdmin ? [{
@@ -1684,7 +1690,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 {
                   type: 'quizzes',
                   value: quizzes.length,
-                  tooltip: 'Total number of quizzes'
+                  tooltip: 'Total number of quizzes. Click to view all quizzes.',
+                  onClick: () => navigate('/quizzes'),
+                  hoverable: true
                 },
                 // Announcements
                 {
@@ -1731,33 +1739,69 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 const borderRadius = getShapeRadius(config.shape);
                 
                 return (
-                  <Card key={idx} style={{ position: 'relative', overflow: 'visible' }}>
-                    <CardBody>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Card
+                    key={idx}
+                    padding="xs"
+                    onClick={() => stat.onClick && stat.onClick()}
+                    style={{ 
+                      position: 'relative', 
+                      overflow: 'visible',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      cursor: stat.onClick ? 'pointer' : 'default',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      ':hover': {
+                        transform: stat.onClick ? 'translateY(-1px)' : 'none',
+                        boxShadow: stat.onClick ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none'
+                      }
+                    }}
+                  >
+                    <CardBody style={{ padding: '0.5rem', display: 'flex', flex: 1 }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.5rem',
+                        width: '100%',
+                        height: '100%'
+                      }}>
                         <div style={{ 
-                          padding: '0.75rem', 
+                          padding: '0.35rem', 
                           background: config.bg, 
                           borderRadius: borderRadius,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          marginTop: '0.1rem'
                         }}>
-                          <IconComponent size={24} style={{ color: config.iconColor }} />
+                          <IconComponent size={16} style={{ color: config.iconColor }} />
                         </div>
-                        <div style={{ flex: 1, position: 'relative', overflow: 'visible' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                              {config.label}
-                            </span>
-                            <div style={{ position: 'relative', zIndex: 10000 }}>
-                              <InfoTooltip>
-                                <div style={{ padding: '0.5rem', fontSize: '0.875rem', lineHeight: '1.5', maxWidth: '250px', whiteSpace: 'normal' }}>
-                                  {stat.tooltip}
-                                </div>
-                              </InfoTooltip>
-                            </div>
-                          </div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: config.iconColor }}>
+                        <div style={{ 
+                          flex: 1, 
+                          minWidth: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          height: '100%',
+                          gap: '0.1rem'
+                        }}>
+                          <span style={{ 
+                            fontSize: '0.7rem', 
+                            color: '#6b7280',
+                            lineHeight: '1.1',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {config.label}
+                          </span>
+                          <div style={{ 
+                            fontSize: '1rem', 
+                            fontWeight: 700, 
+                            color: config.iconColor,
+                            lineHeight: '1.1'
+                          }}>
                             {stat.value}
                           </div>
                         </div>
@@ -1773,9 +1817,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         <div className="tab-content">
           {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} />}
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t(activeTab)}</h2>
-            <InfoTooltip contentKey={`help.${activeTab}`} />
+          <div className="tab-header">
+            <h2>Activity</h2>
+            <div className="tooltip-wrapper">
+              <InfoTooltip contentKey={`help.${activeTab}`} />
+            </div>
           </div>
 
           {activeTab === 'activities' && (
@@ -1869,8 +1915,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 </div>
               )}
 
-              <form onSubmit={handleActivitySubmit} className="activity-form">
-                <div className="form-row">
+              <form onSubmit={handleActivitySubmit} className="dashboard-form">
+                <div className="form-row flex-row tight-gap" style={{ flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '8px' }}>
                   <div>
                     <Input
                       type="text"
@@ -2093,7 +2139,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                 {/* Quiz Selector - Only show for quiz type */}
                 {activityForm.type === 'quiz' && (
-                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div className="form-row single-column">
                     <Select
                       searchable
                       placeholder={t('select_quiz') || 'Select Quiz (Optional)'}
@@ -2183,7 +2229,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   </div>
                 )}
 
-                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div className="form-row compact-cols">
                   <ToggleSwitch
                     label={t('show_to_students') || 'Show to students'}
                     checked={activityForm.show}
@@ -2478,7 +2524,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 </div>
               )}
 
-              <form onSubmit={handleAnnouncementSubmit} className="announcement-form">
+              <form onSubmit={handleAnnouncementSubmit} className="announcement-form dashboard-form">
                 <div className="form-row">
                   <Input
                     type="text"
@@ -2488,7 +2534,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     required
                   />
                 </div>
-                <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                <div className="form-row wide-cols">
                   <Select
                     searchable
                     placeholder={t('program') || 'Program (Optional)'}
@@ -2531,13 +2577,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   />
                 </div>
                 {/* Email options for announcement */}
-                <div className="form-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                <div className="form-row flex-row with-top-margin">
                   <ToggleSwitch
                     label={t('send_email_notification') || 'Send Email Notification'}
                     checked={announcementEmailOptions.sendEmail}
                     onChange={(checked) => setAnnouncementEmailOptions({ ...announcementEmailOptions, sendEmail: checked })}
                   />
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+                  <div className="form-actions" style={{ marginTop: '0.5rem' }}>
                     <Button
                       type="button"
                       variant="secondary"
@@ -2724,7 +2770,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             <MarksEntryPage />
           )}
 
-          {activeTab === 'class-schedule' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'classschedule' && (isSuperAdmin || isAdmin || isInstructor) && (
             <ClassSchedulePage />
           )}
 
@@ -3034,8 +3080,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 } finally {
                   setLoading(false);
                 }
-              }} className="activity-form">
-                <div className="form-row">
+              }} className="dashboard-form">
+                <div className="form-row wide-cols">
                   <Input
                     placeholder={t('class_name')}
                     value={classForm.name}
@@ -3053,23 +3099,26 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     value={classForm.code}
                     onChange={e => setClassForm({ ...classForm, code: e.target.value })}
                   />
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <Select
-                      searchable
-                      placeholder={t('term')}
-                      value={classForm.term?.split(' ')[0] || ''}
-                      onChange={e => {
-                        const year = classForm.term?.split(' ')[1] || new Date().getFullYear();
-                        setClassForm({ ...classForm, term: e.target.value ? `${e.target.value} ${year}` : '' });
-                      }}
-                      options={[
-                        { value: '', label: t('term') || 'Select Term' },
-                        { value: 'Fall', label: t('fall') || 'Fall' },
-                        { value: 'Spring', label: t('spring') || 'Spring' },
-                        { value: 'Summer', label: t('summer') || 'Summer' }
-                      ]}
-                      required
-                    />
+                </div>
+
+                <div className="form-row compact-cols">
+                  <Select
+                    searchable
+                    placeholder={t('term')}
+                    value={classForm.term?.split(' ')[0] || ''}
+                    onChange={e => {
+                      const year = classForm.term?.split(' ')[1] || new Date().getFullYear();
+                      setClassForm({ ...classForm, term: e.target.value ? `${e.target.value} ${year}` : '' });
+                    }}
+                    options={[
+                      { value: '', label: t('term') || 'Select Term' },
+                      { value: 'Fall', label: t('fall') || 'Fall' },
+                      { value: 'Spring', label: t('spring') || 'Spring' },
+                      { value: 'Summer', label: t('summer') || 'Summer' }
+                    ]}
+                    required
+                  />
+                  <div style={{ width: '100%' }}>
                     <YearSelect
                       value={classForm.term?.split(' ')[1] || ''}
                       onChange={e => {
@@ -3087,6 +3136,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       required
                     />
                   </div>
+                </div>
+
+                <div className="form-row">
                   <Select
                     searchable
                     placeholder={t('select_subject') || 'Select Subject'}
@@ -3125,19 +3177,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 </div>
 
                 <div className="form-actions">
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <Button type="submit" variant="primary" loading={loading}>
-                      {(editingClass ? t('update') : t('save'))}
+                  <Button type="submit" variant="primary" loading={loading}>
+                    {(editingClass ? t('update') : t('save'))}
+                  </Button>
+                  {editingClass && (
+                    <Button type="button" variant="outline" onClick={() => {
+                      setEditingClass(null);
+                      setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
+                    }}>
+                      {t('cancel_edit') || 'Cancel Edit'}
                     </Button>
-                    {editingClass && (
-                      <Button type="button" variant="outline" onClick={() => {
-                        setEditingClass(null);
-                        setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
-                      }}>
-                        {t('cancel_edit') || 'Cancel Edit'}
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </form>
 
@@ -3385,8 +3435,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               } finally {
                 setLoading(false);
               }
-            }} className="activity-form">
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            }} className="dashboard-form">
+              <div className="form-row wide-cols">
                 <Select
                   searchable
                   placeholder={t('select_user')}
@@ -3489,7 +3539,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 />
               </div>
 
-              <div className="form-actions" style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-start' }}>
+              <div className="form-actions">
                 <Button type="submit" variant="primary" disabled={loading} size="medium">
                   {t('save') || 'Save'}
                 </Button>
@@ -4042,8 +4092,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               } finally {
                 setLoading(false);
               }
-            }} className="activity-form">
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            }} className="dashboard-form">
+              <div className="form-row">
                 <Input
                   type="email"
                   placeholder={t('user_email_placeholder')}
@@ -4086,7 +4136,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               </div>
 
               {!editingUser && (
-                <div className="form-row">
+                <div className="form-row flex-row">
                   <ToggleSwitch
                     label="Auto-add email to student allowlist"
                     checked={autoAddToAllowlist}
@@ -4096,19 +4146,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               )}
 
               <div className="form-actions">
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <Button type="submit" variant="primary" loading={loading}>
-                    {(editingUser ? t('update') : t('save'))}
+                <Button type="submit" variant="primary" loading={loading}>
+                  {(editingUser ? t('update') : t('save'))}
+                </Button>
+                {editingUser && (
+                  <Button type="button" variant="outline" onClick={() => {
+                    setEditingUser(null);
+                    setUserForm({ email: '', displayName: '', role: 'student' });
+                  }}>
+                    {t('cancel_edit') || 'Cancel Edit'}
                   </Button>
-                  {editingUser && (
-                    <Button type="button" variant="outline" onClick={() => {
-                      setEditingUser(null);
-                      setUserForm({ email: '', displayName: '', role: 'student' });
-                    }}>
-                      {t('cancel_edit') || 'Cancel Edit'}
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
             </form>
 
@@ -4468,7 +4516,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               } finally {
                 setLoading(false);
               }
-            }} className="activity-form">
+            }} className="dashboard-form">
               <div className="form-row">
                 <Input
                   type="text"
@@ -4496,7 +4544,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 />
               </div>
 
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div className="form-row wide-cols">
                 <Select
                   searchable
                   placeholder={t('program') || 'Program (Optional - Public if empty)'}
@@ -4558,7 +4606,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 />
               </div>
 
-              <div className="form-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div className="form-row flex-row">
                 <ToggleSwitch
                   label={t('optional_resource')}
                   checked={resourceForm.optional}
@@ -4935,36 +4983,51 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               } catch (err) {
                 toast?.showError('Failed to save category: ' + err.message);
               }
-            }} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: 8 }}>
-              <Input
-                placeholder="ID (e.g., python)"
-                value={courseForm.id}
-                onChange={(e) => setCourseForm({ ...courseForm, id: e.target.value.toLowerCase().trim() })}
-                disabled={!!editingCourse}
-                required
-                fullWidth
-              />
-              <Input
-                placeholder="Name (English)"
-                value={courseForm.name_en}
-                onChange={(e) => setCourseForm({ ...courseForm, name_en: e.target.value })}
-                required
-                fullWidth
-              />
-              <Input
-                placeholder="Name (Arabic)"
-                value={courseForm.name_ar}
-                onChange={(e) => setCourseForm({ ...courseForm, name_ar: e.target.value })}
-                fullWidth
-              />
-              <NumberInput
-                placeholder="Order"
-                value={courseForm.order}
-                onChange={(e) => setCourseForm({ ...courseForm, order: e.target.value })}
-                fullWidth
-              />
-              <Button type="submit" variant="primary">{editingCourse ? 'Update' : 'Add'}</Button>
-              {editingCourse && <Button type="button" variant="outline" onClick={() => { setCourseForm({ id: '', name_en: '', name_ar: '', order: 0 }); setEditingCourse(null); }}>Cancel</Button>}
+            }} className="dashboard-form">
+              <div className="form-row">
+                <Input
+                  placeholder="ID (e.g., python)"
+                  value={courseForm.id}
+                  onChange={(e) => setCourseForm({ ...courseForm, id: e.target.value.toLowerCase().trim() })}
+                  disabled={!!editingCourse}
+                  required
+                  fullWidth
+                />
+                <Input
+                  placeholder="Name (English)"
+                  value={courseForm.name_en}
+                  onChange={(e) => setCourseForm({ ...courseForm, name_en: e.target.value })}
+                  required
+                  fullWidth
+                />
+                <Input
+                  placeholder="Name (Arabic)"
+                  value={courseForm.name_ar}
+                  onChange={(e) => setCourseForm({ ...courseForm, name_ar: e.target.value })}
+                  fullWidth
+                />
+                <NumberInput
+                  placeholder="Order"
+                  value={courseForm.order}
+                  onChange={(e) => setCourseForm({ ...courseForm, order: e.target.value })}
+                  fullWidth
+                />
+              </div>
+              <div className="form-actions">
+                <Button type="submit" variant="primary">{editingCourse ? 'Update' : 'Add'}</Button>
+                {editingCourse && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setCourseForm({ id: '', name_en: '', name_ar: '', order: 0 });
+                      setEditingCourse(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
             </form>
 
             <AdvancedDataGrid
@@ -5165,19 +5228,33 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   console.error('Error updating password:', error);
                   toast?.showError('Failed to update password: ' + error.message);
                 }
-              }}>
-                <input
-                  type="password"
-                  placeholder="New password (min 6 characters)"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: 8, marginBottom: '1rem' }}
-                />
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button type="button" onClick={() => { setShowPasswordModal(false); setPasswordUser(null); setNewPassword(''); }} style={{ padding: '0.5rem 1rem', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Cancel</button>
-                  <button type="submit" style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>Set Password</button>
+              }} className="dashboard-form">
+                <div className="form-row single-column">
+                  <Input
+                    type="password"
+                    placeholder="New password (min 6 characters)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    fullWidth
+                  />
+                </div>
+                <div className="form-actions">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPasswordUser(null);
+                      setNewPassword('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="primary">
+                    Set Password
+                  </Button>
                 </div>
               </form>
             </div>

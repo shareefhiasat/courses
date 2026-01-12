@@ -2,9 +2,11 @@
   display: inline-flex;
   position: relative;
   vertical-align: middle;
-  margin-left: 4px;
+  margin-left: auto; /* Push to the far right */
+  z-index: 1; /* Ensure it stays above other elements */
 }
 
+/* Base styles for both button and div triggers */
 .info-tooltip-trigger {
   display: inline-flex;
   align-items: center;
@@ -21,6 +23,27 @@
   font-weight: bold;
   line-height: 1;
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
+  /* Reset button styles */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  margin: 0;
+  text-align: center;
+  text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* When it's a div, we need to add some button-like styles */
+.info-tooltip-div {
+  /* Make it look like a button */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  box-sizing: border-box;
 }
 
 .info-tooltip-trigger:hover {
@@ -31,6 +54,16 @@
 .info-tooltip-trigger:focus {
   outline: 2px solid #4dabf7;
   outline-offset: 2px;
+}
+
+/* Ensure the tooltip trigger is clickable and has proper cursor */
+.info-tooltip-trigger[role="button"] {
+  cursor: pointer;
+}
+
+/* Make sure the tooltip is accessible to screen readers */
+.info-tooltip-trigger[aria-expanded="true"] {
+  z-index: 1001; /* Above the tooltip content */
 }
 
 .info-tooltip-content {
@@ -48,31 +81,67 @@
   font-weight: normal;
   text-align: left;
   white-space: normal;
-  max-width: 300px;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 32px));
   z-index: 1000;
   border: 1px solid #e9ecef;
   animation: tooltipFadeIn 0.15s ease-out;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-width: 200px;
+}
+
+/* Arrow pointing to the trigger */
+.info-tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
+}
+
+/* Position the tooltip relative to the trigger */
+.info-tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* For RTL languages */
+[dir="rtl"] .info-tooltip-content {
+  left: auto;
+  right: 0;
+  transform: translateY(-8px);
 }
 
 .info-tooltip-content::after {
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 8px;
   border-width: 5px;
   border-style: solid;
   border-color: white transparent transparent transparent;
 }
 
+[dir="rtl"] .info-tooltip-content::after {
+  right: auto;
+  left: 8px;
+}
+
 @keyframes tooltipFadeIn {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(-4px);
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(-8px);
+    transform: translateY(-8px);
   }
 }
 
@@ -92,11 +161,11 @@
 @keyframes tooltipFadeInRTL {
   from {
     opacity: 0;
-    transform: translateX(50%) translateY(-4px);
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
-    transform: translateX(50%) translateY(-8px);
+    transform: translateY(-8px);
   }
 }
 

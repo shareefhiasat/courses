@@ -171,8 +171,8 @@ const ProgramsManagementPage = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+      <form onSubmit={handleSubmit} className="dashboard-form">
+        <div className="form-row">
           <Input
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
@@ -214,7 +214,7 @@ const ProgramsManagementPage = () => {
             min={1}
           />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+        <div className="form-row">
           <Textarea
             value={formData.description_en}
             onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
@@ -229,7 +229,7 @@ const ProgramsManagementPage = () => {
             dir="rtl"
           />
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
             {editingProgram ? 'Update' : 'Add Program'}
           </Button>

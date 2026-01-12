@@ -2328,7 +2328,7 @@ const ChatPage = () => {
           )}
 
           {/* Input Form */}
-          <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
+          <form onSubmit={handleSendMessage} className="form-actions" style={{ position: 'relative' }}>
             <input
               ref={messageInputRef}
               type="text"
