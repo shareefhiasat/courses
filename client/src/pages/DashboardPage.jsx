@@ -355,6 +355,16 @@ const DashboardPage = () => {
       ]
     },
     {
+      id: 'communication',
+      label: t('communication'),
+      items: [
+        { key: 'smtp', label: t('smtp') },
+        { key: 'emailTemplates', label: t('templates') },
+        { key: 'emailLogs', label: t('logs') },
+        { key: 'scheduled-reports', label: t('scheduled_reports') }
+      ]
+    },
+    {
       id: 'academic',
       label: t('academic'),
       items: [
@@ -368,16 +378,6 @@ const DashboardPage = () => {
         { key: 'hr-penalties', label: t('hr_penalties') },
         { key: 'instructor-participation', label: t('participation') },
         { key: 'instructor-behavior', label: t('behavior') }
-      ]
-    },
-    {
-      id: 'communication',
-      label: t('communication'),
-      items: [
-        { key: 'smtp', label: t('smtp') },
-        { key: 'emailTemplates', label: t('templates') },
-        { key: 'emailLogs', label: t('logs') },
-        { key: 'scheduled-reports', label: t('scheduled_reports') }
       ]
     },
     {
@@ -1679,26 +1679,24 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             skip: lang === 'ar' ? 'تخطي' : 'Skip'
           }}
           styles={{
+            // Use the app's primary color so the Joyride buttons (Back/Next) match other UI buttons
+            // Fallback to blue if the CSS var is not defined
             options: {
-              primaryColor: '#800020',
+              primaryColor: 'var(--color-primary, #1e90ff)',
               textColor: '#000',
               backgroundColor: '#fff',
               overlayColor: 'rgba(0,0,0,0.5)'
             }
           }}
         />
-        <div data-tour="mode-switcher">
-      <div data-tour="mode-switcher">
-      <div data-tour="mode-switcher">
-      <RibbonTabs
-          categories={ribbonCategories}
-          activeCategory={activeCategory}
-          activeItem={activeTab}
-          onChange={({ category, item }) => { setActiveCategory(category); handleTabChange(item); }}
-        />
-      </div>
-      </div>
-        </div>
+  <div data-tour="mode-switcher">
+    <RibbonTabs
+      categories={ribbonCategories}
+      activeCategory={activeCategory}
+      activeItem={activeTab}
+      onChange={({ category, item }) => { setActiveCategory(category); handleTabChange(item); }}
+    />
+  </div>
 
         {/* Summary Cards with Filters */}
         <div data-tour="stats"><Card style={{ marginBottom: '1.5rem', marginTop: '1rem' }}>
