@@ -1665,16 +1665,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       {/* Compact header removed to save vertical space */}
 
       <div className="dashboard-content">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <button onClick={() => setRunTour(true)} title={lang === 'ar' ? 'ابدأ الجولة' : 'Start Tour'}>
-            {lang === 'ar' ? '🗺️ ابدأ الجولة' : '🗺️ Start Tour'}
-          </button>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <button onClick={() => setRunTour(true)} title={lang === 'ar' ? 'ابدأ الجولة' : 'Start Tour'} style={{ padding: '6px 12px', borderRadius: 6, background: 'var(--color-primary, #800020)', color: '#fff', border: 'none' }}>
-            {lang === 'ar' ? 'ابدأ الجولة' : 'Start Tour'}
-          </button>
-        </div>
         {/* Joyride dashboard tour component injected to guide through tabs */}
         <Joyride
           continuous
@@ -1698,11 +1688,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           }}
         />
         <div data-tour="mode-switcher">
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.5rem 0' }}>
-        <Button variant="primary" onClick={() => setRunTour(true)}>
-          Start Tour
-        </Button>
-      </div>
       <div data-tour="mode-switcher">
       <div data-tour="mode-switcher">
       <RibbonTabs

@@ -291,7 +291,10 @@ const Navbar = () => {
                   className="nav-icon-btn nav-help"
                   onClick={() => {
                     try {
-                      window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: location?.pathname || '/' } }));
+                      const fullPath = location?.pathname || '/';
+                      const search = location?.search || '';
+                      const hash = location?.hash || '';
+                      window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: fullPath, search, hash } }));
                     } catch {}
                   }}
                   title={t('help') || 'Help'}
