@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+ // import Joyride from 'react-joyride';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
+import Joyride from 'react-joyride';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
   getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement,
@@ -57,6 +59,60 @@ import ToggleSwitch from '../components/ToggleSwitch';
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();
   const { lang, setLang, t } = useLang();
+  // Joyride tour state
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  // Joyride callback to persist tour completion
+  const handleJoyrideCallback = (data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') {
+      setRunTour(false);
+      try {
+        localStorage.setItem(`dashboardHelpSeen_${lang}`, 'true');
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  // Build localized tour steps when language changes
+  useEffect(() => {
+    const steps = [
+      {
+        target: '[data-tour="mode-switcher"]',
+        content: lang === 'ar'
+          ? 'استخدم هذه التبويبات للتبديل بين أقسام الشاشة'
+          : 'Use these tabs to switch between dashboard sections',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="stats"]',
+        content: lang === 'ar'
+          ? 'هذه الإحصاءات تعرض ملخصاً سريعاً عن العناصر المكتملة والمتأخرة والمطلوبة'
+          : 'These statistics show a quick summary of completed, pending, and required items',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="filters"]',
+        content: lang === 'ar'
+          ? 'استخدم هذه المرشحات لتضييق النتائج بين البحث والتصفية'
+          : 'Use these filters to narrow results by search and type',
+        disableBeacon: true,
+        placement: 'top'
+      },
+      {
+        target: '[data-tour="cards-grid"]',
+        content: lang === 'ar'
+          ? 'هذه البطاقات تعرض العناصر كما أنها تتيح التفاعل مع الإجراءات'
+          : 'These cards display items and allow interaction with actions',
+        disableBeacon: true,
+        placement: 'top'
+      }
+    ];
+    setTourSteps(steps);
+  }, [lang]);
   const navigate = useNavigate();
   const location = useLocation();
   const uiToast = useToast();
@@ -65,6 +121,48 @@ const DashboardPage = () => {
     showError: uiToast.error,
     showInfo: uiToast.info,
   };
+  // Joyride dashboard tour state
+  const tourSeenKey = `dashboardHelpSeen_${lang}`;
+
+  // Build tour steps based on current language each time language changes
+  useEffect(() => {
+    const steps = [
+      {
+        target: '[data-tour="mode-switcher"]',
+        content: lang === 'ar'
+          ? 'استخدم هذه التبويبات للتبديل بين الأقسام'
+          : 'Use these tabs to switch between dashboard sections',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="stats"]',
+        content: lang === 'ar'
+          ? 'هذه الإحصاءات تعرض عداد العناصر الموجودة في اللوحة'
+          : 'These stats summarize the counts of items on the dashboard',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="filters"]',
+        content: lang === 'ar'
+          ? 'يمكنك تصفية النتائج والبحث فيها باستخدام هذه المرشحات'
+          : 'Filter and search results using these controls',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="cards-grid"]',
+        content: lang === 'ar'
+          ? 'هذه هي البطاقات التي تعرض العناصر. استخدم الأزرار للبدء أو الإكمال أو وضع العلامة في المفضلة'
+          : 'These cards display items. Use the actions to start, complete, or bookmark',
+        disableBeacon: true,
+        placement: 'top'
+      }
+    ];
+    setTourSteps(steps);
+  }, [lang]);
+
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('dashboardActiveTab') || 'activities';
     return saved === 'courses' ? 'categories' : saved;
@@ -291,6 +389,57 @@ const DashboardPage = () => {
       ]
     }
   ];
+
+
+  // Initialize tour steps (localization-aware)
+  useEffect(() => {
+    const steps = [
+      {
+        target: '[data-tour="mode-switcher"]',
+        content: lang === 'ar'
+          ? 'استخدم هذه التبويبات للتنقل بين أقسام لوحة القيادة'
+          : 'Use these tabs to switch between dashboard sections',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="stats"]',
+        content: lang === 'ar'
+          ? 'هذه الإحصاءات تعرض عداد العناصر عبر اللوحة'
+          : 'These summary cards show counts for activities, enrollments, and more',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="filters"]',
+        content: lang === 'ar'
+          ? 'استخدم هذه المرشحات لتصفية النتائج'
+          : 'Use these filters to refine the visible items',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="cards-grid"]',
+        content: lang === 'ar'
+          ? 'هذه هي البطاقات التي تُظهر العناصر. اضغط لإطلاق النشاط أو إضافة للمفضلة'
+          : 'These cards display items. Start an activity, complete, or bookmark',
+        disableBeacon: true,
+        placement: 'top'
+      }
+    ];
+    setTourSteps(steps);
+  }, [lang]);
+
+  // Auto-start on demand via app event in HomePage (optional)
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => {
+      window.removeEventListener('app:joyride', start);
+      window.removeEventListener('app:help', start);
+    };
+  }, []);
 
 
   // Auto-refresh for Activity tab
@@ -870,6 +1019,46 @@ const DashboardPage = () => {
 
   // Listen for URL changes (hash or search params) from sidebar or direct navigation
   const [hashProcessed, setHashProcessed] = useState(false);
+ 
+  // Initialize localized tour steps
+  useEffect(() => {
+    const steps = [
+      {
+        target: '[data-tour="mode-switcher"]',
+        content: lang === 'ar'
+          ? 'استخدم هذه التبويبات للتبديل بين اللوحات' 
+          : 'Use these tabs to switch between dashboard sections',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="stats"]',
+        content: lang === 'ar'
+          ? 'هذه الإحصاءات تعرض عدد العناصر المختلفة في لوحة المعلومات'
+          : 'These stats show counts for items in the dashboard',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="filters"]',
+        content: lang === 'ar'
+          ? 'استخدم هذه المرشحات لتصفية العناصر حسب النوع والمستوى والحالة'
+          : 'Use these filters to refine the visible items by type, level, and status',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="cards-grid"]',
+        content: lang === 'ar'
+          ? 'هذه هي البطاقات التي تعرض العناصر. يمكنك التفاعل معها'
+          : 'These cards display the items; you can interact with them directly',
+        disableBeacon: true,
+        placement: 'top'
+      }
+    ];
+    setTourSteps(steps);
+  }, [lang]);
+
   useEffect(() => {
     console.log('[DashboardPage] URL changed:', { 
       pathname: location.pathname, 
@@ -1476,18 +1665,61 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       {/* Compact header removed to save vertical space */}
 
       <div className="dashboard-content">
-        <RibbonTabs
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <button onClick={() => setRunTour(true)} title={lang === 'ar' ? 'ابدأ الجولة' : 'Start Tour'}>
+            {lang === 'ar' ? '🗺️ ابدأ الجولة' : '🗺️ Start Tour'}
+          </button>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <button onClick={() => setRunTour(true)} title={lang === 'ar' ? 'ابدأ الجولة' : 'Start Tour'} style={{ padding: '6px 12px', borderRadius: 6, background: 'var(--color-primary, #800020)', color: '#fff', border: 'none' }}>
+            {lang === 'ar' ? 'ابدأ الجولة' : 'Start Tour'}
+          </button>
+        </div>
+        {/* Joyride dashboard tour component injected to guide through tabs */}
+        <Joyride
+          continuous
+          run={runTour}
+          steps={tourSteps}
+          callback={handleJoyrideCallback}
+          locale={{
+            back: lang === 'ar' ? 'السابق' : 'Back',
+            close: lang === 'ar' ? 'إغلاق' : 'Close',
+            last: lang === 'ar' ? 'إنهاء' : 'Finish',
+            next: lang === 'ar' ? 'التالي' : 'Next',
+            skip: lang === 'ar' ? 'تخطي' : 'Skip'
+          }}
+          styles={{
+            options: {
+              primaryColor: '#800020',
+              textColor: '#000',
+              backgroundColor: '#fff',
+              overlayColor: 'rgba(0,0,0,0.5)'
+            }
+          }}
+        />
+        <div data-tour="mode-switcher">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.5rem 0' }}>
+        <Button variant="primary" onClick={() => setRunTour(true)}>
+          Start Tour
+        </Button>
+      </div>
+      <div data-tour="mode-switcher">
+      <div data-tour="mode-switcher">
+      <RibbonTabs
           categories={ribbonCategories}
           activeCategory={activeCategory}
           activeItem={activeTab}
           onChange={({ category, item }) => { setActiveCategory(category); handleTabChange(item); }}
         />
+      </div>
+      </div>
+        </div>
 
         {/* Summary Cards with Filters */}
-        <Card style={{ marginBottom: '1.5rem', marginTop: '1rem' }}>
+        <div data-tour="stats"><Card style={{ marginBottom: '1.5rem', marginTop: '1rem' }}>
           <CardBody>
             {/* Filters */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div data-tour="filters" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <Select
                 searchable
                 value={enrollmentProgramFilter}
@@ -1813,6 +2045,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           </CardBody>
         </Card>
+        </div>
 
         <div className="tab-content">
           {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} />}
