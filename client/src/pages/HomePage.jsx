@@ -112,13 +112,17 @@ const HomePage = () => {
 
   // Listen for help button click from navbar
   useEffect(() => {
-    const handleHelpClick = () => {
-      console.log('[HomePage] Help button clicked, starting tour for mode:', mode);
+    const startTour = () => {
+      console.log('[HomePage] Launching Joyride tour via app event');
       setRunTour(true);
     };
-    
-    window.addEventListener('app:help', handleHelpClick);
-    return () => window.removeEventListener('app:help', handleHelpClick);
+    // Listen for both legacy help event and the joyride event from Navbar
+    window.addEventListener('app:help', startTour);
+    window.addEventListener('app:joyride', startTour);
+    return () => {
+      window.removeEventListener('app:help', startTour);
+      window.removeEventListener('app:joyride', startTour);
+    };
   }, [mode]);
 
   // Initialize mode from URL
