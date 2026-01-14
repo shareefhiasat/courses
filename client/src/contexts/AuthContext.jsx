@@ -5,7 +5,6 @@ import { db } from '../firebase/config';
 import { getAllowlist, ensureUserDoc, addLoginLog } from '../firebase/firestore';
 import { signOutUser } from '../firebase/auth';
 import { ActivityLogger } from '../firebase/activityLogger';
-import { applyAccentColorGlobally } from '../utils/theme';
 import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
 
 const AuthContext = createContext();
@@ -59,6 +58,15 @@ export const AuthProvider = ({ children }) => {
       const isNewLogin = !user && !hasLoggedInThisSession;
       
       setUser(firebaseUser);
+
+      // Apply cached accent color immediately to prevent flash
+      try {
+        const cachedColor = localStorage.getItem(`accent_color_${firebaseUser.uid}`);
+        if (cachedColor) {
+          applyAccentColorGlobally(cachedColor);
+        }
+      } catch {}
+
       try {
         // Ensure a user doc exists
         try {
@@ -146,10 +154,13 @@ export const AuthProvider = ({ children }) => {
             // Cache in sessionStorage
             sessionStorage.setItem('userProfile', JSON.stringify(profile));
             setUserProfile(profile);
-            // Apply user accent color globally on login/profile load if available
+
+            // Update localStorage with messageColor for ColorThemeContext
             try {
               if (profile?.messageColor) {
-                applyAccentColorGlobally(profile.messageColor);
+                localStorage.setItem(`accent_color_${firebaseUser.uid}`, profile.messageColor);
+                // Notify ColorThemeContext to update
+                window.dispatchEvent(new CustomEvent('accent-color-updated', { detail: { uid: firebaseUser.uid, color: profile.messageColor } }));
               }
             } catch {}
           }

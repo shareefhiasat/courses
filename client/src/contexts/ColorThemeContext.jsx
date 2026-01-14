@@ -1,82 +1,78 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { adjustColor } from '../utils/colorHelpers';
+import { useAuth } from './AuthContext';
+import { adjustColor, normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 
 const ColorThemeContext = createContext({
-  primaryColor: '#800020', // Default blue-500
+  primaryColor: DEFAULT_ACCENT,
   setPrimaryColor: () => {},
 });
 
 export const ColorThemeProvider = ({ children }) => {
+  const { user } = useAuth();
   const [primaryColor, setPrimaryColor] = useState(() => {
     try {
-      return localStorage.getItem('primaryColor') || '#800020';
+      const uid = user?.uid;
+      if (uid) {
+        return localStorage.getItem(`accent_color_${uid}`) || DEFAULT_ACCENT;
+      }
+      return DEFAULT_ACCENT;
     } catch {
-      return '#800020';
+      return DEFAULT_ACCENT;
     }
   });
 
-  // Helper: ensure initial color is applied on mount to avoid flash (robust approach)
-  // This is placed before effects to guarantee CSS vars exist early
-  const applyInitialColorVars = () => {
+  // Apply CSS variables for the primary color
+  const applyColorVars = (color) => {
     try {
       const root = document.documentElement;
-      const color = localStorage.getItem('primaryColor') || '#800020';
-      root.style.setProperty('--color-primary', color);
-      root.style.setProperty('--color-primary-light', adjustColor(color, 20));
-      root.style.setProperty('--color-primary-dark', adjustColor(color, -20));
-      const hex = color.replace('#','');
+      const normalized = normalizeHexColor(color, DEFAULT_ACCENT);
+      root.style.setProperty('--color-primary', normalized);
+      root.style.setProperty('--color-primary-light', adjustColor(normalized, 15));
+      root.style.setProperty('--color-primary-dark', adjustColor(normalized, -15));
+      const hex = normalized.replace('#','');
       const r = parseInt(hex.substring(0,2),16);
       const g = parseInt(hex.substring(2,4),16);
       const b = parseInt(hex.substring(4,6),16);
       root.style.setProperty('--color-primary-rgb', `${r}, ${g}, ${b}`);
-    } catch {
-      // ignore
-    }
+      root.style.setProperty('--input-focus', normalized);
+    } catch {}
   };
 
-  // Immediately apply initial color on mount to reduce flash (guarded)
+  // Immediately apply initial color on mount to reduce flash
   useEffect(() => {
-    applyInitialColorVars();
-  // run only on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Helper: ensure initial color is applied on mount to avoid flash (robust approach)
-  useEffect(() => {
-    try {
-      const root = document.documentElement;
-      const color = localStorage.getItem('primaryColor') || '#800020';
-      root.style.setProperty('--color-primary', color);
-      root.style.setProperty('--color-primary-light', adjustColor(color, 20));
-      root.style.setProperty('--color-primary-dark', adjustColor(color, -20));
-      const hex = color.replace('#','');
-      const r = parseInt(hex.substring(0,2),16);
-      const g = parseInt(hex.substring(2,4),16);
-      const b = parseInt(hex.substring(4,6),16);
-      root.style.setProperty('--color-primary-rgb', `${r}, ${g}, ${b}`);
-    } catch {}
-  // run only on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (user?.uid) {
+      const cachedColor = localStorage.getItem(`accent_color_${user.uid}`);
+      if (cachedColor) {
+        applyColorVars(cachedColor);
+      }
+    }
+  }, [user?.uid]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('primaryColor', primaryColor);
+      if (user?.uid) {
+        localStorage.setItem(`accent_color_${user.uid}`, primaryColor);
+      }
     } catch (e) {
       console.error('Failed to save primary color preference', e);
     }
 
     // Update CSS variables
-    const root = document.documentElement;
-    root.style.setProperty('--primary-500', primaryColor);
-    
-    // Calculate and set hover and active states
-    const hoverColor = adjustColor(primaryColor, 20);
-    const activeColor = adjustColor(primaryColor, -10);
-    
-    root.style.setProperty('--primary-600', hoverColor);
-    root.style.setProperty('--primary-700', activeColor);
-  }, [primaryColor]);
+    applyColorVars(primaryColor);
+  }, [primaryColor, user?.uid]);
+
+  // Listen for color updates from AuthContext
+  useEffect(() => {
+    const handleColorUpdate = (event) => {
+      const { uid, color } = event.detail;
+      if (uid === user?.uid && color !== primaryColor) {
+        setPrimaryColor(color);
+      }
+    };
+
+    window.addEventListener('accent-color-updated', handleColorUpdate);
+    return () => window.removeEventListener('accent-color-updated', handleColorUpdate);
+  }, [user?.uid, primaryColor]);
 
   // Helper function to adjust color brightness
   const adjustColor = (color, amount) => {

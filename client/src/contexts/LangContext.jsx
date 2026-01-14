@@ -10,6 +10,13 @@ const LangContext = createContext({
 
 const DICT = {
   en: {
+    // Activity/Deletion related labels
+    delete_activity: 'Delete Activity',
+    delete_announcement: 'Delete Announcement',
+    delete_class: 'Delete Class',
+    delete_resource: 'Delete Resource',
+    delete_enrollment: 'Delete Enrollment',
+    delete_category: 'Delete Category',
     // Tooltips
     'info_tooltip.trigger_aria_label': 'Show information',
     'submissions.tooltip': 'Includes: Quizzes, Homework assignments, Projects, Essays, Lab reports, and other course-related work',
@@ -786,7 +793,19 @@ const DICT = {
     save_role_access: 'Save Role Access',
     role_access_updated: 'Role access updated successfully',
   },
+  // Visualization / Tour localizations for dashboard (dot-notation keys added for t())
+  'tour.mode_switcher': 'Use these tabs to switch between dashboard sections',
+  'tour.stats': 'These summary cards show counts for activities, enrollments, and more',
+  'tour.filters': 'Filter and search results using these controls',
+  'tour.cards_grid': 'These cards display items. Use the actions to interact with items',
   ar: {
+    // Deletion related labels (Arabic)
+    delete_activity: 'حذف النشاط',
+    delete_announcement: 'حذف الإعلان',
+    delete_class: 'حذف الصف',
+    delete_resource: 'حذف المورد',
+    delete_enrollment: 'حذف التسجيل',
+    delete_category: 'حذف الفئة',
     // Help Content
     penalty_rules: 'قواعد العقوبات',
     absence_rules: 'قواعد الغياب',

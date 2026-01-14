@@ -10,6 +10,7 @@ import './Navbar.css';
 import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List, Info } from 'lucide-react';
 import { LanguageSwitcher } from './ui';
 import { useTheme } from '../contexts/ThemeContext';
+import { useColorTheme } from '../contexts/ColorThemeContext';
 import { getTimeFormatPreference, setTimeFormatPreference } from '../utils/date';
 import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 
@@ -32,10 +33,10 @@ const Navbar = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [realName, setRealName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
-  const [messageColor, setMessageColor] = useState(ACCENT_FALLBACK);
   const [timeFormat, setTimeFormat] = useState(() => getTimeFormatPreference());
   const { lang, toggleLang, t } = useLang();
   const { theme, toggleTheme } = useTheme();
+  const { primaryColor, setPrimaryColor } = useColorTheme();
   const [notifLang, setNotifLang] = useState('auto');
   const [density, setDensity] = useState(() => {
     try { return localStorage.getItem('density') || 'compact'; } catch { return 'compact'; }
@@ -52,51 +53,6 @@ const Navbar = () => {
     return () => window.removeEventListener('openProfile', openProfileHandler);
   }, []);
 
-  useEffect(() => {
-    if (!user?.uid) {
-      setMessageColor(ACCENT_FALLBACK);
-      return;
-    }
-    
-    // Try to load from localStorage cache first (quick fix to prevent flash)
-    try {
-      const cachedColor = localStorage.getItem(`accent_color_${user.uid}`);
-      if (cachedColor) {
-        const cached = normalizeHexColor(cachedColor, ACCENT_FALLBACK);
-        setMessageColor(cached);
-        applyAccentColor(cached);
-      }
-    } catch {}
-    
-    let cancelled = false;
-    (async () => {
-      try {
-        const { doc, getDoc } = await import('firebase/firestore');
-        const { db } = await import('../firebase/config');
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        if (!cancelled) {
-          const storedColor = snap.exists() ? snap.data().messageColor : null;
-          const normalized = normalizeHexColor(storedColor, ACCENT_FALLBACK);
-          setMessageColor(normalized);
-          // Cache in localStorage
-          try {
-            localStorage.setItem(`accent_color_${user.uid}`, normalized);
-          } catch {}
-        }
-      } catch {
-        if (!cancelled) {
-          setMessageColor(ACCENT_FALLBACK);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.uid]);
-
-  useEffect(() => {
-    applyAccentColor(messageColor);
-  }, [messageColor]);
 
   useEffect(() => {
     try { localStorage.setItem('density', density); } catch {}
@@ -146,11 +102,7 @@ const Navbar = () => {
       setDisplayName(user?.displayName || me?.displayName || '');
       setPhoneNumber(me?.phoneNumber || '');
       const color = normalizeHexColor(me?.messageColor, ACCENT_FALLBACK);
-      setMessageColor(color);
-      // Cache in localStorage
-      try {
-        if (user?.uid) localStorage.setItem(`accent_color_${user.uid}`, color);
-      } catch {}
+      setPrimaryColor(color);
       setRealName(me?.realName || '');
       setStudentNumber(me?.studentNumber || '');
       setNotifLang(me?.notifLang || 'auto');
@@ -170,11 +122,7 @@ const Navbar = () => {
         displayName: displayName || null,
         phoneNumber: phoneNumber || null,
         messageColor: (() => {
-          const color = normalizeHexColor(messageColor, ACCENT_FALLBACK);
-          // Cache in localStorage
-          try {
-            if (user?.uid) localStorage.setItem(`accent_color_${user.uid}`, color);
-          } catch {}
+          const color = normalizeHexColor(primaryColor, ACCENT_FALLBACK);
           return color;
         })(),
         realName: realName || null,
@@ -395,15 +343,15 @@ const Navbar = () => {
                     width: '40px',
                     height: '40px',
                     borderRadius: '50%',
-                    background: messageColor && messageColor !== ACCENT_FALLBACK 
-                      ? `linear-gradient(135deg, ${messageColor}, ${adjustColor(messageColor, 10)})`
+                    background: primaryColor && primaryColor !== ACCENT_FALLBACK
+                      ? `linear-gradient(135deg, ${primaryColor}, ${adjustColor(primaryColor, 10)})`
                       : 'rgba(255,255,255,0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1.25rem',
                     fontWeight: 700,
-                    color: messageColor && messageColor !== ACCENT_FALLBACK ? '#fff' : '#2E3B4E',
+                    color: primaryColor && primaryColor !== ACCENT_FALLBACK ? '#fff' : '#2E3B4E',
                     cursor: 'pointer',
                     border: '2px solid rgba(255,255,255,0.6)',
                     transition: 'transform 0.2s, background 0.3s',
@@ -415,7 +363,7 @@ const Navbar = () => {
                   aria-haspopup="menu"
                   aria-expanded={showDropdown}
                 >
-                  {(!messageColor || messageColor === ACCENT_FALLBACK) && (
+                  {(!primaryColor || primaryColor === ACCENT_FALLBACK) && (
                     <div style={{
                       position: 'absolute',
                       inset: 0,
@@ -576,8 +524,8 @@ const Navbar = () => {
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('message_color') || 'Message Bubble Color'}</label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input type="color" value={messageColor} onChange={(e)=>setMessageColor(e.target.value)} style={{ width: 60, height: 40, border: '1px solid #ddd', borderRadius: 8, cursor: 'pointer' }} />
-                  <div style={{ flex: 1, padding: '0.75rem', background: messageColor, color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 600 }}>{t('preview')}</div>
+                  <input type="color" value={primaryColor} onChange={(e)=>setPrimaryColor(e.target.value)} style={{ width: 60, height: 40, border: '1px solid #ddd', borderRadius: 8, cursor: 'pointer' }} />
+                  <div style={{ flex: 1, padding: '0.75rem', background: primaryColor, color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 600 }}>{t('preview')}</div>
                 </div>
               </div>
               <div>
@@ -636,13 +584,3 @@ const Navbar = () => {
 
 export default Navbar;
 
-const applyAccentColor = (color) => {
-  if (typeof document === 'undefined') return;
-  const accent = normalizeHexColor(color, ACCENT_FALLBACK);
-  const root = document.documentElement;
-  root.style.setProperty('--color-primary', accent);
-  root.style.setProperty('--color-primary-light', adjustColor(accent, 15));
-  root.style.setProperty('--color-primary-dark', adjustColor(accent, -15));
-  root.style.setProperty('--color-primary-rgb', hexToRgbString(accent));
-  root.style.setProperty('--input-focus', accent);
-};

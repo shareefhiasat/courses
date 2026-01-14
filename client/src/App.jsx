@@ -117,17 +117,17 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <ColorThemeProvider>
-          <LangProvider>
-            <AuthProvider>
+        <LangProvider>
+          <AuthProvider>
+            <ColorThemeProvider>
               <Router>
                 <ErrorBoundary>
                   <AppContent />
                 </ErrorBoundary>
               </Router>
-            </AuthProvider>
-          </LangProvider>
-        </ColorThemeProvider>
+            </ColorThemeProvider>
+          </AuthProvider>
+        </LangProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

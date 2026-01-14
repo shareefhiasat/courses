@@ -864,7 +864,7 @@ const MarksEntryPage = () => {
                 { value: 'all', label: 'All Classes' },
                 ...filteredClasses.map(c => ({
                   value: c.id || c.docId,
-                  label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}${c.year ? ` ${c.year}` : ''}${c.semester ? ` - ${c.semester}` : ''}`
+                  label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}${c.year ? ` ${c.year}` : ''}`
                 }))
               ]}
               fullWidth

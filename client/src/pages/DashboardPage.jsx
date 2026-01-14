@@ -80,33 +80,25 @@ const DashboardPage = () => {
     const steps = [
       {
         target: '[data-tour="mode-switcher"]',
-        content: lang === 'ar'
-          ? 'استخدم هذه التبويبات للتبديل بين أقسام الشاشة'
-          : 'Use these tabs to switch between dashboard sections',
+        content: t('tour.mode_switcher'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="stats"]',
-        content: lang === 'ar'
-          ? 'هذه الإحصاءات تعرض ملخصاً سريعاً عن العناصر المكتملة والمتأخرة والمطلوبة'
-          : 'These statistics show a quick summary of completed, pending, and required items',
+        content: t('tour.stats'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="filters"]',
-        content: lang === 'ar'
-          ? 'استخدم هذه المرشحات لتضييق النتائج بين البحث والتصفية'
-          : 'Use these filters to narrow results by search and type',
+        content: t('tour.filters'),
         disableBeacon: true,
         placement: 'top'
       },
       {
         target: '[data-tour="cards-grid"]',
-        content: lang === 'ar'
-          ? 'هذه البطاقات تعرض العناصر كما أنها تتيح التفاعل مع الإجراءات'
-          : 'These cards display items and allow interaction with actions',
+        content: t('tour.cards_grid'),
         disableBeacon: true,
         placement: 'top'
       }
@@ -124,38 +116,30 @@ const DashboardPage = () => {
   // Joyride dashboard tour state
   const tourSeenKey = `dashboardHelpSeen_${lang}`;
 
-  // Build tour steps based on current language each time language changes
+  // Build tour steps localization (based on current language)
   useEffect(() => {
     const steps = [
       {
         target: '[data-tour="mode-switcher"]',
-        content: lang === 'ar'
-          ? 'استخدم هذه التبويبات للتبديل بين الأقسام'
-          : 'Use these tabs to switch between dashboard sections',
+        content: t('tour.mode_switcher'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="stats"]',
-        content: lang === 'ar'
-          ? 'هذه الإحصاءات تعرض عداد العناصر الموجودة في اللوحة'
-          : 'These stats summarize the counts of items on the dashboard',
+        content: t('tour.stats'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="filters"]',
-        content: lang === 'ar'
-          ? 'يمكنك تصفية النتائج والبحث فيها باستخدام هذه المرشحات'
-          : 'Filter and search results using these controls',
+        content: t('tour.filters'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="cards-grid"]',
-        content: lang === 'ar'
-          ? 'هذه هي البطاقات التي تعرض العناصر. استخدم الأزرار للبدء أو الإكمال أو وضع العلامة في المفضلة'
-          : 'These cards display items. Use the actions to start, complete, or bookmark',
+        content: t('tour.cards_grid'),
         disableBeacon: true,
         placement: 'top'
       }
@@ -1410,7 +1394,7 @@ const DashboardPage = () => {
             ${activity.optional ? '<p><strong>Status:</strong> Optional 💡</p>' : '<p><strong>Status:</strong> Required 📌</p>'}
           </div>
           <p>${activity.description_en || ''}</p>
-          <a href="${activity.url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#800020,#600018);color:#fff;text-decoration:none;border-radius:8px;margin-top:1rem;">Start Activity 🎯</a>
+          <a href="${activity.url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#800020,#600018);color:#fff;text-decoration:none;border-radius:8px;margin-top:1rem;">${t('start_activity') || 'Start Activity'} 🎯</a>
         </div>`;
       const buildAr = () => `
         <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align:right">
@@ -1648,8 +1632,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
     return (
       <div className="dashboard-page">
         <div className="access-denied">
-          <h2>Access Denied</h2>
-          <p>You need admin privileges to access this page.</p>
+          <h2>{t('access_denied') || 'Access Denied'}</h2>
+          <p>{t('insufficient_privileges') || 'You need admin privileges to access this page.'}</p>
         </div>
       </div>
     );
@@ -1689,7 +1673,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             }
           }}
         />
-  <div data-tour="mode-switcher">
+        <div data-tour="mode-switcher">
     <RibbonTabs
       categories={ribbonCategories}
       activeCategory={activeCategory}
@@ -1719,7 +1703,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   }))
                 ]}
                 style={{ minWidth: 180 }}
-                placeholder="Program"
+              placeholder={t('select_program') || 'Select Program'}
               />
               <Select
                 searchable
@@ -1738,7 +1722,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     }))
                 ]}
                 style={{ minWidth: 180 }}
-                placeholder="Subject"
+                placeholder={t('select_subject') || 'Select Subject'}
               />
               <Select
                 searchable
@@ -1767,7 +1751,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     }))
                 ]}
                 style={{ minWidth: 180 }}
-                placeholder="Class"
+                placeholder={t('select_class') || 'Select Class'}
               />
             </div>
 
@@ -2031,14 +2015,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         </div>
 
         <div className="tab-content">
-          {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} />}
-          
-          <div className="tab-header">
-            <h2>Activity</h2>
-            <div className="tooltip-wrapper">
-              <InfoTooltip contentKey={`help.${activeTab}`} />
-            </div>
-          </div>
+           {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} />}
+
+    <div className="tab-header">
+      <h2>{(() => {
+        const currentTabItem = ribbonCategories.flatMap(cat => cat.items).find(item => item.key === activeTab);
+        return currentTabItem ? currentTabItem.label : (t('activity') || 'Activity');
+      })()}</h2>
+             <div className="tooltip-wrapper">
+               <InfoTooltip contentKey={`help.${activeTab}`} />
+             </div>
+           </div>
 
           {activeTab === 'activities' && (
             <div className="activities-tab">
@@ -2138,7 +2125,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     {/* <div>Current Value: {activityForm.programId || 'null'}</div> */}
                     <Select
                       searchable
-                      placeholder={t('program') || 'Program (Optional)'}
+                      placeholder={t('program') || 'Select Program (Optional)'}
                       value={activityForm.programId}
                       onChange={(value) => {
                         console.log('Program Select onChange:', value);
@@ -2154,7 +2141,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   </div>
                   <Select
                     searchable
-                    placeholder={t('subject') || 'Subject (Optional)'}
+                    placeholder={t('subject') || 'Select Subject (Optional)'}
                     value={activityForm.subjectId || null}
                     onChange={handleDropdownChange(
                       setActivityForm,
@@ -2669,7 +2656,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     renderCell: (params) => (
                       <div style={{ display: 'flex', gap: 8 }}>
                         <Button size="sm" variant="ghost" className="editHover" icon={<Edit size={16} />} onClick={() => handleEditActivity(params.row)}>
-                          Edit
+                          {t('edit') || 'Edit'}
                         </Button>
                         <Button size="sm" variant="ghost" className="deleteHover" icon={<Trash size={16} />} style={{ color: '#dc2626' }} onClick={() => {
                           setDeleteModal({
@@ -3299,6 +3286,43 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setLoading(false);
                 }
               }} className="dashboard-form">
+                <div className="form-row">
+                  <Select
+                    searchable
+                    placeholder={t('select_subject') || 'Select Subject'}
+                    value={ensureString(classForm.subjectId || '')}
+                    onChange={e => {
+                      const newSubjectId = ensureString(e.target.value);
+                      console.log('🔄 [Class Form] Subject changed:', newSubjectId);
+                      setClassForm({ ...classForm, subjectId: newSubjectId });
+                    }}
+                    options={classFormSubjectOptions}
+                    required
+                  />
+                  <Select
+                    searchable
+                    placeholder={t('select_owner') || 'Select Instructor'}
+                    value={classForm.ownerEmail}
+                    onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
+                    options={[
+                      { value: '', label: t('select_owner') || 'Select Instructor' },
+                      ...users.filter(user => user.role === 'admin' || user.role === 'instructor').map(instructor => {
+                        const displayName = instructor.displayName || instructor.name || instructor.realName || '';
+                        return {
+                          value: instructor.email,
+                          label: displayName ? `${displayName} (${instructor.email})` : instructor.email
+                        };
+                      }),
+                      ...(allowlist?.adminEmails?.filter(email =>
+                        !users.some(u => u.email === email)
+                      ).map(email => ({
+                        value: email,
+                        label: `${email} (from allowlist)`
+                      })) || [])
+                    ]}
+                    required
+                  />
+                </div>
                 <div className="form-row wide-cols">
                   <Input
                     placeholder={t('class_name')}
@@ -3354,44 +3378,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       required
                     />
                   </div>
-                </div>
-
-                <div className="form-row">
-                  <Select
-                    searchable
-                    placeholder={t('select_subject') || 'Select Subject'}
-                    value={ensureString(classForm.subjectId || '')}
-                    onChange={e => {
-                      const newSubjectId = ensureString(e.target.value);
-                      console.log('🔄 [Class Form] Subject changed:', newSubjectId);
-                      setClassForm(prev => ({ ...prev, subjectId: newSubjectId }));
-                    }}
-                    options={classFormSubjectOptions}
-                    required
-                  />
-                  <Select
-                    searchable
-                    placeholder={t('select_owner') || 'Select Instructor'}
-                    value={classForm.ownerEmail}
-                    onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
-                    options={[
-                      { value: '', label: t('select_owner') || 'Select Instructor' },
-                      ...users.filter(user => user.role === 'admin' || user.role === 'instructor').map(instructor => {
-                        const displayName = instructor.displayName || instructor.name || instructor.realName || '';
-                        return {
-                          value: instructor.email,
-                          label: displayName ? `${displayName} (${instructor.email})` : instructor.email
-                        };
-                      }),
-                      ...(allowlist?.adminEmails?.filter(email =>
-                        !users.some(u => u.email === email)
-                      ).map(email => ({
-                        value: email,
-                        label: `${email} (from allowlist)`
-                      })) || [])
-                    ]}
-                    required
-                  />
                 </div>
 
                 <div className="form-actions">
@@ -4735,6 +4721,32 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 setLoading(false);
               }
             }} className="dashboard-form">
+              <div className="form-row wide-cols">
+                <Select
+                  searchable
+                  placeholder={t('program') || 'Program (Optional - Public if empty)'}
+                  value={resourceForm.programId || ''}
+                  onChange={handleDropdownChange(setResourceForm, 'programId', ['subjectId', 'classId'])}
+                  options={activityProgramOptions}
+                />
+                <Select
+                  searchable
+                  placeholder={t('subject') || 'Subject (Optional)'}
+                  value={resourceForm.subjectId || ''}
+                  onChange={handleDropdownChange(setResourceForm, 'subjectId', ['classId'])}
+                  options={activitySubjectOptions.filter(o => !resourceForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceForm.programId)}
+                  disabled={!resourceForm.programId}
+                />
+                <Select
+                  searchable
+                  placeholder={t('class') || 'Class (Optional)'}
+                  value={resourceForm.classId || ''}
+                  onChange={handleDropdownChange(setResourceForm, 'classId')}
+                  options={activityClassOptions.filter(o => !resourceForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === resourceForm.subjectId)}
+                  disabled={!resourceForm.subjectId}
+                />
+              </div>
+
               <div className="form-row">
                 <Input
                   type="text"
@@ -4759,32 +4771,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     { value: 'link', label: '🔗 Link' },
                     { value: 'video', label: '📺 Video' }
                   ]}
-                />
-              </div>
-
-              <div className="form-row wide-cols">
-                <Select
-                  searchable
-                  placeholder={t('program') || 'Program (Optional - Public if empty)'}
-                  value={resourceForm.programId || ''}
-                  onChange={handleDropdownChange(setResourceForm, 'programId', ['subjectId', 'classId'])}
-                  options={activityProgramOptions}
-                />
-                <Select
-                  searchable
-                  placeholder={t('subject') || 'Subject (Optional)'}
-                  value={resourceForm.subjectId || ''}
-                  onChange={handleDropdownChange(setResourceForm, 'subjectId', ['classId'])}
-                  options={activitySubjectOptions.filter(o => !resourceForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceForm.programId)}
-                  disabled={!resourceForm.programId}
-                />
-                <Select
-                  searchable
-                  placeholder={t('class') || 'Class (Optional)'}
-                  value={resourceForm.classId || ''}
-                  onChange={handleDropdownChange(setResourceForm, 'classId')}
-                  options={activityClassOptions.filter(o => !resourceForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === resourceForm.subjectId)}
-                  disabled={!resourceForm.subjectId}
                 />
               </div>
 
@@ -5036,7 +5022,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             }
                           });
                         }}>
-                          Delete
+                          {t('delete') || 'Delete'}
                         </Button>
                     </div>
                   )
@@ -5094,13 +5080,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   fullWidth
                 />
                 <Input
-                  label="App Password"
-                  type="password"
-                  value={smtpConfig.password}
-                  onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
-                  placeholder="16-character app password"
-                  fullWidth
-                />
+                   label="App Password"
+                   type="password"
+                   value={smtpConfig.password}
+                   onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
+                   placeholder={t('app_password') || 'App Password'}
+                   fullWidth
+                 />
                 <Input
                   label="Sender Name"
                   value={smtpConfig.senderName}
@@ -5281,7 +5267,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         });
                         setEditingCourse(params.row.docId);
                       }}>
-                        Edit
+                        {t('edit') || 'Edit'}
                       </Button>
                       <Button size="sm" variant="ghost" className="deleteHover" icon={<Trash size={16} />} style={{ color: '#dc2626' }} onClick={() => {
                         setDeleteModal({
