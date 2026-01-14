@@ -170,7 +170,7 @@
   padding: 0.75rem;
   background: #eff6ff;
   border-radius: 6px;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid #800020;
 }
 
 [data-theme="dark"] .example {
@@ -185,7 +185,7 @@
 }
 
 [data-theme="dark"] .example strong {
-  color: #60a5fa;
+  color: #810C29FF;
 }
 
 .example pre {

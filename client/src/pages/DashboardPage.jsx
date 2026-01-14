@@ -2132,18 +2132,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               )}
 
               <form onSubmit={handleActivitySubmit} className="dashboard-form">
-                <div className="form-row flex-row tight-gap" style={{ flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '8px' }}>
-                  <div>
-                    <Input
-                      type="text"
-                      placeholder={t('activity_id') || 'Activity ID'}
-                      value={activityForm.id}
-                      onChange={(e) => setActivityForm({ ...activityForm, id: e.target.value })}
-                      disabled={editingActivity} // Can't change ID when editing
-                      required
-                      error={formErrors.id}
-                    />
-                  </div>
+                <div className="form-row">
                   <div style={{ border: '0px solid #ccc', padding: '0px', margin: '0px 0', borderRadius: '4px' }}>
                     {/* <div>Program Dropdown:</div> */}
                     {/* <div>Current Value: {activityForm.programId || 'null'}</div> */}
@@ -2188,6 +2177,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     style={{ width: '100%' }}
                     disabled={!activityForm.subjectId}
                   />
+                </div>
+                <div className="form-row">
+                  <div>
+                    <Input
+                      type="text"
+                      placeholder={t('activity_id') || 'Activity ID'}
+                      value={activityForm.id}
+                      onChange={(e) => setActivityForm({ ...activityForm, id: e.target.value })}
+                      disabled={editingActivity} // Can't change ID when editing
+                      required
+                      error={formErrors.id}
+                    />
+                  </div>
                   <Select
                     searchable
                     placeholder={t('course') || 'Course'}
@@ -2238,17 +2240,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
                     />
                     {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                      <Lock 
-                        size={16} 
-                        style={{ 
-                          position: 'absolute', 
-                          right: '32px', 
-                          top: '50%', 
+                      <Lock
+                        size={16}
+                        style={{
+                          position: 'absolute',
+                          right: '32px',
+                          top: '50%',
                           transform: 'translateY(-50%)',
                           color: '#ef4444',
                           pointerEvents: 'none',
                           zIndex: 10
-                        }} 
+                        }}
                         title="Locked - synced from quiz"
                       />
                     )}

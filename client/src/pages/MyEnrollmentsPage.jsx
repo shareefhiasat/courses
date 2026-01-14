@@ -140,7 +140,7 @@ export default function MyEnrollmentsPage() {
 
   const getGradeColor = (grade) => {
     if (grade.startsWith('A')) return '#10b981';
-    if (grade.startsWith('B')) return '#3b82f6';
+    if (grade.startsWith('B')) return '#800020';
     if (grade.startsWith('C')) return '#f59e0b';
     return '#ef4444';
   };

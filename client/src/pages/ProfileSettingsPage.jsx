@@ -8,6 +8,7 @@ import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown } from 
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '../components/ui';
 import styles from './ProfileSettingsPage.module.css';
 import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '../utils/color';
+import { applyAccentColorGlobally } from '../utils/theme';
 
 const ProfileSettingsPage = () => {
   const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
@@ -133,7 +134,7 @@ const ProfileSettingsPage = () => {
 
   const colorOptions = [
     '#8B5CF6', // Purple
-    '#3B82F6', // Blue
+    '#800020', // Blue
     '#10B981', // Green
     '#F59E0B', // Orange
     '#EF4444', // Red
@@ -355,21 +356,6 @@ const ProfileSettingsPage = () => {
   );
 };
 
-// Apply accent color globally to all components
-const applyAccentColorGlobally = (color) => {
-  if (typeof document === 'undefined') return;
-  const accent = normalizeHexColor(color, DEFAULT_ACCENT);
-  const root = document.documentElement;
-  root.style.setProperty('--color-primary', accent);
-  root.style.setProperty('--color-primary-light', adjustColor(accent, 15));
-  root.style.setProperty('--color-primary-dark', adjustColor(accent, -15));
-  root.style.setProperty('--color-primary-rgb', hexToRgbString(accent));
-  root.style.setProperty('--input-focus', accent);
-  // Apply to navbar and other components
-  root.style.setProperty('--navbar-bg', accent);
-  root.style.setProperty('--accent-color', accent);
-  // Dispatch event for other components to react
-  window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: { color: accent } }));
-};
+// Accent color is applied globally via applyAccentColorGlobally from utils/theme
 
 export default ProfileSettingsPage;

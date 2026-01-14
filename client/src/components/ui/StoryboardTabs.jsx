@@ -8,7 +8,7 @@ export default function StoryboardTabs({ tabs = [], activeKey, onChange, classNa
   const palette = [
     { bg: 'rgba(99,102,241,0.10)', fg: '#6366f1' }, // indigo
     { bg: 'rgba(16,185,129,0.12)', fg: '#10b981' }, // emerald
-    { bg: 'rgba(59,130,246,0.12)', fg: '#3b82f6' }, // blue
+    { bg: 'rgba(59,130,246,0.12)', fg: '#800020' }, // blue
     { bg: 'rgba(234,179,8,0.12)', fg: '#eab308' }, // amber
     { bg: 'rgba(236,72,153,0.12)', fg: '#ec4899' }, // pink
     { bg: 'rgba(168,85,247,0.12)', fg: '#a855f7' }, // purple

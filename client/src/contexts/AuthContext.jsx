@@ -5,6 +5,7 @@ import { db } from '../firebase/config';
 import { getAllowlist, ensureUserDoc, addLoginLog } from '../firebase/firestore';
 import { signOutUser } from '../firebase/auth';
 import { ActivityLogger } from '../firebase/activityLogger';
+import { applyAccentColorGlobally } from '../utils/theme';
 import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
 
 const AuthContext = createContext();
@@ -145,6 +146,12 @@ export const AuthProvider = ({ children }) => {
             // Cache in sessionStorage
             sessionStorage.setItem('userProfile', JSON.stringify(profile));
             setUserProfile(profile);
+            // Apply user accent color globally on login/profile load if available
+            try {
+              if (profile?.messageColor) {
+                applyAccentColorGlobally(profile.messageColor);
+              }
+            } catch {}
           }
         } catch {}
 

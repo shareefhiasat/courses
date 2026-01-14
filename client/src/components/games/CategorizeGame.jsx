@@ -39,7 +39,7 @@ export default function CategorizeGame({ data, settings, onComplete }) {
   }, [data]);
 
   const getCategoryColor = (index) => {
-    const colors = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+    const colors = ['#10b981', '#ef4444', '#800020', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
     return colors[index % colors.length];
   };
 

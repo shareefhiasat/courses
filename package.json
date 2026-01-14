@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "lucide-react": "^0.552.0",
+    "playwright": "^1.57.0",
     "quill": "^2.0.3",
     "react-grid-layout": "^1.5.2",
     "react-joyride": "^2.9.3",

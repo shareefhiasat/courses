@@ -66,16 +66,16 @@ input[type="radio"]:focus-visible {
 
 /* Add CSS variables for primary color with RGB values */
 :root {
-  --primary-500: #3b82f6; /* Default blue-500 */
-  --primary-600: #2563eb; /* Default blue-600 */
-  --primary-700: #1d4ed8; /* Default blue-700 */
+  --primary-500: #800020; /* Default blue-500 */
+  --primary-600: #861b36; /* Default blue-600 */
+  --primary-700: #942a44; /* Default blue-700 */
   --primary-500-rgb: 59, 130, 246; /* RGB values for primary-500 */
 }
 
 /* Update the variables when the primary color changes */
 [data-theme] {
-  --primary-500: var(--primary-500, #3b82f6);
-  --primary-600: var(--primary-600, #2563eb);
-  --primary-700: var(--primary-700, #1d4ed8);
+  --primary-500: var(--primary-500, #800020);
+  --primary-600: var(--primary-600, #810C29FF);
+  --primary-700: var(--primary-700, #690b0b);
   --primary-500-rgb: var(--primary-500-rgb, 59, 130, 246);
 }

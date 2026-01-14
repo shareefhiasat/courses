@@ -1,4 +1,4 @@
-const DEFAULT_ACCENT = '#800020'; // Maroon
+const DEFAULT_ACCENT = '#810c29'; // Use primary color as default to avoid flash
 
 const sanitizeHex = (value) => {
   if (!value) return null;

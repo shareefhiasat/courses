@@ -177,7 +177,7 @@ const ManageEnrollmentsPage = () => {
               </div>
 
               {/* Info Box */}
-              <div style={{ marginBottom: 16, padding: '1rem', background: '#eff6ff', border: '1px solid #3b82f6', borderRadius: 8, fontSize: 13 }}>
+              <div style={{ marginBottom: 16, padding: '1rem', background: '#eff6ff', border: '1px solid #800020', borderRadius: 8, fontSize: 13 }}>
                 <strong>ℹ️ Info:</strong> Disabling a student prevents them from:
                 <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
                   <li>Accessing class chat</li>

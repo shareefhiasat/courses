@@ -4,13 +4,12 @@ import { AuthProvider } from './contexts/AuthContext';
 import { LangProvider } from './contexts/LangContext';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
-import useRealTimeUpdates from './hooks/useRealTimeUpdates';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ColorThemeProvider } from './contexts/ColorThemeContext';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
-import ProgressPage from './pages/ProgressPage';
+// ProgressPage import removed: unused
 import ChatPage from './pages/ChatPage';
 import { HelpProvider } from './contexts/HelpContext';
 import HelpDrawer from './components/HelpDrawer';

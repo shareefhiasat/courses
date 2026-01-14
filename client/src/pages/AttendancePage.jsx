@@ -713,7 +713,7 @@ const AttendancePageEnhanced = () => {
       </div>
 
       {/* Guidelines */}
-      <div style={{ padding:'1rem', background:'#eff6ff', border:'1px solid #3b82f6', borderRadius: 12 }}>
+      <div style={{ padding:'1rem', background:'#eff6ff', border:'1px solid #800020', borderRadius: 12 }}>
         <div style={{ fontWeight: 700, marginBottom: 12, display:'flex', alignItems:'center', gap:8, color:'#1e40af' }}>
           <Info size={20} />
           <span>{t('how_to_use') || 'How to Use Attendance System'}</span>

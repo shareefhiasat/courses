@@ -14,7 +14,7 @@ export default function SpinWheelGame({ questions, settings, onComplete }) {
   const [gameFinished, setGameFinished] = useState(false);
 
   const wheelRef = useRef(null);
-  const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+  const colors = ['#ef4444', '#f59e0b', '#10b981', '#800020', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
   const spinWheel = () => {
     if (spinning) return;

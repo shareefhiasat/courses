@@ -902,7 +902,7 @@ export default function AdvancedAnalytics() {
               <div style={{ height: '100%', width: `${Math.min(100, ((nowTick - lastUpdatedAt) % autoRefreshMs) / autoRefreshMs * 100)}%`, background: accentColor, transition: 'width 0.25s linear' }} />
             </div>
           )}
-          <button onClick={()=>loadAllData()} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+          <button onClick={()=>loadAllData()} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: '#800020', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
             ⟳ Refresh
           </button>
           <button onClick={()=>setEditLayout(v=>!v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: editLayout ? '#ef4444' : '#f97316', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>

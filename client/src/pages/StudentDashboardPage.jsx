@@ -1035,7 +1035,7 @@ export default function StudentDashboardPage() {
                 <CardBody>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <TrendingUp size={20} style={{ color: '#3b82f6' }} />
+                      <TrendingUp size={20} style={{ color: '#800020' }} />
                       {t('performance_summary') || 'Performance Summary'}
                     </h3>
                   </div>
@@ -1184,7 +1184,7 @@ export default function StudentDashboardPage() {
                             <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>{t('attendance_rate') || 'Attendance Rate'}</div>
                           </CardBody>
                         </Card>
-                        <Card style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: 'white' }}>
+                        <Card style={{ background: 'linear-gradient(135deg, #800020 0%, #810C29FF 100%)', color: 'white' }}>
                           <CardBody>
                             <div style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.25rem' }}>
                               {attendanceStats.present || 0}
@@ -1261,7 +1261,7 @@ export default function StudentDashboardPage() {
                 <h2 style={{ margin: '0 0 1.5rem 0' }}>{t('performance') || 'Performance'}</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: isCompactView ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
                   <div style={{ padding: '1.5rem', background: '#f0f9ff', borderRadius: 12 }}>
-                    <div style={{ fontSize: '2.5rem', fontWeight: 700, color: '#3b82f6', marginBottom: '0.5rem' }}>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 700, color: '#800020', marginBottom: '0.5rem' }}>
                       {stats.completedTasks}
                     </div>
                     <div style={{ fontSize: '1rem', color: '#6b7280' }}>{t('completed_tasks') || 'Completed Tasks'}</div>
@@ -1339,7 +1339,7 @@ export default function StudentDashboardPage() {
                               </div>
                               <div style={{ display: 'grid', gridTemplateColumns: isCompactView ? '1fr' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                                 {[
-                                  { key: 'midTermExam', label: t('mid_term') || 'Mid-Term Exam', value: mark.marks?.midTermExam, color: '#3b82f6' },
+                                  { key: 'midTermExam', label: t('mid_term') || 'Mid-Term Exam', value: mark.marks?.midTermExam, color: '#800020' },
                                   { key: 'finalExam', label: t('final') || 'Final Exam', value: mark.marks?.finalExam, color: '#8b5cf6' },
                                   { key: 'homework', label: t('homework') || 'Homework', value: mark.marks?.homework, color: '#10b981' },
                                   { key: 'labsProjectResearch', label: t('labs_projects') || 'Labs/Projects', value: mark.marks?.labsProjectResearch, color: '#f59e0b' },

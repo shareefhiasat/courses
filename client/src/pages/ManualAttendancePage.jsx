@@ -920,7 +920,7 @@ const ManualAttendancePage = () => {
                         <div className={styles.analyticsCardHeader}>
                           <div 
                             className={styles.analyticsCardIcon}
-                            style={{ background: 'linear-gradient(135deg, #60a5fa, #3b82f6)' }}
+                            style={{ background: 'linear-gradient(135deg, #810C29FF, #800020)' }}
                           >
                             <Target size={24} />
                           </div>

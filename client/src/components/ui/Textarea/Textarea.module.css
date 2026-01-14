@@ -49,8 +49,8 @@
 }
 
 .textarea:focus {
-  border-color: var(--input-focus, #800020);
-  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+  border-color: var(--color-primary, #800020);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
 }
 
 .textarea:disabled {

@@ -4,14 +4,23 @@ const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('app_theme') || 'light'; } catch { return 'light'; }
+    try {
+      const stored = localStorage.getItem('app_theme') || 'light';
+      // Apply immediately to prevent flash
+      document.documentElement.setAttribute('data-theme', stored);
+      return stored;
+    } catch {
+      return 'light';
+    }
   });
 
   useEffect(() => {
-    try { localStorage.setItem('app_theme', theme); } catch {}
+    try {
+      localStorage.setItem('app_theme', theme);
+    } catch {}
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
-    // Basic body background swap for immediate effect
+    // Body background for immediate effect
     if (theme === 'light') {
       document.body.style.background = '#f7f7fb';
       document.body.style.color = '#111';
@@ -21,7 +30,10 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [theme]);
 
-  const value = useMemo(() => ({ theme, toggleTheme: () => setTheme(t => (t === 'dark' ? 'light' : 'dark')) }), [theme]);
+  const value = useMemo(() => ({
+    theme,
+    toggleTheme: () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
+  }), [theme]);
 
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

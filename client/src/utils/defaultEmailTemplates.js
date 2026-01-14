@@ -700,31 +700,31 @@ export const defaultTemplates = [
     subject: "📊 Marks Updated | تم تحديث الدرجات: {{subjectName}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
-  <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 30px; text-align: center;">
+  <div style="background: linear-gradient(135deg, #800020 0%, #810C29FF 100%); padding: 30px; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px;">📊 Marks Updated | تم تحديث الدرجات</h1>
   </div>
   
   <div style="padding: 30px; background: #ffffff;">
     <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{studentName}},</p>
     
-    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-      <h2 style="color: #3b82f6; margin-top: 0; font-size: 22px;">Your marks have been updated</h2>
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #800020;">
+      <h2 style="color: #800020; margin-top: 0; font-size: 22px;">Your marks have been updated</h2>
       <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>Subject:</strong> {{subjectCode}} - {{subjectName}}</p>
       <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 15px 0;">
         <div style="text-align: center;">
-          <div style="font-size: 48px; font-weight: bold; color: #3b82f6; margin-bottom: 10px;">{{totalScore}}%</div>
-          <div style="font-size: 24px; color: #2563eb; font-weight: 600;">Grade: {{grade}} ({{points}} points)</div>
+          <div style="font-size: 48px; font-weight: bold; color: #800020; margin-bottom: 10px;">{{totalScore}}%</div>
+          <div style="font-size: 24px; color: #810C29FF; font-weight: 600;">Grade: {{grade}} ({{points}} points)</div>
         </div>
       </div>
     </div>
     
-    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #2563eb;">
-      <h2 style="color: #2563eb; margin-top: 0; font-size: 22px;">تم تحديث درجاتك</h2>
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #810C29FF;">
+      <h2 style="color: #810C29FF; margin-top: 0; font-size: 22px;">تم تحديث درجاتك</h2>
       <p style="color: #555; font-size: 15px; margin-bottom: 10px;"><strong>المادة:</strong> {{subjectCode}} - {{subjectName}}</p>
       <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 15px 0;">
         <div style="text-align: center;">
-          <div style="font-size: 48px; font-weight: bold; color: #3b82f6; margin-bottom: 10px;">{{totalScore}}%</div>
-          <div style="font-size: 24px; color: #2563eb; font-weight: 600;">التقدير: {{grade}} ({{points}} نقطة)</div>
+          <div style="font-size: 48px; font-weight: bold; color: #800020; margin-bottom: 10px;">{{totalScore}}%</div>
+          <div style="font-size: 24px; color: #810C29FF; font-weight: 600;">التقدير: {{grade}} ({{points}} نقطة)</div>
         </div>
       </div>
     </div>

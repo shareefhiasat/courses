@@ -162,7 +162,7 @@ export const getStatusIconProps = (status) => {
     case USER_STATUS.DISABLED:
       return { ...iconProps, color: '#6B7280', name: 'UserX' };
     case USER_STATUS.NO_ENROLLMENTS:
-      return { ...iconProps, color: '#3B82F6', name: 'AlertCircle' };
+      return { ...iconProps, color: '#800020', name: 'AlertCircle' };
     default:
       return { ...iconProps, color: '#6B7280', name: 'Info' };
   }

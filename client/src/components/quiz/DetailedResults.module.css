@@ -202,7 +202,7 @@
   padding: 1rem;
   background: #eff6ff;
   border-radius: 8px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #800020;
   font-size: 0.95rem;
   line-height: 1.6;
 }
@@ -217,7 +217,7 @@
 }
 
 [data-theme="dark"] .explanation strong {
-  color: #60a5fa;
+  color: #810C29FF;
 }
 
 /* Performance Tab */

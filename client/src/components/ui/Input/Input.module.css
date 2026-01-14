@@ -50,7 +50,8 @@
   font-size: var(--font-size-md, 1rem);
   color: #212529;
   background: #ffffff;
-  border: 1px solid #e0e0e0;
+  /* Override default border with the current brand color to reflect user color */
+  border: 1px solid var(--color-primary, #800020);
   border-radius: var(--radius-md, 8px);
   transition: all 0.2s ease;
   outline: none;
@@ -65,7 +66,7 @@
 }
 
 [data-theme="light"] .input::placeholder,
-:not([data-theme]) .input::placeholder {
+ :not([data-theme]) .input::placeholder {
   color: #666 !important;
   opacity: 0.6;
 }
@@ -76,12 +77,12 @@
 }
 
 .input:hover:not(:disabled) {
-  border-color: #999;
+  border-color: var(--color-primary, #800020);
 }
 
 .input:focus {
   border-color: var(--color-primary, #800020);
-  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
 }
 
 .input:disabled {

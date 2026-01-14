@@ -16,14 +16,16 @@
 .input {
   width: 100%;
   padding: 0.625rem 7.5rem 0.625rem 2.5rem; /* leave room for prefix + actions */
-  border: 1px solid var(--input-border, #e5e7eb);
+  /* Override border to reflect user color for focus/hover states as well */
+  border: 1px solid var(--color-primary, #800020);
   border-radius: 8px;
   background: var(--input-bg, #fff);
   font-size: 0.95rem;
   outline: none;
   transition: border-color .2s ease, box-shadow .2s ease;
 }
-.input:focus { border-color: var(--input-focus, #800020); box-shadow: 0 0 0 3px rgba(128,0,32,.1); }
+.input:focus { border-color: var(--color-primary, #800020); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), .1); }
+.input:hover { border-color: var(--color-primary, #800020); }
 .error { border-color: var(--color-danger, #dc3545); }
 .errorText { color: var(--color-danger, #dc3545); font-size: 0.75rem; }
 .helperText { color: var(--text-muted, #666); font-size: 0.75rem; }
