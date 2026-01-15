@@ -260,11 +260,133 @@ export const HelpProvider = ({ children }) => {
           items: [
             { 
               text: t('welcome') || 'Welcome',
-              description: t('welcome_desc') || 'Welcome to your dashboard'
+              description: t('welcome_desc') || 'Welcome to your dashboard - your central hub for managing academic activities, monitoring student progress, and accessing administrative tools.'
             },
             {
               text: t('recent_activity') || 'Recent Activity',
-              description: t('recent_activity_desc') || 'View your recent actions and updates from your classes.'
+              description: t('recent_activity_desc') || 'View your recent actions and updates from your classes, including new submissions, user activities, and system events.'
+            },
+            {
+              text: t('navigation') || 'Navigation',
+              description: t('navigation_desc') || 'Use the tab bar at the top to navigate between different sections. Each tab provides access to specific tools and information relevant to your role.'
+            }
+          ]
+        },
+        {
+          title: t('dashboard_tabs') || 'Dashboard Tabs',
+          items: [
+            {
+              text: t('activities') || 'Activities',
+              description: t('dashboard_tab_activities') || 'Create and manage learning activities like quizzes, homework, and assignments. Assign them to classes and track student progress.'
+            },
+            {
+              text: t('announcements') || 'Announcements',
+              description: t('dashboard_tab_announcements') || 'Send important notifications to students and staff. Create announcements with email notifications and targeting options.'
+            },
+            {
+              text: t('resources') || 'Resources',
+              description: t('dashboard_tab_resources') || 'Share learning materials like documents, videos, and links. Organize them by program, subject, or class.'
+            },
+            {
+              text: t('users') || 'Users',
+              description: t('dashboard_tab_users') || 'Manage user accounts, roles, and permissions. Invite new users and update existing user information.'
+            },
+            {
+              text: t('classes') || 'Classes',
+              description: t('dashboard_tab_classes') || 'Create and manage class instances, assign instructors, and organize academic schedules.'
+            },
+            {
+              text: t('analytics') || 'Analytics',
+              description: t('dashboard_tab_analytics') || 'View comprehensive statistics and insights about student performance, engagement, and system usage.'
+            }
+          ]
+        }
+      ]
+    };
+
+    // Analytics Help
+    content['/dashboard?tab=analytics'] = {
+      title: t('analytics_help_title') || 'Analytics Dashboard',
+      content: [
+        {
+          title: t('overview') || 'Overview',
+          items: [
+            {
+              text: t('purpose') || 'Purpose',
+              description: t('analytics_purpose') || 'Get comprehensive insights into student performance, engagement patterns, and system usage through interactive widgets and real-time data visualization.'
+            },
+            {
+              text: t('key_features') || 'Key Features',
+              description: [
+                t('analytics_feature1', '• Real-time data widgets showing key metrics'),
+                t('analytics_feature2', '• Interactive charts and visualizations'),
+                t('analytics_feature3', '• Drag-and-drop dashboard customization'),
+                t('analytics_feature4', '• Export capabilities for reports'),
+                t('analytics_feature5', '• Filterable data by time periods and scopes')
+              ].join('\n')
+            }
+          ]
+        },
+        {
+          title: t('widgets') || 'Dashboard Widgets',
+          items: [
+            {
+              text: t('quizzes_widget') || 'Quizzes Widget',
+              description: t('analytics_quizzes_desc') || 'Displays total number of quizzes in the system. Shows overall quiz activity and assessment volume.'
+            },
+            {
+              text: t('users_widget') || 'Users Widget',
+              description: t('analytics_users_desc') || 'Shows total number of registered users. Helps track platform adoption and user growth over time.'
+            },
+            {
+              text: t('classes_widget') || 'Classes Widget',
+              description: t('analytics_classes_desc') || 'Displays total number of active classes. Indicates teaching capacity and course offerings.'
+            },
+            {
+              text: t('submissions_widget') || 'Submissions Widget',
+              description: t('analytics_submissions_desc') || 'Shows submission statistics including total count, graded rate, and completion percentage with visual progress indicators.'
+            },
+            {
+              text: t('announcements_widget') || 'Announcements Widget',
+              description: t('analytics_announcements_desc') || 'Tracks communication activity with total announcements and recent activity metrics for the last 7 days.'
+            },
+            {
+              text: t('activities_by_type') || 'Activities by Type',
+              description: t('analytics_activities_desc') || 'Breaks down activities by category (training, homework, quiz) with horizontal bar charts showing distribution.'
+            },
+            {
+              text: t('classes_by_term') || 'Classes by Term',
+              description: t('analytics_terms_desc') || 'Visualizes class distribution across academic terms with proportional bar charts for term planning.'
+            }
+          ]
+        },
+        {
+          title: t('customization') || 'Dashboard Customization',
+          items: [
+            {
+              text: t('drag_drop') || 'Drag and Drop',
+              description: t('analytics_drag_desc') || 'Reorganize widgets by dragging them to different positions. Layout preferences are automatically saved.'
+            },
+            {
+              text: t('widget_management') || 'Widget Management',
+              description: t('analytics_widget_mgmt') || 'Resize, minimize, or remove widgets based on your preferences and information needs.'
+            }
+          ]
+        },
+        {
+          title: t('data_insights') || 'Data Insights',
+          items: [
+            {
+              text: t('performance_metrics') || 'Performance Metrics',
+              description: t('analytics_performance') || 'Monitor student performance through submission rates, grading patterns, and activity completion statistics.'
+            },
+            {
+              text: t('engagement_analytics') || 'Engagement Analytics',
+              description: t('analytics_engagement') || 'Track user engagement through quiz participation, resource access, and platform usage patterns.'
+            },
+            {
+              text: t('trend_analysis') || 'Trend Analysis',
+              description: t('analytics_trends') || 'Identify patterns and trends in academic performance, attendance, and system utilization over time.'
             }
           ]
         }

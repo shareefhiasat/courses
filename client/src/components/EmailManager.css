@@ -7,7 +7,34 @@
 
 .email-manager-header h3 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: var(--text, #333);
+}
+
+.description {
+  margin: 0 0 1rem 0;
+  color: var(--text, #666);
+  font-size: 0.9rem;
+}
+
+.search-section {
+  margin-bottom: 1.5rem;
+}
+
+.search-section .search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 6px;
+  font-size: 1rem;
+  background: var(--panel, white);
+  color: var(--text, #212529);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-section .search-input:focus {
+  outline: none;
+  border-color: var(--color-primary, var(--brand, #10B981));
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 16, 185, 129), 0.1);
 }
 
 .description {
@@ -63,12 +90,12 @@
 
 .email-input:focus {
   outline: none;
-  border-color: #800020;
+  border-color: var(--color-primary, #800020);
   box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
 }
 
 .add-btn {
-  background: #28a745;
+  background: var(--color-primary, #800020);
   color: white;
   border: none;
   padding: 0.75rem 1rem;
@@ -80,8 +107,9 @@
 }
 
 .add-btn:hover:not(:disabled) {
-  background: #218838;
+  background: var(--color-primary, #800020);
   transform: translateY(-1px);
+  filter: brightness(0.9);
 }
 
 .add-btn:disabled {

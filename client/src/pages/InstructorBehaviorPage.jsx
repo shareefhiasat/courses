@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { Edit, Trash } from 'lucide-react';
+import { Edit, Trash, MessageSquare, Bed, Users, Smartphone, AlertTriangle, Clock, XCircle, HelpCircle } from 'lucide-react';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid } from '../components/ui';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { getPrograms, getSubjects } from '../firebase/programs';
@@ -14,14 +14,14 @@ import { formatQatarDateOnly } from '../utils/timezone';
 import styles from './ProgramsManagementPage.module.css';
 
 const BEHAVIOR_TYPES = [
-  { id: 'talk_in_class', label_ar: 'التحدث في الصف', label_en: 'Talk in Class' },
-  { id: 'sleep', label_ar: 'النوم', label_en: 'Sleep' },
-  { id: 'bathroom_requests', label_ar: 'طلبات الحمام المتكررة', label_en: 'Frequent Bathroom Requests' },
-  { id: 'mobile_in_class', label_ar: 'استخدام الهاتف', label_en: 'Mobile Phone in Class' },
-  { id: 'disruptive', label_ar: 'سلوك مشتت', label_en: 'Disruptive Behavior' },
-  { id: 'late_arrival', label_ar: 'تأخر الوصول', label_en: 'Late Arrival' },
-  { id: 'inappropriate_language', label_ar: 'لغة غير لائقة', label_en: 'Inappropriate Language' },
-  { id: 'other', label_ar: 'أخرى', label_en: 'Other' }
+  { id: 'talk_in_class', label_ar: 'التحدث في الصف', label_en: 'Talk in Class', icon: <MessageSquare size={16} color="#374151" /> },
+  { id: 'sleep', label_ar: 'النوم', label_en: 'Sleep', icon: <Bed size={16} color="#374151" /> },
+  { id: 'bathroom_requests', label_ar: 'طلبات الحمام المتكررة', label_en: 'Frequent Bathroom Requests', icon: <Users size={16} color="#374151" /> },
+  { id: 'mobile_in_class', label_ar: 'استخدام الهاتف', label_en: 'Mobile Phone in Class', icon: <Smartphone size={16} color="#374151" /> },
+  { id: 'disruptive', label_ar: 'سلوك مشتت', label_en: 'Disruptive Behavior', icon: <AlertTriangle size={16} color="#374151" /> },
+  { id: 'late_arrival', label_ar: 'تأخر الوصول', label_en: 'Late Arrival', icon: <Clock size={16} color="#374151" /> },
+  { id: 'inappropriate_language', label_ar: 'لغة غير لائقة', label_en: 'Inappropriate Language', icon: <XCircle size={16} color="#374151" /> },
+  { id: 'other', label_ar: 'أخرى', label_en: 'Other', icon: <HelpCircle size={16} color="#374151" /> }
 ];
 
 const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
@@ -617,7 +617,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
               { value: '', label: 'Select Type' },
-              ...BEHAVIOR_TYPES.map(bt => ({ value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en }))
+              ...BEHAVIOR_TYPES.map(bt => ({ value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en, icon: bt.icon }))
             ]}
             placeholder="Behavior Type *"
             required
@@ -708,7 +708,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             onChange={(e) => setTypeFilter(e.target.value)}
             options={[
               { value: 'all', label: 'All Types' },
-              ...BEHAVIOR_TYPES.map(bt => ({ value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en }))
+              ...BEHAVIOR_TYPES.map(bt => ({ value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en, icon: bt.icon }))
             ]}
             placeholder="Type"
           />

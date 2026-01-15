@@ -343,7 +343,7 @@ const SubjectsManagementPage = () => {
             min={1}
             max={20}
             step={0.5}
-            helperText="Weekly contact hours"
+            helperTextInfo="Weekly contact hours"
           />
         </div>
         <div className="form-actions">

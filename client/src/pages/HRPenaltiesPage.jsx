@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, query, where, orderBy, getDoc } from 'firebase/firestore';
-import { Edit, Trash } from 'lucide-react';
+import { Edit, Trash, AlertTriangle, XCircle, Clock, MessageSquare, Phone, Coffee, Users, Shield, Zap } from 'lucide-react';
 import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption } from '../components/ui';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { PENALTY_TYPES, ABSENCE_TYPES, createPenalty, updatePenalty, deletePenalty, getPenalties } from '../firebase/penalties';
@@ -13,6 +13,21 @@ import { addNotification } from '../firebase/notifications';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { formatQatarDateOnly } from '../utils/timezone';
 import styles from './ProgramsManagementPage.module.css';
+
+// Icon mapping for penalty types
+const PENALTY_TYPE_ICONS = {
+  cheating: <AlertTriangle size={16} color="#374151" />,
+  attempted_cheating: <XCircle size={16} color="#374151" />,
+  impersonation: <Shield size={16} color="#374151" />,
+  exam_disruption: <Zap size={16} color="#374151" />,
+  forgery: <AlertTriangle size={16} color="#374151" />,
+  repetitive_absence_with_excuse: <Clock size={16} color="#374151" />,
+  repetitive_absence_without_excuse: <XCircle size={16} color="#374151" />,
+  absent_no_excuse: <XCircle size={16} color="#374151" />,
+  absent_with_excuse: <Clock size={16} color="#374151" />,
+  late: <Clock size={16} color="#374151" />,
+  other: <AlertTriangle size={16} color="#374151" />
+};
 
 const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isHR, isAdmin, isSuperAdmin } = useAuth();
@@ -648,7 +663,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
               { value: '', label: 'Select Type' },
-              ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en }))
+              ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
             ]}
             placeholder="Penalty Type *"
             required
@@ -753,7 +768,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onChange={(e) => setTypeFilter(e.target.value)}
             options={[
               { value: 'all', label: 'All Types' },
-              ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en }))
+              ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
             ]}
             placeholder="Type"
           />

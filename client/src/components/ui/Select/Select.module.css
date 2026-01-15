@@ -48,12 +48,12 @@
 }
 
 .select:hover:not(:disabled) {
-  border-color: #999;
+  border-color: var(--color-primary, var(--brand, #10B981));
 }
 
 .select:focus {
-  border-color: var(--color-primary, #800020);
-  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+  border-color: var(--color-primary, var(--brand, #10B981));
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 16, 185, 129), 0.1);
 }
 
 .select:disabled {
@@ -191,7 +191,7 @@
 }
 
 .searchInput:focus {
-  border-color: var(--primary, #800020);
+  border-color: var(--color-primary, var(--brand, #10B981));
 }
 
 /* Options list */
@@ -311,7 +311,7 @@
 /* Force light palette when explicitly set */
 :global([data-theme="light"]) .select {
   background: #ffffff;
-  border-color: #e5e7eb;
+  border-color: var(--border, #e5e7eb);
   color: #111827;
 }
 :global([data-theme="light"]) .dropdown {

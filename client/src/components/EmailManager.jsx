@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import './EmailManager.css';
 import Modal from './Modal';
 import { useToast } from './ToastProvider';
@@ -16,12 +16,23 @@ const EmailManager = ({
   const { t } = useLang();
   const [newEmail, setNewEmail] = useState('');
   const [importModal, setImportModal] = useState({ open: false, text: '' });
+  const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
+
+  // Filter emails based on search term
+  const filteredEmails = useMemo(() => {
+    if (!searchTerm.trim()) return emails;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return emails.filter(email => 
+      email.toLowerCase().includes(searchLower)
+    );
+  }, [emails, searchTerm]);
 
   const addEmail = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const email = newEmail.trim();
-    if (email && !emails.includes(email) && !excludeEmails.includes(email)) {
+    if (email && !filteredEmails.includes(email) && !excludeEmails.includes(email)) {
       if (emailRegex.test(email)) {
         onEmailsChange([...emails, email]);
         setNewEmail('');
@@ -37,7 +48,7 @@ const EmailManager = ({
   };
 
   const removeEmail = (emailToRemove) => {
-    onEmailsChange(emails.filter(email => email !== emailToRemove));
+    onEmailsChange(filteredEmails.filter(email => email !== emailToRemove));
   };
 
   const handleKeyPress = (e) => {
@@ -75,6 +86,17 @@ const EmailManager = ({
       <div className="email-manager-header">
         <h3>{title}</h3>
         {description && <p className="description">{description}</p>}
+        
+        {/* Search Input */}
+        <div className="search-section">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search emails..."
+            className="search-input"
+          />
+        </div>
       </div>
 
       <div className="add-email-section">
@@ -93,7 +115,7 @@ const EmailManager = ({
             disabled={!newEmail.trim()}
             style={{
               padding: '8px 14px',
-              background: 'var(--color-primary, #800020)',
+              background: 'var(--color-primary, #10B981)',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
@@ -110,7 +132,7 @@ const EmailManager = ({
             className="import-btn"
             style={{
               padding: '8px 14px',
-              background: 'var(--color-primary, #800020)',
+              background: 'var(--color-primary, #10B981)',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
@@ -124,11 +146,11 @@ const EmailManager = ({
         </div>
 
         <div className="emails-list">
-          {emails.length === 0 ? (
-            <div className="no-emails">No emails added yet</div>
+          {filteredEmails.length === 0 ? (
+            <div className="no-emails">No emails found</div>
           ) : (
             <div className="emails-grid">
-              {emails.map((email, index) => (
+              {filteredEmails.map((email, index) => (
                 <div key={index} className="email-tag">
                   <span className="email-text">{email}</span>
                   <button
@@ -146,7 +168,7 @@ const EmailManager = ({
       </div>
 
       <div className="email-count">
-        {t('total')}: {emails.length} {t('email')}{emails.length !== 1 ? 's' : ''}
+        {t('total')}: {filteredEmails.length} {t('email')}{filteredEmails.length !== 1 ? 's' : ''}
       </div>
 
       <Modal
@@ -158,6 +180,16 @@ const EmailManager = ({
             <button 
               onClick={() => setImportModal({ open: false, text: '' })}
               className="modal-btn-secondary"
+              style={{
+                padding: '8px 16px',
+                background: 'var(--color-secondary, #6c757d)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.9rem'
+              }}
             >
               Cancel
             </button>
@@ -165,6 +197,16 @@ const EmailManager = ({
               onClick={handleImport}
               className="btn-primary"
               disabled={!importModal.text.trim()}
+              style={{
+                padding: '8px 16px',
+                background: 'var(--color-primary, #10B981)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.9rem'
+              }}
             >
               Import
             </button>
@@ -180,10 +222,12 @@ const EmailManager = ({
           style={{
             width: '100%',
             padding: '8px',
-            border: '1px solid #ddd',
+            border: '1px solid var(--border, #e0e0e0)',
             borderRadius: '4px',
             fontFamily: 'monospace',
-            fontSize: '14px'
+            fontSize: '14px',
+            background: 'var(--panel, white)',
+            color: 'var(--text, #212529)'
           }}
         />
       </Modal>

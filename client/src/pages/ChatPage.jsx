@@ -2638,7 +2638,7 @@ const ChatPage = () => {
               {pollOptions.length > 2 && (
                 <button
                   onClick={()=>setPollOptions(pollOptions.filter((_,i)=>i!==idx))}
-                  style={{ padding:'0.75rem', background:'#dc3545', color:'white', border:'none', borderRadius:8, cursor:'pointer' }}
+                  style={{ padding:'0.75rem', background:'var(--danger)', color:'var(--text)', border:'none', borderRadius:8, cursor:'pointer' }}
                 >
                   ✕
                 </button>
@@ -2647,12 +2647,12 @@ const ChatPage = () => {
           ))}
           <button
             onClick={()=>setPollOptions([...pollOptions, ''])}
-            style={{ padding:'0.5rem 1rem', background:'var(--brand)', color:'white', border:'none', borderRadius:8, cursor:'pointer', marginBottom:'1rem' }}
+            style={{ padding:'0.5rem 1rem', background:'var(--brand)', color:'var(--text)', border:'none', borderRadius:8, cursor:'pointer', marginBottom:'1rem' }}
           >
             + {t('add_option') || 'Add Option'}
           </button>
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
-            <button onClick={()=>{setShowPollModal(false); setPollQuestion(''); setPollOptions(['','']);}} style={{ padding:'0.5rem 1rem', background:'#6c757d', color:'white', border:'none', borderRadius:8, cursor:'pointer' }}>{t('cancel')||'Cancel'}</button>
+            <button onClick={()=>{setShowPollModal(false); setPollQuestion(''); setPollOptions(['','']);}} style={{ padding:'0.5rem 1rem', background:'#6c757d', color:'var(--text)', border:'none', borderRadius:8, cursor:'pointer' }}>{t('cancel')||'Cancel'}</button>
             <button
               onClick={async ()=>{
                 if (!pollQuestion.trim() || pollOptions.filter(o=>o.trim()).length < 2) {

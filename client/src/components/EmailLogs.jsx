@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from './ToastProvider';
 import Modal from './Modal';
 import { useLang } from '../contexts/LangContext';
-import { Mail, Megaphone, FileText, CheckCircle2, XCircle, GraduationCap, BookOpen, MessageSquareText, Mailbox, Eye } from 'lucide-react';
+import { Mail, Megaphone, FileText, CheckCircle2, XCircle, GraduationCap, BookOpen, MessageSquareText, Mailbox, Eye, Clock, Send, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { AdvancedDataGrid, Loading, Select, Input, Badge } from './ui';
 
@@ -128,9 +128,19 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
 
   const getStatusBadge = (status) => {
     if (status === 'sent') {
-      return <span style={{ padding: '4px 8px', background: '#d4edda', color: '#155724', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600 }}>✓ {t('sent_status')}</span>;
+      return (
+        <span style={{ padding: '4px 8px', background: '#d4edda', color: '#155724', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <CheckCircle2 size={14} />
+          {t('sent_status')}
+        </span>
+      );
     } else {
-      return <span style={{ padding: '4px 8px', background: '#f8d7da', color: '#721c24', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600 }}>✗ {t('failed_status')}</span>;
+      return (
+        <span style={{ padding: '4px 8px', background: '#f8d7da', color: '#721c24', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <XCircle size={14} />
+          {t('failed_status')}
+        </span>
+      );
     }
   };
 
@@ -162,14 +172,14 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             onChange={(e) => setFilters({ ...filters, type: e.target.value })}
             options={[
               { value: 'all', label: 'All Types' },
-              { value: 'newsletter', label: 'Newsletter' },
-              { value: 'announcement', label: 'Announcements' },
-              { value: 'activity', label: 'Activities' },
-              { value: 'activity_graded', label: 'Grading' },
-              { value: 'activity_complete', label: 'Completions' },
-              { value: 'enrollment', label: 'Enrollments' },
-              { value: 'resource', label: 'Resources' },
-              { value: 'chat_digest', label: 'Chat Digest' }
+              { value: 'newsletter', label: 'Newsletter', icon: <Mailbox size={16} title="Newsletter" /> },
+              { value: 'announcement', label: 'Announcements', icon: <Megaphone size={16} title="Announcement" /> },
+              { value: 'activity', label: 'Activities', icon: <FileText size={16} title="Activity" /> },
+              { value: 'activity_graded', label: 'Grading', icon: <FileText size={16} title="Grading" /> },
+              { value: 'activity_complete', label: 'Completions', icon: <CheckCircle2 size={16} title="Completion" /> },
+              { value: 'enrollment', label: 'Enrollments', icon: <GraduationCap size={16} title="Enrollment" /> },
+              { value: 'resource', label: 'Resources', icon: <BookOpen size={16} title="Resource" /> },
+              { value: 'chat_digest', label: 'Chat Digest', icon: <MessageSquareText size={16} title="Chat Digest" /> }
             ]}
             fullWidth
             searchable
@@ -179,9 +189,14 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
             options={[
-              { value: 'all', label: 'All Status' },
-              { value: 'sent', label: 'Sent' },
-              { value: 'failed', label: 'Failed' }
+              { value: 'all', label: 'All Status', icon: <ListFilter size={16} title="All Status" /> },
+              { value: 'sent', label: 'Sent', icon: <Send size={16} title="Sent" /> },
+              { value: 'delivered', label: 'Delivered', icon: <CheckCircle2 size={16} title="Delivered" /> },
+              { value: 'failed', label: 'Failed', icon: <XCircle size={16} title="Failed" /> },
+              { value: 'opened', label: 'Opened', icon: <MailOpen size={16} title="Opened" /> },
+              { value: 'clicked', label: 'Clicked', icon: <MousePointerClick size={16} title="Clicked" /> },
+              { value: 'bounced', label: 'Bounced', icon: <CornerDownLeft size={16} title="Bounced" /> },
+              { value: 'complained', label: 'Complained', icon: <Flag size={16} title="Complained" /> }
             ]}
             fullWidth
             searchable
@@ -283,7 +298,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                 }}
                 style={{
                   padding: '6px 12px',
-                  background: '#0d6efd',
+                  background: 'var(--color-primary, #0d6efd)',
                   color: 'white',
                   border: 'none',
                   borderRadius: 4,
@@ -408,7 +423,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                             background: '#e7f3ff',
                             borderRadius: 4,
                             fontSize: '0.8rem',
-                            color: '#800020',
+                            color: 'var(--color-primary, #800020)',
                             fontFamily: 'monospace'
                           }}
                         >

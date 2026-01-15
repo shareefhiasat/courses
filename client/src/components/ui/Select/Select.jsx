@@ -306,8 +306,9 @@ const Select = forwardRef(({
             }
           }}
         >
-          <span className={!value ? styles.placeholder : ''}>
-            {displayValue}
+          <span className={!value ? styles.placeholder : ''} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
+            {selectedOption?.icon && <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{selectedOption.icon}</span>}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayValue}</span>
           </span>
           <div className={styles.icons}>
             {value && !disabled && (
@@ -389,9 +390,13 @@ const Select = forwardRef(({
                       style={{ 
                         cursor: 'pointer',
                         padding: '8px 12px',
-                        backgroundColor: option.value === value ? '#f0f0f0' : 'transparent'
+                        backgroundColor: option.value === value ? '#f0f0f0' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
                       }}
                     >
+                      {option.icon && <span style={{ display: 'flex', alignItems: 'center' }}>{option.icon}</span>}
                       {option.label}
                     </div>
                   );

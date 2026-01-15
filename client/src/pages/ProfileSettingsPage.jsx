@@ -4,7 +4,7 @@ import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown } from 'lucide-react';
+import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown, Globe } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '../components/ui';
 import styles from './ProfileSettingsPage.module.css';
 import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '../utils/color';
@@ -145,14 +145,6 @@ const ProfileSettingsPage = () => {
 
   return (
     <Container maxWidth="lg" className={styles.page}>
-      <div className={styles.header}>
-        <Settings size={32} className={styles.headerIcon} />
-        <div>
-          <h1 className={styles.title}>{t('profile_settings')}</h1>
-          <p className={styles.subtitle}>{t('manage_your_profile') || 'Manage your profile and preferences'}</p>
-        </div>
-      </div>
-
       <div className={styles.content}>
         <Card>
           <CardBody>
@@ -162,7 +154,7 @@ const ProfileSettingsPage = () => {
             </div>
 
             {/* Role Display */}
-            <div style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+            <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
               <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>Your Role</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
                 {isSuperAdmin && (
@@ -202,6 +194,7 @@ const ProfileSettingsPage = () => {
                 value={profileData.displayName}
                 onChange={(e) => handleChange('displayName', e.target.value)}
                 placeholder={t('display_name_placeholder') || 'Enter your display name'}
+                maxLength={100}
               />
 
               <Input
@@ -211,6 +204,7 @@ const ProfileSettingsPage = () => {
                 value={profileData.realName}
                 onChange={(e) => handleChange('realName', e.target.value)}
                 placeholder={t('real_name_placeholder')}
+                maxLength={100}
               />
 
               <Input
@@ -220,6 +214,7 @@ const ProfileSettingsPage = () => {
                 value={profileData.studentNumber}
                 onChange={(e) => handleChange('studentNumber', e.target.value)}
                 placeholder={t('student_number_placeholder')}
+                maxLength={100}
               />
 
               <Input
@@ -229,6 +224,7 @@ const ProfileSettingsPage = () => {
                 value={profileData.phoneNumber}
                 onChange={(e) => handleChange('phoneNumber', e.target.value)}
                 placeholder={t('phone_number_placeholder') || 'Enter your phone number'}
+                maxLength={100}
               />
             </div>
           </CardBody>
@@ -242,48 +238,74 @@ const ProfileSettingsPage = () => {
             </div>
 
             <div className={styles.formSection}>
-              <div className={styles.formGroup}>
-                <label>{t('message_color')}</label>
-                <div className={styles.colorPicker}>
-                  {colorOptions.map(color => (
-                    <button
-                      key={color}
-                      className={`${styles.colorOption} ${profileData.messageColor === color ? styles.selected : ''}`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => handleColorSelection(color)}
-                      title={color}
-                    />
-                  ))}
+              {/* Theme Color Selection */}
+              <div className={styles.appearanceSection}>
+                <div className={styles.sectionHeader}>
+                  <h3 className={styles.sectionTitle}>
+                    <Palette size={18} style={{ marginRight: '0.5rem' }} />
+                    {t('theme_color') || 'Theme Color'}
+                  </h3>
+                  <p className={styles.sectionDescription}>
+                    {t('theme_color_description') || 'This color updates the overall theme and accent colors throughout the interface.'}
+                  </p>
                 </div>
-                <div className={styles.customColorControls}>
-                  <div className={styles.customColorRow}>
-                    <label htmlFor="customAccent" className={styles.customColorLabel}>
-                      {t('custom_accent_color') || 'Custom Accent Color'}
-                    </label>
-                    <div className={styles.customColorInputs}>
-                      <input
-                        id="customAccent"
-                        type="color"
-                        className={styles.nativeColorInput}
-                        value={normalizeHexColor(customColorInput || profileData.messageColor, DEFAULT_ACCENT)}
-                        onChange={(e) => handleColorSelection(e.target.value)}
-                      />
-                      <Input
-                        label="HEX"
-                        value={customColorInput}
-                        onChange={(e) => handleCustomColorInput(e.target.value)}
-                        placeholder="#667EEA"
-                        size="small"
-                        fullWidth
-                      />
+                
+                <div className={styles.colorSelectionArea}>
+                  <div className={styles.presetColors}>
+                    <div className={styles.presetLabel}>
+                      {t('preset_colors') || 'Preset Colors'}
                     </div>
-                    <p className={styles.colorNote}>
-                      {t('accent_color_description') || 'This accent updates chat bubbles and the primary interface color.'}
-                    </p>
+                    <div className={styles.colorPicker}>
+                      {colorOptions.map(color => (
+                        <button
+                          key={color}
+                          className={`${styles.colorOption} ${profileData.messageColor === color ? styles.selected : ''}`}
+                          style={{ backgroundColor: color }}
+                          onClick={() => handleColorSelection(color)}
+                          title={color}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className={styles.customColorSection}>
+                    <div className={styles.customColorHeader}>
+                      <span className={styles.customColorLabel}>
+                        {t('custom_accent_color') || 'Custom Accent Color'}
+                      </span>
+                      <div className={styles.customColorInputs}>
+                        <div className={styles.colorPickerWrapper}>
+                          <input
+                            type="color"
+                            className={styles.nativeColorInput}
+                            value={normalizeHexColor(customColorInput || profileData.messageColor, DEFAULT_ACCENT)}
+                            onChange={(e) => handleColorSelection(e.target.value)}
+                          />
+                        </div>
+                        <div className={styles.hexInputWrapper}>
+                          <Input
+                            label="HEX"
+                            value={customColorInput}
+                            onChange={(e) => handleCustomColorInput(e.target.value)}
+                            placeholder="#667EEA"
+                            size="small"
+                            maxLength={100}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+              
+              {/* Preview Section */}
+              <div className={styles.previewSection}>
+                <div className={styles.previewHeader}>
+                  <h4 className={styles.previewTitle}>
+                    {t('preview') || 'Preview'}
+                  </h4>
+                </div>
                 <div className={styles.colorPreview}>
-                  <div className={styles.previewLabel}>{t('preview')}:</div>
                   <div 
                     className={styles.messageBubble}
                     style={{ backgroundColor: profileData.messageColor }}
@@ -293,14 +315,20 @@ const ProfileSettingsPage = () => {
                 </div>
               </div>
 
-              <div className={styles.formGroup}>
-                <label>{t('language')}</label>
+              {/* Language Selection */}
+              <div className={styles.languageSection}>
+                <div className={styles.languageHeader}>
+                  <h3 className={styles.sectionTitle}>
+                    <Globe size={18} style={{ marginRight: '0.5rem' }} />
+                    {t('language') || 'Language'}
+                  </h3>
+                </div>
                 <Button
                   variant="outline"
                   onClick={toggleLang}
                   className={styles.languageToggle}
                 >
-                  <span>🌐</span>
+                  <Globe size={16} style={{ marginRight: '0.5rem' }} />
                   {lang === 'en' ? 'English' : 'العربية'}
                   <span className={styles.toggleHint}>
                     {t('click_to_switch') || 'Click to switch'}
@@ -321,18 +349,23 @@ const ProfileSettingsPage = () => {
             <div className={styles.formSection}>
               <div className={styles.formGroup}>
                 <label>
-                  <Shield size={18} />
+                  <Shield size={18} style={{ marginRight: '0.5rem' }} />
                   {t('otp_login') || 'OTP Login'}
                 </label>
-                <Button
-                  variant={profileData.preferOTPLogin ? 'primary' : 'outline'}
-                  onClick={() => handleChange('preferOTPLogin', !profileData.preferOTPLogin)}
-                  className={styles.otpToggle}
-                >
-                  {profileData.preferOTPLogin ? (t('enabled') || 'Enabled') : (t('disabled') || 'Disabled')}
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <Button
+                    variant={profileData.preferOTPLogin ? 'primary' : 'outline'}
+                    onClick={() => handleChange('preferOTPLogin', !profileData.preferOTPLogin)}
+                    className={styles.otpToggle}
+                  >
+                    {profileData.preferOTPLogin ? (t('enabled') || 'Enabled') : (t('disabled') || 'Disabled')}
+                  </Button>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted, #666)' }}>
+                    {profileData.preferOTPLogin ? '🔐' : '🔓'}
+                  </span>
+                </div>
                 <p className={styles.helpText}>
-                  {t('otp_login_description') || 'When enabled, you can request a one-time password via email for login instead of using your regular password. More secure and convenient.'}
+                  {t('otp_login_description') || 'Enable this option to receive a one-time password via email when logging in. This provides an extra layer of security as the password expires after use and is sent directly to your registered email address.'}
                 </p>
               </div>
             </div>

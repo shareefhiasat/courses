@@ -30,15 +30,18 @@ export default function RibbonTabs({ categories = [], activeCategory, activeItem
                     gap: '2px',
                     padding: '6px 10px',
                     borderRadius: 6,
-                    border: isActive ? 'none' : '1px solid rgba(0,0,0,0.06)',
-                    background: isActive ? 'var(--color-primary, #800020)' : 'white',
+                    border: isActive ? '1px solid var(--color-primary, #10B981)' : '1px solid rgba(0,0,0,0.06)',
+                    background: isActive ? 'var(--color-primary, #10B981)' : 'white',
                     color: isActive ? 'white' : '#111827',
                     cursor: 'pointer',
                     fontWeight: 500,
                     fontSize: '0.8rem',
                     whiteSpace: 'nowrap',
                     lineHeight: '1.2',
-                    margin: '1px 0'
+                    margin: '1px 0',
+                    boxShadow: isActive ? '0 2px 8px rgba(16, 185, 129, 0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
+                    transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   {item.icon ? <span style={{ display: 'inline-flex' }}>{item.icon}</span> : null}

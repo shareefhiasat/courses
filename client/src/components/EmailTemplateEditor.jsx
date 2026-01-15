@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Select } from './ui';
 import { useToast } from './ToastProvider';
 import VariableHelper from './VariableHelper';
-import Modal from './Modal';
+import Modal from './ui/Modal/Modal';
 import { Eye, Info } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 
@@ -329,7 +329,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                         background: '#e7f3ff',
                         borderRadius: 4,
                         fontSize: '0.8rem',
-                        color: '#800020',
+                        color: 'var(--color-primary, #800020)',
                         fontFamily: 'monospace'
                       }}
                     >
@@ -347,7 +347,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
               disabled={loading}
               style={{
                 padding: '12px 24px',
-                background: 'linear-gradient(135deg, #800020, #600018)',
+                background: 'var(--color-primary, #800020)',
                 color: 'white',
                 border: 'none',
                 borderRadius: 8,
@@ -426,101 +426,45 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       </div>
 
       {/* Preview Modal */}
-      {showPreview && (
+      <Modal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        title="📧 Email Preview"
+        size="large"
+        showCloseButton={true}
+      >
+        {/* Subject */}
+        <div style={{ 
+          padding: '1rem', 
+          background: '#f8f9fa', 
+          borderRadius: '8px',
+          marginBottom: '1rem'
+        }}>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>
+            <strong>Subject:</strong> {formData.subject}
+          </p>
+        </div>
+
+        {/* Preview Content */}
         <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99999,
-            padding: '2rem'
-          }}
-          onClick={() => {
-            console.log('❌ Closing preview modal');
-            setShowPreview(false);
+          style={{ 
+            padding: '1rem',
+            background: '#f5f5f5',
+            borderRadius: '8px'
           }}
         >
           <div 
-            style={{
+            style={{ 
               background: 'white',
-              borderRadius: 12,
-              maxWidth: '900px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+              border: '1px solid #ddd', 
+              borderRadius: 8, 
+              padding: '2rem',
+              minHeight: '400px'
             }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{
-              padding: '1.5rem',
-              background: 'linear-gradient(135deg, #800020, #600018)',
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>📧 Email Preview</h2>
-              <button
-                onClick={() => setShowPreview(false)}
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  color: 'white',
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  fontSize: '1.2rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Subject */}
-            <div style={{ 
-              padding: '1rem 1.5rem', 
-              background: '#f8f9fa', 
-              borderBottom: '1px solid #e0e0e0'
-            }}>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>
-                <strong>Subject:</strong> {formData.subject}
-              </p>
-            </div>
-
-            {/* Preview Content */}
-            <div 
-              style={{ 
-                flex: 1,
-                padding: '1.5rem',
-                overflowY: 'auto',
-                background: '#f5f5f5'
-              }}
-            >
-              <div 
-                style={{ 
-                  background: 'white',
-                  border: '1px solid #ddd', 
-                  borderRadius: 8, 
-                  padding: '2rem',
-                  minHeight: '400px'
-                }}
-                dangerouslySetInnerHTML={{ __html: renderPreview() }}
-              />
-            </div>
-          </div>
+            dangerouslySetInnerHTML={{ __html: renderPreview() }}
+          />
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

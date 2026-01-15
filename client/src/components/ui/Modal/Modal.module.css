@@ -61,7 +61,7 @@
   margin: 0;
   font-size: var(--font-size-xl, 1.25rem);
   font-weight: 600;
-  color: white;
+  color: var(--text, #212529);
 }
 
 .closeButton {

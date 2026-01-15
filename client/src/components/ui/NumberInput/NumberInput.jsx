@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import InfoTooltip from '../InfoTooltip/InfoTooltip';
 import styles from './NumberInput.module.css';
 
 /**
@@ -31,6 +32,7 @@ const NumberInput = forwardRef(({
   step = 1,
   error,
   helperText,
+  helperTextInfo,
   disabled = false,
   required = false,
   size = 'medium',
@@ -87,7 +89,7 @@ const NumberInput = forwardRef(({
           id={id}
           name={name}
           className={inputClasses}
-          placeholder={placeholder}
+          placeholder={required ? `${placeholder}*` : placeholder}
           value={value}
           onChange={onChange}
           min={min}
@@ -121,9 +123,13 @@ const NumberInput = forwardRef(({
       </div>
       
       {(error || helperText) && (
-        <span className={error ? styles.errorText : styles.helperText}>
-          {error || helperText}
-        </span>
+        <div className={styles.helperContainer}>
+          {error && <span className={styles.errorText}>{error}</span>}
+          {helperText && !helperTextInfo && <span className={styles.helperText}>{helperText}</span>}
+          {helperTextInfo && (
+            <InfoTooltip contentKey={helperTextInfo} />
+          )}
+        </div>
       )}
     </div>
   );

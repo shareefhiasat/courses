@@ -12,7 +12,8 @@ import { getEmailTemplates } from '../firebase/firestore';
 import { Loading, Button, Input, Select, Textarea, useToast, Card, CardBody } from '../components/ui';
 import { Container } from '../components/ui';
 import ToggleSwitch from '../components/ToggleSwitch';
-import { Plus, Edit, Trash2, Calendar, Mail, FileText, X, FileDown, Search } from 'lucide-react';
+import RibbonTabs from '../components/RibbonTabs';
+import { Plus, Edit, Trash2, Calendar, Mail, FileText, X, FileDown, Search, BarChart3, Users } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 
 const ScheduledReportsPage = () => {
@@ -279,7 +280,7 @@ const ScheduledReportsPage = () => {
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0 }}>📅 Scheduled Reports</h1>
+        <h1 style={{ margin: 0 }}>Scheduled Reports</h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button size="sm" variant="primary" icon={<Plus size={16} />} onClick={() => {
             resetForm();
@@ -329,8 +330,8 @@ const ScheduledReportsPage = () => {
                     value={formData.reportType}
                     onChange={(e) => setFormData({ ...formData, reportType: e.target.value })}
                     options={[
-                      { value: 'analytics', label: '📊 Advanced Analytics' },
-                      { value: 'student-dashboard', label: '👤 Student Dashboard Status' }
+                      { value: 'analytics', label: 'Advanced Analytics', icon: <BarChart3 size={16} color="var(--text-secondary, #374151)" /> },
+                      { value: 'student-dashboard', label: 'Student Dashboard Status', icon: <Users size={16} color="var(--text-secondary, #374151)" /> }
                     ]}
                     fullWidth
                   />
@@ -355,9 +356,9 @@ const ScheduledReportsPage = () => {
                     value={formData.schedule}
                     onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
                     options={[
-                      { value: 'daily', label: 'Daily' },
-                      { value: 'weekly', label: 'Weekly' },
-                      { value: 'custom', label: 'Custom' }
+                      { value: 'daily', label: 'Daily', icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> },
+                      { value: 'weekly', label: 'Weekly', icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> },
+                      { value: 'custom', label: 'Custom', icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> }
                     ]}
                     fullWidth
                   />
@@ -508,7 +509,7 @@ const ScheduledReportsPage = () => {
                       <div style={{ flex: 1 }}>
                         <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{report.title}</h4>
                         <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', color: '#6b7280' }}>
-                          {report.reportType === 'analytics' ? '📊 Analytics' : '👤 Student Dashboard'}
+                          {report.reportType === 'analytics' ? 'Analytics' : 'Student Dashboard'}
                         </p>
                       </div>
                       <ToggleSwitch
@@ -568,7 +569,7 @@ const ScheduledReportsPage = () => {
                   <div>
                     <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Report Type</label>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
-                      {selectedReport.reportType === 'analytics' ? '📊 Advanced Analytics' : '👤 Student Dashboard Status'}
+                      {selectedReport.reportType === 'analytics' ? 'Advanced Analytics' : 'Student Dashboard Status'}
                     </p>
                   </div>
                   <div>

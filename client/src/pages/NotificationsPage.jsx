@@ -653,7 +653,7 @@ const NotificationsPage = () => {
                     <div style={{
                       width: '10px',
                       height: '10px',
-                      background: '#800020',
+                      background: 'var(--color-primary, #800020)',
                       borderRadius: '50%',
                       flexShrink: 0,
                       marginTop: '0.25rem'

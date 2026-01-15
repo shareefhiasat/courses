@@ -50,19 +50,25 @@
   font-size: var(--font-size-md, 1rem);
   color: #212529;
   background: #ffffff;
-  /* Override default border with the current brand color to reflect user color */
-  border: 1px solid var(--color-primary, #800020);
+  /* Use neutral border by default, theme color only on hover/focus */
+  border: 1px solid var(--border, #e0e0e0);
   border-radius: var(--radius-md, 8px);
   transition: all 0.2s ease;
   outline: none;
+  
+  /* Debug: Log computed styles */
+  /* Uncomment for debugging: 
+  border-color: var(--color-primary, var(--brand, #00ff00));
+  */
 }
 
-/* Force light mode styling */
+/* Force light mode styling - but preserve theme colors */
 [data-theme="light"] .input,
 :not([data-theme]) .input {
   background: #ffffff !important;
   color: #212529 !important;
-  border-color: #e0e0e0 !important;
+  /* Remove border-color override to allow theme variables to work */
+  /* border-color: #e0e0e0 !important; */
 }
 
 [data-theme="light"] .input::placeholder,
@@ -77,12 +83,12 @@
 }
 
 .input:hover:not(:disabled) {
-  border-color: var(--color-primary, #800020);
+  border-color: var(--color-primary, var(--brand, #10B981));
 }
 
 .input:focus {
-  border-color: var(--color-primary, #800020);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+  border-color: var(--color-primary, var(--brand, #10B981));
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 16, 185, 129), 0.1);
 }
 
 .input:disabled {
@@ -163,6 +169,13 @@
 .helperText {
   font-size: var(--font-size-xs, 0.75rem);
   color: var(--muted, #666);
+}
+
+.helperContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .errorText {

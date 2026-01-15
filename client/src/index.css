@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+/* Global rotation animation for loading components */
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@-webkit-keyframes rotate {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+@-moz-keyframes rotate {
+  0% {
+    -moz-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -moz-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
 :root {
    /* Base */
    --bg: #f5f6fa;
@@ -234,7 +266,7 @@ html[data-density='compact'] .row-item {
 }
 
 .dashboard-form .form-row.with-top-margin {
-  margin-top: 0.5rem;
+  margin-top: 1rem;
 }
 
 .form-actions {
@@ -245,5 +277,6 @@ html[data-density='compact'] .row-item {
 }
 
 .dashboard-form .form-actions {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
 }

@@ -47,7 +47,7 @@ import { getSubjects, getPrograms } from '../firebase/programs';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '../utils/userStatus';
 import './DashboardPage.css';
-import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info } from 'lucide-react';
+import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { formatQatarDate, formatQatarDateOnly } from '../utils/timezone';
 import { useLang } from '../contexts/LangContext';
@@ -355,6 +355,7 @@ const DashboardPage = () => {
         { key: 'programs', label: t('programs') },
         { key: 'subjects', label: t('subjects') },
         { key: 'classes', label: t('classes') },
+        { key: 'enrollments', label: t('enrollments') },
         { key: 'manage-enrollments', label: t('manage_enrollments') },
         { key: 'marks', label: t('mark_entry') },
         { key: 'classschedule', label: t('class_schedules') },
@@ -523,6 +524,8 @@ const DashboardPage = () => {
   const [smtpLoading, setSmtpLoading] = useState(false);
   const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
+  const [testEmailDialogOpen, setTestEmailDialogOpen] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState('');
   // Smart email composer
   const [smartComposerOpen, setSmartComposerOpen] = useState(false);
   // User deletion modal
@@ -718,6 +721,10 @@ const DashboardPage = () => {
   const [editingClass, setEditingClass] = useState(null);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [editingResource, setEditingResource] = useState(null);
+  const [activeActivityFormTab, setActiveActivityFormTab] = useState('basic');
+  const [activeAnnouncementFormTab, setActiveAnnouncementFormTab] = useState('basic');
+  const [activeClassFormTab, setActiveClassFormTab] = useState('basic');
+  const [activeResourceFormTab, setActiveResourceFormTab] = useState('basic');
 
   const [resourceForm, setResourceForm] = useState({
     title: '',
@@ -895,7 +902,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Program Options
   const enrollmentFilterProgramOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_programs') }
+      { value: 'all', label: t('all_programs'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> }
     ];
     const validPrograms = programs.map(p => {
       const value = ensureString(p.docId || p.id);
@@ -910,7 +917,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Subject Options
   const enrollmentFilterSubjectOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_subjects') }
+      { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -932,7 +939,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Class Options
   const enrollmentFilterClassOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_classes') }
+      { value: 'all', label: t('all_classes'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> }
     ];
     const validClasses = classes
       .filter(c => {
@@ -1683,11 +1690,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
   </div>
 
         {/* Summary Cards with Filters */}
-        <div data-tour="stats"><Card style={{ marginBottom: '1.5rem', marginTop: '1rem' }}>
+        <div data-tour="stats"><Card style={{ marginBottom: '1.5rem', marginTop: '1rem', background: '#ffffff' }}>
           <CardBody>
             {/* Filters */}
             <div data-tour="filters" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <Select
+                size="small"
                 searchable
                 value={enrollmentProgramFilter}
                 onChange={(e) => {
@@ -1696,7 +1704,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs') || 'All Programs' },
+                  { value: 'all', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId
@@ -1706,6 +1714,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               placeholder={t('select_program') || 'Select Program'}
               />
               <Select
+                size="small"
                 searchable
                 value={enrollmentSubjectFilter}
                 onChange={(e) => {
@@ -1713,7 +1722,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_subjects') || 'All Subjects' },
+                  { value: 'all', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   ...subjects
                     .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
                     .map(s => ({
@@ -1725,11 +1734,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 placeholder={t('select_subject') || 'Select Subject'}
               />
               <Select
+                size="small"
                 searchable
                 value={enrollmentClassFilter}
                 onChange={(e) => setEnrollmentClassFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_classes') || 'All Classes' },
+                  { value: 'all', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   ...classes
                     .filter(c => {
                       if (enrollmentProgramFilter !== 'all') {
@@ -1949,10 +1959,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       display: 'flex',
                       flexDirection: 'column',
                       cursor: stat.onClick ? 'pointer' : 'default',
-                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+                      border: '2px solid transparent',
                       ':hover': {
                         transform: stat.onClick ? 'translateY(-1px)' : 'none',
-                        boxShadow: stat.onClick ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none'
+                        boxShadow: stat.onClick ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
+                        borderColor: config.iconColor
                       }
                     }}
                   >
@@ -2118,388 +2130,416 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 </div>
               )}
 
+              <RibbonTabs
+                categories={[
+                  {
+                    id: 'activity-fields',
+                    label: 'Activity Details',
+                    items: [
+                      { key: 'basic', label: 'Basic Info', icon: <FileText size={14} /> },
+                      { key: 'content', label: 'Content', icon: <Edit size={14} /> },
+                      { key: 'settings', label: 'Settings', icon: <Settings size={14} /> }
+                    ]
+                  }
+                ]}
+                activeCategory="activity-fields"
+                activeItem={activeActivityFormTab}
+                onChange={({ item }) => setActiveActivityFormTab(item)}
+              />
               <form onSubmit={handleActivitySubmit} className="dashboard-form">
-                <div className="form-row">
-                  <div style={{ border: '0px solid #ccc', padding: '0px', margin: '0px 0', borderRadius: '4px' }}>
-                    {/* <div>Program Dropdown:</div> */}
-                    {/* <div>Current Value: {activityForm.programId || 'null'}</div> */}
-                    <Select
-                      searchable
-                      placeholder={t('program') || 'Select Program (Optional)'}
-                      value={activityForm.programId}
-                      onChange={(value) => {
-                        console.log('Program Select onChange:', value);
-                        handleDropdownChange(
-                          setActivityForm,
-                          'programId',
-                          ['subjectId', 'classId']
-                        )(value);
-                      }}
-                      options={activityProgramOptions}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                  <Select
-                    searchable
-                    placeholder={t('subject') || 'Select Subject (Optional)'}
-                    value={activityForm.subjectId || null}
-                    onChange={handleDropdownChange(
-                      setActivityForm,
-                      'subjectId',
-                      ['classId'] // Reset class when subject changes
-                    )}
-                    options={activitySubjectOptions}
-                    style={{ width: '100%' }}
-                    disabled={!activityForm.programId}
-                  />
-                  <Select
-                    searchable
-                    placeholder={t('general_no_class') || 'Class (Optional)'}
-                    value={activityForm.classId || null}
-                    onChange={handleDropdownChange(
-                      setActivityForm,
-                      'classId'
-                    )}
-                    options={activityClassOptions}
-                    style={{ width: '100%' }}
-                    disabled={!activityForm.subjectId}
-                  />
-                </div>
-                <div className="form-row">
-                  <div>
-                    <Input
-                      type="text"
-                      placeholder={t('activity_id') || 'Activity ID'}
-                      value={activityForm.id}
-                      onChange={(e) => setActivityForm({ ...activityForm, id: e.target.value })}
-                      disabled={editingActivity} // Can't change ID when editing
-                      required
-                      error={formErrors.id}
-                    />
-                  </div>
-                  <Select
-                    searchable
-                    placeholder={t('course') || 'Course'}
-                    value={activityForm.course}
-                    onChange={(e) => setActivityForm({ ...activityForm, course: e.target.value })}
-                    options={(courses && courses.length > 0 ? courses : [
-                      { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
-                      { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
-                      { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
-                      { docId: 'general', name_en: 'General', name_ar: 'عام' },
-                    ]).map(c => ({
-                      value: c.docId,
-                      label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)
-                    }))}
-                    style={{ width: '100%' }}
-                  />
-                  <Select
-                    searchable
-                    placeholder={t('type') || 'Activity Type'}
-                    value={activityForm.type}
-                    onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })}
-                    options={[
-                      { value: 'quiz', label: t('quiz') || 'Quiz' },
-                      { value: 'homework', label: t('homework') || 'Homework' },
-                      { value: 'training', label: t('training') || 'Training' },
-                      { value: 'labandproject', label: 'Lab & Project' }
-                    ]}
-                    style={{ width: '100%' }}
-                  />
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <Select
-                      searchable
-                      placeholder={t('difficulty') || 'Difficulty'}
-                      value={activityForm.difficulty || 'beginner'}
-                      onChange={(e) => {
-                        if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                          toast?.showInfo?.('Difficulty is synced from quiz. Enable "Override quiz settings" to edit.');
-                          return;
-                        }
-                        setActivityForm({ ...activityForm, difficulty: e.target.value });
-                      }}
-                      options={[
-                        { value: 'beginner', label: t('beginner') || 'Beginner' },
-                        { value: 'intermediate', label: t('intermediate') || 'Intermediate' },
-                        { value: 'advanced', label: t('advanced') || 'Advanced' }
-                      ]}
-                      style={{ width: '100%' }}
-                      disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
-                    />
-                    {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                      <Lock
-                        size={16}
-                        style={{
-                          position: 'absolute',
-                          right: '32px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          color: '#ef4444',
-                          pointerEvents: 'none',
-                          zIndex: 10
-                        }}
-                        title="Locked - synced from quiz"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div>
-                    <Input
-                      type="text"
-                      placeholder={t('title_english') || t('title_en') || 'Title (English)'}
-                      value={activityForm.title_en}
-                      onChange={(e) => setActivityForm({ ...activityForm, title_en: e.target.value })}
-                      required
-                      error={formErrors.title_en}
-                    />
-                  </div>
-                  <Input
-                    type="text"
-                    placeholder={t('title_arabic') || t('title_ar') || 'Title (Arabic)'}
-                    value={activityForm.title_ar}
-                    onChange={(e) => setActivityForm({ ...activityForm, title_ar: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-row">
-                  <Textarea
-                    placeholder={t('description_english') || t('description_en') || 'Description (English)'}
-                    value={activityForm.description_en}
-                    onChange={(e) => setActivityForm({ ...activityForm, description_en: e.target.value })}
-                    rows={3}
-                    fullWidth
-                  />
-                  <Textarea
-                    placeholder={t('description_arabic') || t('description_ar') || 'Description (Arabic)'}
-                    value={activityForm.description_ar}
-                    onChange={(e) => setActivityForm({ ...activityForm, description_ar: e.target.value })}
-                    rows={3}
-                    fullWidth
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div>
-                    <UrlInput
-                      placeholder={t('activity_url_label') || 'Activity URL'}
-                      value={activityForm.url}
-                      onChange={(e) => setActivityForm({ ...activityForm, url: e.target.value })}
-                      required={activityForm.type !== 'quiz'}
-                      error={formErrors.url}
-                      onOpen={(href) => console.debug('open activity url', href)}
-                      onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
-                      onClear={() => setActivityForm({ ...activityForm, url: '' })}
-                      fullWidth
-                    />
-                  </div>
-                  <DatePicker
-                    type="datetime"
-                    value={activityForm.dueDate}
-                    onChange={(iso) => setActivityForm({ ...activityForm, dueDate: iso })}
-                    placeholder={t('pick_due_date') || 'Pick due date & time'}
-                  />
-                  <UrlInput
-                    placeholder={t('image_url') || 'Image URL'}
-                    value={activityForm.image}
-                    onChange={(e) => setActivityForm({ ...activityForm, image: e.target.value })}
-                    onOpen={(href) => console.debug('open image url', href)}
-                    onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
-                    onClear={() => setActivityForm({ ...activityForm, image: '' })}
-                    fullWidth
-                  />
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <NumberInput
-                      placeholder={t('max_score') || 'Max Score'}
-                      value={activityForm.maxScore || 100}
-                      onChange={(e) => {
-                        if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                          toast?.showInfo?.('Max score is synced from quiz. Enable "Override quiz settings" to edit.');
-                          return;
-                        }
-                        setActivityForm({ ...activityForm, maxScore: Math.max(1, Number.parseInt(e.target.value || '0', 10)) });
-                      }}
-                      min={1}
-                      fullWidth
-                      disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
-                    />
-                    {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                      <Lock 
-                        size={16} 
-                        style={{ 
-                          position: 'absolute', 
-                          right: '12px', 
-                          top: '50%', 
-                          transform: 'translateY(-50%)',
-                          color: '#ef4444',
-                          pointerEvents: 'none',
-                          zIndex: 10
-                        }} 
-                        title="Locked - synced from quiz"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Quiz Selector - Only show for quiz type */}
-                {activityForm.type === 'quiz' && (
-                  <div className="form-row single-column">
-                    <Select
-                      searchable
-                      placeholder={t('select_quiz') || 'Select Quiz (Optional)'}
-                      value={activityForm.quizId || ''}
-                      onChange={(e) => {
-                        const selectedQuizId = e.target.value;
-                        const selectedQuiz = quizzes.find(q => q.id === selectedQuizId);
-                        console.log('Quiz selected:', selectedQuizId, selectedQuiz);
-                        
-                        if (selectedQuiz) {
-                          const quizMaxScore = selectedQuiz.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 100;
-                          const quizDifficulty = selectedQuiz.difficulty || 'beginner';
-                          const quizAllowRetake = selectedQuiz.settings?.allowRetake !== undefined 
-                            ? selectedQuiz.settings.allowRetake 
-                            : (selectedQuiz.allowRetake !== undefined ? selectedQuiz.allowRetake : false);
-                          
-                          setActivityForm(prev => ({
-                            ...prev,
-                            quizId: selectedQuizId,
-                            // Auto-populate from quiz if override is not enabled
-                            ...(prev.overrideQuizSettings ? {} : {
-                              difficulty: quizDifficulty,
-                              allowRetake: quizAllowRetake,
-                              maxScore: quizMaxScore
-                            })
-                          }));
-                        } else {
-                          // Quiz deselected
-                          setActivityForm(prev => ({
-                            ...prev,
-                            quizId: ''
-                          }));
-                        }
-                      }}
-                      options={[
-                        { value: '', label: t('select_quiz') || 'Select Quiz (Optional)' },
-                        ...quizzes
-                          .filter((quiz, index, self) => 
-                            // Remove duplicates by id
-                            index === self.findIndex(q => q.id === quiz.id)
-                          )
-                          .filter(quiz => quiz.id) // Filter out quizzes without id
-                          .map((quiz) => ({
-                            value: quiz.id,
-                            label: `${quiz.title || 'Untitled Quiz'} (${quiz.questions?.length || quiz.questionCount || 0} questions)`
-                          }))
-                      ]}
-                      style={{ width: '100%' }}
-                    />
-                    {activityForm.quizId && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: '#f0f8ff', borderRadius: '6px' }}>
-                        <ToggleSwitch
-                          label="Override quiz settings (retake, difficulty, total marks)"
-                          checked={activityForm.overrideQuizSettings || false}
-                          onChange={(checked) => {
-                            setActivityForm(prev => {
-                              if (!checked && prev.quizId) {
-                                // Re-sync from quiz when override is turned off
-                                const selectedQuiz = quizzes.find(q => q.id === prev.quizId);
-                                if (selectedQuiz) {
-                                  const quizMaxScore = selectedQuiz.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 100;
-                                  const quizDifficulty = selectedQuiz.difficulty || 'beginner';
-                                  const quizAllowRetake = selectedQuiz.settings?.allowRetake !== undefined 
-                                    ? selectedQuiz.settings.allowRetake 
-                                    : (selectedQuiz.allowRetake !== undefined ? selectedQuiz.allowRetake : false);
-                                  
-                                  return {
-                                    ...prev,
-                                    overrideQuizSettings: false,
-                                    difficulty: quizDifficulty,
-                                    allowRetake: quizAllowRetake,
-                                    maxScore: quizMaxScore
-                                  };
-                                }
-                              }
-                              return { ...prev, overrideQuizSettings: checked };
-                            });
+                {/* Basic Info Tab */}
+                {activeActivityFormTab === 'basic' && (
+                  <>
+                    <div className="form-row">
+                      <div style={{ border: '0px solid #ccc', padding: '0px', margin: '0px 0', borderRadius: '4px' }}>
+                        <Select
+                          searchable
+                          placeholder={t('program') || 'Select Program (Optional)'}
+                          value={activityForm.programId}
+                          onChange={(value) => {
+                            console.log('Program Select onChange:', value);
+                            handleDropdownChange(
+                              setActivityForm,
+                              'programId',
+                              ['subjectId', 'classId']
+                            )(value);
                           }}
+                          options={activityProgramOptions}
+                          style={{ width: '100%' }}
                         />
-                        {!activityForm.overrideQuizSettings && (
-                          <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Lock size={12} /> Synced from quiz
-                          </span>
+                      </div>
+                      <Select
+                        searchable
+                        placeholder={t('subject') || 'Select Subject (Optional)'}
+                        value={activityForm.subjectId || null}
+                        onChange={handleDropdownChange(
+                          setActivityForm,
+                          'subjectId',
+                          ['classId']
+                        )}
+                        options={activitySubjectOptions}
+                        style={{ width: '100%' }}
+                        disabled={!activityForm.programId}
+                      />
+                      <Select
+                        searchable
+                        placeholder={t('general_no_class') || 'Class (Optional)'}
+                        value={activityForm.classId || null}
+                        onChange={handleDropdownChange(
+                          setActivityForm,
+                          'classId'
+                        )}
+                        options={activityClassOptions.map(o => {
+                        const classData = classes.find(c => c.docId === o.value);
+                        if (!classData) return o;
+                        return {
+                          ...o,
+                          label: `${classData.name || classData.code || 'Unnamed'}${classData.code ? ` (${classData.code})` : ''}${classData.term ? ` - ${classData.term}` : ''}${classData.year ? ` ${classData.year}` : ''}`
+                        };
+                      }).filter(o => !activityForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === activityForm.subjectId)}
+                        style={{ width: '100%' }}
+                        disabled={!activityForm.subjectId}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <div>
+                        <Input
+                          type="text"
+                          placeholder={t('activity_id') || 'Activity ID'}
+                          value={activityForm.id}
+                          onChange={(e) => setActivityForm({ ...activityForm, id: e.target.value })}
+                          disabled={editingActivity}
+                          required
+                          error={formErrors.id}
+                        />
+                      </div>
+                      <Select
+                        searchable
+                        placeholder={t('course') || 'Course'}
+                        value={activityForm.course}
+                        onChange={(e) => setActivityForm({ ...activityForm, course: e.target.value })}
+                        options={(courses && courses.length > 0 ? courses : [
+                          { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
+                          { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
+                          { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
+                          { docId: 'general', name_en: 'General', name_ar: 'عام' },
+                        ]).map(c => ({
+                          value: c.docId,
+                          label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)
+                        }))}
+                        style={{ width: '100%' }}
+                      />
+                      <Select
+                        searchable
+                        placeholder={t('type') || 'Activity Type'}
+                        value={activityForm.type}
+                        onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })}
+                        options={[
+                          { value: 'quiz', label: t('quiz') || 'Quiz', icon: <Target size={16} color="var(--text-secondary, #374151)" /> },
+                          { value: 'homework', label: t('homework') || 'Homework', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
+                          { value: 'training', label: t('training') || 'Training', icon: <Award size={16} color="var(--text-secondary, #374151)" /> },
+                          { value: 'labandproject', label: 'Lab & Project', icon: <Zap size={16} color="var(--text-secondary, #374151)" /> }
+                        ]}
+                        style={{ width: '100%' }}
+                      />
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <Select
+                          searchable
+                          placeholder={t('difficulty') || 'Difficulty'}
+                          value={activityForm.difficulty || 'beginner'}
+                          onChange={(e) => {
+                            if (activityForm.quizId && !activityForm.overrideQuizSettings) {
+                              toast?.showInfo?.('Difficulty is synced from quiz. Enable "Override quiz settings" to edit.');
+                              return;
+                            }
+                            setActivityForm({ ...activityForm, difficulty: e.target.value });
+                          }}
+                          options={[
+                            { value: 'beginner', label: t('beginner') || 'Beginner', icon: <BookOpen size={16} color="var(--text-secondary, #374151)" /> },
+                            { value: 'intermediate', label: t('intermediate') || 'Intermediate', icon: <Target size={16} color="var(--text-secondary, #374151)" /> },
+                            { value: 'advanced', label: t('advanced') || 'Advanced', icon: <Zap size={16} color="var(--text-secondary, #374151)" /> }
+                          ]}
+                          style={{ width: '100%' }}
+                          disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
+                        />
+                        {activityForm.quizId && !activityForm.overrideQuizSettings && (
+                          <Lock
+                            size={16}
+                            style={{
+                              position: 'absolute',
+                              right: '32px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              color: '#ef4444',
+                              pointerEvents: 'none',
+                              zIndex: 10
+                            }}
+                            title="Locked - synced from quiz"
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div>
+                        <Input
+                          type="text"
+                          placeholder={t('title_english') || t('title_en') || 'Title (English)'}
+                          value={activityForm.title_en}
+                          onChange={(e) => setActivityForm({ ...activityForm, title_en: e.target.value })}
+                          required
+                          error={formErrors.title_en}
+                        />
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder={t('title_arabic') || t('title_ar') || 'Title (Arabic)'}
+                        value={activityForm.title_ar}
+                        onChange={(e) => setActivityForm({ ...activityForm, title_ar: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Content Tab */}
+                {activeActivityFormTab === 'content' && (
+                  <>
+                    <div className="form-row">
+                      <Textarea
+                        placeholder={t('description_english') || t('description_en') || 'Description (English)'}
+                        value={activityForm.description_en}
+                        onChange={(e) => setActivityForm({ ...activityForm, description_en: e.target.value })}
+                        rows={3}
+                        fullWidth
+                      />
+                      <Textarea
+                        placeholder={t('description_arabic') || t('description_ar') || 'Description (Arabic)'}
+                        value={activityForm.description_ar}
+                        onChange={(e) => setActivityForm({ ...activityForm, description_ar: e.target.value })}
+                        rows={3}
+                        fullWidth
+                      />
+                    </div>
+                    <div className="form-row">
+                      <div>
+                        <UrlInput
+                          placeholder={t('activity_url_label') || 'Activity URL'}
+                          value={activityForm.url}
+                          onChange={(e) => setActivityForm({ ...activityForm, url: e.target.value })}
+                          required={activityForm.type !== 'quiz'}
+                          error={formErrors.url}
+                          onOpen={(href) => console.debug('open activity url', href)}
+                          onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
+                          onClear={() => setActivityForm({ ...activityForm, url: '' })}
+                          fullWidth
+                        />
+                      </div>
+                      <DatePicker
+                        type="datetime"
+                        value={activityForm.dueDate}
+                        onChange={(iso) => setActivityForm({ ...activityForm, dueDate: iso })}
+                        placeholder={t('pick_due_date') || 'Pick due date & time'}
+                      />
+                      <UrlInput
+                        placeholder={t('image_url') || 'Image URL'}
+                        value={activityForm.image}
+                        onChange={(e) => setActivityForm({ ...activityForm, image: e.target.value })}
+                        onOpen={(href) => console.debug('open image url', href)}
+                        onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
+                        onClear={() => setActivityForm({ ...activityForm, image: '' })}
+                        fullWidth
+                      />
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <NumberInput
+                          placeholder={t('max_score') || 'Max Score'}
+                          value={activityForm.maxScore || 100}
+                          onChange={(e) => {
+                            if (activityForm.quizId && !activityForm.overrideQuizSettings) {
+                              toast?.showInfo?.('Max score is synced from quiz. Enable "Override quiz settings" to edit.');
+                              return;
+                            }
+                            setActivityForm({ ...activityForm, maxScore: Math.max(1, Number.parseInt(e.target.value || '0', 10)) });
+                          }}
+                          min={1}
+                          fullWidth
+                          disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
+                        />
+                        {activityForm.quizId && !activityForm.overrideQuizSettings && (
+                          <Lock 
+                            size={16} 
+                            style={{ 
+                              position: 'absolute', 
+                              right: '12px', 
+                              top: '50%', 
+                              transform: 'translateY(-50%)',
+                              color: '#ef4444',
+                              pointerEvents: 'none',
+                              zIndex: 10
+                            }} 
+                            title="Locked - synced from quiz"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quiz Selector - Only show for quiz type */}
+                    {activityForm.type === 'quiz' && (
+                      <div className="form-row single-column">
+                        <Select
+                          searchable
+                          placeholder={t('select_quiz') || 'Select Quiz (Optional)'}
+                          value={activityForm.quizId || ''}
+                          onChange={(e) => {
+                            const selectedQuizId = e.target.value;
+                            const selectedQuiz = quizzes.find(q => q.id === selectedQuizId);
+                            console.log('Quiz selected:', selectedQuizId, selectedQuiz);
+                            
+                            if (selectedQuiz) {
+                              const quizMaxScore = selectedQuiz.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 100;
+                              const quizDifficulty = selectedQuiz.difficulty || 'beginner';
+                              const quizAllowRetake = selectedQuiz.settings?.allowRetake !== undefined 
+                                ? selectedQuiz.settings.allowRetake 
+                                : (selectedQuiz.allowRetake !== undefined ? selectedQuiz.allowRetake : false);
+                              
+                              setActivityForm(prev => ({
+                                ...prev,
+                                quizId: selectedQuizId,
+                                ...(prev.overrideQuizSettings ? {} : {
+                                  difficulty: quizDifficulty,
+                                  allowRetake: quizAllowRetake,
+                                  maxScore: quizMaxScore
+                                })
+                              }));
+                            } else {
+                              setActivityForm(prev => ({
+                                ...prev,
+                                quizId: ''
+                              }));
+                            }
+                          }}
+                          options={[
+                            { value: '', label: t('select_quiz') || 'Select Quiz (Optional)' },
+                            ...quizzes
+                              .filter((quiz, index, self) => 
+                                index === self.findIndex(q => q.id === quiz.id)
+                              )
+                              .filter(quiz => quiz.id)
+                              .map((quiz) => ({
+                                value: quiz.id,
+                                label: `${quiz.title || 'Untitled Quiz'} (${quiz.questions?.length || quiz.questionCount || 0} questions)`
+                              }))
+                          ]}
+                          style={{ width: '100%' }}
+                        />
+                        {activityForm.quizId && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: '#f0f8ff', borderRadius: '6px' }}>
+                            <ToggleSwitch
+                              label="Override quiz settings (retake, difficulty, total marks)"
+                              checked={activityForm.overrideQuizSettings || false}
+                              onChange={(checked) => {
+                                setActivityForm(prev => {
+                                  if (!checked && prev.quizId) {
+                                    const selectedQuiz = quizzes.find(q => q.id === prev.quizId);
+                                    if (selectedQuiz) {
+                                      const quizMaxScore = selectedQuiz.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 100;
+                                      const quizDifficulty = selectedQuiz.difficulty || 'beginner';
+                                      const quizAllowRetake = selectedQuiz.settings?.allowRetake !== undefined 
+                                        ? selectedQuiz.settings.allowRetake 
+                                        : (selectedQuiz.allowRetake !== undefined ? selectedQuiz.allowRetake : false);
+                                      
+                                      return {
+                                        ...prev,
+                                        overrideQuizSettings: false,
+                                        difficulty: quizDifficulty,
+                                        allowRetake: quizAllowRetake,
+                                        maxScore: quizMaxScore
+                                      };
+                                    }
+                                  }
+                                  return { ...prev, overrideQuizSettings: checked };
+                                });
+                              }}
+                            />
+                            {!activityForm.overrideQuizSettings && (
+                              <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <Lock size={12} /> Synced from quiz
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
 
-                <div className="form-row compact-cols">
-                  <ToggleSwitch
-                    label={t('show_to_students') || 'Show to students'}
-                    checked={activityForm.show}
-                    onChange={(checked) => setActivityForm({ ...activityForm, show: checked })}
-                  />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ToggleSwitch
-                      label={t('allow_retakes') || 'Allow retakes'}
-                      checked={activityForm.allowRetake || false}
-                      onChange={(checked) => {
-                        if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                          toast?.showInfo?.('Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.');
-                          return;
-                        }
-                        setActivityForm({ ...activityForm, allowRetake: checked });
-                      }}
-                      disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
-                    />
-                    {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                      <Lock 
-                        size={14} 
-                        style={{ color: '#ef4444', flexShrink: 0 }} 
-                        title="Locked - synced from quiz"
+                {/* Settings Tab */}
+                {activeActivityFormTab === 'settings' && (
+                  <>
+                    <div className="form-row compact-cols">
+                      <ToggleSwitch
+                        label={t('show_to_students') || 'Show to students'}
+                        checked={activityForm.show}
+                        onChange={(checked) => setActivityForm({ ...activityForm, show: checked })}
                       />
-                    )}
-                  </div>
-                  <ToggleSwitch
-                    label={t('featured') || 'Featured'}
-                    checked={activityForm.featured}
-                    onChange={(checked) => setActivityForm({ ...activityForm, featured: checked })}
-                  />
-                  <ToggleSwitch
-                    label={t('optional') || 'Optional (if off: Required)'}
-                    checked={activityForm.optional}
-                    onChange={(checked) => setActivityForm({ ...activityForm, optional: checked })}
-                  />
-                  <ToggleSwitch
-                    label={t('requires_submission') || 'Requires Submission'}
-                    checked={activityForm.requiresSubmission}
-                    onChange={(checked) => setActivityForm({ ...activityForm, requiresSubmission: checked })}
-                  />
-                </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <ToggleSwitch
+                          label={t('allow_retakes') || 'Allow retakes'}
+                          checked={activityForm.allowRetake || false}
+                          onChange={(checked) => {
+                            if (activityForm.quizId && !activityForm.overrideQuizSettings) {
+                              toast?.showInfo?.('Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.');
+                              return;
+                            }
+                            setActivityForm({ ...activityForm, allowRetake: checked });
+                          }}
+                          disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
+                        />
+                        {activityForm.quizId && !activityForm.overrideQuizSettings && (
+                          <Lock 
+                            size={14} 
+                            style={{ color: '#ef4444', flexShrink: 0 }} 
+                            title="Locked - synced from quiz"
+                          />
+                        )}
+                      </div>
+                      <ToggleSwitch
+                        label={t('featured') || 'Featured'}
+                        checked={activityForm.featured}
+                        onChange={(checked) => setActivityForm({ ...activityForm, featured: checked })}
+                      />
+                      <ToggleSwitch
+                        label={t('optional') || 'Optional (if off: Required)'}
+                        checked={activityForm.optional}
+                        onChange={(checked) => setActivityForm({ ...activityForm, optional: checked })}
+                      />
+                      <ToggleSwitch
+                        label={t('requires_submission') || 'Requires Submission'}
+                        checked={activityForm.requiresSubmission}
+                        onChange={(checked) => setActivityForm({ ...activityForm, requiresSubmission: checked })}
+                      />
+                    </div>
 
-                {/* Email Notification Options */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  gap: '0.75rem',
-                  padding: '1rem',
-                  background: '#f0f8ff',
-                  borderRadius: '8px',
-                  border: '2px solid var(--color-primary, #800020)'
-                }}>
-                  <ToggleSwitch
-                    label={t('send_email_to_students') || 'Send email to students'}
-                    checked={emailOptions.sendEmail}
-                    onChange={(checked) => setEmailOptions({ ...emailOptions, sendEmail: checked })}
-                  />
+                    {/* Email Notification Options */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: '0.75rem',
+                      padding: '1rem',
+                      background: '#f0f8ff',
+                      borderRadius: '8px',
+                      border: '2px solid var(--color-primary, #800020)'
+                    }}>
+                      <ToggleSwitch
+                        label={t('send_email_to_students') || 'Send email to students'}
+                        checked={emailOptions.sendEmail}
+                        onChange={(checked) => setEmailOptions({ ...emailOptions, sendEmail: checked })}
+                      />
 
-                  <ToggleSwitch
-                    label={t('create_announcement') || 'Create announcement'}
-                    checked={emailOptions.createAnnouncement}
-                    onChange={(checked) => setEmailOptions({ ...emailOptions, createAnnouncement: checked })}
-                  />
-                  {emailOptions.sendEmail && (
+                      <ToggleSwitch
+                        label={t('create_announcement') || 'Create announcement'}
+                        checked={emailOptions.createAnnouncement}
+                        onChange={(checked) => setEmailOptions({ ...emailOptions, createAnnouncement: checked })}
+                      />
+                      {emailOptions.sendEmail && (
                     <div>
                       <small>{t('language') || 'Language'}</small>
                       <Select
@@ -2517,6 +2557,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   )}
                 </div>
 
+                {/* Form Actions - Show on all tabs */}
                 <div className="form-actions">
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                     <Button type="submit" variant="primary" loading={loading}>
@@ -2529,6 +2570,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     )}
                   </div>
                 </div>
+                  </>
+                )}
               </form>
               <div style={{ marginTop: '1rem' }}>
                 <AdvancedDataGrid
@@ -2607,9 +2650,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const type = params.value || params.row?.type;
                       if (!type) return '—';
                       const typeMap = {
-                        'quiz': '📝 Quiz',
-                        'homework': '📋 Homework',
-                        'training': '📚 Training'
+                        'quiz': 'Quiz',
+                        'homework': 'Homework',
+                        'training': 'Training'
                       };
                       return typeMap[type] || type;
                     }
@@ -2625,7 +2668,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     field: 'allowRetake',
                     headerName: t('allow_retakes') || 'Retake',
                     width: 100,
-                    renderCell: (params) => (params.value ? '✅ Yes' : '❌ No')
+                    renderCell: (params) => (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                        {params.value ? 
+                          <><CheckCircle size={16} color="var(--color-success, #16a34a)" /> Yes</> : 
+                          <><XCircle size={16} color="var(--color-danger, #dc2626)" /> No</>
+                        }
+                      </span>
+                    )
                   },
                   {
                     field: 'quizId',
@@ -2649,7 +2699,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   },
                   {
                     field: 'show', headerName: t('visible') || 'Visible', width: 120,
-                    renderCell: (params) => (params.value ? `✅ ${t('yes') || 'Yes'}` : `❌ ${t('no') || 'No'}`)
+                    renderCell: (params) => (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                        {params.value ? 
+                          <><Eye size={16} color="var(--color-success, #16a34a)" /> {t('yes') || 'Yes'}</> : 
+                          <><EyeOff size={16} color="var(--color-danger, #dc2626)" /> {t('no') || 'No'}</>
+                        }
+                      </span>
+                    )
                   },
                   {
                     field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
@@ -2729,66 +2786,126 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 </div>
               )}
 
+              <RibbonTabs
+                categories={[
+                  {
+                    id: 'announcement-fields',
+                    label: 'Announcement Details',
+                    items: [
+                      { key: 'basic', label: 'Basic Info', icon: <Bell size={14} /> },
+                      { key: 'content', label: 'Content', icon: <Edit size={14} /> },
+                      { key: 'email', label: 'Email Options', icon: <Mail size={14} /> }
+                    ]
+                  }
+                ]}
+                activeCategory="announcement-fields"
+                activeItem={activeAnnouncementFormTab}
+                onChange={({ item }) => setActiveAnnouncementFormTab(item)}
+              />
               <form onSubmit={handleAnnouncementSubmit} className="announcement-form dashboard-form">
-                <div className="form-row">
-                  <Input
-                    type="text"
-                    placeholder={t('announcement_title')}
-                    value={announcementForm.title}
-                    onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="form-row wide-cols">
-                  <Select
-                    searchable
-                    placeholder={t('program') || 'Program (Optional)'}
-                    value={announcementForm.programId}
-                    onChange={handleDropdownChange(setAnnouncementForm, 'programId', ['subjectId', 'classId'])}
-                    options={activityProgramOptions}
-                  />
-                  <Select
-                    searchable
-                    placeholder={t('subject') || 'Subject (Optional)'}
-                    value={announcementForm.subjectId}
-                    onChange={handleDropdownChange(setAnnouncementForm, 'subjectId', ['classId'])}
-                    options={activitySubjectOptions.filter(o => !announcementForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === announcementForm.programId)}
-                    disabled={!announcementForm.programId}
-                  />
-                  <Select
-                    searchable
-                    placeholder={t('class') || 'Class (Optional)'}
-                    value={announcementForm.classId}
-                    onChange={handleDropdownChange(setAnnouncementForm, 'classId')}
-                    options={activityClassOptions.filter(o => !announcementForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === announcementForm.subjectId)}
-                    disabled={!announcementForm.subjectId}
-                  />
-                </div>
-                <div className="form-row">
-                  <Textarea
-                    placeholder={t('announcement_content_english')}
-                    value={announcementForm.content}
-                    onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
-                    rows={4}
-                    required
-                    fullWidth
-                  />
-                  <Textarea
-                    placeholder={t('announcement_content_arabic')}
-                    value={announcementForm.content_ar}
-                    onChange={(e) => setAnnouncementForm({ ...announcementForm, content_ar: e.target.value })}
-                    rows={4}
-                    fullWidth
-                  />
-                </div>
-                {/* Email options for announcement */}
-                <div className="form-row flex-row with-top-margin">
-                  <ToggleSwitch
-                    label={t('send_email_notification') || 'Send Email Notification'}
-                    checked={announcementEmailOptions.sendEmail}
-                    onChange={(checked) => setAnnouncementEmailOptions({ ...announcementEmailOptions, sendEmail: checked })}
-                  />
-                  <div className="form-actions" style={{ marginTop: '0.5rem' }}>
+                {/* Basic Info Tab */}
+                {activeAnnouncementFormTab === 'basic' && (
+                  <>
+                    <div className="form-row wide-cols">
+                      <Select
+                        searchable
+                        placeholder={t('program') || 'Program (Optional)'}
+                        value={announcementForm.programId}
+                        onChange={handleDropdownChange(setAnnouncementForm, 'programId', ['subjectId', 'classId'])}
+                        options={activityProgramOptions}
+                      />
+                      <Select
+                        searchable
+                        placeholder={t('subject') || 'Subject (Optional)'}
+                        value={announcementForm.subjectId}
+                        onChange={handleDropdownChange(setAnnouncementForm, 'subjectId', ['classId'])}
+                        options={activitySubjectOptions.filter(o => !announcementForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === announcementForm.programId)}
+                        disabled={!announcementForm.programId}
+                      />
+                      <Select
+                        searchable
+                        placeholder={t('class') || 'Class (Optional)'}
+                        value={announcementForm.classId}
+                        onChange={handleDropdownChange(setAnnouncementForm, 'classId')}
+                        options={activityClassOptions.map(o => {
+                        const classData = classes.find(c => c.docId === o.value);
+                        if (!classData) return o;
+                        return {
+                          ...o,
+                          label: `${classData.name || classData.code || 'Unnamed'}${classData.code ? ` (${classData.code})` : ''}${classData.term ? ` - ${classData.term}` : ''}${classData.year ? ` ${classData.year}` : ''}`
+                        };
+                      }).filter(o => !announcementForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === announcementForm.subjectId)}
+                        disabled={!announcementForm.subjectId}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <Input
+                        type="text"
+                        placeholder={t('announcement_title')}
+                        value={announcementForm.title}
+                        onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Content Tab */}
+                {activeAnnouncementFormTab === 'content' && (
+                  <div className="form-row">
+                    <Textarea
+                      placeholder={t('announcement_content_english')}
+                      value={announcementForm.content}
+                      onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                      rows={4}
+                      required
+                      fullWidth
+                    />
+                    <Textarea
+                      placeholder={t('announcement_content_arabic')}
+                      value={announcementForm.content_ar}
+                      onChange={(e) => setAnnouncementForm({ ...announcementForm, content_ar: e.target.value })}
+                      rows={4}
+                      fullWidth
+                    />
+                  </div>
+                )}
+
+                {/* Email Options Tab */}
+                {activeAnnouncementFormTab === 'email' && (
+                  <>
+                    <div className="form-row flex-row with-top-margin">
+                      <ToggleSwitch
+                        label={t('send_email_notification') || 'Send Email Notification'}
+                        checked={announcementEmailOptions.sendEmail}
+                        onChange={(checked) => setAnnouncementEmailOptions({ ...announcementEmailOptions, sendEmail: checked })}
+                      />
+                    </div>
+                    {announcementEmailOptions.sendEmail && (
+                      <div className="form-row">
+                        <div>
+                          <small>{t('language') || 'Language'}</small>
+                          <Select
+                            searchable
+                            placeholder={t('language') || 'Language'}
+                            value={announcementEmailOptions.lang}
+                            onChange={(e) => setAnnouncementEmailOptions({ ...announcementEmailOptions, lang: e.target.value })}
+                            options={[
+                              { value: 'en', label: lang === 'ar' ? 'الإنجليزية' : 'English' },
+                              { value: 'ar', label: lang === 'ar' ? 'العربية' : 'Arabic' },
+                              { value: 'both', label: lang === 'ar' ? 'اللغتين' : 'Both Languages' }
+                            ]}
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Form Actions - Show on all tabs */}
+                <div className="form-row flex-row">
+                  <div className="form-actions" style={{ flex: 1, justifyContent: 'flex-end', gap: '0.75rem' }}>
                     <Button
                       type="button"
                       variant="secondary"
@@ -2803,7 +2920,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       <Button type="button" variant="outline" onClick={() => {
                         setEditingAnnouncement(null);
                         setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
-                      }} style={{ marginLeft: '0.5rem' }}>
+                      }}>
                         {t('cancel_edit') || 'Cancel Edit'}
                       </Button>
                     )}
@@ -3001,109 +3118,109 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
           {activeTab === 'login' && (
             <div className="login-activity-tab">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, margin: '0.5rem 0 1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '0.5rem 0 1rem', flexWrap: 'wrap', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 <Select value={activityTypeFilter} onChange={(e) => setActivityTypeFilter(e.target.value)} options={[
-                  { value: 'all', label: t('all_activity_types') || 'All Activity Types' },
+                  { value: 'all', label: t('all_activity_types') || 'All Activity Types', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   // Authentication
-                  { value: 'login', label: 'Login' },
-                  { value: 'logout', label: 'Logout' },
-                  { value: 'signup', label: 'Signup' },
-                  { value: 'session_timeout', label: 'Session Timeout' },
-                  { value: 'profile_update', label: 'Profile Update' },
-                  { value: 'password_change', label: 'Password Change' },
-                  { value: 'email_change', label: 'Email Change' },
+                  { value: 'login', label: t('login') || 'Login', icon: <LogIn size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'logout', label: t('logout') || 'Logout', icon: <LogOut size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'signup', label: t('signup') || 'Signup', icon: <UserPlus size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'session_timeout', label: t('session_timeout') || 'Session Timeout', icon: <Clock size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'profile_update', label: t('profile_update') || 'Profile Update', icon: <User size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'password_change', label: t('password_change') || 'Password Change', icon: <Key size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'email_change', label: t('email_change') || 'Email Change', icon: <Mail size={16} color="var(--text-secondary, #374151)" /> },
                   // Quiz Activities
-                  { value: 'quiz_started', label: 'Quiz Started' },
-                  { value: 'quiz_submitted', label: 'Quiz Submitted' },
-                  { value: 'quiz_created', label: 'Quiz Created' },
-                  { value: 'quiz_deleted', label: 'Quiz Deleted' },
-                  { value: 'quiz_published', label: 'Quiz Published' },
+                  { value: 'quiz_started', label: t('quiz_started') || 'Quiz Started', icon: <Target size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'quiz_submitted', label: t('quiz_submitted') || 'Quiz Submitted', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'quiz_created', label: t('quiz_created') || 'Quiz Created', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'quiz_deleted', label: t('quiz_deleted') || 'Quiz Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'quiz_published', label: t('quiz_published') || 'Quiz Published', icon: <Send size={16} color="var(--text-secondary, #374151)" /> },
                   // Activity CRUD
-                  { value: 'activity_created', label: 'Activity Created' },
-                  { value: 'activity_updated', label: 'Activity Updated' },
-                  { value: 'activity_deleted', label: 'Activity Deleted' },
-                  { value: 'activity_viewed', label: 'Activity Viewed' },
+                  { value: 'activity_created', label: t('activity_created') || 'Activity Created', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'activity_updated', label: t('activity_updated') || 'Activity Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'activity_deleted', label: t('activity_deleted') || 'Activity Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'activity_viewed', label: t('activity_viewed') || 'Activity Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // Assignment/Submission
-                  { value: 'assignment_started', label: 'Assignment Started' },
-                  { value: 'assignment_submitted', label: 'Assignment Submitted' },
-                  { value: 'submission_graded', label: 'Submission Graded' },
+                  { value: 'assignment_started', label: t('assignment_started') || 'Assignment Started', icon: <PenTool size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'assignment_submitted', label: t('assignment_submitted') || 'Assignment Submitted', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'submission_graded', label: t('submission_graded') || 'Submission Graded', icon: <Award size={16} color="var(--text-secondary, #374151)" /> },
                   // Resources CRUD
-                  { value: 'resource_created', label: 'Resource Created' },
-                  { value: 'resource_updated', label: 'Resource Updated' },
-                  { value: 'resource_deleted', label: 'Resource Deleted' },
-                  { value: 'resource_completed', label: 'Resource Completed' },
-                  { value: 'resource_bookmarked', label: 'Resource Bookmarked' },
+                  { value: 'resource_created', label: t('resource_created') || 'Resource Created', icon: <BookOpen size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'resource_updated', label: t('resource_updated') || 'Resource Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'resource_deleted', label: t('resource_deleted') || 'Resource Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'resource_completed', label: t('resource_completed') || 'Resource Completed', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'resource_bookmarked', label: t('resource_bookmarked') || 'Resource Bookmarked', icon: <Bookmark size={16} color="var(--text-secondary, #374151)" /> },
                   // Attendance
-                  { value: 'attendance_marked', label: 'Attendance Marked' },
+                  { value: 'attendance_marked', label: t('attendance_marked') || 'Attendance Marked', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
                   // Communication
-                  { value: 'message_sent', label: 'Message Sent' },
-                  { value: 'message_received', label: 'Message Received' },
-                  { value: 'announcement_read', label: 'Announcement Read' },
-                  { value: 'announcement_created', label: 'Announcement Created' },
-                  { value: 'announcement_updated', label: 'Announcement Updated' },
-                  { value: 'announcement_deleted', label: 'Announcement Deleted' },
+                  { value: 'message_sent', label: t('message_sent') || 'Message Sent', icon: <Send size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'message_received', label: t('message_received') || 'Message Received', icon: <MessageSquare size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'announcement_read', label: t('announcement_read') || 'Announcement Read', icon: <Bell size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'announcement_created', label: t('announcement_created') || 'Announcement Created', icon: <Bell size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'announcement_updated', label: t('announcement_updated') || 'Announcement Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'announcement_deleted', label: t('announcement_deleted') || 'Announcement Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
                   // Penalties CRUD
-                  { value: 'penalty_created', label: 'Penalty Created' },
-                  { value: 'penalty_updated', label: 'Penalty Updated' },
-                  { value: 'penalty_deleted', label: 'Penalty Deleted' },
-                  { value: 'penalty_viewed', label: 'Penalty Viewed' },
+                  { value: 'penalty_created', label: t('penalty_created') || 'Penalty Created', icon: <AlertTriangle size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'penalty_updated', label: t('penalty_updated') || 'Penalty Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'penalty_deleted', label: t('penalty_deleted') || 'Penalty Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'penalty_viewed', label: t('penalty_viewed') || 'Penalty Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // Participation CRUD
-                  { value: 'participation_created', label: 'Participation Created' },
-                  { value: 'participation_updated', label: 'Participation Updated' },
-                  { value: 'participation_deleted', label: 'Participation Deleted' },
-                  { value: 'participation_viewed', label: 'Participation Viewed' },
+                  { value: 'participation_created', label: t('participation_created') || 'Participation Created', icon: <Users size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'participation_updated', label: t('participation_updated') || 'Participation Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'participation_deleted', label: t('participation_deleted') || 'Participation Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'participation_viewed', label: t('participation_viewed') || 'Participation Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // Behavior CRUD
-                  { value: 'behavior_created', label: 'Behavior Created' },
-                  { value: 'behavior_updated', label: 'Behavior Updated' },
-                  { value: 'behavior_deleted', label: 'Behavior Deleted' },
-                  { value: 'behavior_viewed', label: 'Behavior Viewed' },
+                  { value: 'behavior_created', label: t('behavior_created') || 'Behavior Created', icon: <UserMinus size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'behavior_updated', label: t('behavior_updated') || 'Behavior Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'behavior_deleted', label: t('behavior_deleted') || 'Behavior Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'behavior_viewed', label: t('behavior_viewed') || 'Behavior Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // Class CRUD
-                  { value: 'class_created', label: 'Class Created' },
-                  { value: 'class_updated', label: 'Class Updated' },
-                  { value: 'class_deleted', label: 'Class Deleted' },
-                  { value: 'class_viewed', label: 'Class Viewed' },
+                  { value: 'class_created', label: t('class_created') || 'Class Created', icon: <Home size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'class_updated', label: t('class_updated') || 'Class Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'class_deleted', label: t('class_deleted') || 'Class Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'class_viewed', label: t('class_viewed') || 'Class Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // Subject CRUD
-                  { value: 'subject_created', label: 'Subject Created' },
-                  { value: 'subject_updated', label: 'Subject Updated' },
-                  { value: 'subject_deleted', label: 'Subject Deleted' },
-                  { value: 'subject_viewed', label: 'Subject Viewed' },
+                  { value: 'subject_created', label: t('subject_created') || 'Subject Created', icon: <BookOpen size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'subject_updated', label: t('subject_updated') || 'Subject Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'subject_deleted', label: t('subject_deleted') || 'Subject Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'subject_viewed', label: t('subject_viewed') || 'Subject Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // Program CRUD
-                  { value: 'program_created', label: 'Program Created' },
-                  { value: 'program_updated', label: 'Program Updated' },
-                  { value: 'program_deleted', label: 'Program Deleted' },
-                  { value: 'program_viewed', label: 'Program Viewed' },
+                  { value: 'program_created', label: t('program_created') || 'Program Created', icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'program_updated', label: t('program_updated') || 'Program Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'program_deleted', label: t('program_deleted') || 'Program Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'program_viewed', label: t('program_viewed') || 'Program Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // Enrollment CRUD
-                  { value: 'enrollment_created', label: 'Enrollment Created' },
-                  { value: 'enrollment_updated', label: 'Enrollment Updated' },
-                  { value: 'enrollment_deleted', label: 'Enrollment Deleted' },
-                  { value: 'enrollment_viewed', label: 'Enrollment Viewed' },
+                  { value: 'enrollment_created', label: t('enrollment_created') || 'Enrollment Created', icon: <Users size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'enrollment_updated', label: t('enrollment_updated') || 'Enrollment Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'enrollment_deleted', label: t('enrollment_deleted') || 'Enrollment Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'enrollment_viewed', label: t('enrollment_viewed') || 'Enrollment Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // Mark Entry CRUD
-                  { value: 'mark_entry_created', label: 'Mark Entry Created' },
-                  { value: 'mark_entry_updated', label: 'Mark Entry Updated' },
-                  { value: 'mark_entry_deleted', label: 'Mark Entry Deleted' },
-                  { value: 'mark_entry_viewed', label: 'Mark Entry Viewed' },
+                  { value: 'mark_entry_created', label: t('mark_entry_created') || 'Mark Entry Created', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'mark_entry_updated', label: t('mark_entry_updated') || 'Mark Entry Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'mark_entry_deleted', label: t('mark_entry_deleted') || 'Mark Entry Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'mark_entry_viewed', label: t('mark_entry_viewed') || 'Mark Entry Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
                   // User CRUD
-                  { value: 'user_created', label: 'User Created' },
-                  { value: 'user_updated', label: 'User Updated' },
-                  { value: 'user_deleted', label: 'User Deleted' },
+                  { value: 'user_created', label: t('user_created') || 'User Created', icon: <UserPlus size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'user_updated', label: t('user_updated') || 'User Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'user_deleted', label: t('user_deleted') || 'User Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
                   // Navigation
-                  { value: 'dashboard_viewed', label: 'Dashboard Viewed' },
-                  { value: 'analytics_viewed', label: 'Analytics Viewed' }
-                ]} fullWidth />
+                  { value: 'dashboard_viewed', label: t('dashboard_viewed') || 'Dashboard Viewed', icon: <Home size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'analytics_viewed', label: t('analytics_viewed') || 'Analytics Viewed', icon: <BarChart3 size={16} color="var(--text-secondary, #374151)" /> }
+                ]} style={{ minWidth: '200px', flex: '1' }} />
                 <Input
                   type="text"
                   placeholder={t('search_by_email_name_ua')}
                   value={loginSearch}
                   onChange={(e) => setLoginSearch(e.target.value)}
-                  fullWidth
+                  style={{ minWidth: '200px', flex: '1' }}
                 />
                 <Select value={loginUserFilter} onChange={(e) => setLoginUserFilter(e.target.value)} options={[
-                  { value: 'all', label: t('all_users') },
+                  { value: 'all', label: t('all_users'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   ...users.map(u => ({
                     value: u.email || u.docId,
                     label: u.displayName ? `${u.displayName} (${u.email || u.docId})` : (u.email || u.docId)
                   }))
-                ]} fullWidth />
+                ]} style={{ minWidth: '200px', flex: '1' }} />
                 <DateRangeSlider
                   fromDate={loginFrom ? (() => {
                     try {
@@ -3143,9 +3260,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   }}
                   placeholderFrom={t('from') || 'From'}
                   placeholderTo={t('to') || 'To'}
-                  fullWidth
+                  style={{ minWidth: '250px', flex: '1' }}
                 />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <Select
                     value={activityAutoRefreshMs}
                     onChange={(e) => setActivityAutoRefreshMs(Number(e.target.value))}
@@ -3185,18 +3302,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {
                     field: 'type', headerName: t('type'), width: 200,
                     renderCell: (params) => {
-                      const typeIcons = {
-                        login: '🔐', signup: '✨', profile_update: '👤', password_change: '🔑',
-                        email_change: '📧', session_timeout: '⏱️', message_sent: '📤', message_received: '📥',
-                        submission: '📝', announcement_read: '📢', announcement_created: '📣',
-                        quiz_start: '🎯', quiz_submit: '✅', submission_graded: '⭐',
-                        resource_completed: '📚', attendance_marked: '✓', activity_viewed: '👁️',
-                        resource_bookmarked: '🔖', badge_earned: '🏅'
-                      };
                       return (
-                        <span>
-                          <span style={{ fontSize: '1.2rem', marginRight: '6px' }}>{typeIcons[params.value] || '📋'}</span>
-                          <span style={{ fontSize: '0.85rem' }}>{params.value || 'login'}</span>
+                        <span style={{ fontSize: '0.85rem' }}>
+                          {params.value || 'login'}
                         </span>
                       );
                     }
@@ -3250,6 +3358,22 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 </div>
               )}
 
+              <RibbonTabs
+                categories={[
+                  {
+                    id: 'class-fields',
+                    label: 'Class Details',
+                    items: [
+                      { key: 'basic', label: 'Basic Info', icon: <Home size={14} /> },
+                      { key: 'academic', label: 'Academic Info', icon: <GraduationCap size={14} /> },
+                      { key: 'settings', label: 'Settings', icon: <Settings size={14} /> }
+                    ]
+                  }
+                ]}
+                activeCategory="class-fields"
+                activeItem={activeClassFormTab}
+                onChange={({ item }) => setActiveClassFormTab(item)}
+              />
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 if (!classForm.name.trim()) {
@@ -3286,100 +3410,120 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setLoading(false);
                 }
               }} className="dashboard-form">
-                <div className="form-row">
-                  <Select
-                    searchable
-                    placeholder={t('select_subject') || 'Select Subject'}
-                    value={ensureString(classForm.subjectId || '')}
-                    onChange={e => {
-                      const newSubjectId = ensureString(e.target.value);
-                      console.log('🔄 [Class Form] Subject changed:', newSubjectId);
-                      setClassForm({ ...classForm, subjectId: newSubjectId });
-                    }}
-                    options={classFormSubjectOptions}
-                    required
-                  />
-                  <Select
-                    searchable
-                    placeholder={t('select_owner') || 'Select Instructor'}
-                    value={classForm.ownerEmail}
-                    onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
-                    options={[
-                      { value: '', label: t('select_owner') || 'Select Instructor' },
-                      ...users.filter(user => user.role === 'admin' || user.role === 'instructor').map(instructor => {
-                        const displayName = instructor.displayName || instructor.name || instructor.realName || '';
-                        return {
-                          value: instructor.email,
-                          label: displayName ? `${displayName} (${instructor.email})` : instructor.email
-                        };
-                      }),
-                      ...(allowlist?.adminEmails?.filter(email =>
-                        !users.some(u => u.email === email)
-                      ).map(email => ({
-                        value: email,
-                        label: `${email} (from allowlist)`
-                      })) || [])
-                    ]}
-                    required
-                  />
-                </div>
-                <div className="form-row wide-cols">
-                  <Input
-                    placeholder={t('class_name')}
-                    value={classForm.name}
-                    onChange={e => setClassForm({ ...classForm, name: e.target.value })}
-                    required
-                  />
-                  <Input
-                    placeholder={t('class_name_arabic')}
-                    value={classForm.nameAr || ''}
-                    onChange={e => setClassForm({ ...classForm, nameAr: e.target.value })}
-                    dir="rtl"
-                  />
-                  <Input
-                    placeholder={t('class_code') + ' (' + t('optional') + ')'}
-                    value={classForm.code}
-                    onChange={e => setClassForm({ ...classForm, code: e.target.value })}
-                  />
-                </div>
+                {/* Basic Info Tab */}
+                {activeClassFormTab === 'basic' && (
+                  <>
+                    <div className="form-row wide-cols">
+                      <Input
+                        placeholder={t('class_name')}
+                        value={classForm.name}
+                        onChange={e => setClassForm({ ...classForm, name: e.target.value })}
+                        required
+                      />
+                      <Input
+                        placeholder={t('class_name_arabic')}
+                        value={classForm.nameAr || ''}
+                        onChange={e => setClassForm({ ...classForm, nameAr: e.target.value })}
+                        dir="rtl"
+                      />
+                      <Input
+                        placeholder={t('class_code') + ' (' + t('optional') + ')'}
+                        value={classForm.code}
+                        onChange={e => setClassForm({ ...classForm, code: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
 
-                <div className="form-row compact-cols">
-                  <Select
-                    searchable
-                    placeholder={t('term')}
-                    value={classForm.term?.split(' ')[0] || ''}
-                    onChange={e => {
-                      const year = classForm.term?.split(' ')[1] || new Date().getFullYear();
-                      setClassForm({ ...classForm, term: e.target.value ? `${e.target.value} ${year}` : '' });
-                    }}
-                    options={[
-                      { value: '', label: t('term') || 'Select Term' },
-                      { value: 'Fall', label: t('fall') || 'Fall' },
-                      { value: 'Spring', label: t('spring') || 'Spring' },
-                      { value: 'Summer', label: t('summer') || 'Summer' }
-                    ]}
-                    required
-                  />
-                  <div style={{ width: '100%' }}>
-                    <YearSelect
-                      value={classForm.term?.split(' ')[1] || ''}
-                      onChange={e => {
-                        const semester = classForm.term?.split(' ')[0] || '';
-                        setClassForm({
-                          ...classForm,
-                          term: semester ? `${semester} ${e.target.value}` : e.target.value
-                        });
-                      }}
-                      startYear={2024}
-                      yearsAhead={5}
-                      label={null}
-                      placeholder={t('year') || 'Year'}
-                      searchable
-                      required
-                    />
+                {/* Academic Info Tab */}
+                {activeClassFormTab === 'academic' && (
+                  <>
+                    <div className="form-row">
+                      <Select
+                        searchable
+                        placeholder={t('select_subject') || 'Select Subject'}
+                        value={ensureString(classForm.subjectId || '')}
+                        onChange={e => {
+                          const newSubjectId = ensureString(e.target.value);
+                          console.log('🔄 [Class Form] Subject changed:', newSubjectId);
+                          setClassForm({ ...classForm, subjectId: newSubjectId });
+                        }}
+                        options={classFormSubjectOptions}
+                        required
+                      />
+                      <Select
+                        searchable
+                        placeholder={t('select_owner') || 'Select Instructor'}
+                        value={classForm.ownerEmail}
+                        onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
+                        options={[
+                          { value: '', label: t('select_owner') || 'Select Instructor' },
+                          ...users.filter(user => user.role === 'admin' || user.role === 'instructor').map(instructor => {
+                            const displayName = instructor.displayName || instructor.name || instructor.realName || '';
+                            return {
+                              value: instructor.email,
+                              label: displayName ? `${displayName} (${instructor.email})` : instructor.email
+                            };
+                          }),
+                          ...(allowlist?.adminEmails?.filter(email =>
+                            !users.some(u => u.email === email)
+                          ).map(email => ({
+                            value: email,
+                            label: `${email} (from allowlist)`
+                          })) || [])
+                        ]}
+                        required
+                      />
+                    </div>
+                    <div className="form-row compact-cols">
+                      <Select
+                        searchable
+                        placeholder={t('term')}
+                        value={classForm.term?.split(' ')[0] || ''}
+                        onChange={e => {
+                          const year = classForm.term?.split(' ')[1] || new Date().getFullYear();
+                          setClassForm({ ...classForm, term: e.target.value ? `${e.target.value} ${year}` : '' });
+                        }}
+                        options={[
+                          { value: '', label: t('term') || 'Select Term' },
+                          { value: 'Fall', label: t('fall') || 'Fall' },
+                          { value: 'Spring', label: t('spring') || 'Spring' },
+                          { value: 'Summer', label: t('summer') || 'Summer' }
+                        ]}
+                        required
+                      />
+                      <div style={{ width: '100%' }}>
+                        <YearSelect
+                          value={classForm.term?.split(' ')[1] || ''}
+                          onChange={e => {
+                            const semester = classForm.term?.split(' ')[0] || '';
+                            setClassForm({
+                              ...classForm,
+                              term: semester ? `${semester} ${e.target.value}` : e.target.value
+                            });
+                          }}
+                          startYear={2024}
+                          yearsAhead={5}
+                          label={null}
+                          placeholder={t('year') || 'Year'}
+                          searchable
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Settings Tab */}
+                {activeClassFormTab === 'settings' && (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+                    <Settings size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                    <p>Additional class settings can be added here in the future.</p>
+                    <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Features like class capacity, schedule, enrollment restrictions, etc.</p>
                   </div>
-                </div>
+                )}
 
+                {/* Form Actions - Show on all tabs */}
                 <div className="form-actions">
                   <Button type="submit" variant="primary" loading={loading}>
                     {(editingClass ? t('update') : t('save'))}
@@ -3603,6 +3747,22 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         {/* Enrollments Tab */}
         {activeTab === 'enrollments' && (
           <div className="enrollments-section" style={{ marginTop: '2rem' }}>
+            <RibbonTabs
+              categories={[
+                {
+                  id: 'enrollment-fields',
+                  label: 'Enrollment Details',
+                  items: [
+                    { key: 'user', label: 'User Info', icon: <User size={14} /> },
+                    { key: 'class', label: 'Class Info', icon: <Home size={14} /> },
+                    { key: 'role', label: 'Role', icon: <Shield size={14} /> }
+                  ]
+                }
+              ]}
+              activeCategory="enrollment-fields"
+              activeItem="user"
+              onChange={({ category, item }) => console.log('Ribbon tab changed:', { category, item })}
+            />
             <form onSubmit={async (e) => {
               e.preventDefault();
               // Check if enrollment already exists
@@ -4068,7 +4228,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={activityFilter}
                 onChange={(e) => setActivityFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_activities') || 'All Activities' },
+                  { value: 'all', label: t('all_activities') || 'All Activities', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   ...activities.map(a => ({ value: a.id || a.docId, label: a.title_en || a.title_ar || a.id }))
                 ]}
                 searchable
@@ -4079,7 +4239,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={submissionStudentFilter}
                 onChange={(e) => setSubmissionStudentFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_students') || 'All Students' },
+                  { value: 'all', label: t('all_students') || 'All Students', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   ...users.map(u => ({
                     value: u.docId || u.id,
                     label: `${u.email}${u.displayName ? ` (${u.displayName})` : ''}`
@@ -4091,7 +4251,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={submissionStatusFilter}
                 onChange={(e) => setSubmissionStatusFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_statuses') || 'All Status' },
+                  { value: 'all', label: t('all_statuses') || 'All Status', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   { value: 'pending', label: t('pending') || 'Pending' },
                   { value: 'graded', label: t('graded') || 'Graded' },
                   { value: 'late', label: t('late') || 'Late' }
@@ -4103,7 +4263,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={submissionScoreFilter}
                 onChange={(e) => setSubmissionScoreFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_scores') || 'All Scores' },
+                  { value: 'all', label: t('all_scores') || 'All Scores', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   { value: 'graded', label: t('graded_only') || 'Graded only' },
                   { value: 'not_graded', label: t('not_graded_only') || 'Not graded yet' }
                 ]}
@@ -4142,12 +4302,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'status', headerName: t('status_col'), width: 140,
                   renderCell: (params) => {
                     const statusMap = {
-                      'submitted': '📝 Submitted',
-                      'graded': '✅ Graded',
-                      'late': '⏰ Late',
-                      'pending': '⏳ Pending'
+                      'submitted': { icon: <FileText size={16} color="var(--text-secondary, #374151)" />, text: 'Submitted' },
+                      'graded': { icon: <CheckCircle size={16} color="var(--color-success, #16a34a)" />, text: 'Graded' },
+                      'late': { icon: <Clock size={16} color="var(--color-warning, #f59e0b)" />, text: 'Late' },
+                      'pending': { icon: <Clock size={16} color="var(--text-secondary, #374151)" />, text: 'Pending' }
                     };
-                    return statusMap[params.value] || params.value || '📝 Submitted';
+                    const status = statusMap[params.value] || statusMap['submitted'];
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                        {status.icon} {status.text}
+                      </span>
+                    );
                   }
                 },
                 {
@@ -4240,6 +4405,22 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               </div>
             )}
 
+            <RibbonTabs
+              categories={[
+                {
+                  id: 'user-fields',
+                  label: 'User Details',
+                  items: [
+                    { key: 'basic', label: 'Basic Info', icon: <User size={14} /> },
+                    { key: 'academic', label: 'Academic Info', icon: <GraduationCap size={14} /> },
+                    { key: 'role', label: 'Role & Access', icon: <Shield size={14} /> }
+                  ]
+                }
+              ]}
+              activeCategory="user-fields"
+              activeItem="basic"
+              onChange={({ category, item }) => console.log('Ribbon tab changed:', { category, item })}
+            />
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (!userForm.email.trim()) {
@@ -4373,7 +4554,38 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 { field: 'displayName', headerName: t('display_name_col'), flex: 1, minWidth: 180 },
                 {
                   field: 'role', headerName: t('role_col'), width: 120,
-                  renderCell: (params) => params.value || t('student')
+                  renderCell: (params) => {
+                    const role = params.value || t('student');
+                    const roleIcons = {
+                      'superadmin': <Crown size={16} color="var(--color-warning, #f59e0b)" />,
+                      'admin': <Shield size={16} color="var(--color-primary, #4f46e5)" />,
+                      'instructor': <GraduationCap size={16} color="var(--color-info, #0ea5e9)" />,
+                      'hr': <Users size={16} color="var(--color-secondary, #8b5cf6)" />,
+                      'student': <User size={16} color="var(--color-success, #16a34a)" />
+                    };
+                    const roleColors = {
+                      'superadmin': 'var(--color-warning, #f59e0b)',
+                      'admin': 'var(--color-primary, #4f46e5)', 
+                      'instructor': 'var(--color-info, #0ea5e9)',
+                      'hr': 'var(--color-secondary, #8b5cf6)',
+                      'student': 'var(--color-success, #16a34a)'
+                    };
+                    const normalizedRole = role.toLowerCase();
+                    const icon = roleIcons[normalizedRole] || roleIcons['student'];
+                    const color = roleColors[normalizedRole] || roleColors['student'];
+                    
+                    return (
+                      <span style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '4px',
+                        color: color,
+                        fontWeight: 600
+                      }}>
+                        {icon} {role}
+                      </span>
+                    );
+                  }
                 },
                 {
                   field: 'status', 
@@ -4384,11 +4596,23 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const isArchived = params.row.archived || params.row.deleted;
                     
                     if (isArchived) {
-                      return <span style={{ color: '#6b7280', fontWeight: 500 }}>{t('status_archived')}</span>;
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
+                          <Archive size={16} color="var(--text-muted, #6b7280)" /> {t('status_archived')}
+                        </span>
+                      );
                     } else if (isDisabled) {
-                      return <span style={{ color: '#dc2626', fontWeight: 500 }}>{t('status_disabled')}</span>;
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
+                          <UserX size={16} color="var(--color-danger, #dc2626)" /> {t('status_disabled')}
+                        </span>
+                      );
                     } else {
-                      return <span style={{ color: '#28a745', fontWeight: 500 }}>{t('status_active')}</span>;
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-success, #28a745)', fontWeight: 500 }}>
+                          <UserCheck size={16} color="var(--color-success, #28a745)" /> {t('status_active')}
+                        </span>
+                      );
                     }
                   }
                 },
@@ -4481,7 +4705,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         }}
                         title={t('reset_password') || 'Reset Password'}
                       >
-                        🔑
+                        {t('reset_password') || 'Reset Password'}
                       </Button>
                       <Button 
                         size="sm" 
@@ -4564,6 +4788,22 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               </div>
             )}
 
+            <RibbonTabs
+              categories={[
+                {
+                  id: 'resource-fields',
+                  label: 'Resource Details',
+                  items: [
+                    { key: 'basic', label: 'Basic Info', icon: <BookOpen size={14} /> },
+                    { key: 'content', label: 'Content', icon: <FileText size={14} /> },
+                    { key: 'settings', label: 'Settings', icon: <Settings size={14} /> }
+                  ]
+                }
+              ]}
+              activeCategory="resource-fields"
+              activeItem={activeResourceFormTab}
+              onChange={({ item }) => setActiveResourceFormTab(item)}
+            />
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (!resourceForm.title.trim() || !resourceForm.url.trim()) {
@@ -4721,116 +4961,140 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 setLoading(false);
               }
             }} className="dashboard-form">
-              <div className="form-row wide-cols">
-                <Select
-                  searchable
-                  placeholder={t('program') || 'Program (Optional - Public if empty)'}
-                  value={resourceForm.programId || ''}
-                  onChange={handleDropdownChange(setResourceForm, 'programId', ['subjectId', 'classId'])}
-                  options={activityProgramOptions}
-                />
-                <Select
-                  searchable
-                  placeholder={t('subject') || 'Subject (Optional)'}
-                  value={resourceForm.subjectId || ''}
-                  onChange={handleDropdownChange(setResourceForm, 'subjectId', ['classId'])}
-                  options={activitySubjectOptions.filter(o => !resourceForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceForm.programId)}
-                  disabled={!resourceForm.programId}
-                />
-                <Select
-                  searchable
-                  placeholder={t('class') || 'Class (Optional)'}
-                  value={resourceForm.classId || ''}
-                  onChange={handleDropdownChange(setResourceForm, 'classId')}
-                  options={activityClassOptions.filter(o => !resourceForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === resourceForm.subjectId)}
-                  disabled={!resourceForm.subjectId}
-                />
-              </div>
+              {/* Basic Info Tab */}
+              {activeResourceFormTab === 'basic' && (
+                <>
+                  <div className="form-row wide-cols">
+                    <Select
+                      searchable
+                      placeholder={t('program') || 'Program (Optional - Public if empty)'}
+                      value={resourceForm.programId || ''}
+                      onChange={handleDropdownChange(setResourceForm, 'programId', ['subjectId', 'classId'])}
+                      options={activityProgramOptions}
+                    />
+                    <Select
+                      searchable
+                      placeholder={t('subject') || 'Subject (Optional)'}
+                      value={resourceForm.subjectId || ''}
+                      onChange={handleDropdownChange(setResourceForm, 'subjectId', ['classId'])}
+                      options={activitySubjectOptions.filter(o => !resourceForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceForm.programId)}
+                      disabled={!resourceForm.programId}
+                    />
+                    <Select
+                      searchable
+                      placeholder={t('class') || 'Class (Optional)'}
+                      value={resourceForm.classId || ''}
+                      onChange={handleDropdownChange(setResourceForm, 'classId')}
+                      options={activityClassOptions.map(o => {
+                        const classData = classes.find(c => c.docId === o.value);
+                        if (!classData) return o;
+                        return {
+                          ...o,
+                          label: `${classData.name || classData.code || 'Unnamed'}${classData.code ? ` (${classData.code})` : ''}${classData.term ? ` - ${classData.term}` : ''}${classData.year ? ` ${classData.year}` : ''}`
+                        };
+                      })}
+                      disabled={!resourceForm.subjectId}
+                    />
+                  </div>
 
-              <div className="form-row">
-                <Input
-                  type="text"
-                  placeholder={t('resource_title') + ' (EN)'}
-                  value={resourceForm.title_en || resourceForm.title || ''}
-                  onChange={(e) => setResourceForm({ ...resourceForm, title_en: e.target.value, title: e.target.value })}
-                  required
-                />
-                <Input
-                  type="text"
-                  placeholder={t('resource_title') + ' (AR)'}
-                  value={resourceForm.title_ar || ''}
-                  onChange={(e) => setResourceForm({ ...resourceForm, title_ar: e.target.value })}
-                />
-                <Select
-                  searchable
-                  placeholder={t('type') || 'Resource Type'}
-                  value={resourceForm.type}
-                  onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
-                  options={[
-                    { value: 'document', label: '📄 Document' },
-                    { value: 'link', label: '🔗 Link' },
-                    { value: 'video', label: '📺 Video' }
-                  ]}
-                />
-              </div>
+                  <div className="form-row">
+                    <Input
+                      type="text"
+                      placeholder={t('resource_title') + ' (EN)'}
+                      value={resourceForm.title_en || resourceForm.title || ''}
+                      onChange={(e) => setResourceForm({ ...resourceForm, title_en: e.target.value, title: e.target.value })}
+                      required
+                    />
+                    <Input
+                      type="text"
+                      placeholder={t('resource_title') + ' (AR)'}
+                      value={resourceForm.title_ar || ''}
+                      onChange={(e) => setResourceForm({ ...resourceForm, title_ar: e.target.value })}
+                    />
+                    <Select
+                      searchable
+                      placeholder={t('type') || 'Resource Type'}
+                      value={resourceForm.type}
+                      onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
+                      options={[
+                        { value: 'document', label: 'Document', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
+                        { value: 'link', label: 'Link', icon: <Link size={16} color="var(--text-secondary, #374151)" /> },
+                        { value: 'video', label: 'Video', icon: <Video size={16} color="var(--text-secondary, #374151)" /> }
+                      ]}
+                    />
+                  </div>
+                </>
+              )}
 
-              <div className="form-row">
-                <Textarea
-                  placeholder={t('resource_description') + ' (EN)'}
-                  value={resourceForm.description_en || resourceForm.description || ''}
-                  onChange={(e) => setResourceForm({ ...resourceForm, description_en: e.target.value, description: e.target.value })}
-                  rows={3}
-                  fullWidth
-                />
-                <Textarea
-                  placeholder={t('resource_description') + ' (AR)'}
-                  value={resourceForm.description_ar || ''}
-                  onChange={(e) => setResourceForm({ ...resourceForm, description_ar: e.target.value })}
-                  rows={3}
-                  fullWidth
-                />
-              </div>
+              {/* Content Tab */}
+              {activeResourceFormTab === 'content' && (
+                <>
+                  <div className="form-row">
+                    <Textarea
+                      placeholder={t('resource_description') + ' (EN)'}
+                      value={resourceForm.description_en || resourceForm.description || ''}
+                      onChange={(e) => setResourceForm({ ...resourceForm, description_en: e.target.value, description: e.target.value })}
+                      rows={3}
+                      fullWidth
+                    />
+                    <Textarea
+                      placeholder={t('resource_description') + ' (AR)'}
+                      value={resourceForm.description_ar || ''}
+                      onChange={(e) => setResourceForm({ ...resourceForm, description_ar: e.target.value })}
+                      rows={3}
+                      fullWidth
+                    />
+                  </div>
 
-              <div className="form-row">
-                <UrlInput
-                  placeholder={t('resource_url')}
-                  value={resourceForm.url}
-                  onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
-                  required
-                  onOpen={(href) => console.debug('open resource url', href)}
-                  onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
-                  onClear={() => setResourceForm({ ...resourceForm, url: '' })}
-                  fullWidth
-                />
-                <DatePicker
-                  type="datetime"
-                  value={resourceForm.dueDate}
-                  onChange={(iso) => setResourceForm({ ...resourceForm, dueDate: iso })}
-                  placeholder={t('due_date') + ' (' + t('optional') + ')'}
-                />
-              </div>
+                  <div className="form-row">
+                    <UrlInput
+                      placeholder={t('resource_url')}
+                      value={resourceForm.url}
+                      onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
+                      required
+                      onOpen={(href) => console.debug('open resource url', href)}
+                      onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
+                      onClear={() => setResourceForm({ ...resourceForm, url: '' })}
+                      fullWidth
+                    />
+                    <DatePicker
+                      type="datetime"
+                      value={resourceForm.dueDate}
+                      onChange={(iso) => setResourceForm({ ...resourceForm, dueDate: iso })}
+                      placeholder={t('due_date') + ' (' + t('optional') + ')'}
+                    />
+                  </div>
+                </>
+              )}
 
+              {/* Settings Tab */}
+              {activeResourceFormTab === 'settings' && (
+                <div className="form-row flex-row">
+                  <ToggleSwitch
+                    label={t('optional_resource')}
+                    checked={resourceForm.optional}
+                    onChange={(checked) => setResourceForm({ ...resourceForm, optional: checked })}
+                  />
+                  <ToggleSwitch
+                    label="Featured Resource"
+                    checked={resourceForm.featured}
+                    onChange={(checked) => setResourceForm({ ...resourceForm, featured: checked })}
+                  />
+                  <ToggleSwitch
+                    label="Send email notification"
+                    checked={resourceEmailOptions.sendEmail}
+                    onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, sendEmail: checked })}
+                  />
+                  <ToggleSwitch
+                    label="Create announcement (bell notification)"
+                    checked={resourceEmailOptions.createAnnouncement}
+                    onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, createAnnouncement: checked })}
+                  />
+                </div>
+              )}
+
+              {/* Form Actions - Show on all tabs */}
               <div className="form-row flex-row">
-                <ToggleSwitch
-                  label={t('optional_resource')}
-                  checked={resourceForm.optional}
-                  onChange={(checked) => setResourceForm({ ...resourceForm, optional: checked })}
-                />
-                <ToggleSwitch
-                  label="Featured Resource"
-                  checked={resourceForm.featured}
-                  onChange={(checked) => setResourceForm({ ...resourceForm, featured: checked })}
-                />
-                <ToggleSwitch
-                  label="Send email notification"
-                  checked={resourceEmailOptions.sendEmail}
-                  onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, sendEmail: checked })}
-                />
-                <ToggleSwitch
-                  label="Create announcement (bell notification)"
-                  checked={resourceEmailOptions.createAnnouncement}
-                  onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, createAnnouncement: checked })}
-                />
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
                   <Button type="submit" variant="primary" loading={loading}>
                     {(editingResource ? t('update') : t('save'))}
@@ -4874,9 +5138,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'type', headerName: t('type_col'), width: 140,
                   renderCell: (params) => {
                     const typeMap = {
-                      'document': '📄 Document',
-                      'link': '🔗 Link',
-                      'video': '📺 Video'
+                      'document': 'Document',
+                      'link': 'Link',
+                      'video': 'Video'
                     };
                     return typeMap[params.value] || params.value;
                   }
@@ -5055,7 +5319,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 return null;
               })()}
               <div style={{ display: 'grid', gap: 12 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
                   <Input
                     label="SMTP Host"
                     value={smtpConfig.host}
@@ -5070,53 +5334,24 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     placeholder="587"
                     fullWidth
                   />
+                  <Input
+                    label="Sender Name"
+                    value={smtpConfig.senderName}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, senderName: e.target.value })}
+                    fullWidth
+                  />
                 </div>
-                <Input
-                  label="Email Address"
-                  type="email"
-                  value={smtpConfig.user}
-                  onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
-                  placeholder="your-email@gmail.com"
-                  fullWidth
-                />
-                <Input
-                   label="App Password"
-                   type="password"
-                   value={smtpConfig.password}
-                   onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
-                   placeholder={t('app_password') || 'App Password'}
-                   fullWidth
-                 />
-                <Input
-                  label="Sender Name"
-                  value={smtpConfig.senderName}
-                  onChange={(e) => setSmtpConfig({ ...smtpConfig, senderName: e.target.value })}
-                  fullWidth
-                />
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: '1rem', justifyContent: 'flex-end' }}>
                   <Button
                     variant="success"
-                    onClick={async () => {
-                      try {
-                        setSmtpTesting(true);
-                        const { httpsCallable } = await import('firebase/functions');
-                        const { functions } = await import('../firebase/config');
-                        const testSMTP = httpsCallable(functions, 'testSMTP');
-                        const result = await testSMTP({ to: user?.email || smtpConfig.user });
-                        if (result.data.success) {
-                          toast?.showSuccess('Test email sent! Check your inbox.');
-                        } else {
-                          toast?.showError('Test failed: ' + result.data.error);
-                        }
-                      } catch (error) {
-                        toast?.showError('Test failed: ' + (error.message || 'Unknown error'));
-                      } finally {
-                        setSmtpTesting(false);
-                      }
+                    onClick={() => {
+                      setTestEmailAddress(user?.email || smtpConfig.user);
+                      setTestEmailDialogOpen(true);
                     }}
                     disabled={smtpTesting}
+                    style={{ minWidth: '120px' }}
                   >
-                    {smtpTesting ? 'Testing...' : '📧 Test SMTP'}
+                    {smtpTesting ? 'Testing...' : 'Test'}
                   </Button>
                   <Button
                     variant="primary"
@@ -5138,9 +5373,29 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         setSmtpSaving(false);
                       }
                     }}
+                    disabled={smtpSaving}
+                    style={{ minWidth: '120px' }}
                   >
-                    {smtpSaving ? 'Saving...' : 'Save Configuration'}
+                    {smtpSaving ? 'Saving...' : 'Save'}
                   </Button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Input
+                    label="Email Address"
+                    type="email"
+                    value={smtpConfig.user}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
+                    placeholder="your-email@gmail.com"
+                    fullWidth
+                  />
+                  <Input
+                     label="App Password"
+                     type="password"
+                     value={smtpConfig.password}
+                     onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
+                     placeholder={t('app_password') || 'App Password'}
+                     fullWidth
+                   />
                 </div>
               </div>
             </div>
@@ -5569,6 +5824,61 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         warningMessage={deleteModal.warningMessage}
         loading={loading}
       />
+
+      {/* Test Email Dialog */}
+      <Modal
+        isOpen={testEmailDialogOpen}
+        onClose={() => setTestEmailDialogOpen(false)}
+        title="Test Email Configuration"
+      >
+        <div style={{ padding: '1rem' }}>
+          <p style={{ marginBottom: '1rem', color: 'var(--text-muted, #666)' }}>
+            Send a test email to verify your SMTP configuration is working correctly.
+          </p>
+          <Input
+            label="Email Address"
+            type="email"
+            value={testEmailAddress}
+            onChange={(e) => setTestEmailAddress(e.target.value)}
+            placeholder="Enter email address to send test to"
+            fullWidth
+            style={{ marginBottom: '1rem' }}
+          />
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <Button
+              variant="outline"
+              onClick={() => setTestEmailDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="success"
+              onClick={async () => {
+                try {
+                  setSmtpTesting(true);
+                  const { httpsCallable } = await import('firebase/functions');
+                  const { functions } = await import('../firebase/config');
+                  const testSMTP = httpsCallable(functions, 'testSMTP');
+                  const result = await testSMTP({ to: testEmailAddress });
+                  if (result.data.success) {
+                    toast?.showSuccess('Test email sent! Check your inbox.');
+                    setTestEmailDialogOpen(false);
+                  } else {
+                    toast?.showError('Test failed: ' + result.data.error);
+                  }
+                } catch (error) {
+                  toast?.showError('Test failed: ' + (error.message || 'Unknown error'));
+                } finally {
+                  setSmtpTesting(false);
+                }
+              }}
+              disabled={smtpTesting || !testEmailAddress}
+            >
+              {smtpTesting ? 'Sending...' : 'Send Test Email'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
     </div >
   );

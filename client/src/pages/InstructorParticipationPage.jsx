@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { Edit, Trash } from 'lucide-react';
+import { Edit, Trash, MessageSquare, Award, FileText, Users, HelpCircle, Star } from 'lucide-react';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid } from '../components/ui';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { getPrograms, getSubjects } from '../firebase/programs';
@@ -14,14 +14,14 @@ import { formatQatarDateOnly } from '../utils/timezone';
 import styles from './ProgramsManagementPage.module.css';
 
 const PARTICIPATION_TYPES = [
-  { id: 'explain_lesson', label_ar: 'شرح الدرس', label_en: 'Explained Lesson' },
-  { id: 'gave_project', label_ar: 'قدم مشروع', label_en: 'Gave Project' },
-  { id: 'gave_paper', label_ar: 'قدم ورقة', label_en: 'Gave Paper' },
-  { id: 'gave_research', label_ar: 'قدم بحث', label_en: 'Gave Research' },
-  { id: 'active_discussion', label_ar: 'نقاش نشط', label_en: 'Active Discussion' },
-  { id: 'answered_question', label_ar: 'أجاب على سؤال', label_en: 'Answered Question' },
-  { id: 'helped_classmate', label_ar: 'ساعد زميل', label_en: 'Helped Classmate' },
-  { id: 'other', label_ar: 'أخرى', label_en: 'Other' }
+  { id: 'explain_lesson', label_ar: 'شرح الدرس', label_en: 'Explained Lesson', icon: <MessageSquare size={16} color="#374151" /> },
+  { id: 'gave_project', label_ar: 'قدم مشروع', label_en: 'Gave Project', icon: <Award size={16} color="#374151" /> },
+  { id: 'gave_paper', label_ar: 'قدم ورقة', label_en: 'Gave Paper', icon: <FileText size={16} color="#374151" /> },
+  { id: 'gave_research', label_ar: 'قدم بحث', label_en: 'Gave Research', icon: <FileText size={16} color="#374151" /> },
+  { id: 'active_discussion', label_ar: 'نقاش نشط', label_en: 'Active Discussion', icon: <MessageSquare size={16} color="#374151" /> },
+  { id: 'answered_question', label_ar: 'أجاب على سؤال', label_en: 'Answered Question', icon: <HelpCircle size={16} color="#374151" /> },
+  { id: 'helped_classmate', label_ar: 'ساعد زميل', label_en: 'Helped Classmate', icon: <Users size={16} color="#374151" /> },
+  { id: 'other', label_ar: 'أخرى', label_en: 'Other', icon: <Star size={16} color="#374151" /> }
 ];
 
 const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
@@ -624,7 +624,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
               { value: '', label: 'Select Type' },
-              ...PARTICIPATION_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en }))
+              ...PARTICIPATION_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: pt.icon }))
             ]}
             placeholder="Participation Type *"
             required
@@ -714,7 +714,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             onChange={(e) => setTypeFilter(e.target.value)}
             options={[
               { value: 'all', label: 'All Types' },
-              ...PARTICIPATION_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en }))
+              ...PARTICIPATION_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: pt.icon }))
             ]}
             placeholder="Type"
           />

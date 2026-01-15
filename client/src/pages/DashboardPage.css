@@ -49,6 +49,34 @@
   color: white;
 }
 
+/* Login Tab Styles */
+.login-activity-tab {
+  margin-top: 1rem;
+}
+
+.login-activity-tab > div:first-child {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.login-activity-tab .select-wrapper,
+.login-activity-tab .input-wrapper {
+  min-width: 200px;
+  flex: 1;
+}
+
+.login-activity-tab .date-range-slider {
+  min-width: 250px;
+  flex: 1;
+}
+
+.login-activity-tab > div:first-child > div:last-child {
+  min-width: auto;
+  flex-shrink: 0;
+}
+
 .dashboard-content {
   max-width: 1200px;
   margin: 0 auto;

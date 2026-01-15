@@ -452,7 +452,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
           </div>
 
           {/* Filters */}
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
             <Select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
@@ -463,7 +463,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 { value: 'archived', label: `Archived (${archivedCount})` }
               ]}
               size="small"
-              style={{ flex: 1, minWidth: '100px' }}
+              style={{ flex: 1, minWidth: '90px', fontSize: '0.75rem' }}
             />
             <Select
               value={filterCategory}
@@ -489,7 +489,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 { value: 'error', label: 'Error' }
               ]}
               size="small"
-              style={{ flex: 1, minWidth: '100px' }}
+              style={{ flex: 1, minWidth: '90px', fontSize: '0.75rem' }}
             />
             {filterCategory === 'penalty' && (
               <Select
@@ -535,7 +535,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
           </div>
           
           {/* Academic Filters */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.35rem', marginTop: '0.35rem' }}>
             <Select
               value={filterProgram}
               onChange={(e) => {
@@ -553,6 +553,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               size="small"
               searchable
               fullWidth
+              style={{ fontSize: '0.75rem' }}
             />
             <Select
               value={filterSubject}
@@ -572,6 +573,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               size="small"
               searchable
               fullWidth
+              style={{ fontSize: '0.75rem' }}
             />
             <Select
               value={filterClass}
@@ -595,6 +597,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               size="small"
               searchable
               fullWidth
+              style={{ fontSize: '0.75rem' }}
             />
             <Select
               value={filterYear}
@@ -731,7 +734,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                         <div style={{
                           width: '8px',
                           height: '8px',
-                          background: '#800020',
+                          background: 'var(--color-primary, #800020)',
                           borderRadius: '50%',
                           flexShrink: 0,
                           marginTop: '0.25rem'
@@ -752,7 +755,8 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                       color: isDark ? '#6b7280' : '#9ca3af',
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      marginBottom: '0.1rem'
                     }}>
                       <span>{formatTime(notification.createdAt)}</span>
                       <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -765,10 +769,19 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                               border: 'none',
                               color: isDark ? '#9ca3af' : '#6b7280',
                               cursor: 'pointer',
-                              padding: '0.25rem',
+                              padding: '0.15rem',
                               borderRadius: '4px',
                               display: 'flex',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'var(--color-primary, #800020)';
+                              e.currentTarget.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                             }}
                           >
                             <Eye size={14} />
@@ -782,10 +795,19 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                               border: 'none',
                               color: isDark ? '#9ca3af' : '#6b7280',
                               cursor: 'pointer',
-                              padding: '0.25rem',
+                              padding: '0.15rem',
                               borderRadius: '4px',
                               display: 'flex',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'var(--color-primary, #800020)';
+                              e.currentTarget.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                             }}
                           >
                             <EyeOff size={14} />
@@ -800,10 +822,19 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                               border: 'none',
                               color: isDark ? '#9ca3af' : '#6b7280',
                               cursor: 'pointer',
-                              padding: '0.25rem',
+                              padding: '0.15rem',
                               borderRadius: '4px',
                               display: 'flex',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'var(--color-primary, #800020)';
+                              e.currentTarget.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                             }}
                           >
                             <Archive size={14} />
@@ -817,10 +848,19 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                             border: 'none',
                             color: isDark ? '#9ca3af' : '#6b7280',
                             cursor: 'pointer',
-                            padding: '0.25rem',
+                            padding: '0.15rem',
                             borderRadius: '4px',
                             display: 'flex',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'var(--color-primary, #800020)';
+                            e.currentTarget.style.color = '#ffffff';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                           }}
                         >
                           <Trash2 size={14} />

@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import InfoTooltip from '../InfoTooltip/InfoTooltip';
 import styles from './Input.module.css';
 
 /**
@@ -30,6 +31,7 @@ const Input = forwardRef(({
   onChange,
   error,
   helperText,
+  helperTextInfo,
   disabled = false,
   required = false,
   prefix,
@@ -72,7 +74,7 @@ const Input = forwardRef(({
           ref={ref}
           type={type}
           className={inputClasses}
-          placeholder={placeholder}
+          placeholder={required ? `${placeholder}*` : placeholder}
           value={value}
           onChange={onChange}
           disabled={disabled}
@@ -84,9 +86,13 @@ const Input = forwardRef(({
       </div>
       
       {(error || helperText) && (
-        <span className={error ? styles.errorText : styles.helperText}>
-          {error || helperText}
-        </span>
+        <div className={styles.helperContainer}>
+          {error && <span className={styles.errorText}>{error}</span>}
+          {helperText && !helperTextInfo && <span className={styles.helperText}>{helperText}</span>}
+          {helperTextInfo && (
+            <InfoTooltip contentKey={helperTextInfo} />
+          )}
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 /* Profile Settings Page */
 .page {
-  padding: 1.5rem 0;
+  padding: 0.75rem 0;
 }
 
 .loadingWrapper {
@@ -39,22 +39,22 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.75rem;
 }
 
 /* Card Header */
 .cardHeader {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border, #e0e0e0);
 }
 
 .cardHeader h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text, #212529);
 }
@@ -63,7 +63,7 @@
 .formSection {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.75rem;
 }
 
 .formGroup {
@@ -82,20 +82,163 @@
 }
 
 .helpText {
+  font-size: 0.8rem;
+  color: var(--text-muted, #666);
+  margin-top: 0.75rem;
+  line-height: 1.4;
+  padding: 0.5rem;
+  background: var(--panel-hover, #f8f9fa);
+  border-radius: 6px;
+  border-left: 3px solid var(--color-primary, #800020);
+}
+
+/* Appearance Section Layout */
+.appearanceSection {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--panel, #ffffff);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+.sectionHeader {
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text, #212529);
+  margin: 0 0 0.5rem 0;
+}
+
+.sectionDescription {
+  font-size: 0.875rem;
+  color: var(--text-muted, #666);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Color Selection Area */
+.colorSelectionArea {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.presetColors {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.presetLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text, #212529);
+  margin-bottom: 0.5rem;
+}
+
+/* Custom Color Section */
+.customColorSection {
+  padding: 1rem;
+  background: var(--panel-hover, #f8f9fa);
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+.customColorHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.customColorInputs {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.colorPickerWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.colorPickerWrapper::before {
+  content: 'Picker';
   font-size: 0.75rem;
   color: var(--text-muted, #666);
-  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.hexInputWrapper {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Preview Section */
+.previewSection {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--panel-hover, #f8f9fa);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+.previewHeader {
+  margin-bottom: 1rem;
+}
+
+.previewTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text, #212529);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Language Section */
+.languageSection {
+  padding: 1.5rem;
+  background: var(--panel, #ffffff);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+.languageHeader {
+  margin-bottom: 1rem;
+}
+
+.languageToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md, 8px);
+  transition: all 0.2s ease;
+}
+
+.languageToggle:hover {
+  background: var(--panel-hover, #f8f9fa);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
 }
 
 /* Color Picker */
 .colorPicker {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .customColorControls {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -113,18 +256,11 @@
   font-size: 0.875rem;
 }
 
-.customColorInputs {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 .nativeColorInput {
-  width: 56px;
-  height: 48px;
+  width: 42px;
+  height: 36px;
   border: 1px solid var(--border, #e5e7eb);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-sm, 6px);
   background: transparent;
   padding: 0;
   cursor: pointer;
@@ -137,10 +273,10 @@
 }
 
 .colorOption {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md, 8px);
-  border: 3px solid transparent;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm, 6px);
+  border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -174,27 +310,27 @@
 
 /* Color Preview */
 .colorPreview {
-  margin-top: 1rem;
-  padding: 1rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
   background: var(--panel-hover, #f8f9fa);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-sm, 6px);
 }
 
 .previewLabel {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted, #666);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .messageBubble {
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-lg, 12px);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
   color: white;
-  font-size: 0.875rem;
-  max-width: 300px;
+  font-size: 0.8rem;
+  max-width: 250px;
 }
 
 /* Language Toggle */
@@ -235,6 +371,25 @@
     font-size: 1.5rem;
   }
   
+  .appearanceSection,
+  .previewSection,
+  .languageSection {
+    padding: 1rem;
+  }
+  
+  .colorSelectionArea {
+    gap: 1rem;
+  }
+  
+  .customColorInputs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .hexInputWrapper {
+    min-width: auto;
+  }
+  
   .colorPicker {
     gap: 0.5rem;
   }
@@ -242,6 +397,11 @@
   .colorOption {
     width: 40px;
     height: 40px;
+  }
+  
+  .languageToggle {
+    width: 100%;
+    justify-content: center;
   }
   
   .actions {
@@ -268,6 +428,34 @@
   }
   
   .formGroup label {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .appearanceSection,
+  .languageSection {
+    background: var(--panel, #1a1a1a);
+    border-color: var(--border, #333);
+  }
+  
+  .previewSection {
+    background: var(--panel-hover, #2a2a2a);
+    border-color: var(--border, #333);
+  }
+  
+  .customColorSection {
+    background: var(--panel-hover, #2a2a2a);
+    border-color: var(--border, #333);
+  }
+  
+  .sectionTitle {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .presetLabel {
+    color: var(--text, #f5f5f5);
+  }
+  
+  .previewTitle {
     color: var(--text, #f5f5f5);
   }
   

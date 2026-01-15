@@ -398,7 +398,7 @@ const HelpDrawer = () => {
                   left: '12px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: 'var(--text-secondary, #999)'
+                  color: '#374151'
                 }} />
                 {searchTerm && (
                   <button
