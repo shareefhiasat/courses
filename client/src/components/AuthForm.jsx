@@ -5,48 +5,56 @@ import { signIn, signUp, resetPassword } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { getAllowlist } from '../firebase/firestore';
 import { useLang } from '../contexts/LangContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useColorTheme } from '../contexts/ColorThemeContext';
+import { useToast } from '../components/ToastProvider';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
+import { Moon, Sun, Globe } from 'lucide-react';
 import ToggleSwitch from './ToggleSwitch';
 import './AuthForm.css';
 
 // Helper function to translate Firebase errors to user-friendly messages
-const getFirebaseErrorMessage = (error) => {
+const getFirebaseErrorMessage = (error, t) => {
   const errorString = String(error).toLowerCase();
   
   // Check for 503 Service Unavailable
   if (errorString.includes('503') || errorString.includes('service unavailable')) {
-    return '⚠️ Firebase service is temporarily unavailable. Your account may have been created successfully. Please wait a moment and try logging in, or try again later.';
+    return t ? t('error_503_service_unavailable') : '⚠️ Firebase service is temporarily unavailable. Your account may have been created successfully. Please wait a moment and try logging in, or try again later.';
   }
   
   // Check for 429 Too Many Requests
   if (errorString.includes('429') || errorString.includes('too many requests')) {
-    return '⏳ Too many attempts. Please wait a few minutes before trying again.';
+    return t ? t('error_429_too_many_requests') : '⏳ Too many attempts. Please wait a few minutes before trying again.';
   }
   
   // Check for network errors
   if (errorString.includes('network') || errorString.includes('fetch')) {
-    return '🌐 Network error. Please check your internet connection and try again.';
+    return t ? t('error_network') : '🌐 Network error. Please check your internet connection and try again.';
   }
   
   // Check for auth errors
   if (errorString.includes('email-already-in-use')) {
-    return '📧 This email is already registered. Try logging in instead.';
+    return t ? t('error_email_already_in_use') : '📧 This email is already registered. Try logging in instead.';
   }
   
   if (errorString.includes('weak-password')) {
-    return '🔒 Password must be at least 6 characters.';
+    return t ? t('error_weak_password') : '🔒 Password must be at least 6 characters.';
   }
   
   if (errorString.includes('invalid-email')) {
-    return '📧 Invalid email address format.';
+    return t ? t('error_invalid_email') : '📧 Invalid email address format.';
   }
   
   if (errorString.includes('user-not-found')) {
-    return '❌ No account found with this email.';
+    return t ? t('error_user_not_found') : '❌ No account found with this email.';
   }
   
   if (errorString.includes('wrong-password')) {
-    return '🔑 Incorrect password. Please try again.';
+    return t ? t('error_wrong_password') : '🔑 Incorrect password. Please try again.';
+  }
+  
+  if (errorString.includes('invalid-credential')) {
+    return t ? t('error_invalid_credential') : '❌ Invalid email or password. Please try again.';
   }
   
   // Default error message
@@ -66,7 +74,11 @@ const AuthForm = () => {
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
-  const { t, lang } = useLang?.() || {};
+  const { t, lang, toggleLang } = useLang?.() || {};
+  const { theme, toggleTheme } = useTheme();
+  const { primaryColor } = useColorTheme();
+  const toast = useToast();
+  const showSuccess = toast?.showSuccess;
 
   const tr = (key, fallbackEn, fallbackAr) => {
     if (typeof t === 'function') {
@@ -77,11 +89,65 @@ const AuthForm = () => {
     return fallbackEn;
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const form = e.target.form;
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+  };
+
+  // Helper function to adjust color brightness
+  const adjustColor = (color, amount) => {
+    // Convert hex to RGB
+    let r = parseInt(color.slice(1, 3), 16);
+    let g = parseInt(color.slice(3, 5), 16);
+    let b = parseInt(color.slice(5, 7), 16);
+
+    // Adjust brightness
+    r = Math.max(0, Math.min(255, r + amount));
+    g = Math.max(0, Math.min(255, g + amount));
+    b = Math.max(0, Math.min(255, b + amount));
+
+    // Convert back to hex
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setMessage('');
+
+    // Custom validation for browser messages
+    const form = e.target;
+    const emailInput = form.querySelector('input[type="email"]');
+    const passwordInputs = form.querySelectorAll('input[type="password"]');
+    
+    if (emailInput && !emailInput.value) {
+      emailInput.setCustomValidity(tr('validation_required', 'Please fill out this field', 'يرجى ملء هذا الحقل'));
+    } else if (emailInput && emailInput.value) {
+      emailInput.setCustomValidity('');
+    }
+    
+    passwordInputs.forEach(input => {
+      if (input && !input.value) {
+        input.setCustomValidity(tr('validation_required', 'Please fill out this field', 'يرجى ملء هذا الحقل'));
+      } else if (input && input.value && input.value.length < 6) {
+        input.setCustomValidity(tr('validation_password_min', 'Password must be at least 6 characters', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'));
+      } else {
+        input.setCustomValidity('');
+      }
+    });
+
+    // Check if form is valid
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      setLoading(false);
+      return;
+    }
 
     try {
       if (mode === 'reset') {
@@ -89,7 +155,7 @@ const AuthForm = () => {
         if (result.success) {
           setMessage(tr('reset_email_sent', 'Password reset email sent! Check your inbox.', 'تم إرسال بريد إعادة التعيين! تحقق من صندوقك.'));
         } else {
-          setError(getFirebaseErrorMessage(result.error));
+          setError(getFirebaseErrorMessage(result.error, t));
         }
       } else if (mode === 'signup') {
         if (password !== confirmPassword) {
@@ -170,7 +236,7 @@ const AuthForm = () => {
           setMessage(tr('signup_success', '✅ Account created successfully! Redirecting...', '✅ تم إنشاء الحساب بنجاح! سيتم التحويل...'));
           setTimeout(() => navigate('/'), 1500);
         } else {
-          setError(getFirebaseErrorMessage(result.error));
+          setError(getFirebaseErrorMessage(result.error, t));
         }
       } else {
         const result = await signIn(email, password);
@@ -181,15 +247,19 @@ const AuthForm = () => {
             expiryDate.setDate(expiryDate.getDate() + 30);
             document.cookie = `rememberMe=true; expires=${expiryDate.toUTCString()}; path=/`;
           }
-          setMessage(tr('login_success', '✅ Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
+          if (showSuccess) {
+            showSuccess(tr('login_success', '✅ Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
+          } else {
+            setMessage(tr('login_success', '✅ Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
+          }
           setTimeout(() => navigate('/'), 1000);
         } else {
-          setError(getFirebaseErrorMessage(result.error));
+          setError(getFirebaseErrorMessage(result.error, t));
         }
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setError(getFirebaseErrorMessage(err.message || err));
+      setError(getFirebaseErrorMessage(err.message || err, t));
     } finally {
       setLoading(false);
     }
@@ -197,10 +267,27 @@ const AuthForm = () => {
 
   return (
     <div className="auth-form-container">
-      <div className="auth-form">
-        <h2 className="auth-title">
-          {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Sign Up' : 'Reset Password'}
-        </h2>
+      <div className="auth-form" style={{ backgroundColor: '#ffffff' }}>
+        {/* Language and Theme Toggles */}
+        <div className="auth-controls">
+          <button
+            type="button"
+            className="auth-control-btn"
+            onClick={toggleLang}
+            aria-label={lang === 'en' ? 'Switch to Arabic' : 'التبديل إلى الإنجليزية'}
+          >
+            <Globe size={16} />
+            {lang === 'en' ? 'AR' : 'EN'}
+          </button>
+          <button
+            type="button"
+            className="auth-control-btn"
+            onClick={toggleTheme}
+            aria-label={theme === 'light' ? 'Enable dark mode' : 'Enable light mode'}
+          >
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+        </div>
         
         {/* Only show tabs when not in reset mode */}
         {mode !== 'reset' && (
@@ -209,24 +296,25 @@ const AuthForm = () => {
               className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
               onClick={() => setMode('login')}
             >
-              Login
+              {tr('sign_in', 'Login', 'تسجيل الدخول')}
             </button>
             <button 
               className={`auth-tab ${mode === 'signup' ? 'active' : ''}`}
               onClick={() => setMode('signup')}
             >
-              Sign Up
+              {tr('sign_up', 'Sign Up', 'إنشاء حساب')}
             </button>
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <input
               type="email"
-              placeholder="Email"
+              placeholder={tr('email', 'Email', 'البريد الإلكتروني')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={handleKeyDown}
               required
               className="form-input"
               autoComplete="email"
@@ -238,9 +326,10 @@ const AuthForm = () => {
             <div className="form-group">
               <input
                 type="password"
-                placeholder="Password"
+                placeholder={tr('password', 'Password', 'كلمة المرور')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
                 required
                 className="form-input"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -255,9 +344,10 @@ const AuthForm = () => {
               <div className="form-group">
                 <input
                   type="password"
-                  placeholder="Confirm Password"
+                  placeholder={tr('confirm_password', 'Confirm Password', 'تأكيد كلمة المرور')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   required
                   className="form-input"
                   autoComplete="new-password"
@@ -275,7 +365,7 @@ const AuthForm = () => {
                 borderRadius: '6px',
                 border: '1px solid #d0e8ff'
               }}>
-                💡 Password must be at least 6 characters
+                💡 {tr('password_hint', 'Password must be at least 6 characters', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل')}
               </div>
             </>
           )}
@@ -284,9 +374,10 @@ const AuthForm = () => {
             <div className="form-group">
               <input
                 type="text"
-                placeholder="Display Name (optional)"
+                placeholder={tr('display_name', 'Display Name (optional)', 'الاسم المعروض (اختياري)')}
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="form-input"
                 name="display-name"
                 autoComplete="name"
@@ -298,9 +389,10 @@ const AuthForm = () => {
             <div className="form-group">
               <input
                 type="text"
-                placeholder="Real Name (First Last)"
+                placeholder={tr('real_name', 'Real Name (First Last)', 'الاسم الحقيقي (الاسم الأول والأخير)')}
                 value={realName}
                 onChange={(e) => setRealName(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="form-input"
                 name="real-name"
                 autoComplete="name"
@@ -312,9 +404,10 @@ const AuthForm = () => {
             <div className="form-group">
               <input
                 type="text"
-                placeholder="Student Number (optional)"
+                placeholder={tr('student_number', 'Student Number (optional)', 'رقم الطالب (اختياري)')}
                 value={studentNumber}
                 onChange={(e) => setStudentNumber(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="form-input"
                 name="student-number"
               />
@@ -324,7 +417,7 @@ const AuthForm = () => {
           {mode === 'login' && (
             <div className="form-group" style={{ marginTop: '8px', marginBottom: '12px' }}>
               <ToggleSwitch
-                label="Remember me"
+                label={tr('remember_me', 'Remember me', 'تذكرني')}
                 checked={rememberMe}
                 onChange={setRememberMe}
               />
@@ -336,14 +429,14 @@ const AuthForm = () => {
             className="auth-button"
             disabled={loading}
             style={{
-              background: loading ? '#ccc' : 'linear-gradient(135deg, #800020 0%, #600018 100%)',
+              background: loading ? '#ccc' : `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`,
               cursor: loading ? 'not-allowed' : 'pointer'
             }}
           >
-            {loading ? 'Loading...' : 
-             mode === 'login' ? 'Sign In' : 
-             mode === 'signup' ? 'Sign Up' : 
-             'Send Reset Email'}
+            {loading ? tr('loading', 'Loading...', 'جاري التحميل...') : 
+             mode === 'login' ? tr('sign_in', 'Sign In', 'تسجيل الدخول') : 
+             mode === 'signup' ? tr('sign_up', 'Sign Up', 'إنشاء حساب') : 
+             tr('send_reset_email', 'Send Reset Email', 'إرسال بريد إعادة التعيين')}
           </button>
         </form>
 
@@ -352,7 +445,7 @@ const AuthForm = () => {
             className="reset-link"
             onClick={() => setMode('reset')}
           >
-            Forgot Password?
+            {tr('forgot_password', 'Forgot Password?', 'نسيت كلمة المرور؟')}
           </button>
         )}
 
@@ -361,7 +454,7 @@ const AuthForm = () => {
             className="reset-link"
             onClick={() => setMode('login')}
           >
-            Back to Login
+            {tr('back_to_login', 'Back to Login', 'العودة لتسجيل الدخول')}
           </button>
         )}
 

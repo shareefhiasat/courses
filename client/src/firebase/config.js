@@ -10,7 +10,7 @@ const firebaseConfig = {
   authDomain: "main-one-32026.firebaseapp.com",
   databaseURL: "https://main-one-32026-default-rtdb.firebaseio.com",
   projectId: "main-one-32026",
-  storageBucket: "main-one-32026.appspot.com",
+  storageBucket: "main-one-32026.firebasestorage.app",
   messagingSenderId: "1070031616844",
   appId: "1:1070031616844:web:f8c4e4b2a8b8c8b8c8b8c8"
 };

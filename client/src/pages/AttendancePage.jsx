@@ -22,6 +22,7 @@ const AttendancePageEnhanced = () => {
   const [manualCode, setManualCode] = useState('');
   const qrCanvasRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [cfg, setCfg] = useState({ rotationSeconds: 30, sessionMinutes: 15, strictDeviceBinding: true, lateMode: false });
   const [savingCfg, setSavingCfg] = useState(false);
   const [classOptions, setClassOptions] = useState([]);
@@ -102,6 +103,7 @@ const AttendancePageEnhanced = () => {
         if (programsRes.success) setPrograms(programsRes.data || []);
         if (subjectsRes.success) setSubjects(subjectsRes.data || []);
         if (!classId && opts.length === 1) setClassId(opts[0].id);
+        setInitialLoading(false);
       } catch (e) {
         if (e?.code !== 'permission-denied') console.error('[Attendance] load data:', e);
       }
@@ -278,8 +280,13 @@ const AttendancePageEnhanced = () => {
     } finally { setSavingCfg(false); }
   };
 
+  // Show initial loading while classes, programs, and subjects are being loaded
+  if (initialLoading) {
+    return <Loading variant="overlay" fullscreen message="Loading attendance data..." fancyVariant="dots" />;
+  }
+
   if (loading && !sessionId) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
 
   return (

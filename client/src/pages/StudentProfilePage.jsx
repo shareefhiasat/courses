@@ -7,6 +7,7 @@ import { User, Users, Calendar, TrendingUp, Award, FileText, Clock, Search, Trop
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '../firebase/badges';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Loading, Select } from '../components/ui';
+import StudentQRCodeDisplay from '../components/StudentQRCodeDisplay';
 import styles from './StudentProfilePage.module.css';
 
 const StudentProfilePage = () => {
@@ -15,8 +16,18 @@ const StudentProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [targetUserId, setTargetUserId] = useState(searchParams.get('uid') || user?.uid);
   
+  console.log('StudentProfilePage - targetUserId:', targetUserId);
+  console.log('StudentProfilePage - user:', user);
+  console.log('StudentProfilePage - isAdmin:', isAdmin);
+  
   const [loading, setLoading] = useState(true);
   const [studentData, setStudentData] = useState(null);
+  
+  // Debug studentData when it changes
+  useEffect(() => {
+    console.log('StudentProfilePage - studentData updated:', studentData);
+    console.log('StudentProfilePage - studentData.role:', studentData?.role);
+  }, [studentData]);
   const [attendanceData, setAttendanceData] = useState([]);
   const [performanceData, setPerformanceData] = useState({
     homework: { completed: 0, total: 0, avgScore: 0 },
@@ -569,6 +580,17 @@ const StudentProfilePage = () => {
             <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{totals.rate}%</div>
           </div>
         </div>
+
+        {/* QR Code Display - Show for student profiles */}
+        {console.log('QR Code check - studentData:', studentData, 'role:', studentData?.role) || (
+          <div className="mb-6">
+            <StudentQRCodeDisplay 
+              studentId={targetUserId} 
+              showSettings={user?.uid === targetUserId || user?.isAdmin}
+              compact={false}
+            />
+          </div>
+        )}
 
         {/* Attendance Summary */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-6 border border-gray-100 dark:border-gray-700">

@@ -15,6 +15,7 @@ import GroupSortGame from '../components/games/GroupSortGame';
 import AirplaneGame from '../components/games/AirplaneGame';
 import AnagramGame from '../components/games/AnagramGame';
 import CategorizeGame from '../components/games/CategorizeGame';
+import { getQuiz, createQuiz, updateQuiz } from '../firebase/quizzes';
 
 // Template types
 const TEMPLATES = {
@@ -115,7 +116,6 @@ export default function QuizBuilderPage() {
   }, [quizId]);
 
   const loadQuiz = async (id) => {
-    const { getQuiz } = await import('../firebase/quizzes');
     const result = await getQuiz(id);
     if (result.success) {
       setQuizData(result.data);
@@ -136,8 +136,6 @@ export default function QuizBuilderPage() {
 
     setSaving(true);
     try {
-      const { createQuiz, updateQuiz } = await import('../firebase/quizzes');
-      
       if (quizId) {
         const result = await updateQuiz(quizId, quizData);
         if (result.success) {

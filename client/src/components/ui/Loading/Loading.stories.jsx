@@ -69,7 +69,7 @@ InlineLoader.args = {
 };
 
 export const OverlayLoader = () => (
-  <div style={{ position: 'relative', height: 400, background: '#f5f5f5', borderRadius: 8, padding: '2rem' }}>
+  <div style={{ position: 'relative', height: 400, background: '#f5f5f5a3', borderRadius: 8, padding: '2rem' }}>
     <h3>Content Behind Overlay</h3>
     <p>This content is blocked by the loading overlay.</p>
     <Loading variant="overlay" size="lg" text="Processing your request..." />
@@ -77,7 +77,7 @@ export const OverlayLoader = () => (
 );
 
 export const FullscreenLoader = () => (
-  <div style={{ position: 'relative', height: 500, background: '#f5f5f5', borderRadius: 8 }}>
+  <div style={{ position: 'relative', height: 500, background: '#f5f5f5a3', borderRadius: 8 }}>
     <Loading variant="fullscreen" size="xl" text="Loading application..." />
   </div>
 );

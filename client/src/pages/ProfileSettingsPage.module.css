@@ -273,8 +273,8 @@
 }
 
 .colorOption {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm, 6px);
   border: 2px solid transparent;
   cursor: pointer;
@@ -395,8 +395,8 @@
   }
   
   .colorOption {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
   
   .languageToggle {
@@ -416,7 +416,7 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .title {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .cardHeader {
@@ -424,11 +424,11 @@
   }
   
   .cardHeader h2 {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .formGroup label {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .appearanceSection,
@@ -448,15 +448,15 @@
   }
   
   .sectionTitle {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .presetLabel {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .previewTitle {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .colorPreview {
@@ -464,11 +464,11 @@
   }
   
   .colorOption.selected {
-    border-color: var(--text, #f5f5f5);
+    border-color: var(--text, #f5f5f5a3);
   }
 
   .customColorLabel {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .colorNote {

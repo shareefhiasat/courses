@@ -23,6 +23,7 @@ const ScheduledReportsPage = () => {
   const toast = useToast();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -66,6 +67,7 @@ const ScheduledReportsPage = () => {
       setReports([]);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -261,7 +263,7 @@ const ScheduledReportsPage = () => {
     );
   });
 
-  if (authLoading) {
+  if (authLoading || initialLoading) {
     return <Loading variant="overlay" message="Loading..." fancyVariant="dots" />;
   }
 
@@ -280,7 +282,6 @@ const ScheduledReportsPage = () => {
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h1 style={{ margin: 0 }}>Scheduled Reports</h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button size="sm" variant="primary" icon={<Plus size={16} />} onClick={() => {
             resetForm();
@@ -363,34 +364,34 @@ const ScheduledReportsPage = () => {
                     fullWidth
                   />
                 </div>
-                {formData.schedule === 'custom' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Next Run Date & Time *</label>
-                    <Input
-                      type="datetime-local"
-                      value={formData.customSchedule}
-                      onChange={(e) => setFormData({ ...formData, customSchedule: e.target.value })}
-                      fullWidth
-                    />
-                  </div>
-                )}
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Email Template *</label>
+                  <Select
+                    value={formData.templateId}
+                    onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
+                    options={[
+                      { value: '', label: 'Select a template...' },
+                      ...templates.map(t => ({
+                        value: t.docId || t.id,
+                        label: t.name || t.docId
+                      }))
+                    ]}
+                    fullWidth
+                  />
+                </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Email Template *</label>
-                <Select
-                  value={formData.templateId}
-                  onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
-                  options={[
-                    { value: '', label: 'Select a template...' },
-                    ...templates.map(t => ({
-                      value: t.docId || t.id,
-                      label: t.name || t.docId
-                    }))
-                  ]}
-                  fullWidth
-                />
-              </div>
+              {formData.schedule === 'custom' && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Next Run Date & Time *</label>
+                  <Input
+                    type="datetime-local"
+                    value={formData.customSchedule}
+                    onChange={(e) => setFormData({ ...formData, customSchedule: e.target.value })}
+                    fullWidth
+                  />
+                </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Recipients *</label>
@@ -414,7 +415,8 @@ const ScheduledReportsPage = () => {
                         alignItems: 'center',
                         gap: 6,
                         padding: '4px 12px',
-                        background: 'var(--border)',
+                        background: 'rgba(128, 0, 32, 0.1)',
+                        border: '1px solid var(--color-primary, #800020)',
                         borderRadius: 16,
                         fontSize: '0.875rem'
                       }}
@@ -477,7 +479,7 @@ const ScheduledReportsPage = () => {
         {/* Left: List */}
         <Card>
           <CardBody>
-            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Reports ({filteredReports.length})</h3>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>All Reports ({filteredReports.length})</h3>
             {loading ? (
               <Loading message="Loading reports..." fancyVariant="dots" />
             ) : filteredReports.length === 0 ? (

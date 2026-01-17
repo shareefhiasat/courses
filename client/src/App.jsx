@@ -16,7 +16,6 @@ import HelpDrawer from './components/HelpDrawer';
 // ActivitiesPage, ResourcesPage, QuizResultsPage - DEPRECATED (unified in HomePage)
 import ActivityDetailPage from './pages/ActivityDetailPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
-import SMTPConfigPage from './pages/SMTPConfigPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import AttendancePage from './pages/AttendancePage';
@@ -25,12 +24,14 @@ import HRAttendancePage from './pages/HRAttendancePage';
 import HRPenaltiesPage from './pages/HRPenaltiesPage';
 import InstructorParticipationPage from './pages/InstructorParticipationPage';
 import InstructorBehaviorPage from './pages/InstructorBehaviorPage';
+import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
+import QRAnalyticsPage from './pages/QRAnalyticsPage';
 import ManualAttendancePage from './pages/ManualAttendancePage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
+import MigrationPage from './pages/MigrationPage';
 import ManageEnrollmentsPage from './pages/ManageEnrollmentsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
-import RoleAccessPage from './pages/RoleAccessPage';
 import RoleAccessPro from './pages/RoleAccessPro';
 import StudentProfilePage from './pages/StudentProfilePage';
 import StudentDashboardPage from './pages/StudentDashboardPage';
@@ -71,7 +72,6 @@ const AppContent = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/progress" element={<Navigate to="/student-dashboard" replace />} />
           <Route path="/chat" element={<ChatPage />} />
-          <Route path="/smtp-config" element={<SMTPConfigPage />} />
           <Route path="/enrollments" element={<EnrollmentsPage />} />
           {/* AwardMedalsPage route removed - DEPRECATED */}
           <Route path="/notifications" element={<NotificationsPage />} />
@@ -83,11 +83,13 @@ const AppContent = () => {
           <Route path="/hr-penalties" element={<HRPenaltiesPage />} />
           <Route path="/instructor-participation" element={<InstructorParticipationPage />} />
           <Route path="/instructor-behavior" element={<InstructorBehaviorPage />} />
+          <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
+          <Route path="/qr-analytics" element={<QRAnalyticsPage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />
+          <Route path="/migration" element={<MigrationPage />} />
           <Route path="/manage-enrollments" element={<ManageEnrollmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
-          <Route path="/role-access" element={<RoleAccessPage />} />
           <Route path="/role-access-pro" element={<RoleAccessPro />} />
           {/* Redirect old student-profile to new unified dashboard */}
           <Route path="/student-profile" element={<StudentDashboardPage />} />

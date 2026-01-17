@@ -13,6 +13,8 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./config";
+import { addNotification } from "./notifications";
+import { sendEmail } from "./firestore";
 
 /**
  * GPA Grading Rules
@@ -612,12 +614,6 @@ const sendMarksNotifications = async ({
 }) => {
   try {
     // Get student and subject data
-    const { getDoc } = await import("firebase/firestore");
-    const { doc } = await import("firebase/firestore");
-    const { db } = await import("./config");
-    const { addNotification } = await import("./notifications");
-    const { sendEmail: sendEmailFunc } = await import("./firestore");
-
     const [studentDoc, subjectDoc] = await Promise.all([
       getDoc(doc(db, "users", studentId)),
       getDoc(doc(db, "subjects", subjectId)),

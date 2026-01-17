@@ -212,13 +212,13 @@
   .searchInput {
     background: var(--input-bg, #2a2a2a);
     border-color: var(--input-border, #333);
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .th {
     background: var(--panel-hover, #2a2a2a);
     border-bottom-color: var(--border, #333);
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .sortable:hover {
@@ -245,7 +245,7 @@
   .paginationButton {
     background: var(--panel, #1a1a1a);
     border-color: var(--border, #333);
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .paginationButton:hover:not(:disabled) {

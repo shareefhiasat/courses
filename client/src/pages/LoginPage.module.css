@@ -1,7 +1,6 @@
 /* Login Page */
 .loginPage {
-  min-height: 100vh;
-  background: var(--background, #f8f9fa);
+  background: #ffffff;
 }
 
 /* Loading Wrapper */
@@ -14,7 +13,7 @@
 
 /* Hero Section */
 .hero {
-  background: linear-gradient(135deg, #800020 0%, #600018 100%);
+  background: linear-gradient(135deg, var(--color-primary, #800020) 0%, var(--color-primary-dark, #600018) 100%);
   min-height: 28vh;
   display: flex;
   align-items: center;
@@ -25,7 +24,7 @@
 }
 
 .darkHero {
-  background: linear-gradient(135deg, #800020 0%, #600018 100%);
+  background: linear-gradient(135deg, var(--color-primary, #1a1a2e) 0%, var(--color-primary-dark, #0f0f1e) 100%);
 }
 
 .heroTopRow {
@@ -101,11 +100,11 @@
 
 /* Dark Mode */
 .dark {
-  background: #0b1220;
+  background: var(--background, #0b1220);
 }
 
 .darkHero {
-  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+  background: linear-gradient(135deg, var(--color-primary, #1a1a2e) 0%, var(--color-primary-dark, #0f0f1e) 100%);
 }
 
 @media (prefers-color-scheme: dark) {

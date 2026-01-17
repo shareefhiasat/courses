@@ -44,7 +44,7 @@ const Template = (args) => {
           console.log('Date range changed:', newDates);
         }}
       />
-      <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px', fontSize: '0.875rem' }}>
+      <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5a3', borderRadius: '8px', fontSize: '0.875rem' }}>
         <strong>Selected Dates:</strong>
         <div>From: {dates.fromDate || 'Not set'}</div>
         <div>To: {dates.toDate || 'Not set'}</div>

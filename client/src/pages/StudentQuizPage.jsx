@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { getQuiz, submitQuiz } from '../firebase/quizzes';
 import { addActivityLog } from '../firebase/firestore';
+import { ActivityLogger } from '../firebase/activityLogger';
 import { updateProgressAfterQuiz } from '../firebase/studentProgress';
 import { useTimeTracking } from '../hooks/useTimeTracking';
 import { randomizeQuestions, randomizeOptions } from '../utils/quizRandomization';
@@ -213,14 +214,7 @@ export default function StudentQuizPage() {
         // Log quiz view
         if (user) {
           try {
-            await addActivityLog({
-              type: 'activity_viewed',
-              userId: user.uid,
-              email: user.email,
-              displayName: user.displayName || user.email,
-              userAgent: navigator.userAgent,
-              metadata: { quizId, quizTitle: getQuizText(result.data, 'title') || 'Untitled Quiz', activityType: 'quiz' }
-            });
+            await ActivityLogger.quizViewed(quizId, getQuizText(result.data, 'title') || 'Untitled Quiz');
           } catch (e) { console.warn('Failed to log quiz view:', e); }
         }
       } else {
@@ -623,14 +617,7 @@ export default function StudentQuizPage() {
         // Log quiz submission
         if (user) {
           try {
-            await addActivityLog({
-              type: 'quiz_submit',
-              userId: user.uid,
-              email: user.email,
-              displayName: user.displayName || user.email,
-              userAgent: navigator.userAgent,
-              metadata: { quizId, quizTitle: getQuizText(quiz, 'title') || 'Untitled Quiz', score: score.percentage }
-            });
+            await ActivityLogger.quizSubmitted(quizId, getQuizText(quiz, 'title') || 'Untitled Quiz', score.percentage);
           } catch (e) { 
             console.warn('[Submit] Failed to log quiz submission:', e); 
           }

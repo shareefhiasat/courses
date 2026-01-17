@@ -9,12 +9,13 @@ import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../firebase/attenda
 import { getPrograms, getSubjects } from '../firebase/programs';
 
 const HRAttendancePage = () => {
-  const { user, isHR, isAdmin } = useAuth();
+  const { user, isHR, isAdmin, loading: authLoading } = useAuth();
   const { t } = useLang();
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [marks, setMarks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [programFilter, setProgramFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
@@ -240,6 +241,7 @@ const HRAttendancePage = () => {
       });
 
       setSessions(filtered);
+      setInitialDataLoaded(true);
     } catch (e) {
       console.error('[HR] Error loading sessions:', e);
     } finally {
@@ -347,6 +349,30 @@ const HRAttendancePage = () => {
       alert('Export failed: ' + (e?.message || 'unknown error'));
     }
   };
+
+  // Show loading while auth is resolving
+  if (authLoading) {
+    return (
+      <Loading 
+        variant="overlay" 
+        fullscreen 
+        message="Loading..." 
+        fancyVariant="dots" 
+      />
+    );
+  }
+
+  // Add initial loading state
+  if (!initialDataLoaded && loading && sessions.length === 0 && classes.length === 0) {
+    return (
+      <Loading 
+        variant="overlay" 
+        fullscreen 
+        message="Loading HR Attendance..." 
+        fancyVariant="dots" 
+      />
+    );
+  }
 
   if (!isHR && !isAdmin) {
     return (
@@ -499,7 +525,6 @@ const HRAttendancePage = () => {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
         <div style={{ flex: '1 1 300px', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{t('sessions') || 'Sessions'} ({sessions.length})</div>
-          {loading && <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>{t('loading') || 'Loading...'}</div>}
           {!loading && sessions.length === 0 && <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>{t('no_sessions') || 'No sessions found'}</div>}
           <div style={{ display: 'grid', gap: 6 }}>
             {sessions.map((session, idx) => {
@@ -628,7 +653,9 @@ const HRAttendancePage = () => {
 
               {/* Marks Table */}
               <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-                {marks.length === 0 && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>{t('no_marks') || 'No attendance records'}</div>}
+                {loading && <Loading variant="fancy" fancyVariant="dots" message="Loading attendance marks..." />}
+                {!loading && marks.length === 0 && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>{t('no_marks') || 'No attendance records'}</div>}
+                {!loading && (
                 <div style={{ display: 'grid', gap: 6 }}>
                   {marks.map((mark, idx) => {
                     const isEditing = editingMark?.uid === mark.uid;
@@ -719,6 +746,7 @@ const HRAttendancePage = () => {
                     );
                   })}
                 </div>
+                )}
               </div>
             </>
           )}

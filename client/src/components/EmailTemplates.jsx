@@ -4,6 +4,8 @@ import EmailTemplateEditor from './EmailTemplateEditor';
 import SeedDefaultTemplates from './SeedDefaultTemplates';
 import { Loading } from './ui';
 import { useLang } from '../contexts/LangContext';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 const EmailTemplates = () => {
   const { t } = useLang();
@@ -20,9 +22,6 @@ const EmailTemplates = () => {
   const checkTemplates = async () => {
     setChecking(true);
     try {
-      const { collection, getDocs, query, limit } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-      
       const q = query(collection(db, 'emailTemplates'), limit(1));
       const snapshot = await getDocs(q);
       setHasTemplates(!snapshot.empty);

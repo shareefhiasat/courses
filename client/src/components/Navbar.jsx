@@ -6,8 +6,9 @@ import NotificationBell from './NotificationBell';
 import SideDrawer from './SideDrawer';
 import { useLang } from '../contexts/LangContext';
 import { getUsers, updateUser } from '../firebase/firestore';
+import { db } from '../firebase/config';
 import './Navbar.css';
-import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List, Info } from 'lucide-react';
+import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List, Info, Users, BookOpen, Shield } from 'lucide-react';
 import { LanguageSwitcher } from './ui';
 import { useTheme } from '../contexts/ThemeContext';
 import { useColorTheme } from '../contexts/ColorThemeContext';
@@ -74,7 +75,7 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOutUser();
+      await signOutUser(user);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -84,8 +85,7 @@ const Navbar = () => {
   const openProfile = async () => {
     try {
       // Prefer deterministic users/{uid} document for reliability with rules
-      const { doc, getDoc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
+      const { getDoc, doc } = await import('firebase/firestore');
       let me = null;
       try {
         const snap = await getDoc(doc(db, 'users', user.uid));
@@ -94,7 +94,6 @@ const Navbar = () => {
       // Fallback: list query (in case read rules block direct doc)
       if (!me) {
         try {
-          const { getUsers } = await import('../firebase/firestore');
           const res = await getUsers();
           me = (res.data || []).find(u => u.docId === user.uid || u.email === user.email) || null;
         } catch {}
@@ -117,7 +116,6 @@ const Navbar = () => {
       if (!user) return;
       // Write directly to users/{uid}
       const { doc, setDoc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
       const dataToSave = {
         displayName: displayName || null,
         phoneNumber: phoneNumber || null,
@@ -378,11 +376,29 @@ const Navbar = () => {
                     {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
                   </span>
                 </div>
-                {isSuperAdmin && (
-                  <div title="Super Admin" style={{ position:'absolute', right:-6, top:-6, background:'#4f46e5', color:'#fff', borderRadius:'50%', width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                    <Crown size={12} />
-                  </div>
-                )}
+                {/* Multiple role badges stacked on the right side */}
+                <div style={{ position:'absolute', right:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {isSuperAdmin && (
+                    <div title="Super Admin" style={{ background:'#f59e0b', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      <Crown size={10} />
+                    </div>
+                  )}
+                  {isAdmin && !isSuperAdmin && (
+                    <div title="Admin" style={{ background:'#4f46e5', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      <Shield size={10} />
+                    </div>
+                  )}
+                  {isInstructor && (
+                    <div title="Instructor" style={{ background:'#0ea5e9', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      <BookOpen size={10} />
+                    </div>
+                  )}
+                  {isHR && (
+                    <div title="HR" style={{ background:'#8b5cf6', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      <Users size={10} />
+                    </div>
+                  )}
+                </div>
                 {showDropdown && (
                   <div className="dropdown-menu" style={{ right: 0, top: 48, zIndex: 9999 }}>
                     <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
@@ -394,13 +410,19 @@ const Navbar = () => {
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
-                          <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>Admin</span>
+                          <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            <Shield size={14} /> Admin
+                          </span>
                         )}
                         {isInstructor && (
-                          <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>Instructor</span>
+                          <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            <BookOpen size={14} /> Instructor
+                          </span>
                         )}
                         {isHR && (
-                          <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>HR</span>
+                          <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            <Users size={14} /> HR
+                          </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
                           <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>Student</span>

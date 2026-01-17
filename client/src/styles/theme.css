@@ -69,13 +69,13 @@ input[type="radio"]:focus-visible {
   --primary-500: #800020; /* Default blue-500 */
   --primary-600: #861b36; /* Default blue-600 */
   --primary-700: #942a44; /* Default blue-700 */
-  --primary-500-rgb: 59, 130, 246; /* RGB values for primary-500 */
+  --primary-500-rgb: 128, 0, 32; /* RGB values for primary-500 - FIXED: was using blue RGB values */
 }
 
 /* Update the variables when the primary color changes */
 [data-theme] {
-  --primary-500: var(--primary-500, #800020);
-  --primary-600: var(--primary-600, #810C29FF);
-  --primary-700: var(--primary-700, #690b0b);
-  --primary-500-rgb: var(--primary-500-rgb, 59, 130, 246);
+  --primary-500: var(--color-primary, #800020);
+  --primary-600: var(--color-primary-dark, #861b36);
+  --primary-700: var(--color-primary-dark, #942a44);
+  --primary-500-rgb: var(--color-primary-rgb, 128, 0, 32);
 }

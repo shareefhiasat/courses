@@ -29,7 +29,7 @@ const KPICard = ({ label, value, subtitle, icon: Icon, color = '#800020' }) => (
 export default function AnalyticsPage() {
   const { t } = useLang();
   const { user, isAdmin, isInstructor, isHR } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   
   // Stats
@@ -162,12 +162,13 @@ export default function AnalyticsPage() {
     a.click();
   };
 
-  if (loading && byClass.length === 0) {
+  if (loading) {
     return (
       <Loading
         variant="overlay"
         fullscreen
         message={t('loading_analytics') || t('loading') || 'Loading analytics...'}
+        fancyVariant="dots"
       />
     );
   }

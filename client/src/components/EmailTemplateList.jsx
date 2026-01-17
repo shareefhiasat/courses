@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useToast } from './ToastProvider';
 import ToggleSwitch from './ToggleSwitch';
 import { formatDateTime } from '../utils/date';
+import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import { Megaphone, FileText, CheckCircle2, GraduationCap, BookOpen, MessageSquareText, Key, PartyPopper, Mail, Plus, Pencil, Send, Copy, Trash2 } from 'lucide-react';
+import { Loading } from './ui';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();
@@ -33,9 +36,6 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const { collection, getDocs, query, orderBy } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-      
       const q = query(collection(db, 'emailTemplates'), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
       
@@ -55,8 +55,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
 
   const loadSettings = async () => {
     try {
-      const { getDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
+      const docRef = doc(db, 'config', 'emailSettings');
       const ref = doc(db, 'config', 'emailSettings');
       const snap = await getDoc(ref);
       if (snap.exists()) {
@@ -157,9 +156,6 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
     }
 
     try {
-      const { doc, deleteDoc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-      
       await deleteDoc(doc(db, 'emailTemplates', templateId));
       toast?.showSuccess('Template deleted successfully!');
       loadTemplates();
@@ -171,9 +167,6 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
 
   const duplicateTemplate = async (template) => {
     try {
-      const { collection, addDoc, Timestamp } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-      
       const newTemplate = {
         ...template,
         name: `${template.name} (Copy)`,
@@ -216,7 +209,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   };
 
   if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
+    return <Loading message="Loading email templates..." fancyVariant="dots" />;
   }
 
   return (

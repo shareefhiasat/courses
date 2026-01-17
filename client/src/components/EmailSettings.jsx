@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from './ToastProvider';
+import { getDoc, doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import ToggleSwitch from './ToggleSwitch';
 
 const EmailSettings = ({ onEditTemplate }) => {
@@ -26,9 +28,6 @@ const EmailSettings = ({ onEditTemplate }) => {
 
   const loadSettings = async () => {
     try {
-      const { getDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-      
       const docRef = doc(db, 'config', 'emailSettings');
       const docSnap = await getDoc(docRef);
       
@@ -43,9 +42,6 @@ const EmailSettings = ({ onEditTemplate }) => {
   const saveSettings = async () => {
     setLoading(true);
     try {
-      const { setDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-      
       const docRef = doc(db, 'config', 'emailSettings');
       await setDoc(docRef, settings);
       

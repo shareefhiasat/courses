@@ -201,7 +201,10 @@ export const ActivityLogger = {
   // Authentication
   login: () => logActivity(ACTIVITY_TYPES.LOGIN),
   logout: () => logActivity(ACTIVITY_TYPES.LOGOUT),
+  sessionTimeout: () => logActivity(ACTIVITY_TYPES.SESSION_TIMEOUT),
   profileUpdate: () => logActivity(ACTIVITY_TYPES.PROFILE_UPDATE),
+  passwordChange: () => logActivity(ACTIVITY_TYPES.PASSWORD_CHANGE),
+  emailChange: () => logActivity(ACTIVITY_TYPES.EMAIL_CHANGE),
 
   // Quiz
   quizStarted: (quizId, quizTitle) =>

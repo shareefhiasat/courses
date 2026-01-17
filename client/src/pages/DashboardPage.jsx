@@ -21,7 +21,7 @@ import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { getLoginLogs, getCourses, setCourse, deleteCourse, getAllowlist, updateAllowlist } from '../firebase/firestore';
 import { notifyAllUsers, notifyUsersByClass } from '../firebase/notifications';
-import { Loading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody } from '../components/ui';
+import { Loading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection } from '../components/ui';
 import InfoTooltip from '../components/ui/InfoTooltip/InfoTooltip';
 import { getCardConfig, getShapeRadius } from '../utils/cardColors';
 import RibbonTabs from '../components/RibbonTabs';
@@ -44,10 +44,11 @@ import InstructorParticipationPage from './InstructorParticipationPage';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import ScheduledReportsPage from './ScheduledReportsPage';
 import { getSubjects, getPrograms } from '../firebase/programs';
+import { getAllQuizzes } from '../firebase/quizzes';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '../utils/userStatus';
 import './DashboardPage.css';
-import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive } from 'lucide-react';
+import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { formatQatarDate, formatQatarDateOnly } from '../utils/timezone';
 import { useLang } from '../contexts/LangContext';
@@ -162,6 +163,7 @@ const DashboardPage = () => {
     };
     return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
   });
+  const [activeEnrollmentTab, setActiveEnrollmentTab] = useState('user');
   const [loading, setLoading] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
   const [formErrors, setFormErrors] = useState({});
@@ -344,7 +346,7 @@ const DashboardPage = () => {
       items: [
         { key: 'smtp', label: t('smtp') },
         { key: 'emailTemplates', label: t('templates') },
-        { key: 'emailLogs', label: t('logs') },
+        { key: 'emailLogs', label: t('notifications') },
         { key: 'scheduled-reports', label: t('scheduled_reports') }
       ]
     },
@@ -370,7 +372,7 @@ const DashboardPage = () => {
       label: t('settings'),
       items: [
         { key: 'categories', label: t('categories') },
-        { key: 'login', label: t('login') }
+        { key: 'login', label: t('logs') }
       ]
     }
   ];
@@ -772,7 +774,7 @@ const DashboardPage = () => {
   // Activity Form - Program Options
   const activityProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('select_program') }
+      { value: '', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="#374151" /> }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
@@ -781,7 +783,7 @@ const DashboardPage = () => {
         const label = lang === 'ar' 
           ? (prog.name_ar || prog.name_en || value) 
           : (prog.name_en || prog.name_ar || value);
-        return { value, label };
+        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
       });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
@@ -789,7 +791,7 @@ const DashboardPage = () => {
   // Activity Form - Subject Options
   const activitySubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('select_subject') }
+      { value: '', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="#374151" /> }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -804,7 +806,7 @@ const DashboardPage = () => {
         const label = lang === 'ar' 
           ? (sub.name_ar || sub.name_en || value) 
           : (sub.name_en || sub.name_ar || value);
-        return { value, label };
+        return { value, label, icon: <FileText size={16} color="#374151" /> };
       });
     return [...opts, ...validSubjects];
   }, [subjects, activityForm.programId, lang, t]);
@@ -812,7 +814,7 @@ const DashboardPage = () => {
   // Activity Form - Class Options
   const activityClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('general_no_class') || 'General (No Class)' }
+      { value: '', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="#374151" /> }
     ];
     const validClasses = classes
       .filter(cls => {
@@ -826,7 +828,7 @@ const DashboardPage = () => {
         const value = ensureString(cls.docId || cls.id);
         const name = lang === 'ar' ? (cls.name_ar || cls.name) : (cls.name || cls.name_ar);
         const label = `${name || 'Unnamed Class'}${cls.code ? ` (${cls.code})` : ''}`;
-        return { value, label };
+        return { value, label, icon: <Users size={16} color="#374151" /> };
       });
     return [...opts, ...validClasses];
   }, [classes, activityForm.subjectId, lang, t]);
@@ -834,14 +836,14 @@ const DashboardPage = () => {
   // Enrollment Form - Program Options
   const enrollmentProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_programs') }
+      { value: '', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="#374151" /> }
     ];
     const validPrograms = programs.map(p => {
       const value = ensureString(p.docId || p.id);
       const label = lang === 'ar' 
         ? (p.name_ar || p.name_en || p.code || value)
         : (p.name_en || p.name_ar || p.code || value);
-      return { value, label };
+      return { value, label, icon: <BookOpen size={16} color="#374151" /> };
     });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
@@ -849,7 +851,7 @@ const DashboardPage = () => {
   // Enrollment Form - Subject Options
   const enrollmentSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects') }
+      { value: '', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="#374151" /> }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -863,7 +865,7 @@ const DashboardPage = () => {
         const label = lang === 'ar'
           ? (s.name_ar || s.name_en || s.code || value)
           : (s.name_en || s.name_ar || s.code || value);
-        return { value, label };
+        return { value, label, icon: <FileText size={16} color="#374151" /> };
       });
     return [...opts, ...validSubjects];
   }, [subjects, enrollmentForm.programId, lang, t]);
@@ -871,7 +873,7 @@ const DashboardPage = () => {
   // Enrollment Form - Class Options
   const enrollmentClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('select_class') }
+      { value: '', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="#374151" /> }
     ];
     const validClasses = classes
       .filter(c => {
@@ -893,7 +895,9 @@ const DashboardPage = () => {
         const semesterPart = c.semester ? ` ${c.semester}` : '';
         return {
           value: ensureString(c.docId || c.id),
-          label: `${c.name}${codePart}${termPart}${yearPart}${semesterPart}`
+          displayLabel: `${c.name}${codePart}${termPart}${yearPart}${semesterPart}`,
+          label: `${c.name}${codePart}${termPart}${yearPart}${semesterPart}`,
+          icon: <Users size={16} color="#374151" />
         };
       });
     return [...opts, ...validClasses];
@@ -970,7 +974,7 @@ const DashboardPage = () => {
   // Class Form - Subject Options
   const classFormSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('select_subject') }
+      { value: '', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="#374151" /> }
     ];
     const validSubjects = subjects.map(subject => {
       const value = ensureString(subject.docId || subject.id);
@@ -978,7 +982,7 @@ const DashboardPage = () => {
         ? (subject.name_ar || subject.name_en || '')
         : (subject.name_en || subject.name_ar || '');
       const label = `${name}${subject.code ? ` (${subject.code})` : ''}`;
-      return { value, label };
+      return { value, label, icon: <FileText size={16} color="#374151" /> };
     });
     return [...opts, ...validSubjects];
   }, [subjects, lang, t]);
@@ -1127,7 +1131,6 @@ const DashboardPage = () => {
         getCourses(),
         (async () => {
           try {
-            const { getAllQuizzes } = await import('../firebase/quizzes');
             return await getAllQuizzes();
           } catch {
             return { success: false, data: [] };
@@ -1392,7 +1395,7 @@ const DashboardPage = () => {
       const buildEn = () => `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #800020;">📚 New Activity Assigned</h2>
-          <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
+          <div style="background: #f5f5f5a3; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
             <h3 style="margin-top: 0;">${activity.title_en || ''}</h3>
             <p><strong>Type:</strong> ${activity.type}</p>
             <p><strong>Level:</strong> ${activity.difficulty}</p>
@@ -1406,7 +1409,7 @@ const DashboardPage = () => {
       const buildAr = () => `
         <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align:right">
           <h2 style="color: #800020;">📚 واجب/نشاط جديد</h2>
-          <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
+          <div style="background: #f5f5f5a3; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
             <h3 style="margin-top: 0;">${activity.title_ar || activity.title_en || ''}</h3>
             <p><strong>النوع:</strong> ${activity.type}</p>
             <p><strong>المستوى:</strong> ${activity.difficulty}</p>
@@ -1632,7 +1635,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
   };
 
   if (authLoading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
 
   if (!user || !isAdmin) {
@@ -1648,7 +1651,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
   // Show initial full-screen loading only on first load
   if (authLoading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
 
   return (
@@ -1690,8 +1693,39 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
   </div>
 
         {/* Summary Cards with Filters */}
-        <div data-tour="stats"><Card style={{ marginBottom: '1.5rem', marginTop: '1rem', background: '#ffffff' }}>
-          <CardBody>
+        <CollapsibleDashboardSection
+          sectionId="summary-cards"
+          title={t('dashboard_statistics') || 'Dashboard Statistics'}
+          icon={<BarChart3 size={20} />}
+          color="#6366f1"
+          defaultMode="full"
+          data-tour="stats"
+          compactContent={
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <Select
+                size="small"
+                searchable
+                value={enrollmentProgramFilter}
+                onChange={(e) => {
+                  setEnrollmentProgramFilter(e.target.value);
+                  setEnrollmentSubjectFilter('all');
+                  setEnrollmentClassFilter('all');
+                }}
+                options={[
+                  { value: 'all', label: t('all_programs') || 'All Programs', icon: <Filter size={14} color="#374151" /> },
+                  ...programs.map(p => ({
+                    value: p.docId || p.id,
+                    label: p.name_en || p.name_ar || p.code || p.docId,
+                    icon: <BookOpen size={14} color="#374151" />
+                  }))
+                ]}
+                style={{ minWidth: 140 }}
+                placeholder={t('all_programs') || 'All Programs'}
+              />
+            </div>
+          }
+        >
+          <div style={{ marginBottom: '1rem' }}>
             {/* Filters */}
             <div data-tour="filters" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <Select
@@ -1704,14 +1738,15 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'all', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="#374151" /> },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
-                    label: p.name_en || p.name_ar || p.code || p.docId
+                    label: p.name_en || p.name_ar || p.code || p.docId,
+                    icon: <BookOpen size={16} color="#374151" />
                   }))
                 ]}
                 style={{ minWidth: 180 }}
-              placeholder={t('select_program') || 'Select Program'}
+                placeholder={t('all_programs') || 'All Programs'}
               />
               <Select
                 size="small"
@@ -1722,16 +1757,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'all', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="#374151" /> },
                   ...subjects
                     .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
                     .map(s => ({
                       value: s.docId || s.id,
-                      label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim()
+                      label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim(),
+                      icon: <FileText size={16} color="#374151" />
                     }))
                 ]}
                 style={{ minWidth: 180 }}
-                placeholder={t('select_subject') || 'Select Subject'}
+                placeholder={t('all_subjects') || 'All Subjects'}
               />
               <Select
                 size="small"
@@ -1739,7 +1775,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={enrollmentClassFilter}
                 onChange={(e) => setEnrollmentClassFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'all', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="#374151" /> },
                   ...classes
                     .filter(c => {
                       if (enrollmentProgramFilter !== 'all') {
@@ -1757,11 +1793,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     })
                     .map(c => ({
                       value: c.id || c.docId,
-                      label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`
+                      label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`,
+                      icon: <Users size={16} color="#374151" />
                     }))
                 ]}
                 style={{ minWidth: 180 }}
-                placeholder={t('select_class') || 'Select Class'}
+                placeholder={t('all_classes') || 'All Classes'}
               />
             </div>
 
@@ -2022,12 +2059,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 );
               })}
             </div>
-          </CardBody>
-        </Card>
-        </div>
+          </div>
+        </CollapsibleDashboardSection>
 
         <div className="tab-content">
-           {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} />}
+           {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />}
 
     <div className="tab-header">
       <h2>{(() => {
@@ -2134,7 +2170,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 categories={[
                   {
                     id: 'activity-fields',
-                    label: 'Activity Details',
                     items: [
                       { key: 'basic', label: 'Basic Info', icon: <FileText size={14} /> },
                       { key: 'content', label: 'Content', icon: <Edit size={14} /> },
@@ -2154,7 +2189,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       <div style={{ border: '0px solid #ccc', padding: '0px', margin: '0px 0', borderRadius: '4px' }}>
                         <Select
                           searchable
-                          placeholder={t('program') || 'Select Program (Optional)'}
+                          placeholder={t('all_programs') || 'All Programs'}
                           value={activityForm.programId}
                           onChange={(value) => {
                             console.log('Program Select onChange:', value);
@@ -2170,7 +2205,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       </div>
                       <Select
                         searchable
-                        placeholder={t('subject') || 'Select Subject (Optional)'}
+                        placeholder={t('all_subjects') || 'All Subjects'}
                         value={activityForm.subjectId || null}
                         onChange={handleDropdownChange(
                           setActivityForm,
@@ -2183,7 +2218,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       />
                       <Select
                         searchable
-                        placeholder={t('general_no_class') || 'Class (Optional)'}
+                        placeholder={t('all_classes') || 'All Classes'}
                         value={activityForm.classId || null}
                         onChange={handleDropdownChange(
                           setActivityForm,
@@ -2559,15 +2594,66 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                 {/* Form Actions - Show on all tabs */}
                 <div className="form-actions">
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <Button type="submit" variant="primary" loading={loading}>
-                      {(editingActivity ? (t('update') || 'Update') : (t('save') || 'Save'))}
-                    </Button>
-                    {editingActivity && (
-                      <Button type="button" variant="outline" onClick={handleCancelEdit}>
-                        {t('cancel_edit') || 'Cancel Edit'}
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      {activeActivityFormTab !== 'basic' && (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => {
+                            if (activeActivityFormTab === 'settings') {
+                              setActiveActivityFormTab('content');
+                            } else if (activeActivityFormTab === 'content') {
+                              setActiveActivityFormTab('basic');
+                            }
+                          }}
+                        >
+                          ← Previous
+                        </Button>
+                      )}
+                      {activeActivityFormTab !== 'settings' ? (
+                        <Button 
+                          type="button" 
+                          variant="secondary"
+                          onClick={() => {
+                            if (activeActivityFormTab === 'basic') {
+                              setActiveActivityFormTab('content');
+                            } else if (activeActivityFormTab === 'content') {
+                              setActiveActivityFormTab('settings');
+                            }
+                          }}
+                        >
+                          Next →
+                        </Button>
+                      ) : (
+                        <Button type="submit" variant="primary" loading={loading}>
+                          {(editingActivity ? (t('update') || 'Update') : (t('save') || 'Save'))}
+                        </Button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setEditingActivity(null);
+                          setActivityForm({
+                            id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
+                            type: 'homework', classId: '', difficulty: 'easy', maxScore: 100,
+                            allowRetake: false, dueDate: null, show: true, quizId: '',
+                            overrideQuizSettings: false
+                          });
+                          setActiveActivityFormTab('basic');
+                        }}
+                      >
+                        {t('cancel') || 'Cancel'}
                       </Button>
-                    )}
+                      {editingActivity && (
+                        <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                          {t('cancel_edit') || 'Cancel Edit'}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
                   </>
@@ -2604,10 +2690,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     },
                     renderCell: (params) => {
                       const programId = params.value || params.row?.programId || params.row?.program;
-                      if (!programId) return '—';
+                      if (!programId) return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                          <Archive size={16} color="var(--text-muted, #6b7280)" /> General
+                        </span>
+                      );
                       const program = programs.find(p => (p.docId || p.id) === programId);
                       if (!program) return '—';
-                      return lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                      const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Target size={16} color="var(--color-primary, #4f46e5)" /> {programName}
+                        </span>
+                      );
                     }
                   },
                   {
@@ -2620,10 +2715,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     },
                     renderCell: (params) => {
                       const subjectId = params.value || params.row?.subjectId || params.row?.subject;
-                      if (!subjectId) return '—';
+                      if (!subjectId) return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                          <BookOpen size={16} color="var(--text-muted, #6b7280)" /> General
+                        </span>
+                      );
                       const subject = subjects.find(s => (s.docId || s.id) === subjectId);
                       if (!subject) return '—';
-                      return lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                      const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {subjectName}
+                        </span>
+                      );
                     }
                   },
                   { 
@@ -2631,10 +2735,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     headerName: t('class_col') || 'Class', 
                     width: 180,
                     renderCell: (params) => {
-                      if (!params.value) return 'General';
+                      if (!params.value) return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                          <Users size={16} color="var(--text-muted, #6b7280)" /> General
+                        </span>
+                      );
                       const classItem = classes.find(c => (c.docId || c.id) === params.value);
                       if (!classItem) return params.value;
-                      return `${classItem.name}${classItem.code ? ` (${classItem.code})` : ''}`;
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Users size={16} color="var(--color-secondary, #8b5cf6)" /> {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+                        </span>
+                      );
                     }
                   },
                   { field: 'course', headerName: t('course_col') || 'Course', width: 140 },
@@ -2650,14 +2762,38 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const type = params.value || params.row?.type;
                       if (!type) return '—';
                       const typeMap = {
-                        'quiz': 'Quiz',
-                        'homework': 'Homework',
-                        'training': 'Training'
+                        'quiz': { icon: <Target size={16} color="var(--text-secondary, #374151)" />, text: 'Quiz' },
+                        'homework': { icon: <Home size={16} color="var(--color-warning, #f59e0b)" />, text: 'Homework' },
+                        'training': { icon: <Target size={16} color="var(--color-success, #16a34a)" />, text: 'Training' }
                       };
-                      return typeMap[type] || type;
+                      const typeConfig = typeMap[type] || { icon: <FileText size={16} color="var(--text-secondary, #374151)" />, text: type };
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          {typeConfig.icon} {typeConfig.text}
+                        </span>
+                      );
                     }
                   },
-                  { field: 'difficulty', headerName: t('difficulty_col'), width: 140 },
+                  { 
+                    field: 'difficulty', 
+                    headerName: t('difficulty_col'), 
+                    width: 140,
+                    renderCell: (params) => {
+                      const difficulty = params.value;
+                      if (!difficulty) return '—';
+                      const difficultyMap = {
+                        'easy': { icon: <CheckCircle size={16} color="var(--color-success, #16a34a)" />, text: 'Easy' },
+                        'medium': { icon: <AlertTriangle size={16} color="var(--color-warning, #f59e0b)" />, text: 'Medium' },
+                        'hard': { icon: <XCircle size={16} color="var(--color-danger, #dc2626)" />, text: 'Hard' }
+                      };
+                      const difficultyConfig = difficultyMap[difficulty.toLowerCase()] || { icon: <Info size={16} color="var(--text-secondary, #374151)" />, text: difficulty };
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          {difficultyConfig.icon} {difficultyConfig.text}
+                        </span>
+                      );
+                    }
+                  },
                   {
                     field: 'maxScore',
                     headerName: t('max_score') || 'Max Score',
@@ -2762,7 +2898,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 exportFileName="activities"
                 showExportButton
                 exportLabel={t('export') || 'Export'}
-                loadingOverlayMessage="Loading..."
+                loadingOverlayMessage="Loading..." fancyVariant="dots"
               />
               </div>
             </div>
@@ -2790,7 +2926,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 categories={[
                   {
                     id: 'announcement-fields',
-                    label: 'Announcement Details',
                     items: [
                       { key: 'basic', label: 'Basic Info', icon: <Bell size={14} /> },
                       { key: 'content', label: 'Content', icon: <Edit size={14} /> },
@@ -2958,7 +3093,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       if (!programId) return '—';
                       const program = programs.find(p => (p.docId || p.id) === programId);
                       if (!program) return programId;
-                      return lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                      const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Target size={16} color="var(--color-primary, #4f46e5)" /> {programName}
+                        </span>
+                      );
                     }
                   },
                   {
@@ -2970,7 +3110,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       if (!subjectId) return '—';
                       const subject = subjects.find(s => (s.docId || s.id) === subjectId);
                       if (!subject) return subjectId;
-                      return lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                      const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {subjectName}
+                        </span>
+                      );
                     }
                   },
                   {
@@ -2982,17 +3127,37 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       if (!classId) return '—';
                       const classItem = classes.find(c => (c.docId || c.id) === classId);
                       if (!classItem) return classId;
-                      return `${classItem.name}${classItem.code ? ` (${classItem.code})` : ''}`;
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Users size={16} color="var(--color-secondary, #8b5cf6)" /> {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+                        </span>
+                      );
                     }
                   },
                   {
                     field: 'target', headerName: 'Target', width: 120,
                     renderCell: (params) => {
                        const { programId, subjectId, classId } = params.row;
-                       if (classId) return 'Class';
-                       if (subjectId) return 'Subject';
-                       if (programId) return 'Program';
-                       return 'Global';
+                       if (classId) return (
+                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                           <Users size={16} color="var(--color-secondary, #8b5cf6)" /> Class
+                         </span>
+                       );
+                       if (subjectId) return (
+                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                           <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> Subject
+                         </span>
+                       );
+                       if (programId) return (
+                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                           <Target size={16} color="var(--color-primary, #4f46e5)" /> Program
+                         </span>
+                       );
+                       return (
+                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                           <Globe size={16} color="var(--color-success, #16a34a)" /> Global
+                         </span>
+                       );
                     }
                   },
                   {
@@ -3216,10 +3381,22 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 />
                 <Select value={loginUserFilter} onChange={(e) => setLoginUserFilter(e.target.value)} options={[
                   { value: 'all', label: t('all_users'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
-                  ...users.map(u => ({
-                    value: u.email || u.docId,
-                    label: u.displayName ? `${u.displayName} (${u.email || u.docId})` : (u.email || u.docId)
-                  }))
+                  ...users.map(u => {
+                    const getRoleIcon = (role) => {
+                      switch(role) {
+                        case 'superadmin': return <Crown size={16} color="#f59e0b" />;
+                        case 'admin': return <Shield size={16} color="#4f46e5" />;
+                        case 'instructor': return <BookOpen size={16} color="#0ea5e9" />;
+                        case 'hr': return <Users size={16} color="#8b5cf6" />;
+                        default: return <User size={16} color="#16a34a" />;
+                      }
+                    };
+                    return {
+                      value: u.email || u.docId,
+                      label: u.displayName ? `${u.displayName} (${u.email || u.docId})` : (u.email || u.docId),
+                      icon: getRoleIcon(u.role)
+                    };
+                  })
                 ]} style={{ minWidth: '200px', flex: '1' }} />
                 <DateRangeSlider
                   fromDate={loginFrom ? (() => {
@@ -3302,9 +3479,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {
                     field: 'type', headerName: t('type'), width: 200,
                     renderCell: (params) => {
+                      const type = params.value || 'login';
+                      const typeMap = {
+                        'login': { icon: <LogIn size={16} color="var(--color-success, #16a34a)" />, text: 'Login' },
+                        'logout': { icon: <LogOut size={16} color="var(--color-warning, #f59e0b)" />, text: 'Logout' },
+                        'failed_login': { icon: <XCircle size={16} color="var(--color-danger, #dc2626)" />, text: 'Failed Login' },
+                        'password_reset': { icon: <Key size={16} color="var(--color-info, #0ea5e9)" />, text: 'Password Reset' }
+                      };
+                      const typeConfig = typeMap[type.toLowerCase()] || { icon: <Activity size={16} color="var(--text-secondary, #374151)" />, text: type };
                       return (
-                        <span style={{ fontSize: '0.85rem' }}>
-                          {params.value || 'login'}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                          {typeConfig.icon} {typeConfig.text}
                         </span>
                       );
                     }
@@ -3337,6 +3522,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 exportFileName="login-activity"
                 showExportButton
                 exportLabel={t('export') || 'Export'}
+                loadingOverlayMessage={loading ? "Loading login activity..." : undefined}
+                fancyVariant="dots"
               />
             </div>
           )}
@@ -3362,7 +3549,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 categories={[
                   {
                     id: 'class-fields',
-                    label: 'Class Details',
                     items: [
                       { key: 'basic', label: 'Basic Info', icon: <Home size={14} /> },
                       { key: 'academic', label: 'Academic Info', icon: <GraduationCap size={14} /> },
@@ -3441,7 +3627,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     <div className="form-row">
                       <Select
                         searchable
-                        placeholder={t('select_subject') || 'Select Subject'}
+                        placeholder={t('all_subjects') || 'All Subjects'}
                         value={ensureString(classForm.subjectId || '')}
                         onChange={e => {
                           const newSubjectId = ensureString(e.target.value);
@@ -3453,23 +3639,29 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       />
                       <Select
                         searchable
-                        placeholder={t('select_owner') || 'Select Instructor'}
+                        placeholder={t('all_instructors') || 'All Instructors'}
                         value={classForm.ownerEmail}
                         onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
                         options={[
-                          { value: '', label: t('select_owner') || 'Select Instructor' },
+                          { value: '', label: t('all_instructors') || 'All Instructors', icon: <Filter size={16} color="#374151" /> },
                           ...users.filter(user => user.role === 'admin' || user.role === 'instructor').map(instructor => {
                             const displayName = instructor.displayName || instructor.name || instructor.realName || '';
+                            const isInstructor = instructor.role === 'instructor';
+                            const isAdmin = instructor.role === 'admin';
                             return {
                               value: instructor.email,
-                              label: displayName ? `${displayName} (${instructor.email})` : instructor.email
+                              label: displayName ? `${displayName} (${instructor.email})` : instructor.email,
+                              icon: isInstructor ? 
+                                <BookOpen size={16} color="#0ea5e9" /> : 
+                                <Shield size={16} color="#4f46e5" />
                             };
                           }),
                           ...(allowlist?.adminEmails?.filter(email =>
                             !users.some(u => u.email === email)
                           ).map(email => ({
                             value: email,
-                            label: `${email} (from allowlist)`
+                            label: `${email} (from allowlist)`,
+                            icon: <Shield size={16} color="#4f46e5" />
                           })) || [])
                         ]}
                         required
@@ -3565,9 +3757,43 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       if (!subject) return '—';
                       const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en;
                       return subjectName || '—';
+                    },
+                    renderCell: (params) => {
+                      const row = params?.row || {};
+                      const subjectId = row.subjectId || params?.value;
+                      if (!subjectId) return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                          <BookOpen size={16} color="var(--text-muted, #6b7280)" /> —
+                        </span>
+                      );
+                      const subject = subjects.find(s => (s.docId === subjectId) || (s.id === subjectId));
+                      if (!subject) return '—';
+                      const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en;
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {subjectName || '—'}
+                        </span>
+                      );
                     }
                   },
-                  { field: 'term', headerName: t('term') || 'Term', width: 140 },
+                  { 
+                    field: 'term', 
+                    headerName: t('term') || 'Term', 
+                    width: 140,
+                    renderCell: (params) => {
+                      const term = params.value;
+                      if (!term) return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                          <Calendar size={16} color="var(--text-muted, #6b7280)" /> —
+                        </span>
+                      );
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Calendar size={16} color="var(--color-primary, #4f46e5)" /> {term}
+                        </span>
+                      );
+                    }
+                  },
                   {
                     field: 'ownerEmail', headerName: t('owner') || 'Owner', flex: 1, minWidth: 200,
                     valueGetter: (params) => {
@@ -3580,6 +3806,29 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         return displayName ? `${displayName} (${email})` : email;
                       }
                       return email;
+                    },
+                    renderCell: (params) => {
+                      const row = params?.row || {};
+                      const email = row.ownerEmail || params?.value;
+                      if (!email) return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                          <User size={16} color="var(--text-muted, #6b7280)" /> —
+                        </span>
+                      );
+                      const owner = users.find(u => u.email === email);
+                      if (owner) {
+                        const displayName = owner.displayName || owner.name || owner.realName || '';
+                        return (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <User size={16} color="var(--color-success, #16a34a)" /> {displayName ? `${displayName} (${email})` : email}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <User size={16} color="var(--text-secondary, #374151)" /> {email}
+                        </span>
+                      );
                     }
                   },
                   {
@@ -3657,6 +3906,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 exportFileName="classes"
                 showExportButton
                 exportLabel={t('export') || 'Export'}
+                loadingOverlayMessage={loading ? "Loading classes..." : undefined}
+                fancyVariant="dots"
               />
               </div>
             </div>
@@ -3751,7 +4002,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               categories={[
                 {
                   id: 'enrollment-fields',
-                  label: 'Enrollment Details',
                   items: [
                     { key: 'user', label: 'User Info', icon: <User size={14} /> },
                     { key: 'class', label: 'Class Info', icon: <Home size={14} /> },
@@ -3760,8 +4010,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 }
               ]}
               activeCategory="enrollment-fields"
-              activeItem="user"
-              onChange={({ category, item }) => console.log('Ribbon tab changed:', { category, item })}
+              activeItem={activeEnrollmentTab}
+              onChange={({ category, item }) => setActiveEnrollmentTab(item)}
             />
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -3800,108 +4050,126 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 setLoading(false);
               }
             }} className="dashboard-form">
-              <div className="form-row wide-cols">
-                <Select
-                  searchable
-                  placeholder={t('select_user')}
-                  value={enrollmentForm.userId}
-                  onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
-                  options={[
-                    { value: '', label: t('select_user') || 'Select User' },
-                    ...users
-                      .filter(u => u.role === 'student')
-                      .map(u => {
-                        // Get user enrollments count
-                        const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
-                        const enrollmentCount = userEnrollments.length;
-                        
-                        // Get status utilities
-                        const status = getUserStatus(u, userEnrollments);
-                        const statusSummary = getUserStatusSummary(u, userEnrollments);
-                        const iconProps = getStatusIconProps(status);
-                        const IconComponent = {
-                          'UserCheck': UserCheck,
-                          'UserX': UserX,
-                          'UserMinus': UserMinus,
-                          'AlertCircle': AlertTriangle,
-                          'Info': Info
-                        }[iconProps.name] || User;
-                        
-                        const isDisabled = status === USER_STATUS.DELETED;
-                        const statusLabel = statusSummary?.label || status;
-                        
-                        return {
-                          value: u.docId || u.id,
-                          label: (
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center',
-                              gap: 8,
-                              opacity: isDisabled ? 0.7 : 1
-                            }}>
-                              <IconComponent size={16} color={iconProps.color} />
-                              <span style={{ 
-                                textDecoration: isDisabled ? 'line-through' : 'none',
-                                flex: 1
+              {/* User Info Tab */}
+              {activeEnrollmentTab === 'user' && (
+                <div className="form-row wide-cols">
+                  <Select
+                    searchable
+                    placeholder={t('select_user')}
+                    value={enrollmentForm.userId}
+                    onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
+                    options={[
+                      { value: '', label: t('select_user') || 'Select User' },
+                      ...users
+                        .filter(u => u.role === 'student')
+                        .map(u => {
+                          // Get user enrollments count
+                          const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
+                          const enrollmentCount = userEnrollments.length;
+                          
+                          // Get status utilities
+                          const status = getUserStatus(u, userEnrollments);
+                          const statusSummary = getUserStatusSummary(u, userEnrollments);
+                          const iconProps = getStatusIconProps(status);
+                          const IconComponent = {
+                            'UserCheck': UserCheck,
+                            'UserX': UserX,
+                            'UserMinus': UserMinus,
+                            'AlertCircle': AlertTriangle,
+                            'Info': Info
+                          }[iconProps.name] || User;
+                          
+                          const isDisabled = status === USER_STATUS.DELETED;
+                          const statusLabel = statusSummary?.label || status;
+                          
+                          return {
+                            value: u.docId || u.id,
+                            displayLabel: u.displayName || u.realName || u.email || 'Unknown',
+                            label: (
+                              <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center',
+                                gap: 8,
+                                opacity: isDisabled ? 0.7 : 1
                               }}>
-                                {u.displayName || u.realName || u.email || 'Unknown'}
-                              </span>
-                              <span style={{ 
-                                fontSize: '0.8em',
-                                color: '#9CA3AF',
-                                marginLeft: 'auto'
-                              }}>
-                                {statusLabel}
-                                {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments') || 'enrollments'}`}
-                              </span>
-                            </div>
-                          ),
-                          disabled: isDisabled
-                        };
-                      })
-                  ]}
-                  required
-                />
+                                <IconComponent size={16} color={iconProps.color} />
+                                <span style={{ 
+                                  textDecoration: isDisabled ? 'line-through' : 'none',
+                                  flex: 1
+                                }}>
+                                  {u.displayName || u.realName || u.email || 'Unknown'}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '0.8em',
+                                  color: '#9CA3AF',
+                                  marginLeft: 'auto'
+                                }}>
+                                  {statusLabel}
+                                  {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments') || 'enrollments'}`}
+                                </span>
+                              </div>
+                            ),
+                            disabled: isDisabled
+                          };
+                        })
+                    ]}
+                    required
+                  />
+                </div>
+              )}
 
-                <Select
-                  searchable
-                  placeholder={t('select_program') || 'Select Program'}
-                  value={enrollmentForm.programId}
-                  onChange={handleEnrollmentProgramChange}
-                  options={enrollmentProgramOptions}
-                  required
-                />
-                
-                <Select
-                  searchable
-                  placeholder={t('select_subject') || 'Select Subject'}
-                  value={ensureString(enrollmentForm.subjectId || '')}
-                  onChange={handleEnrollmentSubjectChange}
-                  options={enrollmentSubjectOptions}
-                  required
-                />
+              {/* Class Info Tab */}
+              {activeEnrollmentTab === 'class' && (
+                <div className="form-row wide-cols">
+                  <Select
+                    searchable
+                    placeholder={t('all_programs') || 'All Programs'}
+                    value={enrollmentForm.programId}
+                    onChange={handleEnrollmentProgramChange}
+                    options={enrollmentProgramOptions}
+                    required
+                  />
+                  
+                  <Select
+                    searchable
+                    placeholder={t('all_subjects') || 'All Subjects'}
+                    value={ensureString(enrollmentForm.subjectId || '')}
+                    onChange={handleEnrollmentSubjectChange}
+                    options={enrollmentSubjectOptions}
+                    required
+                  />
 
-                <Select
-                  searchable
-                  placeholder={t('select_class')}
-                  value={enrollmentForm.classId}
-                  onChange={(value) => setEnrollmentForm(prev => ({ ...prev, classId: value }))}
-                  disabled={!enrollmentForm.subjectId}
-                  options={enrollmentClassOptions}
-                  required
-                />
+                  <Select
+                    searchable
+                    placeholder={t('all_classes') || 'All Classes'}
+                    value={enrollmentForm.classId}
+                    onChange={(e) => setEnrollmentForm(prev => ({ ...prev, classId: e.target.value }))}
+                    disabled={!enrollmentForm.subjectId}
+                    options={enrollmentClassOptions}
+                    required
+                  />
+                </div>
+              )}
 
-                <Select
-                  searchable
-                  placeholder={t('role') || 'Role'}
-                  value={enrollmentForm.role}
-                  onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
-                  options={[
-                    { value: 'student', label: t('student') || 'Student' }
-                  ]}
-                  disabled
-                />
-              </div>
+              {/* Role Tab */}
+              {activeEnrollmentTab === 'role' && (
+                <div className="form-row wide-cols">
+                  <Select
+                    searchable
+                    placeholder={t('role') || 'Role'}
+                    value={enrollmentForm.role}
+                    onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
+                    options={[
+                      { value: 'student', label: (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <User size={16} style={{ color: '#16a34a' }} />
+                          {t('student') || 'Student'}
+                        </span>
+                      )}
+                    ]}
+                  />
+                </div>
+              )}
 
               <div className="form-actions">
                 <Button type="submit" variant="primary" disabled={loading} size="medium">
@@ -3979,7 +4247,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'userId', headerName: t('user_col'), flex: 1, minWidth: 250,
                   renderCell: (params) => {
                     const user = users.find(u => (u.docId || u.id) === params.value);
-                    return user ? `${user.displayName || user.realName || '—'}${user.email ? ` (${user.email})` : ''}` : params.value;
+                    if (!user) return params.value;
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <User size={16} color="var(--color-primary, #4f46e5)" /> {user.displayName || user.realName || '—'}{user.email ? ` (${user.email})` : ''}
+                      </span>
+                    );
                   }
                 },
                 {
@@ -4005,6 +4278,27 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     });
                     
                     return programName || params.value || 'N/A';
+                  },
+                  renderCell: (params) => {
+                    const row = params.row || {};
+                    const programName = row.programName || 
+                                     (row.program && (row.program.name_en || row.program.name)) ||
+                                     (row.programId && programs.find(p => (p.docId || p.id) === row.programId)?.name_en);
+                    
+                    if (!programName && !params.value) {
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                          <Target size={16} color="var(--text-muted, #6b7280)" /> N/A
+                        </span>
+                      );
+                    }
+                    
+                    const finalProgramName = programName || params.value || 'N/A';
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Target size={16} color="var(--color-primary, #4f46e5)" /> {finalProgramName}
+                      </span>
+                    );
                   }
                 },
                 {
@@ -4030,6 +4324,27 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     });
                     
                     return subjectName || params.value || 'N/A';
+                  },
+                  renderCell: (params) => {
+                    const row = params.row || {};
+                    const subjectName = row.subjectName || 
+                                     (row.subject && (row.subject.name_en || row.subject.name)) ||
+                                     (row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
+                    
+                    if (!subjectName && !params.value) {
+                      return (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                          <BookOpen size={16} color="var(--text-muted, #6b7280)" /> N/A
+                        </span>
+                      );
+                    }
+                    
+                    const finalSubjectName = subjectName || params.value || 'N/A';
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {finalSubjectName}
+                      </span>
+                    );
                   }
                 },
                 {
@@ -4038,16 +4353,20 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const classItem = classes.find(c => (c.docId || c.id) === params.value);
                     if (!classItem) return params.value;
                     const codePart = classItem.code ? ` (${classItem.code})` : '';
-                    return `${classItem.name}${codePart}`;
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Users size={16} color="var(--color-secondary, #8b5cf6)" /> {classItem.name}{codePart}
+                      </span>
+                    );
                   }
                 },
                 {
                   field: 'role', headerName: t('role_col'), width: 150,
                   renderCell: (params) => {
                     const roleMap = {
-                      'student': '👨‍🎓 Student',
-                      'ta': '👨‍🏫 TA',
-                      'instructor': '👩‍🏫 Instructor'
+                      'student': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><User size={16} color="var(--color-success, #16a34a)" /> Student</span>,
+                      'ta': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👨‍🏫 TA</span>,
+                      'instructor': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👩‍🏫 Instructor</span>
                     };
                     return roleMap[params.value] || params.value;
                   }
@@ -4409,7 +4728,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               categories={[
                 {
                   id: 'user-fields',
-                  label: 'User Details',
                   items: [
                     { key: 'basic', label: 'Basic Info', icon: <User size={14} /> },
                     { key: 'academic', label: 'Academic Info', icon: <GraduationCap size={14} /> },
@@ -4510,11 +4828,36 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   value={userForm.role}
                   onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
                   options={[
-                    { value: 'student', label: t('student') || 'Student' },
-                    { value: 'instructor', label: t('instructor') || 'Instructor' },
-                    { value: 'hr', label: t('hr') || 'HR' },
-                    { value: 'admin', label: t('admin') || 'Admin' },
-                    { value: 'superadmin', label: 'Super Admin' },
+                    { value: 'student', label: (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <User size={16} style={{ color: '#16a34a' }} />
+                        {t('student') || 'Student'}
+                      </span>
+                    )},
+                    { value: 'instructor', label: (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <BookOpen size={16} style={{ color: '#0ea5e9' }} />
+                        {t('instructor') || 'Instructor'}
+                      </span>
+                    )},
+                    { value: 'hr', label: (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Users size={16} style={{ color: '#8b5cf6' }} />
+                        {t('hr') || 'HR'}
+                      </span>
+                    )},
+                    { value: 'admin', label: (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Shield size={16} style={{ color: '#4f46e5' }} />
+                        {t('admin') || 'Admin'}
+                      </span>
+                    )},
+                    { value: 'superadmin', label: (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Crown size={16} style={{ color: '#f59e0b' }} />
+                        Super Admin
+                      </span>
+                    )},
                   ]}
                   fullWidth
                 />
@@ -4557,18 +4900,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   renderCell: (params) => {
                     const role = params.value || t('student');
                     const roleIcons = {
-                      'superadmin': <Crown size={16} color="var(--color-warning, #f59e0b)" />,
-                      'admin': <Shield size={16} color="var(--color-primary, #4f46e5)" />,
-                      'instructor': <GraduationCap size={16} color="var(--color-info, #0ea5e9)" />,
-                      'hr': <Users size={16} color="var(--color-secondary, #8b5cf6)" />,
-                      'student': <User size={16} color="var(--color-success, #16a34a)" />
+                      'superadmin': <Crown size={16} color="#f59e0b" />,
+                      'admin': <Shield size={16} color="#4f46e5" />,
+                      'instructor': <BookOpen size={16} color="#0ea5e9" />,
+                      'hr': <Users size={16} color="#8b5cf6" />,
+                      'student': <User size={16} color="#16a34a" />
                     };
                     const roleColors = {
-                      'superadmin': 'var(--color-warning, #f59e0b)',
-                      'admin': 'var(--color-primary, #4f46e5)', 
-                      'instructor': 'var(--color-info, #0ea5e9)',
-                      'hr': 'var(--color-secondary, #8b5cf6)',
-                      'student': 'var(--color-success, #16a34a)'
+                      'superadmin': '#f59e0b',
+                      'admin': '#4f46e5', 
+                      'instructor': '#0ea5e9',
+                      'hr': '#8b5cf6',
+                      'student': '#16a34a'
                     };
                     const normalizedRole = role.toLowerCase();
                     const icon = roleIcons[normalizedRole] || roleIcons['student'];
@@ -4689,6 +5032,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           🎭
                         </Button>
                       )}
+                      {(params.row.role || 'student') === 'student' && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => {
+                            // Navigate to student profile with QR tab
+                            window.open(`/student-profile?uid=${params.row.docId || params.row.id}`, '_blank');
+                          }}
+                          title={t('view_qr_code') || 'View QR Code'}
+                        >
+                          📱
+                        </Button>
+                      )}
                       <Button 
                         size="sm" 
                         variant="outline" 
@@ -4792,7 +5148,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               categories={[
                 {
                   id: 'resource-fields',
-                  label: 'Resource Details',
                   items: [
                     { key: 'basic', label: 'Basic Info', icon: <BookOpen size={14} /> },
                     { key: 'content', label: 'Content', icon: <FileText size={14} /> },
@@ -5138,11 +5493,16 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'type', headerName: t('type_col'), width: 140,
                   renderCell: (params) => {
                     const typeMap = {
-                      'document': 'Document',
-                      'link': 'Link',
-                      'video': 'Video'
+                      'document': { icon: <FileText size={16} color="var(--color-primary, #4f46e5)" />, text: 'Document' },
+                      'link': { icon: <Link size={16} color="var(--color-info, #0ea5e9)" />, text: 'Link' },
+                      'video': { icon: <Video size={16} color="var(--color-danger, #dc2626)" />, text: 'Video' }
                     };
-                    return typeMap[params.value] || params.value;
+                    const typeConfig = typeMap[params.value] || { icon: <FileText size={16} color="var(--text-secondary, #374151)" />, text: params.value };
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        {typeConfig.icon} {typeConfig.text}
+                      </span>
+                    );
                   }
                 },
                 {
@@ -5155,10 +5515,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   },
                   renderCell: (params) => {
                     const programId = params.value || params.row?.programId;
-                    if (!programId) return 'Public';
+                    if (!programId) return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-success, #16a34a)' }}>
+                        <Globe size={16} color="var(--color-success, #16a34a)" /> Public
+                      </span>
+                    );
                     const program = programs.find(p => (p.docId || p.id) === programId);
                     if (!program) return '—';
-                    return lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                    const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Target size={16} color="var(--color-primary, #4f46e5)" /> {programName}
+                      </span>
+                    );
                   }
                 },
                 {
@@ -5171,10 +5540,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   },
                   renderCell: (params) => {
                     const subjectId = params.value || params.row?.subjectId;
-                    if (!subjectId) return '—';
+                    if (!subjectId) return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                        <BookOpen size={16} color="var(--text-muted, #6b7280)" /> —
+                      </span>
+                    );
                     const subject = subjects.find(s => (s.docId || s.id) === subjectId);
                     if (!subject) return '—';
-                    return lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                    const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {subjectName}
+                      </span>
+                    );
                   }
                 },
                 {
@@ -5186,10 +5564,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     return row.classId || params?.value || null;
                   },
                   renderCell: (params) => {
-                    if (!params.value) return '—';
+                    if (!params.value) return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                        <Users size={16} color="var(--text-muted, #6b7280)" /> —
+                      </span>
+                    );
                     const classItem = classes.find(c => (c.docId || c.id) === params.value);
                     if (!classItem) return params.value;
-                    return `${classItem.name}${classItem.code ? ` (${classItem.code})` : ''}`;
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Users size={16} color="var(--color-secondary, #8b5cf6)" /> {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+                      </span>
+                    );
                   }
                 },
                 {
@@ -5321,25 +5707,43 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               <div style={{ display: 'grid', gap: 12 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
                   <Input
-                    label="SMTP Host"
+                    label={t('smtp_host')}
                     value={smtpConfig.host}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
                     placeholder="smtp.gmail.com"
                     fullWidth
                   />
                   <NumberInput
-                    label="SMTP Port"
+                    label={t('smtp_port')}
                     value={smtpConfig.port}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, port: parseInt(e.target.value || '0') })}
                     placeholder="587"
                     fullWidth
                   />
                   <Input
-                    label="Sender Name"
+                    label={t('sender_name')}
                     value={smtpConfig.senderName}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, senderName: e.target.value })}
                     fullWidth
                   />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Input
+                    label={t('email_address')}
+                    type="email"
+                    value={smtpConfig.user}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
+                    placeholder="your-email@gmail.com"
+                    fullWidth
+                  />
+                  <Input
+                     label={t('app_password')}
+                     type="password"
+                     value={smtpConfig.password}
+                     onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
+                     placeholder={t('app_password') || 'App Password'}
+                     fullWidth
+                   />
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: '1rem', justifyContent: 'flex-end' }}>
                   <Button
@@ -5351,7 +5755,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     disabled={smtpTesting}
                     style={{ minWidth: '120px' }}
                   >
-                    {smtpTesting ? 'Testing...' : 'Test'}
+                    {smtpTesting ? t('testing') || 'Testing...' : t('test_email')}
                   </Button>
                   <Button
                     variant="primary"
@@ -5376,26 +5780,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     disabled={smtpSaving}
                     style={{ minWidth: '120px' }}
                   >
-                    {smtpSaving ? 'Saving...' : 'Save'}
+                    {smtpSaving ? t('saving') || 'Saving...' : t('save')}
                   </Button>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <Input
-                    label="Email Address"
-                    type="email"
-                    value={smtpConfig.user}
-                    onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
-                    placeholder="your-email@gmail.com"
-                    fullWidth
-                  />
-                  <Input
-                     label="App Password"
-                     type="password"
-                     value={smtpConfig.password}
-                     onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
-                     placeholder={t('app_password') || 'App Password'}
-                     fullWidth
-                   />
                 </div>
               </div>
             </div>
@@ -5507,7 +5893,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 },
                 {
                   field: 'order', headerName: 'Order', width: 100,
-                  renderCell: (params) => params.value ?? 0
+                  renderCell: (params) => (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Database size={16} color="var(--color-info, #0ea5e9)" /> {params.value ?? 0}
+                    </span>
+                  )
                 },
                 {
                   field: 'actions', headerName: 'Actions', width: 200, sortable: false, filterable: false,

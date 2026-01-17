@@ -517,7 +517,7 @@ const HomePage = () => {
   const primaryColor = getPrimaryColor();
 
   if (authLoading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />;
+    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
 
   if (!user) {
@@ -532,7 +532,7 @@ const HomePage = () => {
 
   return (
     <div className="home-page" style={{ padding: '1rem 0', position: 'relative' }}>
-      {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} />}
+      {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />}
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Mode Switcher - Using Tabs component */}
         <div data-tour="mode-switcher" style={{ marginBottom: '1.5rem' }}>
@@ -1346,7 +1346,7 @@ const HomePage = () => {
 
         {/* Items Grid */}
               {loading ? (
-                <Loading variant="overlay" message={t('loading') || 'Loading...'} />
+                <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />
               ) : (
                 <div data-tour="cards-grid" style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
             {filteredItems.length === 0 ? (

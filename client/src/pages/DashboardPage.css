@@ -108,10 +108,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.tab-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
+/* Hover effects removed */
 
 .tab-btn.active {
   background: linear-gradient(135deg, #800020, #600018);
@@ -136,9 +133,7 @@
   transition: all 0.3s;
 }
 
-.filter-btn:hover {
-  background: #fff0f3;
-}
+/* Hover effects removed */
 
 .filter-btn.active {
   background: linear-gradient(135deg, #800020, #600018);
@@ -237,10 +232,7 @@
   transition: transform 0.3s, box-shadow 0.3s, background 0.3s;
 }
 
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+/* Hover effects removed */
 
 .submit-btn:disabled {
   opacity: 0.6;
@@ -477,10 +469,7 @@
   transition: transform 0.3s;
 }
 
-.cancel-btn:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
+/* Hover effects removed */
 
 .form-actions {
   display: flex;

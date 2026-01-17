@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { getQuiz, createQuiz, updateQuiz } from '../firebase/quizzes';
 import { notifyQuizAvailable } from '../firebase/quizNotifications';
 import { getEnrollments, getUsers } from '../firebase/firestore';
 import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading } from '../components/ui';

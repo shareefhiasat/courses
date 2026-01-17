@@ -625,9 +625,12 @@ const ReviewResultsPage = () => {
 
   if (loading && results.length === 0) {
     return (
-      <Container>
-        <Loading message="Loading results..." fancyVariant="dots" />
-      </Container>
+      <Loading 
+        variant="overlay" 
+        fullscreen 
+        message="Loading results..." 
+        fancyVariant="dots" 
+      />
     );
   }
 

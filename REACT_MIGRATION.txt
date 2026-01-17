@@ -1,0 +1,153 @@
+// ===== REACT COMPONENT MIGRATION =====
+// This accesses Firebase through your React app's components
+
+console.log('🔍 Looking for Firebase in React components...');
+
+// Method 1: Try to find Firebase in React DevTools
+function findFirebaseInReact() {
+  // Check if React DevTools is available
+  if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+    console.log('✅ React DevTools found');
+    
+    // Try to get the root fiber
+    const hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+    const renderers = hook.renderers || [];
+    
+    for (let renderer of renderers) {
+      const fiberRoot = renderer.currentContainer;
+      if (fiberRoot && fiberRoot.current) {
+        console.log('✅ React fiber root found');
+        
+        // Try to find a component that might have Firebase
+        const searchForFirebase = (fiber) => {
+          // Check memoizedState for Firebase
+          if (fiber.memoizedState) {
+            const state = fiber.memoizedState;
+            if (state.memoizedState && state.memoizedState.db) {
+              return state.memoizedState.db;
+            }
+            if (state.memoizedState && state.memoizedState.firebase) {
+              return state.memoizedState.firebase.firestore();
+            }
+          }
+          
+          // Check child
+          if (fiber.child) {
+            const result = searchForFirebase(fiber.child);
+            if (result) return result;
+          }
+          
+          // Check sibling
+          if (fiber.sibling) {
+            const result = searchForFirebase(fiber.sibling);
+            if (result) return result;
+          }
+          
+          return null;
+        };
+        
+        const db = searchForFirebase(fiberRoot.current);
+        if (db) {
+          console.log('✅ Found Firebase in React components!');
+          return db;
+        }
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Method 2: Try to access through imports (if possible)
+function findFirebaseInImports() {
+  // Try to check if we can access modules
+  try {
+    // This might not work in console, but let's try
+    const modules = window.__webpack_require__ || window.webpackJsonp;
+    if (modules) {
+      console.log('✅ Webpack modules found');
+      // Search for firebase in modules
+      for (let key in modules) {
+        if (modules[key] && modules[key].exports) {
+          const exports = modules[key].exports;
+          if (exports.default && exports.default.firestore) {
+            console.log('✅ Found Firebase in webpack modules');
+            return exports.default.firestore();
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log('❌ Cannot access webpack modules');
+  }
+  
+  return null;
+}
+
+// Try both methods
+let db = findFirebaseInReact();
+if (!db) {
+  db = findFirebaseInImports();
+}
+
+if (db) {
+  console.log('✅ Firebase found! Running migration...');
+  
+  // Run migration
+  (async function() {
+    try {
+      const { collection, getDocs, doc, updateDoc, query, where, writeBatch } = db.constructor.prototype;
+      
+      const studentsSnapshot = await getDocs.call(db, query(collection(db, 'users'), where('role', '==', 'student')));
+      const students = [];
+      studentsSnapshot.forEach(doc => students.push({ id: doc.id, ref: doc.ref, ...doc.data() }));
+      
+      console.log(`📊 Found ${students.length} students`);
+      
+      if (students.length === 0) {
+        console.log('❌ No students found');
+        return;
+      }
+      
+      const batch = writeBatch.call(db, db);
+      let processed = 0;
+      let skipped = 0;
+      
+      for (const student of students) {
+        if (!student.referenceId || !student.referenceId.startsWith('STU-')) {
+          const refId = 'STU-' + student.id.slice(-6).toUpperCase();
+          batch.update(student.ref, { 
+            referenceId: refId, 
+            qrGeneratedAt: new Date() 
+          });
+          console.log('✅ ' + (student.email || student.id) + ' -> ' + refId);
+          processed++;
+        } else {
+          console.log('⏭️  Skipping ' + (student.email || student.id) + ' - has ref: ' + student.referenceId);
+          skipped++;
+        }
+      }
+      
+      await batch.commit();
+      console.log('🎉 Migration complete!');
+      console.log('✅ Updated: ' + processed + ' students');
+      console.log('⏭️  Skipped: ' + skipped + ' students');
+      
+    } catch (error) {
+      console.error('❌ Migration failed:', error);
+    }
+  })();
+  
+} else {
+  console.log('❌ Firebase not found in React components');
+  console.log('📝 ALTERNATIVE: Create a temporary migration page');
+  console.log('');
+  console.log('Since console access is limited, let me suggest an alternative:');
+  console.log('1. Create a temporary admin page in your app');
+  console.log('2. Add a button that runs the migration');
+  console.log('3. This will have proper Firebase access');
+  console.log('');
+  console.log('Would you like me to create a temporary migration page for you?');
+}
+
+// ===== END OF SCRIPT =====

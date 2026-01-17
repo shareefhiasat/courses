@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate, useLocation } from 'react-router-dom';
+import EmojiPicker from 'emoji-picker-react';
 import {
   collection,
   query,
@@ -21,14 +22,18 @@ import {
   deleteField,
   Timestamp
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
 import { getClasses, getEnrollments, getUsers } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
 import { Loading, useToast, Input } from '../components/ui';
 import './ChatPage.css';
+import './ChatPageEmojiStyles.css';
 import { formatDateTime, formatDate } from '../utils/date';
-import { MessageSquareText } from 'lucide-react';
+import { DEFAULT_ACCENT, normalizeHexColor } from '../utils/color';
+import { canParticipate } from '../utils/userStatus';
+import { filterBadWords, containsBadWords } from '../utils/badWordFilter';
+import { MessageSquareText, Send, Mic, Square, Smile, Search, X, Plus, BarChart3, Book, GraduationCap, Download, Upload, Globe, Users, Paperclip, Edit, Info, Share, Copy, Trash2 } from 'lucide-react';
 
 const ChatPage = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -57,6 +62,8 @@ const ChatPage = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
   const [attachedFile, setAttachedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = parseInt(localStorage.getItem('chatSidebarWidth') || '0', 10);
     return Number.isFinite(saved) && saved >= 280 && saved <= 500 ? saved : 320;
@@ -76,9 +83,18 @@ const ChatPage = () => {
   const [showPollModal, setShowPollModal] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
+  
+  // Helper function to get user's theme color
+  const getUserThemeColor = () => {
+    // Try to get from localStorage first (from ProfileSettings)
+    const savedColor = localStorage.getItem('userMessageColor');
+    if (savedColor) {
+      return normalizeHexColor(savedColor, DEFAULT_ACCENT);
+    }
+    // Fallback to default maroon
+    return DEFAULT_ACCENT;
+  };
   const [highlightedMsgId, setHighlightedMsgId] = useState(null);
-  const [emojiCategory, setEmojiCategory] = useState('smileys');
-  const [emojiSearch, setEmojiSearch] = useState('');
   
   
   // Refs
@@ -148,17 +164,6 @@ const ChatPage = () => {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [reactionMenu]);
 
-  // Close emoji picker on outside click (not on hover)
-  useEffect(() => {
-    if (!showEmojiPicker) return;
-    const onDoc = (e) => {
-      const picker = document.getElementById('emoji-picker');
-      if (picker && !picker.contains(e.target)) setShowEmojiPicker(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [showEmojiPicker]);
-
   // Close three-dots message menu on outside click (no auto-hide on hover)
   useEffect(() => {
     if (!menuOpenId) return;
@@ -199,11 +204,19 @@ const ChatPage = () => {
   const handleSaveEdit = async () => {
     if (!editingMsg || !editingMsg.id) return setEditingMsg(null);
     try {
+      const originalContent = (editingMsg.content || '').trim();
+      const filteredContent = filterBadWords(originalContent);
+      
       const mref = doc(db, 'messages', editingMsg.id);
       await updateDoc(mref, {
-        content: (editingMsg.content || '').trim(),
+        content: filteredContent,
         messageType: 'text'
       });
+
+      // Show warning if content was filtered
+      if (originalContent !== filteredContent) {
+        toast?.showWarning?.('Your message has been filtered for inappropriate content.');
+      }
 
       // If this edited message is the latest in its thread, refresh lastMessage preview
       try {
@@ -216,7 +229,7 @@ const ChatPage = () => {
             const qs = await getDocs(q);
             if (!qs.empty && qs.docs[0].id === editingMsg.id) {
               await updateDoc(doc(db, 'classes', m.classId), {
-                lastMessage: (editingMsg.content || '').trim()
+                lastMessage: filteredContent
               });
             }
           } else if (m.type === 'dm' && m.roomId) {
@@ -224,7 +237,7 @@ const ChatPage = () => {
             const qs = await getDocs(q);
             if (!qs.empty && qs.docs[0].id === editingMsg.id) {
               await updateDoc(doc(db, 'directRooms', m.roomId), {
-                lastMessage: (editingMsg.content || '').trim()
+                lastMessage: filteredContent
               });
             }
           }
@@ -269,19 +282,31 @@ const ChatPage = () => {
   useEffect(() => {
     if (!showEmojiPicker && !reactionMenu) return;
     const onDoc = (e) => {
-      setShowEmojiPicker(false);
-      setReactionMenu(null);
-    };
-    const onKey = (e) => {
-      if (e.key === 'Escape') {
+      // Only close if clicking outside the emoji picker or reaction menu
+      const emojiPicker = document.querySelector('.EmojiPickerReact');
+      const reactionMenuEl = document.querySelector('[data-reaction-menu="true"]');
+      
+      // Don't close if clicking on emoji button
+      if (e.target.closest('[data-emoji-button="true"]')) return;
+      
+      if (showEmojiPicker && emojiPicker && !emojiPicker.contains(e.target)) {
         setShowEmojiPicker(false);
+      }
+      if (reactionMenu && reactionMenuEl && !reactionMenuEl.contains(e.target)) {
         setReactionMenu(null);
       }
     };
-    document.addEventListener('click', onDoc);
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        if (showEmojiPicker) setShowEmojiPicker(false);
+        if (reactionMenu) setReactionMenu(null);
+      }
+    };
+    // Use mousedown instead of click to prevent immediate closing
+    document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('click', onDoc);
+      document.removeEventListener('mousedown', onDoc);
       document.removeEventListener('keydown', onKey);
     };
   }, [showEmojiPicker, reactionMenu]);
@@ -310,7 +335,7 @@ const ChatPage = () => {
         const unsub = onSnapshot(uref, (snap) => {
           const data = snap.data() || {};
           const r = data.chatReads?.[key];
-          const d = r?.toDate?.() || (typeof r === 'string' ? new Date(r) : (r?.seconds ? new Date(r.seconds*1000) : null));
+          const d = r?.toDate?.() || (typeof r === 'string' ? new Date(r) : (r?.seconds ? new Date(r.seconds * 1000) : null));
           if (d) {
             reads[uid] = d;
           } else {
@@ -375,7 +400,7 @@ const ChatPage = () => {
       snap.forEach(d => {
         const msg = d.data();
         if (msg.senderId === user.uid) return; // don't count my own messages
-        const msgTime = msg.createdAt?.toDate?.() || new Date(msg.createdAt);
+        const msgTime = msg.createdAt?.toDate() || new Date();
         if (!globalReadAt || new Date(globalReadAt) < msgTime) count++;
       });
       setUnreadCounts(prev => ({ ...prev, [globalKey]: count }));
@@ -391,7 +416,7 @@ const ChatPage = () => {
         snap.forEach(d => {
           const msg = d.data();
           if (msg.senderId === user.uid) return;
-          const msgTime = msg.createdAt?.toDate?.() || new Date(msg.createdAt);
+          const msgTime = msg.createdAt?.toDate() || new Date();
           if (!readAt || new Date(readAt) < msgTime) count++;
         });
         setUnreadCounts(prev => ({ ...prev, [classKey]: count }));
@@ -408,7 +433,7 @@ const ChatPage = () => {
         snap.forEach(d => {
           const msg = d.data();
           if (msg.senderId === user.uid) return;
-          const msgTime = msg.createdAt?.toDate?.() || new Date(msg.createdAt);
+          const msgTime = msg.createdAt?.toDate() || new Date();
           if (!readAt || new Date(readAt) < msgTime) count++;
         });
         setUnreadCounts(prev => ({ ...prev, [dmKey]: count }));
@@ -975,14 +1000,14 @@ const ChatPage = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     
-    if (!newMessage.trim() && !audioBlob && !attachedFile) return;
+    if (!newMessage.trim() && !audioBlob && !attachedFile || isUploading) return;
+    
+    // Set uploading state
+    setIsUploading(true);
     
     // Check if user can participate (not disabled/archived/deleted)
     try {
-      const { canParticipate } = await import('../utils/userStatus');
-      const { collection, query, where, getDocs } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-      
+      const participationCheck = canParticipate(profileName || user, enrollments);
       // Load user enrollments for status check
       let enrollments = [];
       try {
@@ -992,7 +1017,7 @@ const ChatPage = () => {
         console.warn('Failed to load enrollments for chat check:', e);
       }
       
-      if (!canParticipate(userProfile || user, enrollments)) {
+      if (!isAdmin && !participationCheck) {
         toast?.showError?.('You cannot send messages. Your account is disabled, archived, or you have no active enrollments.');
         return;
       }
@@ -1015,16 +1040,170 @@ const ChatPage = () => {
       
       // Handle voice message
       if (audioBlob) {
-        const voicePath = `voice-messages/${Date.now()}_${user.uid}.webm`;
-        const voiceRef = ref(storage, voicePath);
-        await uploadBytes(voiceRef, audioBlob);
-        const voiceUrl = await getDownloadURL(voiceRef);
-        
-        messageData.messageType = 'voice';
-        messageData.voiceUrl = voiceUrl;
-        messageData.voicePath = voicePath;
-        messageData.duration = recordingTime;
-        messageData.content = '[Voice Message]';
+        try {
+          const voicePath = `voice-messages/${Date.now()}_${user.uid}.webm`;
+          const voiceRef = ref(storage, voicePath);
+          
+          console.log('Uploading voice message:', {
+            path: voicePath,
+            blobSize: audioBlob.size,
+            blobType: audioBlob.type,
+            userAuthenticated: !!user
+          });
+          
+          // Add metadata for better upload handling - use actual blob type or fallback to webm
+          const metadata = {
+            contentType: audioBlob.type || 'audio/webm',
+            cacheControl: 'public, max-age=31536000',
+            customMetadata: {
+              uploadedBy: user.uid,
+              timestamp: Date.now().toString()
+            }
+          };
+          
+          // Try uploadBytesResumable for better CORS handling
+          const uploadTask = uploadBytesResumable(voiceRef, audioBlob, metadata);
+          
+          // Wait for upload to complete
+          await new Promise((resolve, reject) => {
+            uploadTask.on('state_changed', 
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                console.log('Upload progress:', progress + '%');
+              },
+              (error) => {
+                console.error('Upload failed:', error);
+                reject(error);
+              },
+              () => {
+                console.log('Upload completed successfully');
+                resolve();
+              }
+            );
+          });
+          
+          const voiceUrl = await getDownloadURL(voiceRef);
+          console.log('Download URL obtained:', voiceUrl);
+          
+          messageData.messageType = 'voice';
+          messageData.voiceUrl = voiceUrl;
+          messageData.voicePath = voicePath;
+          messageData.duration = recordingTime;
+          messageData.content = '[Voice Message]';
+        } catch (uploadError) {
+          console.error('Voice upload failed:', {
+            error: uploadError,
+            errorCode: uploadError.code,
+            errorMessage: uploadError.message,
+            errorDetails: uploadError.details,
+            blobSize: audioBlob?.size,
+            blobType: audioBlob?.type
+          });
+          
+          // Try with a different content type as fallback
+          if (uploadError.message?.includes('contentType') || uploadError.code === 'storage/unauthorized' || uploadError.message?.includes('CORS')) {
+            try {
+              console.log('Retrying with generic audio content type...');
+              const fallbackMetadata = {
+                contentType: 'audio/webm;codecs=opus',
+                cacheControl: 'public, max-age=31536000',
+                customMetadata: {
+                  uploadedBy: user.uid,
+                  timestamp: Date.now().toString(),
+                  fallbackUpload: 'true'
+                }
+              };
+              const voicePath = `voice-messages/${Date.now()}_${user.uid}.webm`;
+              const voiceRef = ref(storage, voicePath);
+              
+              // Try with resumable upload as fallback
+              const fallbackUploadTask = uploadBytesResumable(voiceRef, audioBlob, fallbackMetadata);
+              
+              // Wait for fallback upload to complete
+              await new Promise((resolve, reject) => {
+                fallbackUploadTask.on('state_changed', 
+                  (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log('Fallback upload progress:', progress + '%');
+                  },
+                  (error) => {
+                    console.error('Fallback upload failed:', error);
+                    reject(error);
+                  },
+                  () => {
+                    console.log('Fallback upload completed successfully');
+                    resolve();
+                  }
+                );
+              });
+              
+              const voiceUrl = await getDownloadURL(voiceRef);
+              
+              messageData.messageType = 'voice';
+              messageData.voiceUrl = voiceUrl;
+              messageData.voicePath = voicePath;
+              messageData.duration = recordingTime;
+              messageData.content = '[Voice Message]';
+              
+              console.log('Fallback upload successful');
+            } catch (fallbackError) {
+              console.error('Fallback upload also failed:', fallbackError);
+              
+              // Final fallback - try with a different file extension
+              try {
+                console.log('Trying final fallback with .mp3 extension...');
+                const finalFallbackMetadata = {
+                  contentType: 'audio/mpeg',
+                  cacheControl: 'public, max-age=31536000',
+                  customMetadata: {
+                    uploadedBy: user.uid,
+                    timestamp: Date.now().toString(),
+                    finalFallback: 'true'
+                  }
+                };
+                const voicePath = `voice-messages/${Date.now()}_${user.uid}.mp3`;
+                const voiceRef = ref(storage, voicePath);
+                
+                // Convert webm to blob and try again
+                const finalUploadTask = uploadBytesResumable(voiceRef, audioBlob, finalFallbackMetadata);
+                
+                await new Promise((resolve, reject) => {
+                  finalUploadTask.on('state_changed', 
+                    (snapshot) => {
+                      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                      console.log('Final fallback upload progress:', progress + '%');
+                    },
+                    (error) => {
+                      console.error('Final fallback upload failed:', error);
+                      reject(error);
+                    },
+                    () => {
+                      console.log('Final fallback upload completed successfully');
+                      resolve();
+                    }
+                  );
+                });
+                
+                const voiceUrl = await getDownloadURL(voiceRef);
+                
+                messageData.messageType = 'voice';
+                messageData.voiceUrl = voiceUrl;
+                messageData.voicePath = voicePath;
+                messageData.duration = recordingTime;
+                messageData.content = '[Voice Message]';
+                
+                console.log('Final fallback upload successful');
+              } catch (finalError) {
+                console.error('All upload attempts failed:', finalError);
+                toast?.showError?.('Failed to upload voice message. Please check your internet connection and try again.');
+                return;
+              }
+            }
+          } else {
+            toast?.showError?.('Failed to upload voice message. Please check your connection and try again.');
+            return;
+          }
+        }
       } else if (attachedFile) {
         // File attachment - sanitize filename to avoid CORS/preflight issues on special characters
         const safeName = (attachedFile.name || 'file').replace(/[^a-zA-Z0-9_.-]/g, '_');
@@ -1042,8 +1221,16 @@ const ChatPage = () => {
         messageData.content = `[File: ${attachedFile.name}]`;
       } else {
         // Text message
+        const originalContent = newMessage.trim();
+        const filteredContent = filterBadWords(originalContent);
+        
         messageData.messageType = 'text';
-        messageData.content = newMessage.trim();
+        messageData.content = filteredContent;
+        
+        // Show warning if content was filtered
+        if (originalContent !== filteredContent) {
+          toast?.showWarning?.('Your message has been filtered for inappropriate content.');
+        }
       }
       
       const added = await addDoc(collection(db, 'messages'), messageData);
@@ -1129,12 +1316,15 @@ const ChatPage = () => {
       setNewMessage('');
       setAudioBlob(null);
       setAttachedFile(null);
+      setImagePreview(null);
       setRecordingTime(0);
+      setIsUploading(false);
       messageInputRef.current?.focus();
       
     } catch (error) {
       console.error('Error sending message:', error);
       toast?.showError('Failed to send message');
+      setIsUploading(false);
     }
   };
   
@@ -1145,6 +1335,7 @@ const ChatPage = () => {
     // Check file size (10MB for videos/audio, 5MB for others)
     const isVideo = file.type.startsWith('video/');
     const isAudio = file.type.startsWith('audio/');
+    const isImage = file.type.startsWith('image/');
     const maxSize = (isVideo || isAudio) ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxSize) {
       toast?.showError(`File size must be less than ${(isVideo || isAudio) ? '10MB' : '5MB'}`);
@@ -1153,6 +1344,18 @@ const ChatPage = () => {
     }
     
     setAttachedFile(file);
+    
+    // Create image preview if it's an image
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
+    
     toast?.showSuccess?.(`File "${file.name}" attached`);
   };
 
@@ -1200,7 +1403,7 @@ const ChatPage = () => {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       clearInterval(recordingIntervalRef.current);
@@ -1208,13 +1411,16 @@ const ChatPage = () => {
   };
 
   const cancelRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      clearInterval(recordingIntervalRef.current);
-    }
-    setAudioBlob(null);
+    // Always clear the state regardless of media recorder state
+    setIsRecording(false);
     setRecordingTime(0);
+    setAudioBlob(null);
+    clearInterval(recordingIntervalRef.current);
+    
+    // Stop media recorder if it's still active
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
   };
 
   const formatTime = (seconds) => {
@@ -1249,9 +1455,9 @@ const ChatPage = () => {
   };
 
   // Avoid redirect on refresh while auth is still resolving
-  if (authLoading) return <Loading />;
+  if (authLoading) return <Loading variant="overlay" fullscreen fancyVariant="dots" message="Authenticating..." />;
   if (!user) return <Navigate to="/login" />;
-  if (loading || !messages) return <Loading />;
+  if (loading || !messages) return <Loading variant="overlay" fullscreen fancyVariant="dots" message="Loading chat..." />;
 
   return (
     <>
@@ -1309,7 +1515,7 @@ const ChatPage = () => {
               })}
             </div>
             <div style={{ padding:'0.75rem 1.25rem', textAlign:'right', borderTop:'1px solid var(--border)' }}>
-              <button onClick={()=>setReceiptsFor(null)} style={{ padding:'0.6rem 1.2rem', background:'linear-gradient(135deg, #800020, #600018)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}>{t('close')||'Close'}</button>
+              <button onClick={()=>setReceiptsFor(null)} style={{ padding:'0.6rem 1.2rem', background:'var(--brand)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}>{t('close')||'Close'}</button>
             </div>
           </div>
         </div>
@@ -1330,11 +1536,11 @@ const ChatPage = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>🌐</span>
+                <Globe size={24} style={{ color: getUserThemeColor() }} />
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <div style={{ fontWeight: '600', flex:1 }}>{t('global_chat')}</div>
-                    {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'#800020',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
+                    {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#666' }}>All users</div>
                   {/* <div style={{ display:'flex', gap:8, marginTop:6 }}>
@@ -1367,7 +1573,7 @@ const ChatPage = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>📚</span>
+                <Book size={24} style={{ color: getUserThemeColor() }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
                     <div style={{ fontWeight: '600', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.name}</div>
@@ -1376,7 +1582,7 @@ const ChatPage = () => {
                       if (count > 0) {
                         return (
                           <span style={{
-                            background: '#800020', color: 'white', borderRadius: '50%', minWidth: 20, height: 20,
+                            background: 'var(--brand)', color: 'white', borderRadius: '50%', minWidth: 20, height: 20,
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', padding: '0 6px'
                           }}>{count > 99 ? '99+' : count}</span>
                         );
@@ -1395,7 +1601,7 @@ const ChatPage = () => {
                       }}
                       title={archivedClasses[cls.docId] ? 'Unarchive' : 'Archive'}
                       style={{ background:'transparent', border:'none', cursor:'pointer', color:'#888' }}
-                    >{archivedClasses[cls.docId] ? '📤' : '📥'}</button>
+                    >{archivedClasses[cls.docId] ? <Upload size={16} /> : <Download size={16} />}</button>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#666', display:'flex', justifyContent:'space-between', gap:8 }}>
                     <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.lastMessage || `${cls.term} - ${cls.code}`}</span>
@@ -1408,14 +1614,12 @@ const ChatPage = () => {
                     if (!instructor) return null;
                     return (
                       <div style={{ fontSize: '0.85rem', color: '#444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span>👨‍🏫 
-                          {/* Instructor: */}
-                        </span>
+                        <GraduationCap size={14} style={{ color: getUserThemeColor() }} />
                         <strong>{instructor.displayName || instructor.email}</strong>
                         {instructor.docId !== user.uid && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openDMWith(instructor); }}
-                            style={{ padding: '2px 8px', borderRadius: 6, border: 'none', background: '#800020', color: 'white', cursor: 'pointer', fontSize: 12 }}
+                            style={{ padding: '2px 8px', borderRadius: 6, border: 'none', background: getUserThemeColor(), color: 'white', cursor: 'pointer', fontSize: 12 }}
                           >
                             Contact
                           </button>
@@ -1528,7 +1732,7 @@ const ChatPage = () => {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                       <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: (!other || other.deleted) ? 0.6 : 1 }}>{label}</div>
-                      {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'#800020',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
+                      {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
                       <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{room.lastMessage || ''}</span>
@@ -1555,7 +1759,7 @@ const ChatPage = () => {
                         }}
                         title={archivedRooms[room.id] ? 'Unarchive' : 'Archive'}
                         style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'#666', fontSize:'0.9rem', lineHeight:1 }}
-                      >{archivedRooms[room.id] ? '📤' : '📥'}</button>
+                      >{archivedRooms[room.id] ? <Upload size={14} /> : <Download size={14} />}</button>
                     </div>
                   </div>
                 </div>
@@ -1619,12 +1823,37 @@ const ChatPage = () => {
                 type="button"
                 onClick={() => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => document.getElementById('msg-search')?.focus(), 100); }}
                 title={t('search_messages') || 'Search messages'}
-                style={{ marginLeft: 'auto', background:'transparent', border:'none', cursor:'pointer', fontSize:'1.1rem', color:'#666' }}
-              >🔍</button>
+                style={{ 
+                  marginLeft: 'auto', 
+                  background:'transparent', 
+                  border:'1px solid var(--border)',
+                  borderRadius: 8,
+                  cursor:'pointer', 
+                  fontSize:'1rem', 
+                  color:'var(--muted)',
+                  padding: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 32,
+                  height: 32,
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
+                onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
+              >
+                <Search size={16} />
+              </button>
             </div>
             {/* Search input - collapsible */}
             {showSearch && (
-              <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ 
+                padding: '0.75rem 1rem', 
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--panel)',
+                borderRadius: 8,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              }}>
                 <input
                   value={msgQuery}
                   onChange={(e)=>setMsgQuery(e.target.value)}
@@ -1632,7 +1861,15 @@ const ChatPage = () => {
                   onKeyDown={(e) => { if (e.key === 'Escape') { setMsgQuery(''); setShowSearch(false); } }}
                   id="msg-search"
                   placeholder={t('search_messages') || t('search') || 'Search'}
-                  style={{ width:'100%', padding:'8px 10px', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'var(--text)' }}
+                  style={{ 
+                    width:'100%', 
+                    padding:'0.625rem 0.875rem', 
+                    border:'1px solid var(--border)', 
+                    borderRadius:8, 
+                    background:'var(--panel)', 
+                    color:'var(--text)',
+                    fontSize:'0.9rem'
+                  }}
                 />
               </div>
             )}
@@ -1640,7 +1877,7 @@ const ChatPage = () => {
           
           {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && (
             <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: '#666', cursor: 'pointer', textDecoration: 'underline' }}>
-              👥 {classMembers.length} {t('members')}
+              <Users size={16} style={{ marginRight: '4px', color: getUserThemeColor() }} /> {classMembers.length} {t('members')}
             </div>
           )}
         </div>
@@ -1686,7 +1923,7 @@ const ChatPage = () => {
             const groupedByDate = [];
             let lastDate = null;
             list.forEach((msg) => {
-              const msgDate = msg.createdAt?.toDate?.() || new Date();
+              const msgDate = msg.createdAt?.toDate() || new Date();
               const dateStr = formatDate(msgDate);
               if (dateStr !== lastDate) {
                 groupedByDate.push({ type: 'date', date: msgDate, dateStr });
@@ -1716,10 +1953,13 @@ const ChatPage = () => {
               const isHighlighted = highlightedMsgId === msg.id;
               const myProfile = allUsers.find(u => u.docId === user?.uid);
               const bubbleColor = isOwnMessage
-                ? (myMessageColor || user?.messageColor || myProfile?.messageColor || '#800020')
+                ? '#ffffff'  // Always white for own messages
                 : '#ffffff';
+              
+              // Add alpha transparency to bubble colors
+              const transparentBubbleColor = bubbleColor + 'CC'; // Add 80% opacity (CC in hex)
               // Smart contrast: if highlighted, force dark readable text
-              const textColor = isHighlighted ? '#1e293b' : (isOwnMessage ? 'white' : '#000000');
+              const textColor = isHighlighted ? '#1e293b' : (isOwnMessage ? '#000000' : '#000000');
               
               return (
                 <div
@@ -1754,7 +1994,7 @@ const ChatPage = () => {
                        className={isHighlighted ? 'flash-pulse' : ''}
                        style={{
                     maxWidth: '60%',
-                    background: isHighlighted ? '#fff3cd' : bubbleColor,
+                    background: isHighlighted ? '#fff3cdCC' : transparentBubbleColor,
                     color: textColor,
                     padding: '0.5rem 0.75rem',
                     paddingRight: (isOwnMessage || isAdmin) ? '2.5rem' : '0.75rem',
@@ -1846,7 +2086,7 @@ const ChatPage = () => {
                         } else {
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <span>📎</span>
+                              <Paperclip size={16} style={{ color: '#666' }} />
                               <a
                                 href={msg.fileUrl}
                                 target="_blank"
@@ -1865,7 +2105,7 @@ const ChatPage = () => {
                       })()
                     ) : msg.messageType === 'poll' ? (
                       <div style={{ minWidth: 250 }}>
-                        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>📊 {msg.pollQuestion}</div>
+                        <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BarChart3 size={20} style={{ color: getUserThemeColor() }} /> {msg.pollQuestion}</div>
                         {msg.pollOptions?.map((option, idx) => {
                           const votes = msg.pollVotes?.[idx] || [];
                           const totalVotes = Object.values(msg.pollVotes || {}).flat().length;
@@ -1927,7 +2167,7 @@ const ChatPage = () => {
                                 background: 'rgba(102,126,234,0.1)',
                                 transition: 'width 0.3s'
                               }} />
-                              <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between' }}>
+                              <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', color: '#000000' }}>
                                 <span>{option}</span>
                                 <span style={{ fontWeight: 600 }}>{percentage}% ({votes.length})</span>
                               </div>
@@ -1953,14 +2193,14 @@ const ChatPage = () => {
                       fontSize: '0.7rem',
                       marginTop: '0.25rem',
                       opacity: 0.7,
-                      color: 'var(--muted)'
+                      color: getUserThemeColor()
                     }}>
-                      {msg.createdAt?.toDate?.()?.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+                      {msg.createdAt?.toDate()?.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
                       {isOwnMessage && (() => {
-                        const msgTime = msg.createdAt?.toDate?.() || new Date();
+                        const msgTime = msg.createdAt?.toDate() || new Date();
                         const recips = selectedClass === 'global'
                           ? safeAllUsers.map(u => u.docId).filter(id => id && id !== user.uid)
                           : (selectedClass?.startsWith('dm:')
@@ -1974,7 +2214,7 @@ const ChatPage = () => {
                           marginLeft: 8, 
                           fontSize: '1.1rem',
                           fontWeight: 700, 
-                          color: allRead ? '#0088cc' : (anyRead ? '#999' : '#ccc'), 
+                          color: allRead ? getUserThemeColor() : (anyRead ? `${getUserThemeColor()}99` : `${getUserThemeColor()}66`), 
                           cursor: 'pointer',
                           transition: 'color 0.2s'
                         };
@@ -2024,7 +2264,20 @@ const ChatPage = () => {
                                   } catch {}
                                 }}
                                 title={`${n}`}
-                                style={{ background:'white', border:'1px solid #eee', borderRadius:12, padding:'2px 6px', fontSize:'0.85rem', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.06)', opacity: active?1:0.9 }}
+                                style={{ 
+                                  background:'linear-gradient(135deg, #ffffff, #f8f9fa)', 
+                                  border:'1px solid #e9ecef', 
+                                  borderRadius:16, 
+                                  padding:'4px 8px', 
+                                  fontSize:'1.1rem', 
+                                  cursor:'pointer', 
+                                  boxShadow:'0 3px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)', 
+                                  opacity: active?1:0.85,
+                                  transition:'all 0.2s ease',
+                                  fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
+                                  fontWeight: 400,
+                                  lineHeight: 1.2
+                                }}
                               >{emo} {n}</button>
                             );
                           })}
@@ -2042,28 +2295,26 @@ const ChatPage = () => {
                       title="React"
                       style={{ 
                         position:'absolute', 
-                        bottom: -10, 
-                        [isOwnMessage?'right':'left']: -14, 
-                        background:'white', 
-                        border:'1px solid var(--border)', 
+                        bottom: -12, 
+                        [isOwnMessage?'right':'left']: -16, 
+                        background:'linear-gradient(135deg, #ffffff, #f8f9fa)', 
+                        border:'2px solid #e9ecef', 
                         borderRadius:'50%', 
-                        width:28, 
-                        height:28, 
+                        width:32, 
+                        height:32, 
                         display:'flex', 
                         alignItems:'center', 
                         justifyContent:'center', 
                         cursor:'pointer', 
-                        fontSize:'1.1rem', 
-                        padding:0, 
-                        lineHeight:1, 
-                        boxShadow:'0 2px 6px rgba(0,0,0,0.1)', 
-                        opacity:0.9, 
-                        transition:'opacity 0.2s' 
+                        boxShadow:'0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)', 
+                        transition:'all 0.2s ease',
+                        fontSize:'1.2rem',
+                        fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif'
                       }}
-                      onMouseEnter={(e)=>e.currentTarget.style.opacity='1'}
-                      onMouseLeave={(e)=>e.currentTarget.style.opacity='0.9'}
+                      onMouseEnter={(e)=>e.currentTarget.style.transform='scale(1.05)'}
+                      onMouseLeave={(e)=>e.currentTarget.style.transform='scale(1)'}
                     >
-                      <span aria-hidden="true" style={{ filter:'grayscale(100%) contrast(0.9)', opacity:0.65, display:'inline-block', transform:'translateY(1px)' }}>😊</span>
+                      <span aria-hidden="true" style={{ display:'inline-block', transform:'translateY(1px)' }}><Smile size={16} style={{ color: getUserThemeColor() }} /></span>
                     </button>
 
                     {/* Anchored Reaction Menu (sticky to this message) */}
@@ -2076,8 +2327,8 @@ const ChatPage = () => {
                           top: '50%',
                           transform: 'translateY(-50%)',
                           [isOwnMessage ? 'right' : 'left']: 'calc(100% + 8px)',
-                          background: 'rgba(20,20,20,0.96)',
-                          border: 'none',
+                          background: 'var(--panel)',
+                          border: '1px solid var(--border)',
                           borderRadius: 16,
                           padding: '0.4rem 0.6rem',
                           boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
@@ -2087,8 +2338,11 @@ const ChatPage = () => {
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {['👍','❤️','😂','😮','😢','🙏'].map(emoji => (
-                          <button
+                        {['ThumbsUp','Heart','Laugh','Surprise','Sad','Praying'].map((emojiName, index) => {
+                          const emojiIcons = ['👍','❤️','😂','😮','😢','🙏'];
+                          const emoji = emojiIcons[index];
+                          return (
+                            <button
                             key={emoji}
                             onClick={async () => {
                               try {
@@ -2100,18 +2354,31 @@ const ChatPage = () => {
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              fontSize: '1.6rem',
+                              fontSize: '1.8rem',
                               cursor: 'pointer',
-                              padding: '0.35rem 0.45rem',
-                              borderRadius: 10,
-                              transition: 'transform 0.12s ease, background 0.2s'
+                              padding: '0.4rem 0.5rem',
+                              borderRadius: 12,
+                              transition: 'all 0.15s ease',
+                              fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
+                              fontWeight: 400,
+                              lineHeight: 1.1,
+                              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'scale(1)'; }}
+                            onMouseEnter={(e) => { 
+                              e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; 
+                              e.currentTarget.style.transform = 'scale(1.12) translateY(-1px)'; 
+                              e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))';
+                            }} 
+                            onMouseLeave={(e) => { 
+                              e.currentTarget.style.background = 'transparent'; 
+                              e.currentTarget.style.transform = 'scale(1) translateY(0)'; 
+                              e.currentTarget.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))';
+                            }}
                           >
                             {emoji}
                           </button>
-                        ))}
+                        );
+                        })}
                       </div>
                     )}
 
@@ -2134,8 +2401,9 @@ const ChatPage = () => {
                             onClick={()=>{ setEditingMsg({ id: msg.id, content: msg.content||'' }); setMenuOpenId(null); }}
                             onMouseEnter={(e)=>e.target.style.background='rgba(0,0,0,0.05)'}
                             onMouseLeave={(e)=>e.target.style.background='transparent'}
-                            style={{ display:'block', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--text)', transition:'background 0.2s' }}
+                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--text)', transition:'background 0.2s' }}
                           >
+                            <Edit size={14} />
                             {t('edit')||'Edit'}
                           </button>
                         )}
@@ -2144,7 +2412,7 @@ const ChatPage = () => {
                             setReceiptsFor({ 
                               id: msg.id, 
                               list: (() => {
-                                const msgTime = msg.createdAt?.toDate?.() || new Date();
+                                const msgTime = msg.createdAt?.toDate() || new Date();
                                 const recipients = selectedClass === 'global'
                                   ? safeAllUsers.map(u => u.docId).filter(id => id && id !== user.uid)
                                   : (selectedClass?.startsWith('dm:')
@@ -2158,7 +2426,7 @@ const ChatPage = () => {
                                 })).sort((a,b)=> (b.readAt?.getTime?.()||0) - (a.readAt?.getTime?.()||0));
                               })(),
                               readCount: (() => {
-                                const msgTime = msg.createdAt?.toDate?.() || new Date();
+                                const msgTime = msg.createdAt?.toDate() || new Date();
                                 const recipients = selectedClass === 'global'
                                   ? (allUsers || []).map(u => u.docId).filter(id => id && id !== user.uid)
                                   : (selectedClass?.startsWith('dm:')
@@ -2172,7 +2440,7 @@ const ChatPage = () => {
                                   ? (allUsers || []).map(u => u.docId).filter(id => id && id !== user.uid)
                                   : (selectedClass?.startsWith('dm:')
                                       ? (directRooms.find(r => r.id === selectedClass.slice(3))?.participants || []).filter(id => id && id !== user.uid)
-                                      : (classMembers || []).map(m => m.docId).filter(id => id && id !== user.uid)
+                                        : (classMembers || []).map(m => m.docId).filter(id => id && id !== user.uid)
                                     );
                                 return recipients.length;
                               })()
@@ -2181,9 +2449,10 @@ const ChatPage = () => {
                           }}
                           onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
-                          style={{ display:'block', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
-                          ℹ️ {t('info')||'Info'}
+                          <Info size={14} />
+                          {t('info')||'Info'}
                         </button>
                         <button
                           onClick={()=>{
@@ -2197,9 +2466,10 @@ const ChatPage = () => {
                           }}
                           onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
-                          style={{ display:'block', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
-                          🔗 {t('share')||'Share'}
+                          <Share size={14} />
+                          {t('share')||'Share'}
                         </button>
                         <button
                           onClick={()=>{
@@ -2214,17 +2484,19 @@ const ChatPage = () => {
                           }}
                           onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
-                          style={{ display:'block', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
-                          📋 {t('copy')||'Copy'}
+                          <Copy size={14} />
+                          {t('copy')||'Copy'}
                         </button>
                         {(isOwnMessage || isAdmin) && (
                           <button
                             onClick={()=>{ setMenuOpenId(null); handleDeleteMessage(msg); }}
                             onMouseEnter={(e)=>e.target.style.background='rgba(220,53,69,0.1)'}
                             onMouseLeave={(e)=>e.target.style.background='transparent'}
-                            style={{ display:'block', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#dc3545', transition:'background 0.2s' }}
+                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#dc3545', transition:'background 0.2s' }}
                           >
+                            <Trash2 size={14} />
                             {t('delete')||'Delete'}
                           </button>
                         )}
@@ -2242,7 +2514,9 @@ const ChatPage = () => {
             onClick={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); } catch {} }}
             title={t('jump_to_bottom') || 'Jump to bottom'}
             style={{ position:'fixed', right: 24, bottom: 110, background:'#fff', border:'1px solid var(--border)', borderRadius: 20, padding:'8px 10px', boxShadow:'0 4px 12px rgba(0,0,0,0.15)', cursor:'pointer', zIndex: 20 }}
-          >⬇️</button>
+          >
+            <Download size={16} style={{ color: '#666' }} />
+          </button>
         )}
         {/* Bottom search removed - now under top header */}
 
@@ -2255,71 +2529,53 @@ const ChatPage = () => {
           borderTop: '1px solid var(--border)',
           zIndex: 10
         }}>
-          {/* Recording Preview */}
-          {audioBlob && (
-            <div style={{
-              padding: '1rem',
-              background: 'rgba(0,0,0,0.06)',
-              borderRadius: '8px',
-              marginBottom: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>🎤</span>
-                <div>
-                  <div style={{ fontWeight: '600' }}>Voice Message Ready</div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
-                    Duration: {formatTime(recordingTime)}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={cancelRecording}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#f44336',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                ✕ Cancel
-              </button>
-            </div>
-          )}
-
           {/* File Attachment Preview */}
           {attachedFile && (
             <div style={{
-              padding: '1rem',
-              background: '#f0f0f0',
-              borderRadius: '8px',
-              marginBottom: '1rem',
+              padding: '0.5rem',
+              background: '#f8f9fa',
+              borderRadius: '6px',
+              marginBottom: '0.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>📎</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {imagePreview ? (
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    style={{
+                      width: 40,
+                      height: 40,
+                      objectFit: 'cover',
+                      borderRadius: '6px',
+                      border: '1px solid #ddd'
+                    }}
+                  />
+                ) : (
+                  <Paperclip size={20} style={{ color: '#666' }} />
+                )}
                 <div>
-                  <div style={{ fontWeight: '600' }}>{attachedFile.name}</div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
+                  <div style={{ fontWeight: '500', fontSize: '0.9rem' }}>{attachedFile.name}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
                     {(attachedFile.size / 1024).toFixed(2)} KB
                   </div>
                 </div>
               </div>
               <button
-                onClick={() => setAttachedFile(null)}
+                onClick={() => {
+                  setAttachedFile(null);
+                  setImagePreview(null);
+                }}
                 style={{
-                  padding: '0.5rem 1rem',
+                  padding: '0.3rem 0.6rem',
                   background: '#f44336',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem'
                 }}
               >
                 ✕ Remove
@@ -2327,148 +2583,229 @@ const ChatPage = () => {
             </div>
           )}
 
+          {/* Voice Message Ready - Above Input when not recording but has audio */}
+          {!isRecording && audioBlob && (
+            <div style={{
+              padding: '0.4rem 0.6rem',
+              background: 'linear-gradient(135deg, #25D366, #20b858)',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: 'white',
+              boxShadow: '0 2px 6px rgba(37, 211, 102, 0.3)',
+              position: 'relative',
+              overflow: 'hidden',
+              height: '32px',
+              marginBottom: '0.5rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Mic size={14} />
+                <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                  Voice Message Ready
+                </span>
+                <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
+                  {formatTime(recordingTime)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={cancelRecording}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  fontSize: '0.65rem'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
           {/* Input Form */}
           <form onSubmit={handleSendMessage} className="form-actions" style={{ position: 'relative' }}>
-            <input
-              ref={messageInputRef}
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={t('type_message')}
-              disabled={isRecording || !!audioBlob || !!attachedFile}
-              style={{
-                flex: 1,
-                padding: '0.6rem 0.75rem',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                fontSize: '0.95rem',
-                outline: 'none'
+            {/* Hide input during recording, show compact recording interface instead */}
+            {isRecording ? (
+              <div style={{
+                padding: '0.4rem 0.6rem',
+                background: 'linear-gradient(135deg, #ff4444, #dc3545)',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                color: 'white',
+                boxShadow: '0 2px 6px rgba(255, 68, 68, 0.3)',
+                position: 'relative',
+                overflow: 'hidden',
+                height: '32px',
+                width: '100%'
+              }}>
+                {/* Compact Animated Waves */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  opacity: 0.3
+                }}>
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} style={{
+                      width: '2px',
+                      height: '12px',
+                      background: 'white',
+                      borderRadius: '1px',
+                      animation: `wave ${1.2 + i * 0.1}s infinite ease-in-out`,
+                      animationDelay: `${i * 0.1}s`
+                    }} />
+                  ))}
+                </div>
+                
+                {/* Compact Recording Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{
+                    width: '6px',
+                    height: '6px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    animation: 'pulse 1s infinite'
+                  }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                    Recording
+                  </span>
+                  <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
+                    {formatTime(recordingTime)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <input
+                ref={messageInputRef}
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder={t('type_message')}
+                disabled={isUploading}
+                style={{
+                  flex: 1,
+                  padding: '0.6rem 0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '0.95rem',
+                  outline: 'none'
+                }}
+              />
+            )}
+            
+            {/* Emoji Picker - Always Visible */}
+            <button
+              type="button"
+              data-emoji-button="true"
+              onClick={() => {
+                setShowEmojiPicker(!showEmojiPicker);
               }}
-            />
+              style={{
+                padding: '0.5rem',
+                background: 'transparent',
+                color: 'var(--muted)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                transition: 'all 0.2s'
+              }}
+              title="Emoji"
+              onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
+              onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
+            >
+              <Smile size={16} style={{ color: getUserThemeColor() }} />
+            </button>
             
             {/* Compact Action Buttons */}
-            {!audioBlob && !attachedFile && (
+            {!audioBlob && (
               <>
-                {/* Emoji Picker */}
+                {/* Poll (Admin Only) */}
                 <button
                   type="button"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  onClick={() => setShowPollModal(true)}
                   style={{
-                    padding: '0.6rem',
+                    padding: '0.5rem',
                     background: 'transparent',
                     color: 'var(--muted)',
-                    border: 'none',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
                     cursor: 'pointer',
-                    fontSize: '1.3rem'
+                    fontSize: '1.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    transition: 'all 0.2s'
                   }}
-                  title="Emoji"
+                  title="Create Poll"
+                  onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
+                  onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
                 >
-                  😊
+                  <BarChart3 size={16} style={{ color: getUserThemeColor() }} />
                 </button>
-                
-                {/* Poll (Admin Only) */}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPollModal(true)}
-                    style={{
-                      padding: '0.6rem',
-                      background: 'transparent',
-                      color: 'var(--muted)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '1.3rem'
-                    }}
-                    title="Create Poll"
-                  >
-                    📊
-                  </button>
-                )}
               </>
             )}
-                  {/* Emoji Picker with categories */}
+            {/* Debug: Test emoji picker visibility */}
+            {/* Development debug removed */}
+            
+            {/* Modern Emoji Picker */}
             {showEmojiPicker && (
               <div
-                id="emoji-picker"
-                className="pop-in"
-                onClick={(e) => e.stopPropagation()}
                 style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  right: 0,
-                  marginBottom: '0.5rem',
-                  background: 'var(--panel)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 12,
-                  padding: '0.5rem',
-                  boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
-                  zIndex: 1000,
-                  width: 360
-                }}>
-                <div style={{ display:'flex', gap:6, borderBottom:'1px solid var(--border)', padding:'6px', alignItems:'center' }}>
-                  {[
-                    ['smileys','😊'], ['hearts','❤️'], ['gestures','👍'], ['party','🎉'], ['animals','🐶'], ['food','🍕'], ['travel','✈️'], ['objects','📱'], ['sports','🏀'], ['weather','☀️'], ['symbols','♻️'], ['flags','🏳️‍🌈']
-                  ].map(([cat, icon]) => (
-                    <button key={cat} onClick={()=>setEmojiCategory(cat)} style={{ background:'transparent', border:'none', cursor:'pointer', fontSize:'1.1rem', padding:'4px 6px', borderRadius:6, color: emojiCategory===cat?'var(--brand)':'var(--text)' }}>{icon}</button>
-                  ))}
-                  <input
-                    type="text"
-                    value={emojiSearch}
-                    onChange={(e)=>setEmojiSearch(e.target.value)}
-                    placeholder="Search"
-                    style={{ marginLeft:'auto', padding:'4px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:'0.85rem', width:120 }}
-                  />
-                </div>
-                {(() => {
-                  const sets = {
-                    smileys: ['😀','😃','😄','😁','😆','😅','😂','🤣','🙂','😊','😉','🥰','😍','😘','😗','🤗','😎','🤔','😇','😴','🥳','😱','🤯','😢','😡','🤤','🤫','🤭','🤝','🙏'],
-                    hearts: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💖','💕','💓','💗','💝','💞','💘'],
-                    gestures: ['👍','👎','👌','✌️','👏','🙌','🤝','💪','🙏','👋','🤟','🤙'],
-                    party: ['🎉','✨','🎊','🎈','🎁','💯','🌟','⭐','🌈'],
-                    animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷'],
-                    food: ['🍏','🍎','🍓','🍇','🍑','🍍','🥝','🍕','🍔','🍟','🌮','🍿','🎂','🍰','☕','🍺','🍻','🥂','🍷','🍹'],
-                    travel: ['🚗','🚌','🚕','🚀','✈️','🛫','🛬','🚉','🚇','⛱️','🏖️','🏝️'],
-                    objects: ['📱','💻','⌚','📷','📺','🎮','🎧','🎤','🎵','🎶','📌','📎','🔔','🔒'],
-                    sports: ['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🥏','⛳','🏓','🏸','🥊','🥋','🎳','⛷️','🏂','🏊‍♂️','🚴‍♀️','🏃‍♂️','🏆','🥇','🥈','🥉'],
-                    weather: ['☀️','🌤️','⛅','🌥️','☁️','🌧️','⛈️','🌩️','❄️','🌨️','🌪️','🌈','🌫️','💨','☔'],
-                    symbols: ['✔️','✖️','➕','➖','❤️','❗','❓','⭐','✨','🔥','💯','♻️','🔞','⚠️','♠️','♥️','♦️','♣️'],
-                    flags: ['🏳️','🏴','🏁','🚩','🏳️‍🌈','🇺🇸','🇬🇧','🇪🇺','🇸🇦','🇦🇪','🇯🇴','🇶🇦','🇪🇬','🇹🇷','🇮🇳','🇵🇰']
-                  };
-                  let list = sets[emojiCategory] || sets.smileys;
-                  if (emojiSearch.trim()) {
-                    const q = emojiSearch.trim().toLowerCase();
-                    // naive filter: map certain keywords
-                    const tags = {
-                      smileys: ['smile','happy','face','laugh','sad','angry','sleep'],
-                      hearts: ['love','heart'],
-                      gestures: ['thumb','ok','clap','pray','hi','hand','muscle'],
-                      party: ['party','sparkle','gift','star','rainbow'],
-                      animals: ['dog','cat','panda','bear','lion','tiger','cow','pig'],
-                      food: ['pizza','burger','coffee','cake','beer','wine'],
-                      travel: ['car','bus','rocket','plane','beach'],
-                      objects: ['phone','laptop','watch','camera','tv','game','bell','lock']
-                    };
-                    // If search includes a known tag, switch category to broaden
-                    for (const [cat, words] of Object.entries(tags)) {
-                      if (words.some(w => q.includes(w))) {
-                        list = sets[cat];
-                        break;
-                      }
-                    }
-                  }
-                  return (
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(10, 1fr)', gap:6, padding:'8px' }}>
-                      {list.map(emoji => (
-                        <button key={emoji} type="button"
-                          onClick={() => { setNewMessage(prev => prev + emoji); messageInputRef.current?.focus(); }}
-                          style={{ background:'transparent', border:'none', fontSize:'1.4rem', cursor:'pointer', padding:4, borderRadius:6 }}
-                          onMouseEnter={(e)=>e.currentTarget.style.background='rgba(0,0,0,0.05)'}
-                          onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}
-                        >{emoji}</button>
-                      ))}
-                    </div>
-                  );
-                })()}
+                  position: 'fixed',
+                  bottom: '70px',
+                  right: '20px',
+                  zIndex: 9999,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  background: 'white',
+                  border: '1px solid #e0e0e0',
+                  padding: '4px'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <EmojiPicker
+                  onEmojiClick={(emojiData) => {
+                    const emoji = emojiData.emoji;
+                    setNewMessage(prev => prev + emoji);
+                    messageInputRef.current?.focus();
+                    setShowEmojiPicker(false);
+                  }}
+                  theme="light"
+                  width={200}
+                  height={150}
+                  previewConfig={{
+                    showPreview: false
+                  }}
+                  searchPlaceholder="Search..."
+                  emojiStyle="native"
+                  categories={[
+                    "smileys_people",
+                    "animals_nature", 
+                    "food_drink",
+                    "travel_places",
+                    "activities",
+                    "objects",
+                    "symbols",
+                    "flags"
+                  ]}
+                  lazyLoadEmojis={true}
+                  skinTonesDisabled={true}
+                />
               </div>
             )}
             
@@ -2482,7 +2819,7 @@ const ChatPage = () => {
                 cursor: 'pointer',
                 fontSize: '1.3rem'
               }} title={t('attach') || 'Attach'}>
-                📎
+                <Paperclip size={20} style={{ color: getUserThemeColor() }} />
                 <input
                   type="file"
                   onChange={handleFileSelect}
@@ -2497,28 +2834,98 @@ const ChatPage = () => {
               type={(newMessage.trim() || audioBlob || attachedFile) ? 'submit' : 'button'}
               onClick={() => {
                 if (!(newMessage.trim() || audioBlob || attachedFile)) {
-                  if (isRecording) { stopRecording(); } else { startRecording(); }
+                  if (isRecording) { 
+                    stopRecording(); 
+                  } else { 
+                    startRecording(); 
+                  }
                 }
               }}
-              disabled={false}
+              disabled={isUploading}
               className={!newMessage.trim() && !audioBlob && !attachedFile && isRecording ? 'recording-blink' : ''}
               style={{
                 marginLeft: '0.5rem',
-                background: (newMessage.trim() || audioBlob || attachedFile) ? 'linear-gradient(135deg, #800020, #600018)' : (isRecording ? '#f44336' : 'linear-gradient(135deg, #efefef, #ddd)'),
-                color: (newMessage.trim() || audioBlob || attachedFile) ? '#fff' : (isRecording ? '#fff' : '#555'),
+                background: isUploading ? '#6c757d' : ((newMessage.trim() || audioBlob || attachedFile) ? '#25D366' : (isRecording ? '#dc3545' : '#25D366')),
+                color: (newMessage.trim() || audioBlob || attachedFile) ? '#fff' : (isRecording ? '#fff' : '#666'),
                 border: 'none',
                 borderRadius: '50%',
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 4px 10px rgba(102,126,234,0.4)'
+                cursor: isUploading ? 'not-allowed' : 'pointer',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s ease',
+                position: 'relative',
+                opacity: isUploading ? 0.7 : 1
               }}
-              title={(newMessage.trim() || audioBlob || attachedFile) ? (t('send')||'Send') : (isRecording ? (t('stop_recording')||'Stop Recording') : (t('record_voice')||'Record Voice'))}
+              title={isUploading ? 'Uploading...' : ((newMessage.trim() || audioBlob || attachedFile) ? (t('send')||'Send') : (isRecording ? (t('stop_recording')||'Stop Recording') : (t('record_voice')||'Record Voice')))}
             >
-              {(newMessage.trim() || audioBlob || attachedFile) ? '📤' : (isRecording ? '⏹️' : '🎤')}
+              {/* Recording Indicator with Waves */}
+              {isRecording && (
+                <div style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  background: '#dc3545',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '4px 8px',
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 8px rgba(220, 53, 69, 0.3)',
+                  zIndex: 10
+                }}>
+                  <span style={{
+                    display: 'inline-block',
+                    width: '6px',
+                    height: '6px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    animation: 'pulse 1.4s infinite ease-in-out'
+                  }}></span>
+                  <span style={{
+                    display: 'inline-block',
+                    width: '6px',
+                    height: '6px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    animation: 'pulse 1.4s infinite ease-in-out 0.2s'
+                  }}></span>
+                  <span style={{
+                    display: 'inline-block',
+                    width: '6px',
+                    height: '6px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    animation: 'pulse 1.4s infinite ease-in-out 0.4s'
+                  }}></span>
+                  <span style={{ fontSize: '9px', marginLeft: '2px' }}>
+                    {formatTime(recordingTime)}
+                  </span>
+                </div>
+              )}
+              
+              {isUploading ? (
+                <div style={{
+                  width: 18,
+                  height: 18,
+                  border: '2px solid #ffffff',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }} />
+              ) : (newMessage.trim() || audioBlob || attachedFile) ? (
+                <Send size={18} />
+              ) : isRecording ? (
+                <Square size={18} />
+              ) : (
+                <Mic size={18} />
+              )}
             </button>
           </form>
         </div>
@@ -2603,56 +3010,87 @@ const ChatPage = () => {
             transition: 'background 0.2s'
           }}
         >
-          📥 Clear Their Messages
+          <Download size={16} style={{ marginRight: 8 }} /> Clear Their Messages
         </button>)}
       </div>
     )}
 
     {/* Poll Creation Modal */}
     {showPollModal && (
-      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2200 }} onClick={()=>setShowPollModal(false)}>
-        <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', padding:'1.5rem', borderRadius:12, minWidth:400, maxWidth:600, width:'90%' }} onClick={(e)=>e.stopPropagation()}>
-          <h3 style={{ marginTop:0, marginBottom:'1rem' }}>📊 {t('create_poll') || 'Create Poll'}</h3>
-          <label style={{ display:'block', marginBottom:8, fontWeight:600 }}>{t('question') || 'Question'}</label>
-          <input
-            type="text"
-            value={pollQuestion}
-            onChange={(e)=>setPollQuestion(e.target.value)}
-            placeholder="What's your question?"
-            style={{ width:'100%', padding:'0.75rem', border:'1px solid var(--border)', borderRadius:8, marginBottom:'1rem', background:'var(--panel)', color:'var(--text)' }}
-          />
-          <label style={{ display:'block', marginBottom:8, fontWeight:600 }}>{t('options') || 'Options'}</label>
-          {pollOptions.map((opt, idx) => (
-            <div key={idx} style={{ display:'flex', gap:8, marginBottom:8 }}>
-              <input
-                type="text"
-                value={opt}
-                onChange={(e)=>{
-                  const newOpts = [...pollOptions];
-                  newOpts[idx] = e.target.value;
-                  setPollOptions(newOpts);
-                }}
-                placeholder={`Option ${idx + 1}`}
-                style={{ flex:1, padding:'0.75rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'var(--text)' }}
-              />
-              {pollOptions.length > 2 && (
-                <button
-                  onClick={()=>setPollOptions(pollOptions.filter((_,i)=>i!==idx))}
-                  style={{ padding:'0.75rem', background:'var(--danger)', color:'var(--text)', border:'none', borderRadius:8, cursor:'pointer' }}
-                >
-                  ✕
-                </button>
-              )}
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2200 }} onClick={()=>setShowPollModal(false)}>
+        <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', padding:'2rem', borderRadius:16, minWidth:450, maxWidth:550, width:'90%', boxShadow:'0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }} onClick={(e)=>e.stopPropagation()}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.5rem' }}>
+            <h3 style={{ margin:0, fontSize:'1.25rem', fontWeight:700, display:'flex', alignItems:'center', gap:'0.5rem' }}>
+              <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'1rem' }}><BarChart3 size={18} /></div>
+              {t('create_poll') || 'Create Poll'}
+            </h3>
+            <button onClick={()=>setShowPollModal(false)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'1.5rem', padding:0, width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+          </div>
+          
+          <div style={{ marginBottom:'1.5rem' }}>
+            <label style={{ display:'block', marginBottom:'0.5rem', fontWeight:600, fontSize:'0.9rem', color:'var(--text)' }}>{t('question') || 'Question'}</label>
+            <input
+              type="text"
+              value={pollQuestion}
+              onChange={(e)=>setPollQuestion(e.target.value)}
+              placeholder="What would you like to know?"
+              style={{ width:'100%', padding:'0.875rem', border:'2px solid var(--border)', borderRadius:12, marginBottom:'0', background:'var(--panel)', color:'var(--text)', fontSize:'0.95rem', transition:'border-color 0.2s', outline:'none' }}
+              onFocus={(e)=>e.target.style.borderColor='var(--brand)'}
+              onBlur={(e)=>e.target.style.borderColor='var(--border)'}
+            />
+          </div>
+          
+          <div style={{ marginBottom:'1.5rem' }}>
+            <label style={{ display:'block', marginBottom:'0.5rem', fontWeight:600, fontSize:'0.9rem', color:'var(--text)' }}>{t('options') || 'Options'}</label>
+            <div style={{ background:'var(--background)', padding:'1rem', borderRadius:12, border:'1px solid var(--border)' }}>
+              {pollOptions.map((opt, idx) => (
+                <div key={idx} style={{ display:'flex', gap:'0.75rem', marginBottom:'0.75rem', alignItems:'center' }}>
+                  <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--brand)', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.75rem', fontWeight:600, flexShrink:0 }}>
+                    {String.fromCharCode(65 + idx)}
+                  </div>
+                  <input
+                    type="text"
+                    value={opt}
+                    onChange={(e)=>{
+                      const newOpts = [...pollOptions];
+                      newOpts[idx] = e.target.value;
+                      setPollOptions(newOpts);
+                    }}
+                    placeholder={`Option ${idx + 1}`}
+                    style={{ flex:1, padding:'0.625rem 0.875rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'var(--text)', fontSize:'0.9rem' }}
+                  />
+                  {pollOptions.length > 2 && (
+                    <button
+                      onClick={()=>setPollOptions(pollOptions.filter((_,i)=>i!==idx))}
+                      style={{ width:32, height:32, background:'var(--danger)', color:'white', border:'none', borderRadius:'50%', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem', flexShrink:0 }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          
           <button
             onClick={()=>setPollOptions([...pollOptions, ''])}
-            style={{ padding:'0.5rem 1rem', background:'var(--brand)', color:'var(--text)', border:'none', borderRadius:8, cursor:'pointer', marginBottom:'1rem' }}
+            style={{ width:'100%', padding:'0.75rem', background:'transparent', color:'var(--brand)', border:'2px dashed var(--brand)', borderRadius:12, cursor:'pointer', marginBottom:'1.5rem', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', transition:'all 0.2s' }}
+            onMouseOver={(e)=>{e.target.style.background='var(--brand)'; e.target.style.color='white';}}
+            onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--brand)';}}
           >
-            + {t('add_option') || 'Add Option'}
+            <Plus size={18} />
+            {t('add_option') || 'Add Option'}
           </button>
-          <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
-            <button onClick={()=>{setShowPollModal(false); setPollQuestion(''); setPollOptions(['','']);}} style={{ padding:'0.5rem 1rem', background:'#6c757d', color:'var(--text)', border:'none', borderRadius:8, cursor:'pointer' }}>{t('cancel')||'Cancel'}</button>
+          
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:'0.75rem' }}>
+            <button 
+              onClick={()=>{setShowPollModal(false); setPollQuestion(''); setPollOptions(['','']);}} 
+              style={{ padding:'0.75rem 1.5rem', background:'transparent', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, cursor:'pointer', fontWeight:600, fontSize:'0.9rem', transition:'all 0.2s' }}
+              onMouseOver={(e)=>{e.target.style.background='var(--background)';}}
+              onMouseOut={(e)=>{e.target.style.background='transparent';}}
+            >
+              {t('cancel')||'Cancel'}
+            </button>
             <button
               onClick={async ()=>{
                 if (!pollQuestion.trim() || pollOptions.filter(o=>o.trim()).length < 2) {
@@ -2682,7 +3120,7 @@ const ChatPage = () => {
                   toast?.showError('Failed to create poll');
                 }
               }}
-              style={{ padding:'0.5rem 1rem', background:'linear-gradient(135deg, #800020, #600018)', color:'white', border:'none', borderRadius:8, cursor:'pointer' }}
+              style={{ padding:'0.75rem 1.5rem', background:'linear-gradient(135deg, var(--brand), var(--brand2))', color:'white', border:'none', borderRadius:10, cursor:'pointer', fontWeight:600, fontSize:'0.9rem', boxShadow:'0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
             >
               {t('create')||'Create'}
             </button>
@@ -2776,7 +3214,7 @@ const ChatPage = () => {
                       <div style={{ fontSize: 12, color: '#666' }}>{m.email}</div>
                     </div>
                   </div>
-                  <button onClick={()=>openDMWith(m)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', cursor: 'pointer' }}>Start DM</button>
+                  <button onClick={()=>openDMWith(m)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: getUserThemeColor(), color: 'white', cursor: 'pointer' }}>Start DM</button>
                 </div>
               );
             })}

@@ -9,6 +9,7 @@ import {
   GridToolbarExport,
 } from '@mui/x-data-grid';
 import { Box } from '@mui/material';
+import Loading from '../Loading';
 
 /**
  * AdvancedDataGrid (MUI DataGrid wrapper)
@@ -28,6 +29,8 @@ const AdvancedDataGrid = ({
   exportFileName = 'export',
   showExportButton = false,
   exportLabel = 'Export',
+  loadingOverlayMessage,
+  fancyVariant = 'dots',
   ...rest
 }) => {
   // Store rows in a ref so we can access them in valueGetter
@@ -188,18 +191,35 @@ const AdvancedDataGrid = ({
   };
 
   return (
-    <Box sx={{ 
-      width: '100%', 
-      '& .MuiDataGrid-root': { border: 'none' }, 
-      '& .MuiDataGrid-toolbarContainer': { 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 10,
-        background: 'white',
-        borderBottom: '1px solid #e5e7eb'
-      }, 
-      ...sx 
-    }}>
+    <Box sx={{ position: 'relative', width: '100%' }}>
+      {loadingOverlayMessage && (
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <Loading variant="fancy" fancyVariant={fancyVariant} message={loadingOverlayMessage} />
+        </Box>
+      )}
+      <Box sx={{ 
+        width: '100%', 
+        '& .MuiDataGrid-root': { border: 'none' }, 
+        '& .MuiDataGrid-toolbarContainer': { 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 10,
+          background: 'white',
+          borderBottom: '1px solid #e5e7eb'
+        }, 
+        ...sx 
+      }}>
       {showExportButton && (
         <Box sx={{ display:'flex', justifyContent:'flex-end', mb: 0.5 }}>
           <button
@@ -245,6 +265,7 @@ const AdvancedDataGrid = ({
         }}
         {...rest}
       />
+      </Box>
     </Box>
   );
 };

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useToast } from './ToastProvider';
 import Modal from './Modal';
 import { useLang } from '../contexts/LangContext';
+import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import { Mail, Megaphone, FileText, CheckCircle2, XCircle, GraduationCap, BookOpen, MessageSquareText, Mailbox, Eye, Clock, Send, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { AdvancedDataGrid, Loading, Select, Input, Badge } from './ui';
@@ -28,9 +30,6 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const { collection, query, orderBy, limit, where } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-      
       let q = query(
         collection(db, 'emailLogs'),
         orderBy('timestamp', 'desc'),
@@ -39,16 +38,13 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
       
       // Apply filters
       if (filters.type !== 'all') {
-        const { query: queryFn, where: whereFn } = await import('firebase/firestore');
-        q = queryFn(q, whereFn('type', '==', filters.type));
+        q = query(q, where('type', '==', filters.type));
       }
       
       if (filters.status !== 'all') {
-        const { query: queryFn, where: whereFn } = await import('firebase/firestore');
-        q = queryFn(q, whereFn('status', '==', filters.status));
+        q = query(q, where('status', '==', filters.status));
       }
       
-      const { getDocs } = await import('firebase/firestore');
       const snapshot = await getDocs(q);
       
       const logList = [];
@@ -318,6 +314,8 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
         exportFileName="email-logs"
         showExportButton
         exportLabel={t('export') || 'Export'}
+        loadingOverlayMessage={loading ? "Loading email logs..." : undefined}
+        fancyVariant="dots"
       />
 
       {/* Preview Overlay (full-screen, highly visible) */}
@@ -392,7 +390,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             </div>
 
             {/* Scrollable Content */}
-            <div style={{ flex: 1, overflowY: 'auto', background: '#f5f5f5', padding: '1.25rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', background: '#f5f5f5a3', padding: '1.25rem' }}>
               <div style={{ background: 'white', borderRadius: 10, padding: '1.25rem', border: '1px solid #e5e7eb' }}>
                 {/* Metadata box */}
                 <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#f8f9fa', borderRadius: 8 }}>

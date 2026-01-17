@@ -16,7 +16,22 @@ export const ColorThemeProvider = ({ children }) => {
       if (uid) {
         return localStorage.getItem(`accent_color_${uid}`) || DEFAULT_ACCENT;
       }
-      return DEFAULT_ACCENT;
+      
+      // Try to find most recent accent color from any user for login pages
+      let color = DEFAULT_ACCENT;
+      let foundKey = null;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('accent_color_')) {
+          const storedColor = localStorage.getItem(key);
+          if (storedColor) {
+            color = storedColor;
+            foundKey = key;
+          }
+        }
+      }
+      console.log('🎨 [ColorTheme] Initial state - found accent color:', foundKey, color);
+      return color;
     } catch {
       return DEFAULT_ACCENT;
     }
@@ -141,11 +156,34 @@ export const ColorThemeProvider = ({ children }) => {
     console.log('🎨 [ColorTheme] Initial safeguard effect running');
     try {
       const root = document.documentElement;
-      const color = (typeof localStorage !== 'undefined' ? localStorage.getItem('primaryColor') : null) || '#800020';
-      console.log('🎨 [ColorTheme] Safeguard color source:', { 
-        localStorageColor: localStorage.getItem('primaryColor'),
-        finalColor: color 
-      });
+      
+      // Try to find the most recent accent color from any user
+      let color = '#800020'; // default
+      let foundKey = null;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        console.log('🎨 [ColorTheme] Checking localStorage key:', key);
+        if (key && key.startsWith('accent_color_')) {
+          const storedColor = localStorage.getItem(key);
+          if (storedColor) {
+            color = storedColor;
+            foundKey = key;
+            console.log('🎨 [ColorTheme] Found stored accent color:', key, storedColor);
+          }
+        }
+      }
+      
+      // Fallback to primaryColor if no accent colors found
+      if (color === '#800020') {
+        const fallbackColor = localStorage.getItem('primaryColor');
+        if (fallbackColor) {
+          color = fallbackColor;
+          console.log('🎨 [ColorTheme] Using fallback primaryColor:', fallbackColor);
+        }
+      }
+      
+      console.log('🎨 [ColorTheme] Final safeguard color:', color);
+      console.log('🎨 [ColorTheme] All localStorage keys:', Array.from({length: localStorage.length}, (_, i) => localStorage.key(i)));
       
       root.style.setProperty('--color-primary', color);
       root.style.setProperty('--color-primary-light', adjustColor(color, 20));

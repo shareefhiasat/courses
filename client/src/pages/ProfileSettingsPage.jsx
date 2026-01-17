@@ -4,16 +4,28 @@ import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown, Globe } from 'lucide-react';
-import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '../components/ui';
+import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown, Globe, Volume2, Vibrate, Smartphone, Bell, TestTube, Monitor, Users, BookOpen } from 'lucide-react';
+import { Container, Card, CardBody, Button, Input, Spinner, useToast, Loading } from '../components/ui';
+import ToggleSwitch from '../components/ToggleSwitch';
 import styles from './ProfileSettingsPage.module.css';
 import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '../utils/color';
 import { applyAccentColorGlobally } from '../utils/theme';
+import useNotifications from '../hooks/useNotifications';
+import notificationManager from '../utils/notifications';
+import { ActivityLogger } from '../firebase/activityLogger';
 
 const ProfileSettingsPage = () => {
   const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
   const { t, lang, toggleLang } = useLang();
   const toast = useToast();
+  const { 
+    settings: notificationSettings, 
+    isInitializing: notificationsInitializing,
+    initializeNotifications,
+    updateSetting,
+    checkSupport,
+    isMobile
+  } = useNotifications();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,6 +48,8 @@ const ProfileSettingsPage = () => {
         if (userDoc.exists()) {
           const data = userDoc.data();
           const resolvedColor = normalizeHexColor(data.messageColor, DEFAULT_ACCENT);
+          // Save to localStorage for ChatPage access
+          localStorage.setItem('userMessageColor', resolvedColor);
           setProfileData({
             displayName: data.displayName || user.displayName || '',
             realName: data.realName || '',
@@ -69,6 +83,26 @@ const ProfileSettingsPage = () => {
     loadProfile();
   }, [user]);
 
+  const handleTestBrowserNotification = async () => {
+    if (checkSupport().notification) {
+      try {
+        notificationManager.smartNotification('default', 'Test Notification', 'This is a test browser notification!', {
+            settings: {
+              sound: notificationSettings.soundEnabled,
+              vibration: notificationSettings.vibrationEnabled,
+              browser: notificationSettings.browserNotificationsEnabled
+            }
+          });
+        toast.success(t('test_notification_sent') || 'Test notification sent');
+      } catch (error) {
+        console.error('Failed to send test notification:', error);
+        toast.error(t('failed_to_send_test_notification') || 'Failed to send test notification');
+      }
+    } else {
+      toast.error(t('browser_notifications_not_supported') || 'Browser notifications not supported');
+    }
+  };
+
   const handleSave = async () => {
     if (!user?.uid) return;
 
@@ -84,6 +118,13 @@ const ProfileSettingsPage = () => {
         messageColor: normalizedColor,
         preferOTPLogin: profileData.preferOTPLogin
       });
+
+      // Log profile update activity
+      try {
+        await ActivityLogger.profileUpdate();
+      } catch (error) {
+        console.warn('Failed to log profile update activity:', error);
+      }
 
       // Apply color globally immediately
       applyAccentColorGlobally(normalizedColor);
@@ -110,9 +151,12 @@ const ProfileSettingsPage = () => {
 
   if (authLoading || loading) {
     return (
-      <div className={styles.loadingWrapper}>
-        <Spinner size="lg" />
-      </div>
+      <Loading 
+        variant="overlay" 
+        fullscreen 
+        message="Loading profile..." 
+        fancyVariant="dots" 
+      />
     );
   }
   if (!user) return <Navigate to="/login" />;
@@ -122,12 +166,16 @@ const ProfileSettingsPage = () => {
     const normalized = trySanitizeHexColor(value);
     if (normalized) {
       handleChange('messageColor', normalized);
+      // Save to localStorage for ChatPage access
+      localStorage.setItem('userMessageColor', normalized);
     }
   };
 
   const handleColorSelection = (value) => {
     const normalized = normalizeHexColor(value, DEFAULT_ACCENT);
     handleChange('messageColor', normalized);
+    // Save to localStorage for ChatPage access
+    localStorage.setItem('userMessageColor', normalized);
     // Apply color immediately for preview
     applyAccentColorGlobally(normalized);
   };
@@ -163,13 +211,19 @@ const ProfileSettingsPage = () => {
                   </span>
                 )}
                 {isAdmin && !isSuperAdmin && (
-                  <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>Admin</span>
+                  <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
+                    <Shield size={14} /> Admin
+                  </span>
                 )}
                 {isInstructor && (
-                  <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>Instructor</span>
+                  <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
+                    <BookOpen size={14} /> Instructor
+                  </span>
                 )}
                 {isHR && (
-                  <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>HR</span>
+                  <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
+                    <Users size={14} /> HR
+                  </span>
                 )}
                 {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
                   <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>Student</span>
@@ -243,35 +297,28 @@ const ProfileSettingsPage = () => {
                 <div className={styles.sectionHeader}>
                   <h3 className={styles.sectionTitle}>
                     <Palette size={18} style={{ marginRight: '0.5rem' }} />
-                    {t('theme_color') || 'Theme Color'}
+                    Theme Color
                   </h3>
-                  <p className={styles.sectionDescription}>
-                    {t('theme_color_description') || 'This color updates the overall theme and accent colors throughout the interface.'}
-                  </p>
                 </div>
                 
                 <div className={styles.colorSelectionArea}>
-                  <div className={styles.presetColors}>
-                    <div className={styles.presetLabel}>
-                      {t('preset_colors') || 'Preset Colors'}
-                    </div>
-                    <div className={styles.colorPicker}>
-                      {colorOptions.map(color => (
-                        <button
-                          key={color}
-                          className={`${styles.colorOption} ${profileData.messageColor === color ? styles.selected : ''}`}
-                          style={{ backgroundColor: color }}
-                          onClick={() => handleColorSelection(color)}
-                          title={color}
-                        />
-                      ))}
-                    </div>
+                  <div className={styles.colorPicker}>
+                    {colorOptions.map(color => (
+                      <button
+                        key={color}
+                        className={`${styles.colorOption} ${profileData.messageColor === color ? styles.selected : ''}`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => handleColorSelection(color)}
+                        title={color}
+                      />
+                    ))}
                   </div>
                   
                   <div className={styles.customColorSection}>
                     <div className={styles.customColorHeader}>
                       <span className={styles.customColorLabel}>
-                        {t('custom_accent_color') || 'Custom Accent Color'}
+                        <Palette size={18} style={{ marginRight: '0.5rem' }} />
+                        Custom Accent Color
                       </span>
                       <div className={styles.customColorInputs}>
                         <div className={styles.colorPickerWrapper}>
@@ -298,42 +345,32 @@ const ProfileSettingsPage = () => {
                 </div>
               </div>
               
-              {/* Preview Section */}
-              <div className={styles.previewSection}>
-                <div className={styles.previewHeader}>
-                  <h4 className={styles.previewTitle}>
-                    {t('preview') || 'Preview'}
-                  </h4>
+              {/* Compact Settings Row */}
+              <div style={{ 
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                padding: '1rem 0',
+                borderTop: '1px solid #e5e7eb',
+                marginTop: '1rem'
+              }}>
+                {/* Language Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <Globe size={18} style={{ color: '#6b7280' }} />
+                  <ToggleSwitch
+                    checked={lang === 'ar'}
+                    onChange={() => toggleLang()}
+                  />
                 </div>
-                <div className={styles.colorPreview}>
-                  <div 
-                    className={styles.messageBubble}
-                    style={{ backgroundColor: profileData.messageColor }}
-                  >
-                    {t('sample_message') || 'This is how your messages will look'}
-                  </div>
-                </div>
-              </div>
 
-              {/* Language Selection */}
-              <div className={styles.languageSection}>
-                <div className={styles.languageHeader}>
-                  <h3 className={styles.sectionTitle}>
-                    <Globe size={18} style={{ marginRight: '0.5rem' }} />
-                    {t('language') || 'Language'}
-                  </h3>
+                {/* OTP Login Toggle */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <Shield size={18} style={{ color: '#6b7280' }} />
+                  <ToggleSwitch
+                    checked={profileData.preferOTPLogin}
+                    onChange={(checked) => handleChange('preferOTPLogin', checked)}
+                  />
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={toggleLang}
-                  className={styles.languageToggle}
-                >
-                  <Globe size={16} style={{ marginRight: '0.5rem' }} />
-                  {lang === 'en' ? 'English' : 'العربية'}
-                  <span className={styles.toggleHint}>
-                    {t('click_to_switch') || 'Click to switch'}
-                  </span>
-                </Button>
               </div>
             </div>
           </CardBody>
@@ -342,31 +379,178 @@ const ProfileSettingsPage = () => {
         <Card>
           <CardBody>
             <div className={styles.cardHeader}>
-              <Shield size={24} />
-              <h2>{t('security') || 'Security'}</h2>
+              <Smartphone size={24} />
+              <h2>{t('notifications') || 'Notifications'}</h2>
             </div>
 
             <div className={styles.formSection}>
-              <div className={styles.formGroup}>
-                <label>
-                  <Shield size={18} style={{ marginRight: '0.5rem' }} />
-                  {t('otp_login') || 'OTP Login'}
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* Mobile Detection Info */}
+              {isMobile() && (
+                <div style={{ 
+                  marginBottom: '1rem', 
+                  padding: '0.75rem', 
+                  background: '#e0f2fe', 
+                  borderRadius: 8, 
+                  border: '1px solid #0ea5e9',
+                  fontSize: '0.875rem',
+                  color: '#0369a1'
+                }}>
+                  📱 {t('mobile_device_detected') || 'Mobile device detected - Notification sounds and vibration will work even when screen is off'}
+                </div>
+              )}
+
+              {/* Permission Status */}
+              {!notificationSettings.permissionsRequested && (
+                <div style={{ marginBottom: '1rem' }}>
                   <Button
-                    variant={profileData.preferOTPLogin ? 'primary' : 'outline'}
-                    onClick={() => handleChange('preferOTPLogin', !profileData.preferOTPLogin)}
-                    className={styles.otpToggle}
+                    variant="primary"
+                    onClick={async () => {
+                      await initializeNotifications();
+                      toast.success(t('permissions_requested') || 'Notification permissions requested');
+                    }}
+                    disabled={notificationsInitializing}
+                    loading={notificationsInitializing}
+                    icon={<Settings size={16} />}
                   >
-                    {profileData.preferOTPLogin ? (t('enabled') || 'Enabled') : (t('disabled') || 'Disabled')}
+                    {notificationsInitializing 
+                      ? (t('requesting') || 'Requesting...') 
+                      : (t('enable_notifications') || 'Enable Notifications')
+                    }
                   </Button>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted, #666)' }}>
-                    {profileData.preferOTPLogin ? '🔐' : '🔓'}
+                  <p className={styles.helpText} style={{ marginTop: '0.5rem' }}>
+                    {t('permission_description') || 'Enable notifications to receive alerts with sound and vibration even when your phone is asleep.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Compact Notification Settings Row */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '2rem',
+                marginBottom: '1rem',
+                padding: '1rem',
+                background: '#f9fafb',
+                borderRadius: 8,
+                border: '1px solid #e5e7eb'
+              }}>
+                {/* Sound Setting */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <Volume2 size={18} style={{ color: '#6b7280' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <ToggleSwitch
+                        checked={notificationSettings.soundEnabled}
+                        onChange={async (checked) => {
+                          const success = await updateSetting('soundEnabled', checked);
+                          if (success) {
+                            toast.success(checked 
+                              ? (t('sound_enabled') || 'Sound enabled') 
+                              : (t('sound_disabled') || 'Sound disabled'));
+                          }
+                        }}
+                      />
+                      {notificationSettings.soundEnabled && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            import('../utils/notifications').then(({ default: nm }) => {
+                              nm.playNotificationSound('default');
+                            });
+                          }}
+                          title={t('test_sound') || 'Test Sound'}
+                        >
+                          <Volume2 size={16} />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                {/* Vibration Setting */}
+                {checkSupport().vibration && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <Vibrate size={18} style={{ color: '#6b7280' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <ToggleSwitch
+                        checked={notificationSettings.vibrationEnabled}
+                        onChange={async (checked) => {
+                          const success = await updateSetting('vibrationEnabled', checked);
+                          if (success) {
+                            toast.success(checked 
+                              ? (t('vibration_enabled') || 'Vibration enabled') 
+                              : (t('vibration_disabled') || 'Vibration disabled'));
+                          }
+                        }}
+                      />
+                      {notificationSettings.vibrationEnabled && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            import('../utils/notifications').then(({ default: nm }) => {
+                              nm.vibrate('default');
+                            });
+                          }}
+                          title={t('test_vibration') || 'Test Vibration'}
+                        >
+                          <Vibrate size={16} />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Browser Notifications Setting */}
+                {checkSupport().notification && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <Bell size={18} style={{ color: '#6b7280' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <ToggleSwitch
+                        checked={notificationSettings.browserNotificationsEnabled}
+                        onChange={async (checked) => {
+                          const success = await updateSetting('browserNotificationsEnabled', checked);
+                          if (success) {
+                            toast.success(checked 
+                              ? (t('browser_notifications_enabled') || 'Browser notifications enabled') 
+                              : (t('browser_notifications_disabled') || 'Browser notifications disabled'));
+                          }
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleTestBrowserNotification}
+                        title={t('test_browser_notification') || 'Test Browser Notification'}
+                      >
+                        <TestTube size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Support Info */}
+              <div style={{ 
+                padding: '0.75rem', 
+                background: '#f9fafb', 
+                borderRadius: 8, 
+                border: '1px solid #e5e7eb',
+                fontSize: '0.875rem',
+                color: '#6b7280'
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{t('supported_features') || 'Supported Features'}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    {isMobile() ? <><Smartphone size={14} style={{ marginRight: '0.25rem' }} />Mobile</> : <><Monitor size={14} style={{ marginRight: '0.25rem' }} />Desktop</>}
                   </span>
                 </div>
-                <p className={styles.helpText}>
-                  {t('otp_login_description') || 'Enable this option to receive a one-time password via email when logging in. This provides an extra layer of security as the password expires after use and is sent directly to your registered email address.'}
-                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                  <div><Volume2 size={16} style={{ marginRight: '0.5rem' }} />{t('audio_notifications') || 'Audio'}: {checkSupport().audio ? '✅' : '❌'}</div>
+                  <div><Vibrate size={16} style={{ marginRight: '0.5rem' }} />{t('vibration') || 'Vibration'}: {checkSupport().vibration ? '✅' : '❌'}</div>
+                  <div><Bell size={16} style={{ marginRight: '0.5rem' }} />{t('browser_notifications') || 'Browser'}: {checkSupport().notification ? '✅' : '❌'}</div>
+                  <div><Settings size={16} style={{ marginRight: '0.5rem' }} />{t('service_worker') || 'Service Worker'}: {checkSupport().serviceWorker ? '✅' : '❌'}</div>
+                </div>
               </div>
             </div>
           </CardBody>

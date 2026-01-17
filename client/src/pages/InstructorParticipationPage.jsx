@@ -722,22 +722,20 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       </div>
 
       <div className={styles.content}>
-        {loading ? (
-          <Loading message="Loading participations..." fancyVariant="dots" />
-        ) : (
-          <AdvancedDataGrid
-            rows={participations}
-            getRowId={(row) => row.docId || row.id}
-            columns={columns}
-            pageSize={10}
-            pageSizeOptions={[10, 25, 50, 100]}
-            checkboxSelection
-            disableRowSelectionOnClick
-            exportFileName="participations"
-            showExportButton
-            exportLabel="Export"
-          />
-        )}
+        <AdvancedDataGrid
+          rows={participations}
+          getRowId={(row) => row.docId || row.id}
+          columns={columns}
+          pageSize={10}
+          pageSizeOptions={[10, 25, 50, 100]}
+          checkboxSelection
+          disableRowSelectionOnClick
+          exportFileName="participations"
+          showExportButton
+          exportLabel="Export"
+          loadingOverlayMessage={loading ? "Loading participations..." : undefined}
+          fancyVariant="dots"
+        />
       </div>
 
       <DeleteConfirmationModal

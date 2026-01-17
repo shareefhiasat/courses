@@ -215,15 +215,15 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .header h1 {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .sectionTitle {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .className {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .table tbody tr:hover {

@@ -5,8 +5,9 @@ import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, where } from 'firebase/firestore';
 import { getEnrollments } from '../firebase/firestore';
 import { getPrograms, getSubjects } from '../firebase/programs';
-import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect } from '../components/ui';
-import { UserX, UserCheck, Search, Shield, AlertCircle } from 'lucide-react';
+import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '../components/ui';
+import { FancyLoading } from '../components/ui/FancyLoading/FancyLoading';
+import { UserX, UserCheck, Search, Shield, AlertCircle, Info } from 'lucide-react';
 import styles from './ManageEnrollmentsPage.module.css';
 
 const ManageEnrollmentsPage = () => {
@@ -20,6 +21,9 @@ const ManageEnrollmentsPage = () => {
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const [programFilter, setProgramFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
@@ -133,6 +137,8 @@ const ManageEnrollmentsPage = () => {
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
     } catch (e) {
       console.error('[ManageEnrollments] Error loading data:', e);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -324,20 +330,60 @@ const ManageEnrollmentsPage = () => {
     );
   }
 
+  // Full-page loading
+  if (initialLoading) {
+    return (
+      <Loading 
+        variant="overlay" 
+        fullscreen 
+        message="Loading enrollments..." 
+        fancyVariant="dots" 
+      />
+    );
+  }
+
   return (
     <Container maxWidth="xl" className={styles.page} style={{ padding: '1rem 0' }}>
       <div className={styles.layout}>
         {/* Class List */}
         <Card className={styles.classList}>
-          <CardBody>
+          <CardBody style={{ position: 'relative' }}>
             <div className={styles.classListHeader}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
+            
+            {filterLoading && (
+              <div style={{ 
+                position: 'absolute', 
+                top: '3rem', 
+                left: 0, 
+                right: 0, 
+                bottom: 0, 
+                background: 'rgba(255,255,255,0.95)', 
+                zIndex: 1000, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                borderRadius: '8px'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center' 
+                }}>
+                  <FancyLoading />
+                </div>
+              </div>
+            )}
             
             {/* Filters */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: '1rem' }}>
               <Select
                 searchable
                 value={programFilter}
-                onChange={(e) => setProgramFilter(e.target.value)}
+                onChange={(e) => {
+                  setFilterLoading(true);
+                  setProgramFilter(e.target.value);
+                  setTimeout(() => setFilterLoading(false), 800);
+                }}
                 options={[
                   { value: 'all', label: 'All Programs' },
                   ...programs.map(p => ({
@@ -350,7 +396,11 @@ const ManageEnrollmentsPage = () => {
               <Select
                 searchable
                 value={subjectFilter}
-                onChange={(e) => setSubjectFilter(e.target.value)}
+                onChange={(e) => {
+                  setFilterLoading(true);
+                  setSubjectFilter(e.target.value);
+                  setTimeout(() => setFilterLoading(false), 800);
+                }}
                 options={[
                   { value: 'all', label: 'All Subjects' },
                   ...subjects
@@ -453,40 +503,109 @@ const ManageEnrollmentsPage = () => {
                 </div>
               </div>
 
-              {/* Search */}
-              <Input
-                type="text"
-                placeholder={t('search_students') || 'Search students...'}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={styles.searchInput}
-              />
-
-              {/* Info Box */}
-              <div className={styles.infoBox}>
-                <AlertCircle size={16} />
-                <div>
-                  <strong>Info:</strong> Disabling a student prevents them from:
-                  <ul>
-                    <li>Accessing class chat</li>
-                    <li>Viewing class activities</li>
-                    <li>Submitting assignments</li>
-                    <li>Scanning attendance (if implemented)</li>
-                  </ul>
-                  You can re-enable access anytime.
+              {/* Search and Info */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Input
+                  type="text"
+                  placeholder={t('search_students') || 'Search students...'}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className={styles.searchInput}
+                  style={{ flex: 1 }}
+                />
+                
+                {/* Info Button */}
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <button
+                    onClick={() => setShowInfoTooltip(!showInfoTooltip)}
+                    style={{
+                      background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      flexShrink: 0
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                    }}
+                    title="Click to see info about disabling students"
+                  >
+                    <Info size={14} style={{ color: '#6c757d' }} />
+                  </button>
+                  
+                  {showInfoTooltip && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: '0',
+                      marginTop: '0.5rem',
+                      background: 'linear-gradient(135deg, #ffffff, #f8f9fa)',
+                      border: '1px solid #e9ecef',
+                      borderRadius: '12px',
+                      padding: '1rem',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08)',
+                      zIndex: 1000,
+                      width: '280px',
+                      fontSize: '0.85rem',
+                      color: '#495057'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: '600', color: '#343a40' }}>
+                        <AlertCircle size={16} style={{ color: '#8b5cf6' }} />
+                        <span>Disabling Students</span>
+                      </div>
+                      <div style={{ lineHeight: '1.4' }}>
+                        When you disable a student, they lose access to:
+                        <ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', color: '#6c757d' }}>
+                          <li>Class chat participation</li>
+                          <li>Viewing class activities</li>
+                          <li>Submitting assignments</li>
+                          <li>Attendance scanning</li>
+                        </ul>
+                        <div style={{ marginTop: '0.5rem', fontStyle: 'italic', color: '#8b5cf6' }}>
+                          You can re-enable access anytime.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Students Table */}
               {loading ? (
                 <div className={styles.loadingState}>
-                  <Spinner size="large" color="primary" />
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    margin: '0 auto'
+                  }}>
+                    <FancyLoading />
+                  </div>
                 </div>
               ) : filteredStudents.length === 0 ? (
-                <EmptyState
-                  icon={Search}
-                  title={searchTerm ? (t('no_students_found') || 'No students found') : (t('no_students_enrolled') || 'No students enrolled in this class')}
-                />
+                <div style={{ 
+                  padding: '2rem', 
+                  textAlign: 'center', 
+                  color: 'transparent',
+                  minHeight: '100px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {/* Hidden empty state - no magnifier or text */}
+                </div>
               ) : (
                 <div className={styles.studentsList}>
                   {filteredStudents.map(student => (

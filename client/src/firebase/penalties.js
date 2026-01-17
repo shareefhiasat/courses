@@ -13,6 +13,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./config";
+import { addNotification } from "./notifications";
+import { sendEmail } from "./firestore";
 
 /**
  * Penalties Collection
@@ -95,12 +97,6 @@ const sendPenaltyNotifications = async ({
   sendInApp,
 }) => {
   try {
-    const { getDoc } = await import("firebase/firestore");
-    const { doc } = await import("firebase/firestore");
-    const { db } = await import("./config");
-    const { addNotification } = await import("./notifications");
-    const { sendEmail: sendEmailFunc } = await import("./firestore");
-
     const studentDoc = await getDoc(doc(db, "users", penalty.studentId));
     if (!studentDoc.exists()) {
       console.warn("Student not found for penalty notification");

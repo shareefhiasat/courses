@@ -249,10 +249,7 @@ const ProgramsManagementPage = () => {
       </form>
 
       <div className={styles.content}>
-        {loading ? (
-          <Loading message="Loading programs..." fancyVariant="dots" />
-        ) : (
-          <AdvancedDataGrid
+        <AdvancedDataGrid
             rows={programs}
             getRowId={(row) => row.docId || row.id}
             columns={[
@@ -322,8 +319,11 @@ const ProgramsManagementPage = () => {
             pageSizeOptions={[10, 25, 50, 100]}
             checkboxSelection
             exportFileName="programs"
-          />
-        )}
+            showExportButton
+            exportLabel="Export"
+            loadingOverlayMessage={loading ? "Loading programs..." : undefined}
+            fancyVariant="dots"
+        />
       </div>
 
     </div>

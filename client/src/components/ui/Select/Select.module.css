@@ -57,7 +57,7 @@
 }
 
 .select:disabled {
-  background: #f5f5f5;
+  background: #f5f5f5a3;
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -252,13 +252,13 @@
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
   .label {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .select {
     background: var(--panel, #1a1a1a);
     border-color: var(--border, #333);
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .select:disabled {
@@ -290,7 +290,7 @@
 :global([data-theme="dark"]) .select {
   background: #1a1a1a;
   border-color: #333;
-  color: #f5f5f5;
+  color: #f5f5f5a3;
 }
 :global([data-theme="dark"]) .dropdown {
   background: #111827;

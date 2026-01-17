@@ -27,101 +27,93 @@ export default function RoleAccessPro() {
     { id: 'home', name: 'Home', group: 'MAIN', description: 'Main landing page with activities and announcements' },
     { id: 'dashboard', name: 'Dashboard', group: 'MAIN', description: 'Admin dashboard for system overview' },
     { id: 'studentDashboard', name: 'Student Dashboard', group: 'MAIN', description: 'Student dashboard with progress and stats' },
-    { id: 'studentProgress', name: 'Student Progress', group: 'MAIN', description: 'View individual student progress' },
+    { id: 'studentProfile', name: 'Student Profile', group: 'MAIN', description: 'View and manage student profiles' },
     { id: 'activities', name: 'Activities', group: 'MAIN', description: 'Browse and complete learning activities' },
     { id: 'progress', name: 'Progress', group: 'MAIN', description: 'Track your learning progress' },
+    { id: 'resources', name: 'Resources', group: 'MAIN', description: 'Access learning resources and materials' },
     // QUIZ
+    { id: 'quizzes', name: 'Quizzes', group: 'QUIZ', description: 'Manage and take quizzes' },
     { id: 'quizManagement', name: 'Quiz Management', group: 'QUIZ', description: 'Manage and organize quizzes' },
     { id: 'quizBuilder', name: 'Quiz Builder', group: 'QUIZ', description: 'Create and edit quizzes' },
     { id: 'quizResults', name: 'Quiz Results', group: 'QUIZ', description: 'View quiz results and analytics' },
-    { id: 'reviewResults', name: 'Review Results', group: 'QUIZ', description: 'Review and evaluate quiz results' },
+    { id: 'reviewResults', name: 'Review Results', group: 'QUIZ', description: 'Review and evaluate quiz, homework, training, and lab & project results' },
     // CLASSES
     { id: 'classSchedules', name: 'Class Schedule', group: 'CLASSES', description: 'View class schedules and timetables' },
     { id: 'manageEnrollments', name: 'Manage Enrollments', group: 'CLASSES', description: 'Manage student enrollments in classes' },
     { id: 'myEnrollments', name: 'My Enrollments', group: 'CLASSES', description: 'View your enrolled classes' },
+    { id: 'enrollments', name: 'Enrollments', group: 'CLASSES', description: 'Manage student enrollments' },
     // ACADEMIC
     { id: 'programs', name: 'Programs', group: 'ACADEMIC', description: 'Manage academic programs' },
     { id: 'subjects', name: 'Subjects', group: 'ACADEMIC', description: 'Manage subjects within programs' },
     { id: 'classes', name: 'Classes', group: 'ACADEMIC', description: 'Manage classes for subjects' },
-    { id: 'enrollments', name: 'Enrollments', group: 'ACADEMIC', description: 'Manage student enrollments' },
     { id: 'marksEntry', name: 'Marks Entry', group: 'ACADEMIC', description: 'Enter and manage student marks' },
-    { id: 'classSchedule', name: 'Class Schedule', group: 'ACADEMIC', description: 'Manage class schedules' },
-    { id: 'reviewResults', name: 'Review Results', group: 'ACADEMIC', description: 'Review quiz, homework, training, and lab & project results' },
-    { id: 'hrPenalties', name: 'HR Penalties', group: 'ACADEMIC', description: 'HR penalties management' },
-    { id: 'instructorParticipation', name: 'Instructor Participation', group: 'ACADEMIC', description: 'Track student participation (+1 points)' },
-    { id: 'instructorBehavior', name: 'Instructor Behavior', group: 'ACADEMIC', description: 'Track student behavior (-1 points)' },
+    { id: 'courseProgress', name: 'Course Progress', group: 'ACADEMIC', description: 'View detailed course progress' },
     // ATTENDANCE
     { id: 'attendance', name: 'Attendance (Instructor)', group: 'ATTENDANCE', description: 'Take attendance for classes' },
     { id: 'manualAttendance', name: 'Manual Attendance', group: 'ATTENDANCE', description: 'Manually record attendance' },
     { id: 'hrAttendance', name: 'HR Attendance', group: 'ATTENDANCE', description: 'HR attendance tracking and management' },
     { id: 'myAttendance', name: 'My Attendance (Student)', group: 'ATTENDANCE', description: 'View your attendance records' },
+    { id: 'hrPenalties', name: 'HR Penalties', group: 'ATTENDANCE', description: 'HR penalties management' },
+    { id: 'instructorParticipation', name: 'Instructor Participation', group: 'ATTENDANCE', description: 'Track student participation (+1 points)' },
+    { id: 'instructorBehavior', name: 'Instructor Behavior', group: 'ATTENDANCE', description: 'Track student behavior (-1 points)' },
     // ANALYTICS
     { id: 'analytics', name: 'Analytics', group: 'ANALYTICS', description: 'View system analytics and reports' },
     { id: 'advancedAnalytics', name: 'Advanced Analytics', group: 'ANALYTICS', description: 'Advanced analytics with custom widgets' },
-    // COMMUNITY
-    { id: 'chat', name: 'Chat', group: 'COMMUNITY', description: 'Communicate with students and instructors' },
-    { id: 'resources', name: 'Resources', group: 'COMMUNITY', description: 'Access learning resources and materials' },
     // COMMUNICATION
+    { id: 'chat', name: 'Chat', group: 'COMMUNICATION', description: 'Communicate with students and instructors' },
     { id: 'scheduledReports', name: 'Scheduled Reports', group: 'COMMUNICATION', description: 'Schedule automated reports to be sent via email' },
-    // TOOLS
-    { id: 'timer', name: 'Timer', group: 'TOOLS', description: 'Timer tool for tracking study time' },
-    // WORKSPACE SETTINGS / SETTINGS
-    { id: 'notifications', name: 'Notifications', group: 'SETTINGS', description: 'Manage your notifications' },
-    { id: 'studentProfile', name: 'Student Profile', group: 'SETTINGS', description: 'View and manage student profiles' },
+    { id: 'smtpConfig', name: 'SMTP Config', group: 'COMMUNICATION', description: 'Configure SMTP settings for emails' },
+    // COMMUNITY
+    { id: 'notifications', name: 'Notifications', group: 'COMMUNITY', description: 'Manage your notifications' },
+    // WORKSPACE SETTINGS
     { id: 'profile', name: 'Profile Settings', group: 'SETTINGS', description: 'Manage your profile and preferences' },
+    { id: 'roleAccess', name: 'Role Access', group: 'SETTINGS', description: 'Manage role-based access control' },
   ];
 
   const defaultRoleScreens = {
     admin: { 
-      home: true, dashboard: true, studentDashboard: true, studentProgress: true, activities: true, progress: true,
-      quizManagement: true, quizBuilder: true, quizResults: true,
-      classSchedules: true, manageEnrollments: true, myEnrollments: true,
-      attendance: true, manualAttendance: true, hrAttendance: true, myAttendance: false,
+      home: true, dashboard: true, studentDashboard: true, studentProfile: true, activities: true, progress: true, resources: true,
+      quizzes: true, quizManagement: true, quizBuilder: true, quizResults: true, reviewResults: true,
+      classSchedules: true, manageEnrollments: true, myEnrollments: true, enrollments: true,
+      programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true,
+      attendance: true, manualAttendance: true, hrAttendance: true, myAttendance: false, hrPenalties: true, instructorParticipation: true, instructorBehavior: true,
       analytics: true, advancedAnalytics: true,
-      chat: true, resources: true,
-      timer: true,
-      notifications: true, studentProfile: true, profile: true,
-      programs: false, subjects: false, classes: false, enrollments: false, marksEntry: false, classSchedule: false,
-      reviewResults: false, hrPenalties: false, instructorParticipation: false, instructorBehavior: false
+      chat: true, scheduledReports: true, smtpConfig: true,
+      notifications: true,
+      profile: true, roleAccess: true
     },
     instructor: { 
-      home: true, dashboard: false, studentDashboard: false, studentProgress: true, activities: true, progress: false,
-      quizManagement: true, quizBuilder: true, quizResults: true,
-      classSchedules: true, manageEnrollments: true, myEnrollments: false,
-      attendance: true, manualAttendance: false, hrAttendance: false, myAttendance: false,
+      home: true, dashboard: false, studentDashboard: false, studentProfile: true, activities: true, progress: false, resources: true,
+      quizzes: true, quizManagement: true, quizBuilder: true, quizResults: true, reviewResults: false,
+      classSchedules: true, manageEnrollments: true, myEnrollments: false, enrollments: false,
+      programs: false, subjects: false, classes: false, marksEntry: true, courseProgress: false,
+      attendance: true, manualAttendance: false, hrAttendance: false, myAttendance: false, hrPenalties: false, instructorParticipation: true, instructorBehavior: true,
       analytics: true, advancedAnalytics: false,
-      chat: true, resources: true,
-      timer: true,
-      notifications: true, studentProfile: true, profile: true,
-      programs: false, subjects: false, classes: false, enrollments: false, marksEntry: true, classSchedule: false,
-      reviewResults: false, hrPenalties: false, instructorParticipation: true, instructorBehavior: true,
-      scheduledReports: false
+      chat: true, scheduledReports: false, smtpConfig: false,
+      notifications: true,
+      profile: true, roleAccess: false
     },
     hr: { 
-      home: true, dashboard: false, studentDashboard: false, studentProgress: false, activities: false, progress: false,
-      quizManagement: false, quizBuilder: false, quizResults: false,
-      classSchedules: false, manageEnrollments: false, myEnrollments: false,
-      attendance: false, manualAttendance: false, hrAttendance: true, myAttendance: false,
+      home: true, dashboard: false, studentDashboard: false, studentProfile: true, activities: false, progress: false, resources: false,
+      quizzes: false, quizManagement: false, quizBuilder: false, quizResults: false, reviewResults: false,
+      classSchedules: false, manageEnrollments: false, myEnrollments: false, enrollments: false,
+      programs: false, subjects: false, classes: false, marksEntry: false, courseProgress: false,
+      attendance: false, manualAttendance: false, hrAttendance: true, myAttendance: false, hrPenalties: true, instructorParticipation: false, instructorBehavior: false,
       analytics: true, advancedAnalytics: false,
-      chat: false, resources: false,
-      timer: true,
-      notifications: true, studentProfile: true, profile: true,
-      programs: false, subjects: false, classes: false, enrollments: false, marksEntry: false, classSchedule: false,
-      reviewResults: false, hrPenalties: true, instructorParticipation: false, instructorBehavior: false,
-      scheduledReports: false // HR cannot manage scheduled reports by default
+      chat: false, scheduledReports: false, smtpConfig: false,
+      notifications: true,
+      profile: true, roleAccess: false
     },
     student: { 
-      home: true, dashboard: false, studentDashboard: true, studentProgress: false, activities: true, progress: true,
-      quizManagement: false, quizBuilder: false, quizResults: true,
-      classSchedules: false, manageEnrollments: false, myEnrollments: true,
-      attendance: false, attendanceManagement: false, manualAttendance: false, hrAttendance: false, myAttendance: true,
+      home: true, dashboard: false, studentDashboard: true, studentProfile: false, activities: true, progress: true, resources: true,
+      quizzes: true, quizManagement: false, quizBuilder: false, quizResults: true, reviewResults: false,
+      classSchedules: false, manageEnrollments: false, myEnrollments: true, enrollments: false,
+      programs: false, subjects: false, classes: false, marksEntry: false, courseProgress: true,
+      attendance: false, manualAttendance: false, hrAttendance: false, myAttendance: true, hrPenalties: false, instructorParticipation: false, instructorBehavior: false,
       analytics: false, advancedAnalytics: false,
-      chat: true, resources: true,
-      timer: true,
-      notifications: true, studentProfile: true, profile: true,
-      programs: false, subjects: false, classes: false, enrollments: false, marksEntry: false, classSchedule: false,
-      reviewResults: false, hrPenalties: false, instructorParticipation: false, instructorBehavior: false,
-      scheduledReports: false // Students cannot manage scheduled reports
+      chat: true, scheduledReports: false, smtpConfig: false,
+      notifications: true,
+      profile: true, roleAccess: false
     },
   };
 

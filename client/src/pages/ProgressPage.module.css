@@ -203,7 +203,7 @@
   }
 
   .typeLabel {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .typeCard {
@@ -212,10 +212,10 @@
   }
 
   .progressCard h3 {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .cardInfo {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 }

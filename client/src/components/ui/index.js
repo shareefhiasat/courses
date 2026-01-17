@@ -50,6 +50,7 @@ export { default as Loading } from './Loading';
 export { default as PermissionAwareLoading } from './PermissionAwareLoading';
 export { default as AdvancedDataGrid } from './AdvancedDataGrid/AdvancedDataGrid';
 export { default as ExpandablePanel } from './ExpandablePanel';
+export { default as CollapsibleDashboardSection } from './CollapsibleDashboardSection';
 export { default as LanguageSwitcher } from './LanguageSwitcher';
 
 // Layout Components

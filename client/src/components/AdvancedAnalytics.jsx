@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
+import { getPrograms, getSubjects } from '../firebase/programs';
 import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
@@ -111,7 +112,7 @@ export default function AdvancedAnalytics() {
     console.log('🎨 [AdvancedAnalytics] Accent color:', accentColor, 'userAccentColor:', userAccentColor, 'DEFAULT_ACCENT:', DEFAULT_ACCENT);
   }, [accentColor, userAccentColor]);
   
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [permErrors, setPermErrors] = useState({});
   const [rawData, setRawData] = useState({
     activities: [],
@@ -193,8 +194,6 @@ export default function AdvancedAnalytics() {
         }
       };
 
-      const { getPrograms, getSubjects } = await import('../firebase/programs');
-      
       await Promise.all([
         safeLoad('activities', () => getDocs(collection(db, 'activities'))),
         safeLoad('submissions', () => getDocs(collection(db, 'submissions'))),
@@ -774,11 +773,14 @@ export default function AdvancedAnalytics() {
     }
   };
 
-  if (loading && widgets.length === 0) {
+  if (loading) {
     return (
-      <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <Loading size="lg" message={t('loading') || 'Loading analytics...'} />
-      </div>
+      <Loading 
+        variant="overlay" 
+        fullscreen 
+        message={t('loading') || 'Loading analytics...'} 
+        fancyVariant="dots" 
+      />
     );
   }
 

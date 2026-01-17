@@ -220,23 +220,23 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .header h1 {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .classListHeader {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .className {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .selectedClassHeader h2 {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .studentName {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
 
   .infoBox {

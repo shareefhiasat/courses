@@ -13,6 +13,7 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { canParticipate } from "../utils/userStatus";
 
 // Create a new quiz
 export const createQuiz = async (quizData, userId) => {
@@ -211,46 +212,49 @@ export const deleteQuiz = async (quizId) => {
 export const submitQuiz = async (submissionData) => {
   try {
     // Check if user can participate (not disabled/archived/deleted)
-    const { canParticipate } = await import("../utils/userStatus");
-    const { doc, getDoc, collection, query, where, getDocs, updateDoc } =
-      await import("firebase/firestore");
+    try {
+      const participationCheck = canParticipate();
+      
+      if (submissionData.userId && participationCheck) {
+        try {
+          // Load user data
+          const userDoc = await getDoc(doc(db, "users", submissionData.userId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
 
-    if (submissionData.userId) {
-      try {
-        // Load user data
-        const userDoc = await getDoc(doc(db, "users", submissionData.userId));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
+            // Load user enrollments
+            let enrollments = [];
+            try {
+              const enrollmentsSnap = await getDocs(
+                query(
+                  collection(db, "enrollments"),
+                  where("userId", "==", submissionData.userId)
+                )
+              );
+              enrollments = enrollmentsSnap.docs.map((d) => ({
+                id: d.id,
+                ...d.data(),
+              }));
+            } catch (e) {
+              console.warn("Failed to load enrollments for quiz check:", e);
+            }
 
-          // Load user enrollments
-          let enrollments = [];
-          try {
-            const enrollmentsSnap = await getDocs(
-              query(
-                collection(db, "enrollments"),
-                where("userId", "==", submissionData.userId)
-              )
-            );
-            enrollments = enrollmentsSnap.docs.map((d) => ({
-              id: d.id,
-              ...d.data(),
-            }));
-          } catch (e) {
-            console.warn("Failed to load enrollments for quiz check:", e);
+            if (!canParticipate(userData, enrollments)) {
+              return {
+                success: false,
+                error:
+                  "You cannot submit quizzes. Your account is disabled, archived, or you have no active enrollments.",
+              };
+            }
           }
-
-          if (!canParticipate(userData, enrollments)) {
-            return {
-              success: false,
-              error:
-                "You cannot submit quizzes. Your account is disabled, archived, or you have no active enrollments.",
-            };
-          }
+        } catch (error) {
+          console.warn("Failed to check user status for quiz:", error);
+          // Continue anyway - don't block if status check fails
         }
-      } catch (error) {
-        console.warn("Failed to check user status for quiz:", error);
-        // Continue anyway - don't block if status check fails
       }
+    } catch (error) {
+      console.warn("Failed to check user participation:", error);
+      // Continue anyway - don't block if status check fails
     }
 
     // Check for existing submissions if retake is allowed

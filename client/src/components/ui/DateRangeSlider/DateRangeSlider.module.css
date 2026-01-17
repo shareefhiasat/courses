@@ -44,7 +44,7 @@
 
 .clearAllButton:hover:not(:disabled) {
   color: var(--text, #212529);
-  background: var(--bg-hover, #f5f5f5);
+  background: var(--bg-hover, #f5f5f5a3);
 }
 
 .clearAllButton:disabled {
@@ -94,7 +94,7 @@
 
 .clearButton:hover:not(:disabled) {
   color: var(--text, #212529);
-  background: var(--bg-hover, #f5f5f5);
+  background: var(--bg-hover, #f5f5f5a3);
 }
 
 .clearButton:disabled {
@@ -132,7 +132,7 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .label {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .clearAllButton {
@@ -140,7 +140,7 @@
   }
   
   .clearAllButton:hover:not(:disabled) {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
     background: var(--bg-hover, #2a2a2a);
   }
   
@@ -149,7 +149,7 @@
   }
   
   .clearButton:hover:not(:disabled) {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
     background: var(--bg-hover, #2a2a2a);
   }
   

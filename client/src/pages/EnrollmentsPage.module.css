@@ -73,11 +73,11 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .title {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .className {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .term {

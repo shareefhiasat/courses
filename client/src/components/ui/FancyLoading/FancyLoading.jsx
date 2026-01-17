@@ -28,7 +28,7 @@ export const FancyLoading = ({
       <div className={styles.brandWrapper}>
         {!brandLoadFailed ? (
           <img
-            src="https://upload.wikimedia.org/wikipedia/en/thumb/2/21/Seal_of_the_Qatar_Armed_Forces_General_Command.png/255px-Seal_of_the_Qatar_Armed_Forces_General_Command.png"
+            src="/qaf_logo_transparent.png"
             alt="Qatar Armed Forces Seal"
             className={styles.brandLogo}
             style={rotatingStyle}

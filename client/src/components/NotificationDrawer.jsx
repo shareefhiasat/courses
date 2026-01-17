@@ -16,21 +16,28 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import { getClasses } from '../firebase/firestore';
-import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Filter, MoreVertical, Trash2, Eye, EyeOff, MessageCircle, Mail, UserCheck, ExternalLink } from 'lucide-react';
+import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Filter, MoreVertical, Trash2, Eye, EyeOff, MessageCircle, Mail, UserCheck, ExternalLink, Volume2, Vibrate, TestTube } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { Button, Input, Select, Badge } from './ui';
 import ToggleSwitch from './ToggleSwitch';
 import { PENALTY_TYPES, ABSENCE_TYPES } from '../firebase/penalties';
 import { ATTENDANCE_STATUS } from '../firebase/attendance';
+import useNotifications from '../hooks/useNotifications';
 
 const NotificationDrawer = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { 
+    settings: notificationSettings, 
+    updateSetting,
+    triggerNotification,
+    checkSupport,
+    isMobile
+  } = useNotifications();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // all, unread, read, archived
   const [filterCategory, setFilterCategory] = useState('all'); // all, activity, message, announcement, grade, etc.
@@ -55,9 +62,32 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     if (!user || !isOpen) return () => {}; // Return empty cleanup function
     const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
       setNotifications(newNotifications);
+      
+      // Check for new notifications and trigger sound/vibration
+      const currentUnreadCount = newNotifications.filter(n => !n.read && !n.archived).length;
+      const previousUnreadCount = notifications.filter(n => !n.read && !n.archived).length;
+      
+      // If unread count increased, play notification
+      if (currentUnreadCount > previousUnreadCount) {
+        const latestNotification = newNotifications
+          .filter(n => !n.read && !n.archived)
+          .sort((a, b) => {
+            const aTime = a.createdAt?.seconds || 0;
+            const bTime = b.createdAt?.seconds || 0;
+            return bTime - aTime;
+          })[0];
+        
+        if (latestNotification) {
+          triggerNotification(
+            latestNotification.type || 'default',
+            latestNotification.title || 'New Notification',
+            latestNotification.message || 'You have a new notification'
+          );
+        }
+      }
     }, true); // Always include archived, we'll filter in the component
     return unsubscribe || (() => {}); // Ensure we always return a function
-  }, [user, isOpen]);
+  }, [user, isOpen, notifications, triggerNotification]);
 
   // Load programs, subjects, classes for filters
   useEffect(() => {
@@ -76,18 +106,6 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     };
     loadFilters();
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!user) return;
-    const loadPref = async () => {
-      try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        const data = snap.exists() ? snap.data() : {};
-        setSoundEnabled(data.notificationSoundEnabled !== false);
-      } catch {}
-    };
-    loadPref();
-  }, [user]);
 
   // Filter notifications
   const filteredNotifications = useMemo(() => {
@@ -233,6 +251,27 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
     return formatDateTime(date);
+  };
+
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
+
+  // Sync notification settings with useNotifications hook
+  useEffect(() => {
+    setSoundEnabled(notificationSettings.soundEnabled);
+    setVibrationEnabled(notificationSettings.vibrationEnabled);
+    setBrowserNotificationsEnabled(notificationSettings.browserNotificationsEnabled);
+  }, [notificationSettings]);
+
+  const handleTestBrowserNotification = async () => {
+    if (checkSupport().notification) {
+      try {
+        await triggerNotification('default', 'Test Notification', 'This is a test browser notification!');
+      } catch (error) {
+        console.error('Failed to send test notification:', error);
+      }
+    }
   };
 
   const handleMarkAsRead = async (notificationId, e) => {
@@ -633,16 +672,49 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
           {/* Actions */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ToggleSwitch
-                label="Sound"
-                checked={soundEnabled}
-                onChange={async (checked) => {
-                  setSoundEnabled(checked);
-                  try {
-                    if (user) await setDoc(doc(db, 'users', user.uid), { notificationSoundEnabled: checked }, { merge: true });
-                  } catch {}
-                }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Volume2 size={16} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                <ToggleSwitch
+                  label=""
+                  checked={soundEnabled}
+                  onChange={async (checked) => {
+                    await updateSetting('soundEnabled', checked);
+                  }}
+                />
+              </div>
+              {checkSupport().vibration && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Vibrate size={16} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                  <ToggleSwitch
+                    label=""
+                    checked={vibrationEnabled}
+                    onChange={async (checked) => {
+                      await updateSetting('vibrationEnabled', checked);
+                    }}
+                  />
+                </div>
+              )}
+              {checkSupport().notification && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Bell size={16} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                  <ToggleSwitch
+                    label=""
+                    checked={browserNotificationsEnabled}
+                    onChange={async (checked) => {
+                      await updateSetting('browserNotificationsEnabled', checked);
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestBrowserNotification}
+                    title={t('test_browser_notification') || 'Test Browser Notification'}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}
+                  >
+                    <TestTube size={14} />
+                  </Button>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {unreadCount > 0 && (

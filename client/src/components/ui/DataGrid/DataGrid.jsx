@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronUp, ChevronDown, Search, Filter, Download } from 'lucide-react';
+import Loading from '../Loading';
 import styles from './DataGrid.module.css';
 
 /**
@@ -186,7 +187,7 @@ const DataGrid = ({
             {loading ? (
               <tr>
                 <td colSpan={columns.length + (selectable ? 1 : 0)} className={styles.loading}>
-                  Loading...
+                  <Loading variant="fancy" fancyVariant="dots" message="Loading..." />
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (

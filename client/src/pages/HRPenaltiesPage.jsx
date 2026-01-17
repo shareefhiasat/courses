@@ -776,21 +776,19 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       </div>
 
       <div className={styles.content}>
-        {loading ? (
-          <Loading message="Loading penalties..." fancyVariant="dots" />
-        ) : (
-          <AdvancedDataGrid
-            rows={filteredPenalties}
-            columns={columns}
-            pageSize={10}
-            pageSizeOptions={[10, 25, 50, 100]}
-            checkboxSelection
-            disableRowSelectionOnClick
-            exportFileName="penalties"
-            showExportButton
-            exportLabel="Export"
-          />
-        )}
+        <AdvancedDataGrid
+          rows={filteredPenalties}
+          columns={columns}
+          pageSize={10}
+          pageSizeOptions={[10, 25, 50, 100]}
+          checkboxSelection
+          disableRowSelectionOnClick
+          exportFileName="penalties"
+          showExportButton
+          exportLabel="Export"
+          loadingOverlayMessage={loading ? "Loading penalties..." : undefined}
+          fancyVariant="dots"
+        />
       </div>
 
       <DeleteConfirmationModal

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { onAuthChange } from '../firebase/auth';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -29,6 +29,64 @@ export const AuthProvider = ({ children }) => {
   const [impersonating, setImpersonating] = useState(null); // { originalUser, impersonatedUser }
   const [realUser, setRealUser] = useState(null); // Store the real admin user
   
+  // Track if we've logged this session - use sessionStorage to persist across refreshes
+  const [hasLoggedInThisSession, setHasLoggedInThisSession] = useState(() => {
+    const sessionStart = sessionStorage.getItem('sessionStart');
+    const hasLoggedIn = sessionStorage.getItem('hasLoggedInThisSession') === 'true';
+    
+    // If session is older than 1 hour, reset it
+    if (sessionStart && hasLoggedIn) {
+      const sessionAge = Date.now() - parseInt(sessionStart);
+      if (sessionAge > 60 * 60 * 1000) { // 1 hour
+        sessionStorage.removeItem('hasLoggedInThisSession');
+        sessionStorage.removeItem('sessionStart');
+        return false;
+      }
+    }
+    
+    return hasLoggedIn;
+  });
+
+  // Session timeout detection
+  useEffect(() => {
+    if (!user) return;
+
+    const sessionTimeout = 60 * 60 * 1000; // 1 hour
+    let timeoutId;
+
+    const resetTimeout = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        // Log session timeout
+        try {
+          await ActivityLogger.sessionTimeout();
+        } catch (error) {
+          console.warn('Failed to log session timeout:', error);
+        }
+        // Sign out user
+        await signOutUser(user);
+      }, sessionTimeout);
+    };
+
+    // Set initial timeout
+    resetTimeout();
+
+    // Reset timeout on user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    const handleActivity = () => resetTimeout();
+
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleActivity);
+    });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [user]);
+  
   // Load cached profile from sessionStorage on mount
   useEffect(() => {
     const cached = sessionStorage.getItem('userProfile');
@@ -43,19 +101,20 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let userDocUnsub = null;
-    let hasLoggedInThisSession = false; // Track if we've logged this session
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
         setIsAdmin(false);
         setRole('guest');
         setLoading(false);
-        hasLoggedInThisSession = false; // Reset on logout
+        setHasLoggedInThisSession(false); // Reset on logout
+        sessionStorage.removeItem('hasLoggedInThisSession');
+        sessionStorage.removeItem('sessionStart');
         return;
       }
 
-      // Only log login if this is a NEW session (user was null before)
-      const isNewLogin = !user && !hasLoggedInThisSession;
+      // Only log login if we haven't logged this session yet
+      const isNewLogin = !hasLoggedInThisSession;
       
       setUser(firebaseUser);
 
@@ -68,9 +127,14 @@ export const AuthProvider = ({ children }) => {
       } catch {}
 
       try {
-        // Ensure a user doc exists
+        // Ensure a user doc exists (only pass displayName if it exists in Firebase Auth)
         try {
-          await ensureUserDoc(firebaseUser.uid, { email: firebaseUser.email, displayName: firebaseUser.displayName || null });
+          const userData = {};
+          userData.email = firebaseUser.email;
+          if (firebaseUser.displayName) {
+            userData.displayName = firebaseUser.displayName;
+          }
+          await ensureUserDoc(firebaseUser.uid, userData);
         } catch {}
 
         // Claims and allowlist
@@ -187,7 +251,9 @@ export const AuthProvider = ({ children }) => {
             await addLoginLog({ userId: firebaseUser.uid, email: firebaseUser.email, displayName: firebaseUser.displayName || null });
             // Log activity with new logger - only on actual login
             await ActivityLogger.login();
-            hasLoggedInThisSession = true; // Mark as logged for this session
+            setHasLoggedInThisSession(true); // Mark as logged for this session
+            sessionStorage.setItem('hasLoggedInThisSession', 'true');
+            sessionStorage.setItem('sessionStart', Date.now().toString());
           } catch {}
         }
 

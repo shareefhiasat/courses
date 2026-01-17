@@ -14,8 +14,11 @@ import {
   Timestamp,
   arrayUnion,
   arrayRemove,
+  increment,
+  serverTimestamp
 } from "firebase/firestore";
 import { db } from "./config";
+import { ActivityLogger } from './activityLogger';
 
 // Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
 const _ensureUserDocOnce = new Set();
@@ -80,7 +83,10 @@ export const ensureUserDoc = async (uid, data = {}) => {
       role: data.role || "student",
       createdAt: Timestamp.now(),
     };
-    await setDoc(ref, snap.exists() ? data : base, { merge: true });
+    // If document exists, only merge the provided data fields
+    // If document doesn't exist, use the base object with provided data
+    const updateData = snap.exists() ? data : { ...base, ...data };
+    await setDoc(ref, updateData, { merge: true });
     _ensureUserDocOnce.add(uid);
     return { success: true };
   } catch (error) {
@@ -242,7 +248,6 @@ export const getResources = async () => {
 
 export const addResource = async (resourceData) => {
   try {
-    const { serverTimestamp } = await import("firebase/firestore");
     const convertedData = convertDatesToTimestamps(resourceData);
     const docRef = await addDoc(collection(db, "resources"), {
       ...convertedData,
@@ -257,7 +262,6 @@ export const addResource = async (resourceData) => {
 
 export const updateResource = async (id, resourceData) => {
   try {
-    const { serverTimestamp } = await import("firebase/firestore");
     const convertedData = convertDatesToTimestamps(resourceData);
     await updateDoc(doc(db, "resources", id), {
       ...convertedData,
@@ -437,7 +441,20 @@ export const deleteUserCascade = async (uid) => {
 // Update user function
 export const updateUser = async (id, userData) => {
   try {
-    await updateDoc(doc(db, "users", id), userData);
+    // Check if email is being changed
+    const userRef = doc(db, "users", id);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists() && userData.email && userData.email !== userSnap.data().email) {
+      // Log email change activity
+      try {
+        await ActivityLogger.emailChange();
+      } catch (error) {
+        console.warn('Failed to log email change activity:', error);
+      }
+    }
+    
+    await updateDoc(userRef, userData);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

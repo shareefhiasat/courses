@@ -162,17 +162,17 @@
 @media (prefers-color-scheme: dark) {
   .solid.default {
     background: var(--color-gray-700, #495057);
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .outline.default {
     border-color: var(--border, #333);
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .subtle.default {
     background: rgba(255, 255, 255, 0.1);
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .removeButton:hover {

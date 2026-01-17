@@ -716,19 +716,19 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       </div>
 
       <div className={styles.content}>
-        {loading ? (
-          <Loading message="Loading behaviors..." fancyVariant="dots" />
-        ) : (
-          <AdvancedDataGrid
-            rows={behaviors}
-            getRowId={(row) => row.docId || row.id}
-            columns={columns}
-            pageSize={10}
-            pageSizeOptions={[10, 25, 50, 100]}
-            checkboxSelection
-            exportFileName="behaviors"
-          />
-        )}
+        <AdvancedDataGrid
+          rows={behaviors}
+          getRowId={(row) => row.docId || row.id}
+          columns={columns}
+          pageSize={10}
+          pageSizeOptions={[10, 25, 50, 100]}
+          checkboxSelection
+          exportFileName="behaviors"
+          showExportButton
+          exportLabel="Export"
+          loadingOverlayMessage={loading ? "Loading behaviors..." : undefined}
+          fancyVariant="dots"
+        />
       </div>
 
       <DeleteConfirmationModal

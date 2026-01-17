@@ -105,7 +105,7 @@
 @media (prefers-color-scheme: dark) {
   .notFound,
   .title {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .description {

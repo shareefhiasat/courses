@@ -250,11 +250,11 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .headerTitle h1 {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .filterGroup label {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .notificationItem.unread {
@@ -262,7 +262,7 @@
   }
   
   .notificationHeader h3 {
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .notificationMessage {

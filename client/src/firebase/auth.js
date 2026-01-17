@@ -6,6 +6,7 @@ import {
   sendPasswordResetEmail,
   onAuthStateChanged 
 } from 'firebase/auth';
+import { ActivityLogger } from './activityLogger';
 import { auth } from './config';
 
 export const signIn = async (email, password) => {
@@ -35,8 +36,21 @@ export const signUp = async (email, password, displayName) => {
   }
 };
 
-export const signOutUser = async () => {
+export const signOutUser = async (user = null) => {
   try {
+    // Reset session flag immediately when logout is initiated
+    sessionStorage.removeItem('hasLoggedInThisSession');
+    sessionStorage.removeItem('sessionStart');
+    
+    // Log logout activity before signing out
+    if (user) {
+      try {
+        await ActivityLogger.logout();
+      } catch (error) {
+        console.warn('Failed to log logout activity:', error);
+      }
+    }
+    
     await signOut(auth);
     return { success: true };
   } catch (error) {
@@ -47,6 +61,14 @@ export const signOutUser = async () => {
 export const resetPassword = async (email) => {
   try {
     await sendPasswordResetEmail(auth, email);
+    
+    // Log password reset activity
+    try {
+      await ActivityLogger.passwordChange();
+    } catch (error) {
+      console.warn('Failed to log password change activity:', error);
+    }
+    
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

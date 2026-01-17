@@ -168,7 +168,7 @@ const HelpDrawer = () => {
               onClick={() => toggleSection(sectionIndex)}
               style={{
                 padding: '0.75rem 1rem',
-                backgroundColor: 'var(--panel-bg, #f5f5f5)',
+                backgroundColor: 'var(--panel-bg, #f5f5f5a3)',
                 cursor: 'pointer',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -178,7 +178,7 @@ const HelpDrawer = () => {
                 transition: 'background-color 0.2s',
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #eee)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--panel-bg, #f5f5f5)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--panel-bg, #f5f5f5a3)'}
             >
               <h3 style={{
                 display: 'flex',
@@ -288,7 +288,7 @@ const HelpDrawer = () => {
                 justifyContent: 'center',
                 transition: 'background-color 0.2s',
               }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #f5f5f5)'}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #f5f5f5a3)'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               aria-label={t('close_help', 'Close help')}
             >
@@ -356,7 +356,7 @@ const HelpDrawer = () => {
                 justifyContent: 'center',
                 transition: 'background-color 0.2s',
               }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #f5f5f5)'}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--hover-bg, #f5f5f5a3)'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               aria-label={t('close_help', 'Close help')}
             >
@@ -456,7 +456,7 @@ const HelpDrawer = () => {
                   transition: 'all 0.2s',
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.backgroundColor = 'var(--hover-bg, #f5f5f5)';
+                  e.currentTarget.backgroundColor = 'var(--hover-bg, #f5f5f5a3)';
                   e.currentTarget.borderColor = 'var(--border-hover, #ccc)';
                 }}
                 onMouseOut={(e) => {
@@ -483,7 +483,7 @@ const HelpDrawer = () => {
                   transition: 'all 0.2s',
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.backgroundColor = 'var(--hover-bg, #f5f5f5)';
+                  e.currentTarget.backgroundColor = 'var(--hover-bg, #f5f5f5a3)';
                   e.currentTarget.borderColor = 'var(--border-hover, #ccc)';
                 }}
                 onMouseOut={(e) => {

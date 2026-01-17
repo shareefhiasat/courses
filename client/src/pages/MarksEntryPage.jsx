@@ -924,9 +924,7 @@ const MarksEntryPage = () => {
       {/* Students Grid */}
       <Card>
         <CardBody>
-          {loading ? (
-            <Loading message="Loading student marks..." fancyVariant="dots" />
-          ) : classFilter !== 'all' && selectedSubject ? (
+          {classFilter !== 'all' && selectedSubject ? (
             studentsWithMarks.length > 0 ? (
                 <AdvancedDataGrid
                     rows={studentsWithMarks}
@@ -937,6 +935,8 @@ const MarksEntryPage = () => {
                     showExportButton
                     exportFileName="marks"
                     exportLabel="Export"
+                    loadingOverlayMessage={loading ? "Loading student marks..." : undefined}
+                    fancyVariant="dots"
                     // Add row selection and other props
                     checkboxSelection={false}
                     disableSelectionOnClick

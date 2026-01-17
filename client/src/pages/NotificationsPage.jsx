@@ -13,10 +13,11 @@ import {
 import { useLang } from '../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Trash2, Eye, EyeOff, MessageCircle, Mail, Clock, UserCheck } from 'lucide-react';
+import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Trash2, Eye, EyeOff, MessageCircle, Mail, Clock, UserCheck, Volume2, Vibrate, TestTube } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { Button, Input, Select, Badge, Container } from '../components/ui';
 import ToggleSwitch from '../components/ToggleSwitch';
+import useNotifications from '../hooks/useNotifications';
 import { PENALTY_TYPES, ABSENCE_TYPES } from '../firebase/penalties';
 import { ATTENDANCE_STATUS } from '../firebase/attendance';
 import { getPrograms, getSubjects } from '../firebase/programs';
@@ -29,7 +30,17 @@ const NotificationsPage = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
+  const { 
+    settings: notificationSettings, 
+    updateSetting,
+    triggerNotification,
+    checkSupport,
+    isMobile
+  } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // all, unread, read, archived
   const [filterCategory, setFilterCategory] = useState('all'); // all, activity, message, announcement, grade, etc.
@@ -51,21 +62,18 @@ const NotificationsPage = () => {
     if (!user) return;
     const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
       setNotifications(newNotifications);
+      setInitialLoading(false); // Initial data loaded
     }, true);
     return unsubscribe;
   }, [user]);
 
+  // Sync notification settings with useNotifications hook
   useEffect(() => {
-    if (!user) return;
-    const loadPref = async () => {
-      try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        const data = snap.exists() ? snap.data() : {};
-        setSoundEnabled(data.notificationSoundEnabled !== false);
-      } catch {}
-    };
-    loadPref();
-  }, [user]);
+    setSoundEnabled(notificationSettings.soundEnabled);
+    setVibrationEnabled(notificationSettings.vibrationEnabled);
+    setBrowserNotificationsEnabled(notificationSettings.browserNotificationsEnabled);
+  }, [notificationSettings]);
+
 
   // Load programs, subjects, classes for filters
   useEffect(() => {
@@ -278,6 +286,16 @@ const NotificationsPage = () => {
     }
   };
 
+  const handleTestBrowserNotification = async () => {
+    if (checkSupport().notification) {
+      try {
+        await triggerNotification('default', 'Test Notification', 'This is a test browser notification!');
+      } catch (error) {
+        console.error('Failed to send test notification:', error);
+      }
+    }
+  };
+
   const gotoFromNotification = (n) => {
     if (!n.read) handleMarkAsRead(n.id);
     
@@ -335,6 +353,18 @@ const NotificationsPage = () => {
 
   if (!user) return null;
 
+  // Full-page loading
+  if (initialLoading) {
+    return (
+      <Loading 
+        variant="overlay" 
+        fullscreen 
+        message="Loading notifications..." 
+        fancyVariant="dots" 
+      />
+    );
+  }
+
   return (
     <Container maxWidth="xl" style={{ padding: '2rem', minHeight: '100vh', background: isDark ? '#0f0f1e' : '#f9fafb' }}>
       {/* Header */}
@@ -350,16 +380,49 @@ const NotificationsPage = () => {
             Notifications
           </h1>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <ToggleSwitch
-              label="Sound"
-              checked={soundEnabled}
-              onChange={async (checked) => {
-                setSoundEnabled(checked);
-                try {
-                  if (user) await setDoc(doc(db, 'users', user.uid), { notificationSoundEnabled: checked }, { merge: true });
-                } catch {}
-              }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Volume2 size={18} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+              <ToggleSwitch
+                label=""
+                checked={soundEnabled}
+                onChange={async (checked) => {
+                  await updateSetting('soundEnabled', checked);
+                }}
+              />
+            </div>
+            {checkSupport().vibration && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Vibrate size={18} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                <ToggleSwitch
+                  label=""
+                  checked={vibrationEnabled}
+                  onChange={async (checked) => {
+                    await updateSetting('vibrationEnabled', checked);
+                  }}
+                />
+              </div>
+            )}
+            {checkSupport().notification && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Bell size={18} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                <ToggleSwitch
+                  label=""
+                  checked={browserNotificationsEnabled}
+                  onChange={async (checked) => {
+                    await updateSetting('browserNotificationsEnabled', checked);
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleTestBrowserNotification}
+                  title={t('test_browser_notification') || 'Test Browser Notification'}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                >
+                  <TestTube size={16} />
+                </Button>
+              </div>
+            )}
             {unreadCount > 0 && (
               <Button
                 size="sm"

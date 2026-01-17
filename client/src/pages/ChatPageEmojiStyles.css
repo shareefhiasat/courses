@@ -1,0 +1,192 @@
+/* Emoji Picker React Styles */
+.EmojiPickerReact {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  background: #ffffff !important;
+}
+
+.EmojiPickerReact .epr-header {
+  border-bottom: 1px solid #e0e0e0 !important;
+  padding: 1px 3px !important;
+  min-height: 16px !important;
+}
+
+.EmojiPickerReact .epr-search {
+  border-radius: 3px !important;
+  border: 1px solid #e0e0e0 !important;
+  padding: 1px 4px !important;
+  font-size: 10px !important;
+  outline: none !important;
+  transition: border-color 0.2s ease !important;
+  margin: 1px !important;
+  height: 16px !important;
+}
+
+.EmojiPickerReact .epr-search:focus {
+  border-color: var(--color-primary, #810c29) !important;
+}
+
+.EmojiPickerReact .epr-category-nav {
+  border-bottom: 1px solid #e9ecef !important;
+  background: #f8f9fa !important;
+}
+
+.EmojiPickerReact .epr-category-btn {
+  border-radius: 3px !important;
+  transition: all 0.15s ease !important;
+  font-weight: 500 !important;
+  color: #495057 !important;
+  padding: 1px !important;
+  margin: 0px !important;
+  font-size: 9px !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.EmojiPickerReact .epr-category-btn:hover {
+  background: rgba(0,0,0,0.05) !important;
+  transform: scale(1.05) !important;
+}
+
+.EmojiPickerReact .epr-category-btn.epr-active {
+  background: var(--color-primary, #810c29) !important;
+  color: white !important;
+}
+
+.EmojiPickerReact .epr-emoji-category-label {
+  background: #f8f9fa !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  padding: 1px 3px !important;
+  margin: 0 !important;
+  font-size: 9px !important;
+}
+
+.EmojiPickerReact .epr-emoji {
+  border-radius: 3px !important;
+  transition: all 0.15s ease !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  margin: 0px !important;
+  padding: 1px !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.EmojiPickerReact .epr-emoji:hover {
+  background: rgba(0,0,0,0.06) !important;
+  transform: scale(1.1) !important;
+}
+
+.EmojiPickerReact .epr-emoji.epr-active {
+  background: var(--color-primary, #810c29) !important;
+}
+
+.EmojiPickerReact .epr-body {
+  scrollbar-width: thin !important;
+  scrollbar-color: #e9ecef transparent !important;
+}
+
+.EmojiPickerReact .epr-body::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.EmojiPickerReact .epr-body::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.EmojiPickerReact .epr-body::-webkit-scrollbar-thumb {
+  background-color: #e9ecef !important;
+  border-radius: 3px !important;
+}
+
+.EmojiPickerReact .epr-preview {
+  border-top: 1px solid #e9ecef !important;
+  background: #f8f9fa !important;
+  padding: 4px !important;
+}
+
+/* Dark theme support */
+.EmojiPickerReact[data-theme="dark"] {
+  background: #2d3748 !important;
+  border-color: #4a5568 !important;
+}
+
+.EmojiPickerReact[data-theme="dark"] .epr-header {
+  border-bottom-color: #4a5568 !important;
+}
+
+.EmojiPickerReact[data-theme="dark"] .epr-search {
+  background: #4a5568 !important;
+  border-color: #718096 !important;
+  color: #e2e8f0 !important;
+}
+
+.EmojiPickerReact[data-theme="dark"] .epr-category-nav {
+  border-bottom-color: #4a5568 !important;
+  background: #2d3748 !important;
+}
+
+.EmojiPickerReact[data-theme="dark"] .epr-category-btn {
+  color: #e2e8f0 !important;
+}
+
+.EmojiPickerReact[data-theme="dark"] .epr-emoji-category-label {
+  background: #4a5568 !important;
+  border-bottom-color: #718096 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Voice Recording Animation */
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+}
+
+@keyframes wave {
+  0%, 100% {
+    height: 4px;
+    opacity: 0.3;
+  }
+  50% {
+    height: 20px;
+    opacity: 1;
+  }
+}
+
+.recording-blink {
+  animation: recordingBlink 1.5s infinite ease-in-out;
+}
+
+@keyframes recordingBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

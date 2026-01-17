@@ -4,7 +4,7 @@ import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { getPrograms, getSubjects } from '../firebase/programs';
-import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast } from '../components/ui';
+import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '../components/ui';
 import { Calendar, Clock, Plus, Trash2, Save, AlertCircle } from 'lucide-react';
 import styles from './ClassSchedulePage.module.css';
 
@@ -32,6 +32,7 @@ const ClassSchedulePage = () => {
   const [newHoliday, setNewHoliday] = useState('');
   const [newAbsent, setNewAbsent] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [classSearchTerm, setClassSearchTerm] = useState('');
 
   const dayOptions = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -138,6 +139,7 @@ const ClassSchedulePage = () => {
   }, [user, isAdmin, isInstructor]);
 
   const loadClasses = async () => {
+    setLoading(true);
     try {
       const [classesSnap, programsRes, subjectsRes] = await Promise.all([
         getDocs(collection(db, 'classes')),
@@ -170,6 +172,8 @@ const ClassSchedulePage = () => {
       // permission-denied should not spam console
       if (e?.code === 'permission-denied') return;
       console.error('[Schedule] Error loading classes:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -258,6 +262,18 @@ const ClassSchedulePage = () => {
         <h2>Access Denied</h2>
         <p>This page is only accessible to instructors and admins.</p>
       </div>
+    );
+  }
+
+  // Full-page loading
+  if (loading) {
+    return (
+      <Loading 
+        variant="overlay" 
+        fullscreen 
+        message="Loading class schedules..." 
+        fancyVariant="dots" 
+      />
     );
   }
 

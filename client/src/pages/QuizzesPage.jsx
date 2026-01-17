@@ -1031,6 +1031,10 @@ export default function QuizzesPage() {
   };
 
   // LIST VIEW
+  if (authLoading) {
+    return <Loading variant="overlay" fullscreen message="Loading..." fancyVariant="dots" />;
+  }
+
   if (viewMode === 'list') {
     const totalAttempts = quizzes.reduce((sum, quiz) => sum + (quiz.totalAttempts || 0), 0);
     const averageScore = quizzes.length > 0
@@ -1043,6 +1047,7 @@ export default function QuizzesPage() {
           variant="overlay"
           fullscreen
           message={t('loading_quizzes') || 'Loading quizzes...'}
+          fancyVariant="dots"
         />
       );
     }

@@ -56,11 +56,7 @@
   box-shadow: 0 2px 4px rgba(128, 0, 32, 0.2);
 }
 
-.primary:hover:not(:disabled) {
-  background: var(--color-primary-hover, #a02040);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb, 128, 0, 32), 0.4);
-}
+/* Hover effects removed */
 
 .primary:active:not(:disabled) {
   transform: translateY(0);
@@ -73,11 +69,7 @@
   box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
 }
 
-.secondary:hover:not(:disabled) {
-  background: var(--color-secondary-hover, #5a6268);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--color-secondary-rgb, 108, 117, 125), 0.4);
-}
+/* Hover effects removed */
 
 .outline {
   background: transparent;
@@ -86,34 +78,19 @@
   border-radius: 4px;
 }
 
-.outline:hover:not(:disabled) {
-  background: var(--color-primary, #800020);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb, 128, 0, 32), 0.4);
-}
+/* Hover effects removed */
 
 .ghost {
   background: transparent;
   color: var(--color-primary, #800020);
 }
 
-.ghost:hover:not(:disabled) {
-  background: var(--color-primary-light, rgba(128, 0, 32, 0.15));
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(var(--color-primary-rgb, 128, 0, 32), 0.3);
-}
+/* Hover effects removed */
 
 /* Ghost variant with custom colors */
-.ghost.editHover:hover:not(:disabled) {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-}
+/* Hover effects removed */
 
-.ghost.deleteHover:hover:not(:disabled) {
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
-}
+/* Hover effects removed */
 
 .danger {
   background: var(--color-danger, #dc3545);
@@ -121,11 +98,7 @@
   box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
 }
 
-.danger:hover:not(:disabled) {
-  background: #c82333;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
-}
+/* Hover effects removed */
 
 /* Success (green) variant */
 .success {
@@ -134,11 +107,7 @@
   box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
 }
 
-.success:hover:not(:disabled) {
-  background: #15803d;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.35);
-}
+/* Hover effects removed */
 
 /* Full Width */
 .fullWidth {
@@ -187,15 +156,11 @@
     color: var(--color-primary, #a02040);
   }
 
-  .outline:hover:not(:disabled) {
-    background: var(--color-primary, #a02040);
-  }
+  /* Hover effects removed */
 
   .ghost {
     color: var(--color-primary, #a02040);
   }
 
-  .ghost:hover:not(:disabled) {
-    background: var(--color-primary-light, rgba(160, 32, 64, 0.1));
-  }
+  /* Hover effects removed */
 }

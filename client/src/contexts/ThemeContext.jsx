@@ -22,7 +22,7 @@ export const ThemeProvider = ({ children }) => {
     root.setAttribute('data-theme', theme);
     // Body background for immediate effect
     if (theme === 'light') {
-      document.body.style.background = '#f7f7fb';
+      document.body.style.background = '#ffffff';
       document.body.style.color = '#111';
     } else {
       document.body.style.background = '#0b1220';

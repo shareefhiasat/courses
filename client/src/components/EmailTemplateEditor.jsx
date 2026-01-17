@@ -5,6 +5,8 @@ import VariableHelper from './VariableHelper';
 import Modal from './ui/Modal/Modal';
 import { Eye, Info } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
+import { collection, doc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   const toast = useToast();
@@ -122,9 +124,6 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
 
     setLoading(true);
     try {
-      const { collection, doc, addDoc, updateDoc, Timestamp } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
-
       const templateData = {
         ...formData,
         variables: extractVariables(formData.html),
@@ -449,7 +448,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
         <div 
           style={{ 
             padding: '1rem',
-            background: '#f5f5f5',
+            background: '#f5f5f5a3',
             borderRadius: '8px'
           }}
         >

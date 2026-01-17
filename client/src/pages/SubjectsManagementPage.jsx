@@ -5,7 +5,7 @@ import { Navigate } from 'react-router-dom';
 import { getSubjects, createSubject, updateSubject, deleteSubject, getPrograms } from '../firebase/programs';
 import { getUsers, getClasses } from '../firebase/firestore';
 import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid } from '../components/ui';
-import { Edit, Trash } from 'lucide-react';
+import { Edit, Trash, Filter, BookOpen, FileText, Users } from 'lucide-react';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import styles from './SubjectsManagementPage.module.css';
 
@@ -271,12 +271,13 @@ const SubjectsManagementPage = () => {
           <Select
             value={formData.programId}
             onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
-            placeholder="Program * (Select Program)"
+            placeholder="All Programs"
             options={[
-              { value: '', label: 'Select Program' },
+              { value: '', label: 'All Programs', icon: <Filter size={16} color="#374151" /> },
               ...programs.map(p => ({
                 value: p.docId,
-                label: lang === 'ar' ? p.name_ar : p.name_en
+                label: lang === 'ar' ? p.name_ar : p.name_en,
+                icon: <BookOpen size={16} color="#374151" />
               }))
             ]}
             required
@@ -317,22 +318,22 @@ const SubjectsManagementPage = () => {
           <Select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            placeholder="Subject Type * (Select Type)"
+            placeholder="All Types"
             options={[
-              { value: 'lecture', label: 'Lecture' },
-              { value: 'lab', label: 'Lab' },
-              { value: 'mix', label: 'Mix (Lecture + Lab)' }
+              { value: 'lecture', label: 'Lecture', icon: <FileText size={16} color="#374151" /> },
+              { value: 'lab', label: 'Lab', icon: <Users size={16} color="#374151" /> },
+              { value: 'mix', label: 'Mix (Lecture + Lab)', icon: <FileText size={16} color="#374151" /> }
             ]}
             required
           />
           <Select
             value={formData.requirementType}
             onChange={(e) => setFormData({ ...formData, requirementType: e.target.value })}
-            placeholder="Requirement Type *"
+            placeholder="All Requirements"
             options={[
-              { value: 'general_mandatory', label: 'General Mandatory' },
-              { value: 'major_mandatory', label: 'Major Mandatory' },
-              { value: 'major_optional', label: 'Major Optional' }
+              { value: 'general_mandatory', label: 'General Mandatory', icon: <Filter size={16} color="#374151" /> },
+              { value: 'major_mandatory', label: 'Major Mandatory', icon: <BookOpen size={16} color="#374151" /> },
+              { value: 'major_optional', label: 'Major Optional', icon: <FileText size={16} color="#374151" /> }
             ]}
             required
           />
@@ -369,22 +370,20 @@ const SubjectsManagementPage = () => {
         <Select
           value={filterProgram}
           onChange={(e) => setFilterProgram(e.target.value)}
-          placeholder="Filter by Program"
+          placeholder="All Programs"
           options={[
-            { value: 'all', label: 'All Programs' },
+            { value: 'all', label: 'All Programs', icon: <Filter size={16} color="#374151" /> },
             ...programs.map(p => ({
               value: p.docId,
-              label: lang === 'ar' ? p.name_ar : p.name_en
+              label: lang === 'ar' ? p.name_ar : p.name_en,
+              icon: <BookOpen size={16} color="#374151" />
             }))
           ]}
         />
       </div>
 
       <div className={styles.content}>
-        {loading ? (
-          <Loading message="Loading subjects..." fancyVariant="dots" />
-        ) : (
-          <AdvancedDataGrid
+        <AdvancedDataGrid
             rows={filteredSubjects}
             getRowId={(row) => row.docId || row.id}
             columns={[
@@ -461,8 +460,11 @@ const SubjectsManagementPage = () => {
             pageSizeOptions={[10, 25, 50, 100]}
             checkboxSelection
             exportFileName="subjects"
-          />
-        )}
+            showExportButton
+            exportLabel="Export"
+            loadingOverlayMessage={loading ? "Loading subjects..." : undefined}
+            fancyVariant="dots"
+        />
       </div>
     </div>
   );

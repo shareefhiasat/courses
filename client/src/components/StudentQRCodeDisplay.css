@@ -1,0 +1,690 @@
+/* Student QR Code Display Styles */
+.qr-code-display {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.qr-code-display.compact {
+  padding: 1rem;
+}
+
+.qr-code-display.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: var(--muted);
+}
+
+.loading-spinner .spin {
+  animation: spin 1s linear infinite;
+}
+
+.qr-code-display.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+  color: var(--error);
+  max-width: 400px;
+}
+
+.error-message h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.error-message p {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Header */
+.qr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.qr-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.qr-title h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.qr-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Reference ID Display */
+.reference-id-display {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.reference-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reference-info label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.reference-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reference-value code {
+  background: var(--brand);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.generated-info,
+.print-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+/* QR Code Container */
+.qr-code-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.qr-image {
+  position: relative;
+  display: inline-block;
+}
+
+.qr-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.dark .qr-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.qr-overlay .spin {
+  animation: spin 1s linear infinite;
+  color: var(--brand);
+}
+
+.qr-info {
+  text-align: center;
+  max-width: 300px;
+}
+
+.qr-description {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.device-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* Action Buttons */
+.qr-actions-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.action-buttons button {
+  flex: 1;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.regenerate-button {
+  border-color: var(--warning) !important;
+  color: var(--warning) !important;
+}
+
+.regenerate-button:hover {
+  background: var(--warning) !important;
+  color: white !important;
+}
+
+/* Settings Panel */
+.settings-panel {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.settings-panel h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.setting-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.setting-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.setting-select {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.setting-select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.1);
+}
+
+.color-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.color-input {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.color-text {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.checkbox-input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand);
+}
+
+/* Status Messages */
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  animation: slideIn 0.3s ease;
+}
+
+.status-message.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.status-message.success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+
+.close-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  margin-left: auto;
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Compact Mode */
+.qr-code-display.compact .qr-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+}
+
+.qr-code-display.compact .qr-title h3 {
+  font-size: 1.1rem;
+}
+
+.qr-code-display.compact .reference-id-display {
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.qr-code-display.compact .qr-code-container {
+  margin-bottom: 1rem;
+}
+
+.qr-code-display.compact .qr-description {
+  font-size: 0.85rem;
+}
+
+.qr-code-display.compact .action-buttons {
+  gap: 0.5rem;
+}
+
+.qr-code-display.compact .action-buttons button {
+  min-width: 100px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .qr-code-display {
+    padding: 1rem;
+  }
+  
+  .qr-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .qr-actions {
+    justify-content: center;
+  }
+  
+  .reference-value {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .reference-value code {
+    text-align: center;
+  }
+  
+  .qr-code-container {
+    margin-bottom: 1rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .action-buttons button {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .color-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .color-input {
+    width: 100%;
+    height: 50px;
+  }
+  
+  .status-message {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  .close-button {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .qr-code-display.compact {
+    padding: 0.75rem;
+  }
+  
+  .qr-title h3 {
+    font-size: 1rem;
+  }
+  
+  .reference-info label {
+    font-size: 0.8rem;
+  }
+  
+  .reference-value code {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .qr-description {
+    font-size: 0.8rem;
+  }
+  
+  .action-buttons button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .settings-panel {
+    padding: 1rem;
+  }
+  
+  .setting-group label {
+    font-size: 0.85rem;
+  }
+  
+  .setting-select,
+  .color-text {
+    font-size: 0.85rem;
+  }
+}
+
+/* RTL Support */
+.rtl .qr-header {
+  flex-direction: row-reverse;
+}
+
+.rtl .reference-value {
+  flex-direction: row-reverse;
+}
+
+.rtl .qr-actions {
+  flex-direction: row-reverse;
+}
+
+.rtl .action-buttons {
+  flex-direction: row-reverse;
+}
+
+.rtl .color-input-group {
+  flex-direction: row-reverse;
+}
+
+.rtl .checkbox-label {
+  flex-direction: row-reverse;
+}
+
+.rtl .status-message {
+  flex-direction: row-reverse;
+}
+
+.rtl .close-button {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Dark Mode Specific */
+.dark .qr-code-display {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .reference-id-display {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .reference-value code {
+  background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 80%, black));
+}
+
+.dark .qr-image img {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .settings-panel {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .setting-select,
+.dark .color-text {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.dark .color-input {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .qr-code-display {
+    border-width: 2px;
+  }
+  
+  .reference-id-display {
+    border-width: 2px;
+  }
+  
+  .qr-image img {
+    border-width: 3px;
+  }
+  
+  .reference-value code {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .qr-code-display,
+  .qr-header,
+  .qr-code-container,
+  .action-buttons button,
+  .status-message {
+    transition: none;
+    animation: none;
+  }
+  
+  .loading-spinner .spin,
+  .qr-overlay .spin {
+    animation: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .qr-code-display {
+    background: white;
+    color: black;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+  }
+  
+  .qr-actions,
+  .qr-actions-panel,
+  .settings-panel,
+  .status-message {
+    display: none;
+  }
+  
+  .qr-header {
+    border-bottom-color: #ccc;
+  }
+  
+  .reference-id-display {
+    border-color: #ccc;
+  }
+  
+  .qr-image img {
+    border-color: #ccc;
+  }
+  
+  .reference-value code {
+    background: black;
+    color: white;
+  }
+}
+
+/* Focus Styles */
+.qr-actions button:focus,
+.action-buttons button:focus,
+.setting-select:focus,
+.color-text:focus,
+.checkbox-input:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Hover Styles */
+.qr-actions button:hover,
+.action-buttons button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark .qr-actions button:hover,
+.dark .action-buttons button:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading States */
+.qr-actions button:disabled,
+.action-buttons button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.qr-actions button:disabled:hover,
+.action-buttons button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}

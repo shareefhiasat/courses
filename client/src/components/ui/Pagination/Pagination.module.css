@@ -54,7 +54,7 @@
   .button {
     background: var(--panel, #1a1a1a);
     border-color: var(--border, #333);
-    color: var(--text, #f5f5f5);
+    color: var(--text, #f5f5f5a3);
   }
   
   .button.active {
