@@ -5,7 +5,7 @@ import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '../components/ui';
-import { Calendar, Clock, Plus, Trash2, Save, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Plus, Trash2, Save, AlertCircle, Filter, GraduationCap, BookOpen, Users } from 'lucide-react';
 import styles from './ClassSchedulePage.module.css';
 
 const ClassSchedulePage = () => {
@@ -289,10 +289,11 @@ const ClassSchedulePage = () => {
               value={programFilter}
               onChange={(e) => setProgramFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Programs' },
+                { value: 'all', label: 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
-                  label: p.name_en || p.name_ar || p.code || p.docId
+                  label: p.name_en || p.name_ar || p.code || p.docId,
+                  icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" />
                 }))
               ]}
               fullWidth
@@ -303,12 +304,13 @@ const ClassSchedulePage = () => {
               value={subjectFilter}
               onChange={(e) => setSubjectFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Subjects' },
+                { value: 'all', label: 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...subjects
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
                     value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
+                    icon: <BookOpen size={16} color="var(--text-secondary, #374151)" />
                   }))
               ]}
               fullWidth
@@ -319,7 +321,7 @@ const ClassSchedulePage = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Classes' },
+                { value: 'all', label: 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...classes
                   .filter(c => {
                     if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
@@ -331,7 +333,8 @@ const ClassSchedulePage = () => {
                   })
                   .map(c => ({
                     value: c.id || c.docId,
-                    label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`
+                    label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`,
+                    icon: <Users size={16} color="var(--text-secondary, #374151)" />
                   }))
               ]}
               fullWidth

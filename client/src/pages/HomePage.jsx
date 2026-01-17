@@ -531,7 +531,7 @@ const HomePage = () => {
   const isMinified = filterViewMode === 'minified';
 
   return (
-    <div className="home-page" style={{ padding: '1rem 0', position: 'relative' }}>
+    <div className="home-page" data-theme={theme} style={{ padding: '1rem 0', position: 'relative' }}>
       {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />}
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Mode Switcher - Using Tabs component */}

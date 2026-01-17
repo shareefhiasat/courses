@@ -7,6 +7,11 @@
   overflow: hidden;
 }
 
+[data-theme="dark"] .dataGrid {
+  background: #1f2937;
+  border-color: #374151;
+}
+
 /* Toolbar */
 .toolbar {
   display: flex;
@@ -45,6 +50,12 @@
   border-radius: var(--radius-md, 8px);
   background: var(--input-bg, white);
   color: var(--text, #212529);
+}
+
+[data-theme="dark"] .searchInput {
+  background: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
 }
 
 [dir="rtl"] .searchInput {
@@ -94,6 +105,12 @@
   white-space: nowrap;
 }
 
+[data-theme="dark"] .th {
+  background: #374151;
+  color: #f3f4f6;
+  border-color: #4b5563;
+}
+
 .sortable {
   cursor: pointer;
   user-select: none;
@@ -138,11 +155,20 @@
   background: var(--panel-hover, #f8f9fa);
 }
 
+[data-theme="dark"] .tr:hover {
+  background: #374151;
+}
+
 .td {
   padding: 0.75rem 1rem;
   font-size: var(--font-size-sm, 0.875rem);
   color: var(--text-secondary, #495057);
   border-bottom: 1px solid var(--border-light, #f0f0f0);
+}
+
+[data-theme="dark"] .td {
+  color: #d1d5db;
+  border-color: #374151;
 }
 
 /* Checkbox Cell */
@@ -183,6 +209,12 @@
   transition: all 0.2s ease;
 }
 
+[data-theme="dark"] .paginationButton {
+  background: #374151;
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
 .paginationButton:hover:not(:disabled) {
   background: var(--panel-hover, #f8f9fa);
   border-color: var(--color-primary, #800020);
@@ -196,6 +228,10 @@
 .paginationInfo {
   font-size: var(--font-size-sm, 0.875rem);
   color: var(--text-muted, #666);
+}
+
+[data-theme="dark"] .paginationInfo {
+  color: #9ca3af;
 }
 
 /* Dark Mode */

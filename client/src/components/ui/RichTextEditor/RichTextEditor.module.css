@@ -18,6 +18,11 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+[data-theme="dark"] .editorContainer {
+  background: #1f2937;
+  border-color: #374151;
+}
+
 .wrapper:focus-within .editorContainer {
   border-color: #8b5cf6;
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
@@ -29,12 +34,21 @@
   background: #f8fafc;
 }
 
+[data-theme="dark"] .editor :global(.ql-toolbar) {
+  background: #374151;
+  border-color: #4b5563;
+}
+
 .editor :global(.ql-container) {
   border: none;
   min-height: inherit;
   font-size: 0.95rem;
   font-family: 'Inter', 'Segoe UI', sans-serif;
   color: #1f2937;
+}
+
+[data-theme="dark"] .editor :global(.ql-container) {
+  color: #f3f4f6;
 }
 
 .editor :global(.ql-editor) {

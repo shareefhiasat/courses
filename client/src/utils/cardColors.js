@@ -96,7 +96,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     // Academic
     "enrolled-classes": {
       icon: BookOpen,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("enrolled_classes") || "Enrolled Classes",
@@ -104,7 +104,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     programs: {
       icon: GraduationCap,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("programs") || "Programs",
@@ -112,7 +112,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     subjects: {
       icon: Book,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("subjects") || "Subjects",
@@ -120,7 +120,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     classes: {
       icon: School,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("classes") || "Classes",
@@ -128,7 +128,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     enrollments: {
       icon: UserCheck,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("enrollments") || "Enrollments",
@@ -136,7 +136,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     users: {
       icon: Users,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("users") || "Users",
@@ -144,7 +144,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     submissions: {
       icon: FileCheck,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("submissions") || "Submissions",
@@ -178,7 +178,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     // Performance & Achievement
     "average-grade": {
       icon: Award,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("average_grade") || "Average Grade",
@@ -186,7 +186,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     "average-score": {
       icon: BarChart3,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("average_score") || "Average Score",
@@ -194,7 +194,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     "total-results": {
       icon: FileBarChart2,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("total_results") || "Total Results",
@@ -226,7 +226,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     award: {
       icon: Award,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("award") || "Award",
@@ -234,7 +234,7 @@ export const getCardConfig = (type, t = (key) => key) => {
     },
     trophy: {
       icon: Trophy,
-      bg: "rgba(59, 130, 246, 0.1)",
+      bg: "rgba(128, 0, 32, 0.1)",
       iconColor: "#800020",
       shape: "rounded",
       label: t("trophy") || "Trophy",

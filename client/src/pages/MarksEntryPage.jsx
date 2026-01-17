@@ -8,7 +8,7 @@ import { getUsers, getEnrollments, getClasses } from '../firebase/firestore';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { MARK_TYPES } from '../constants/activityTypes';
 import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '../components/ui';
-import { FileSpreadsheet, Save, Edit, Award, Eye, AlertCircle, Award as ParticipationIcon, Calendar, Info } from 'lucide-react';
+import { FileSpreadsheet, Save, Edit, Award, Eye, AlertCircle, Award as ParticipationIcon, Calendar, Info, Filter, GraduationCap, BookOpen, Users } from 'lucide-react';
 import CollapsibleSideWindow from '../components/CollapsibleSideWindow';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import InstructorParticipationPage from './InstructorParticipationPage';
@@ -828,10 +828,11 @@ const MarksEntryPage = () => {
                 setClassFilter('all');
               }}
               options={[
-                { value: 'all', label: 'All Programs' },
+                { value: 'all', label: 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
-                  label: p.name_en || p.name_ar || p.code || p.docId
+                  label: p.name_en || p.name_ar || p.code || p.docId,
+                  icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" />
                 }))
               ]}
               fullWidth
@@ -845,12 +846,13 @@ const MarksEntryPage = () => {
                 setClassFilter('all');
               }}
               options={[
-                { value: 'all', label: 'All Subjects' },
+                { value: 'all', label: 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...subjects
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
                     value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
+                    icon: <BookOpen size={16} color="var(--text-secondary, #374151)" />
                   }))
               ]}
               fullWidth
@@ -861,10 +863,11 @@ const MarksEntryPage = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(getSelectValue(e))}
               options={[
-                { value: 'all', label: 'All Classes' },
+                { value: 'all', label: 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...filteredClasses.map(c => ({
                   value: c.id || c.docId,
-                  label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}${c.year ? ` ${c.year}` : ''}`
+                  label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}${c.year ? ` ${c.year}` : ''}`,
+                  icon: <Users size={16} color="var(--text-secondary, #374151)" />
                 }))
               ]}
               fullWidth

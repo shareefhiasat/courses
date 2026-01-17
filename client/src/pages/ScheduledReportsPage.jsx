@@ -15,6 +15,7 @@ import ToggleSwitch from '../components/ToggleSwitch';
 import RibbonTabs from '../components/RibbonTabs';
 import { Plus, Edit, Trash2, Calendar, Mail, FileText, X, FileDown, Search, BarChart3, Users } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
+import styles from './ScheduledReportsPage.module.css';
 
 const ScheduledReportsPage = () => {
   const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
@@ -279,9 +280,9 @@ const ScheduledReportsPage = () => {
   }
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem' }}>
+    <div className={styles.page} style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button size="sm" variant="primary" icon={<Plus size={16} />} onClick={() => {
             resetForm();

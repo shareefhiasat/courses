@@ -269,8 +269,8 @@ const Navbar = () => {
                   title={t('information') || 'Information'}
                   aria-label={t('information') || 'Information'}
                   style={{
-                    border: '1px solid var(--border)',
-                    background: 'var(--panel)',
+                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
                     width: '32px',
                     height: '32px',
@@ -278,7 +278,7 @@ const Navbar = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    color: 'var(--text-primary)'
+                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
                   <Info size={18} />
@@ -289,8 +289,8 @@ const Navbar = () => {
                   title={theme==='light'?'Dark':'Light'}
                   onClick={toggleTheme}
                   style={{
-                    border: '1px solid var(--border)',
-                    background: 'var(--panel)',
+                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
                     width: '32px',
                     height: '32px',
@@ -298,7 +298,7 @@ const Navbar = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    color: 'var(--text-primary)'
+                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
                   {theme==='light'?<Moon size={16} />:<Sun size={16} />}

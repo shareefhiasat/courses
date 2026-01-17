@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
  // import Joyride from 'react-joyride';
 import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LangContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import {
@@ -51,7 +53,6 @@ import './DashboardPage.css';
 import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { formatQatarDate, formatQatarDateOnly } from '../utils/timezone';
-import { useLang } from '../contexts/LangContext';
 // DateTimePicker and ToggleSwitch replaced with UI library DatePicker and checkbox
 // import DateTimePicker from '../components/DateTimePicker';
 // import ToggleSwitch from '../components/ToggleSwitch';
@@ -60,6 +61,7 @@ import ToggleSwitch from '../components/ToggleSwitch';
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();
   const { lang, setLang, t } = useLang();
+  const { theme } = useTheme();
   // Joyride tour state
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
@@ -383,33 +385,25 @@ const DashboardPage = () => {
     const steps = [
       {
         target: '[data-tour="mode-switcher"]',
-        content: lang === 'ar'
-          ? 'استخدم هذه التبويبات للتنقل بين أقسام لوحة القيادة'
-          : 'Use these tabs to switch between dashboard sections',
+        content: t('tour.mode_switcher_content'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="stats"]',
-        content: lang === 'ar'
-          ? 'هذه الإحصاءات تعرض عداد العناصر عبر اللوحة'
-          : 'These summary cards show counts for activities, enrollments, and more',
+        content: t('tour.stats_content'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="filters"]',
-        content: lang === 'ar'
-          ? 'استخدم هذه المرشحات لتصفية النتائج'
-          : 'Use these filters to refine the visible items',
+        content: t('tour.filters_content'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="cards-grid"]',
-        content: lang === 'ar'
-          ? 'هذه هي البطاقات التي تُظهر العناصر. اضغط لإطلاق النشاط أو إضافة للمفضلة'
-          : 'These cards display items. Start an activity, complete, or bookmark',
+        content: t('tour.cards_grid_content'),
         disableBeacon: true,
         placement: 'top'
       }
@@ -718,6 +712,7 @@ const DashboardPage = () => {
   const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('all');
   const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
   const [userForm, setUserForm] = useState({ email: '', displayName: '', role: 'student' });
+  const [activeUserFormTab, setActiveUserFormTab] = useState('basic');
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [editingClass, setEditingClass] = useState(null);
@@ -774,7 +769,7 @@ const DashboardPage = () => {
   // Activity Form - Program Options
   const activityProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
@@ -791,7 +786,7 @@ const DashboardPage = () => {
   // Activity Form - Subject Options
   const activitySubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -814,7 +809,7 @@ const DashboardPage = () => {
   // Activity Form - Class Options
   const activityClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validClasses = classes
       .filter(cls => {
@@ -836,7 +831,7 @@ const DashboardPage = () => {
   // Enrollment Form - Program Options
   const enrollmentProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validPrograms = programs.map(p => {
       const value = ensureString(p.docId || p.id);
@@ -851,7 +846,7 @@ const DashboardPage = () => {
   // Enrollment Form - Subject Options
   const enrollmentSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -873,7 +868,7 @@ const DashboardPage = () => {
   // Enrollment Form - Class Options
   const enrollmentClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validClasses = classes
       .filter(c => {
@@ -974,7 +969,7 @@ const DashboardPage = () => {
   // Class Form - Subject Options
   const classFormSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validSubjects = subjects.map(subject => {
       const value = ensureString(subject.docId || subject.id);
@@ -1020,33 +1015,25 @@ const DashboardPage = () => {
     const steps = [
       {
         target: '[data-tour="mode-switcher"]',
-        content: lang === 'ar'
-          ? 'استخدم هذه التبويبات للتبديل بين اللوحات' 
-          : 'Use these tabs to switch between dashboard sections',
+        content: t('tour.mode_switcher_content'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="stats"]',
-        content: lang === 'ar'
-          ? 'هذه الإحصاءات تعرض عدد العناصر المختلفة في لوحة المعلومات'
-          : 'These stats show counts for items in the dashboard',
+        content: t('tour.stats_content_alt'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="filters"]',
-        content: lang === 'ar'
-          ? 'استخدم هذه المرشحات لتصفية العناصر حسب النوع والمستوى والحالة'
-          : 'Use these filters to refine the visible items by type, level, and status',
+        content: t('tour.filters_content_alt'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="cards-grid"]',
-        content: lang === 'ar'
-          ? 'هذه هي البطاقات التي تعرض العناصر. يمكنك التفاعل معها'
-          : 'These cards display the items; you can interact with them directly',
+        content: t('tour.cards_grid_content_alt'),
         disableBeacon: true,
         placement: 'top'
       }
@@ -1655,7 +1642,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
   }
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page" data-theme={theme}>
       {/* Compact header removed to save vertical space */}
 
       <div className="dashboard-content">
@@ -1712,7 +1699,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs') || 'All Programs', icon: <Filter size={14} color="#374151" /> },
+                  { value: 'all', label: t('all_programs'), icon: <Filter size={14} color="#374151" /> },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId,
@@ -1720,7 +1707,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   }))
                 ]}
                 style={{ minWidth: 140 }}
-                placeholder={t('all_programs') || 'All Programs'}
+                placeholder={t('all_programs')}
               />
             </div>
           }
@@ -1738,7 +1725,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="#374151" /> },
+                  { value: 'all', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId,
@@ -1746,7 +1733,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   }))
                 ]}
                 style={{ minWidth: 180 }}
-                placeholder={t('all_programs') || 'All Programs'}
+                placeholder={t('all_programs')}
               />
               <Select
                 size="small"
@@ -1757,7 +1744,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="#374151" /> },
+                  { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> },
                   ...subjects
                     .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
                     .map(s => ({
@@ -1767,7 +1754,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     }))
                 ]}
                 style={{ minWidth: 180 }}
-                placeholder={t('all_subjects') || 'All Subjects'}
+                placeholder={t('all_subjects')}
               />
               <Select
                 size="small"
@@ -1775,7 +1762,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={enrollmentClassFilter}
                 onChange={(e) => setEnrollmentClassFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="#374151" /> },
+                  { value: 'all', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> },
                   ...classes
                     .filter(c => {
                       if (enrollmentProgramFilter !== 'all') {
@@ -2189,7 +2176,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       <div style={{ border: '0px solid #ccc', padding: '0px', margin: '0px 0', borderRadius: '4px' }}>
                         <Select
                           searchable
-                          placeholder={t('all_programs') || 'All Programs'}
+                          placeholder={t('all_programs')}
                           value={activityForm.programId}
                           onChange={(value) => {
                             console.log('Program Select onChange:', value);
@@ -2205,7 +2192,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       </div>
                       <Select
                         searchable
-                        placeholder={t('all_subjects') || 'All Subjects'}
+                        placeholder={t('all_subjects')}
                         value={activityForm.subjectId || null}
                         onChange={handleDropdownChange(
                           setActivityForm,
@@ -2218,7 +2205,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       />
                       <Select
                         searchable
-                        placeholder={t('all_classes') || 'All Classes'}
+                        placeholder={t('all_classes')}
                         value={activityForm.classId || null}
                         onChange={handleDropdownChange(
                           setActivityForm,
@@ -3627,7 +3614,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     <div className="form-row">
                       <Select
                         searchable
-                        placeholder={t('all_subjects') || 'All Subjects'}
+                        placeholder={t('all_subjects')}
                         value={ensureString(classForm.subjectId || '')}
                         onChange={e => {
                           const newSubjectId = ensureString(e.target.value);
@@ -4123,7 +4110,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 <div className="form-row wide-cols">
                   <Select
                     searchable
-                    placeholder={t('all_programs') || 'All Programs'}
+                    placeholder={t('all_programs')}
                     value={enrollmentForm.programId}
                     onChange={handleEnrollmentProgramChange}
                     options={enrollmentProgramOptions}
@@ -4132,7 +4119,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   
                   <Select
                     searchable
-                    placeholder={t('all_subjects') || 'All Subjects'}
+                    placeholder={t('all_subjects')}
                     value={ensureString(enrollmentForm.subjectId || '')}
                     onChange={handleEnrollmentSubjectChange}
                     options={enrollmentSubjectOptions}
@@ -4141,7 +4128,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                   <Select
                     searchable
-                    placeholder={t('all_classes') || 'All Classes'}
+                    placeholder={t('all_classes')}
                     value={enrollmentForm.classId}
                     onChange={(e) => setEnrollmentForm(prev => ({ ...prev, classId: e.target.value }))}
                     disabled={!enrollmentForm.subjectId}
@@ -4183,7 +4170,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
                 <Select
                   searchable
-                  placeholder={t('all_programs') || 'All Programs'}
+                  placeholder={t('all_programs')}
                   value={ensureString(enrollmentProgramFilter || 'all')}
                   onChange={(e) => {
                     const newValue = ensureString(e.target.value);
@@ -4195,7 +4182,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 />
                 <Select
                   searchable
-                  placeholder={t('all_subjects') || 'All Subjects'}
+                  placeholder={t('all_subjects')}
                   value={ensureString(enrollmentSubjectFilter || 'all')}
                   onChange={(e) => {
                     const newValue = ensureString(e.target.value);
@@ -4736,8 +4723,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 }
               ]}
               activeCategory="user-fields"
-              activeItem="basic"
-              onChange={({ category, item }) => console.log('Ribbon tab changed:', { category, item })}
+              activeItem={activeUserFormTab}
+              onChange={({ category, item }) => setActiveUserFormTab(item)}
             />
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -4796,33 +4783,44 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 setLoading(false);
               }
             }} className="dashboard-form">
-              <div className="form-row">
-                <Input
-                  type="email"
-                  placeholder={t('user_email_placeholder')}
-                  value={userForm.email}
-                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  required
-                />
-                <Input
-                  type="text"
-                  placeholder={t('user_display_name_placeholder')}
-                  value={userForm.displayName}
-                  onChange={(e) => setUserForm({ ...userForm, displayName: e.target.value })}
-                />
-                <Input
-                  type="text"
-                  placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
-                  value={userForm.realName || ''}
-                  onChange={(e) => setUserForm({ ...userForm, realName: e.target.value })}
-                />
-                <Input
-                  type="text"
-                  placeholder={t('student_number_placeholder') || 'Student Number (Optional)'}
-                  value={userForm.studentNumber || ''}
-                  onChange={(e) => setUserForm({ ...userForm, studentNumber: e.target.value })}
-                />
-                <Select
+              {activeUserFormTab === 'basic' && (
+                <div className="form-row">
+                  <Input
+                    type="email"
+                    placeholder={t('user_email_placeholder')}
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    required
+                  />
+                  <Input
+                    type="text"
+                    placeholder={t('user_display_name_placeholder')}
+                    value={userForm.displayName}
+                    onChange={(e) => setUserForm({ ...userForm, displayName: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {activeUserFormTab === 'academic' && (
+                <div className="form-row">
+                  <Input
+                    type="text"
+                    placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
+                    value={userForm.realName || ''}
+                    onChange={(e) => setUserForm({ ...userForm, realName: e.target.value })}
+                  />
+                  <Input
+                    type="text"
+                    placeholder={t('student_number_placeholder') || 'Student Number (Optional)'}
+                    value={userForm.studentNumber || ''}
+                    onChange={(e) => setUserForm({ ...userForm, studentNumber: e.target.value })}
+                  />
+                </div>
+              )}
+
+              {activeUserFormTab === 'role' && (
+                <div className="form-row">
+                  <Select
                   searchable
                   placeholder={t('role') || 'Role'}
                   value={userForm.role}
@@ -4861,7 +4859,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   ]}
                   fullWidth
                 />
-              </div>
+                </div>
+              )}
 
               {!editingUser && (
                 <div className="form-row flex-row">

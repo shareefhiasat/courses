@@ -1,6 +1,6 @@
 import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ChevronDown, Search, X, Filter } from 'lucide-react';
 import styles from './Select.module.css';
 
 /**
@@ -306,10 +306,13 @@ const Select = forwardRef(({
             }
           }}
         >
-          <span className={!value ? styles.placeholder : ''} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
-            {selectedOption?.icon && <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{selectedOption.icon}</span>}
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayValue}</span>
-          </span>
+          <div className={styles.selectContent}>
+            <Filter className={styles.filterIcon} size={16} />
+            <span className={!value ? styles.placeholder : ''} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
+              {selectedOption?.icon && <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{selectedOption.icon}</span>}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayValue}</span>
+            </span>
+          </div>
           <div className={styles.icons}>
             {value && !disabled && (
               <X

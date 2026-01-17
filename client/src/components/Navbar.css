@@ -39,10 +39,20 @@
   backdrop-filter: saturate(150%) blur(6px);
 }
 
+[data-theme="dark"] .nav-icon-btn {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
 .nav-icon-btn:hover { 
   transform: translateY(-1px);
   background: rgba(255,255,255,0.22);
   border-color: rgba(255,255,255,0.55);
+}
+
+[data-theme="dark"] .nav-icon-btn:hover {
+  background: rgba(0,0,0,0.5);
+  border-color: rgba(255,255,255,0.3);
 }
 
 .nav-icon-btn:active { transform: translateY(0); }
@@ -71,6 +81,10 @@
   color: white;
   text-decoration: none;
   transition: opacity 0.3s;
+}
+
+[data-theme="dark"] .navbar-brand {
+  color: #e5e7eb;
 }
 
 .navbar-brand:hover {

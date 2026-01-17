@@ -6,7 +6,8 @@ import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebas
 import { db } from '../firebase/config';
 import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid } from '../components/ui';
 import InfoTooltip from '../components/ui/InfoTooltip/InfoTooltip';
-import { Info } from 'lucide-react';
+import RibbonTabs from '../components/RibbonTabs';
+import { Info, FileText, BookOpen, Zap, Wrench } from 'lucide-react';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import { getClasses, getActivities } from '../firebase/firestore';
 import { getCardConfig, getShapeRadius } from '../utils/cardColors';
@@ -647,35 +648,23 @@ const ReviewResultsPage = () => {
         {/* Mode Selector */}
         <Card style={{ marginBottom: '1.5rem' }}>
           <CardBody>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0 }}>Review Results - {modeLabels[mode] || 'Quiz'}</h2>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <Button
-                  variant={mode === 'quiz' ? 'primary' : 'ghost'}
-                  onClick={() => navigate('/review-results?mode=quiz')}
-                >
-                  Quiz
-                </Button>
-                <Button
-                  variant={mode === 'homework' ? 'primary' : 'ghost'}
-                  onClick={() => navigate('/review-results?mode=homework')}
-                >
-                  Homework
-                </Button>
-                <Button
-                  variant={mode === 'training' ? 'primary' : 'ghost'}
-                  onClick={() => navigate('/review-results?mode=training')}
-                >
-                  Training
-                </Button>
-                <Button
-                  variant={mode === 'labandproject' ? 'primary' : 'ghost'}
-                  onClick={() => navigate('/review-results?mode=labandproject')}
-                >
-                  Lab & Project
-                </Button>
-              </div>
-            </div>
+            <RibbonTabs
+              categories={[
+                {
+                  id: 'mode-tabs',
+                  label: 'Review Mode',
+                  items: [
+                    { key: 'quiz', label: 'Quiz', icon: <FileText size={14} /> },
+                    { key: 'homework', label: 'Homework', icon: <BookOpen size={14} /> },
+                    { key: 'training', label: 'Training', icon: <Zap size={14} /> },
+                    { key: 'labandproject', label: 'Lab & Project', icon: <Wrench size={14} /> }
+                  ]
+                }
+              ]}
+              activeCategory="mode-tabs"
+              activeItem={mode}
+              onChange={({ category, item }) => navigate(`/review-results?mode=${item}`)}
+            />
           </CardBody>
         </Card>
 

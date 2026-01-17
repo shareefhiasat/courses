@@ -15,3 +15,80 @@
     opacity: 0.5;
   }
 }
+
+/* Dark mode support for attendance page */
+.content-section {
+  background: var(--bg, #f8fafc);
+}
+
+[data-theme="dark"] .content-section {
+  background: #0f172a;
+}
+
+/* QR Code container */
+.qrContainer {
+  background: var(--panel, white);
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+[data-theme="dark"] .qrContainer {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+/* Settings panel */
+.settingsPanel {
+  background: var(--panel, white);
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+[data-theme="dark"] .settingsPanel {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+/* Form inputs */
+.formInput {
+  background: var(--panel, white);
+  border: 1px solid var(--border, #e0e0e0);
+  color: var(--text, #212529);
+}
+
+[data-theme="dark"] .formInput {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f3f4f6;
+}
+
+/* Buttons */
+.button {
+  background: var(--color-primary, #800020);
+  color: white;
+}
+
+[data-theme="dark"] .button {
+  background: var(--color-primary, #800020);
+  color: white;
+}
+
+/* Class selection */
+.classSelection {
+  background: var(--panel, white);
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+[data-theme="dark"] .classSelection {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+/* Stats cards */
+.statsCard {
+  background: var(--panel, white);
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+[data-theme="dark"] .statsCard {
+  background: #1f2937;
+  border-color: #374151;
+}

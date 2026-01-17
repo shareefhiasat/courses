@@ -51,6 +51,10 @@
   font-weight: 700;
 }
 
+[data-theme="dark"] .announcementsHeader h3 {
+  color: #f3f4f6;
+}
+
 .largeTitle {
   font-size: 1.5rem !important;
   font-weight: 700 !important;
@@ -85,6 +89,10 @@
   font-weight: 600;
 }
 
+[data-theme="dark"] .announcementTitle {
+  color: #f3f4f6;
+}
+
 .announcementContent {
   margin: 0 0 0.5rem 0;
   color: #374151;
@@ -94,6 +102,10 @@
   max-height: 800px;
   overflow: hidden;
   transition: max-height 300ms ease, opacity 200ms ease;
+}
+
+[data-theme="dark"] .announcementContent {
+  color: #d1d5db;
 }
 
 .announcementContent.collapsed {
@@ -157,6 +169,10 @@
   background: #f8f9fa;
 }
 
+[data-theme="dark"] .filtersCard {
+  background: #1f2937;
+}
+
 .filterSection {
   margin-bottom: 0.75rem;
 }
@@ -172,6 +188,10 @@
   align-items: center;
   font-weight: 600;
   margin-bottom: 0.5rem;
+}
+
+[data-theme="dark"] .filterLabel {
+  color: #a00028;
 }
 
 /* Loading Activities */
@@ -233,4 +253,21 @@
   .filterLabel {
     color: #a00028;
   }
+}
+
+/* Enhanced Dark Mode with data-theme attribute */
+[data-theme="dark"] .announcementsHeader h3 {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .announcementTitle {
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .filtersCard {
+  background: #1f2937;
+}
+
+[data-theme="dark"] .filterLabel {
+  color: #a00028;
 }

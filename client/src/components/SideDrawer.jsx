@@ -573,7 +573,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
               borderRight: lang==='ar' ? 'none' : (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)'),
               borderLeft: lang==='ar' ? (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)') : 'none',
               color: theme === 'light' ? '#0f172a' : 'white',
-              zIndex: stickyMode ? 100 : 1001,
+              zIndex: stickyMode ? 100 : 9999,
               top: stickyMode ? 0 : 0,
               display: 'flex',
               flexDirection: 'column',

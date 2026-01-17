@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import EmojiPicker from 'emoji-picker-react';
 import {
@@ -38,6 +39,7 @@ import { MessageSquareText, Send, Mic, Square, Smile, Search, X, Plus, BarChart3
 const ChatPage = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
   const location = useLocation();
   
@@ -1461,7 +1463,7 @@ const ChatPage = () => {
 
   return (
     <>
-    <div className="chat-page" style={{
+    <div className="chat-page" data-theme={theme} style={{
       display: 'flex',
       height: 'calc(100vh - 60px)',
       background: 'var(--bg)',

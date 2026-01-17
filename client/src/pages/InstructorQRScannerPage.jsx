@@ -943,7 +943,8 @@ const InstructorQRScannerPage = () => {
                     { value: '', label: 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                     ...programs.map(program => ({
                       value: program.id,
-                      label: program.name
+                      label: program.name,
+                      icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" />
                     }))
                   ]}
                   placeholder="Program"
@@ -961,7 +962,8 @@ const InstructorQRScannerPage = () => {
                     { value: '', label: 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                     ...subjects.map(subject => ({
                       value: subject.id,
-                      label: subject.name
+                      label: subject.name,
+                      icon: <BookOpen size={16} color="var(--text-secondary, #374151)" />
                     }))
                   ]}
                   placeholder="Subject"
@@ -979,7 +981,8 @@ const InstructorQRScannerPage = () => {
                     { value: '', label: 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                     ...filteredClasses.map(cls => ({
                       value: cls.id,
-                      label: `${cls.name || cls.code} - ${cls.term || ''} ${cls.year || ''}`
+                      label: `${cls.name || cls.code} - ${cls.term || ''} ${cls.year || ''}`,
+                      icon: <Users size={16} color="var(--text-secondary, #374151)" />
                     }))
                   ]}
                   placeholder="Class"
@@ -1065,7 +1068,8 @@ const InstructorQRScannerPage = () => {
                     { value: '', label: 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                     ...programs.map(program => ({
                       value: program.id,
-                      label: program.name
+                      label: program.name,
+                      icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" />
                     }))
                   ]}
                   placeholder="Select Program"
@@ -1080,7 +1084,8 @@ const InstructorQRScannerPage = () => {
                     { value: '', label: 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                     ...subjects.map(subject => ({
                       value: subject.id,
-                      label: subject.name
+                      label: subject.name,
+                      icon: <BookOpen size={16} color="var(--text-secondary, #374151)" />
                     }))
                   ]}
                   placeholder="Select Subject"
@@ -1095,7 +1100,8 @@ const InstructorQRScannerPage = () => {
                     { value: '', label: 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                     ...filteredClasses.map(cls => ({
                       value: cls.id,
-                      label: `${cls.name || cls.code} - ${cls.term || ''} ${cls.year || ''}`
+                      label: `${cls.name || cls.code} - ${cls.term || ''} ${cls.year || ''}`,
+                      icon: <Users size={16} color="var(--text-secondary, #374151)" />
                     }))
                   ]}
                   placeholder="Select Class"

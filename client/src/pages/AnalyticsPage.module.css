@@ -3,6 +3,10 @@
   padding: 1.5rem 0;
 }
 
+[data-theme="dark"] .page {
+  background: #0f172a;
+}
+
 /* Loading */
 .loadingWrapper {
   display: flex;
@@ -29,9 +33,17 @@
   color: var(--text, #212529);
 }
 
+[data-theme="dark"] .header h1 {
+  color: #f3f4f6;
+}
+
 .header p {
   margin: 0.5rem 0 0 0;
   color: var(--text-muted, #666);
+}
+
+[data-theme="dark"] .header p {
+  color: #9ca3af;
 }
 
 /* Error */
@@ -42,6 +54,11 @@
   color: #dc2626;
   border-radius: 8px;
   font-size: 0.875rem;
+}
+
+[data-theme="dark"] .error {
+  background: #7f1d1d;
+  color: #fca5a5;
 }
 
 /* KPI Cards */

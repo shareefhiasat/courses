@@ -3,6 +3,10 @@
   padding: 1.5rem 0;
 }
 
+[data-theme="dark"] .page {
+  background: #0f172a;
+}
+
 .loadingWrapper {
   display: flex;
   align-items: center;
@@ -43,6 +47,10 @@
   border-bottom: 1px solid var(--border, #e0e0e0);
 }
 
+[data-theme="dark"] .header {
+  border-color: #374151;
+}
+
 .headerContent {
   display: flex;
   align-items: center;
@@ -59,6 +67,10 @@
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--text, #212529);
+}
+
+[data-theme="dark"] .title {
+  color: #f3f4f6;
 }
 
 .subtitle {
@@ -98,6 +110,11 @@
   border: 1px solid var(--border, #e0e0e0);
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
+}
+
+[data-theme="dark"] .group {
+  background: #1f2937;
+  border-color: #374151;
 }
 
 .groupHeader {

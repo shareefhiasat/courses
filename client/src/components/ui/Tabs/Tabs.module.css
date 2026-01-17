@@ -18,9 +18,19 @@
   overflow: hidden;
 }
 
+[data-theme="dark"] .tabsWrapper {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 /* Default variant - segmented control style */
 .default .tabsWrapper {
   background: var(--panel, #ffffff);
+}
+
+[data-theme="dark"] .default .tabsWrapper {
+  background: #1f2937;
 }
 
 /* Pills variant */
@@ -82,6 +92,11 @@
 .tab:hover {
   background: var(--panel-hover, #f9fafb);
   color: var(--text, #111827);
+}
+
+[data-theme="dark"] .tab:hover {
+  background: #374151;
+  color: #f3f4f6;
 }
 
 .tab.active {

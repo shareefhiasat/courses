@@ -9,6 +9,11 @@
   text-align: center;
 }
 
+[data-theme="dark"] .hero-section {
+  background: linear-gradient(135deg, #a00028 0%, #800020 100%);
+  color: #ffffff;
+}
+
 .hero-content {
   max-width: 800px;
   margin: 0 auto;
@@ -43,6 +48,11 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+[data-theme="dark"] .tabs {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .tab-btn {
   flex: 1;
   max-width: 300px;
@@ -57,9 +67,17 @@
   transition: all 0.3s ease;
 }
 
+[data-theme="dark"] .tab-btn {
+  color: #e5e7eb;
+}
+
 .tab-btn:hover {
   background: rgba(128, 0, 32, 0.1);
   transform: translateY(-2px);
+}
+
+[data-theme="dark"] .tab-btn:hover {
+  background: rgba(160, 0, 40, 0.2);
 }
 
 .tab-btn.active {
@@ -78,6 +96,10 @@
   margin-bottom: 2rem;
   text-align: center;
   position: relative;
+}
+
+[data-theme="dark"] .course-title {
+  color: #e5e7eb;
 }
 
 .course-title::after {
@@ -109,6 +131,12 @@
   color: #6c757d;
   border: 2px solid #e9ecef;
   transition: all 0.3s;
+}
+
+[data-theme="dark"] .progress-step {
+  background: #374151;
+  color: #d1d5db;
+  border: 2px solid #4b5563;
 }
 
 .progress-step.completed {
@@ -144,6 +172,12 @@
   max-height: none;
 }
 
+[data-theme="dark"] .activity-card {
+  background: #1f2937;
+  border: 1px solid #374151;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
 .activity-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.15);
@@ -155,10 +189,18 @@
   font-size: 1.25rem;
 }
 
+[data-theme="dark"] .activity-card h3 {
+  color: #f3f4f6;
+}
+
 .activity-card p {
   color: #6c757d;
   margin-bottom: 1rem;
   line-height: 1.6;
+}
+
+[data-theme="dark"] .activity-card p {
+  color: #d1d5db;
 }
 
 .activity-meta {

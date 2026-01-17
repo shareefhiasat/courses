@@ -88,18 +88,9 @@ export default function StatCard({
   return (
     <div className={`${styles.statCard} ${getSizeClass()} ${getColorClass()} ${className}`}>
       <div className={styles.statContent}>
-        <div className={styles.statHeader}>
-          <div className={styles.statIcon}>
-            {icon}
-          </div>
-          {trend && (
-            <div className={`${styles.trend} ${getTrendClass()}`}>
-              {getTrendIcon()}
-              <span>{trendValue}</span>
-            </div>
-          )}
+        <div className={styles.statIcon}>
+          {icon}
         </div>
-        
         <div className={styles.statBody}>
           <h3 className={styles.statTitle}>{title}</h3>
           <p className={styles.statValue}>{value}</p>

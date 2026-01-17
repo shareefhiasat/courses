@@ -5,7 +5,7 @@ import { createSession, listOpenSessions, listenAttendanceSession, closeAttendan
 import QRCode from 'qrcode';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
-import { Info, Users, Calendar, Download, ChevronDown, ChevronUp, Maximize2, Minimize2, PlayCircle, Square } from 'lucide-react';
+import { Info, Users, Calendar, Download, ChevronDown, ChevronUp, Maximize2, Minimize2, PlayCircle, Square, Filter, GraduationCap, BookOpen, User } from 'lucide-react';
 import { Button, Select, Loading, YearSelect } from '../components/ui';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import styles from './AttendancePage.module.css';
@@ -282,7 +282,7 @@ const AttendancePageEnhanced = () => {
 
   // Show initial loading while classes, programs, and subjects are being loaded
   if (initialLoading) {
-    return <Loading variant="overlay" fullscreen message="Loading attendance data..." fancyVariant="dots" />;
+    return <Loading variant="overlay" fullscreen message={t('loading_attendance_data') || 'Loading attendance data...'} fancyVariant="dots" />;
   }
 
   if (loading && !sessionId) {
@@ -374,14 +374,15 @@ const AttendancePageEnhanced = () => {
               value={programFilter}
               onChange={(e) => setProgramFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Programs' },
+                { value: 'all', label: 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
-                  label: p.name_en || p.name_ar || p.code || p.docId
+                  label: p.name_en || p.name_ar || p.code || p.docId,
+                  icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" />
                 }))
               ]}
               fullWidth
-              placeholder="Program"
+              placeholder={t('all_programs') || 'All Programs'}
             />
           </div>
           <div>
@@ -390,16 +391,17 @@ const AttendancePageEnhanced = () => {
               value={subjectFilter}
               onChange={(e) => setSubjectFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Subjects' },
+                { value: 'all', label: 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...subjects
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
                     value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`
+                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
+                    icon: <BookOpen size={16} color="var(--text-secondary, #374151)" />
                   }))
               ]}
               fullWidth
-              placeholder="Subject"
+              placeholder={t('all_subjects') || 'All Subjects'}
             />
           </div>
           <div>
@@ -408,7 +410,7 @@ const AttendancePageEnhanced = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Classes' },
+                { value: 'all', label: 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...filteredClasses
                   .filter(c => {
                     if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
@@ -420,11 +422,12 @@ const AttendancePageEnhanced = () => {
                   })
                   .map(c => ({
                     value: c.id || c.docId,
-                    label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`
+                    label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`,
+                    icon: <Users size={16} color="var(--text-secondary, #374151)" />
                   }))
               ]}
               fullWidth
-              placeholder="Class"
+              placeholder={t('all_classes') || 'All Classes'}
             />
           </div>
           <div>
@@ -460,8 +463,8 @@ const AttendancePageEnhanced = () => {
                 value={instructorFilter}
                 onChange={(e)=>setInstructorFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_instructors') || 'All Instructors' },
-                  ...instructors.map(inst => ({ value: inst, label: inst }))
+                  { value: 'all', label: t('all_instructors') || 'All Instructors', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                  ...instructors.map(inst => ({ value: inst, label: inst, icon: <User size={16} color="var(--text-secondary, #374151)" /> }))
                 ]}
                 fullWidth
               />
@@ -593,14 +596,14 @@ const AttendancePageEnhanced = () => {
               <button
                 onClick={() => setQrSize(Math.max(200, qrSize - 40))}
                 style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel)', cursor: 'pointer', color: '#1f2937' }}
-                title="Make QR smaller"
+                title={t('make_qr_smaller') || 'Make QR smaller'}
               >
                 <Minimize2 size={16} />
               </button>
               <button
                 onClick={() => setQrSize(Math.min(500, qrSize + 40))}
                 style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel)', cursor: 'pointer', color: '#1f2937' }}
-                title="Make QR bigger"
+                title={t('make_qr_bigger') || 'Make QR bigger'}
               >
                 <Maximize2 size={16} />
               </button>

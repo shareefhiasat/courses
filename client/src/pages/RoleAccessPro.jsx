@@ -220,7 +220,7 @@ export default function RoleAccessPro() {
                 <Select
                   value={activeRole}
                   onChange={(e) => setActiveRole(e.target.value)}
-                  label="Role"
+                  label={t('role') || 'Role'}
                   options={roles.map(r => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }))}
                 />
                 
