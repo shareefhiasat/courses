@@ -191,7 +191,13 @@ const AdvancedDataGrid = ({
   };
 
   return (
-    <Box sx={{ position: 'relative', width: '100%' }}>
+    <Box sx={{ 
+      position: 'relative', 
+      width: '100%',
+      minHeight: '400px',
+      maxHeight: '70vh',
+      overflow: 'hidden'
+    }}>
       {loadingOverlayMessage && (
         <Box sx={{
           position: 'absolute',
@@ -199,18 +205,27 @@ const AdvancedDataGrid = ({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          overflow: 'hidden',
+          backdropFilter: 'blur(2px)'
         }}>
           <Loading variant="fancy" fancyVariant={fancyVariant} message={loadingOverlayMessage} />
         </Box>
       )}
       <Box sx={{ 
         width: '100%', 
-        '& .MuiDataGrid-root': { border: 'none' }, 
+        height: '100%',
+        maxHeight: '70vh',
+        overflow: 'hidden',
+        '& .MuiDataGrid-root': { 
+          border: 'none',
+          overflow: 'hidden',
+          maxHeight: '70vh'
+        }, 
         '& .MuiDataGrid-toolbarContainer': { 
           position: 'sticky', 
           top: 0, 
@@ -218,6 +233,14 @@ const AdvancedDataGrid = ({
           background: 'white',
           borderBottom: '1px solid #e5e7eb'
         }, 
+        '& .MuiDataGrid-main': {
+          overflow: 'hidden',
+          maxHeight: 'calc(70vh - 60px)'
+        },
+        '& .MuiDataGrid-virtualScroller': {
+          overflow: 'auto !important',
+          maxHeight: 'calc(70vh - 60px)'
+        },
         ...sx 
       }}>
       {showExportButton && (

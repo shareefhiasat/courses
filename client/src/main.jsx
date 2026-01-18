@@ -12,13 +12,24 @@ import { initSentry } from './config/sentry.js';
 // Initialize Sentry for error tracking
 initSentry();
 
-// PostHog configuration
+// PostHog configuration with toolbar enabled
 const posthogOptions = {
-  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
+  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
   person_profiles: 'identified_only',
   capture_pageview: true,
   capture_pageleave: true,
+  autocapture: true,
   session_recording: {
+    recordCrossOriginIframes: true,
+  },
+  // Enable toolbar for development
+  debug: true,
+  // Enable toolbar
+  toolbar: {
+    instrument: true,
+  },
+  // Enable session replay
+  session_replay: {
     recordCrossOriginIframes: true,
   },
 };
@@ -26,7 +37,7 @@ const posthogOptions = {
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <PostHogProvider
-      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY || 'phc_mpxjjYTNPiUTxE12MYkOsbH1DLTsjuOz4EEUOWEkUuc'}
+      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY || 'phc_2koOFuF9DP6RWeK9hyFo092OIPRaO3XSECil77mzeFp'}
       options={posthogOptions}
     >
       <ToastProvider>

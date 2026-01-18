@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import logger from '../utils/logger';
  // import Joyride from 'react-joyride';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -191,17 +192,7 @@ const DashboardPage = () => {
   const [activityNowTick, setActivityNowTick] = useState(Date.now());
 
   const handleTabChange = (tab, { source = 'user', shouldEmit = true } = {}) => {
-    console.log('[DashboardPage] Tab change requested:', {
-      tab,
-      source,
-      shouldEmit,
-      currentPath: location.pathname,
-      currentSearch: location.search,
-      currentHash: location.hash
-    });
-
     if (!tab) {
-      console.warn('[DashboardPage] handleTabChange called without a tab value. Ignoring.');
       return;
     }
 
@@ -211,15 +202,10 @@ const DashboardPage = () => {
       .find(item => item.key === tab);
 
     if (tabItem?.path) {
-      console.log('[DashboardPage] Navigating to external page via tab path:', {
-        path: tabItem.path,
-        source
-      });
       navigate(tabItem.path);
       return;
     }
 
-    console.log('[DashboardPage] Updating active tab state + persistence:', { tab, source });
     setActiveTab(tab);
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
@@ -235,18 +221,14 @@ const DashboardPage = () => {
       const currentUrl = `${location.pathname}${location.search}`;
 
       if (currentUrl !== nextUrl) {
-        console.log('[DashboardPage] Updating router URL for tab (query param tab sync):', {
+          logger.debug('URL changed', {
           nextUrl,
           previousUrl: currentUrl,
           source
         });
         navigate(nextUrl, { replace: true, state: { __source: 'dashboard-tab-update', __from: source } });
       } else {
-        console.log('[DashboardPage] URL already matches requested tab, skipping navigate:', {
-          url: nextUrl,
-          source
-        });
-      }
+        }
     } else {
       const tabToHashMap = {
         'programs': '#programs',
@@ -259,28 +241,16 @@ const DashboardPage = () => {
 
       if (tabToHashMap[tab]) {
         const hashTarget = `${location.pathname}${tabToHashMap[tab]}`;
-        console.log('[DashboardPage] Navigating via hash update for tab:', {
-          hashTarget,
-          source
-        });
         navigate(hashTarget, { replace: true, state: { __source: 'dashboard-tab-hash', __from: source } });
       } else if (location.search || location.hash) {
-        console.log('[DashboardPage] Clearing existing search/hash for non-hash tab:', {
-          tab,
-          source
-        });
         navigate(location.pathname, { replace: true, state: { __source: 'dashboard-tab-clear', __from: source } });
       }
     }
 
     if (shouldEmit) {
-      console.log('[DashboardPage] Emitting dashboard-tab-change event for help sync:', {
-        tab,
-        source
-      });
       window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab, source: 'dashboard-page' } }));
     } else {
-      console.log('[DashboardPage] Skipping dashboard-tab-change emit (already handled externally):', {
+          logger.debug('Tab changed', {
         tab,
         source
       });
@@ -299,16 +269,13 @@ const DashboardPage = () => {
       const eventSource = e.detail?.source || 'external';
 
       if (!eventTab) {
-        console.warn('[DashboardPage] Received dashboard-tab-change event without tab detail.', e.detail);
         return;
       }
 
       if (eventSource === 'dashboard-page') {
-        console.log('[DashboardPage] Ignoring self-originated dashboard-tab-change event:', e.detail);
         return;
       }
 
-      console.log('[DashboardPage] Processing external dashboard-tab-change event:', e.detail);
       latestHandleTabChange.current?.(eventTab, { source: `event:${eventSource}`, shouldEmit: false });
     };
 
@@ -476,8 +443,6 @@ const DashboardPage = () => {
       type: activity.type || 'quiz',
       course: activity.course || 'python'
     };
-    console.log('Editing activity:', activity);
-    console.log('Form data:', formData);
     setActivityForm(formData);
   };
 
@@ -610,17 +575,15 @@ const DashboardPage = () => {
     switch (announcementFilter) {
       case 'today':
         const isToday = createdAt.toDateString() === now.toDateString();
-        console.log('Today filter:', createdAt.toDateString(), 'vs', now.toDateString(), '=', isToday);
+        logger.debug('Date comparison', { createdAt: createdAt.toDateString(), now: now.toDateString(), isToday });
         return isToday;
       case '7days':
         const daysDiff = (now - createdAt) / (24 * 60 * 60 * 1000);
         const isWithin7Days = daysDiff <= 7;
-        console.log('7 days filter:', daysDiff, 'days ago, within 7?', isWithin7Days);
         return isWithin7Days;
       case '30days':
         const daysDiff30 = (now - createdAt) / (24 * 60 * 60 * 1000);
         const isWithin30Days = daysDiff30 <= 30;
-        console.log('30 days filter:', daysDiff30, 'days ago, within 30?', isWithin30Days);
         return isWithin30Days;
       default:
         return true;
@@ -689,7 +652,6 @@ const DashboardPage = () => {
   const handleEnrollmentProgramChange = (eventOrValue) => {
     const value = eventOrValue && eventOrValue.target ? eventOrValue.target.value : eventOrValue;
     const newProgramId = value != null ? String(value) : '';
-    console.log('🔄 [Enrollment Form] Program changed:', newProgramId);
     setEnrollmentForm(prev => ({
       ...prev,
       programId: newProgramId,
@@ -701,7 +663,6 @@ const DashboardPage = () => {
   const handleEnrollmentSubjectChange = (eventOrValue) => {
     const value = eventOrValue && eventOrValue.target ? eventOrValue.target.value : eventOrValue;
     const newSubjectId = value != null ? String(value) : '';
-    console.log('🔄 [Enrollment Form] Subject changed:', newSubjectId);
     setEnrollmentForm(prev => ({
       ...prev,
       subjectId: newSubjectId,
@@ -747,8 +708,6 @@ const DashboardPage = () => {
   const handleDropdownChange = (setter, field, resetFields = []) => (e) => {
     // Handle both event objects and direct values
     const value = e?.target?.value !== undefined ? e.target.value : e;
-    console.log(`🔄 [Dropdown] ${field} changed:`, value);
-    
     setter(prev => {
       const update = { 
         ...prev, 
@@ -757,11 +716,9 @@ const DashboardPage = () => {
       
       // Reset dependent fields if needed
       resetFields.forEach(f => { 
-        console.log(`  ↳ Resetting dependent field: ${f}`);
         update[f] = ''; 
       });
       
-      console.log(`  ↳ New state for ${field}:`, update[field]);
       return update;
     });
   };
@@ -984,27 +941,11 @@ const DashboardPage = () => {
 
   // Debug logging for dropdown state changes
   useEffect(() => {
-    console.log('🔍 [Activity Form] State:', {
-      programId: activityForm.programId,
-      subjectId: activityForm.subjectId,
-      classId: activityForm.classId,
-      programOptionsCount: activityProgramOptions.length,
-      subjectOptionsCount: activitySubjectOptions.length,
-      classOptionsCount: activityClassOptions.length
-    });
-  }, [activityForm.programId, activityForm.subjectId, activityForm.classId, activityProgramOptions.length, activitySubjectOptions.length, activityClassOptions.length]);
+    }, [activityForm.programId, activityForm.subjectId, activityForm.classId, activityProgramOptions.length, activitySubjectOptions.length, activityClassOptions.length]);
 
   // Debug logging for enrollment form state
   useEffect(() => {
-    console.log('🔍 [Enrollment Form] State:', {
-      programId: enrollmentForm.programId,
-      subjectId: enrollmentForm.subjectId,
-      classId: enrollmentForm.classId,
-      programOptionsCount: enrollmentProgramOptions.length,
-      subjectOptionsCount: enrollmentSubjectOptions.length,
-      classOptionsCount: enrollmentClassOptions.length
-    });
-  }, [enrollmentForm.programId, enrollmentForm.subjectId, enrollmentForm.classId, 
+    }, [enrollmentForm.programId, enrollmentForm.subjectId, enrollmentForm.classId, 
       enrollmentProgramOptions.length, enrollmentSubjectOptions.length, enrollmentClassOptions.length]);
 
   // Listen for URL changes (hash or search params) from sidebar or direct navigation
@@ -1042,20 +983,12 @@ const DashboardPage = () => {
   }, [lang]);
 
   useEffect(() => {
-    console.log('[DashboardPage] URL changed:', { 
-      pathname: location.pathname, 
-      search: location.search, 
-      hash: location.hash,
-      hashProcessed 
-    });
-
     // First check for tab in query parameters
     if (location.search) {
       const searchParams = new URLSearchParams(location.search);
       const tabFromUrl = searchParams.get('tab');
       
       if (tabFromUrl && tabFromUrl !== activeTab) {
-        console.log('[DashboardPage] Found tab in URL params:', tabFromUrl);
         setActiveTab(tabFromUrl);
         localStorage.setItem('dashboardActiveTab', tabFromUrl);
         setHashProcessed(true);
@@ -1066,8 +999,6 @@ const DashboardPage = () => {
     // Then check for hash navigation (legacy support)
     if (location.hash && !hashProcessed) {
       const hash = location.hash.substring(1); // Remove #
-      console.log('[DashboardPage] Processing hash navigation:', hash);
-      
       const hashToTabMap = {
         'programs': 'programs',
         'subjects': 'subjects',
@@ -1079,14 +1010,12 @@ const DashboardPage = () => {
       
       const tab = hashToTabMap[hash];
       if (tab && tab !== activeTab) {
-        console.log('[DashboardPage] Setting tab from hash:', tab);
         setActiveTab(tab);
         localStorage.setItem('dashboardActiveTab', tab);
         setHashProcessed(true);
       }
     } else if (!location.hash && hashProcessed) {
       // Hash was cleared, reset flag
-      console.log('[DashboardPage] Hash was cleared, resetting flag');
       setHashProcessed(false);
     }
   }, [location.hash]);
@@ -1143,8 +1072,6 @@ const DashboardPage = () => {
         const subjectsData = subjectsRes.data || [];
         const programsData = programsRes.data || [];
         
-        console.log('🔍 [Enrollments] Starting enrichment for', enrollmentsData.length, 'enrollments');
-        
         const enrichedEnrollments = await Promise.all(enrollmentsData.map(async (enrollment) => {
           const enriched = {
             ...enrollment,
@@ -1157,7 +1084,6 @@ const DashboardPage = () => {
           // Get classId
           const classId = enrollment.classId || enrollment.classDocId;
           if (!classId) {
-            console.warn('⚠️ [Enrollments] No classId in enrollment:', enrollment.id || enrollment.docId);
             return enriched;
           }
           
@@ -1168,14 +1094,12 @@ const DashboardPage = () => {
           });
           
           if (!classItem) {
-            console.warn('⚠️ [Enrollments] Class not found:', classId);
             return enriched;
           }
           
           // Get subjectId from class
           const subjectId = classItem.subjectId || enrollment.subjectId;
           if (!subjectId) {
-            console.warn('⚠️ [Enrollments] No subjectId in class:', classId);
             return enriched;
           }
           
@@ -1206,7 +1130,6 @@ const DashboardPage = () => {
           return enriched;
         }));
         
-        console.log('✅ [Enrollments] Enrichment complete. Sample:', enrichedEnrollments[0]);
         setEnrollments(enrichedEnrollments);
       }
       
@@ -1216,7 +1139,7 @@ const DashboardPage = () => {
       if (coursesRes.success) setCourses(coursesRes.data || []);
       if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -1297,7 +1220,7 @@ const DashboardPage = () => {
             activityType: activityForm.type,
             classId: activityForm.classId
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { }
         
         // Handle email notifications if checked
         if (!editingActivity && emailOptions.sendEmail) {
@@ -1327,8 +1250,7 @@ const DashboardPage = () => {
               );
             }
           } catch (e) {
-            console.warn('Activity notification failed', e);
-          }
+            }
         }
 
         await loadData();
@@ -1342,7 +1264,7 @@ const DashboardPage = () => {
         toast?.showError('Error: ' + result.error);
       }
     } catch (error) {
-      console.error('Error saving activity:', error);
+      logger.error('Error saving activity:', error);
       toast?.showError('Error saving activity: ' + error.message);
     } finally {
       setLoading(false);
@@ -1426,7 +1348,7 @@ const DashboardPage = () => {
         toast?.showError('Failed to send email: ' + sendResult.error);
       }
     } catch (error) {
-      console.error('Error sending email:', error);
+      logger.error('Error sending email:', error);
       toast?.showError('Error sending email notification');
     }
   };
@@ -1464,7 +1386,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         toast?.showError('Failed to create announcement');
       }
     } catch (error) {
-      console.error('Error creating announcement:', error);
+      logger.error('Error creating announcement:', error);
       toast?.showError('Error creating announcement');
     }
   };
@@ -1488,7 +1410,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             subjectId: announcementForm.subjectId,
             classId: announcementForm.classId
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { }
         
         // Legacy log (keep for backward compatibility)
         if (!editingAnnouncement) {
@@ -1508,7 +1430,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 classId: announcementForm.classId
               }
             });
-          } catch (e) { console.warn('Failed to log announcement:', e); }
+          } catch (e) { }
         }
         // Send notifications only for new announcements
         if (!editingAnnouncement) {
@@ -1516,7 +1438,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           let notificationSent = false;
 
           if (classId) {
-            console.log(`Sending notification to class: ${classId}`);
             await notifyUsersByClass(
               classId,
               `📢 ${announcementForm.title}`,
@@ -1529,19 +1450,16 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           /*
           else if (subjectId) {
             // Placeholder for future implementation
-            console.log(`Sending notification to subject: ${subjectId}`);
             await notifyUsersBySubject(subjectId, `📢 ${announcementForm.title}`, announcementForm.content, 'announcement');
             notificationSent = true;
           } else if (programId) {
             // Placeholder for future implementation
-            console.log(`Sending notification to program: ${programId}`);
             await notifyUsersByProgram(programId, `📢 ${announcementForm.title}`, announcementForm.content, 'announcement');
             notificationSent = true;
           }
           */
 
           if (!notificationSent) {
-            console.log('Sending global notification');
             await notifyAllUsers(
               `📢 ${announcementForm.title}`,
               announcementForm.content,
@@ -1576,7 +1494,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 type: 'announcement'
               });
               if (!sendRes.success) {
-                console.warn('Announcement email failed:', sendRes.error);
                 toast?.showError('Announcement created, but email failed: ' + sendRes.error);
               } else {
                 toast?.showSuccess(`Email sent to ${recipients.length} recipients.`);
@@ -1599,7 +1516,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         toast?.showError(`Error ${editingAnnouncement ? 'updating' : 'creating'} announcement: ` + result.error);
       }
     } catch (error) {
-      console.error('Error with announcement:', error);
+      logger.error('Error with announcement:', error);
       toast?.showError(`Error ${editingAnnouncement ? 'updating' : 'creating'} announcement: ` + error.message);
     } finally {
       setLoading(false);
@@ -1615,7 +1532,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         toast?.showError('Error updating allowlist: ' + result.error);
       }
     } catch (error) {
-      console.error('Error updating allowlist:', error);
+      logger.error('Error updating allowlist:', error);
     } finally {
       setLoading(false);
     }
@@ -2179,7 +2096,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           placeholder={t('all_programs')}
                           value={activityForm.programId}
                           onChange={(value) => {
-                            console.log('Program Select onChange:', value);
                             handleDropdownChange(
                               setActivityForm,
                               'programId',
@@ -2349,7 +2265,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           onChange={(e) => setActivityForm({ ...activityForm, url: e.target.value })}
                           required={activityForm.type !== 'quiz'}
                           error={formErrors.url}
-                          onOpen={(href) => console.debug('open activity url', href)}
+                          onOpen={(href) => window.open(href, '_blank')}
                           onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
                           onClear={() => setActivityForm({ ...activityForm, url: '' })}
                           fullWidth
@@ -2365,7 +2281,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         placeholder={t('image_url') || 'Image URL'}
                         value={activityForm.image}
                         onChange={(e) => setActivityForm({ ...activityForm, image: e.target.value })}
-                        onOpen={(href) => console.debug('open image url', href)}
+                        onOpen={(href) => window.open(href, '_blank')}
                         onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
                         onClear={() => setActivityForm({ ...activityForm, image: '' })}
                         fullWidth
@@ -2413,8 +2329,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           onChange={(e) => {
                             const selectedQuizId = e.target.value;
                             const selectedQuiz = quizzes.find(q => q.id === selectedQuizId);
-                            console.log('Quiz selected:', selectedQuizId, selectedQuiz);
-                            
                             if (selectedQuiz) {
                               const quizMaxScore = selectedQuiz.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 100;
                               const quizDifficulty = selectedQuiz.difficulty || 'beginner';
@@ -2856,7 +2770,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                       activityTitle: activity.title_en || activity.title,
                                       activityType: activity.type
                                     });
-                                  } catch (e) { console.warn('Failed to log activity:', e); }
+                                  } catch (e) { }
                                   toast?.showSuccess('Activity deleted successfully!');
                                   await loadData();
                                   setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
@@ -3191,7 +3105,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                       announcementId: announcement.docId,
                                       announcementTitle: announcement.title
                                     });
-                                  } catch (e) { console.warn('Failed to log activity:', e); }
+                                  } catch (e) { }
                                   toast?.showSuccess('Announcement deleted successfully!');
                                   await loadData();
                                   setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
@@ -3569,7 +3483,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         classCode: classForm.code,
                         subjectId: classForm.subjectId
                       });
-                    } catch (e) { console.warn('Failed to log activity:', e); }
+                    } catch (e) { }
                     await loadData();
                     setEditingClass(null);
                     setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
@@ -3618,7 +3532,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         value={ensureString(classForm.subjectId || '')}
                         onChange={e => {
                           const newSubjectId = ensureString(e.target.value);
-                          console.log('🔄 [Class Form] Subject changed:', newSubjectId);
                           setClassForm({ ...classForm, subjectId: newSubjectId });
                         }}
                         options={classFormSubjectOptions}
@@ -3857,7 +3770,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                       classId: classItem.docId,
                                       className: classItem.name
                                     });
-                                  } catch (e) { console.warn('Failed to log activity:', e); }
+                                  } catch (e) { }
                                   await loadData();
                                   toast?.showSuccess(`Class deleted successfully! Removed ${classEnrollments.length} enrollment(s) and related attendance records.`);
                                   setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
@@ -4024,7 +3937,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       classId: enrollmentForm.classId,
                       role: enrollmentForm.role
                     });
-                  } catch (e) { console.warn('Failed to log activity:', e); }
+                  } catch (e) { }
                   await loadData();
                   setEnrollmentForm({ userId: '', classId: '', role: 'student', programId: '', subjectId: '', year: '', term: '' });
                   toast?.showSuccess('Enrollment added successfully!');
@@ -4174,7 +4087,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   value={ensureString(enrollmentProgramFilter || 'all')}
                   onChange={(e) => {
                     const newValue = ensureString(e.target.value);
-                    console.log('🔄 [Enrollment Filter] Program changed:', newValue);
                     setEnrollmentProgramFilter(newValue);
                   }}
                   options={enrollmentFilterProgramOptions}
@@ -4186,7 +4098,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   value={ensureString(enrollmentSubjectFilter || 'all')}
                   onChange={(e) => {
                     const newValue = ensureString(e.target.value);
-                    console.log('🔄 [Enrollment Filter] Subject changed:', newValue);
                     setEnrollmentSubjectFilter(newValue);
                   }}
                   options={enrollmentFilterSubjectOptions}
@@ -4198,7 +4109,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   value={ensureString(enrollmentClassFilter || 'all')}
                   onChange={(e) => {
                     const newValue = ensureString(e.target.value);
-                    console.log('🔄 [Enrollment Filter] Class changed:', newValue);
                     setEnrollmentClassFilter(newValue);
                   }}
                   options={enrollmentFilterClassOptions}
@@ -4254,15 +4164,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                      (row.program && (row.program.name_en || row.program.name)) ||
                                      (row.programId && programs.find(p => (p.docId || p.id) === row.programId)?.name_en);
                     
-                    console.log('Program data:', {
-                      paramsValue: params.value,  // This is the value from the field
-                      row: row,
-                      programName: row.programName,
-                      program: row.program,
-                      programId: row.programId,
-                      foundProgram: row.programId && programs.find(p => (p.docId || p.id) === row.programId),
-                      finalValue: programName || 'N/A'
-                    });
+                    return programName || params.value || 'N/A';
                     
                     return programName || params.value || 'N/A';
                   },
@@ -4300,15 +4202,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                      (row.subject && (row.subject.name_en || row.subject.name)) ||
                                      (row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
                     
-                    console.log('Subject data:', {
-                      paramsValue: params.value,  // This is the value from the field
-                      row: row,
-                      subjectName: row.subjectName,
-                      subject: row.subject,
-                      subjectId: row.subjectId,
-                      foundSubject: row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId),
-                      finalValue: subjectName || 'N/A'
-                    });
+                    return subjectName || params.value || 'N/A';
                     
                     return subjectName || params.value || 'N/A';
                   },
@@ -4395,7 +4289,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                     userId: enrollment.userId,
                                     classId: enrollment.classId
                                   });
-                                } catch (e) { console.warn('Failed to log activity:', e); }
+                                } catch (e) { }
                                 await loadData();
                                 toast?.showSuccess('Enrollment removed successfully!');
                                 setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
@@ -4746,7 +4640,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       userDisplayName: userForm.displayName,
                       userRole: userForm.role
                     });
-                  } catch (e) { console.warn('Failed to log activity:', e); }
+                  } catch (e) { }
                   toast?.showSuccess('User updated successfully!');
                 } else {
                   // Add to allowlist if checkbox is checked
@@ -5054,7 +4948,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             await sendPasswordResetEmail(auth, params.row.email);
                             toast?.showSuccess(`Password reset email sent to ${params.row.email}`);
                           } catch (error) {
-                            console.error('Error:', error);
+                            logger.error('Error:', error);
                             toast?.showError('Failed: ' + error.message);
                           }
                         }}
@@ -5084,14 +4978,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                   userEmail: params.row.email,
                                   action: isCurrentlyDisabled ? 'enabled' : 'disabled'
                                 });
-                              } catch (e) { console.warn('Failed to log activity:', e); }
+                              } catch (e) { }
                               toast?.showSuccess(`User ${isCurrentlyDisabled ? 'enabled' : 'disabled'} successfully!`);
                               await loadData();
                             } else {
                               toast?.showError(result.error || 'Failed to update user');
                             }
                           } catch (error) {
-                            console.error('Error:', error);
+                            logger.error('Error:', error);
                             toast?.showError('Failed: ' + error.message);
                           }
                         }}
@@ -5189,7 +5083,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       resourceTitle: resourceForm.title,
                       resourceType: resourceForm.type
                     });
-                  } catch (e) { console.warn('Failed to log activity:', e); }
+                  } catch (e) { }
 
                   // Send email notification if requested (only for new resources)
                   if (!editingResource && resourceEmailOptions.sendEmail) {
@@ -5229,12 +5123,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           type: 'resource'
                         });
                         if (emailResult.success) {
-                          console.log(`Resource notification email sent to ${recipients.length} recipients`);
-                        }
+                          }
                       }
                     } catch (emailError) {
-                      console.warn('Failed to send resource email:', emailError);
-                    }
+                      }
                   }
 
                   // Create announcement if requested (only for new resources)
@@ -5253,8 +5145,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                       const addAnnouncement = (await import('../firebase/firestore')).addAnnouncement;
                       await addAnnouncement(announcementData);
-                      console.log('Resource announcement created successfully');
-                      
                       // Send notifications based on scope
                       try {
                         if (resourceData.classId) {
@@ -5272,11 +5162,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           );
                         }
                       } catch (notifErr) {
-                        console.warn('Failed to send bell notification for resource:', notifErr);
-                      }
+                        }
                     } catch (announcementError) {
-                      console.warn('Failed to create resource announcement:', announcementError);
-                    }
+                      }
                   }
 
                   // If no announcement requested, still send bell notification for visibility
@@ -5297,8 +5185,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         );
                       }
                     } catch (notifErr) {
-                      console.warn('Failed to send bell notification for resource:', notifErr);
-                    }
+                      }
                   }
 
                   await loadData();
@@ -5406,7 +5293,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       value={resourceForm.url}
                       onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
                       required
-                      onOpen={(href) => console.debug('open resource url', href)}
+                      onOpen={(href) => window.open(href, '_blank')}
                       onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
                       onClear={() => setResourceForm({ ...resourceForm, url: '' })}
                       fullWidth
@@ -5648,7 +5535,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                       resourceTitle: resource.title,
                                       resourceType: resource.type
                                     });
-                                  } catch (e) { console.warn('Failed to log activity:', e); }
+                                  } catch (e) { }
                                   toast?.showSuccess('Resource deleted successfully!');
                                   await loadData();
                                   setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
@@ -5993,12 +5880,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         onClose={() => setSmartComposerOpen(false)}
         onSend={async ({ to, subject, htmlBody, type }) => {
           try {
-            console.log('📧 Newsletter Send - Starting...');
-            console.log('Recipients:', to);
-            console.log('Subject:', subject);
-            console.log('Type:', type || 'newsletter');
-            console.log('HTML Body length:', htmlBody?.length);
-
             // Ensure to is an array
             const recipients = Array.isArray(to) ? to : [to];
 
@@ -6007,15 +5888,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               throw new Error('No recipients specified');
             }
 
-            console.log('Calling sendEmail function...');
             const result = await sendEmail({
               to: recipients,
               subject: subject || 'Newsletter',
               html: htmlBody || '<p>No content</p>',
               type: type || 'newsletter'
             });
-
-            console.log('📧 Send result:', result);
 
             // Log the email attempt
             await addEmailLog({
@@ -6028,15 +5906,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             });
 
             if (!result.success) {
-              console.error('❌ Error sending email:', result.error);
+              logger.error('❌ Error sending email:', result.error);
               throw new Error(result.error || 'Failed to send email');
             }
 
-            console.log('✅ Email sent successfully!');
             // refresh logs list if we're on the tab
             loadData();
           } catch (error) {
-            console.error('❌ Exception in onSend:', error);
+            logger.error('❌ Exception in onSend:', error);
             throw error;
           }
         }}
@@ -6073,7 +5950,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     toast?.showError('Can only update password for currently logged-in user');
                   }
                 } catch (error) {
-                  console.error('Error updating password:', error);
+                  logger.error('Error updating password:', error);
                   toast?.showError('Failed to update password: ' + error.message);
                 }
               }} className="dashboard-form">
@@ -6145,7 +6022,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     userDisplayName: user.displayName,
                     archived: true
                   });
-                } catch (e) { console.warn('Failed to log activity:', e); }
+                } catch (e) { }
                 toast?.showSuccess(`✅ User archived successfully!`);
                 await loadData();
               } else {
@@ -6175,7 +6052,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     userDisplayName: user.displayName,
                     totalRecordsRemoved: totalRecords
                   });
-                } catch (e) { console.warn('Failed to log activity:', e); }
+                } catch (e) { }
                 toast?.showSuccess(`✅ User deleted successfully! Removed ${totalRecords} related records.`);
                 await loadData();
               } else {
@@ -6183,7 +6060,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               }
             }
           } catch (error) {
-            console.error('Error deleting/archiving user:', error);
+            logger.error('Error deleting/archiving user:', error);
             toast?.showError('Failed to ' + (archiveUser ? 'archive' : 'delete') + ' user: ' + error.message);
             throw error;
           }

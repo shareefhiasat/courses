@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { Edit, Trash, MessageSquare, Bed, Users, Smartphone, AlertTriangle, Clock, XCircle, HelpCircle } from 'lucide-react';
+import { Edit, Trash, MessageSquare, Bed, Users, Smartphone, AlertTriangle, Clock, XCircle, HelpCircle, User, AlertCircle, Crown, Shield, BookOpen } from 'lucide-react';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid } from '../components/ui';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { getPrograms, getSubjects } from '../firebase/programs';
@@ -23,6 +24,31 @@ const BEHAVIOR_TYPES = [
   { id: 'inappropriate_language', label_ar: 'لغة غير لائقة', label_en: 'Inappropriate Language', icon: <XCircle size={16} color="#374151" /> },
   { id: 'other', label_ar: 'أخرى', label_en: 'Other', icon: <HelpCircle size={16} color="#374151" /> }
 ];
+
+// Function to get student status icon
+const getStudentStatusIcon = (student) => {
+  if (student.archived) {
+    return <AlertCircle size={16} color="#dc2626" />;
+  }
+  if (student.deleted) {
+    return <AlertCircle size={16} color="#dc2626" />;
+  }
+  
+  // Role-based icons
+  const role = student.role?.toLowerCase();
+  switch(role) {
+    case 'superadmin':
+      return <Crown size={16} color="#f59e0b" />;
+    case 'admin':
+      return <Shield size={16} color="#4f46e5" />;
+    case 'instructor':
+      return <BookOpen size={16} color="#0ea5e9" />;
+    case 'student':
+      return <User size={16} color="#16a34a" />;
+    default:
+      return <User size={16} color="#6b7280" />;
+  }
+};
 
 const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
@@ -57,7 +83,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     // Log page view
     try {
       logActivity(ACTIVITY_TYPES.BEHAVIOR_VIEWED, {});
-    } catch (e) { console.warn('Failed to log activity:', e); }
+    } catch (e) { }
   }, [isInstructor, isAdmin, isSuperAdmin]);
 
   useEffect(() => {
@@ -93,7 +119,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         );
         setStudents(studentsData.filter(Boolean));
       } catch (err) {
-        console.error('Failed to load students:', err);
+        logger.error('Failed to load students:', err);
       }
     })();
   }, [formData.classId]);
@@ -109,7 +135,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      logger.error('Failed to load data:', error);
     }
   };
 
@@ -120,7 +146,6 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       let data = snap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
       
       // Enrich with student, class, subject info
-      console.log('🔍 Starting enrichment for', data.length, 'behaviors');
       const enriched = await Promise.all(data.map(async (behavior, idx) => {
         // Create a new object to avoid mutation issues, ensuring id and docId are preserved
         const enrichedBehavior = { 
@@ -128,12 +153,6 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           id: behavior.id || behavior.docId,
           docId: behavior.docId || behavior.id
         };
-        console.log(`🔍 [${idx}] Enriching behavior:`, enrichedBehavior.id || enrichedBehavior.docId, {
-          studentId: enrichedBehavior.studentId,
-          classId: enrichedBehavior.classId,
-          subjectId: enrichedBehavior.subjectId
-        });
-        
         try {
           // Initialize with N/A as fallback
           enrichedBehavior.studentName = 'N/A';
@@ -142,27 +161,20 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           
           if (enrichedBehavior.studentId) {
             try {
-              console.log(`🔍 [${idx}] Loading student:`, enrichedBehavior.studentId);
               const studentDoc = await getDoc(doc(db, 'users', enrichedBehavior.studentId));
               if (studentDoc.exists()) {
                 const studentData = studentDoc.data();
                 enrichedBehavior.studentName = studentData.displayName || studentData.email || 'N/A';
                 enrichedBehavior.studentEmail = studentData.email;
-                console.log('✅ Behavior - Loaded student:', enrichedBehavior.studentId, '→', enrichedBehavior.studentName);
-                console.log(`✅ [${idx}] Final studentName:`, enrichedBehavior.studentName);
-              } else {
-                console.warn('⚠️ Behavior - Student not found:', enrichedBehavior.studentId);
-              }
+                } else {
+                }
             } catch (err) {
-              console.warn('Failed to load student:', enrichedBehavior.studentId, err);
-            }
+              }
           } else {
-            console.warn('⚠️ Behavior - No studentId:', enrichedBehavior.id || enrichedBehavior.docId);
-          }
+            }
           
           if (enrichedBehavior.classId) {
             try {
-              console.log(`🔍 [${idx}] Loading class:`, enrichedBehavior.classId);
               const classDoc = await getDoc(doc(db, 'classes', enrichedBehavior.classId));
               if (classDoc.exists()) {
                 const classData = classDoc.data();
@@ -171,47 +183,28 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                 // If subjectId is missing, try to get it from class
                 if (!enrichedBehavior.subjectId && classData.subjectId) {
                   enrichedBehavior.subjectId = classData.subjectId;
-                  console.log(`🔍 [${idx}] Got subjectId from class:`, classData.subjectId);
+                  }
+                } else {
                 }
-                console.log('✅ Behavior - Loaded class:', enrichedBehavior.classId, '→', enrichedBehavior.className);
-                console.log(`✅ [${idx}] Final className:`, enrichedBehavior.className);
-              } else {
-                console.warn('⚠️ Behavior - Class not found:', enrichedBehavior.classId);
-              }
             } catch (err) {
-              console.warn('Failed to load class:', enrichedBehavior.classId, err);
-            }
+              }
           } else {
-            console.warn('⚠️ Behavior - No classId:', enrichedBehavior.id || enrichedBehavior.docId);
-          }
+            }
           
           // Load subject from behavior or class
           const subjectIdToLoad = enrichedBehavior.subjectId;
           if (subjectIdToLoad) {
             try {
-              console.log(`🔍 [${idx}] Loading subject:`, subjectIdToLoad);
               const subjectDoc = await getDoc(doc(db, 'subjects', subjectIdToLoad));
               if (subjectDoc.exists()) {
                 const subjectData = subjectDoc.data();
                 enrichedBehavior.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-                console.log('✅ Behavior - Loaded subject:', subjectIdToLoad, '→', enrichedBehavior.subjectName);
-                console.log(`✅ [${idx}] Final subjectName:`, enrichedBehavior.subjectName);
-              } else {
-                console.warn('⚠️ Behavior - Subject not found:', subjectIdToLoad);
-              }
+                } else {
+                }
             } catch (err) {
-              console.warn('Failed to load subject:', subjectIdToLoad, err);
-            }
+              }
           } else {
-            console.warn('⚠️ Behavior - No subjectId:', enrichedBehavior.id || enrichedBehavior.docId);
-          }
-          
-          console.log(`✅ [${idx}] Final enriched behavior:`, {
-            id: enrichedBehavior.id || enrichedBehavior.docId,
-            studentName: enrichedBehavior.studentName,
-            className: enrichedBehavior.className,
-            subjectName: enrichedBehavior.subjectName
-          });
+            }
           
           if (enrichedBehavior.createdBy) {
             try {
@@ -221,16 +214,14 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                 enrichedBehavior.instructorName = instructorData.displayName || instructorData.email;
               }
             } catch (err) {
-              console.warn('Failed to load instructor:', err);
-            }
+              }
           }
         } catch (err) {
-          console.error('Failed to enrich behavior:', enrichedBehavior.id || enrichedBehavior.docId, err);
+          logger.error('Failed to enrich behavior:', enrichedBehavior.id || enrichedBehavior.docId, err);
         }
         return enrichedBehavior;
       }));
       
-      console.log('✅ Enrichment complete. Sample enriched data:', enriched.slice(0, 2));
       
       // Apply filters (same logic as participations)
       let filtered = enriched;
@@ -267,18 +258,10 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         filtered = filtered.filter(b => b.type === typeFilter);
       }
       
-      console.log('✅ Setting behaviors state with', filtered.length, 'items');
-      console.log('✅ Sample behavior data:', filtered[0] ? {
-        id: filtered[0].id,
-        studentName: filtered[0].studentName,
-        className: filtered[0].className,
-        subjectName: filtered[0].subjectName,
-        fullRow: filtered[0]
-      } : 'No data');
       // Create a new array to ensure React detects the change
       setBehaviors([...filtered]);
     } catch (error) {
-      console.error('Failed to load behaviors:', error);
+      logger.error('Failed to load behaviors:', error);
       toast.error('Failed to load behaviors: ' + error.message);
     } finally {
       setLoading(false);
@@ -328,7 +311,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             subjectId: subjectId,
             type: formData.type
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { }
         toast.success('Behavior updated successfully');
       } else {
         const docRef = await addDoc(collection(db, 'behaviors'), behaviorData);
@@ -342,7 +325,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             subjectId: subjectId,
             type: formData.type
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { }
         
         // Send notification to student
         const behaviorType = BEHAVIOR_TYPES.find(bt => bt.id === formData.type) || { label_en: formData.type };
@@ -367,7 +350,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       resetForm();
       loadBehaviors();
     } catch (error) {
-      console.error('Failed to save behavior:', error);
+      logger.error('Failed to save behavior:', error);
       toast.error('Failed to save behavior: ' + error.message);
     } finally {
       setSaving(false);
@@ -404,7 +387,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           subjectId: deleteModal.item.subjectId,
           type: deleteModal.item.type
         });
-      } catch (e) { console.warn('Failed to log activity:', e); }
+      } catch (e) { }
       toast.success('Behavior deleted successfully');
       loadBehaviors();
     } catch (error) {
@@ -605,7 +588,8 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
               { value: '', label: 'Select Student' },
               ...students.map(s => ({
                 value: s.id,
-                label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`
+                label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`,
+                icon: getStudentStatusIcon(s)
               }))
             ]}
             placeholder="Student *"

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
@@ -64,7 +65,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     // Log page view
     try {
       logActivity(ACTIVITY_TYPES.PENALTY_VIEWED, {});
-    } catch (e) { console.warn('Failed to log activity:', e); }
+    } catch (e) { }
   }, [isHR, isAdmin, isSuperAdmin]);
 
   useEffect(() => {
@@ -100,7 +101,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         );
         setStudents(studentsData.filter(Boolean));
       } catch (err) {
-        console.error('Failed to load students:', err);
+        logger.error('Failed to load students:', err);
       }
     })();
   }, [formData.classId]);
@@ -116,7 +117,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      logger.error('Failed to load data:', error);
     }
   };
 
@@ -132,7 +133,6 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       let data = result.data || [];
 
       // Enrich with student, class, subject info
-      console.log('🔍 Starting enrichment for', data.length, 'penalties');
       const enriched = await Promise.all(data.map(async (penalty, idx) => {
         // Create a new object to avoid mutation issues, ensuring id and docId are preserved
         const enrichedPenalty = { 
@@ -140,12 +140,6 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           id: penalty.id || penalty.docId,
           docId: penalty.docId || penalty.id
         };
-        console.log(`🔍 [${idx}] Enriching penalty:`, enrichedPenalty.id || enrichedPenalty.docId, {
-          studentId: enrichedPenalty.studentId,
-          classId: enrichedPenalty.classId,
-          subjectId: enrichedPenalty.subjectId
-        });
-        
         try {
           // Initialize with N/A as fallback
           enrichedPenalty.studentName = 'N/A';
@@ -154,27 +148,20 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           
           if (enrichedPenalty.studentId) {
             try {
-              console.log(`🔍 [${idx}] Loading student:`, enrichedPenalty.studentId);
               const studentDoc = await getDoc(doc(db, 'users', enrichedPenalty.studentId));
               if (studentDoc.exists()) {
                 const studentData = studentDoc.data();
                 enrichedPenalty.studentName = studentData.displayName || studentData.email || 'N/A';
                 enrichedPenalty.studentEmail = studentData.email;
-                console.log('✅ Penalty - Loaded student:', enrichedPenalty.studentId, '→', enrichedPenalty.studentName);
-                console.log(`✅ [${idx}] Final studentName:`, enrichedPenalty.studentName);
-              } else {
-                console.warn('⚠️ Penalty - Student not found:', enrichedPenalty.studentId);
-              }
+                } else {
+                }
             } catch (err) {
-              console.warn('Failed to load student:', enrichedPenalty.studentId, err);
-            }
+              }
           } else {
-            console.warn('⚠️ Penalty - No studentId:', enrichedPenalty.id || enrichedPenalty.docId);
-          }
+            }
           
           if (enrichedPenalty.classId) {
             try {
-              console.log(`🔍 [${idx}] Loading class:`, enrichedPenalty.classId);
               const classDoc = await getDoc(doc(db, 'classes', enrichedPenalty.classId));
               if (classDoc.exists()) {
                 const classData = classDoc.data();
@@ -183,54 +170,35 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 // If subjectId is missing, try to get it from class
                 if (!enrichedPenalty.subjectId && classData.subjectId) {
                   enrichedPenalty.subjectId = classData.subjectId;
-                  console.log(`🔍 [${idx}] Got subjectId from class:`, classData.subjectId);
+                  }
+                } else {
                 }
-                console.log('✅ Penalty - Loaded class:', enrichedPenalty.classId, '→', enrichedPenalty.className);
-                console.log(`✅ [${idx}] Final className:`, enrichedPenalty.className);
-              } else {
-                console.warn('⚠️ Penalty - Class not found:', enrichedPenalty.classId);
-              }
             } catch (err) {
-              console.warn('Failed to load class:', enrichedPenalty.classId, err);
-            }
+              }
           } else {
-            console.warn('⚠️ Penalty - No classId:', enrichedPenalty.id || enrichedPenalty.docId);
-          }
+            }
           
           // Load subject from penalty or class
           const subjectIdToLoad = enrichedPenalty.subjectId;
           if (subjectIdToLoad) {
             try {
-              console.log(`🔍 [${idx}] Loading subject:`, subjectIdToLoad);
               const subjectDoc = await getDoc(doc(db, 'subjects', subjectIdToLoad));
               if (subjectDoc.exists()) {
                 const subjectData = subjectDoc.data();
                 enrichedPenalty.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-                console.log('✅ Penalty - Loaded subject:', subjectIdToLoad, '→', enrichedPenalty.subjectName);
-                console.log(`✅ [${idx}] Final subjectName:`, enrichedPenalty.subjectName);
-              } else {
-                console.warn('⚠️ Penalty - Subject not found:', subjectIdToLoad);
-              }
+                } else {
+                }
             } catch (err) {
-              console.warn('Failed to load subject:', subjectIdToLoad, err);
-            }
+              }
           } else {
-            console.warn('⚠️ Penalty - No subjectId:', enrichedPenalty.id || enrichedPenalty.docId);
-          }
+            }
           
-          console.log(`✅ [${idx}] Final enriched penalty:`, {
-            id: enrichedPenalty.id || enrichedPenalty.docId,
-            studentName: enrichedPenalty.studentName,
-            className: enrichedPenalty.className,
-            subjectName: enrichedPenalty.subjectName
-          });
-        } catch (err) {
-          console.error('Failed to enrich penalty:', enrichedPenalty.id || enrichedPenalty.docId, err);
+          } catch (err) {
+          logger.error('Failed to enrich penalty:', enrichedPenalty.id || enrichedPenalty.docId, err);
         }
         return enrichedPenalty;
       }));
       
-      console.log('✅ Enrichment complete. Sample enriched data:', enriched.slice(0, 2));
 
       // Apply filters
       let filtered = enriched;
@@ -267,18 +235,10 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         filtered = filtered.filter(p => p.type === typeFilter);
       }
 
-      console.log('✅ Setting penalties state with', filtered.length, 'items');
-      console.log('✅ Sample penalty data:', filtered[0] ? {
-        id: filtered[0].id,
-        studentName: filtered[0].studentName,
-        className: filtered[0].className,
-        subjectName: filtered[0].subjectName,
-        fullRow: filtered[0]
-      } : 'No data');
       // Create a new array to ensure React detects the change
       setPenalties([...filtered]);
     } catch (error) {
-      console.error('Failed to load penalties:', error);
+      logger.error('Failed to load penalties:', error);
       toast.error('Failed to load penalties: ' + error.message);
     } finally {
       setLoading(false);
@@ -335,7 +295,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               subjectId: penaltyData.subjectId,
               type: penaltyData.type
             });
-          } catch (e) { console.warn('Failed to log activity:', e); }
+          } catch (e) { }
         }
       } else {
         result = await createPenalty(penaltyData);
@@ -349,7 +309,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               subjectId: penaltyData.subjectId,
               type: penaltyData.type
             });
-          } catch (e) { console.warn('Failed to log activity:', e); }
+          } catch (e) { }
         }
       }
 
@@ -401,7 +361,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             subjectId: deleteModal.item.subjectId,
             type: deleteModal.item.type
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { }
         
         // Send withdrawal notification
         try {
@@ -413,8 +373,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             data: { penaltyId: deleteModal.item.id, action: 'withdrawn' }
           });
         } catch (notifError) {
-          console.warn('Failed to send withdrawal notification:', notifError);
-        }
+          }
         toast.success('Penalty deleted successfully');
         loadPenalties();
       } else {

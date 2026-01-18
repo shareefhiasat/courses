@@ -1,6 +1,7 @@
 .dashboard-page {
   min-height: 100vh;
   background: var(--bg);
+  overflow-x: hidden;
 }
 
 .dashboard-header {

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { Edit, Trash, MessageSquare, Award, FileText, Users, HelpCircle, Star } from 'lucide-react';
+import { Edit, Trash, MessageSquare, Award, FileText, Users, HelpCircle, Star, User, AlertCircle, Crown, Shield, BookOpen, GraduationCap } from 'lucide-react';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid } from '../components/ui';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { getPrograms, getSubjects } from '../firebase/programs';
@@ -23,6 +24,31 @@ const PARTICIPATION_TYPES = [
   { id: 'helped_classmate', label_ar: 'ساعد زميل', label_en: 'Helped Classmate', icon: <Users size={16} color="#374151" /> },
   { id: 'other', label_ar: 'أخرى', label_en: 'Other', icon: <Star size={16} color="#374151" /> }
 ];
+
+// Function to get student status icon
+const getStudentStatusIcon = (student) => {
+  if (student.archived) {
+    return <AlertCircle size={16} color="#dc2626" />;
+  }
+  if (student.deleted) {
+    return <AlertCircle size={16} color="#dc2626" />;
+  }
+  
+  // Role-based icons
+  const role = student.role?.toLowerCase();
+  switch(role) {
+    case 'superadmin':
+      return <Crown size={16} color="#f59e0b" />;
+    case 'admin':
+      return <Shield size={16} color="#4f46e5" />;
+    case 'instructor':
+      return <BookOpen size={16} color="#0ea5e9" />;
+    case 'student':
+      return <User size={16} color="#16a34a" />;
+    default:
+      return <User size={16} color="#6b7280" />;
+  }
+};
 
 const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
@@ -89,7 +115,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         );
         setStudents(studentsData.filter(Boolean));
       } catch (err) {
-        console.error('Failed to load students:', err);
+        logger.error('Failed to load students:', err);
       }
     })();
   }, [formData.classId]);
@@ -105,7 +131,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      logger.error('Failed to load data:', error);
     }
   };
 
@@ -116,7 +142,6 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       let data = snap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
       
       // Enrich with student, class, subject info
-      console.log('🔍 Starting enrichment for', data.length, 'participations');
       const enriched = await Promise.all(data.map(async (participation, idx) => {
         // Create a new object to avoid mutation issues, ensuring id and docId are preserved
         const enrichedParticipation = { 
@@ -124,12 +149,6 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           id: participation.id || participation.docId,
           docId: participation.docId || participation.id
         };
-        console.log(`🔍 [${idx}] Enriching participation:`, enrichedParticipation.id || enrichedParticipation.docId, {
-          studentId: enrichedParticipation.studentId,
-          classId: enrichedParticipation.classId,
-          subjectId: enrichedParticipation.subjectId
-        });
-        
         try {
           // Initialize with N/A as fallback
           enrichedParticipation.studentName = 'N/A';
@@ -138,27 +157,21 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           
           if (enrichedParticipation.studentId) {
             try {
-              console.log(`🔍 [${idx}] Loading student:`, enrichedParticipation.studentId);
               const studentDoc = await getDoc(doc(db, 'users', enrichedParticipation.studentId));
               if (studentDoc.exists()) {
                 const studentData = studentDoc.data();
                 enrichedParticipation.studentName = studentData.displayName || studentData.email || 'N/A';
                 enrichedParticipation.studentEmail = studentData.email;
-                console.log('✅ Participation - Loaded student:', enrichedParticipation.studentId, '→', enrichedParticipation.studentName);
-                console.log(`✅ [${idx}] Final studentName:`, enrichedParticipation.studentName);
-              } else {
-                console.warn('⚠️ Participation - Student not found:', enrichedParticipation.studentId);
-              }
+                } else {
+                }
             } catch (err) {
-              console.error('❌ Failed to load student:', enrichedParticipation.studentId, err);
+              logger.error('❌ Failed to load student:', enrichedParticipation.studentId, err);
             }
           } else {
-            console.warn('⚠️ Participation - No studentId:', enrichedParticipation.id || enrichedParticipation.docId);
-          }
+            }
           
           if (enrichedParticipation.classId) {
             try {
-              console.log(`🔍 [${idx}] Loading class:`, enrichedParticipation.classId);
               const classDoc = await getDoc(doc(db, 'classes', enrichedParticipation.classId));
               if (classDoc.exists()) {
                 const classData = classDoc.data();
@@ -167,49 +180,33 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                 // If subjectId is missing, try to get it from class
                 if (!enrichedParticipation.subjectId && classData.subjectId) {
                   enrichedParticipation.subjectId = classData.subjectId;
-                  console.log(`🔍 [${idx}] Got subjectId from class:`, classData.subjectId);
+                  }
+                } else {
                 }
-                console.log('✅ Participation - Loaded class:', enrichedParticipation.classId, '→', enrichedParticipation.className);
-                console.log(`✅ [${idx}] Final className:`, enrichedParticipation.className);
-              } else {
-                console.warn('⚠️ Participation - Class not found:', enrichedParticipation.classId);
-              }
             } catch (err) {
-              console.error('❌ Failed to load class:', enrichedParticipation.classId, err);
+              logger.error('❌ Failed to load class:', enrichedParticipation.classId, err);
             }
           } else {
-            console.warn('⚠️ Participation - No classId:', enrichedParticipation.id || enrichedParticipation.docId);
-          }
+            }
           
           // Load subject from participation or class
           const subjectIdToLoad = enrichedParticipation.subjectId;
           if (subjectIdToLoad) {
             try {
-              console.log(`🔍 [${idx}] Loading subject:`, subjectIdToLoad);
               const subjectDoc = await getDoc(doc(db, 'subjects', subjectIdToLoad));
               if (subjectDoc.exists()) {
                 const subjectData = subjectDoc.data();
                 enrichedParticipation.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-                console.log('✅ Participation - Loaded subject:', subjectIdToLoad, '→', enrichedParticipation.subjectName);
-                console.log(`✅ [${idx}] Final subjectName:`, enrichedParticipation.subjectName);
-              } else {
-                console.warn('⚠️ Participation - Subject not found:', subjectIdToLoad);
-              }
+                } else {
+                }
             } catch (err) {
-              console.error('❌ Failed to load subject:', subjectIdToLoad, err);
+              logger.error('❌ Failed to load subject:', subjectIdToLoad, err);
             }
           } else {
-            console.warn('⚠️ Participation - No subjectId:', enrichedParticipation.id || enrichedParticipation.docId);
-          }
+            }
           
-          console.log(`✅ [${idx}] Final enriched participation:`, {
-            id: enrichedParticipation.id || enrichedParticipation.docId,
-            studentName: enrichedParticipation.studentName,
-            className: enrichedParticipation.className,
-            subjectName: enrichedParticipation.subjectName
-          });
-        } catch (err) {
-          console.error('❌ Failed to enrich participation:', enrichedParticipation.id || enrichedParticipation.docId, err);
+          } catch (err) {
+          logger.error('❌ Failed to enrich participation:', enrichedParticipation.id || enrichedParticipation.docId, err);
         }
         
         try {
@@ -221,16 +218,14 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                 enrichedParticipation.instructorName = instructorData.displayName || instructorData.email;
               }
             } catch (err) {
-              console.warn('Failed to load instructor:', err);
-            }
+              }
           }
         } catch (err) {
-          console.error('❌ Failed to enrich participation:', enrichedParticipation.id || enrichedParticipation.docId, err);
+          logger.error('❌ Failed to enrich participation:', enrichedParticipation.id || enrichedParticipation.docId, err);
         }
         return enrichedParticipation;
       }));
       
-      console.log('✅ Enrichment complete. Sample enriched data:', enriched.slice(0, 2));
       
       // Apply filters
       let filtered = enriched;
@@ -267,18 +262,10 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         filtered = filtered.filter(p => p.type === typeFilter);
       }
       
-      console.log('✅ Setting participations state with', filtered.length, 'items');
-      console.log('✅ Sample participation data:', filtered[0] ? {
-        id: filtered[0].id,
-        studentName: filtered[0].studentName,
-        className: filtered[0].className,
-        subjectName: filtered[0].subjectName,
-        fullRow: filtered[0]
-      } : 'No data');
       // Create a new array to ensure React detects the change
       setParticipations([...filtered]);
     } catch (error) {
-      console.error('Failed to load participations:', error);
+      logger.error('Failed to load participations:', error);
       toast.error('Failed to load participations: ' + error.message);
     } finally {
       setLoading(false);
@@ -328,7 +315,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             subjectId: subjectId,
             type: formData.type
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { }
         toast.success('Participation updated successfully');
       } else {
         const docRef = await addDoc(collection(db, 'participations'), participationData);
@@ -342,7 +329,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             subjectId: subjectId,
             type: formData.type
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { }
         
         // Send notification to student (with error handling)
         try {
@@ -362,7 +349,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           });
         } catch (notifError) {
           // Notification is optional - log but don't fail the operation
-          console.warn('Failed to send notification (non-critical):', notifError);
+            // Notification is optional - log but don't fail the operation
         }
         toast.success('Participation created successfully');
       }
@@ -371,7 +358,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       resetForm();
       loadParticipations();
     } catch (error) {
-      console.error('Failed to save participation:', error);
+      logger.error('Failed to save participation:', error);
       toast.error('Failed to save participation: ' + error.message);
     } finally {
       setSaving(false);
@@ -408,7 +395,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           subjectId: deleteModal.item.subjectId,
           type: deleteModal.item.type
         });
-      } catch (e) { console.warn('Failed to log activity:', e); }
+      } catch (e) { }
       toast.success('Participation deleted successfully');
       loadParticipations();
     } catch (error) {
@@ -612,7 +599,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
               { value: '', label: 'Select Student' },
               ...students.map(s => ({
                 value: s.id,
-                label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`
+                label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`,
+                icon: getStudentStatusIcon(s)
               }))
             ]}
             placeholder="Student *"

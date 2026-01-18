@@ -403,12 +403,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/?mode=resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
       ]
     },
-    communication: {
-      label: 'COMMUNICATION',
-      items: [
-        { path: '/scheduled-reports', icon: <Calendar size={18} />, label: 'Scheduled Reports' },
-      ]
-    },
     tools: {
       label: 'TOOLS',
       items: [
@@ -574,7 +568,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
               borderLeft: lang==='ar' ? (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)') : 'none',
               color: theme === 'light' ? '#0f172a' : 'white',
               zIndex: stickyMode ? 100 : 9999,
-              top: stickyMode ? 0 : 0,
               display: 'flex',
               flexDirection: 'column',
               boxShadow: stickyMode ? 'none' : '2px 0 10px rgba(0, 0, 0, 0.1)',

@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { formatDateTime } from '../utils/date';
 import './SmartGrid.css';
 import { Modal, useToast } from './ui';
 import { useLang } from '../contexts/LangContext';
+import logger from '../utils/logger';
+import VirtualScroll from './ui/VirtualScroll/VirtualScroll';
 
-const SmartGrid = ({ 
+const SmartGrid = React.memo(({ 
   data = [], 
   columns = [], 
   onEdit, 
@@ -116,13 +118,14 @@ const SmartGrid = ({
 
   const totalPages = Math.ceil(sortedData.length / pageSize);
 
-  const handleSort = (field) => {
+  const handleSort = useCallback((field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
+      setSortField(field);
       setSortDirection('asc');
     }
-  };
+  }, [sortField, sortDirection]);
 
   const canDeleteItem = validateDelete || null;
 
@@ -386,6 +389,6 @@ const SmartGrid = ({
       </Modal>
     </div>
   );
-};
+});
 
 export default SmartGrid;

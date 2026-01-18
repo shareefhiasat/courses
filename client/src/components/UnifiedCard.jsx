@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Button } from './ui';
 import { Play, Info, BookOpen, ClipboardList, HelpCircle, Award, Clock, Repeat, CheckCircle, Star, StarOff, Check, AlertCircle, Link2, Video, FileText, Plus, Pin, Calendar } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
@@ -20,7 +20,7 @@ import { useTheme } from '../contexts/ThemeContext';
  * @param {string} props.lang - Language ('en' | 'ar')
  * @param {Object} props.t - Translation function
  */
-export default function UnifiedCard({ 
+const UnifiedCard = memo(({ 
   flavor = 'activity', 
   item, 
   onStart, 
@@ -35,7 +35,7 @@ export default function UnifiedCard({
   t = (key) => key,
   isMinified = false,
   primaryColor = '#800020'
-}) {
+}) => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const getTitle = () => {
@@ -502,4 +502,6 @@ export default function UnifiedCard({
       </div>
     </div>
   );
-}
+});
+
+export default UnifiedCard;

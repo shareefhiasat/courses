@@ -34,7 +34,7 @@ import { getStudentMarks } from '../firebase/grading';
 import { getSubjects, getPrograms } from '../firebase/programs';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import styles from './StudentDashboardPage_NEW.module.css';
+import styles from './StudentDashboardPage.module.css';
 
 // Participation and Behavior Types
 const PARTICIPATION_TYPES = [

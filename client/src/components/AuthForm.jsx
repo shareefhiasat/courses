@@ -11,6 +11,7 @@ import { useToast } from '../components/ToastProvider';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { Moon, Sun, Globe } from 'lucide-react';
 import ToggleSwitch from './ToggleSwitch';
+import { usePostHog } from 'posthog-js/react';
 import './AuthForm.css';
 
 // Helper function to translate Firebase errors to user-friendly messages
@@ -79,6 +80,7 @@ const AuthForm = () => {
   const { primaryColor } = useColorTheme();
   const toast = useToast();
   const showSuccess = toast?.showSuccess;
+  const posthog = usePostHog();
 
   const tr = (key, fallbackEn, fallbackAr) => {
     if (typeof t === 'function') {
@@ -121,6 +123,19 @@ const AuthForm = () => {
     setError('');
     setMessage('');
 
+    // Track form submission start
+    console.log('🔍 PostHog - Form submission started:', {
+      mode,
+      email: email.substring(0, 5) + '...',
+      timestamp: new Date().toISOString()
+    });
+    
+    posthog.capture('auth_form_submitted', {
+      auth_mode: mode,
+      email: email.substring(0, 5) + '...',
+      timestamp: new Date().toISOString()
+    });
+
     // Custom validation for browser messages
     const form = e.target;
     const emailInput = form.querySelector('input[type="email"]');
@@ -146,6 +161,14 @@ const AuthForm = () => {
     if (!form.checkValidity()) {
       form.reportValidity();
       setLoading(false);
+      
+      // Track validation error
+      posthog.capture('auth_form_validation_error', {
+        auth_mode: mode,
+        email: email.substring(0, 5) + '...',
+        timestamp: new Date().toISOString()
+      });
+      
       return;
     }
 
@@ -153,8 +176,30 @@ const AuthForm = () => {
       if (mode === 'reset') {
         const result = await resetPassword(email);
         if (result.success) {
+          console.log('🔍 PostHog - Password reset successful:', {
+            email: email.substring(0, 5) + '...',
+            timestamp: new Date().toISOString()
+          });
+          
+          posthog.capture('password_reset_success', {
+            email: email.substring(0, 5) + '...',
+            timestamp: new Date().toISOString()
+          });
+          
           setMessage(tr('reset_email_sent', 'Password reset email sent! Check your inbox.', 'تم إرسال بريد إعادة التعيين! تحقق من صندوقك.'));
         } else {
+          console.log('🔍 PostHog - Password reset failed:', {
+            email: email.substring(0, 5) + '...',
+            error: result.error,
+            timestamp: new Date().toISOString()
+          });
+          
+          posthog.capture('password_reset_failed', {
+            email: email.substring(0, 5) + '...',
+            error: result.error,
+            timestamp: new Date().toISOString()
+          });
+          
           setError(getFirebaseErrorMessage(result.error, t));
         }
       } else if (mode === 'signup') {
@@ -196,6 +241,18 @@ const AuthForm = () => {
         
         const result = await signUp(email, password, displayName);
         if (result.success) {
+          console.log('🔍 PostHog - Sign up successful:', {
+            email: email.substring(0, 5) + '...',
+            displayName: displayName || 'N/A',
+            timestamp: new Date().toISOString()
+          });
+          
+          posthog.capture('sign_up_success', {
+            email: email.substring(0, 5) + '...',
+            display_name: displayName || 'N/A',
+            timestamp: new Date().toISOString()
+          });
+          
           try {
             // Persist profile fields immediately
             await setDoc(doc(db, 'users', result.user.uid), {
@@ -236,11 +293,48 @@ const AuthForm = () => {
           setMessage(tr('signup_success', '✅ Account created successfully! Redirecting...', '✅ تم إنشاء الحساب بنجاح! سيتم التحويل...'));
           setTimeout(() => navigate('/'), 1500);
         } else {
+          console.log('🔍 PostHog - Sign up failed:', {
+            email: email.substring(0, 5) + '...',
+            error: result.error,
+            timestamp: new Date().toISOString()
+          });
+          
+          posthog.capture('sign_up_failed', {
+            email: email.substring(0, 5) + '...',
+            error: result.error,
+            timestamp: new Date().toISOString()
+          });
+          
           setError(getFirebaseErrorMessage(result.error, t));
         }
       } else {
+        // Login mode
+        console.log('🔍 PostHog - Login attempt:', {
+          email: email.substring(0, 5) + '...',
+          rememberMe,
+          timestamp: new Date().toISOString()
+        });
+        
         const result = await signIn(email, password);
         if (result.success) {
+          console.log('🔍 PostHog - Login successful:', {
+            email: email.substring(0, 5) + '...',
+            userId: result.user.uid,
+            timestamp: new Date().toISOString()
+          });
+          
+          posthog.capture('login_success', {
+            email: email.substring(0, 5) + '...',
+            user_id: result.user.uid,
+            remember_me: rememberMe,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Identify user in PostHog
+          posthog.identify(result.user.uid, {
+            email: email,
+            display_name: result.user.displayName || email.split('@')[0]
+          });
           // Set remember me cookie if checked
           if (rememberMe) {
             const expiryDate = new Date();
@@ -254,11 +348,37 @@ const AuthForm = () => {
           }
           setTimeout(() => navigate('/'), 1000);
         } else {
+          console.log('🔍 PostHog - Login failed:', {
+            email: email.substring(0, 5) + '...',
+            error: result.error,
+            timestamp: new Date().toISOString()
+          });
+          
+          posthog.capture('login_failed', {
+            email: email.substring(0, 5) + '...',
+            error: result.error,
+            timestamp: new Date().toISOString()
+          });
+          
           setError(getFirebaseErrorMessage(result.error, t));
         }
       }
     } catch (err) {
       console.error('Auth error:', err);
+      console.log('🔍 PostHog - Auth error:', {
+        mode,
+        email: email.substring(0, 5) + '...',
+        error: err.message || err,
+        timestamp: new Date().toISOString()
+      });
+      
+      posthog.capture('auth_error', {
+        auth_mode: mode,
+        email: email.substring(0, 5) + '...',
+        error: err.message || err,
+        timestamp: new Date().toISOString()
+      });
+      
       setError(getFirebaseErrorMessage(err.message || err, t));
     } finally {
       setLoading(false);
@@ -428,6 +548,19 @@ const AuthForm = () => {
             type="submit" 
             className="auth-button"
             disabled={loading}
+            onClick={() => {
+              console.log('🔍 PostHog - Auth button clicked:', {
+                mode,
+                email: email.substring(0, 5) + '...',
+                timestamp: new Date().toISOString()
+              });
+              
+              posthog.capture('auth_button_clicked', {
+                auth_mode: mode,
+                email: email.substring(0, 5) + '...',
+                timestamp: new Date().toISOString()
+              });
+            }}
             style={{
               background: loading ? '#ccc' : `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`,
               cursor: loading ? 'not-allowed' : 'pointer'

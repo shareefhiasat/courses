@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LangProvider } from './contexts/LangContext';
 import Navbar from './components/Navbar';
@@ -7,13 +7,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ColorThemeProvider } from './contexts/ColorThemeContext';
 import HomePage from './pages/HomePage';
-import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
-// ProgressPage import removed: unused
 import ChatPage from './pages/ChatPage';
 import { HelpProvider } from './contexts/HelpContext';
 import HelpDrawer from './components/HelpDrawer';
-// ActivitiesPage, ResourcesPage, QuizResultsPage - DEPRECATED (unified in HomePage)
 import ActivityDetailPage from './pages/ActivityDetailPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
 import NotificationsPage from './pages/NotificationsPage';
@@ -31,7 +28,7 @@ import ClassSchedulePage from './pages/ClassSchedulePage';
 import MigrationPage from './pages/MigrationPage';
 import ManageEnrollmentsPage from './pages/ManageEnrollmentsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
-import AdvancedAnalytics from './components/AdvancedAnalytics';
+import analytics from './utils/analytics.js';
 import RoleAccessPro from './pages/RoleAccessPro';
 import StudentProfilePage from './pages/StudentProfilePage';
 import StudentDashboardPage from './pages/StudentDashboardPage';
@@ -42,24 +39,59 @@ import MyEnrollmentsPage from './pages/MyEnrollmentsPage';
 import StudentQuizPage from './pages/StudentQuizPage';
 import QuestionBankPage from './pages/QuestionBankPage';
 import QuizResultsPage from './pages/QuizResultsPage';
+import PostHogTestPage from './pages/PostHogTestPage';
 import ReviewResultsPage from './pages/ReviewResultsPage';
 import ProgramsManagementPage from './pages/ProgramsManagementPage';
 import SubjectsManagementPage from './pages/SubjectsManagementPage';
-import MarksEntryPage from './pages/MarksEntryPage';
 import ScheduledReportsPage from './pages/ScheduledReportsPage';
+import FancyLoading from './components/ui/FancyLoading/FancyLoading';
+
+// Lazy loaded heavy components
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
+const MarksEntryPage = lazy(() => import('./pages/MarksEntryPage'));
 import './App.css';
 import './styles/colors.css';
 import './styles/theme.css';
+
+// Track page views
+function PageTracker() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    console.log('🔍 PageTracker - Route changed:', {
+      pathname: location.pathname,
+      search: location.search,
+      hash: location.hash,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Use PostHog directly since PostHogProvider manages the instance
+    if (window.posthog) {
+      analytics.trackPageVisit(location.pathname, {
+        search: location.search,
+        hash: location.hash,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.log('🔍 PageTracker - PostHog not ready yet');
+    }
+  }, [location]);
+  
+  return null;
+}
 
 const AppContent = () => {
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
   
   return (
     <div className="app">
-<HelpProvider>
+      <PageTracker />
+      <HelpProvider>
         <Navbar />
         <HelpDrawer />
         <main className="main-content">
+        <Suspense fallback={<FancyLoading fullscreen={true} />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -102,6 +134,8 @@ const AppContent = () => {
           <Route path="/quiz-preview/:quizId" element={<QuizPreviewPage />} />
           <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
           {/* QuizResultsPage route removed - unified in HomePage with ?mode=quizzes */}
+          {/* PostHog Test Page */}
+          <Route path="/posthog-test" element={<PostHogTestPage />} />
           {/* Programs & Subjects Management */}
           <Route path="/programs" element={<ProgramsManagementPage />} />
           <Route path="/subjects" element={<SubjectsManagementPage />} />
@@ -109,6 +143,7 @@ const AppContent = () => {
           <Route path="/scheduled-reports" element={<ScheduledReportsPage />} />
           {/* Class Story removed */}
         </Routes>
+        </Suspense>
         </main>
       </HelpProvider>
     </div>

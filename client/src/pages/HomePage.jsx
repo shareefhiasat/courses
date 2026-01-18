@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, memo } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import { Globe2, Code2, Monitor, Sigma, BookOpen, Award, HelpCircle, ClipboardList, Play, StarOff, Hourglass, Repeat, CheckCircle, Star, Pin, Clock, AlertCircle, FileText, Link2, Video, LayoutGrid, Plus } from 'lucide-react';
@@ -15,9 +15,11 @@ import { formatDateTime } from '../utils/date';
 import { Loading } from '../components/ui';
 import UnifiedCard from '../components/UnifiedCard';
 import AuthForm from '../components/AuthForm';
+import logger from '../utils/logger';
 import './HomePage.css';
 
-const HomePage = () => {
+const HomePage = memo(() => {
+  logger.componentMount('HomePage');
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();
@@ -1550,6 +1552,6 @@ const HomePage = () => {
       />
     </div>
   );
-};
+});
 
 export default HomePage;

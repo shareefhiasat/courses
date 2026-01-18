@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -28,6 +28,7 @@ import { db, storage } from '../firebase/config';
 import { getClasses, getEnrollments, getUsers } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
 import { Loading, useToast, Input } from '../components/ui';
+import logger from '../utils/logger';
 import './ChatPage.css';
 import './ChatPageEmojiStyles.css';
 import { formatDateTime, formatDate } from '../utils/date';
@@ -36,12 +37,14 @@ import { canParticipate } from '../utils/userStatus';
 import { filterBadWords, containsBadWords } from '../utils/badWordFilter';
 import { MessageSquareText, Send, Mic, Square, Smile, Search, X, Plus, BarChart3, Book, GraduationCap, Download, Upload, Globe, Users, Paperclip, Edit, Info, Share, Copy, Trash2 } from 'lucide-react';
 
-const ChatPage = () => {
+const ChatPage = memo(() => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
   const location = useLocation();
+  
+  logger.componentMount('ChatPage');
   
   // State
   const [loading, setLoading] = useState(true);
@@ -249,7 +252,7 @@ const ChatPage = () => {
       setEditingMsg(null);
       toast?.showSuccess(t('saved') || 'Saved');
     } catch (e) {
-      console.error('Edit failed', e);
+      logger.error('Edit failed', e);
       toast?.showError(t('failed_to_save') || 'Failed to save');
     }
   };
@@ -519,7 +522,7 @@ const ChatPage = () => {
       const modeLabel = mode === 'all' ? 'All messages' : mode === 'mine' ? 'Your messages' : 'Their messages';
       toast?.showSuccess(`${modeLabel} cleared`);
     } catch (err) {
-      console.error('Clear messages failed:', err);
+      logger.error('Clear messages failed:', err);
       toast?.showError('Failed to clear messages');
     }
   };
@@ -548,7 +551,7 @@ const ChatPage = () => {
       setSelectedClass('global');
       toast?.showSuccess('Conversation deleted');
     } catch (err) {
-      console.error('Delete conversation failed:', err);
+      logger.error('Delete conversation failed:', err);
       toast?.showError('Failed to delete conversation');
     }
   };
@@ -620,7 +623,7 @@ const ChatPage = () => {
         }
         setLoading(false);
       } catch (error) {
-        console.error('Error setting up classes subscription:', error);
+        logger.error('Error setting up classes subscription:', error);
         setLoading(false);
       }
     };
@@ -664,7 +667,7 @@ const ChatPage = () => {
       const unsub = loadMessages();
       messagesUnsubRef.current = unsub;
     } catch (e) {
-      console.error('Failed to (re)subscribe messages:', e);
+      logger.error('Failed to (re)subscribe messages:', e);
     }
     // cleanup on dependency change/unmount
     return () => {
@@ -810,8 +813,7 @@ const ChatPage = () => {
             });
           }
         } catch (e) {
-          console.warn('Failed to update class lastMessage:', e);
-        }
+          }
       }
       
       // Update lastMessage for DM if this was the last message
@@ -836,13 +838,12 @@ const ChatPage = () => {
             });
           }
         } catch (e) {
-          console.warn('Failed to update DM lastMessage:', e);
-        }
+          }
       }
       
       toast?.showSuccess('Message deleted');
     } catch (err) {
-      console.error('Delete message failed:', err);
+      logger.error('Delete message failed:', err);
     }
   };
 
@@ -855,7 +856,7 @@ const ChatPage = () => {
       ]);
 
       if (!classesResult.success) {
-        console.error('Failed to load classes:', classesResult.error);
+        logger.error('Failed to load classes:', classesResult.error);
         const errStr = typeof classesResult.error === 'string' ? classesResult.error : (classesResult.error?.message || 'Unknown error');
         toast?.showError(`Failed to load classes: ${errStr}`);
         return;
@@ -883,7 +884,6 @@ const ChatPage = () => {
             ids = new Set(enrolled);
           } catch {}
         }
-        console.log('[Chat] loadClasses uid=', user.uid, 'email=', user.email, 'classIds=', Array.from(ids));
         const mineClasses = all.filter(c => ids.has(c.docId));
         setClasses(mineClasses);
         // Sync membership flags onto users/{uid} for rules
@@ -913,7 +913,7 @@ const ChatPage = () => {
         setSelectedClass('global');
       }
     } catch (error) {
-      console.error('Error loading classes:', error);
+      logger.error('Error loading classes:', error);
       const msg = (error && (error.message || error.code)) ? `Failed to load classes: ${error.code || ''} ${error.message || ''}`.trim() : 'Failed to load classes';
       toast?.showError(msg);
     } finally {
@@ -961,7 +961,7 @@ const ChatPage = () => {
         } catch {}
       })();
     }, (error) => {
-      console.error('Error loading messages:', error);
+      logger.error('Error loading messages:', error);
     });
     
     return unsubscribe;
@@ -1016,15 +1016,13 @@ const ChatPage = () => {
         const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', user.uid)));
         enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       } catch (e) {
-        console.warn('Failed to load enrollments for chat check:', e);
-      }
+        }
       
       if (!isAdmin && !participationCheck) {
         toast?.showError?.('You cannot send messages. Your account is disabled, archived, or you have no active enrollments.');
         return;
       }
     } catch (error) {
-      console.warn('Failed to check user status for chat:', error);
       // Continue anyway - don't block if status check fails
     }
     
@@ -1046,13 +1044,6 @@ const ChatPage = () => {
           const voicePath = `voice-messages/${Date.now()}_${user.uid}.webm`;
           const voiceRef = ref(storage, voicePath);
           
-          console.log('Uploading voice message:', {
-            path: voicePath,
-            blobSize: audioBlob.size,
-            blobType: audioBlob.type,
-            userAuthenticated: !!user
-          });
-          
           // Add metadata for better upload handling - use actual blob type or fallback to webm
           const metadata = {
             contentType: audioBlob.type || 'audio/webm',
@@ -1071,29 +1062,25 @@ const ChatPage = () => {
             uploadTask.on('state_changed', 
               (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                console.log('Upload progress:', progress + '%');
-              },
+                },
               (error) => {
-                console.error('Upload failed:', error);
+                logger.error('Upload failed:', error);
                 reject(error);
               },
               () => {
-                console.log('Upload completed successfully');
                 resolve();
               }
             );
           });
           
           const voiceUrl = await getDownloadURL(voiceRef);
-          console.log('Download URL obtained:', voiceUrl);
-          
           messageData.messageType = 'voice';
           messageData.voiceUrl = voiceUrl;
           messageData.voicePath = voicePath;
           messageData.duration = recordingTime;
           messageData.content = '[Voice Message]';
         } catch (uploadError) {
-          console.error('Voice upload failed:', {
+          logger.error('Voice upload failed:', {
             error: uploadError,
             errorCode: uploadError.code,
             errorMessage: uploadError.message,
@@ -1105,7 +1092,6 @@ const ChatPage = () => {
           // Try with a different content type as fallback
           if (uploadError.message?.includes('contentType') || uploadError.code === 'storage/unauthorized' || uploadError.message?.includes('CORS')) {
             try {
-              console.log('Retrying with generic audio content type...');
               const fallbackMetadata = {
                 contentType: 'audio/webm;codecs=opus',
                 cacheControl: 'public, max-age=31536000',
@@ -1126,14 +1112,12 @@ const ChatPage = () => {
                 fallbackUploadTask.on('state_changed', 
                   (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log('Fallback upload progress:', progress + '%');
-                  },
+                    },
                   (error) => {
-                    console.error('Fallback upload failed:', error);
+                    logger.error('Fallback upload failed:', error);
                     reject(error);
                   },
                   () => {
-                    console.log('Fallback upload completed successfully');
                     resolve();
                   }
                 );
@@ -1147,13 +1131,11 @@ const ChatPage = () => {
               messageData.duration = recordingTime;
               messageData.content = '[Voice Message]';
               
-              console.log('Fallback upload successful');
-            } catch (fallbackError) {
-              console.error('Fallback upload also failed:', fallbackError);
+              } catch (fallbackError) {
+              logger.error('Fallback upload also failed:', fallbackError);
               
               // Final fallback - try with a different file extension
               try {
-                console.log('Trying final fallback with .mp3 extension...');
                 const finalFallbackMetadata = {
                   contentType: 'audio/mpeg',
                   cacheControl: 'public, max-age=31536000',
@@ -1173,14 +1155,12 @@ const ChatPage = () => {
                   finalUploadTask.on('state_changed', 
                     (snapshot) => {
                       const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                      console.log('Final fallback upload progress:', progress + '%');
-                    },
+                      },
                     (error) => {
-                      console.error('Final fallback upload failed:', error);
+                      logger.error('Final fallback upload failed:', error);
                       reject(error);
                     },
                     () => {
-                      console.log('Final fallback upload completed successfully');
                       resolve();
                     }
                   );
@@ -1194,9 +1174,8 @@ const ChatPage = () => {
                 messageData.duration = recordingTime;
                 messageData.content = '[Voice Message]';
                 
-                console.log('Final fallback upload successful');
-              } catch (finalError) {
-                console.error('All upload attempts failed:', finalError);
+                } catch (finalError) {
+                logger.error('All upload attempts failed:', finalError);
                 toast?.showError?.('Failed to upload voice message. Please check your internet connection and try again.');
                 return;
               }
@@ -1258,8 +1237,7 @@ const ChatPage = () => {
                 data: { roomId: messageData.roomId, messageId: added.id }
               });
             } catch (notifError) {
-              console.warn('Failed to send notification:', notifError);
-            }
+              }
           }
         } catch {}
       }
@@ -1287,8 +1265,7 @@ const ChatPage = () => {
                   data: { classId: messageData.classId, messageId: added.id }
                 });
               } catch (notifError) {
-                console.warn('Failed to send notification:', notifError);
-              }
+                }
             }
           } catch {}
         } catch {}
@@ -1324,7 +1301,7 @@ const ChatPage = () => {
       messageInputRef.current?.focus();
       
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       toast?.showError('Failed to send message');
       setIsUploading(false);
     }
@@ -1399,7 +1376,7 @@ const ChatPage = () => {
       }, 1000);
       
     } catch (error) {
-      console.error('Error starting recording:', error);
+      logger.error('Error starting recording:', error);
       toast?.showError('Microphone access denied');
     }
   };
@@ -1451,7 +1428,7 @@ const ChatPage = () => {
       setSelectedClass(`dm:${roomId}`);
       setShowMembers(false);
     } catch (err) {
-      console.error('Open DM failed:', err);
+      logger.error('Open DM failed:', err);
       toast?.showError('Failed to start conversation');
     }
   };
@@ -2142,7 +2119,7 @@ const ChatPage = () => {
                                     [`pollVotes.${idx}`]: arrayUnion(user.uid)
                                   });
                                 } catch (err) {
-                                  console.error('Poll vote error:', err);
+                                  logger.error('Poll vote error:', err);
                                   toast?.showError('Failed to vote');
                                 }
                               }}
@@ -3118,7 +3095,7 @@ const ChatPage = () => {
                   setPollOptions(['','']);
                   toast?.showSuccess('Poll created!');
                 } catch (err) {
-                  console.error('Failed to create poll:', err);
+                  logger.error('Failed to create poll:', err);
                   toast?.showError('Failed to create poll');
                 }
               }}
@@ -3226,6 +3203,6 @@ const ChatPage = () => {
     )}
     </>
   );
-}
+});
 
 export default ChatPage;

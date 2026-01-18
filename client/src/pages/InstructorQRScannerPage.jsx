@@ -43,7 +43,8 @@ import {
   Heart,
   Shield,
   Globe,
-  Filter
+  Filter,
+  GraduationCap
 } from 'lucide-react';
 import { Button, Input, Loading, Card, CardBody, Select } from '../components/ui';
 import RibbonTabs from '../components/RibbonTabs';
