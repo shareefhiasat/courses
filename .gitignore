@@ -51,3 +51,23 @@ credentials.json
 # .continue/
 
 .history/
+
+# PostHog - Exclude MCP configs with API keys
+mcp-config.json
+**/mcp-config.json
+.mcp/
+**/.mcp/
+
+# Codeium/Windsurf - Exclude MCP configs
+C:\Users\share\.codeium\mcp_config.json
+**/.codeium/
+**/mcp_config.json
+
+# PostHog local storage and debug files
+ph_*.json
+posthog_*.json
+**/posthog_debug*
+
+# Analytics and tracking local data
+analytics_local.json
+tracking_*.json
