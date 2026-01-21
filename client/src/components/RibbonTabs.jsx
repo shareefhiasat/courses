@@ -12,7 +12,7 @@ export default function RibbonTabs({ categories = [], activeCategory, activeItem
   const cat = categories.find(c => c.id === activeCategory) || categories[0] || { items: [] };
 
   return (
-    <div className={className} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
+    <div className={className} style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
       {categories.map(category => (
         <div key={category.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '0 1 auto' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', paddingLeft: '0.5rem' }}>{category.label}</div>

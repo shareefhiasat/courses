@@ -1134,7 +1134,7 @@ export const HelpProvider = ({ children }) => {
   const getHelpForRoute = useCallback((pathname, search = '', hash = '') => {
     if (!pathname) return defaultHelp; // Always return default if no pathname
 
-    console.log(`[HelpContext] Getting help content for path: ${pathname}${search}${hash}`);
+    // console.log(`[HelpContext] Getting help content for path: ${pathname}${search}${hash}`);
 
     let help = null;
     const searchParams = new URLSearchParams(search);
@@ -1155,9 +1155,9 @@ export const HelpProvider = ({ children }) => {
       // Case 1: Specific dashboard tab help
       const tab = tabFromUrl || tabFromHash;
       const helpKey = `/dashboard?tab=${tab}`;
-      console.log(`[HelpContext] getHelpForRoute - Case 1: helpKey = ${helpKey}`);
+      // console.log(`[HelpContext] getHelpForRoute - Case 1: helpKey = ${helpKey}`);
       help = helpContent[helpKey];
-      console.log(`[HelpContext] getHelpForRoute - Case 1: helpContent[helpKey] =`, help);
+      // console.log(`[HelpContext] getHelpForRoute - Case 1: helpContent[helpKey] =`, help);
       if (!help) {
         console.warn(`[HelpContext] No specific help content found for dashboard tab: ${tab}`);
         // Try to find help for similar tabs
@@ -1172,7 +1172,7 @@ export const HelpProvider = ({ children }) => {
     } else if (pathname === '/dashboard') {
       // Case 2: General dashboard help (no specific tab)
       help = helpContent['/dashboard'];
-      console.log(`[HelpContext] getHelpForRoute - Case 2: helpContent['/dashboard'] =`, help);
+      // console.log(`[HelpContext] getHelpForRoute - Case 2: helpContent['/dashboard'] =`, help);
     } else {
       // Case 3: Other specific routes
       help = helpContent[pathname];
@@ -1181,7 +1181,7 @@ export const HelpProvider = ({ children }) => {
         help = helpContent['/hr-penalties'];
       }
     }
-    console.log(`[HelpContext] getHelpForRoute - Before final fallback: help =`, help);
+    // console.log(`[HelpContext] getHelpForRoute - Before final fallback: help =`, help);
 
     // Case 4: Fallback to defaultHelp if no specific help content found
     help = help || defaultHelp; // Use defaultHelp directly if 'help' is still null/undefined
@@ -1192,29 +1192,29 @@ export const HelpProvider = ({ children }) => {
       content: Array.isArray(help?.content) ? help.content : defaultHelp.content
     };
 
-    console.log(`[HelpContext] Returning help for path: ${pathname}${search}${hash}`, safeHelp);
+    // console.log(`[HelpContext] Returning help for path: ${pathname}${search}${hash}`, safeHelp);
     return safeHelp;
   }, [helpContent, defaultHelp]);
 
   // Update help content when location or help content changes
   useEffect(() => {
     if (location?.pathname) {
-      console.log('[HelpContext] Location changed:', {
-        pathname: location.pathname,
-        search: location.search,
-        hash: location.hash
-      });
+      // console.log('[HelpContext] Location changed:', {
+      //   pathname: location.pathname,
+      //   search: location.search,
+      //   hash: location.hash
+      // });
       
       // Use a small timeout to ensure the URL has been fully updated
       const timer = setTimeout(() => {
         const help = getHelpForRoute(location.pathname, location.search, location.hash);
-        console.log('[HelpContext] Setting new help content:', help);
+        // console.log('[HelpContext] Setting new help content:', help);
         // Force a re-render by creating a new object reference
         setCurrentHelp(prev => {
           // Only update if the content is actually different
           const isSameContent = JSON.stringify(prev?.content) === JSON.stringify(help?.content);
           if (isSameContent) {
-            console.log('[HelpContext] Help content is the same, skipping update');
+            // console.log('[HelpContext] Help content is the same, skipping update');
             return prev;
           }
           return { ...help, _timestamp: Date.now() };
@@ -1235,35 +1235,35 @@ export const HelpProvider = ({ children }) => {
 
   // Handle help button click
   const openHelp = useCallback(() => {
-    console.log('[HelpContext] Opening help drawer');
+    // console.log('[HelpContext] Opening help drawer');
     setIsOpen(true);
   }, []);
 
   // Close help drawer
   const closeHelp = useCallback(() => {
-    console.log('[HelpContext] Closing help drawer');
+    // console.log('[HelpContext] Closing help drawer');
     setIsOpen(false);
   }, []);
 
   // Listen for help events
   useEffect(() => {
     const handleHelpEvent = (e) => {
-      console.log('[HelpContext] Received app:help event with detail:', e.detail);
+      // console.log('[HelpContext] Received app:help event with detail:', e.detail);
       const route = e.detail?.route || location.pathname;
       const search = e.detail?.search || location.search;
-      console.log(`[HelpContext] Processing help request for route: ${route}${search}`);
+      // console.log(`[HelpContext] Processing help request for route: ${route}${search}`);
       
       // Force a re-render by setting a small delay
       setTimeout(() => {
         const hash = e.detail?.hash || location.hash || '';
         const help = getHelpForRoute(route, search, hash);
-        console.log('[HelpContext] Help content from getHelpForRoute:', help);
+        // console.log('[HelpContext] Help content from getHelpForRoute:', help);
         
         if (help) {
-          console.log('[HelpContext] Setting current help content:', help);
+          // console.log('[HelpContext] Setting current help content:', help);
           setCurrentHelp(help);
           setIsOpen(true);
-          console.log('[HelpContext] Help drawer should now be open');
+          // console.log('[HelpContext] Help drawer should now be open');
         } else {
           console.warn('[HelpContext] No help content found, using default');
           setCurrentHelp(defaultHelp);
@@ -1272,11 +1272,11 @@ export const HelpProvider = ({ children }) => {
       }, 50);
     };
 
-    console.log('[HelpContext] Adding app:help event listener');
+    // console.log('[HelpContext] Adding app:help event listener');
     window.addEventListener('app:help', handleHelpEvent);
     
     return () => {
-      console.log('[HelpContext] Cleaning up app:help event listener');
+      // console.log('[HelpContext] Cleaning up app:help event listener');
       window.removeEventListener('app:help', handleHelpEvent);
     };
   }, [location.pathname, getHelpForRoute]);
@@ -1284,18 +1284,18 @@ export const HelpProvider = ({ children }) => {
   // Listen for help toggle events separately to avoid dependency issues
   useEffect(() => {
     const handleHelpToggle = (e) => {
-      console.log('[HelpContext] Received app:help:toggle event');
+      // console.log('[HelpContext] Received app:help:toggle event');
       setIsOpen(prev => {
         if (prev) {
           // If open, close it
-          console.log('[HelpContext] Help drawer is open, closing it');
+          // console.log('[HelpContext] Help drawer is open, closing it');
           return false;
         } else {
           // If closed, open it with current route help
           const route = e.detail?.route || location.pathname;
           const search = e.detail?.search || location.search;
           const hash = e.detail?.hash || location.hash || '';
-          console.log(`[HelpContext] Help drawer is closed, opening for route: ${route}${search}${hash}`);
+          // console.log(`[HelpContext] Help drawer is closed, opening for route: ${route}${search}${hash}`);
           const help = getHelpForRoute(route, search, hash);
           if (help) {
             setCurrentHelp(help);
@@ -1305,11 +1305,11 @@ export const HelpProvider = ({ children }) => {
       });
     };
 
-    console.log('[HelpContext] Adding app:help:toggle event listener');
+    // console.log('[HelpContext] Adding app:help:toggle event listener');
     window.addEventListener('app:help:toggle', handleHelpToggle);
     
     return () => {
-      console.log('[HelpContext] Cleaning up app:help:toggle event listener');
+      // console.log('[HelpContext] Cleaning up app:help:toggle event listener');
       window.removeEventListener('app:help:toggle', handleHelpToggle);
     };
   }, [location.pathname, getHelpForRoute]);
@@ -1320,16 +1320,16 @@ export const HelpProvider = ({ children }) => {
       const tab = e.detail?.tab;
       if (!tab) return;
 
-      console.log('[HelpContext] Dashboard tab changed to:', tab);
+      // console.log('[HelpContext] Dashboard tab changed to:', tab);
 
       // Always derive help via route helper to keep behavior consistent
       const help = getHelpForRoute('/dashboard', `?tab=${tab}`);
-      console.log('[HelpContext] Setting help content for tab:', tab, help);
+      // console.log('[HelpContext] Setting help content for tab:', tab, help);
 
       setCurrentHelp(prev => {
         const isSameContent = JSON.stringify(prev?.content) === JSON.stringify(help?.content);
         if (isSameContent) {
-          console.log('[HelpContext] Help content is the same, skipping update');
+          // console.log('[HelpContext] Help content is the same, skipping update');
           return prev;
         }
         return { ...help, _timestamp: Date.now() };

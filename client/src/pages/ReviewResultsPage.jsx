@@ -4,10 +4,9 @@ import { useLang } from '../contexts/LangContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid } from '../components/ui';
+import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, CollapsibleDashboardSection, Tabs } from '../components/ui';
 import InfoTooltip from '../components/ui/InfoTooltip/InfoTooltip';
-import RibbonTabs from '../components/RibbonTabs';
-import { Info, FileText, BookOpen, Zap, Wrench } from 'lucide-react';
+import { Info, FileText, BookOpen, Zap, Wrench, Filter, BarChart3 } from 'lucide-react';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import { getClasses, getActivities } from '../firebase/firestore';
 import { getCardConfig, getShapeRadius } from '../utils/cardColors';
@@ -644,34 +643,46 @@ const ReviewResultsPage = () => {
 
   return (
     <Container>
-      <div style={{ marginBottom: '2rem' }}>
-        {/* Mode Selector */}
-        <Card style={{ marginBottom: '1.5rem' }}>
-          <CardBody>
-            <RibbonTabs
-              categories={[
-                {
-                  id: 'mode-tabs',
-                  label: 'Review Mode',
-                  items: [
-                    { key: 'quiz', label: 'Quiz', icon: <FileText size={14} /> },
-                    { key: 'homework', label: 'Homework', icon: <BookOpen size={14} /> },
-                    { key: 'training', label: 'Training', icon: <Zap size={14} /> },
-                    { key: 'labandproject', label: 'Lab & Project', icon: <Wrench size={14} /> }
-                  ]
-                }
-              ]}
-              activeCategory="mode-tabs"
-              activeItem={mode}
-              onChange={({ category, item }) => navigate(`/review-results?mode=${item}`)}
-            />
-          </CardBody>
-        </Card>
+      <div style={{ marginBottom: '1rem' }}>
+        {/* Mode Selector - Using Tabs component */}
+        <div data-tour="mode-switcher" style={{ marginBottom: '1.5rem' }}>
+          <Tabs
+            tabs={[
+              {
+                value: 'quiz',
+                label: 'Quiz',
+                icon: <FileText size={16} />
+              },
+              {
+                value: 'homework',
+                label: 'Homework',
+                icon: <BookOpen size={16} />
+              },
+              {
+                value: 'training',
+                label: 'Training',
+                icon: <Zap size={16} />
+              },
+              {
+                value: 'labandproject',
+                label: 'Lab & Project',
+                icon: <Wrench size={16} />
+              }
+            ]}
+            activeTab={mode}
+            onTabChange={(tab) => navigate(`/review-results?mode=${tab}`)}
+          />
+        </div>
 
-        {/* Filters first so cards react immediately to selections */}
-        <Card style={{ marginBottom: '1.5rem' }}>
-          <CardBody>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+        {/* Filters - Collapsible */}
+        <CollapsibleDashboardSection
+          sectionId="review-filters"
+          title="Filters"
+          icon={<Filter size={20} />}
+          color="#6366f1"
+          defaultMode="full"
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
               <Select
                 searchable
                 value={selectedProgram}
@@ -681,13 +692,13 @@ const ReviewResultsPage = () => {
                   setSelectedClass('all');
                 }}
                 options={[
-                  { value: 'all', label: 'All Programs' },
+                  { value: 'all', label: 'All Programs', icon: <Filter size={14} /> },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId
                   }))
                 ]}
-                placeholder="Filter by Program"
+                placeholder="Select Program (All Programs)"
                 fullWidth
               />
               <Select
@@ -698,7 +709,7 @@ const ReviewResultsPage = () => {
                   setSelectedClass('all');
                 }}
                 options={[
-                  { value: 'all', label: 'All Subjects' },
+                  { value: 'all', label: 'All Subjects', icon: <Filter size={14} /> },
                   ...subjects
                     .filter(s => selectedProgram === 'all' || s.programId === selectedProgram)
                     .map(s => ({
@@ -706,7 +717,7 @@ const ReviewResultsPage = () => {
                       label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim()
                     }))
                 ]}
-                placeholder="Filter by Subject"
+                placeholder="Select Subject (All Subjects)"
                 fullWidth
               />
               <Select
@@ -714,7 +725,7 @@ const ReviewResultsPage = () => {
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Classes' },
+                  { value: 'all', label: 'All Classes', icon: <Filter size={14} /> },
                   ...classes
                     .filter(c => {
                       if (selectedProgram !== 'all') {
@@ -731,7 +742,7 @@ const ReviewResultsPage = () => {
                       label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`
                     }))
                 ]}
-                placeholder="Filter by Class"
+                placeholder="Select Class (All Classes)"
                 fullWidth
               />
               <Select
@@ -739,13 +750,13 @@ const ReviewResultsPage = () => {
                 value={selectedActivity}
                 onChange={(e) => setSelectedActivity(e.target.value)}
                 options={[
-                  { value: 'all', label: `All ${modeLabels[mode]}s` },
+                  { value: 'all', label: `All ${modeLabels[mode]}s`, icon: <Filter size={14} /> },
                   ...filteredActivities.map(a => ({
                     value: a.id || a.docId,
                     label: a.title_en || a.title_ar || a.title || a.id
                   }))
                 ]}
-                placeholder={`Filter by ${modeLabels[mode]}`}
+                placeholder={`Select ${modeLabels[mode]} (All ${modeLabels[mode]}s)`}
                 fullWidth
               />
               <Select
@@ -753,80 +764,80 @@ const ReviewResultsPage = () => {
                 value={selectedStudent}
                 onChange={(e) => setSelectedStudent(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Students' },
+                  { value: 'all', label: 'All Students', icon: <Filter size={14} /> },
                   ...students.map(s => ({
                     value: s.id || s.docId,
                     label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`
                   }))
                 ]}
-                placeholder="Filter by Student"
+                placeholder="Select Student (All Students)"
                 fullWidth
               />
               <Select
                 value={filterRetake}
                 onChange={(e) => setFilterRetake(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Retake Settings' },
+                  { value: 'all', label: 'All Retake Settings', icon: <Filter size={14} /> },
                   { value: 'yes', label: 'Retake Allowed' },
                   { value: 'no', label: 'No Retake' }
                 ]}
-                placeholder="Retake"
+                placeholder="Retake Setting (All)"
                 fullWidth
               />
               <Select
                 value={filterDifficulty}
                 onChange={(e) => setFilterDifficulty(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Difficulties' },
+                  { value: 'all', label: 'All Difficulties', icon: <Filter size={14} /> },
                   { value: 'beginner', label: 'Beginner' },
                   { value: 'intermediate', label: 'Intermediate' },
                   { value: 'advanced', label: 'Advanced' }
                 ]}
-                placeholder="Difficulty"
+                placeholder="Difficulty Level (All)"
                 fullWidth
               />
               <Select
                 value={filterHasImage}
                 onChange={(e) => setFilterHasImage(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All' },
+                  { value: 'all', label: 'All Image Settings', icon: <Filter size={14} /> },
                   { value: 'yes', label: 'Has Image' },
                   { value: 'no', label: 'No Image' }
                 ]}
-                placeholder="Has Image"
+                placeholder="Image Setting (All)"
                 fullWidth
               />
               <Select
                 value={filterIsOptional}
                 onChange={(e) => setFilterIsOptional(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All' },
+                  { value: 'all', label: 'All Status Types', icon: <Filter size={14} /> },
                   { value: 'yes', label: 'Optional' },
                   { value: 'no', label: 'Required' }
                 ]}
-                placeholder="Optional"
+                placeholder="Status Type (All)"
                 fullWidth
               />
               <Select
                 value={filterIsFeatured}
                 onChange={(e) => setFilterIsFeatured(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All' },
+                  { value: 'all', label: 'All Featured Settings', icon: <Filter size={14} /> },
                   { value: 'yes', label: 'Featured' },
                   { value: 'no', label: 'Not Featured' }
                 ]}
-                placeholder="Featured"
+                placeholder="Featured Setting (All)"
                 fullWidth
               />
               <Select
                 value={filterRequiresSubmission}
                 onChange={(e) => setFilterRequiresSubmission(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All' },
+                  { value: 'all', label: 'All Submission Settings', icon: <Filter size={14} /> },
                   { value: 'yes', label: 'Requires Submission' },
                   { value: 'no', label: 'No Submission' }
                 ]}
-                placeholder="Requires Submission"
+                placeholder="Submission Setting (All)"
                 fullWidth
               />
               <input
@@ -841,12 +852,18 @@ const ReviewResultsPage = () => {
                   fontSize: '0.875rem'
                 }}
               />
-            </div>
-          </CardBody>
-        </Card>
+          </div>
+        </CollapsibleDashboardSection>
 
-        {/* Statistics Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        {/* Statistics Cards - Collapsible */}
+        <CollapsibleDashboardSection
+          sectionId="review-statistics"
+          title="Statistics"
+          icon={<BarChart3 size={20} />}
+          color="#10b981"
+          defaultMode="full"
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
           {[
             { 
               type: 'total-results', 
@@ -949,7 +966,8 @@ const ReviewResultsPage = () => {
               </Card>
             );
           })}
-        </div>
+          </div>
+        </CollapsibleDashboardSection>
 
         {/* Results Table */}
         <Card>

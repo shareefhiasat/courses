@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLang } from '../contexts/LangContext';
 import AuthForm from '../components/AuthForm';
 import { Container, Spinner } from '../components/ui';
 import styles from './LoginPage.module.css';
@@ -9,6 +10,7 @@ import styles from './LoginPage.module.css';
 const LoginPage = () => {
   const { user, loading } = useAuth();
   const { theme } = useTheme();
+  const { t } = useLang();
   const isDark = theme === 'dark';
   
   const pageClass = `${styles.loginPage} ${isDark ? styles.dark : ''}`;

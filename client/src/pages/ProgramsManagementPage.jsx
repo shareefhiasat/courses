@@ -10,6 +10,7 @@ import styles from './ProgramsManagementPage.module.css';
 
 const ProgramsManagementPage = () => {
   const { isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
+  const { t } = useLang();
   const toast = useToast();
   
   const [programs, setPrograms] = useState([]);
@@ -39,7 +40,7 @@ const ProgramsManagementPage = () => {
       if (result.success) {
         setPrograms(result.data || []);
       } else {
-        toast.error(result.error || 'Failed to load programs');
+        toast.error(result.error || t('failed_to_load_programs') || 'Failed to load programs');
       }
     } catch (error) {
       toast.error(error.message);
@@ -53,7 +54,7 @@ const ProgramsManagementPage = () => {
     
     // Validation
     if (!formData.name_en || !formData.name_ar || !formData.code) {
-      toast.error('Please fill in all required fields');
+      toast.error(t('please_fill_required_fields') || 'Please fill in all required fields');
       return;
     }
 
@@ -75,12 +76,12 @@ const ProgramsManagementPage = () => {
             programCode: formData.code
           });
         } catch (e) { console.warn('Failed to log activity:', e); }
-        toast.success(editingProgram ? 'Program updated successfully' : 'Program created successfully');
+        toast.success(editingProgram ? t('program_updated_successfully') || 'Program updated successfully' : t('program_created_successfully') || 'Program created successfully');
         setEditingProgram(null);
         resetForm();
         loadPrograms();
       } else {
-        toast.error(result.error || 'Operation failed');
+        toast.error(result.error || t('operation_failed') || 'Operation failed');
       }
     } catch (error) {
       toast.error(error.message);
@@ -104,7 +105,7 @@ const ProgramsManagementPage = () => {
   };
 
   const handleDelete = async (program) => {
-    if (!globalThis.confirm(`Are you sure you want to delete program "${program.name_en}"?`)) {
+    if (!globalThis.confirm(t('confirm_delete_program', { programName: program.name_en }) || `Are you sure you want to delete program "${program.name_en}"?`)) {
       return;
     }
 
@@ -120,10 +121,10 @@ const ProgramsManagementPage = () => {
             programCode: program.code
           });
         } catch (e) { console.warn('Failed to log activity:', e); }
-        toast.success('Program deleted successfully');
+        toast.success(t('program_deleted_successfully') || 'Program deleted successfully');
         loadPrograms();
       } else {
-        toast.error(result.error || 'Failed to delete program');
+        toast.error(result.error || t('failed_to_delete_program') || 'Failed to delete program');
       }
     } catch (error) {
       toast.error(error.message);
@@ -167,7 +168,7 @@ const ProgramsManagementPage = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> Editing Program: {editingProgram.name_en} ({editingProgram.code || 'No code'})
+          <Edit size={16} /> {t('editing_program', { programName: editingProgram.name_en, programCode: editingProgram.code || t('no_code') || 'No code' }) || `Editing Program: ${editingProgram.name_en} (${editingProgram.code || 'No code'})`}
         </div>
       )}
 
@@ -176,33 +177,33 @@ const ProgramsManagementPage = () => {
           <Input
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-            placeholder="Program Code * (e.g., CS-DIP)"
+            placeholder={t('program_code_placeholder') || 'Program Code * (e.g., CS-DIP)'}
             required
           />
           <Input
             value={formData.name_en}
             onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
-            placeholder="Program Name (English) * (e.g., Computer Science Diploma)"
+            placeholder={t('program_name_en_placeholder') || 'Program Name (English) * (e.g., Computer Science Diploma)'}
             required
           />
           <Input
             value={formData.name_ar}
             onChange={(e) => setFormData({ ...formData, name_ar: e.target.value })}
-            placeholder="Program Name (Arabic) * (e.g., دبلوم علوم الحاسوب)"
+            placeholder={t('program_name_ar_placeholder') || 'Program Name (Arabic) * (e.g., دبلوم علوم الحاسوب)'}
             required
             dir="rtl"
           />
           <NumberInput
             value={formData.duration_years}
             onChange={(e) => setFormData({ ...formData, duration_years: Number.parseInt(e.target.value) || 2 })}
-            placeholder="Duration (Years)"
+            placeholder={t('duration_years_placeholder') || 'Duration (Years)'}
             min={1}
             max={10}
           />
           <NumberInput
             value={formData.minGPA}
             onChange={(e) => setFormData({ ...formData, minGPA: Number.parseFloat(e.target.value) || 1.5 })}
-            placeholder="Minimum GPA"
+            placeholder={t('minimum_gpa_placeholder') || 'Minimum GPA'}
             min={0}
             max={4}
             step={0.1}
@@ -210,7 +211,7 @@ const ProgramsManagementPage = () => {
           <NumberInput
             value={formData.totalCreditHours}
             onChange={(e) => setFormData({ ...formData, totalCreditHours: Number.parseInt(e.target.value) || 70 })}
-            placeholder="Total Credit Hours"
+            placeholder={t('total_credit_hours_placeholder') || 'Total Credit Hours'}
             min={1}
           />
         </div>
@@ -218,20 +219,20 @@ const ProgramsManagementPage = () => {
           <Textarea
             value={formData.description_en}
             onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
-            placeholder="Description (English)"
+            placeholder={t('description_en_placeholder') || 'Description (English)'}
             rows={2}
           />
           <Textarea
             value={formData.description_ar}
             onChange={(e) => setFormData({ ...formData, description_ar: e.target.value })}
-            placeholder="Description (Arabic) - وصف البرنامج بالعربية"
+            placeholder={t('description_ar_placeholder') || 'Description (Arabic) - وصف البرنامج بالعربية'}
             rows={2}
             dir="rtl"
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
-            {editingProgram ? 'Update' : 'Add Program'}
+            {editingProgram ? t('update') || 'Update' : t('add_program') || 'Add Program'}
           </Button>
           {editingProgram && (
             <Button 
@@ -242,7 +243,7 @@ const ProgramsManagementPage = () => {
                 resetForm();
               }}
             >
-              Cancel Edit
+              {t('cancel') || 'Cancel'} Edit
             </Button>
           )}
         </div>
@@ -255,7 +256,7 @@ const ProgramsManagementPage = () => {
             columns={[
               { 
                 field: 'code', 
-                headerName: 'Code', 
+                headerName: t('code') || 'Code', 
                 width: 120,
                 valueGetter: (params) => {
                   const row = params?.row || {};
@@ -263,17 +264,17 @@ const ProgramsManagementPage = () => {
                   return code || '—';
                 }
               },
-              { field: 'name_en', headerName: 'Name (EN)', flex: 1, minWidth: 180 },
-              { field: 'name_ar', headerName: 'Name (AR)', flex: 1, minWidth: 180 },
+              { field: 'name_en', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
+              { field: 'name_ar', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
               {
                 field: 'duration_years',
-                headerName: 'Duration (Years)',
+                headerName: t('duration_years_header') || 'Duration (Years)',
                 width: 140,
-                valueGetter: (params) => `${params.value || 2} years`
+                valueGetter: (params) => `${params.value || 2} ${t('years') || 'years'}`
               },
               {
                 field: 'minGPA',
-                headerName: 'Min GPA',
+                headerName: t('min_gpa_header') || 'Min GPA',
                 width: 100,
                 valueGetter: (params) => {
                   const row = params?.row || {};
@@ -285,10 +286,10 @@ const ProgramsManagementPage = () => {
                   return numValue.toFixed(2);
                 }
               },
-              { field: 'totalCreditHours', headerName: 'Credit Hours', width: 120 },
+              { field: 'totalCreditHours', headerName: t('credit_hours_header') || 'Credit Hours', width: 120 },
               {
                 field: 'actions',
-                headerName: 'Actions',
+                headerName: t('actions') || 'Actions',
                 width: 200,
                 sortable: false,
                 filterable: false,
@@ -300,7 +301,7 @@ const ProgramsManagementPage = () => {
                       icon={<Edit size={16} />}
                       onClick={() => handleEdit(params.row)}
                     >
-                      Edit
+                      {t('edit') || 'Edit'}
                     </Button>
                     <Button
                       size="sm"
@@ -309,7 +310,7 @@ const ProgramsManagementPage = () => {
                       onClick={() => handleDelete(params.row)}
                       style={{ color: '#dc2626' }}
                     >
-                      Delete
+                      {t('delete') || 'Delete'}
                     </Button>
                   </div>
                 )

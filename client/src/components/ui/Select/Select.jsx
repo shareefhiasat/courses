@@ -48,8 +48,8 @@ const Select = forwardRef(({
 
   // Close dropdown when clicking outside
   const handleClickOutside = useCallback((event) => {
-    console.log('🔵 [Select] handleClickOutside triggered');
-    console.log('🔵 [Select] Event target:', event.target);
+    // console.log('🔵 [Select] handleClickOutside triggered');
+    // console.log('🔵 [Select] Event target:', event.target);
     
     // Don't close if clicking on the select itself or its children
     if (containerRef.current && !containerRef.current.contains(event.target)) {
@@ -58,11 +58,11 @@ const Select = forwardRef(({
                            (dropdownRef.current && dropdownRef.current.contains(event.target));
       
       if (!isOptionClick) {
-        console.log('🔵 [Select] Click outside detected, closing dropdown');
+        // console.log('🔵 [Select] Click outside detected, closing dropdown');
         setIsOpen(false);
         setSearchTerm('');
       } else {
-        console.log('🔵 [Select] Click on option/dropdown, keeping dropdown open');
+        // console.log('🔵 [Select] Click on option/dropdown, keeping dropdown open');
       }
     }
   }, []);
@@ -70,13 +70,13 @@ const Select = forwardRef(({
   // Add/remove click outside listener
   useEffect(() => {
     if (isOpen) {
-      console.log('🔵 [Select] Adding click outside listener');
+      // console.log('🔵 [Select] Adding click outside listener');
       // Use a small delay to avoid immediate closure when opening
       const timeoutId = setTimeout(() => {
         document.addEventListener('click', handleClickOutside, true); // Use capture phase
       }, 10);
       return () => {
-        console.log('🔵 [Select] Removing click outside listener');
+        // console.log('🔵 [Select] Removing click outside listener');
         clearTimeout(timeoutId);
         document.removeEventListener('click', handleClickOutside, true);
       };

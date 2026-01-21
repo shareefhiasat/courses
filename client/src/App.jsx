@@ -22,7 +22,6 @@ import HRPenaltiesPage from './pages/HRPenaltiesPage';
 import InstructorParticipationPage from './pages/InstructorParticipationPage';
 import InstructorBehaviorPage from './pages/InstructorBehaviorPage';
 import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
-import QRAnalyticsPage from './pages/QRAnalyticsPage';
 import ManualAttendancePage from './pages/ManualAttendancePage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
 import MigrationPage from './pages/MigrationPage';
@@ -116,7 +115,6 @@ const AppContent = () => {
           <Route path="/instructor-participation" element={<InstructorParticipationPage />} />
           <Route path="/instructor-behavior" element={<InstructorBehaviorPage />} />
           <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
-          <Route path="/qr-analytics" element={<QRAnalyticsPage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />
           <Route path="/migration" element={<MigrationPage />} />
           <Route path="/manage-enrollments" element={<ManageEnrollmentsPage />} />
@@ -124,8 +122,7 @@ const AppContent = () => {
           <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
           <Route path="/role-access-pro" element={<RoleAccessPro />} />
           {/* Redirect old student-profile to new unified dashboard */}
-          <Route path="/student-profile" element={<StudentDashboardPage />} />
-          <Route path="/student-dashboard" element={<StudentDashboardPage />} />
+          <Route path="/student-profile" element={<StudentProfilePage />} />
           <Route path="/my-enrollments" element={<MyEnrollmentsPage />} />
           <Route path="/course-progress/:courseId" element={<CourseProgressDetailPage />} />
           <Route path="/quizzes" element={<QuizzesPage />} />

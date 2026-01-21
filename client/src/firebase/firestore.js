@@ -146,7 +146,16 @@ export const getActivities = async () => {
     const querySnapshot = await getDocs(collection(db, "activities"));
     const activities = [];
     querySnapshot.forEach((d) => {
-      activities.push({ docId: d.id, ...d.data() });
+      const activityData = { docId: d.id, ...d.data() };
+      // console.log('getActivities Debug - Activity ID:', d.id);
+      // console.log('getActivities Debug - Raw activity data:', activityData);
+      // console.log('getActivities Debug - createdAt:', activityData.createdAt);
+      // console.log('getActivities Debug - createdAt type:', typeof activityData.createdAt);
+      // console.log('getActivities Debug - Has toDate:', typeof activityData.createdAt?.toDate);
+      if (activityData.createdAt?.toDate) {
+        // console.log('getActivities Debug - toDate result:', activityData.createdAt.toDate());
+      }
+      activities.push(activityData);
     });
     return { success: true, data: activities };
   } catch (error) {
@@ -157,7 +166,10 @@ export const getActivities = async () => {
 export const addActivity = async (activityData) => {
   try {
     const convertedData = convertDatesToTimestamps(activityData);
-    const docRef = await addDoc(collection(db, "activities"), convertedData);
+    const docRef = await addDoc(collection(db, "activities"), {
+      ...convertedData,
+      createdAt: serverTimestamp(), // Add server timestamp
+    });
     return { success: true, id: docRef.id };
   } catch (error) {
     return { success: false, error: error.message };
@@ -167,7 +179,10 @@ export const addActivity = async (activityData) => {
 export const updateActivity = async (id, activityData) => {
   try {
     const convertedData = convertDatesToTimestamps(activityData);
-    await updateDoc(doc(db, "activities", id), convertedData);
+    await updateDoc(doc(db, "activities", id), {
+      ...convertedData,
+      updatedAt: serverTimestamp(), // Add update timestamp
+    });
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -475,6 +490,30 @@ export const deleteUser = async (id) => {
 export const getClasses = async () => {
   try {
     const qs = await getDocs(collection(db, "classes"));
+    const items = [];
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ===== Programs =====
+export const getPrograms = async () => {
+  try {
+    const qs = await getDocs(collection(db, "programs"));
+    const items = [];
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ===== Subjects =====
+export const getSubjects = async () => {
+  try {
+    const qs = await getDocs(collection(db, "subjects"));
     const items = [];
     qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };

@@ -1,7 +1,257 @@
 /* Student Profile Page */
 
+:root {
+  --profile-bg: #ffffff;
+  --profile-card-bg: #ffffff;
+  --profile-text: #1f2937;
+  --profile-text-muted: #6b7280;
+  --profile-border: #e5e7eb;
+  --profile-accent: #7c3aed;
+  --profile-search-bg: rgba(255, 255, 255, 0.1);
+  --profile-search-border: rgba(255, 255, 255, 0.3);
+}
+
+.dark {
+  --profile-bg: #0f172a;
+  --profile-card-bg: #1e293b;
+  --profile-text: #f1f5f9;
+  --profile-text-muted: #94a3b8;
+  --profile-border: #334155;
+  --profile-accent: #8b5cf6;
+  --profile-search-bg: rgba(30, 41, 59, 0.8);
+  --profile-search-border: rgba(148, 163, 184, 0.3);
+}
+
 .page {
-  padding: 1rem;
+  min-height: 100vh;
+  background: var(--profile-bg);
+  color: var(--profile-text);
+  transition: all 0.3s ease;
+}
+
+/* Header Section */
+.headerSection {
+  background: linear-gradient(135deg, var(--profile-accent), #a855f7);
+  color: white;
+  padding: 2rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.headerSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.headerContent {
+  position: relative;
+  z-index: 1;
+}
+
+/* Search Component */
+.searchContainer {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  background: var(--profile-search-bg);
+  border: 1px solid var(--profile-search-border);
+  border-radius: 12px;
+  color: white;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.searchInput:focus {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+}
+
+.searchResults {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: var(--profile-card-bg);
+  border: 1px solid var(--profile-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 50;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.searchResultItem {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--profile-border);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.searchResultItem:last-child {
+  border-bottom: none;
+}
+
+.searchResultItem:hover {
+  background: var(--profile-bg);
+}
+
+.searchResultAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--profile-accent), #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.searchResultInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.searchResultName {
+  font-weight: 600;
+  color: var(--profile-text);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.searchResultEmail {
+  font-size: 0.875rem;
+  color: var(--profile-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Filters Section */
+.filtersSection {
+  background: var(--profile-card-bg);
+  border: 1px solid var(--profile-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.filtersHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.filtersTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--profile-text);
+  margin: 0;
+}
+
+.filtersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.filterSelect {
+  background: var(--profile-bg);
+  border: 1px solid var(--profile-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: var(--profile-text);
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.filterSelect:focus {
+  border-color: var(--profile-accent);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.toggleStudentListBtn {
+  background: var(--profile-accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggleStudentListBtn:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+/* Cards */
+.card {
+  background: var(--profile-card-bg);
+  border: 1px solid var(--profile-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 /* Loading */
@@ -14,11 +264,42 @@
   padding: 3rem 2rem;
   text-align: center;
   min-height: 60vh;
+  background: var(--profile-bg);
+  color: var(--profile-text);
 }
 
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .loadingWrapper p {
-    color: var(--text-muted, #999);
+/* Responsive Design */
+@media (max-width: 768px) {
+  .headerSection {
+    padding: 1.5rem 0;
   }
+  
+  .searchContainer {
+    max-width: 100%;
+  }
+  
+  .filtersGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filtersHeader {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .toggleStudentListBtn {
+    justify-content: center;
+  }
+}
+
+/* RTL Support */
+.rtl .searchInput {
+  padding-left: 1rem;
+  padding-right: 3rem;
+}
+
+.rtl .searchIcon {
+  left: auto;
+  right: 1rem;
 }

@@ -179,14 +179,14 @@ export default function AnalyticsPage() {
       <div className={styles.header}>
         <div>
           <h1>{t('analytics') || 'Analytics'}</h1>
-          <p>Comprehensive overview of attendance, performance, and engagement</p>
+          <p>{t('comprehensive_overview') || 'Comprehensive overview of attendance, performance, and engagement'}</p>
         </div>
         <Button
           onClick={exportCSV}
           icon={<Download size={18} />}
           variant="primary"
         >
-          Export CSV
+          {t('export_csv') || 'Export CSV'}
         </Button>
       </div>
 
@@ -194,31 +194,31 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div className={styles.kpiGrid}>
-        <KPICard label="Total Sessions" value={attendanceStats.totalSessions} icon={Calendar} color="#800020" />
-        <KPICard label="Total Students" value={studentStats.total} icon={Users} color="#10b981" />
-        <KPICard label="Attendance Rate" value={attendanceRate + '%'} subtitle={`${attendanceStats.present} / ${attendanceStats.totalMarks} present`} icon={TrendingUp} color="#f59e0b" />
-        <KPICard label="Avg Performance" value={performanceStats.avgScore} subtitle="Based on graded submissions" icon={Award} color="#8b5cf6" />
-        <KPICard label="Total Submissions" value={submissionStats.total} subtitle={`${submissionStats.graded} graded`} icon={FileText} color="#06b6d4" />
+        <KPICard label={t('total_sessions') || 'Total Sessions'} value={attendanceStats.totalSessions} icon={Calendar} color="#800020" />
+        <KPICard label={t('total_students') || 'Total Students'} value={studentStats.total} icon={Users} color="#10b981" />
+        <KPICard label={t('attendance_rate') || 'Attendance Rate'} value={attendanceRate + '%'} subtitle={`${attendanceStats.present} / ${attendanceStats.totalMarks} ${t('present') || 'present'}`} icon={TrendingUp} color="#f59e0b" />
+        <KPICard label={t('avg_performance') || 'Avg Performance'} value={performanceStats.avgScore} subtitle={t('based_on_graded_submissions') || 'Based on graded submissions'} icon={Award} color="#8b5cf6" />
+        <KPICard label={t('total_submissions') || 'Total Submissions'} value={submissionStats.total} subtitle={`${submissionStats.graded} ${t('graded') || 'graded'}`} icon={FileText} color="#06b6d4" />
       </div>
 
       {/* Attendance Breakdown */}
       <Grid cols={2} gap="md" className={styles.breakdownGrid}>
         <Card>
           <CardBody>
-            <h3 className={styles.sectionTitle}>Attendance Breakdown</h3>
-            <ProgressBar label="Present" value={attendanceStats.present} max={attendanceStats.totalMarks} color="success" />
-            <ProgressBar label="Absent" value={attendanceStats.absent} max={attendanceStats.totalMarks} color="danger" />
-            <ProgressBar label="Late" value={attendanceStats.late} max={attendanceStats.totalMarks} color="warning" />
-            <ProgressBar label="Leave" value={attendanceStats.leave} max={attendanceStats.totalMarks} color="info" />
+            <h3 className={styles.sectionTitle}>{t('attendance_breakdown') || 'Attendance Breakdown'}</h3>
+            <ProgressBar label={t('present') || 'Present'} value={attendanceStats.present} max={attendanceStats.totalMarks} color="success" />
+            <ProgressBar label={t('absent') || 'Absent'} value={attendanceStats.absent} max={attendanceStats.totalMarks} color="danger" />
+            <ProgressBar label={t('late') || 'Late'} value={attendanceStats.late} max={attendanceStats.totalMarks} color="warning" />
+            <ProgressBar label={t('leave') || 'Leave'} value={attendanceStats.leave} max={attendanceStats.totalMarks} color="info" />
           </CardBody>
         </Card>
 
         <Card>
           <CardBody>
-            <h3 className={styles.sectionTitle}>Submission Status</h3>
-            <ProgressBar label="Graded" value={submissionStats.graded} max={submissionStats.total} color="success" />
-            <ProgressBar label="Pending" value={submissionStats.pending} max={submissionStats.total} color="warning" />
-            <ProgressBar label="Late Submissions" value={submissionStats.late} max={submissionStats.total} color="danger" />
+            <h3 className={styles.sectionTitle}>{t('submission_status') || 'Submission Status'}</h3>
+            <ProgressBar label={t('graded') || 'Graded'} value={submissionStats.graded} max={submissionStats.total} color="success" />
+            <ProgressBar label={t('pending') || 'Pending'} value={submissionStats.pending} max={submissionStats.total} color="warning" />
+            <ProgressBar label={t('late_submissions') || 'Late Submissions'} value={submissionStats.late} max={submissionStats.total} color="danger" />
           </CardBody>
         </Card>
       </Grid>
@@ -226,7 +226,7 @@ export default function AnalyticsPage() {
       {/* Attendance by Class */}
       <Card>
         <CardBody>
-          <h3 className={styles.sectionTitle}>Attendance by Class</h3>
+          <h3 className={styles.sectionTitle}>{t('attendance_by_class') || 'Attendance by Class'}</h3>
           {byClass.length === 0 ? (
             <div className={styles.noData}>{t('no_data') || 'No data available'}</div>
           ) : (
@@ -234,13 +234,13 @@ export default function AnalyticsPage() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>CLASS</th>
-                    <th>TOTAL</th>
-                    <th>PRESENT</th>
-                    <th>ABSENT</th>
-                    <th>LATE</th>
-                    <th>LEAVE</th>
-                    <th>RATE</th>
+                    <th>{t('class') || 'CLASS'}</th>
+                    <th>{t('total') || 'TOTAL'}</th>
+                    <th>{t('present') || 'PRESENT'}</th>
+                    <th>{t('absent') || 'ABSENT'}</th>
+                    <th>{t('late') || 'LATE'}</th>
+                    <th>{t('leave') || 'LEAVE'}</th>
+                    <th>{t('rate') || 'RATE'}</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -99,7 +99,7 @@ const MarksEntryPage = () => {
   // Filtered students based on selected class
   const filteredStudents = useMemo(() => {
     if (classFilter === 'all') {
-      console.log('No class filter applied');
+      // console.log('No class filter applied');
       return [];
     }
 
@@ -110,27 +110,27 @@ const MarksEntryPage = () => {
     });
 
     if (!classItem) {
-      console.log('❌ Class not found for filter:', classFilter);
+      // console.log('❌ Class not found for filter:', classFilter);
       return [];
     }
 
-    console.log('🔍 Found class:', {
-      id: classItem.id || classItem.docId,
-      name: classItem.name
-    });
+    // console.log('🔍 Found class:', {
+    //   id: classItem.id || classItem.docId,
+    //   name: classItem.name
+    // });
 
     // Get all enrollments for this class
     const classEnrollments = enrollments.filter(e =>
         e.classId === (classItem.id || classItem.docId)
     );
-    console.log('📋 Class Enrollments:', classEnrollments);
+    // console.log('📋 Class Enrollments:', classEnrollments);
 
     // Get unique student IDs from enrollments
     const studentIds = [...new Set(classEnrollments.map(e => e.userId))];
-    console.log('🆔 Student IDs from enrollments:', studentIds);
+    // console.log('🆔 Student IDs from enrollments:', studentIds);
 
     if (studentIds.length === 0) {
-      console.log('ℹ️ No student enrollments found for this class');
+      // console.log('ℹ️ No student enrollments found for this class');
       return [];
     }
 
@@ -144,26 +144,26 @@ const MarksEntryPage = () => {
     });
 
     // Log all available student IDs for debugging
-    console.log('👥 Available Student IDs:', [...studentsMap.keys()]);
+    // console.log('👥 Available Student IDs:', [...studentsMap.keys()]);
 
     // Find all enrolled students that exist in our students map
     const matchedStudents = studentIds
     .map(id => {
       const student = studentsMap.get(id);
       if (!student) {
-        console.log(`❌ No student found for ID: ${id}`);
+        // console.log(`❌ No student found for ID: ${id}`);
         return null;
       }
       
-      console.log('🔍 Student data from database:', {
-        id: student.uid || student.docId || student.id,
-        realName: student.realName,
-        fullName: student.fullName,
-        displayName: student.displayName,
-        studentNumber: student.studentNumber,
-        email: student.email,
-        allProps: Object.keys(student)
-      });
+      // console.log('🔍 Student data from database:', {
+      //   id: student.uid || student.docId || student.id,
+      //   realName: student.realName,
+      //   fullName: student.fullName,
+      //   displayName: student.displayName,
+      //   studentNumber: student.studentNumber,
+      //   email: student.email,
+      //   allProps: Object.keys(student)
+      // });
       
       // Create a clean student object with only the properties we need
       const cleanStudent = {
@@ -176,17 +176,17 @@ const MarksEntryPage = () => {
         email: student.email
       };
       
-      console.log('✨ Prepared student data for grid:', cleanStudent);
+      // console.log('✨ Prepared student data for grid:', cleanStudent);
       return cleanStudent;
     })
     .filter(Boolean); // Remove null entries
 
-    console.log('📊 Final Matched Students:', matchedStudents);
+    // console.log('📊 Final Matched Students:', matchedStudents);
 
     if (matchedStudents.length === 0 && studentIds.length > 0) {
-      console.warn('⚠️ No valid student records found for the enrolled students');
-      console.warn('Expected Student IDs:', studentIds);
-      console.warn('Available Student IDs:', [...studentsMap.keys()]);
+      // console.warn('⚠️ No valid student records found for the enrolled students');
+      // console.warn('Expected Student IDs:', studentIds);
+      // console.warn('Available Student IDs:', [...studentsMap.keys()]);
     }
 
     // Ensure we have all necessary student fields
@@ -206,9 +206,9 @@ const MarksEntryPage = () => {
   const studentsWithMarks = useMemo(() => {
     if (!filteredStudents.length) return [];
 
-    console.log('🔄 Merging student data with marks...');
-    console.log('📋 Filtered Students:', JSON.parse(JSON.stringify(filteredStudents)));
-    console.log('📋 Marks Data:', JSON.parse(JSON.stringify(studentMarks)));
+    // console.log('🔄 Merging student data with marks...');
+    // console.log('📋 Filtered Students:', JSON.parse(JSON.stringify(filteredStudents)));
+    // console.log('📋 Marks Data:', JSON.parse(JSON.stringify(studentMarks)));
 
     const result = filteredStudents.map(student => {
       const studentId = student.id || student.uid || student.docId;
@@ -227,11 +227,11 @@ const MarksEntryPage = () => {
         email: student.email || ''
       };
 
-      console.log(`🔗 Merged data for ${studentId}:`, merged);
+      // console.log(`🔗 Merged data for ${studentId}:`, merged);
       return merged;
     });
 
-    console.log('✅ Final merged data:', JSON.parse(JSON.stringify(result)));
+    // console.log('✅ Final merged data:', JSON.parse(JSON.stringify(result)));
     return result;
   }, [filteredStudents, studentMarks]);
 
@@ -335,29 +335,29 @@ const MarksEntryPage = () => {
         const marksMap = {};
         const subjectId = selectedSubject.docId || selectedSubject.id;
         
-        console.log('📊 [loadMarksData] Loading marks for class:', classFilter, 'subject:', subjectId);
-        console.log('📊 [loadMarksData] Class enrollments found:', classEnrollments.length);
-        console.log('📊 [loadMarksData] Enrollment samples:', classEnrollments.slice(0, 2).map(e => ({
-          docId: e.docId,
-          userId: e.userId,
-          hasMarks: !!e.marks,
-          marksKeys: e.marks ? Object.keys(e.marks) : []
-        })));
+        // console.log('📊 [loadMarksData] Loading marks for class:', classFilter, 'subject:', subjectId);
+        // console.log('📊 [loadMarksData] Class enrollments found:', classEnrollments.length);
+        // console.log('📊 [loadMarksData] Enrollment samples:', classEnrollments.slice(0, 2).map(e => ({
+        //   docId: e.docId,
+        //   userId: e.userId,
+        //   hasMarks: !!e.marks,
+        //   marksKeys: e.marks ? Object.keys(e.marks) : []
+        // })));
         
         for (const enrollment of classEnrollments) {
           const studentId = enrollment.userId;
           if (!studentId) {
-            console.warn('⚠️ [loadMarksData] Enrollment missing userId:', enrollment.docId);
+            // console.warn('⚠️ [loadMarksData] Enrollment missing userId:', enrollment.docId);
             continue;
           }
           
           if (enrollment.marks && enrollment.marks[subjectId]) {
             const markData = enrollment.marks[subjectId];
-            console.log('✅ [loadMarksData] Found marks for student:', studentId, {
-              totalScore: markData.totalScore,
-              grade: markData.grade,
-              marks: markData.marks
-            });
+            // console.log('✅ [loadMarksData] Found marks for student:', studentId, {
+            //   totalScore: markData.totalScore,
+            //   grade: markData.grade,
+            //   marks: markData.marks
+            // });
             marksMap[studentId] = {
               docId: enrollment.docId,
               studentId: studentId,
@@ -374,16 +374,16 @@ const MarksEntryPage = () => {
               updatedAt: markData.updatedAt || null,
             };
           } else {
-            console.log('ℹ️ [loadMarksData] No marks found for student:', studentId, {
-              enrollmentId: enrollment.docId,
-              hasMarks: !!enrollment.marks,
-              marksKeys: enrollment.marks ? Object.keys(enrollment.marks) : [],
-              lookingFor: subjectId
-            });
+            // console.log('ℹ️ [loadMarksData] No marks found for student:', studentId, {
+            //   enrollmentId: enrollment.docId,
+            //   hasMarks: !!enrollment.marks,
+            //   marksKeys: enrollment.marks ? Object.keys(enrollment.marks) : [],
+            //   lookingFor: subjectId
+            // });
           }
         }
         
-        console.log('📊 [loadMarksData] Final marks map:', Object.keys(marksMap), 'students with marks');
+        // console.log('📊 [loadMarksData] Final marks map:', Object.keys(marksMap), 'students with marks');
         setStudentMarks(marksMap);
       }
     } catch (error) {
@@ -442,7 +442,7 @@ const MarksEntryPage = () => {
     e.preventDefault();
     
     if (!editingStudent || !selectedSubject || classFilter === 'all') {
-      toast.error('Missing required data');
+      toast.error(t('missing_required_data') || 'Missing required data');
       return;
     }
     
@@ -469,12 +469,12 @@ const MarksEntryPage = () => {
             totalScore: calculateTotalScore()
           });
         } catch (e) { console.warn('Failed to log activity:', e); }
-        toast.success('Marks saved successfully');
+        toast.success(t('marks_saved_successfully') || 'Marks saved successfully');
         setShowModal(false);
         setEditingStudent(null);
         loadMarksData();
       } else {
-        toast.error(result.error || 'Failed to save marks');
+        toast.error(result.error || t('failed_to_save_marks') || 'Failed to save marks');
       }
     } catch (error) {
       toast.error(error.message);
@@ -503,7 +503,7 @@ const MarksEntryPage = () => {
   };
 
   const handleAttendanceClick = () => {
-    toast.info('Attendance feature coming soon! You can still add attendance marks manually.');
+    toast.info(t('attendance_feature_coming_soon') || 'Attendance feature coming soon! You can still add attendance marks manually.');
   };
 
   if (authLoading) {
@@ -703,36 +703,36 @@ const MarksEntryPage = () => {
               size="sm"
               icon={<AlertCircle size={14} />}
               onClick={() => openSideWindow('behavior', student, filters)}
-              title="View Behavior"
+              title={t('view_behavior') || 'View Behavior'}
             >
-              Behavior
+              {t('behavior') || 'Behavior'}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               icon={<Award size={14} />}
               onClick={() => openSideWindow('penalties', student, filters)}
-              title="View Penalties"
+              title={t('view_penalties') || 'View Penalties'}
             >
-              Penalties
+              {t('penalties') || 'Penalties'}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               icon={<ParticipationIcon size={14} />}
               onClick={() => openSideWindow('participation', student, filters)}
-              title="View Participation"
+              title={t('view_participation') || 'View Participation'}
             >
-              Participation
+              {t('participation') || 'Participation'}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               icon={<Eye size={14} />}
               onClick={() => openSideWindow('sneakpeek', student, filters)}
-              title="Sneak Peek"
+              title={t('sneak_peek') || 'Sneak Peek'}
             >
-              Peek
+              {t('peek') || 'Peek'}
             </Button>
           </div>
         );
@@ -808,7 +808,7 @@ const MarksEntryPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Info size={20} color="#f59e0b" />
             <span style={{ fontSize: '0.9rem', color: '#92400e' }}>
-              <strong>Note:</strong> Marks entered here will not send any notifications to students. This is for manual entry only.
+              <strong>Note:</strong> {t('note_marks_no_notifications') || 'Marks entered here will not send any notifications to students. This is for manual entry only.'}
             </span>
           </div>
         </CardBody>
@@ -828,7 +828,7 @@ const MarksEntryPage = () => {
                 setClassFilter('all');
               }}
               options={[
-                { value: 'all', label: 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
                   label: p.name_en || p.name_ar || p.code || p.docId,
@@ -846,7 +846,7 @@ const MarksEntryPage = () => {
                 setClassFilter('all');
               }}
               options={[
-                { value: 'all', label: 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...subjects
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
@@ -863,7 +863,7 @@ const MarksEntryPage = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(getSelectValue(e))}
               options={[
-                { value: 'all', label: 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                 ...filteredClasses.map(c => ({
                   value: c.id || c.docId,
                   label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}${c.year ? ` ${c.year}` : ''}`,
@@ -882,7 +882,7 @@ const MarksEntryPage = () => {
         <Card style={{ marginBottom: '1.5rem' }}>
           <CardBody>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <h3 style={{ margin: 0 }}>Marks Distribution</h3>
+              <h3 style={{ margin: 0 }}>{t('marks_distribution') || 'Marks Distribution'}</h3>
               <Button
                 variant="outline"
                 size="sm"
@@ -1106,18 +1106,18 @@ const MarksEntryPage = () => {
                 (distributionForm.attendance || 0)
               );
               if (Math.abs(total - 100) > 0.01) {
-                toast.error(`Total must be 100%. Current total: ${total.toFixed(1)}%`);
+                toast.error(t('total_must_be_100', { total: total.toFixed(1) }) || `Total must be 100%. Current total: ${total.toFixed(1)}%`);
                 return;
               }
               setLoading(true);
               try {
                 const result = await setSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id, distributionForm);
                 if (result.success) {
-                  toast.success('Marks distribution updated successfully');
+                  toast.success(t('marks_distribution_updated_successfully') || 'Marks distribution updated successfully');
                   setEditingDistribution(false);
                   loadMarksData();
                 } else {
-                  toast.error(result.error || 'Failed to update distribution');
+                  toast.error(result.error || t('failed_to_update_distribution') || 'Failed to update distribution');
                 }
               } catch (error) {
                 toast.error(error.message);

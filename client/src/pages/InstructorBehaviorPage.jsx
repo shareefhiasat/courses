@@ -4,51 +4,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { Edit, Trash, MessageSquare, Bed, Users, Smartphone, AlertTriangle, Clock, XCircle, HelpCircle, User, AlertCircle, Crown, Shield, BookOpen } from 'lucide-react';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid } from '../components/ui';
+import { Edit, Trash, MessageSquare, Bed, Users, Smartphone, AlertTriangle, Clock, XCircle, HelpCircle, User, AlertCircle, Crown, Shield, BookOpen, CheckCircle, TrendingUp, TrendingDown, Target, Zap, UserCheck, UserX, UserMinus, Info } from 'lucide-react';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '../components/ui';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { getPrograms, getSubjects } from '../firebase/programs';
-import { getClasses } from '../firebase/firestore';
+import { getClasses, getEnrollments } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { formatQatarDateOnly } from '../utils/timezone';
+import { BEHAVIOR_TYPES, getBehaviorLabel } from '../constants/behaviorParticipation';
+import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '../utils/userStatus';
 import styles from './ProgramsManagementPage.module.css';
-
-const BEHAVIOR_TYPES = [
-  { id: 'talk_in_class', label_ar: 'التحدث في الصف', label_en: 'Talk in Class', icon: <MessageSquare size={16} color="#374151" /> },
-  { id: 'sleep', label_ar: 'النوم', label_en: 'Sleep', icon: <Bed size={16} color="#374151" /> },
-  { id: 'bathroom_requests', label_ar: 'طلبات الحمام المتكررة', label_en: 'Frequent Bathroom Requests', icon: <Users size={16} color="#374151" /> },
-  { id: 'mobile_in_class', label_ar: 'استخدام الهاتف', label_en: 'Mobile Phone in Class', icon: <Smartphone size={16} color="#374151" /> },
-  { id: 'disruptive', label_ar: 'سلوك مشتت', label_en: 'Disruptive Behavior', icon: <AlertTriangle size={16} color="#374151" /> },
-  { id: 'late_arrival', label_ar: 'تأخر الوصول', label_en: 'Late Arrival', icon: <Clock size={16} color="#374151" /> },
-  { id: 'inappropriate_language', label_ar: 'لغة غير لائقة', label_en: 'Inappropriate Language', icon: <XCircle size={16} color="#374151" /> },
-  { id: 'other', label_ar: 'أخرى', label_en: 'Other', icon: <HelpCircle size={16} color="#374151" /> }
-];
-
-// Function to get student status icon
-const getStudentStatusIcon = (student) => {
-  if (student.archived) {
-    return <AlertCircle size={16} color="#dc2626" />;
-  }
-  if (student.deleted) {
-    return <AlertCircle size={16} color="#dc2626" />;
-  }
-  
-  // Role-based icons
-  const role = student.role?.toLowerCase();
-  switch(role) {
-    case 'superadmin':
-      return <Crown size={16} color="#f59e0b" />;
-    case 'admin':
-      return <Shield size={16} color="#4f46e5" />;
-    case 'instructor':
-      return <BookOpen size={16} color="#0ea5e9" />;
-    case 'student':
-      return <User size={16} color="#16a34a" />;
-    default:
-      return <User size={16} color="#6b7280" />;
-  }
-};
 
 const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
@@ -62,14 +28,37 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [userCache, setUserCache] = useState({}); // Cache for user data fetched on demand
   const [formData, setFormData] = useState({
     studentId: '',
     classId: '',
     subjectId: '',
     type: '',
+    description: '',
+    points: -1,
     comment: ''
   });
   const [saving, setSaving] = useState(false);
+
+  // Function to fetch user data on demand and cache it
+  const fetchUser = async (userId) => {
+    if (!userId || userCache[userId]) {
+      return userCache[userId];
+    }
+    
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setUserCache(prev => ({ ...prev, [userId]: userData }));
+        return userData;
+      }
+    } catch (err) {
+      logger.error('Failed to fetch user:', userId, err);
+    }
+    return null;
+  };
 
   // Filters
   const [programFilter, setProgramFilter] = useState('all');
@@ -126,14 +115,16 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
 
   const loadData = async () => {
     try {
-      const [classesRes, programsRes, subjectsRes] = await Promise.all([
+      const [classesRes, programsRes, subjectsRes, enrollmentsRes] = await Promise.all([
         getClasses(),
         getPrograms(),
-        getSubjects()
+        getSubjects(),
+        getEnrollments()
       ]);
       if (classesRes.success) setClasses(classesRes.data || []);
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+      if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
     } catch (error) {
       logger.error('Failed to load data:', error);
     }
@@ -262,7 +253,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       setBehaviors([...filtered]);
     } catch (error) {
       logger.error('Failed to load behaviors:', error);
-      toast.error('Failed to load behaviors: ' + error.message);
+      toast.error(t('failed_to_save_behavior') + ': ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -271,9 +262,9 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation - comment is required for behaviors
-    if (!formData.studentId || !formData.classId || !formData.type || !formData.comment.trim()) {
-      toast.error('Please fill in all required fields (Student, Class, Type, Comment)');
+    // Validation - description is required for behaviors
+    if (!formData.studentId || !formData.classId || !formData.type || !formData.description.trim()) {
+      toast.error(t('fill_required_fields_behavior'));
       return;
     }
 
@@ -288,8 +279,9 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         classId: formData.classId,
         subjectId: subjectId,
         type: formData.type,
+        description: formData.description.trim(),
+        points: parseInt(formData.points) || 0,
         comment: formData.comment.trim(),
-        points: -1,
         createdBy: user.uid,
         ...(editingBehavior ? {
           updatedAt: Timestamp.now(),
@@ -312,7 +304,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             type: formData.type
           });
         } catch (e) { }
-        toast.success('Behavior updated successfully');
+        toast.success(t('behavior_updated'));
       } else {
         const docRef = await addDoc(collection(db, 'behaviors'), behaviorData);
         
@@ -332,18 +324,17 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         await addNotification({
           userId: formData.studentId,
           title: '⚠️ Behavior Recorded',
-          message: `You received -1 behavior point: ${behaviorType.label_en} - ${formData.comment}`,
+          message: t('behavior_notification', { type: behaviorType.label_en || formData.type, description: formData.description }),
           type: 'behavior',
           metadata: {
             behaviorId: docRef.id,
             type: formData.type,
             classId: formData.classId,
-            subjectId: subjectId,
-            comment: formData.comment
+            subjectId: subjectId
           },
           data: { behaviorId: docRef.id, classId: formData.classId, subjectId: subjectId }
         });
-        toast.success('Behavior created successfully');
+        toast.success(t('behavior_recorded'));
       }
 
       setEditingBehavior(null);
@@ -351,7 +342,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       loadBehaviors();
     } catch (error) {
       logger.error('Failed to save behavior:', error);
-      toast.error('Failed to save behavior: ' + error.message);
+      toast.error(t('failed_to_save_behavior') + ': ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -364,6 +355,8 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       classId: behavior.classId || '',
       subjectId: behavior.subjectId || '',
       type: behavior.type || '',
+      description: behavior.description || '',
+      points: behavior.points || -1,
       comment: behavior.comment || ''
     });
   };
@@ -388,7 +381,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           type: deleteModal.item.type
         });
       } catch (e) { }
-      toast.success('Behavior deleted successfully');
+      toast.success(t('behavior_deleted'));
       loadBehaviors();
     } catch (error) {
       toast.error('Failed to delete behavior: ' + error.message);
@@ -404,6 +397,8 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       classId: '',
       subjectId: '',
       type: '',
+      description: '',
+      points: -1,
       comment: ''
     });
   };
@@ -424,25 +419,99 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
   const columns = [
     {
       field: 'studentName',
-      headerName: 'Student',
+      headerName: 'User',
       flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => {
+      minWidth: 200,
+      renderCell: (params) => {
         const row = params?.row || {};
         const rowId = row.id || row.docId || params?.id;
-        // Try to get from row first, then from params.value, then from behaviors state
+        
+        // Debug logging for user investigation
+        console.log('=== BEHAVIOR USER DEBUG ===');
+        console.log('Behavior User Debug - Row data:', row);
+        console.log('Behavior User Debug - studentName from row:', row.studentName);
+        console.log('Behavior User Debug - studentEmail from row:', row.studentEmail);
+        console.log('Behavior User Debug - studentId from row:', row.studentId);
+        
+        // Get studentName and studentEmail from row first
         let studentName = row.studentName || params?.value;
+        let studentEmail = row.studentEmail;
+        let studentId = row.studentId;
+        
+        // If studentName is email or missing, try to get realName from user data
+        if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
+          // Try to find user data to get realName/displayName
+          const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
+          if (user?.realName) {
+            studentName = user.realName;
+            console.log('Behavior User Debug - Found realName from students array:', user.realName);
+          } else if (user?.displayName) {
+            studentName = user.displayName;
+            console.log('Behavior User Debug - Found displayName from students array:', user.displayName);
+          } else if (studentId && userCache[studentId]) {
+            // Try cached user data
+            const cachedUser = userCache[studentId];
+            if (cachedUser?.realName) {
+              studentName = cachedUser.realName;
+              console.log('Behavior User Debug - Found realName from cache:', cachedUser.realName);
+            } else if (cachedUser?.displayName) {
+              studentName = cachedUser.displayName;
+              console.log('Behavior User Debug - Found displayName from cache:', cachedUser.displayName);
+            }
+          } else if (studentId) {
+            // Fetch user data asynchronously (non-blocking)
+            fetchUser(studentId);
+            console.log('Behavior User Debug - Triggered async fetch for studentId:', studentId);
+          }
+        }
+        
+        // If not available, try to get from behaviors state
         if (!studentName && rowId) {
           const foundRow = behaviors.find(b => (b.id || b.docId) === rowId);
           studentName = foundRow?.studentName;
+          studentEmail = foundRow?.studentEmail;
+          studentId = foundRow?.studentId;
+          console.log('Behavior User Debug - Found from behaviors state:', { studentName, studentEmail, studentId });
+          
+          // Try to get realName from user data
+          if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
+            const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
+            if (user?.realName) {
+              studentName = user.realName;
+              console.log('Behavior User Debug - Found realName from students array (fallback):', user.realName);
+            } else if (user?.displayName) {
+              studentName = user.displayName;
+              console.log('Behavior User Debug - Found displayName from students array (fallback):', user.displayName);
+            } else if (studentId && userCache[studentId]) {
+              // Try cached user data
+              const cachedUser = userCache[studentId];
+              if (cachedUser?.realName) {
+                studentName = cachedUser.realName;
+                console.log('Behavior User Debug - Found realName from cache (fallback):', cachedUser.realName);
+              } else if (cachedUser?.displayName) {
+                studentName = cachedUser.displayName;
+                console.log('Behavior User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
+              }
+            } else if (studentId) {
+              // Fetch user data asynchronously (non-blocking)
+              fetchUser(studentId);
+              console.log('Behavior User Debug - Triggered async fetch for studentId (fallback):', studentId);
+            }
+          }
         }
-        if (studentName && studentName !== 'N/A') {
-          return studentName;
+        
+        const displayName = studentName && studentName !== 'N/A' ? studentName : (studentEmail || 'N/A');
+        
+        console.log('Behavior User Debug - Final displayName:', displayName);
+        console.log('Behavior User Debug - Final studentEmail:', studentEmail);
+        console.log('=== BEHAVIOR USER DEBUG END ===');
+        
+        // Format as "Name (email)" like enrollments, but only if we have both and they're different
+        if (studentEmail && studentEmail !== displayName && !displayName.includes('@')) {
+          return `${displayName} (${studentEmail})`;
         }
-        if (row.studentEmail) {
-          return row.studentEmail;
-        }
-        return 'N/A';
+        
+        return displayName;
       }
     },
     {
@@ -495,6 +564,32 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       }
     },
     {
+      field: 'points',
+      headerName: 'Points',
+      width: 100,
+      valueGetter: (params) => {
+        console.log('InstructorBehaviorPage: Full params object:', params);
+        console.log('InstructorBehaviorPage: Using params.value directly:', params.value, 'type:', typeof params.value);
+        return Number(params.value) || 0;
+      },
+      renderCell: (params) => {
+        const value = params.value || 0;
+        return (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px',
+            fontWeight: 'bold',
+            color: value > 0 ? '#22c55e' : value < 0 ? '#ef4444' : '#6b7280'
+          }}>
+            {value > 0 && '+'}{value}
+            {value > 0 && <TrendingUp size={14} color="#22c55e" />}
+            {value < 0 && <TrendingDown size={14} color="#ef4444" />}
+          </div>
+        );
+      }
+    },
+    {
       field: 'comment',
       headerName: 'Comment',
       flex: 1,
@@ -506,8 +601,54 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       headerName: 'Date',
       width: 150,
       valueGetter: (params) => {
-        const date = params.row.createdAt?.toDate ? params.row.createdAt.toDate() : new Date(params.row.createdAt || 0);
-        return formatQatarDateOnly(date);
+        // Debug logging for date investigation
+        console.log('=== BEHAVIOR DATE DEBUG ===');
+        console.log('Behavior Date Debug - params:', params);
+        console.log('Behavior Date Debug - params.value:', params.value);
+        console.log('Behavior Date Debug - params.row:', params.row);
+        
+        // Check if params directly contains the timestamp
+        if (params && typeof params === 'object' && params.seconds) {
+          const date = new Date(params.seconds * 1000);
+          console.log('Behavior Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
+          console.log('Behavior Date Debug - Formatted date:', formatQatarDateOnly(date));
+          console.log('=== BEHAVIOR DATE DEBUG END ===');
+          return formatQatarDateOnly(date);
+        }
+        
+        // Check if params.value directly contains the timestamp
+        if (params.value && typeof params.value === 'object' && params.value.seconds) {
+          const date = new Date(params.value.seconds * 1000);
+          console.log('Behavior Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
+          console.log('Behavior Date Debug - Formatted date:', formatQatarDateOnly(date));
+          console.log('=== BEHAVIOR DATE DEBUG END ===');
+          return formatQatarDateOnly(date);
+        }
+        
+        // Fallback to original logic
+        if (!params.row.createdAt) {
+          console.log('Behavior Date Debug - No createdAt found, returning "No Date"');
+          console.log('=== BEHAVIOR DATE DEBUG END ===');
+          return 'No Date';
+        }
+        // Handle Firebase Timestamp properly
+        let date;
+        if (params.row.createdAt?.toDate) {
+          date = params.row.createdAt.toDate();
+        } else if (params.row.createdAt?.seconds) {
+          date = new Date(params.row.createdAt.seconds * 1000);
+        } else {
+          date = new Date(params.row.createdAt);
+        }
+        if (isNaN(date.getTime())) {
+          console.log('Behavior Date Debug - Invalid date, returning "Invalid Date"');
+          console.log('=== BEHAVIOR DATE DEBUG END ===');
+          return 'Invalid Date';
+        }
+        const formattedDate = formatQatarDateOnly(date);
+        console.log('Behavior Date Debug - Formatted date (fallback):', formattedDate);
+        console.log('=== BEHAVIOR DATE DEBUG END ===');
+        return formattedDate;
       }
     },
     ...(hideActions ? [] : [{
@@ -518,6 +659,15 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<User size={16} />}
+            onClick={() => window.open(`/student-profile/${params.row.studentId}`, '_blank')}
+            style={{ color: 'var(--attendance-accent, #800020)' }}
+          >
+            Profile
+          </Button>
           <Button
             size="sm"
             variant="ghost"
@@ -577,7 +727,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                 label: `${c.name || c.code || c.id}${c.term ? ` (${c.term}${c.year ? ` ${c.year}` : ''}${c.semester ? ` ${c.semester}` : ''})` : ''}`
               }))
             ]}
-            placeholder="Class *"
+            placeholder={t('select_class')}
             required
           />
           <Select
@@ -585,14 +735,60 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             value={formData.studentId}
             onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
             options={[
-              { value: '', label: 'Select Student' },
-              ...students.map(s => ({
-                value: s.id,
-                label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`,
-                icon: getStudentStatusIcon(s)
-              }))
+              { value: '', label: t('select_student') || 'Select Student' },
+              ...students
+                .map(u => {
+                  // Get user enrollments count
+                  const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
+                  const enrollmentCount = userEnrollments.length;
+                  
+                  // Get status utilities
+                  const status = getUserStatus(u, userEnrollments);
+                  const statusSummary = getUserStatusSummary(u, userEnrollments);
+                  const iconProps = getStatusIconProps(status);
+                  const IconComponent = {
+                    'UserCheck': UserCheck,
+                    'UserX': UserX,
+                    'UserMinus': UserMinus,
+                    'AlertCircle': AlertTriangle,
+                    'Info': Info
+                  }[iconProps.name] || User;
+                  
+                  const isDisabled = status === USER_STATUS.DELETED;
+                  const statusLabel = statusSummary?.label || status;
+                  
+                  return {
+                    value: u.docId || u.id,
+                    displayLabel: u.displayName || u.realName || u.email || 'Unknown',
+                    label: (
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        gap: 8,
+                        opacity: isDisabled ? 0.7 : 1
+                      }}>
+                        <IconComponent size={16} color={iconProps.color} />
+                        <span style={{ 
+                          textDecoration: isDisabled ? 'line-through' : 'none',
+                          flex: 1
+                        }}>
+                          {u.displayName || u.realName || u.email || 'Unknown'}
+                        </span>
+                        <span style={{ 
+                          fontSize: '0.8em',
+                          color: '#9CA3AF',
+                          marginLeft: 'auto'
+                        }}>
+                          {statusLabel}
+                          {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments') || 'enrollments'}`}
+                        </span>
+                      </div>
+                    ),
+                    disabled: isDisabled
+                  };
+                })
             ]}
-            placeholder="Student *"
+            placeholder={t('select_student')}
             required
             disabled={!formData.classId}
           />
@@ -601,19 +797,68 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
               { value: '', label: 'Select Type' },
-              ...BEHAVIOR_TYPES.map(bt => ({ value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en, icon: bt.icon }))
+              ...BEHAVIOR_TYPES.map(bt => {
+                let icon;
+                switch (bt.icon) {
+                  case 'MessageSquare':
+                    icon = <MessageSquare size={16} color="#374151" />;
+                    break;
+                  case 'Bed':
+                    icon = <Bed size={16} color="#374151" />;
+                    break;
+                  case 'Users':
+                    icon = <Users size={16} color="#374151" />;
+                    break;
+                  case 'Smartphone':
+                    icon = <Smartphone size={16} color="#374151" />;
+                    break;
+                  case 'AlertTriangle':
+                    icon = <AlertTriangle size={16} color="#374151" />;
+                    break;
+                  case 'Clock':
+                    icon = <Clock size={16} color="#374151" />;
+                    break;
+                  case 'XCircle':
+                    icon = <XCircle size={16} color="#374151" />;
+                    break;
+                  case 'HelpCircle':
+                    icon = <HelpCircle size={16} color="#374151" />;
+                    break;
+                  default:
+                    icon = <AlertTriangle size={16} color="#374151" />;
+                }
+                return { value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en, icon };
+              })
             ]}
-            placeholder="Behavior Type *"
+            placeholder={t('select_behavior_type')}
             required
           />
         </div>
-        <div className="form-row single-column">
+        <div className="form-row">
+          <Textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder={t('description_required_behavior')}
+            rows={3}
+            required
+          />
           <Textarea
             value={formData.comment}
             onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-            placeholder="Comment (required) - Explain the behavior..."
+            placeholder="Comment (optional)"
             rows={3}
-            required
+          />
+        </div>
+        <div className="form-row">
+          <Select
+            value={formData.points}
+            onChange={(e) => setFormData({ ...formData, points: e.target.value })}
+            options={Array.from({ length: 21 }, (_, i) => ({
+              value: i - 10,
+              label: `${i - 10 > 0 ? '+' : ''}${i - 10}`
+            }))}
+            placeholder="Points"
+            searchable={false}
           />
         </div>
         <div className="form-actions">
@@ -692,10 +937,105 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             onChange={(e) => setTypeFilter(e.target.value)}
             options={[
               { value: 'all', label: 'All Types' },
-              ...BEHAVIOR_TYPES.map(bt => ({ value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en, icon: bt.icon }))
+              ...BEHAVIOR_TYPES.map(bt => {
+                let icon;
+                switch (bt.icon) {
+                  case 'MessageSquare':
+                    icon = <MessageSquare size={16} color="#374151" />;
+                    break;
+                  case 'Bed':
+                    icon = <Bed size={16} color="#374151" />;
+                    break;
+                  case 'Users':
+                    icon = <Users size={16} color="#374151" />;
+                    break;
+                  case 'Smartphone':
+                    icon = <Smartphone size={16} color="#374151" />;
+                    break;
+                  case 'AlertTriangle':
+                    icon = <AlertTriangle size={16} color="#374151" />;
+                    break;
+                  case 'Clock':
+                    icon = <Clock size={16} color="#374151" />;
+                    break;
+                  case 'XCircle':
+                    icon = <XCircle size={16} color="#374151" />;
+                    break;
+                  case 'HelpCircle':
+                    icon = <HelpCircle size={16} color="#374151" />;
+                    break;
+                  default:
+                    icon = <AlertTriangle size={16} color="#374151" />;
+                }
+                return { value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en, icon };
+              })
             ]}
             placeholder="Type"
           />
+        </div>
+      </div>
+
+      {/* Summary Chips */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef2f2', 
+          border: '1px solid #fecaca', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#991b1b'
+        }}>
+          <Target size={16} color="#991b1b" />
+          {behaviors.length} Total
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef2f2', 
+          border: '1px solid #fecaca', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#991b1b'
+        }}>
+          <Users size={16} color="#991b1b" />
+          {new Set(behaviors.map(b => b.studentId)).size} Students
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0fdf4', 
+          border: '1px solid #bbf7d0', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#166534'
+        }}>
+          <TrendingUp size={16} color="#166534" />
+          {behaviors.filter(b => (b.points || 0) > 0).reduce((sum, b) => sum + (b.points || 0), 0)} Positive
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef2f2', 
+          border: '1px solid #fecaca', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#991b1b'
+        }}>
+          <TrendingDown size={16} color="#991b1b" />
+          {behaviors.filter(b => (b.points || 0) < 0).reduce((sum, b) => sum + (b.points || 0), 0)} Negative
         </div>
       </div>
 

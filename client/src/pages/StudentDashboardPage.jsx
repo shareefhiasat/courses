@@ -37,27 +37,7 @@ import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
 
 // Participation and Behavior Types
-const PARTICIPATION_TYPES = [
-  { id: 'explain_lesson', label_ar: 'شرح الدرس', label_en: 'Explained Lesson' },
-  { id: 'gave_project', label_ar: 'قدم مشروع', label_en: 'Gave Project' },
-  { id: 'gave_paper', label_ar: 'قدم ورقة', label_en: 'Gave Paper' },
-  { id: 'gave_research', label_ar: 'قدم بحث', label_en: 'Gave Research' },
-  { id: 'active_discussion', label_ar: 'نقاش نشط', label_en: 'Active Discussion' },
-  { id: 'answered_question', label_ar: 'أجاب على سؤال', label_en: 'Answered Question' },
-  { id: 'helped_classmate', label_ar: 'ساعد زميل', label_en: 'Helped Classmate' },
-  { id: 'other', label_ar: 'أخرى', label_en: 'Other' }
-];
-
-const BEHAVIOR_TYPES = [
-  { id: 'talk_in_class', label_ar: 'التحدث في الصف', label_en: 'Talk in Class' },
-  { id: 'sleep', label_ar: 'النوم', label_en: 'Sleep' },
-  { id: 'bathroom_requests', label_ar: 'طلبات الحمام المتكررة', label_en: 'Frequent Bathroom Requests' },
-  { id: 'mobile_in_class', label_ar: 'استخدام الهاتف', label_en: 'Mobile Phone in Class' },
-  { id: 'disruptive', label_ar: 'سلوك مشتت', label_en: 'Disruptive Behavior' },
-  { id: 'late_arrival', label_ar: 'تأخر الوصول', label_en: 'Late Arrival' },
-  { id: 'inappropriate_language', label_ar: 'لغة غير لائقة', label_en: 'Inappropriate Language' },
-  { id: 'other', label_ar: 'أخرى', label_en: 'Other' }
-];
+import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../constants/behaviorParticipation';
 
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();
@@ -657,6 +637,12 @@ export default function StudentDashboardPage() {
       setExporting(false);
     }
   };
+
+  // Authentication check
+  if (!user) {
+    window.location.href = '/login';
+    return <Loading fullscreen variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+  }
 
   if (loading) {
     return <Loading fullscreen variant="overlay" message={t('loading') || 'Loading dashboard...'} fancyVariant="dots" />;

@@ -4,51 +4,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { Edit, Trash, MessageSquare, Award, FileText, Users, HelpCircle, Star, User, AlertCircle, Crown, Shield, BookOpen, GraduationCap } from 'lucide-react';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid } from '../components/ui';
+import { Edit, Trash, MessageSquare, Award, FileText, Users, HelpCircle, Star, User, AlertCircle, Crown, Shield, BookOpen, GraduationCap, ThumbsUp, Minus, X, TrendingUp, TrendingDown, CheckCircle, Target, Zap, UserCheck, UserX, UserMinus, AlertTriangle, Info } from 'lucide-react';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '../components/ui';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { getPrograms, getSubjects } from '../firebase/programs';
-import { getClasses } from '../firebase/firestore';
+import { getClasses, getEnrollments } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { formatQatarDateOnly } from '../utils/timezone';
+import { PARTICIPATION_TYPES, getParticipationLabel } from '../constants/behaviorParticipation';
+import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '../utils/userStatus';
 import styles from './ProgramsManagementPage.module.css';
-
-const PARTICIPATION_TYPES = [
-  { id: 'explain_lesson', label_ar: 'شرح الدرس', label_en: 'Explained Lesson', icon: <MessageSquare size={16} color="#374151" /> },
-  { id: 'gave_project', label_ar: 'قدم مشروع', label_en: 'Gave Project', icon: <Award size={16} color="#374151" /> },
-  { id: 'gave_paper', label_ar: 'قدم ورقة', label_en: 'Gave Paper', icon: <FileText size={16} color="#374151" /> },
-  { id: 'gave_research', label_ar: 'قدم بحث', label_en: 'Gave Research', icon: <FileText size={16} color="#374151" /> },
-  { id: 'active_discussion', label_ar: 'نقاش نشط', label_en: 'Active Discussion', icon: <MessageSquare size={16} color="#374151" /> },
-  { id: 'answered_question', label_ar: 'أجاب على سؤال', label_en: 'Answered Question', icon: <HelpCircle size={16} color="#374151" /> },
-  { id: 'helped_classmate', label_ar: 'ساعد زميل', label_en: 'Helped Classmate', icon: <Users size={16} color="#374151" /> },
-  { id: 'other', label_ar: 'أخرى', label_en: 'Other', icon: <Star size={16} color="#374151" /> }
-];
-
-// Function to get student status icon
-const getStudentStatusIcon = (student) => {
-  if (student.archived) {
-    return <AlertCircle size={16} color="#dc2626" />;
-  }
-  if (student.deleted) {
-    return <AlertCircle size={16} color="#dc2626" />;
-  }
-  
-  // Role-based icons
-  const role = student.role?.toLowerCase();
-  switch(role) {
-    case 'superadmin':
-      return <Crown size={16} color="#f59e0b" />;
-    case 'admin':
-      return <Shield size={16} color="#4f46e5" />;
-    case 'instructor':
-      return <BookOpen size={16} color="#0ea5e9" />;
-    case 'student':
-      return <User size={16} color="#16a34a" />;
-    default:
-      return <User size={16} color="#6b7280" />;
-  }
-};
 
 const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
@@ -62,14 +28,37 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [userCache, setUserCache] = useState({}); // Cache for user data fetched on demand
   const [formData, setFormData] = useState({
     studentId: '',
     classId: '',
     subjectId: '',
     type: '',
+    description: '',
+    points: 1,
     comment: ''
   });
   const [saving, setSaving] = useState(false);
+
+  // Function to fetch user data on demand and cache it
+  const fetchUser = async (userId) => {
+    if (!userId || userCache[userId]) {
+      return userCache[userId];
+    }
+    
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setUserCache(prev => ({ ...prev, [userId]: userData }));
+        return userData;
+      }
+    } catch (err) {
+      logger.error('Failed to fetch user:', userId, err);
+    }
+    return null;
+  };
 
   // Filters
   const [programFilter, setProgramFilter] = useState('all');
@@ -122,14 +111,16 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
 
   const loadData = async () => {
     try {
-      const [classesRes, programsRes, subjectsRes] = await Promise.all([
+      const [classesRes, programsRes, subjectsRes, enrollmentsRes] = await Promise.all([
         getClasses(),
         getPrograms(),
-        getSubjects()
+        getSubjects(),
+        getEnrollments()
       ]);
       if (classesRes.success) setClasses(classesRes.data || []);
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+      if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
     } catch (error) {
       logger.error('Failed to load data:', error);
     }
@@ -160,6 +151,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
               const studentDoc = await getDoc(doc(db, 'users', enrichedParticipation.studentId));
               if (studentDoc.exists()) {
                 const studentData = studentDoc.data();
+                // console.log('InstructorParticipationPage: Student data from Firebase:', studentData);
+                // console.log('InstructorParticipationPage: displayName:', studentData.displayName, 'email:', studentData.email);
                 enrichedParticipation.studentName = studentData.displayName || studentData.email || 'N/A';
                 enrichedParticipation.studentEmail = studentData.email;
                 } else {
@@ -263,10 +256,13 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       }
       
       // Create a new array to ensure React detects the change
+      // console.log('InstructorParticipationPage: Setting participations with data:', filtered.length, 'items');
+      // console.log('InstructorParticipationPage: Sample participation data:', filtered[0]);
+      // console.log('InstructorParticipationPage: Full filtered array:', filtered);
       setParticipations([...filtered]);
     } catch (error) {
       logger.error('Failed to load participations:', error);
-      toast.error('Failed to load participations: ' + error.message);
+      toast.error(t('failed_to_save_participation') + ': ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -292,8 +288,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         classId: formData.classId,
         subjectId: subjectId,
         type: formData.type,
+        description: formData.description.trim(),
+        points: parseInt(formData.points) || 0,
         comment: formData.comment.trim(),
-        points: 1,
         createdBy: user.uid,
         ...(editingParticipation ? {
           updatedAt: Timestamp.now(),
@@ -316,7 +313,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             type: formData.type
           });
         } catch (e) { }
-        toast.success('Participation updated successfully');
+        toast.success(t('participation_updated'));
       } else {
         const docRef = await addDoc(collection(db, 'participations'), participationData);
         
@@ -337,7 +334,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           await addNotification({
             userId: formData.studentId,
             title: '✅ Participation Recorded',
-            message: `You received +1 participation point: ${participationType.label_en}${formData.comment ? ` - ${formData.comment}` : ''}`,
+            message: t('participation_notification', { type: participationType.label_en || formData.type, description: formData.description }),
             type: 'participation',
             metadata: {
               participationId: docRef.id,
@@ -351,7 +348,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           // Notification is optional - log but don't fail the operation
             // Notification is optional - log but don't fail the operation
         }
-        toast.success('Participation created successfully');
+        toast.success(t('participation_recorded'));
       }
 
       setEditingParticipation(null);
@@ -359,7 +356,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       loadParticipations();
     } catch (error) {
       logger.error('Failed to save participation:', error);
-      toast.error('Failed to save participation: ' + error.message);
+      toast.error(t('failed_to_save_participation') + ': ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -372,6 +369,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       classId: participation.classId || '',
       subjectId: participation.subjectId || '',
       type: participation.type || '',
+      description: participation.description || '',
+      points: participation.points || 1,
       comment: participation.comment || ''
     });
   };
@@ -396,7 +395,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           type: deleteModal.item.type
         });
       } catch (e) { }
-      toast.success('Participation deleted successfully');
+      toast.success(t('participation_deleted'));
       loadParticipations();
     } catch (error) {
       toast.error('Failed to delete participation: ' + error.message);
@@ -412,6 +411,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       classId: '',
       subjectId: '',
       type: '',
+      description: '',
+      points: 1,
       comment: ''
     });
   };
@@ -432,25 +433,99 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   const columns = [
     {
       field: 'studentName',
-      headerName: 'Student',
+      headerName: 'User',
       flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => {
+      minWidth: 200,
+      renderCell: (params) => {
         const row = params?.row || {};
         const rowId = row.id || row.docId || params?.id;
-        // Try to get from row first, then from params.value, then from participations state
-        let studentName = row.studentName || params?.value;
+        
+        // Debug logging for user investigation
+        console.log('=== USER DEBUG ===');
+        console.log('User Debug - Row data:', row);
+        console.log('User Debug - studentName from row:', row.studentName);
+        console.log('User Debug - studentEmail from row:', row.studentEmail);
+        console.log('User Debug - studentId from row:', row.studentId);
+        
+        // Get studentName and studentEmail from row first
+        let studentName = row.studentName;
+        let studentEmail = row.studentEmail;
+        let studentId = row.studentId;
+        
+        // If studentName is email or missing, try to get realName from user data
+        if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
+          // Try to find user data to get realName/displayName
+          const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
+          if (user?.realName) {
+            studentName = user.realName;
+            console.log('User Debug - Found realName from students array:', user.realName);
+          } else if (user?.displayName) {
+            studentName = user.displayName;
+            console.log('User Debug - Found displayName from students array:', user.displayName);
+          } else if (studentId && userCache[studentId]) {
+            // Try cached user data
+            const cachedUser = userCache[studentId];
+            if (cachedUser?.realName) {
+              studentName = cachedUser.realName;
+              console.log('User Debug - Found realName from cache:', cachedUser.realName);
+            } else if (cachedUser?.displayName) {
+              studentName = cachedUser.displayName;
+              console.log('User Debug - Found displayName from cache:', cachedUser.displayName);
+            }
+          } else if (studentId) {
+            // Fetch user data asynchronously (non-blocking)
+            fetchUser(studentId);
+            console.log('User Debug - Triggered async fetch for studentId:', studentId);
+          }
+        }
+        
+        // If not available, try to get from participations state
         if (!studentName && rowId) {
           const foundRow = participations.find(p => (p.id || p.docId) === rowId);
           studentName = foundRow?.studentName;
+          studentEmail = foundRow?.studentEmail;
+          studentId = foundRow?.studentId;
+          console.log('User Debug - Found from participations state:', { studentName, studentEmail, studentId });
+          
+          // Try to get realName from user data
+          if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
+            const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
+            if (user?.realName) {
+              studentName = user.realName;
+              console.log('User Debug - Found realName from students array (fallback):', user.realName);
+            } else if (user?.displayName) {
+              studentName = user.displayName;
+              console.log('User Debug - Found displayName from students array (fallback):', user.displayName);
+            } else if (studentId && userCache[studentId]) {
+              // Try cached user data
+              const cachedUser = userCache[studentId];
+              if (cachedUser?.realName) {
+                studentName = cachedUser.realName;
+                console.log('User Debug - Found realName from cache (fallback):', cachedUser.realName);
+              } else if (cachedUser?.displayName) {
+                studentName = cachedUser.displayName;
+                console.log('User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
+              }
+            } else if (studentId) {
+              // Fetch user data asynchronously (non-blocking)
+              fetchUser(studentId);
+              console.log('User Debug - Triggered async fetch for studentId (fallback):', studentId);
+            }
+          }
         }
-        if (studentName && studentName !== 'N/A') {
-          return studentName;
+        
+        const displayName = studentName && studentName !== 'N/A' ? studentName : (studentEmail || 'N/A');
+        
+        console.log('User Debug - Final displayName:', displayName);
+        console.log('User Debug - Final studentEmail:', studentEmail);
+        console.log('=== END USER DEBUG ===');
+        
+        // Format as "Name (email)" like enrollments, but only if we have both and they're different
+        if (studentEmail && studentEmail !== displayName && !displayName.includes('@')) {
+          return `${displayName} (${studentEmail})`;
         }
-        if (row.studentEmail) {
-          return row.studentEmail;
-        }
-        return 'N/A';
+        
+        return displayName;
       }
     },
     {
@@ -506,6 +581,32 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       }
     },
     {
+      field: 'points',
+      headerName: 'Points',
+      width: 100,
+      valueGetter: (params) => {
+        // console.log('InstructorParticipationPage: Full params object:', params);
+        // console.log('InstructorParticipationPage: Using params.value directly:', params.value, 'type:', typeof params.value);
+        return Number(params.value) || 0;
+      },
+      renderCell: (params) => {
+        const value = params.value || 0;
+        return (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px',
+            fontWeight: 'bold',
+            color: value > 0 ? '#22c55e' : value < 0 ? '#ef4444' : '#6b7280'
+          }}>
+            {value > 0 && '+'}{value}
+            {value > 0 && <TrendingUp size={14} color="#22c55e" />}
+            {value < 0 && <TrendingDown size={14} color="#ef4444" />}
+          </div>
+        );
+      }
+    },
+    {
       field: 'comment',
       headerName: 'Comment',
       flex: 1,
@@ -517,8 +618,83 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       headerName: 'Date',
       width: 150,
       valueGetter: (params) => {
-        const date = params.row.createdAt?.toDate ? params.row.createdAt.toDate() : new Date(params.row.createdAt || 0);
-        return formatQatarDateOnly(date);
+        // Debug logging for date investigation
+        console.log('=== DATE DEBUG ===');
+        console.log('Date Debug - params:', params);
+        console.log('Date Debug - params.value:', params.value);
+        console.log('Date Debug - params.row:', params.row);
+        
+        // Check if params directly contains the timestamp (as shown in logs)
+        if (params && typeof params === 'object' && params.seconds) {
+          const date = new Date(params.seconds * 1000);
+          console.log('Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
+          console.log('Date Debug - Formatted date:', formatQatarDateOnly(date));
+          console.log('=== END DATE DEBUG ===');
+          return formatQatarDateOnly(date);
+        }
+        
+        // Check if params.value directly contains the timestamp
+        if (params.value && typeof params.value === 'object' && params.value.seconds) {
+          const date = new Date(params.value.seconds * 1000);
+          console.log('Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
+          console.log('Date Debug - Formatted date:', formatQatarDateOnly(date));
+          console.log('=== END DATE DEBUG ===');
+          return formatQatarDateOnly(date);
+        }
+        
+        // Fallback to original logic if params.value doesn't have timestamp
+        const rowId = params?.id;
+        let row = params?.row || {};
+        
+        // If row is empty, try to find it in participations state
+        if (!row || Object.keys(row).length === 0) {
+          const foundRow = participations.find(p => (p.id || p.docId) === rowId);
+          if (foundRow) {
+            row = foundRow;
+          }
+        }
+        
+        console.log('Date Debug - rowId:', rowId);
+        console.log('Date Debug - Row data:', row);
+        console.log('Date Debug - createdAt:', row.createdAt);
+        console.log('Date Debug - createdAt type:', typeof row.createdAt);
+        console.log('Date Debug - Has toDate method:', typeof row.createdAt?.toDate);
+        console.log('Date Debug - createdAt keys:', row.createdAt ? Object.keys(row.createdAt) : 'N/A');
+        
+        if (!row.createdAt) {
+          console.log('Date Debug - No createdAt found, returning "No Date"');
+          console.log('=== END DATE DEBUG ===');
+          return 'No Date';
+        }
+        
+        let date;
+        // Check if createdAt is a Firebase Timestamp object with toDate method
+        if (typeof row.createdAt.toDate === 'function') {
+          date = row.createdAt.toDate();
+          console.log('Date Debug - Using toDate():', date);
+        } 
+        // Check if createdAt is an object with seconds property (likely a raw Firebase Timestamp)
+        else if (row.createdAt && typeof row.createdAt === 'object' && row.createdAt.seconds) {
+          date = new Date(row.createdAt.seconds * 1000);
+          console.log('Date Debug - Using seconds:', row.createdAt.seconds, '-> date:', date);
+        } 
+        // Otherwise, assume it's a string or number that Date constructor can handle
+        else {
+          date = new Date(row.createdAt);
+          console.log('Date Debug - Using new Date():', date);
+        }
+
+        console.log('Date Debug - Final date:', date, 'isValid:', !isNaN(date.getTime()));
+
+        if (isNaN(date.getTime())) {
+          console.log('Date Debug - Invalid date, returning "Invalid Date"');
+          console.log('=== END DATE DEBUG ===');
+          return 'Invalid Date';
+        }
+        const formattedDate = formatQatarDateOnly(date);
+        console.log('Date Debug - Formatted date:', formattedDate);
+        console.log('=== END DATE DEBUG ===');
+        return formattedDate;
       }
     },
     ...(hideActions ? [] : [{
@@ -529,6 +705,15 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<User size={16} />}
+            onClick={() => window.open(`/student-profile/${params.row.studentId}`, '_blank')}
+            style={{ color: 'var(--attendance-accent, #800020)' }}
+          >
+            Profile
+          </Button>
           <Button
             size="sm"
             variant="ghost"
@@ -588,7 +773,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                 label: `${c.name || c.code || c.id}${c.term ? ` (${c.term}${c.year ? ` ${c.year}` : ''}${c.semester ? ` ${c.semester}` : ''})` : ''}`
               }))
             ]}
-            placeholder="Class *"
+            placeholder={t('select_class')}
             required
           />
           <Select
@@ -596,14 +781,60 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             value={formData.studentId}
             onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
             options={[
-              { value: '', label: 'Select Student' },
-              ...students.map(s => ({
-                value: s.id,
-                label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`,
-                icon: getStudentStatusIcon(s)
-              }))
+              { value: '', label: t('select_student') || 'Select Student' },
+              ...students
+                .map(u => {
+                  // Get user enrollments count
+                  const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
+                  const enrollmentCount = userEnrollments.length;
+                  
+                  // Get status utilities
+                  const status = getUserStatus(u, userEnrollments);
+                  const statusSummary = getUserStatusSummary(u, userEnrollments);
+                  const iconProps = getStatusIconProps(status);
+                  const IconComponent = {
+                    'UserCheck': UserCheck,
+                    'UserX': UserX,
+                    'UserMinus': UserMinus,
+                    'AlertCircle': AlertTriangle,
+                    'Info': Info
+                  }[iconProps.name] || User;
+                  
+                  const isDisabled = status === USER_STATUS.DELETED;
+                  const statusLabel = statusSummary?.label || status;
+                  
+                  return {
+                    value: u.docId || u.id,
+                    displayLabel: u.displayName || u.realName || u.email || 'Unknown',
+                    label: (
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        gap: 8,
+                        opacity: isDisabled ? 0.7 : 1
+                      }}>
+                        <IconComponent size={16} color={iconProps.color} />
+                        <span style={{ 
+                          textDecoration: isDisabled ? 'line-through' : 'none',
+                          flex: 1
+                        }}>
+                          {u.displayName || u.realName || u.email || 'Unknown'}
+                        </span>
+                        <span style={{ 
+                          fontSize: '0.8em',
+                          color: '#9CA3AF',
+                          marginLeft: 'auto'
+                        }}>
+                          {statusLabel}
+                          {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments') || 'enrollments'}`}
+                        </span>
+                      </div>
+                    ),
+                    disabled: isDisabled
+                  };
+                })
             ]}
-            placeholder="Student *"
+            placeholder={t('select_student')}
             required
             disabled={!formData.classId}
           />
@@ -612,18 +843,70 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
               { value: '', label: 'Select Type' },
-              ...PARTICIPATION_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: pt.icon }))
+              ...PARTICIPATION_TYPES.map(pt => {
+                let icon;
+                switch (pt.icon) {
+                  case 'MessageSquare':
+                    icon = <MessageSquare size={16} color="#374151" />;
+                    break;
+                  case 'Award':
+                    icon = <Award size={16} color="#374151" />;
+                    break;
+                  case 'FileText':
+                    icon = <FileText size={16} color="#374151" />;
+                    break;
+                  case 'Users':
+                    icon = <Users size={16} color="#374151" />;
+                    break;
+                  case 'HelpCircle':
+                    icon = <HelpCircle size={16} color="#374151" />;
+                    break;
+                  case 'Star':
+                    icon = <Star size={16} color="#374151" />;
+                    break;
+                  case 'ThumbsUp':
+                    icon = <ThumbsUp size={16} color="#374151" />;
+                    break;
+                  case 'Minus':
+                    icon = <Minus size={16} color="#374151" />;
+                    break;
+                  case 'X':
+                    icon = <X size={16} color="#374151" />;
+                    break;
+                  default:
+                    icon = <Star size={16} color="#374151" />;
+                }
+                return { value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon };
+              })
             ]}
-            placeholder="Participation Type *"
+            placeholder={t('select_participation_type')}
             required
           />
         </div>
-        <div className="form-row single-column">
+        <div className="form-row">
+          <Textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder={t('description_optional_participation')}
+            rows={3}
+          />
           <Textarea
             value={formData.comment}
             onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
             placeholder="Comment (optional)"
             rows={3}
+          />
+        </div>
+        <div className="form-row">
+          <Select
+            value={formData.points}
+            onChange={(e) => setFormData({ ...formData, points: e.target.value })}
+            options={Array.from({ length: 21 }, (_, i) => ({
+              value: i - 10,
+              label: `${i - 10 > 0 ? '+' : ''}${i - 10}`
+            }))}
+            placeholder="Points"
+            searchable={false}
           />
         </div>
         <div className="form-actions">
@@ -702,14 +985,113 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             onChange={(e) => setTypeFilter(e.target.value)}
             options={[
               { value: 'all', label: 'All Types' },
-              ...PARTICIPATION_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: pt.icon }))
+              ...PARTICIPATION_TYPES.map(pt => {
+                let icon;
+                switch (pt.icon) {
+                  case 'MessageSquare':
+                    icon = <MessageSquare size={16} color="#374151" />;
+                    break;
+                  case 'Award':
+                    icon = <Award size={16} color="#374151" />;
+                    break;
+                  case 'FileText':
+                    icon = <FileText size={16} color="#374151" />;
+                    break;
+                  case 'Users':
+                    icon = <Users size={16} color="#374151" />;
+                    break;
+                  case 'HelpCircle':
+                    icon = <HelpCircle size={16} color="#374151" />;
+                    break;
+                  case 'Star':
+                    icon = <Star size={16} color="#374151" />;
+                    break;
+                  case 'ThumbsUp':
+                    icon = <ThumbsUp size={16} color="#374151" />;
+                    break;
+                  case 'Minus':
+                    icon = <Minus size={16} color="#374151" />;
+                    break;
+                  case 'X':
+                    icon = <X size={16} color="#374151" />;
+                    break;
+                  default:
+                    icon = <Star size={16} color="#374151" />;
+                }
+                return { value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon };
+              })
             ]}
             placeholder="Type"
           />
         </div>
       </div>
 
+      {/* Summary Chips */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef2f2', 
+          border: '1px solid #fecaca', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#991b1b'
+        }}>
+          <Target size={16} color="#991b1b" />
+          {participations.length} Total
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef2f2', 
+          border: '1px solid #fecaca', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#991b1b'
+        }}>
+          <Users size={16} color="#991b1b" />
+          {new Set(participations.map(p => p.studentId)).size} Students
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0fdf4', 
+          border: '1px solid #bbf7d0', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#166534'
+        }}>
+          <TrendingUp size={16} color="#166534" />
+          {participations.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} Positive
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef2f2', 
+          border: '1px solid #fecaca', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#991b1b'
+        }}>
+          <TrendingDown size={16} color="#991b1b" />
+          {participations.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} Negative
+        </div>
+      </div>
+
       <div className={styles.content}>
+        {/* console.log('InstructorParticipationPage: Grid receiving participations data:', participations) */}
         <AdvancedDataGrid
           rows={participations}
           getRowId={(row) => row.docId || row.id}

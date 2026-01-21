@@ -15,55 +15,55 @@ const HelpDrawer = () => {
 
   // Reset state when help content changes or when drawer is opened
   useEffect(() => {
-    console.log('HelpDrawer - currentHelp changed or drawer opened:', {
-      isOpen,
-      title: currentHelp?.title,
-      contentLength: currentHelp?.content?.length,
-      timestamp: currentHelp?._timestamp
-    });
+    // console.log('HelpDrawer - currentHelp changed or drawer opened:', {
+    //   isOpen,
+    //   title: currentHelp?.title,
+    //   contentLength: currentHelp?.content?.length,
+    //   timestamp: currentHelp?._timestamp
+    // });
     
     if (currentHelp && isOpen) {
-      console.log('Resetting HelpDrawer state for new help content');
+      // console.log('Resetting HelpDrawer state for new help content');
       setSearchTerm('');
       setExpandedSections({});
       
       // Always update the filtered content when the drawer is opened or help content changes
       const newContent = Array.isArray(currentHelp.content) ? currentHelp.content : [];
-      console.log('Setting new filtered content with', newContent.length, 'sections');
+      // console.log('Setting new filtered content with', newContent.length, 'sections');
       setFilteredContent(newContent);
     }
   }, [currentHelp, isOpen, currentHelp?._timestamp]);
   
   // Handle search filtering and content updates
   useEffect(() => {
-    console.log('HelpDrawer - Search effect running', {
-      isOpen,
-      hasHelpContent: !!currentHelp?.content,
-      searchTerm,
-      helpContentTitle: currentHelp?.title
-    });
+    // console.log('HelpDrawer - Search effect running', {
+    //   isOpen,
+    //   hasHelpContent: !!currentHelp?.content,
+    //   searchTerm,
+    //   helpContentTitle: currentHelp?.title
+    // });
     
     if (!isOpen) {
-      console.log('HelpDrawer - Drawer is closed, skipping filter');
+      // console.log('HelpDrawer - Drawer is closed, skipping filter');
       return;
     }
     
     if (!currentHelp?.content) {
-      console.log('HelpDrawer - No help content available');
+      // console.log('HelpDrawer - No help content available');
       setFilteredContent([]);
       return;
     }
     
     // If there's no search term, use the current help content directly
     if (!searchTerm.trim()) {
-      console.log('HelpDrawer - No search term, using full help content');
+      // console.log('HelpDrawer - No search term, using full help content');
       setFilteredContent(Array.isArray(currentHelp.content) ? currentHelp.content : []);
       return;
     }
     
     // Only filter if we have a search term and content
     const filterContent = () => {
-      console.log('Filtering content with searchTerm:', searchTerm);
+      // console.log('Filtering content with searchTerm:', searchTerm);
       const filtered = currentHelp.content.map(section => {
         if (!section.items || !Array.isArray(section.items)) return null;
         
@@ -75,11 +75,11 @@ const HelpDrawer = () => {
         return filteredItems.length > 0 ? { ...section, items: filteredItems } : null;
       }).filter(Boolean); // Remove null/undefined sections
       
-      console.log('Filtered content result:', {
-        originalSections: currentHelp.content.length,
-        filteredSections: filtered.length,
-        hasSearchTerm: !!searchTerm
-      });
+      // console.log('Filtered content result:', {
+      //   originalSections: currentHelp.content.length,
+      //   filteredSections: filtered.length,
+      //   hasSearchTerm: !!searchTerm
+      // });
       
       setFilteredContent(filtered);
     };

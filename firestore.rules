@@ -403,6 +403,24 @@ service cloud.firestore {
       );
     }
 
+    // Points: Admin/instructor can write, students can read their own
+    match /points/{pointId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.studentId ||
+        isAdmin() ||
+        request.auth.token.instructor == true
+      );
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.instructor == true);
+    }
+    
+    // Allow listing all points for instructors/admins
+    match /points {
+      allow list: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.token.instructor == true
+      );
+    }
+
     // Behaviors: Admin/instructor/HR can read all, students can read their own
     match /behaviors/{behaviorId} {
       allow read: if isSignedIn() && (

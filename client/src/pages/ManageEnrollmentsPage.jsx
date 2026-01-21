@@ -281,7 +281,7 @@ const ManageEnrollmentsPage = () => {
       setStudents(studentsWithStatus);
     } catch (e) {
       console.error('[ManageEnrollments] Error loading students:', e);
-      toast.error('Failed to load students: ' + (e?.message || 'unknown error'));
+      toast.error(t('failed_to_load_students', { error: e?.message || 'unknown error' }) || 'Failed to load students: ' + (e?.message || 'unknown error'));
     } finally {
       setLoading(false);
     }
@@ -306,7 +306,7 @@ const ManageEnrollmentsPage = () => {
       await loadStudents(selectedClass.id);
     } catch (e) {
       console.error('[ManageEnrollments] Error toggling access:', e);
-      toast.error('Failed to update: ' + (e?.message || 'unknown error'));
+      toast.error(t('failed_to_update', { error: e?.message || 'unknown error' }) || 'Failed to update: ' + (e?.message || 'unknown error'));
     }
   };
 
@@ -324,8 +324,8 @@ const ManageEnrollmentsPage = () => {
     return (
       <Container maxWidth="md" className={styles.accessDenied}>
         <Shield size={48} className={styles.accessDeniedIcon} />
-        <h2>Access Denied</h2>
-        <p>This page is only accessible to instructors and admins.</p>
+        <h2>{t('access_denied') || 'Access Denied'}</h2>
+        <p>{t('page_only_accessible_instructors_admins') || 'This page is only accessible to instructors and admins.'}</p>
       </Container>
     );
   }
@@ -336,7 +336,7 @@ const ManageEnrollmentsPage = () => {
       <Loading 
         variant="overlay" 
         fullscreen 
-        message="Loading enrollments..." 
+        message={t('loading_enrollments') || 'Loading enrollments...'} 
         fancyVariant="dots" 
       />
     );
@@ -385,7 +385,7 @@ const ManageEnrollmentsPage = () => {
                   setTimeout(() => setFilterLoading(false), 800);
                 }}
                 options={[
-                  { value: 'all', label: 'All Programs' },
+                  { value: 'all', label: t('all_programs_filter') || 'All Programs' },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId
@@ -402,7 +402,7 @@ const ManageEnrollmentsPage = () => {
                   setTimeout(() => setFilterLoading(false), 800);
                 }}
                 options={[
-                  { value: 'all', label: 'All Subjects' },
+                  { value: 'all', label: t('all_subjects_filter') || 'All Subjects' },
                   ...subjects
                     .filter(s => programFilter === 'all' || s.programId === programFilter)
                     .map(s => ({
@@ -417,7 +417,7 @@ const ManageEnrollmentsPage = () => {
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Classes' },
+                  { value: 'all', label: t('all_classes_filter') || 'All Classes' },
                   ...classes
                     .filter(c => {
                       if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;

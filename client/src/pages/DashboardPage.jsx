@@ -1056,7 +1056,12 @@ const DashboardPage = () => {
         getPrograms()
       ]);
 
-      if (activitiesRes.success) setActivities(activitiesRes.data);
+      if (activitiesRes.success) {
+        console.log('Dashboard Debug - Raw activities data:', activitiesRes.data);
+        console.log('Dashboard Debug - First activity sample:', activitiesRes.data[0]);
+        console.log('Dashboard Debug - First activity createdAt:', activitiesRes.data[0]?.createdAt);
+        setActivities(activitiesRes.data);
+      }
       if (announcementsRes.success) setAnnouncements(announcementsRes.data);
       if (usersRes.success) setUsers(usersRes.data);
       if (allowlistRes.success) setAllowlist(allowlistRes.data);
@@ -2735,6 +2740,41 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     renderCell: (params) => (params.value ? formatDateTime(params.value) : (t('no_deadline_set') || 'No deadline set'))
                   },
                   {
+                    field: 'createdAt', headerName: 'Created Date', width: 180,
+                    valueGetter: (params) => params.value,
+                    renderCell: (params) => {
+                      if (!params.value) return 'Unknown';
+                      
+                      // Log the raw value for debugging
+                      console.log('Activities Date Debug - Raw params.value:', params.value);
+                      console.log('Activities Date Debug - Type:', typeof params.value);
+                      console.log('Activities Date Debug - Has toDate:', typeof params.value?.toDate);
+                      
+                      let date;
+                      if (params.value?.toDate) {
+                        date = params.value.toDate();
+                        console.log('Activities Date Debug - Using toDate():', date);
+                      } else if (params.value?.seconds) {
+                        date = new Date(params.value.seconds * 1000);
+                        console.log('Activities Date Debug - Using seconds:', params.value.seconds, '-> date:', date);
+                      } else if (typeof params.value === 'string' || typeof params.value === 'number') {
+                        date = new Date(params.value);
+                        console.log('Activities Date Debug - Using new Date():', date);
+                      } else {
+                        date = new Date(params.value);
+                        console.log('Activities Date Debug - Fallback new Date():', date);
+                      }
+                      
+                      console.log('Activities Date Debug - Final date:', date, 'isValid:', !isNaN(date.getTime()));
+                      
+                      if (isNaN(date.getTime())) {
+                        return 'Invalid Date';
+                      }
+                      
+                      return formatQatarDate(date);
+                    }
+                  },
+                  {
                     field: 'show', headerName: t('visible') || 'Visible', width: 120,
                     renderCell: (params) => (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
@@ -2799,7 +2839,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 exportFileName="activities"
                 showExportButton
                 exportLabel={t('export') || 'Export'}
-                loadingOverlayMessage="Loading..." fancyVariant="dots"
+                loadingOverlayMessage={loading ? "Loading..." : undefined} fancyVariant="dots"
               />
               </div>
             </div>
@@ -4442,7 +4482,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   { value: 'all', label: t('all_students') || 'All Students', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   ...users.map(u => ({
                     value: u.docId || u.id,
-                    label: `${u.email}${u.displayName ? ` (${u.displayName})` : ''}`
+                    label: `${u.displayName || u.realName || 'Unknown'}${u.email ? ` (${u.email})` : ''}`
                   }))
                 ]}
                 fullWidth

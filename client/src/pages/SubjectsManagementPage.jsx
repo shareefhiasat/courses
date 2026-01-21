@@ -11,7 +11,7 @@ import styles from './SubjectsManagementPage.module.css';
 
 const SubjectsManagementPage = () => {
   const { isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   const toast = useToast();
   
   const [subjects, setSubjects] = useState([]);
@@ -66,7 +66,7 @@ const SubjectsManagementPage = () => {
     
     // Validation
     if (!formData.programId || !formData.code || !formData.name_en || !formData.name_ar) {
-      toast.error('Please fill in all required fields');
+      toast.error(t('please_fill_required_fields_subject') || 'Please fill in all required fields');
       return;
     }
 
@@ -89,12 +89,12 @@ const SubjectsManagementPage = () => {
             programId: formData.programId
           });
         } catch (e) { console.warn('Failed to log activity:', e); }
-        toast.success(editingSubject ? 'Subject updated successfully' : 'Subject created successfully');
+        toast.success(editingSubject ? t('subject_updated_successfully') || 'Subject updated successfully' : t('subject_created_successfully') || 'Subject created successfully');
         setEditingSubject(null);
         resetForm();
         loadData();
       } else {
-        toast.error(result.error || 'Operation failed');
+        toast.error(result.error || t('operation_failed_subject') || 'Operation failed');
       }
     } catch (error) {
       toast.error(error.message);
@@ -122,7 +122,7 @@ const SubjectsManagementPage = () => {
   };
 
   const handleDelete = async (subject) => {
-    if (!window.confirm(`Are you sure you want to delete subject "${subject.name_en}"?`)) {
+    if (!window.confirm(t('confirm_delete_subject', { subjectName: subject.name_en }) || `Are you sure you want to delete subject "${subject.name_en}"?`)) {
       return;
     }
 
@@ -137,10 +137,10 @@ const SubjectsManagementPage = () => {
             subjectName: subject.name_en
           });
         } catch (e) { console.warn('Failed to log activity:', e); }
-        toast.success('Subject deleted successfully');
+        toast.success(t('subject_deleted_successfully') || 'Subject deleted successfully');
         loadData();
       } else {
-        toast.error(result.error || 'Failed to delete subject');
+        toast.error(result.error || t('failed_to_delete_subject') || 'Failed to delete subject');
       }
     } catch (error) {
       toast.error(error.message);
@@ -262,7 +262,7 @@ const SubjectsManagementPage = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> Editing Subject: {editingSubject.name_en} ({editingSubject.code || 'No code'})
+          <Edit size={16} /> {t('editing_subject', { subjectName: editingSubject.name_en, subjectCode: editingSubject.code || t('no_code') || 'No code' }) || `Editing Subject: ${editingSubject.name_en} (${editingSubject.code || 'No code'})`}
         </div>
       )}
 
@@ -271,9 +271,9 @@ const SubjectsManagementPage = () => {
           <Select
             value={formData.programId}
             onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
-            placeholder="All Programs"
+            placeholder={t('all_programs_select') || 'All Programs'}
             options={[
-              { value: '', label: 'All Programs', icon: <Filter size={16} color="#374151" /> },
+              { value: '', label: t('all_programs_select') || 'All Programs', icon: <Filter size={16} color="#374151" /> },
               ...programs.map(p => ({
                 value: p.docId,
                 label: lang === 'ar' ? p.name_ar : p.name_en,
@@ -285,35 +285,35 @@ const SubjectsManagementPage = () => {
           <Input
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-            placeholder="Subject Code * (e.g., CS101)"
+            placeholder={t('subject_code_placeholder') || 'Subject Code * (e.g., CS101)'}
             required
           />
           <Input
             value={formData.name_en}
             onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
-            placeholder="Subject Name (English) * (e.g., Introduction to Programming)"
+            placeholder={t('subject_name_en_placeholder') || 'Subject Name (English) * (e.g., Introduction to Programming)'}
             required
           />
           <Input
             value={formData.name_ar}
             onChange={(e) => setFormData({ ...formData, name_ar: e.target.value })}
-            placeholder="Subject Name (Arabic) * (e.g., مقدمة في البرمجة)"
+            placeholder={t('subject_name_ar_placeholder') || 'Subject Name (Arabic) * (e.g., مقدمة في البرمجة)'}
             required
             dir="rtl"
           />
           <NumberInput
             value={formData.creditHours}
             onChange={(e) => setFormData({ ...formData, creditHours: Number.parseInt(e.target.value) || 3 })}
-            placeholder="Credit Hours"
+            placeholder={t('credit_hours_subject') || 'Credit Hours'}
             min={1}
             max={6}
           />
           <NumberInput
             value={formData.totalHours}
             onChange={(e) => setFormData({ ...formData, totalHours: Number.parseInt(e.target.value) || 36 })}
-            placeholder="Total Hours"
+            placeholder={t('total_hours_subject') || 'Total Hours'}
             min={1}
-            helperText="Total hours for the entire course"
+            helperText={t('total_hours_helper') || 'Total hours for the entire course'}
           />
           <Select
             value={formData.type}

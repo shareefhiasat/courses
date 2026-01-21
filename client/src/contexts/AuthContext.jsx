@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!user) return;
 
-    const sessionTimeout = 60 * 60 * 1000; // 1 hour
+    const sessionTimeout = 48 * 60 * 60 * 1000; // 48 hours
     let timeoutId;
 
     const resetTimeout = () => {

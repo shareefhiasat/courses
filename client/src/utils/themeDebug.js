@@ -30,15 +30,15 @@ export const debugThemeVariables = () => {
   );
   
   // Check localStorage
-  console.group('🎨 [Theme Debug] localStorage Analysis');
+  // console.group('🎨 [Theme Debug] localStorage Analysis');
   const storageKeys = Object.keys(localStorage).filter(key => key.includes('color') || key.includes('accent'));
   storageKeys.forEach(key => {
-    console.log(`${key}:`, localStorage.getItem(key));
+    // console.log(`${key}:`, localStorage.getItem(key));
   });
-  console.groupEnd();
+  // console.groupEnd();
   
   // Test actual element colors with retry logic
-  console.group('🎨 [Theme Debug] Element Computed Styles');
+  // console.group('🎨 [Theme Debug] Element Computed Styles');
   
   const testElements = [
     { selector: 'input', name: 'Input' },
@@ -52,20 +52,20 @@ export const debugThemeVariables = () => {
     const element = document.querySelector(selector);
     if (element) {
       const styles = getComputedStyle(element);
-      console.log(`${name}:`, {
-        borderColor: styles.borderColor,
-        boxShadow: styles.boxShadow,
-        outlineColor: styles.outlineColor,
-        backgroundColor: styles.backgroundColor,
-        color: styles.color
-      });
+      // console.log(`${name}:`, {
+      //   borderColor: styles.borderColor,
+      //   boxShadow: styles.boxShadow,
+      //   outlineColor: styles.outlineColor,
+      //   backgroundColor: styles.backgroundColor,
+      //   color: styles.color
+      // });
     } else {
-      console.log(`${name}: Element not found with selector '${selector}'`);
+      // console.log(`${name}: Element not found with selector '${selector}'`);
     }
   });
-  console.groupEnd();
+  // console.groupEnd();
   
-  console.groupEnd();
+  // console.groupEnd();
 };
 
 // Auto-debug on load (development only)
@@ -82,7 +82,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Real-time monitoring
 export const startThemeMonitoring = () => {
-  console.log('🎨 [Theme Debug] Starting real-time monitoring...');
+  // console.log('🎨 [Theme Debug] Starting real-time monitoring...');
   
   // Monitor CSS variable changes
   const observer = new MutationObserver((mutations) => {
@@ -91,11 +91,11 @@ export const startThemeMonitoring = () => {
         const root = document.documentElement;
         const primaryColor = root.style.getPropertyValue('--color-primary');
         if (primaryColor) {
-          console.log('🎨 [Theme Debug] CSS variable changed:', {
-            '--color-primary': primaryColor,
-            '--brand': root.style.getPropertyValue('--brand'),
-            timestamp: new Date().toISOString()
-          });
+          // console.log('🎨 [Theme Debug] CSS variable changed:', {
+          //   '--color-primary': primaryColor,
+          //   '--brand': root.style.getPropertyValue('--brand'),
+          //   timestamp: new Date().toISOString()
+          // });
         }
       }
     });
@@ -110,12 +110,12 @@ export const startThemeMonitoring = () => {
   document.addEventListener('focusin', (e) => {
     if (e.target.matches('input, textarea')) {
       const styles = getComputedStyle(e.target);
-      console.log('🎨 [Theme Debug] Input focused:', {
-        element: e.target.tagName + (e.target.className ? '.' + e.target.className : ''),
-        borderColor: styles.borderColor,
-        boxShadow: styles.boxShadow,
-        outlineColor: styles.outlineColor
-      });
+      // console.log('🎨 [Theme Debug] Input focused:', {
+        //   element: e.target.tagName + (e.target.className ? '.' + e.target.className : ''),
+        //   borderColor: styles.borderColor,
+        //   boxShadow: styles.boxShadow,
+        //   outlineColor: styles.outlineColor
+        //   });
     }
   });
   
@@ -126,30 +126,30 @@ export const startThemeMonitoring = () => {
 export const debugElement = (selector) => {
   const element = document.querySelector(selector);
   if (!element) {
-    console.log(`🎨 [Theme Debug] Element not found: ${selector}`);
+    // console.log(`🎨 [Theme Debug] Element not found: ${selector}`);
     return;
   }
   
   const styles = getComputedStyle(element);
   const parentStyles = getComputedStyle(element.parentElement);
   
-  console.group(`🎨 [Theme Debug] Element Analysis: ${selector}`);
-  console.log('Element:', element);
-  console.log('Computed Styles:', {
-    borderColor: styles.borderColor,
-    boxShadow: styles.boxShadow,
-    outlineColor: styles.outlineColor,
-    backgroundColor: styles.backgroundColor,
-    color: styles.color,
-    border: styles.border,
-    outline: styles.outline
-  });
-  console.log('Parent Computed Styles:', {
-    borderColor: parentStyles.borderColor,
-    boxShadow: parentStyles.boxShadow,
-    outlineColor: parentStyles.outlineColor
-  });
-  console.groupEnd();
+  // console.group(`🎨 [Theme Debug] Element Analysis: ${selector}`);
+  // console.log('Element:', element);
+  // console.log('Computed Styles:', {
+  //   borderColor: styles.borderColor,
+  //   boxShadow: styles.boxShadow,
+  //   outlineColor: styles.outlineColor,
+  //   backgroundColor: styles.backgroundColor,
+  //   color: styles.color,
+  //   border: styles.border,
+  //   outline: styles.outline
+  // });
+  // console.log('Parent Computed Styles:', {
+  //   borderColor: parentStyles.borderColor,
+  //   boxShadow: parentStyles.boxShadow,
+  //   outlineColor: parentStyles.outlineColor
+  // });
+  // console.groupEnd();
 };
 
 // Make available globally for manual debugging
@@ -157,8 +157,8 @@ if (typeof window !== 'undefined') {
   window.debugThemeVariables = debugThemeVariables;
   window.startThemeMonitoring = startThemeMonitoring;
   window.debugElement = debugElement;
-  console.log('🎨 [Theme Debug] Available commands:');
-  console.log('  debugThemeVariables() - Analyze all theme variables');
-  console.log('  startThemeMonitoring() - Start real-time monitoring');
-  console.log('  debugElement("selector") - Debug specific element');
+  // console.log('🎨 [Theme Debug] Available commands:');
+  // console.log('  debugThemeVariables() - Analyze all theme variables');
+  // console.log('  startThemeMonitoring() - Start real-time monitoring');
+  // console.log('  debugElement("selector") - Debug specific element');
 }

@@ -40,6 +40,7 @@ export { default as SearchBar } from './SearchBar';
 export { default as Steps } from './Steps';
 export { default as Drawer } from './Drawer';
 export { default as StudentSelectOption } from './StudentSelectOption/StudentSelectOption';
+export { default as StudentSelect } from './StudentSelect/StudentSelect';
 
 // Feedback & Status
 export { default as Tag } from './Tag';

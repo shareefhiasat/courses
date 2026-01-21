@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { db } from '../firebase/config';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
-import { User, Users, Calendar, TrendingUp, Award, FileText, Clock, Search, Trophy, Flame, Target, X } from 'lucide-react';
+import { User, Users, Calendar, TrendingUp, Award, FileText, Clock, Search, Trophy, Flame, Target, X, BookOpen, Filter } from 'lucide-react';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '../firebase/badges';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Loading, Select } from '../components/ui';
@@ -13,6 +14,7 @@ import styles from './StudentProfilePage.module.css';
 const StudentProfilePage = () => {
   const { user, isAdmin, isHR, isInstructor } = useAuth();
   const { t } = useLang();
+  const { isDark } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [targetUserId, setTargetUserId] = useState(searchParams.get('uid') || user?.uid);
   
@@ -41,9 +43,108 @@ const StudentProfilePage = () => {
   const [allBadges, setAllBadges] = useState([]);
   const [userStats, setUserStats] = useState(null);
   const [allClasses, setAllClasses] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [filters, setFilters] = useState({ classId: '', year: '', term: '', semester: '' });
   const [allStudents, setAllStudents] = useState([]);
   const [showStudentList, setShowStudentList] = useState(false);
+
+  // Filter options for cascading dropdowns
+  const programOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: 'All Programs', icon: <Filter size={16} color="#374151" /> }
+    ];
+    const validPrograms = programs
+      .filter(prog => prog.docId || prog.id)
+      .map(prog => {
+        const value = prog.docId || prog.id;
+        const label = prog.name || prog.name_en || prog.name_ar || value;
+        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+      });
+    return [...opts, ...validPrograms];
+  }, [programs]);
+
+  const subjectOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: 'All Subjects', icon: <Filter size={16} color="#374151" /> }
+    ];
+    const validSubjects = subjects
+      .filter(sub => {
+        if (!filters.programId) return true;
+        const subProgramId = sub.programId || sub.program || '';
+        const formProgramId = filters.programId;
+        return subProgramId === formProgramId;
+      })
+      .map(sub => {
+        const value = sub.docId || sub.id;
+        const label = sub.name || sub.name_en || sub.name_ar || value;
+        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+      });
+    return [...opts, ...validSubjects];
+  }, [subjects, filters.programId]);
+
+  const classOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: 'All Classes', icon: <Filter size={16} color="#374151" /> }
+    ];
+    const validClasses = allClasses
+      .filter(cls => {
+        if (!filters.programId && !filters.subjectId) return true;
+        const clsProgramId = cls.programId || cls.programDocId || '';
+        const clsSubjectId = cls.subjectId || cls.subjectDocId || '';
+        const formProgramId = filters.programId;
+        const formSubjectId = filters.subjectId;
+        
+        if (formProgramId && clsProgramId !== formProgramId) return false;
+        if (formSubjectId && clsSubjectId !== formSubjectId) return false;
+        return true;
+      })
+      .map(cls => {
+        const value = cls.docId || cls.id;
+        const label = `${cls.name || cls.code || cls.id} - ${cls.term || ''} ${cls.year || ''}`;
+        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+      });
+    return [...opts, ...validClasses];
+  }, [classes, filters.programId, filters.subjectId]);
+
+  const yearOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: 'All Years', icon: <Filter size={16} color="#374151" /> }
+    ];
+    const validYears = [...new Set(allClasses.map(c => c.year || c.academicYear).filter(Boolean))]
+      .map(year => ({
+        value: year,
+        label: year,
+        icon: <BookOpen size={16} color="#374151" />
+      }));
+    return [...opts, ...validYears];
+  }, [allClasses]);
+
+  const termOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: 'All Terms', icon: <Filter size={16} color="#374151" /> }
+    ];
+    const validTerms = [...new Set(allClasses.map(c => c.term || c.sessionTerm).filter(Boolean))]
+      .map(term => ({
+        value: term,
+        label: term,
+        icon: <BookOpen size={16} color="#374151" />
+      }));
+    return [...opts, ...validTerms];
+  }, [allClasses]);
+
+  const semesterOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: 'All Semesters', icon: <Filter size={16} color="#374151" /> }
+    ];
+    const validSemesters = [...new Set(allClasses.map(c => c.semester).filter(Boolean))]
+      .map(semester => ({
+        value: semester,
+        label: semester,
+        icon: <BookOpen size={16} color="#374151" />
+      }));
+    return [...opts, ...validSemesters];
+  }, [allClasses]);
 
   const canViewOthers = isAdmin || isHR || isInstructor;
 
@@ -71,6 +172,16 @@ const StudentProfilePage = () => {
 
   const loadAllClasses = async () => {
     try {
+      // Load programs
+      const programsSnap = await getDocs(collection(db, 'programs'));
+      const programsData = programsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setPrograms(programsData);
+      
+      // Load subjects  
+      const subjectsSnap = await getDocs(collection(db, 'subjects'));
+      const subjectsData = subjectsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setSubjects(subjectsData);
+      
       let classesQuery = collection(db, 'classes');
       
       // If instructor (not admin/HR), filter by their classes only
@@ -313,6 +424,12 @@ const StudentProfilePage = () => {
     }
   };
 
+  // Authentication check
+  if (!user) {
+    window.location.href = '/login';
+    return <Loading variant="overlay" message={t('loading') || 'Loading...'} />;
+  }
+
   if (loading) {
     return <Loading variant="overlay" message={t('loading') || 'Loading...'} />;
   }
@@ -331,88 +448,108 @@ const StudentProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
+    <div className={`${styles.page} ${isDark ? 'dark' : ''}`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-800 dark:to-blue-800 rounded-2xl shadow-2xl p-8 mb-6 relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
-          
-          <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center shadow-xl ring-4 ring-white/30">
-                <User className="w-10 h-10 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-1">
-                  {studentData.displayName || studentData.email}
-                </h1>
-                <p className="text-purple-100 dark:text-purple-200 text-lg">{studentData.email}</p>
-                {studentData.studentNumber && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm text-white font-medium">
-                      {t('student_number')}: {studentData.studentNumber}
-                    </div>
+        <div className={styles.headerSection}>
+          <div className="container mx-auto px-4">
+            <div className={styles.headerContent}>
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                {/* Student Info */}
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center">
+                    {studentData?.avatar ? (
+                      <img src={studentData.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <User size={40} className="text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold text-white">
+                      {studentData?.displayName || 
+                       (studentData?.firstName && studentData?.lastName ? `${studentData.firstName} ${studentData.lastName}` : '') ||
+                       studentData?.email?.split('@')[0] || 
+                       'Unknown Student'}
+                    </h1>
+                    <p className="text-white/80 text-lg">{studentData?.email || 'No email'}</p>
+                    {studentData?.studentNumber && (
+                      <div className="mt-2">
+                        <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm text-white font-medium">
+                          Student ID: {studentData.studentNumber}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Search */}
+                {canViewOthers && (
+                  <div className={styles.searchContainer}>
+                    <Search className={styles.searchIcon} size={20} />
+                    <input
+                      type="text"
+                      value={searchText}
+                      onChange={(e) => searchUsers(e.target.value)}
+                      placeholder="Search students by name or email..."
+                      className={styles.searchInput}
+                    />
+                    {searchText && searchResults.length > 0 && (
+                      <div className={styles.searchResults}>
+                        {searchResults.map(s => (
+                          <div
+                            key={s.uid}
+                            onClick={() => {
+                              setTargetUserId(s.uid);
+                              setSearchText('');
+                              setSearchResults([]);
+                            }}
+                            className={styles.searchResultItem}
+                          >
+                            <div className={styles.searchResultAvatar}>
+                              {(s.displayName || s.email || '').charAt(0).toUpperCase()}
+                            </div>
+                            <div className={styles.searchResultInfo}>
+                              <div className={styles.searchResultName}>
+                                {s.displayName || s.email?.split('@')[0] || 'Unknown'}
+                              </div>
+                              <div className={styles.searchResultEmail}>
+                                {s.email}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
-            {canViewOthers && (
-              <div className="relative w-full md:w-96">
-                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/20 backdrop-blur-md border border-white/30">
-                  <Search className="w-5 h-5 text-white" />
-                  <input
-                    value={searchText}
-                    onChange={(e)=>searchUsers(e.target.value)}
-                    placeholder="Search students..."
-                    className="flex-1 bg-transparent outline-none text-white placeholder-white/70"
-                  />
-                </div>
-                {searchText && searchResults.length > 0 && (
-                  <div className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-72 overflow-auto">
-                    {searchResults.map(s => (
-                      <button
-                        key={s.uid}
-                        onClick={()=>{ setTargetUserId(s.uid); setSearchText(''); setSearchResults([]); }}
-                        className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        <div className="font-medium text-gray-900 dark:text-gray-100">{s.displayName || s.email}</div>
-                        <div className="text-sm text-gray-500">{s.email}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
         {/* Filters (Admin/Instructor only) */}
         {canViewOthers && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Filters</h3>
+          <div className={styles.filtersSection}>
+            <div className={styles.filtersHeader}>
+              <h3 className={styles.filtersTitle}>Filters</h3>
               <button
                 onClick={() => setShowStudentList(!showStudentList)}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                className={styles.toggleStudentListBtn}
               >
-                <User className="w-4 h-4" />
+                <User size={16} />
                 {showStudentList ? 'Hide Student List' : 'Show All Students'}
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className={styles.filtersGrid}>
               <div>
                 <Select
                   label="Class"
                   searchable
                   value={filters.classId}
                   onChange={(e) => setFilters({ ...filters, classId: e.target.value })}
-                  options={[
-                    { value: '', label: 'All Classes' },
-                    ...allClasses.map((c) => ({ value: c.id, label: c.name || c.name_en || c.id }))
-                  ]}
+                  options={classOptions}
                   fullWidth
+                  className={styles.filterSelect}
                 />
               </div>
               <div>
@@ -421,11 +558,9 @@ const StudentProfilePage = () => {
                   searchable
                   value={filters.year}
                   onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                  options={[
-                    { value: '', label: 'All Years' },
-                    ...[...new Set(allClasses.map(c => c.year || c.academicYear).filter(Boolean))].map((y) => ({ value: y, label: y }))
-                  ]}
+                  options={yearOptions}
                   fullWidth
+                  className={styles.filterSelect}
                 />
               </div>
               <div>
@@ -434,11 +569,9 @@ const StudentProfilePage = () => {
                   searchable
                   value={filters.term}
                   onChange={(e) => setFilters({ ...filters, term: e.target.value })}
-                  options={[
-                    { value: '', label: 'All Terms' },
-                    ...[...new Set(allClasses.map(c => c.term || c.sessionTerm).filter(Boolean))].map((t) => ({ value: t, label: t }))
-                  ]}
+                  options={termOptions}
                   fullWidth
+                  className={styles.filterSelect}
                 />
               </div>
               <div>
@@ -447,11 +580,9 @@ const StudentProfilePage = () => {
                   searchable
                   value={filters.semester}
                   onChange={(e) => setFilters({ ...filters, semester: e.target.value })}
-                  options={[
-                    { value: '', label: 'All Semesters' },
-                    ...[...new Set(allClasses.map(c => c.semester).filter(Boolean))].map((s) => ({ value: s, label: s }))
-                  ]}
+                  options={semesterOptions}
                   fullWidth
+                  className={styles.filterSelect}
                 />
               </div>
             </div>
