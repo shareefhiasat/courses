@@ -1,0 +1,259 @@
+/* QR Scanner UI Components - Isolated Styles */
+
+/* Reset and Base */
+.qr-scanner-container * {
+  box-sizing: border-box;
+}
+
+/* Button Styles */
+.qr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: 1px solid transparent;
+  outline: none;
+}
+
+.qr-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qr-btn-default {
+  padding: 0.5rem 1rem;
+  height: 2.5rem;
+}
+
+.qr-btn-sm {
+  padding: 0.25rem 0.75rem;
+  height: 2rem;
+  font-size: 0.8125rem;
+}
+
+.qr-btn-icon {
+  padding: 0.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.qr-btn-default {
+  background: #8b5cf6;
+  color: white;
+}
+
+.qr-btn-default:hover:not(:disabled) {
+  background: #7c3aed;
+}
+
+.qr-btn-outline {
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+.qr-btn-outline:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.qr-btn-ghost {
+  background: transparent;
+  color: #374151;
+}
+
+.qr-btn-ghost:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+/* Input Styles */
+.qr-input {
+  display: flex;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.qr-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.qr-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Textarea Styles */
+.qr-textarea {
+  display: flex;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.qr-textarea:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.qr-textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* Dropdown Styles */
+.qr-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.qr-dropdown-content {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  z-index: 50;
+  min-width: 8rem;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  animation: qr-dropdown-in 0.1s ease-out;
+}
+
+.qr-dropdown-start {
+  left: 0;
+}
+
+.qr-dropdown-end {
+  right: 0;
+}
+
+@keyframes qr-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.qr-dropdown-item {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: background-color 0.15s;
+}
+
+.qr-dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.qr-dropdown-item:active {
+  background: #e5e7eb;
+}
+
+/* Badge Styles */
+.qr-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.qr-badge-green {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
+.qr-badge-amber {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.qr-badge-red {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.qr-badge-blue {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.qr-badge-purple {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #c4b5fd;
+}
+
+/* Avatar */
+.qr-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Utility Classes */
+.qr-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .qr-scanner-container {
+    font-size: 14px;
+  }
+  
+  .qr-input,
+  .qr-textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
