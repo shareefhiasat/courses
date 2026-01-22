@@ -63,6 +63,11 @@ const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();
   const { lang, setLang, t } = useLang();
   const { theme } = useTheme();
+  
+  // Helper function for theme-aware filter icon colors
+  const getFilterIconColor = () => {
+    return theme === 'dark' ? '#9ca3af' : '#374151';
+  };
   // Joyride tour state
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
@@ -726,7 +731,7 @@ const DashboardPage = () => {
   // Activity Form - Program Options
   const activityProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_programs'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
@@ -735,7 +740,7 @@ const DashboardPage = () => {
         const label = lang === 'ar' 
           ? (prog.name_ar || prog.name_en || value) 
           : (prog.name_en || prog.name_ar || value);
-        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+        return { value, label, icon: <BookOpen size={16} color={getFilterIconColor()} /> };
       });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
@@ -743,7 +748,7 @@ const DashboardPage = () => {
   // Activity Form - Subject Options
   const activitySubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -758,7 +763,7 @@ const DashboardPage = () => {
         const label = lang === 'ar' 
           ? (sub.name_ar || sub.name_en || value) 
           : (sub.name_en || sub.name_ar || value);
-        return { value, label, icon: <FileText size={16} color="#374151" /> };
+        return { value, label, icon: <FileText size={16} color={getFilterIconColor()} /> };
       });
     return [...opts, ...validSubjects];
   }, [subjects, activityForm.programId, lang, t]);
@@ -766,7 +771,7 @@ const DashboardPage = () => {
   // Activity Form - Class Options
   const activityClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_classes'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validClasses = classes
       .filter(cls => {
@@ -780,7 +785,7 @@ const DashboardPage = () => {
         const value = ensureString(cls.docId || cls.id);
         const name = lang === 'ar' ? (cls.name_ar || cls.name) : (cls.name || cls.name_ar);
         const label = `${name || 'Unnamed Class'}${cls.code ? ` (${cls.code})` : ''}`;
-        return { value, label, icon: <Users size={16} color="#374151" /> };
+        return { value, label, icon: <Users size={16} color={getFilterIconColor()} /> };
       });
     return [...opts, ...validClasses];
   }, [classes, activityForm.subjectId, lang, t]);
@@ -788,14 +793,14 @@ const DashboardPage = () => {
   // Enrollment Form - Program Options
   const enrollmentProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_programs'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validPrograms = programs.map(p => {
       const value = ensureString(p.docId || p.id);
       const label = lang === 'ar' 
         ? (p.name_ar || p.name_en || p.code || value)
         : (p.name_en || p.name_ar || p.code || value);
-      return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+      return { value, label, icon: <BookOpen size={16} color={getFilterIconColor()} /> };
     });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
@@ -803,7 +808,7 @@ const DashboardPage = () => {
   // Enrollment Form - Subject Options
   const enrollmentSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -817,7 +822,7 @@ const DashboardPage = () => {
         const label = lang === 'ar'
           ? (s.name_ar || s.name_en || s.code || value)
           : (s.name_en || s.name_ar || s.code || value);
-        return { value, label, icon: <FileText size={16} color="#374151" /> };
+        return { value, label, icon: <FileText size={16} color={getFilterIconColor()} /> };
       });
     return [...opts, ...validSubjects];
   }, [subjects, enrollmentForm.programId, lang, t]);
@@ -825,7 +830,7 @@ const DashboardPage = () => {
   // Enrollment Form - Class Options
   const enrollmentClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_classes'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validClasses = classes
       .filter(c => {
@@ -849,7 +854,7 @@ const DashboardPage = () => {
           value: ensureString(c.docId || c.id),
           displayLabel: `${c.name}${codePart}${termPart}${yearPart}${semesterPart}`,
           label: `${c.name}${codePart}${termPart}${yearPart}${semesterPart}`,
-          icon: <Users size={16} color="#374151" />
+          icon: <Users size={16} color={getFilterIconColor()} />
         };
       });
     return [...opts, ...validClasses];
@@ -858,7 +863,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Program Options
   const enrollmentFilterProgramOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_programs'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> }
+      { value: 'all', label: t('all_programs'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validPrograms = programs.map(p => {
       const value = ensureString(p.docId || p.id);
@@ -873,7 +878,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Subject Options
   const enrollmentFilterSubjectOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> }
+      { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -895,7 +900,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Class Options
   const enrollmentFilterClassOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_classes'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> }
+      { value: 'all', label: t('all_classes'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validClasses = classes
       .filter(c => {
@@ -926,7 +931,7 @@ const DashboardPage = () => {
   // Class Form - Subject Options
   const classFormSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> }
     ];
     const validSubjects = subjects.map(subject => {
       const value = ensureString(subject.docId || subject.id);
@@ -934,7 +939,7 @@ const DashboardPage = () => {
         ? (subject.name_ar || subject.name_en || '')
         : (subject.name_en || subject.name_ar || '');
       const label = `${name}${subject.code ? ` (${subject.code})` : ''}`;
-      return { value, label, icon: <FileText size={16} color="#374151" /> };
+      return { value, label, icon: <FileText size={16} color={getFilterIconColor()} /> };
     });
     return [...opts, ...validSubjects];
   }, [subjects, lang, t]);
@@ -1606,7 +1611,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           sectionId="summary-cards"
           title={t('dashboard_statistics') || 'Dashboard Statistics'}
           icon={<BarChart3 size={20} />}
-          color="#6366f1"
+          color={theme === 'dark' ? '#818cf8' : '#6366f1'}
           defaultMode="full"
           data-tour="stats"
           compactContent={
@@ -1621,11 +1626,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs'), icon: <Filter size={14} color="#374151" /> },
+                  { value: 'all', label: t('all_programs'), icon: <Filter size={14} color={getFilterIconColor()} /> },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId,
-                    icon: <BookOpen size={14} color="#374151" />
+                    icon: <BookOpen size={14} color={getFilterIconColor()} />
                   }))
                 ]}
                 style={{ minWidth: 140 }}
@@ -1647,11 +1652,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> },
+                  { value: 'all', label: t('all_programs'), icon: <Filter size={16} color={getFilterIconColor()} /> },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId,
-                    icon: <BookOpen size={16} color="#374151" />
+                    icon: <BookOpen size={16} color={getFilterIconColor()} />
                   }))
                 ]}
                 style={{ minWidth: 180 }}
@@ -1666,13 +1671,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> },
+                  { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> },
                   ...subjects
                     .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
                     .map(s => ({
                       value: s.docId || s.id,
                       label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim(),
-                      icon: <FileText size={16} color="#374151" />
+                      icon: <FileText size={16} color={getFilterIconColor()} />
                     }))
                 ]}
                 style={{ minWidth: 180 }}
@@ -1684,7 +1689,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={enrollmentClassFilter}
                 onChange={(e) => setEnrollmentClassFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> },
+                  { value: 'all', label: t('all_classes'), icon: <Filter size={16} color={getFilterIconColor()} /> },
                   ...classes
                     .filter(c => {
                       if (enrollmentProgramFilter !== 'all') {
@@ -1703,7 +1708,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     .map(c => ({
                       value: c.id || c.docId,
                       label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`,
-                      icon: <Users size={16} color="#374151" />
+                      icon: <Users size={16} color={getFilterIconColor()} />
                     }))
                 ]}
                 style={{ minWidth: 180 }}
@@ -1889,7 +1894,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   tooltip: 'Total number of resources'
                 }
               ].map((stat, idx) => {
-                const config = getCardConfig(stat.type, t);
+                const config = getCardConfig(stat.type, t, theme);
                 const IconComponent = config.icon;
                 const borderRadius = getShapeRadius(config.shape);
                 
@@ -3583,7 +3588,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         value={classForm.ownerEmail}
                         onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
                         options={[
-                          { value: '', label: t('all_instructors') || 'All Instructors', icon: <Filter size={16} color="#374151" /> },
+                          { value: '', label: t('all_instructors') || 'All Instructors', icon: <Filter size={16} color={getFilterIconColor()} /> },
                           ...users.filter(user => user.role === 'admin' || user.role === 'instructor').map(instructor => {
                             const displayName = instructor.displayName || instructor.name || instructor.realName || '';
                             const isInstructor = instructor.role === 'instructor';

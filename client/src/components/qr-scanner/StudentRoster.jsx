@@ -51,6 +51,32 @@ const ChevronRightIcon = ({ style }) => (
   </svg>
 );
 
+const AttendanceIcon = ({ style }) => (
+  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+
+const ParticipationIcon = ({ style }) => (
+  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <line x1="22" y1="12" x2="16" y2="12"/>
+    <path d="M22 9v6"/>
+  </svg>
+);
+
+const PenaltyIcon = ({ style }) => (
+  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+);
+
 export default function StudentRoster({
   students,
   onStudentSelect,
@@ -557,50 +583,66 @@ export default function StudentRoster({
                               gap: '0.5rem', 
                               marginBottom: '0.75rem',
                               padding: '0.5rem',
-                              background: '#f3f4f6',
-                              borderRadius: '0.375rem'
+                              background: '#f8fafc',
+                              borderRadius: '0.5rem',
+                              border: '1px solid #e2e8f0'
                             }}>
                               <button
                                 onClick={() => toggleFilter('attendance')}
                                 style={{
-                                  padding: '0.25rem 0.5rem',
-                                  fontSize: '0.75rem',
-                                  borderRadius: '0.25rem',
-                                  border: 'none',
-                                  background: activeFilters.attendance ? '#22c55e' : '#e5e7eb',
-                                  color: activeFilters.attendance ? 'white' : '#6b7280',
-                                  cursor: 'pointer'
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.375rem',
+                                  padding: '0.5rem 0.75rem',
+                                  fontSize: '0.8125rem',
+                                  borderRadius: '0.375rem',
+                                  border: '1px solid #e2e8f0',
+                                  background: activeFilters.attendance ? '#ffffff' : '#f8fafc',
+                                  color: activeFilters.attendance ? '#0f766e' : '#64748b',
+                                  cursor: 'pointer',
+                                  boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                                 }}
                               >
-                                🟢 Attendance
+                                <AttendanceIcon style={{ width: '14px', height: '14px' }} />
+                                Attendance
                               </button>
                               <button
                                 onClick={() => toggleFilter('participation')}
                                 style={{
-                                  padding: '0.25rem 0.5rem',
-                                  fontSize: '0.75rem',
-                                  borderRadius: '0.25rem',
-                                  border: 'none',
-                                  background: activeFilters.participation ? '#3b82f6' : '#e5e7eb',
-                                  color: activeFilters.participation ? 'white' : '#6b7280',
-                                  cursor: 'pointer'
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.375rem',
+                                  padding: '0.5rem 0.75rem',
+                                  fontSize: '0.8125rem',
+                                  borderRadius: '0.375rem',
+                                  border: '1px solid #e2e8f0',
+                                  background: activeFilters.participation ? '#ffffff' : '#f8fafc',
+                                  color: activeFilters.participation ? '#1e40af' : '#64748b',
+                                  cursor: 'pointer',
+                                  boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                                 }}
                               >
-                                🔵 Participation
+                                <ParticipationIcon style={{ width: '14px', height: '14px' }} />
+                                Participation
                               </button>
                               <button
                                 onClick={() => toggleFilter('penalties')}
                                 style={{
-                                  padding: '0.25rem 0.5rem',
-                                  fontSize: '0.75rem',
-                                  borderRadius: '0.25rem',
-                                  border: 'none',
-                                  background: activeFilters.penalties ? '#ef4444' : '#e5e7eb',
-                                  color: activeFilters.penalties ? 'white' : '#6b7280',
-                                  cursor: 'pointer'
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.375rem',
+                                  padding: '0.5rem 0.75rem',
+                                  fontSize: '0.8125rem',
+                                  borderRadius: '0.375rem',
+                                  border: '1px solid #e2e8f0',
+                                  background: activeFilters.penalties ? '#ffffff' : '#f8fafc',
+                                  color: activeFilters.penalties ? '#b91c1c' : '#64748b',
+                                  cursor: 'pointer',
+                                  boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                                 }}
                               >
-                                🔴 Penalties
+                                <PenaltyIcon style={{ width: '14px', height: '14px' }} />
+                                Penalties
                               </button>
                             </div>
                             {/*<h4 style={{ */}
@@ -656,45 +698,68 @@ export default function StudentRoster({
                                       <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
                                         {dateStr}
                                       </span>
-                                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                      <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
                                         {filteredCounts.attendance > 0 && (
-                                          <span style={{
-                                            fontSize: '0.6875rem',
-                                            padding: '0.125rem 0.25rem',
-                                            background: '#22c55e',
-                                            color: 'white',
-                                            borderRadius: '0.1875rem'
+                                          <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem',
+                                            padding: '0.25rem 0.5rem',
+                                            background: '#f0fdf4',
+                                            border: '1px solid #bbf7d0',
+                                            borderRadius: '0.375rem',
+                                            fontSize: '0.75rem',
+                                            color: '#166534'
                                           }}>
+                                            <AttendanceIcon style={{ width: '12px', height: '12px' }} />
                                             {filteredCounts.attendance}
-                                          </span>
+                                          </div>
                                         )}
                                         {filteredCounts.participation > 0 && (
-                                          <span style={{
-                                            fontSize: '0.6875rem',
-                                            padding: '0.125rem 0.25rem',
-                                            background: '#3b82f6',
-                                            color: 'white',
-                                            borderRadius: '0.1875rem'
+                                          <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem',
+                                            padding: '0.25rem 0.5rem',
+                                            background: '#eff6ff',
+                                            border: '1px solid #bfdbfe',
+                                            borderRadius: '0.375rem',
+                                            fontSize: '0.75rem',
+                                            color: '#1e40af'
                                           }}>
+                                            <ParticipationIcon style={{ width: '12px', height: '12px' }} />
                                             {filteredCounts.participation}
-                                          </span>
+                                          </div>
                                         )}
                                         {filteredCounts.penalties > 0 && (
-                                          <span style={{
-                                            fontSize: '0.6875rem',
-                                            padding: '0.125rem 0.25rem',
-                                            background: '#ef4444',
-                                            color: 'white',
-                                            borderRadius: '0.1875rem'
+                                          <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem',
+                                            padding: '0.25rem 0.5rem',
+                                            background: '#fef2f2',
+                                            border: '1px solid #fecaca',
+                                            borderRadius: '0.375rem',
+                                            fontSize: '0.75rem',
+                                            color: '#b91c1c'
                                           }}>
+                                            <PenaltyIcon style={{ width: '12px', height: '12px' }} />
                                             {filteredCounts.penalties}
-                                          </span>
+                                          </div>
                                         )}
                                       </div>
                                     </div>
-                                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                      {isDayExpanded ? '▼' : '▶'}
-                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                        {isDayExpanded ? 'Hide details' : 'Show details'}
+                                      </span>
+                                      <ChevronDownIcon style={{ 
+                                        width: '16px', 
+                                        height: '16px',
+                                        transform: isDayExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                        transition: 'transform 0.2s'
+                                      }} />
+                                    </div>
                                   </div>
                                   
                                   {/* Expanded Content */}
@@ -707,24 +772,20 @@ export default function StudentRoster({
                                             <div key={idx} style={{ 
                                               display: 'flex', 
                                               alignItems: 'center', 
-                                              gap: '0.375rem',
-                                              padding: '0.125rem 0',
-                                              fontSize: '0.75rem'
+                                              gap: '0.5rem',
+                                              padding: '0.375rem 0',
+                                              fontSize: '0.8125rem',
+                                              borderBottom: '1px solid #f1f5f9'
                                             }}>
-                                              <span style={{ color: '#6b7280', minWidth: '60px', fontSize: '0.6875rem' }}>
+                                              <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                                 {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
-                                              <span style={{ 
-                                                padding: '0.0625rem 0.25rem',
-                                                background: log.color,
-                                                color: 'white',
-                                                borderRadius: '0.1875rem',
-                                                fontSize: '0.6875rem'
-                                              }}>
+                                              <AttendanceIcon style={{ width: '14px', height: '14px', color: '#0f766e' }} />
+                                              <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
                                               {log.comment && (
-                                                <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                                <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
                                                   - {log.comment}
                                                 </span>
                                               )}
@@ -740,38 +801,40 @@ export default function StudentRoster({
                                             <div key={idx} style={{ 
                                               display: 'flex', 
                                               alignItems: 'center', 
-                                              gap: '0.375rem',
-                                              padding: '0.125rem 0',
-                                              fontSize: '0.75rem'
+                                              gap: '0.5rem',
+                                              padding: '0.375rem 0',
+                                              fontSize: '0.8125rem',
+                                              borderBottom: '1px solid #dbeafe'
                                             }}>
-                                              <span style={{ color: '#6b7280', minWidth: '60px', fontSize: '0.6875rem' }}>
+                                              <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                                 {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
+                                              <ParticipationIcon style={{ width: '14px', height: '14px', color: '#1e40af' }} />
                                               <span style={{ 
-                                                padding: '0.0625rem 0.25rem',
-                                                background: '#dcfce7',
-                                                color: '#166534',
-                                                borderRadius: '0.1875rem',
-                                                fontSize: '0.6875rem',
+                                                padding: '0.125rem 0.375rem',
+                                                background: '#dbeafe',
+                                                color: '#1e40af',
+                                                borderRadius: '0.25rem',
+                                                fontSize: '0.75rem',
                                                 fontWeight: 600
                                               }}>
                                                 +{log.points}
                                               </span>
-                                              <span style={{ color: '#374151', fontSize: '0.75rem' }}>
+                                              <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
                                               {log.comment && (
-                                                <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                                <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
                                                   - {log.comment}
                                                 </span>
                                               )}
                                               {log.severity && (
                                                 <span style={{ 
-                                                  padding: '0.0625rem 0.25rem',
-                                                  background: '#f3f4f6',
-                                                  color: '#6b7280',
-                                                  borderRadius: '0.1875rem',
-                                                  fontSize: '0.6875rem'
+                                                  padding: '0.125rem 0.375rem',
+                                                  background: '#f1f5f9',
+                                                  color: '#1e40af',
+                                                  borderRadius: '0.25rem',
+                                                  fontSize: '0.75rem'
                                                 }}>
                                                   {log.severity}
                                                 </span>
@@ -788,38 +851,40 @@ export default function StudentRoster({
                                             <div key={idx} style={{ 
                                               display: 'flex', 
                                               alignItems: 'center', 
-                                              gap: '0.375rem',
-                                              padding: '0.125rem 0',
-                                              fontSize: '0.75rem'
+                                              gap: '0.5rem',
+                                              padding: '0.375rem 0',
+                                              fontSize: '0.8125rem',
+                                              borderBottom: '1px solid #fecaca'
                                             }}>
-                                              <span style={{ color: '#6b7280', minWidth: '60px', fontSize: '0.6875rem' }}>
+                                              <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                                 {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
+                                              <PenaltyIcon style={{ width: '14px', height: '14px', color: '#b91c1c' }} />
                                               <span style={{ 
-                                                padding: '0.0625rem 0.25rem',
-                                                background: '#fee2e2',
-                                                color: '#dc2626',
-                                                borderRadius: '0.1875rem',
-                                                fontSize: '0.6875rem',
+                                                padding: '0.125rem 0.375rem',
+                                                background: '#fecaca',
+                                                color: '#b91c1c',
+                                                borderRadius: '0.25rem',
+                                                fontSize: '0.75rem',
                                                 fontWeight: 600
                                               }}>
                                                 {log.points > 0 ? `+${log.points}` : log.points}
                                               </span>
-                                              <span style={{ color: '#374151', fontSize: '0.75rem' }}>
+                                              <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
                                               {log.comment && (
-                                                <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                                <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
                                                   - {log.comment}
                                                 </span>
                                               )}
                                               {log.severity && (
                                                 <span style={{ 
-                                                  padding: '0.0625rem 0.25rem',
-                                                  background: '#f3f4f6',
-                                                  color: '#6b7280',
-                                                  borderRadius: '0.1875rem',
-                                                  fontSize: '0.6875rem'
+                                                  padding: '0.125rem 0.375rem',
+                                                  background: '#fef2f2',
+                                                  color: '#b91c1c',
+                                                  borderRadius: '0.25rem',
+                                                  fontSize: '0.75rem'
                                                 }}>
                                                   {log.severity}
                                                 </span>
