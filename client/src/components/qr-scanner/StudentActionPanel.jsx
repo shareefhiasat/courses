@@ -55,6 +55,17 @@ export default function StudentActionPanel({
   const [activeTab, setActiveTab] = useState('behavior');
   const [todayLogs, setTodayLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [expandedDays, setExpandedDays] = useState(new Set());
+
+  const toggleDayExpansion = (dayKey) => {
+    const newExpanded = new Set(expandedDays);
+    if (newExpanded.has(dayKey)) {
+      newExpanded.delete(dayKey);
+    } else {
+      newExpanded.add(dayKey);
+    }
+    setExpandedDays(newExpanded);
+  };
 
   // Fetch today's logs when student changes
   useEffect(() => {
@@ -63,67 +74,94 @@ export default function StudentActionPanel({
     setPointsOverride({});
     setInternalNote('');
     
-    // Fetch today's logs for the student
+    // Fetch historical logs for the student
     if (student?.id) {
-      fetchTodayLogs();
+      fetchHistoricalLogs();
     }
   }, [student?.id]);
 
   // Fetch real data from Firebase
-  const fetchTodayLogs = async () => {
+  const fetchHistoricalLogs = async () => {
     if (!student?.id) return;
     
     setLogsLoading(true);
     try {
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
-      
-      // Get attendance records for today
-      const attendanceResponse = await getAttendanceByStudent(student.id, todayStr, todayStr);
+      // Get all attendance records for this student (no date filter)
+      const attendanceResponse = await getAttendanceByStudent(student.id);
       const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
       
-      // Get penalty records for today
-      const penaltiesResponse = await getPenalties(student.id);
+      // Get all penalties for this student
+      const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-      const todayPenalties = allPenalties.filter(p => {
-        if (p.createdAt) {
-          const penaltyDate = p.createdAt.toDate ? p.createdAt.toDate().toISOString().split('T')[0] : new Date(p.createdAt).toISOString().split('T')[0];
-          return penaltyDate === todayStr;
-        }
-        return false;
-      });
+      const studentPenalties = allPenalties.filter(p => p.studentId === student.id);
       
-      // Combine and format logs
+      // Combine and format logs with date information
       const logs = [
         ...attendanceRecords.map(record => ({
           type: 'attendance',
+          date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
           data: record,
           label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
-          points: 0,
+          points: record.delta || 0,
+          comment: record.reason || '',
+          severity: 'low',
           color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
         })),
-        ...todayPenalties.map(penalty => ({
+        ...studentPenalties.map(penalty => ({
           type: 'penalty',
+          date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
           time: penalty.createdAt,
           data: penalty,
           label: penalty.reason || 'Penalty',
           points: penalty.points || 0,
+          comment: penalty.comment || '',
+          severity: penalty.severity || 'medium',
           color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
         }))
       ].sort((a, b) => {
-        const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
-        const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
-        return timeB - timeA; // Most recent first
+        // Sort by date descending (most recent first)
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
       });
       
       setTodayLogs(logs);
     } catch (error) {
-      console.error('Error fetching today\'s logs:', error);
+      console.error('Error fetching historical logs:', error);
       setTodayLogs([]);
     } finally {
       setLogsLoading(false);
     }
+  };
+
+  // Group logs by day
+  const groupLogsByDay = (logs) => {
+    const grouped = {};
+    
+    logs.forEach(log => {
+      const date = log.date;
+      if (!grouped[date]) {
+        grouped[date] = {
+          date: date,
+          attendance: [],
+          penalties: [],
+          participation: []
+        };
+      }
+      
+      if (log.type === 'attendance') {
+        grouped[date].attendance.push(log);
+      } else if (log.type === 'penalty') {
+        grouped[date].penalties.push(log);
+      } else if (log.points > 0) {
+        grouped[date].participation.push(log);
+      } else if (log.points < 0) {
+        grouped[date].penalties.push(log);
+      }
+    });
+    
+    return Object.values(grouped);
   };
 
   if (!student) return null;
@@ -651,7 +689,7 @@ export default function StudentActionPanel({
               letterSpacing: '0.05em',
               margin: 0
             }}>
-              Today's Logs
+              History
             </h4>
           </div>
           <div style={{ 
@@ -668,7 +706,7 @@ export default function StudentActionPanel({
                 fontSize: '0.875rem',
                 textAlign: 'center'
               }}>
-                Loading today's logs...
+                Loading history...
               </div>
             ) : todayLogs.length === 0 ? (
               <div style={{
@@ -676,40 +714,224 @@ export default function StudentActionPanel({
                 color: '#9ca3af',
                 fontSize: '0.875rem'
               }}>
-                No logs for today
+                No history found
               </div>
             ) : (
-              todayLogs.map((log, index) => {
-                const time = log.time?.toDate ? log.time.toDate() : new Date(log.time);
-                const timeStr = time.toLocaleTimeString('en-US', { 
-                  hour: 'numeric', 
-                  minute: '2-digit',
-                  hour12: true 
+              groupLogsByDay(todayLogs).map((dayGroup, dayIndex) => {
+                const isExpanded = expandedDays.has(dayGroup.date);
+                const dateObj = new Date(dayGroup.date);
+                const dateStr = dateObj.toLocaleDateString('en-US', { 
+                  weekday: 'short', 
+                  month: 'short', 
+                  day: 'numeric' 
                 });
                 
                 return (
-                  <div key={index} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    padding: '0.5rem 0'
+                  <div key={dayIndex} style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    overflow: 'hidden'
                   }}>
-                    <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '60px' }}>
-                      {timeStr}
-                    </span>
-                    <div style={{
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      background: log.color,
-                      color: log.type === 'attendance' ? '#ffffff' : (log.points > 0 ? '#166534' : '#dc2626')
-                    }}>
-                      {log.type === 'attendance' ? log.label : `${log.points > 0 ? '+' : ''}${log.points} ${log.type === 'penalty' ? 'Pen.' : 'Behv.'}`}
+                    {/* Day Header */}
+                    <div
+                      onClick={() => toggleDayExpansion(dayGroup.date)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        background: '#f9fafb',
+                        cursor: 'pointer',
+                        borderBottom: isExpanded ? '1px solid #e5e7eb' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827' }}>
+                          {dateStr}
+                        </span>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          {dayGroup.attendance.length > 0 && (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              padding: '0.125rem 0.375rem',
+                              background: '#22c55e',
+                              color: 'white',
+                              borderRadius: '0.25rem'
+                            }}>
+                              {dayGroup.attendance.length} Attendance
+                            </span>
+                          )}
+                          {dayGroup.participation.length > 0 && (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              padding: '0.125rem 0.375rem',
+                              background: '#3b82f6',
+                              color: 'white',
+                              borderRadius: '0.25rem'
+                            }}>
+                              {dayGroup.participation.length} Participation
+                            </span>
+                          )}
+                          {dayGroup.penalties.length > 0 && (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              padding: '0.125rem 0.375rem',
+                              background: '#ef4444',
+                              color: 'white',
+                              borderRadius: '0.25rem'
+                            }}>
+                              {dayGroup.penalties.length} Penalties
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        {isExpanded ? '▼' : '▶'}
+                      </span>
                     </div>
-                    <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-                      {log.label}
-                    </span>
+                    
+                    {/* Expanded Content */}
+                    {isExpanded && (
+                      <div style={{ padding: '1rem' }}>
+                        {/* Attendance */}
+                        {dayGroup.attendance.length > 0 && (
+                          <div style={{ marginBottom: '1rem' }}>
+                            <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', marginBottom: '0.5rem' }}>
+                              ATTENDANCE
+                            </h5>
+                            {dayGroup.attendance.map((log, idx) => (
+                              <div key={idx} style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.5rem',
+                                padding: '0.25rem 0',
+                                fontSize: '0.8125rem'
+                              }}>
+                                <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                  {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                </span>
+                                <span style={{ 
+                                  padding: '0.125rem 0.375rem',
+                                  background: log.color,
+                                  color: 'white',
+                                  borderRadius: '0.25rem',
+                                  fontSize: '0.75rem'
+                                }}>
+                                  {log.label}
+                                </span>
+                                {log.comment && (
+                                  <span style={{ color: '#6b7280' }}>
+                                    - {log.comment}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Participation */}
+                        {dayGroup.participation.length > 0 && (
+                          <div style={{ marginBottom: '1rem' }}>
+                            <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6', marginBottom: '0.5rem' }}>
+                              PARTICIPATION
+                            </h5>
+                            {dayGroup.participation.map((log, idx) => (
+                              <div key={idx} style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.5rem',
+                                padding: '0.25rem 0',
+                                fontSize: '0.8125rem'
+                              }}>
+                                <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                  {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                </span>
+                                <span style={{ 
+                                  padding: '0.125rem 0.375rem',
+                                  background: '#dcfce7',
+                                  color: '#166534',
+                                  borderRadius: '0.25rem',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600
+                                }}>
+                                  +{log.points}
+                                </span>
+                                <span style={{ color: '#374151' }}>
+                                  {log.label}
+                                </span>
+                                {log.comment && (
+                                  <span style={{ color: '#6b7280' }}>
+                                    - {log.comment}
+                                  </span>
+                                )}
+                                {log.severity && (
+                                  <span style={{ 
+                                    padding: '0.125rem 0.375rem',
+                                    background: '#f3f4f6',
+                                    color: '#6b7280',
+                                    borderRadius: '0.25rem',
+                                    fontSize: '0.75rem'
+                                  }}>
+                                    {log.severity}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Penalties */}
+                        {dayGroup.penalties.length > 0 && (
+                          <div>
+                            <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.5rem' }}>
+                              PENALTIES
+                            </h5>
+                            {dayGroup.penalties.map((log, idx) => (
+                              <div key={idx} style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.5rem',
+                                padding: '0.25rem 0',
+                                fontSize: '0.8125rem'
+                              }}>
+                                <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                  {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                </span>
+                                <span style={{ 
+                                  padding: '0.125rem 0.375rem',
+                                  background: '#fee2e2',
+                                  color: '#dc2626',
+                                  borderRadius: '0.25rem',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600
+                                }}>
+                                  {log.points}
+                                </span>
+                                <span style={{ color: '#374151' }}>
+                                  {log.label}
+                                </span>
+                                {log.comment && (
+                                  <span style={{ color: '#6b7280' }}>
+                                    - {log.comment}
+                                  </span>
+                                )}
+                                {log.severity && (
+                                  <span style={{ 
+                                    padding: '0.125rem 0.375rem',
+                                    background: '#f3f4f6',
+                                    color: '#6b7280',
+                                    borderRadius: '0.25rem',
+                                    fontSize: '0.75rem'
+                                  }}>
+                                    {log.severity}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })

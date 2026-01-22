@@ -350,8 +350,16 @@ const InstructorQRScannerPage = () => {
 
         // Calculate total penalty (all time) - use docId for matching
         const penalties = studentPenalties.filter(p => p.studentId === studentId);
-        const penaltyTotal = penalties.reduce((sum, p) => sum + (p.points || 0), 0);
+        const penaltyTotal = penalties.reduce((sum, p) => {
+          const points = p.points;
+          // Only add if points is a valid number (not null, undefined, empty string, or NaN)
+          if (points !== null && points !== undefined && points !== '' && !isNaN(points)) {
+            return sum + Number(points);
+          }
+          return sum;
+        }, 0);
         console.log('[QR Scanner] Student penalties:', penalties.length, 'records, total:', penaltyTotal, 'for', student.displayName || student.name, 'using studentId:', studentId);
+        console.log('[QR Scanner] Penalty details:', penalties.map(p => ({ points: p.points, comment: p.comment, date: p.date })));
 
         const studentData = {
           id: studentId,

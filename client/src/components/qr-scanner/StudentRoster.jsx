@@ -282,7 +282,7 @@ export default function StudentRoster({
           </thead>
           <tbody>
             {students.map((student) => {
-              const avatarColor = getAvatarColor(student.name);
+              const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
               const isExpanded = expandedRows.has(student.id);
               
               console.log('[StudentRoster] Rendering student:', student.name, 'participation:', student.participation, 'behavior:', student.behavior, 'penalty:', student.penalty);
@@ -364,11 +364,11 @@ export default function StudentRoster({
                           background: avatarColor.bg,
                           color: avatarColor.color
                         }}>
-                          {getInitials(student.name)}
+                          {getInitials(student.displayName || student.realName || student.name || '')}
                         </div>
                         <div>
                           <div style={{ fontWeight: 500, color: '#111827' }}>
-                            {student.name}
+                            {student.displayName || student.realName || student.name || student.email}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                             ID: STU-{student.studentNumber || student.studentId?.slice(-4) || '0000'}
