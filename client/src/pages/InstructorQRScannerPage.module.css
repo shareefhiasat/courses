@@ -1,0 +1,24 @@
+/* QR Scanner Page Styles */
+
+.qr-scanner-page {
+  min-height: 100vh;
+  background: #f9fafb;
+}
+
+@media (max-width: 1024px) {
+  .qr-scanner-page {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .qr-scanner-page {
+    padding: 0.5rem;
+  }
+  
+  /* Stack layout on mobile */
+  .qr-scanner-page .grid-layout {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}

@@ -1,39 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { Input } from './ui/input';
+import { ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
 
 const XIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18"/>
     <line x1="6" y1="6" x2="18" y2="18"/>
-  </svg>
-);
-
-const MessageSquareIcon = ({ style }) => (
-  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-  </svg>
-);
-
-const MoonIcon = ({ style }) => (
-  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-  </svg>
-);
-
-const SmartphoneIcon = ({ style }) => (
-  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-    <line x1="12" y1="18" x2="12.01" y2="18"/>
-  </svg>
-);
-
-const UserXIcon = ({ style }) => (
-  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <line x1="17" y1="8" x2="22" y2="13"/>
-    <line x1="22" y1="8" x2="17" y2="13"/>
   </svg>
 );
 
@@ -44,64 +18,102 @@ const HistoryIcon = ({ style }) => (
   </svg>
 );
 
-export default function StudentActionPanel({ student, onClose, onBehaviorSubmit }) {
-  const [selectedBehaviors, setSelectedBehaviors] = useState([]);
+const renderIcon = (iconName, style) => {
+  const icons = {
+    MessageSquare: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+    Bed: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4"/></svg>,
+    Smartphone: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>,
+    Users: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+    AlertTriangle: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+    Clock: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    CheckCircle: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+    Award: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
+    FileText: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>,
+    Star: <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  };
+  return icons[iconName] || icons.MessageSquare;
+};
+
+export default function StudentActionPanel({
+  student,
+  onClose,
+  onBehaviorSubmit,
+  onMarkAttendance,
+  behaviorTypes,
+  participationTypes,
+  showFavoritesOnly = false,
+  onToggleFavorites,
+  favoriteBehaviors = [],
+  onToggleFavorite
+}) {
+  const [selectedActions, setSelectedActions] = useState([]);
+  const [pointsOverride, setPointsOverride] = useState({});
   const [internalNote, setInternalNote] = useState('');
   const [activeTab, setActiveTab] = useState('behavior');
 
+  useEffect(() => {
+    // Reset when student changes
+    setSelectedActions([]);
+    setPointsOverride({});
+    setInternalNote('');
+  }, [student?.id]);
+
   if (!student) return null;
 
-  const behaviorOptions = [
-    {
-      type: 'talking',
-      label: 'Talking',
-      icon: <MessageSquareIcon style={{ width: '1.25rem', height: '1.25rem' }} />,
-      points: -1,
-      color: { bg: '#fed7aa', text: '#9a3412', border: '#fdba74' },
-    },
-    {
-      type: 'sleeping',
-      label: 'Sleeping',
-      icon: <MoonIcon style={{ width: '1.25rem', height: '1.25rem' }} />,
-      points: 0,
-      color: { bg: '#e2e8f0', text: '#334155', border: '#cbd5e1' },
-    },
-    {
-      type: 'phone_use',
-      label: 'Phone Use',
-      icon: <SmartphoneIcon style={{ width: '1.25rem', height: '1.25rem' }} />,
-      points: -2,
-      color: { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
-    },
-    {
-      type: 'out_of_seat',
-      label: 'Out of Seat',
-      icon: <UserXIcon style={{ width: '1.25rem', height: '1.25rem' }} />,
-      points: -1,
-      color: { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
-    },
-  ];
+  const getAvailableOptions = () => {
+    if (activeTab === 'participation') {
+      return participationTypes.map(pt => ({
+        ...pt,
+        category: 'participation'
+      }));
+    } else if (activeTab === 'behavior') {
+      return behaviorTypes.filter(bt => bt.points !== 0).map(bt => ({
+        ...bt,
+        category: 'behavior'
+      }));
+    } else if (activeTab === 'penalty') {
+      return behaviorTypes.filter(bt => bt.points < 0).map(bt => ({
+        ...bt,
+        category: 'penalty'
+      }));
+    }
+    return [];
+  };
 
-  const toggleBehavior = (type) => {
-    setSelectedBehaviors((prev) =>
-      prev.includes(type) ? prev.filter((b) => b !== type) : [...prev, type]
-    );
+  const options = getAvailableOptions();
+
+  const toggleAction = (option) => {
+    setSelectedActions((prev) => {
+      const exists = prev.find(a => a.id === option.id);
+      if (exists) {
+        return prev.filter(a => a.id !== option.id);
+      } else {
+        return [...prev, option];
+      }
+    });
+  };
+
+  const handlePointsChange = (optionId, value) => {
+    const numValue = parseInt(value) || 0;
+    setPointsOverride(prev => ({
+      ...prev,
+      [optionId]: numValue
+    }));
   };
 
   const handleApply = () => {
-    if (selectedBehaviors.length === 0) return;
+    if (selectedActions.length === 0) return;
 
-    const actions = selectedBehaviors.map((type) => {
-      const option = behaviorOptions.find((o) => o.type === type);
-      return {
-        type,
-        points: option?.points || 0,
-        timestamp: new Date(),
-      };
-    });
+    const actions = selectedActions.map((action) => ({
+      type: action.id,
+      points: pointsOverride[action.id] !== undefined ? pointsOverride[action.id] : action.points,
+      timestamp: new Date(),
+      category: action.category
+    }));
 
-    onBehaviorSubmit(student.id, actions, internalNote);
-    setSelectedBehaviors([]);
+    onBehaviorSubmit(student.id, actions, internalNote, pointsOverride);
+    setSelectedActions([]);
+    setPointsOverride({});
     setInternalNote('');
   };
 
@@ -127,6 +139,8 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
   };
 
   const avatarColor = getAvatarColor(student.name);
+  const attendanceStatus = ATTENDANCE_STATUS_LABELS[student.attendance] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
+  const totalPoints = student.participation + student.behavior + student.penalty;
 
   return (
     <div style={{
@@ -135,7 +149,9 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
       border: '1px solid #e5e7eb',
       height: '100%',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      maxHeight: '100%',
+      overflow: 'hidden'
     }}>
       {/* Header */}
       <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
@@ -161,18 +177,18 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
               {getInitials(student.name)}
             </div>
             <div>
-              <h3 style={{ fontWeight: 600, color: '#111827', margin: 0 }}>
+              <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '1rem' }}>
                 {student.name}
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
                 <span style={{
                   width: '0.5rem',
                   height: '0.5rem',
-                  background: '#10b981',
+                  background: attendanceStatus.color,
                   borderRadius: '9999px'
                 }} />
                 <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  Present • {student.participation} Points
+                  {attendanceStatus.en} • {totalPoints} Points
                 </span>
               </div>
             </div>
@@ -182,12 +198,69 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
           </Button>
         </div>
 
+        {/* Points Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '0.5rem',
+          marginBottom: '1rem'
+        }}>
+          <div style={{
+            padding: '0.75rem',
+            background: '#ecfdf5',
+            borderRadius: '0.5rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#059669' }}>
+              {student.participation}
+            </div>
+            <div style={{ fontSize: '0.6875rem', color: '#047857', fontWeight: 500 }}>
+              Participation
+            </div>
+          </div>
+          <div style={{
+            padding: '0.75rem',
+            background: student.behavior >= 0 ? '#ecfdf5' : '#fef2f2',
+            borderRadius: '0.5rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ 
+              fontSize: '1.25rem', 
+              fontWeight: 600, 
+              color: student.behavior >= 0 ? '#059669' : '#dc2626'
+            }}>
+              {student.behavior >= 0 ? '+' : ''}{student.behavior}
+            </div>
+            <div style={{ 
+              fontSize: '0.6875rem', 
+              color: student.behavior >= 0 ? '#047857' : '#991b1b',
+              fontWeight: 500
+            }}>
+              Behavior
+            </div>
+          </div>
+          <div style={{
+            padding: '0.75rem',
+            background: '#fef2f2',
+            borderRadius: '0.5rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#dc2626' }}>
+              {student.penalty}
+            </div>
+            <div style={{ fontSize: '0.6875rem', color: '#991b1b', fontWeight: 500 }}>
+              Penalty
+            </div>
+          </div>
+        </div>
+
         {/* Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Button
             variant={activeTab === 'participation' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('participation')}
+            style={{ fontSize: '0.8125rem' }}
           >
             Participation
           </Button>
@@ -195,6 +268,7 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
             variant={activeTab === 'behavior' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('behavior')}
+            style={{ fontSize: '0.8125rem' }}
           >
             Behavior
           </Button>
@@ -202,9 +276,21 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
             variant={activeTab === 'penalty' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setActiveTab('penalty')}
+            style={{ fontSize: '0.8125rem' }}
           >
             Penalty
           </Button>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Button
+              variant={showFavoritesOnly ? 'default' : 'ghost'}
+              size="sm"
+              onClick={onToggleFavorites}
+              style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+            >
+              <Star size={14} fill={showFavoritesOnly ? '#8b5cf6' : 'none'} color={showFavoritesOnly ? '#8b5cf6' : '#6b7280'} />
+              {showFavoritesOnly ? 'All' : 'Favorites'}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -223,63 +309,224 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
           </h4>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '0.75rem'
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '0.5rem'
           }}>
-            {behaviorOptions.map((option) => {
-              const isSelected = selectedBehaviors.includes(option.type);
+            {options.map((option) => {
+              const isSelected = selectedActions.some(a => a.id === option.id);
+              const currentPoints = pointsOverride[option.id] !== undefined 
+                ? pointsOverride[option.id] 
+                : option.points;
+              
               return (
-                <button
-                  key={option.type}
-                  onClick={() => toggleBehavior(option.type)}
-                  type="button"
+                <div
+                  key={option.id}
                   style={{
-                    padding: '1rem',
+                    padding: '0.75rem',
                     borderRadius: '0.5rem',
                     border: `2px solid ${isSelected ? '#8b5cf6' : '#e5e7eb'}`,
                     background: isSelected ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    position: 'relative'
                   }}
                 >
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    textAlign: 'center'
-                  }}>
+                  <button
+                    onClick={() => toggleAction(option)}
+                    type="button"
+                    style={{
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
                     <div style={{
-                      width: '3rem',
-                      height: '3rem',
-                      borderRadius: '0.5rem',
-                      background: option.color.bg,
-                      color: option.color.text,
-                      border: `1px solid ${option.color.border}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{
+                        width: '2rem',
+                        height: '2rem',
+                        borderRadius: '0.375rem',
+                        background: option.color + '20',
+                        color: option.color,
+                        border: `1px solid ${option.color}40`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {renderIcon(option.icon, { width: '1rem', height: '1rem' })}
+                      </div>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        color: '#111827',
+                        lineHeight: '1.2'
+                      }}>
+                        {option.label_en}
+                      </span>
+                      <div style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: currentPoints >= 0 ? '#059669' : '#dc2626'
+                      }}>
+                        {currentPoints >= 0 ? '+' : ''}{currentPoints}
+                      </div>
+                    </div>
+                  </button>
+                  
+                  {/* Favorite Toggle */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavorite(option.id);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '0.25rem',
+                      right: '0.25rem',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '0.125rem'
+                    }}
+                  >
+                    <Star 
+                      size={12} 
+                      fill={favoriteBehaviors.includes(option.id) ? '#fbbf24' : 'none'} 
+                      color={favoriteBehaviors.includes(option.id) ? '#fbbf24' : '#d1d5db'} 
+                    />
+                  </button>
+                  
+                  {/* Points Input */}
+                  {isSelected && (
+                    <div style={{
+                      marginTop: '0.5rem',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      gap: '0.25rem'
                     }}>
-                      {option.icon}
+                      <input
+                        type="number"
+                        min="-10"
+                        max="10"
+                        value={pointsOverride[option.id] !== undefined ? pointsOverride[option.id] : option.points}
+                        onChange={(e) => {
+                          const value = Math.max(-10, Math.min(10, parseInt(e.target.value) || 0));
+                          handlePointsChange(option.id, value);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          width: '3rem',
+                          padding: '0.25rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem',
+                          textAlign: 'center'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.625rem', color: '#6b7280' }}>pts</span>
                     </div>
-                    <span style={{
-                      fontSize: '0.875rem',
-                      fontWeight: 500,
-                      color: '#111827'
-                    }}>
-                      {option.label}
-                    </span>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: option.points < 0 ? '#dc2626' : '#6b7280'
-                    }}>
-                      {option.points}
-                    </span>
-                  </div>
-                </button>
+                  )}
+                </div>
+
               );
             })}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h4 style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: '#111827',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            marginBottom: '1rem'
+          }}>
+            Attendance Status
+          </h4>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '0.75rem'
+          }}>
+            <button
+              onClick={() => onMarkAttendance(student.id, 'present')}
+              style={{
+                padding: '1rem',
+                borderRadius: '0.5rem',
+                border: '2px solid #10b981',
+                background: student.attendance === 'present' ? '#10b981' : 'white',
+                color: student.attendance === 'present' ? 'white' : '#10b981',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                transition: 'all 0.2s'
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 17"></polyline>
+                <path d="m21 16-8-5-5-5 5"></path>
+              </svg>
+              Present
+            </button>
+            <button
+              onClick={() => onMarkAttendance(student.id, 'late')}
+              style={{
+                padding: '1rem',
+                borderRadius: '0.5rem',
+                border: '2px solid #f59e0b',
+                background: student.attendance === 'late' ? '#f59e0b' : 'white',
+                color: student.attendance === 'late' ? 'white' : '#f59e0b',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                transition: 'all 0.2s'
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 12 12"></polyline>
+              </svg>
+              Late
+            </button>
+            <button
+              onClick={() => onMarkAttendance(student.id, 'absent')}
+              style={{
+                padding: '1rem',
+                borderRadius: '0.5rem',
+                border: '2px solid #ef4444',
+                background: student.attendance === 'absent' ? '#ef4444' : 'white',
+                color: student.attendance === 'absent' ? 'white' : '#ef4444',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                transition: 'all 0.2s'
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Absent
+            </button>
           </div>
         </div>
 
@@ -298,7 +545,7 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
             placeholder="Add details..."
             value={internalNote}
             onChange={(e) => setInternalNote(e.target.value)}
-            style={{ minHeight: '6rem', resize: 'none' }}
+            style={{ minHeight: '6rem', resize: 'none', fontSize: '0.875rem' }}
           />
         </div>
 
@@ -307,109 +554,137 @@ export default function StudentActionPanel({ student, onClose, onBehaviorSubmit 
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
-            marginBottom: '0.75rem'
+            marginBottom: '1rem'
           }}>
-            <HistoryIcon style={{ width: '1rem', height: '1rem', color: '#6b7280' }} />
+            <div style={{
+              width: '3px',
+              height: '24px',
+              background: '#8b5cf6',
+              borderRadius: '1.5px'
+            }} />
             <h4 style={{
               fontSize: '0.875rem',
-              fontWeight: 500,
-              color: '#6b7280',
+              fontWeight: 600,
+              color: '#111827',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               margin: 0
             }}>
-              History for Today
+              Today's Logs
             </h4>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {student.behaviorHistory && student.behaviorHistory.length > 0 ? (
-              student.behaviorHistory.map((action, index) => (
-                <div
-                  key={`${action.type}-${index}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem',
-                    background: '#f9fafb',
-                    borderRadius: '0.5rem'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{
-                      width: '0.5rem',
-                      height: '0.5rem',
-                      background: '#10b981',
-                      borderRadius: '9999px'
-                    }} />
-                    <span style={{
-                      fontSize: '0.875rem',
-                      color: '#111827',
-                      textTransform: 'capitalize'
-                    }}>
-                      {action.type.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <span style={{
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    color: action.points > 0 ? '#10b981' : '#dc2626'
-                  }}>
-                    {action.points > 0 ? '+' : ''}{action.points}
-                  </span>
-                </div>
-              ))
-            ) : (
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '0.75rem', 
+            paddingLeft: '1rem',
+            borderLeft: '3px solid #8b5cf6'
+          }}>
+            {(!student.behaviorHistory || student.behaviorHistory.length === 0) &&
+             (!student.participationHistory || student.participationHistory.length === 0) &&
+             (!student.penaltyHistory || student.penaltyHistory.length === 0) ? (
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.75rem',
-                background: '#f9fafb',
-                borderRadius: '0.5rem'
+                padding: '1rem',
+                color: '#9ca3af',
+                fontSize: '0.875rem'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{
-                    width: '0.5rem',
-                    height: '0.5rem',
-                    background: '#10b981',
-                    borderRadius: '9999px'
-                  }} />
-                  <span style={{ fontSize: '0.875rem', color: '#111827' }}>
-                    Active Participation
+                No logs for today
+              </div>
+            ) : (
+              <>
+                {/* Sample logs - replace with real data */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.5rem 0'
+                }}>
+                  <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '60px' }}>
+                    10:32 AM
                   </span>
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                    Volunteered for demo
+                  <div style={{
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    background: '#dcfce7',
+                    color: '#166534'
+                  }}>
+                    +2 Part.
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
+                    Good Participation
                   </span>
                 </div>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#10b981' }}>
-                  +1
-                </span>
-              </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.5rem 0'
+                }}>
+                  <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '60px' }}>
+                    09:45 AM
+                  </span>
+                  <div style={{
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    background: '#dbeafe',
+                    color: '#1d4ed8'
+                  }}>
+                    +5 Behv.
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
+                    Helpful to Others
+                  </span>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.5rem 0'
+                }}>
+                  <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '60px' }}>
+                    08:15 AM
+                  </span>
+                  <div style={{
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    background: '#fee2e2',
+                    color: '#dc2626'
+                  }}>
+                    -3 Behv.
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
+                    Talk in Class
+                  </span>
+                </div>
+              </>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Footer */}
-      <div style={{ padding: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
           <Button
-            variant="outline"
-            style={{ flex: 1, background: 'transparent' }}
-            onClick={onClose}
+            onClick={handleApply}
+            disabled={selectedActions.length === 0}
+            style={{ fontSize: '0.875rem' }}
           >
-            Cancel
+            Apply Actions
           </Button>
           <Button
-            style={{ flex: 1 }}
-            onClick={handleApply}
-            disabled={selectedBehaviors.length === 0}
+            variant="ghost"
+            onClick={onClose}
+            style={{ fontSize: '0.875rem' }}
           >
-            Apply
+            Cancel
           </Button>
         </div>
       </div>
     </div>
   );
-}
+};

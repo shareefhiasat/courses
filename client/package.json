@@ -33,6 +33,7 @@
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.0.0",
+    "jsqr": "^1.4.0",
     "papaparse": "^5.5.3",
     "posthog-js": "^1.295.0",
     "qrcode": "^1.5.4",

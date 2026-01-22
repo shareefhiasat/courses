@@ -4,7 +4,7 @@
  */
 
 export const debugThemeVariables = () => {
-  console.group('🎨 [Theme Debug] CSS Variables Analysis');
+  // console.group('🎨 [Theme Debug] CSS Variables Analysis');
   
   const root = document.documentElement;
   const computedStyle = getComputedStyle(root);
@@ -21,13 +21,13 @@ export const debugThemeVariables = () => {
     '--input-focus'
   ];
   
-  console.table(
-    variables.map(varName => ({
-      Variable: varName,
-      'CSS Value': computedStyle.getPropertyValue(varName).trim() || 'NOT SET',
-      'Direct Style': root.style.getPropertyValue(varName).trim() || 'NOT SET'
-    }))
-  );
+  // console.table(
+  //   variables.map(varName => ({
+  //     Variable: varName,
+  //     'CSS Value': computedStyle.getPropertyValue(varName).trim() || 'NOT SET',
+  //     'Direct Style': root.style.getPropertyValue(varName).trim() || 'NOT SET'
+  //   }))
+  // );
   
   // Check localStorage
   // console.group('🎨 [Theme Debug] localStorage Analysis');
