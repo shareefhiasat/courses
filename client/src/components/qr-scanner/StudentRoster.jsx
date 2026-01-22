@@ -70,6 +70,12 @@ export default function StudentRoster({
 }) {
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [studentHistory, setStudentHistory] = useState({});
+  const [expandedDays, setExpandedDays] = useState(new Set());
+  const [activeFilters, setActiveFilters] = useState({
+    attendance: true,
+    participation: true,
+    penalties: true
+  });
 
   const toggleRowExpansion = async (studentId) => {
     const newExpanded = new Set(expandedRows);
@@ -127,6 +133,23 @@ export default function StudentRoster({
       }
     }
     setExpandedRows(newExpanded);
+  };
+
+  const toggleFilter = (filter) => {
+    setActiveFilters(prev => ({
+      ...prev,
+      [filter]: !prev[filter]
+    }));
+  };
+
+  const toggleDayExpansion = (dayKey) => {
+    const newExpanded = new Set(expandedDays);
+    if (newExpanded.has(dayKey)) {
+      newExpanded.delete(dayKey);
+    } else {
+      newExpanded.add(dayKey);
+    }
+    setExpandedDays(newExpanded);
   };
 
   // Group logs by day
@@ -525,9 +548,61 @@ export default function StudentRoster({
                   {/* Expanded History Row */}
                   {isExpanded && (
                     <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      <td colSpan="7" style={{ padding: '1rem 2rem' }}>
+                      <td colSpan="7" style={{ padding: '0.5rem 1rem' }}>
                         {studentHistory[student.id] ? (
                           <div style={{ fontSize: '0.875rem' }}>
+                            {/* Filter Toggles */}
+                            <div style={{ 
+                              display: 'flex', 
+                              gap: '0.5rem', 
+                              marginBottom: '0.75rem',
+                              padding: '0.5rem',
+                              background: '#f3f4f6',
+                              borderRadius: '0.375rem'
+                            }}>
+                              <button
+                                onClick={() => toggleFilter('attendance')}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  fontSize: '0.75rem',
+                                  borderRadius: '0.25rem',
+                                  border: 'none',
+                                  background: activeFilters.attendance ? '#22c55e' : '#e5e7eb',
+                                  color: activeFilters.attendance ? 'white' : '#6b7280',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                🟢 Attendance
+                              </button>
+                              <button
+                                onClick={() => toggleFilter('participation')}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  fontSize: '0.75rem',
+                                  borderRadius: '0.25rem',
+                                  border: 'none',
+                                  background: activeFilters.participation ? '#3b82f6' : '#e5e7eb',
+                                  color: activeFilters.participation ? 'white' : '#6b7280',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                🔵 Participation
+                              </button>
+                              <button
+                                onClick={() => toggleFilter('penalties')}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  fontSize: '0.75rem',
+                                  borderRadius: '0.25rem',
+                                  border: 'none',
+                                  background: activeFilters.penalties ? '#ef4444' : '#e5e7eb',
+                                  color: activeFilters.penalties ? 'white' : '#6b7280',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                🔴 Penalties
+                              </button>
+                            </div>
                             {/*<h4 style={{ */}
                             {/*  margin: '0 0 0.75rem 0', */}
                             {/*  fontSize: '0.75rem', */}
@@ -547,207 +622,214 @@ export default function StudentRoster({
                                 day: 'numeric' 
                               });
                               
+                              const isDayExpanded = expandedDays.has(dayGroup.date);
+                              const filteredCounts = {
+                                attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,
+                                participation: activeFilters.participation ? dayGroup.participation.length : 0,
+                                penalties: activeFilters.penalties ? dayGroup.penalties.length : 0
+                              };
+                              const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.penalties > 0;
+                              
+                              if (!hasVisibleItems) return null;
+                              
                               return (
                                 <div key={dayIndex} style={{
                                   border: '1px solid #e5e7eb',
-                                  borderRadius: '0.5rem',
+                                  borderRadius: '0.375rem',
                                   overflow: 'hidden',
-                                  marginBottom: '0.75rem'
+                                  marginBottom: '0.5rem'
                                 }}>
                                   {/* Day Header */}
                                   <div
+                                    onClick={() => toggleDayExpansion(dayGroup.date)}
                                     style={{
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
-                                      padding: '0.75rem 1rem',
+                                      padding: '0.5rem 0.75rem',
                                       background: '#f9fafb',
                                       cursor: 'pointer',
-                                      borderBottom: '1px solid #e5e7eb'
+                                      borderBottom: isDayExpanded ? '1px solid #e5e7eb' : 'none'
                                     }}
                                   >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827' }}>
+                                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
                                         {dateStr}
                                       </span>
-                                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {dayGroup.attendance.length > 0 && (
+                                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                        {filteredCounts.attendance > 0 && (
                                           <span style={{
-                                            fontSize: '0.75rem',
-                                            padding: '0.125rem 0.375rem',
+                                            fontSize: '0.6875rem',
+                                            padding: '0.125rem 0.25rem',
                                             background: '#22c55e',
                                             color: 'white',
-                                            borderRadius: '0.25rem'
+                                            borderRadius: '0.1875rem'
                                           }}>
-                                            {dayGroup.attendance.length} Attendance
+                                            {filteredCounts.attendance}
                                           </span>
                                         )}
-                                        {dayGroup.participation.length > 0 && (
+                                        {filteredCounts.participation > 0 && (
                                           <span style={{
-                                            fontSize: '0.75rem',
-                                            padding: '0.125rem 0.375rem',
+                                            fontSize: '0.6875rem',
+                                            padding: '0.125rem 0.25rem',
                                             background: '#3b82f6',
                                             color: 'white',
-                                            borderRadius: '0.25rem'
+                                            borderRadius: '0.1875rem'
                                           }}>
-                                            {dayGroup.participation.length} Participation
+                                            {filteredCounts.participation}
                                           </span>
                                         )}
-                                        {dayGroup.penalties.length > 0 && (
+                                        {filteredCounts.penalties > 0 && (
                                           <span style={{
-                                            fontSize: '0.75rem',
-                                            padding: '0.125rem 0.375rem',
+                                            fontSize: '0.6875rem',
+                                            padding: '0.125rem 0.25rem',
                                             background: '#ef4444',
                                             color: 'white',
-                                            borderRadius: '0.25rem'
+                                            borderRadius: '0.1875rem'
                                           }}>
-                                            {dayGroup.penalties.length} Penalties
+                                            {filteredCounts.penalties}
                                           </span>
                                         )}
                                       </div>
                                     </div>
+                                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                      {isDayExpanded ? '▼' : '▶'}
+                                    </span>
                                   </div>
                                   
                                   {/* Expanded Content */}
-                                  <div style={{ padding: '1rem' }}>
-                                    {/* Attendance */}
-                                    {dayGroup.attendance.length > 0 && (
-                                      <div style={{ marginBottom: '1rem' }}>
-                                        <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', marginBottom: '0.5rem' }}>
-                                          ATTENDANCE
-                                        </h5>
-                                        {dayGroup.attendance.map((log, idx) => (
-                                          <div key={idx} style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '0.5rem',
-                                            padding: '0.25rem 0',
-                                            fontSize: '0.8125rem'
-                                          }}>
-                                            <span style={{ color: '#6b7280', minWidth: '80px' }}>
-                                              {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                            </span>
-                                            <span style={{ 
-                                              padding: '0.125rem 0.375rem',
-                                              background: log.color,
-                                              color: 'white',
-                                              borderRadius: '0.25rem',
+                                  {isDayExpanded && (
+                                    <div style={{ padding: '0.5rem 0.75rem' }}>
+                                      {/* Attendance */}
+                                      {activeFilters.attendance && dayGroup.attendance.length > 0 && (
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                          {dayGroup.attendance.map((log, idx) => (
+                                            <div key={idx} style={{ 
+                                              display: 'flex', 
+                                              alignItems: 'center', 
+                                              gap: '0.375rem',
+                                              padding: '0.125rem 0',
                                               fontSize: '0.75rem'
                                             }}>
-                                              {log.label}
-                                            </span>
-                                            {log.comment && (
-                                              <span style={{ color: '#6b7280' }}>
-                                                - {log.comment}
+                                              <span style={{ color: '#6b7280', minWidth: '60px', fontSize: '0.6875rem' }}>
+                                                {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    
-                                    {/* Participation */}
-                                    {dayGroup.participation.length > 0 && (
-                                      <div style={{ marginBottom: '1rem' }}>
-                                        <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6', marginBottom: '0.5rem' }}>
-                                          PARTICIPATION
-                                        </h5>
-                                        {dayGroup.participation.map((log, idx) => (
-                                          <div key={idx} style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '0.5rem',
-                                            padding: '0.25rem 0',
-                                            fontSize: '0.8125rem'
-                                          }}>
-                                            <span style={{ color: '#6b7280', minWidth: '80px' }}>
-                                              {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                            </span>
-                                            <span style={{ 
-                                              padding: '0.125rem 0.375rem',
-                                              background: '#dcfce7',
-                                              color: '#166534',
-                                              borderRadius: '0.25rem',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 600
-                                            }}>
-                                              +{log.points}
-                                            </span>
-                                            <span style={{ color: '#374151' }}>
-                                              {log.label}
-                                            </span>
-                                            {log.comment && (
-                                              <span style={{ color: '#6b7280' }}>
-                                                - {log.comment}
-                                              </span>
-                                            )}
-                                            {log.severity && (
                                               <span style={{ 
-                                                padding: '0.125rem 0.375rem',
-                                                background: '#f3f4f6',
-                                                color: '#6b7280',
-                                                borderRadius: '0.25rem',
-                                                fontSize: '0.75rem'
+                                                padding: '0.0625rem 0.25rem',
+                                                background: log.color,
+                                                color: 'white',
+                                                borderRadius: '0.1875rem',
+                                                fontSize: '0.6875rem'
                                               }}>
-                                                {log.severity}
+                                                {log.label}
                                               </span>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    
-                                    {/* Penalties */}
-                                    {dayGroup.penalties.length > 0 && (
-                                      <div>
-                                        <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.5rem' }}>
-                                          PENALTIES
-                                        </h5>
-                                        {dayGroup.penalties.map((log, idx) => (
-                                          <div key={idx} style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '0.5rem',
-                                            padding: '0.25rem 0',
-                                            fontSize: '0.8125rem'
-                                          }}>
-                                            <span style={{ color: '#6b7280', minWidth: '80px' }}>
-                                              {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                            </span>
-                                            <span style={{ 
-                                              padding: '0.125rem 0.375rem',
-                                              background: '#fee2e2',
-                                              color: '#dc2626',
-                                              borderRadius: '0.25rem',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 600
+                                              {log.comment && (
+                                                <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                                  - {log.comment}
+                                                </span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      
+                                      {/* Participation */}
+                                      {activeFilters.participation && dayGroup.participation.length > 0 && (
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                          {dayGroup.participation.map((log, idx) => (
+                                            <div key={idx} style={{ 
+                                              display: 'flex', 
+                                              alignItems: 'center', 
+                                              gap: '0.375rem',
+                                              padding: '0.125rem 0',
+                                              fontSize: '0.75rem'
                                             }}>
-                                              {log.points > 0 ? `+${log.points}` : log.points}
-                                            </span>
-                                            <span style={{ color: '#374151' }}>
-                                              {log.label}
-                                            </span>
-                                            {log.comment && (
-                                              <span style={{ color: '#6b7280' }}>
-                                                - {log.comment}
+                                              <span style={{ color: '#6b7280', minWidth: '60px', fontSize: '0.6875rem' }}>
+                                                {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
-                                            )}
-                                            {log.severity && (
                                               <span style={{ 
-                                                padding: '0.125rem 0.375rem',
-                                                background: '#f3f4f6',
-                                                color: '#6b7280',
-                                                borderRadius: '0.25rem',
-                                                fontSize: '0.75rem'
+                                                padding: '0.0625rem 0.25rem',
+                                                background: '#dcfce7',
+                                                color: '#166534',
+                                                borderRadius: '0.1875rem',
+                                                fontSize: '0.6875rem',
+                                                fontWeight: 600
                                               }}>
-                                                {log.severity}
+                                                +{log.points}
                                               </span>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
+                                              <span style={{ color: '#374151', fontSize: '0.75rem' }}>
+                                                {log.label}
+                                              </span>
+                                              {log.comment && (
+                                                <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                                  - {log.comment}
+                                                </span>
+                                              )}
+                                              {log.severity && (
+                                                <span style={{ 
+                                                  padding: '0.0625rem 0.25rem',
+                                                  background: '#f3f4f6',
+                                                  color: '#6b7280',
+                                                  borderRadius: '0.1875rem',
+                                                  fontSize: '0.6875rem'
+                                                }}>
+                                                  {log.severity}
+                                                </span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      
+                                      {/* Penalties */}
+                                      {activeFilters.penalties && dayGroup.penalties.length > 0 && (
+                                        <div>
+                                          {dayGroup.penalties.map((log, idx) => (
+                                            <div key={idx} style={{ 
+                                              display: 'flex', 
+                                              alignItems: 'center', 
+                                              gap: '0.375rem',
+                                              padding: '0.125rem 0',
+                                              fontSize: '0.75rem'
+                                            }}>
+                                              <span style={{ color: '#6b7280', minWidth: '60px', fontSize: '0.6875rem' }}>
+                                                {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                              </span>
+                                              <span style={{ 
+                                                padding: '0.0625rem 0.25rem',
+                                                background: '#fee2e2',
+                                                color: '#dc2626',
+                                                borderRadius: '0.1875rem',
+                                                fontSize: '0.6875rem',
+                                                fontWeight: 600
+                                              }}>
+                                                {log.points > 0 ? `+${log.points}` : log.points}
+                                              </span>
+                                              <span style={{ color: '#374151', fontSize: '0.75rem' }}>
+                                                {log.label}
+                                              </span>
+                                              {log.comment && (
+                                                <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                                                  - {log.comment}
+                                                </span>
+                                              )}
+                                              {log.severity && (
+                                                <span style={{ 
+                                                  padding: '0.0625rem 0.25rem',
+                                                  background: '#f3f4f6',
+                                                  color: '#6b7280',
+                                                  borderRadius: '0.1875rem',
+                                                  fontSize: '0.6875rem'
+                                                }}>
+                                                  {log.severity}
+                                                </span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
