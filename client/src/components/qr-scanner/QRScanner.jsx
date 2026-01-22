@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 import jsQR from 'jsqr';
+import { getAttendanceByClass } from '../../firebase/attendance';
+import { getPenalties } from '../../firebase/penalties';
 
 const QrCodeIcon = ({ className }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -18,13 +20,15 @@ const CameraIcon = ({ className }) => (
   </svg>
 );
 
-export default function QRScanner({ onScan }) {
+export default function QRScanner({ onScan, classId }) {
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState(0);
   const [error, setError] = useState('');
   const [cameraMode, setCameraMode] = useState('environment'); // 'environment' for back camera, 'user' for front
   const [devices, setDevices] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -155,6 +159,58 @@ export default function QRScanner({ onScan }) {
       }, 100);
     }
   };
+
+  // Fetch real activity data
+  const fetchRecentActivity = async () => {
+    if (!classId) return;
+    
+    setActivityLoading(true);
+    try {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // Get today's attendance records for this class
+      const attendanceResponse = await getAttendanceByClass(classId, todayStr);
+      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+      
+      // Get today's penalty records for students in this class
+      const penaltiesResponse = await getPenalties();
+      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      
+      // Combine and format activity logs
+      const activityLogs = attendanceRecords.slice(0, 5).map((record, index) => {
+        const time = record.timestamp || record.date;
+        const timeStr = time?.toDate ? time.toDate().toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }) : '';
+        
+        return {
+          id: `attendance-${index}`,
+          time: timeStr,
+          type: 'attendance',
+          label: `${record.studentName || 'Student'} was marked ${record.status || 'Present'}`,
+          status: record.status || 'present',
+          method: 'QR Scan'
+        };
+      });
+      
+      setRecentActivity(activityLogs);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+      setRecentActivity([]);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
+  // Fetch activity when classId changes
+  useEffect(() => {
+    if (classId) {
+      fetchRecentActivity();
+    }
+  }, [classId]);
 
   useEffect(() => {
     return () => {
@@ -354,33 +410,75 @@ export default function QRScanner({ onScan }) {
           paddingLeft: '1rem',
           borderLeft: '3px solid #8b5cf6'
         }}>
-          {/* Sample recent activity logs - replace with real data */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.5rem 0'
-          }}>
-            <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '80px' }}>
-              09:42 AM
-            </span>
+          {/* Real activity logs from Firebase */}
+          {activityLoading ? (
             <div style={{
-              padding: '0.25rem 0.5rem',
-              borderRadius: '0.25rem',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              background: '#dcfce7',
-              color: '#166534'
+              padding: '1rem',
+              color: '#9ca3af',
+              fontSize: '0.875rem',
+              textAlign: 'center'
             }}>
-              ✓ Present
+              Loading recent activity...
             </div>
-            <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-              Ronel Hiasat was marked Present
-            </span>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: 'auto' }}>
-              QR Scan
-            </span>
-          </div>
+          ) : recentActivity.length === 0 ? (
+            <div style={{
+              padding: '1rem',
+              color: '#9ca3af',
+              fontSize: '0.875rem'
+            }}>
+              No recent activity today
+            </div>
+          ) : (
+            recentActivity.map((activity) => {
+              const getStatusColor = (status) => {
+                switch(status?.toLowerCase()) {
+                  case 'present': return '#dcfce7';
+                  case 'late': return '#fed7aa';
+                  case 'absent': return '#fee2e2';
+                  default: return '#e5e7eb';
+                }
+              };
+              
+              const getStatusIcon = (status) => {
+                switch(status?.toLowerCase()) {
+                  case 'present': return '✓';
+                  case 'late': return '⏰';
+                  case 'absent': return '✗';
+                  default: return '○';
+                }
+              };
+              
+              return (
+                <div key={activity.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.5rem 0'
+                }}>
+                  <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '80px' }}>
+                    {activity.time}
+                  </span>
+                  <div style={{
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    background: getStatusColor(activity.status),
+                    color: '#ffffff'
+                  }}>
+                    {getStatusIcon(activity.status)} {activity.status || 'Present'}
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
+                    {activity.label}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: 'auto' }}>
+                    {activity.method}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
           
           <div style={{
             display: 'flex',
@@ -408,34 +506,6 @@ export default function QRScanner({ onScan }) {
               Manual
             </span>
           </div>
-          
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.5rem 0'
-          }}>
-            <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '80px' }}>
-              09:30 AM
-            </span>
-            <div style={{
-              padding: '0.25rem 0.5rem',
-              borderRadius: '0.25rem',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              background: '#dbeafe',
-              color: '#1d4ed8'
-            }}>
-              +5 Participation
-            </div>
-            <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-              Michael Chang earned +5 Participation
-            </span>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: 'auto' }}>
-              Side Panel
-            </span>
-          </div>
-        </div>
         
         {devices.length > 1 && isScanning && (
           <button

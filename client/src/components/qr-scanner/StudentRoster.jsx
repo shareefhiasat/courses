@@ -285,6 +285,8 @@ export default function StudentRoster({
               const avatarColor = getAvatarColor(student.name);
               const isExpanded = expandedRows.has(student.id);
               
+              console.log('[StudentRoster] Rendering student:', student.name, 'participation:', student.participation, 'behavior:', student.behavior, 'penalty:', student.penalty);
+              
               return (
                 <React.Fragment key={student.id}>
                   <tr
@@ -369,7 +371,7 @@ export default function StudentRoster({
                             {student.name}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                            ID: {student.studentId}
+                            ID: STU-{student.studentNumber || student.studentId?.slice(-4) || '0000'}
                           </div>
                         </div>
                       </div>

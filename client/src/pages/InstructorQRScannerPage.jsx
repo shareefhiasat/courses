@@ -173,16 +173,8 @@ const InstructorQRScannerPage = () => {
 
   const loadPrograms = async () => {
     try {
-      console.log('[QR Scanner] Loading programs...');
       const programsResponse = await getPrograms();
-      console.log('[QR Scanner] Programs response:', programsResponse);
-      console.log('[QR Scanner] Response success:', programsResponse.success);
-      console.log('[QR Scanner] Response data:', programsResponse.data);
-      console.log('[QR Scanner] Response error:', programsResponse.error);
-
       let programsData = programsResponse.success ? programsResponse.data : [];
-      console.log('[QR Scanner] Programs loaded:', programsData);
-      console.log('[QR Scanner] Programs length:', programsData.length);
 
       if (programsData.length === 0) {
         console.warn('[QR Scanner] No programs found in database');
@@ -200,22 +192,13 @@ const InstructorQRScannerPage = () => {
 
   const loadSubjects = async (programId) => {
     try {
-      console.log('[QR Scanner] Loading subjects for program:', programId);
       const subjectsResponse = await getSubjects(programId || null);
-      console.log('[QR Scanner] Subjects response:', subjectsResponse);
       let subjectsData = subjectsResponse.success ? subjectsResponse.data : [];
-      console.log('[QR Scanner] Subjects loaded:', subjectsData);
-      console.log('[QR Scanner] Subjects length:', subjectsData.length);
       
-      // Log each subject with program info
-      subjectsData.forEach((subject, index) => {
-        console.log(`[QR Scanner] Subject ${index}:`, {
-          id: subject.docId || subject.id,
-          name: subject.name_en || subject.name_ar,
-          code: subject.code,
-          programId: subject.programId
-        });
-      });
+      // Sort client-side when filtering by program to avoid index requirement
+      if (programId) {
+        subjectsData.sort((a, b) => (a.code || '').localeCompare(b.code || ''));
+      }
 
       setSubjects(subjectsData);
       setGridLoading(false);
@@ -325,29 +308,45 @@ const InstructorQRScannerPage = () => {
       // Get penalties for these students
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      console.log('[QR Scanner] All penalties data:', allPenalties);
+      console.log('[QR Scanner] Sample penalty record:', allPenalties[0]);
+      console.log('[QR Scanner] Student IDs from enrollments:', studentIds);
       const studentPenalties = allPenalties.filter(p => studentIds.includes(p.studentId));
       console.log('[QR Scanner] Student penalties:', studentPenalties);
       setPenaltyRecords(studentPenalties);
 
       // Calculate totals and format data
+      console.log('[QR Scanner] Processing student data for', studentUsers.length, 'students');
+      
       const studentsWithData = await Promise.all(studentUsers.map(async (student) => {
+        console.log('[QR Scanner] Processing student:', student.displayName || student.name || student.email, 'ID:', student.id);
+        console.log('[QR Scanner] Full student object:', student);
+        console.log('[QR Scanner] Student fields:', Object.keys(student));
+        
         // Get attendance status for today
         const todayAttendance = attendance.find(a => a.studentId === student.id);
 
         // Calculate total participation (all time)
         const participation = student.participationPoints || 0;
+        console.log('[QR Scanner] Student participation points:', participation, 'for', student.displayName || student.name);
 
         // Calculate total behavior (all time)
         const behavior = student.behaviorPoints || 0;
+        console.log('[QR Scanner] Student behavior points:', behavior, 'for', student.displayName || student.name);
 
-        // Calculate total penalty (all time)
-        const penalties = studentPenalties.filter(p => p.studentId === student.id);
+        // Calculate total penalty (all time) - try multiple ID fields
+        const studentIdForPenalty = student.id || student.docId || student.studentId;
+        console.log('[QR Scanner] Using student ID for penalty lookup:', studentIdForPenalty);
+        const penalties = studentPenalties.filter(p => p.studentId === studentIdForPenalty);
         const penaltyTotal = penalties.reduce((sum, p) => sum + (p.points || 0), 0);
+        console.log('[QR Scanner] Student penalties:', penalties.length, 'records, total:', penaltyTotal, 'for', student.displayName || student.name);
 
-        return {
-          id: student.id,
-          studentId: student.studentId || student.id,
-          name: student.displayName || student.name || student.email,
+        const studentData = {
+          id: student.id || student.docId || student.studentId,
+          docId: student.docId,
+          studentId: student.studentId || student.id || student.docId,
+          studentNumber: student.studentNumber,
+          name: student.displayName || student.realName || student.name || student.email,
           email: student.email,
           attendance: todayAttendance?.status || 'absent_no_excuse',
           participation: participation,
@@ -358,6 +357,19 @@ const InstructorQRScannerPage = () => {
           participationHistory: student.participationHistory || [],
           penaltyHistory: penalties || []
         };
+        
+        console.log('[QR Scanner] Final student data:', {
+          name: studentData.name,
+          id: studentData.id,
+          docId: studentData.docId,
+          studentId: studentData.studentId,
+          studentNumber: studentData.studentNumber,
+          participation: studentData.participation,
+          behavior: studentData.behavior,
+          penalty: studentData.penalty
+        });
+        
+        return studentData;
       }));
 
       console.log('[QR Scanner] Students loaded:', studentsWithData);

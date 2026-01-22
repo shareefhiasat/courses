@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Star } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
+import { getAttendanceByStudent } from '../../firebase/attendance';
+import { getPenalties } from '../../firebase/penalties';
 
 const XIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -50,13 +53,78 @@ export default function StudentActionPanel({
   const [pointsOverride, setPointsOverride] = useState({});
   const [internalNote, setInternalNote] = useState('');
   const [activeTab, setActiveTab] = useState('behavior');
+  const [todayLogs, setTodayLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
+  // Fetch today's logs when student changes
   useEffect(() => {
     // Reset when student changes
     setSelectedActions([]);
     setPointsOverride({});
     setInternalNote('');
+    
+    // Fetch today's logs for the student
+    if (student?.id) {
+      fetchTodayLogs();
+    }
   }, [student?.id]);
+
+  // Fetch real data from Firebase
+  const fetchTodayLogs = async () => {
+    if (!student?.id) return;
+    
+    setLogsLoading(true);
+    try {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // Get attendance records for today
+      const attendanceResponse = await getAttendanceByStudent(student.id, todayStr, todayStr);
+      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+      
+      // Get penalty records for today
+      const penaltiesResponse = await getPenalties(student.id);
+      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      const todayPenalties = allPenalties.filter(p => {
+        if (p.createdAt) {
+          const penaltyDate = p.createdAt.toDate ? p.createdAt.toDate().toISOString().split('T')[0] : new Date(p.createdAt).toISOString().split('T')[0];
+          return penaltyDate === todayStr;
+        }
+        return false;
+      });
+      
+      // Combine and format logs
+      const logs = [
+        ...attendanceRecords.map(record => ({
+          type: 'attendance',
+          time: record.timestamp || record.date,
+          data: record,
+          label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
+          points: 0,
+          color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
+        })),
+        ...todayPenalties.map(penalty => ({
+          type: 'penalty',
+          time: penalty.createdAt,
+          data: penalty,
+          label: penalty.reason || 'Penalty',
+          points: penalty.points || 0,
+          color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
+        }))
+      ].sort((a, b) => {
+        const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+        const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+        return timeB - timeA; // Most recent first
+      });
+      
+      setTodayLogs(logs);
+    } catch (error) {
+      console.error('Error fetching today\'s logs:', error);
+      setTodayLogs([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
 
   if (!student) return null;
 
@@ -118,6 +186,7 @@ export default function StudentActionPanel({
   };
 
   const getInitials = (name) => {
+    if (!name) return '??';
     return name
       .split(' ')
       .map((n) => n[0])
@@ -174,12 +243,24 @@ export default function StudentActionPanel({
               background: avatarColor.bg,
               color: avatarColor.color
             }}>
-              {getInitials(student.name)}
+              {getInitials(student.displayName || student.realName || student.name || '')}
             </div>
             <div>
               <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '1rem' }}>
-                {student.name}
+                {student.displayName || student.realName || student.name || student.email || 'Unknown Student'}
               </h3>
+              <div style={{ 
+                fontSize: '0.75rem', 
+                color: '#6b7280', 
+                marginTop: '0.25rem',
+                fontFamily: 'monospace',
+                background: '#f3f4f6',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '0.25rem',
+                display: 'inline-block'
+              }}>
+                ID: STU-{student.studentNumber || student.id?.slice(-4) || '0000'}
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
                 <span style={{
                   width: '0.5rem',
@@ -580,9 +661,16 @@ export default function StudentActionPanel({
             paddingLeft: '1rem',
             borderLeft: '3px solid #8b5cf6'
           }}>
-            {(!student.behaviorHistory || student.behaviorHistory.length === 0) &&
-             (!student.participationHistory || student.participationHistory.length === 0) &&
-             (!student.penaltyHistory || student.penaltyHistory.length === 0) ? (
+            {logsLoading ? (
+              <div style={{
+                padding: '1rem',
+                color: '#9ca3af',
+                fontSize: '0.875rem',
+                textAlign: 'center'
+              }}>
+                Loading today's logs...
+              </div>
+            ) : todayLogs.length === 0 ? (
               <div style={{
                 padding: '1rem',
                 color: '#9ca3af',
@@ -591,78 +679,40 @@ export default function StudentActionPanel({
                 No logs for today
               </div>
             ) : (
-              <>
-                {/* Sample logs - replace with real data */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.5rem 0'
-                }}>
-                  <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '60px' }}>
-                    10:32 AM
-                  </span>
-                  <div style={{
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    background: '#dcfce7',
-                    color: '#166534'
+              todayLogs.map((log, index) => {
+                const time = log.time?.toDate ? log.time.toDate() : new Date(log.time);
+                const timeStr = time.toLocaleTimeString('en-US', { 
+                  hour: 'numeric', 
+                  minute: '2-digit',
+                  hour12: true 
+                });
+                
+                return (
+                  <div key={index} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.5rem 0'
                   }}>
-                    +2 Part.
+                    <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '60px' }}>
+                      {timeStr}
+                    </span>
+                    <div style={{
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      background: log.color,
+                      color: log.type === 'attendance' ? '#ffffff' : (log.points > 0 ? '#166534' : '#dc2626')
+                    }}>
+                      {log.type === 'attendance' ? log.label : `${log.points > 0 ? '+' : ''}${log.points} ${log.type === 'penalty' ? 'Pen.' : 'Behv.'}`}
+                    </div>
+                    <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
+                      {log.label}
+                    </span>
                   </div>
-                  <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-                    Good Participation
-                  </span>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.5rem 0'
-                }}>
-                  <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '60px' }}>
-                    09:45 AM
-                  </span>
-                  <div style={{
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    background: '#dbeafe',
-                    color: '#1d4ed8'
-                  }}>
-                    +5 Behv.
-                  </div>
-                  <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-                    Helpful to Others
-                  </span>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.5rem 0'
-                }}>
-                  <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '60px' }}>
-                    08:15 AM
-                  </span>
-                  <div style={{
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    background: '#fee2e2',
-                    color: '#dc2626'
-                  }}>
-                    -3 Behv.
-                  </div>
-                  <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-                    Talk in Class
-                  </span>
-                </div>
-              </>
+                );
+              })
             )}
           </div>
         </div>
