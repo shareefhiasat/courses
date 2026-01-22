@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
+import { getAttendanceByStudent } from '../../firebase/attendance';
+import { getPenalties } from '../../firebase/penalties';
 
 const SearchIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -67,15 +69,93 @@ export default function StudentRoster({
   totalStudents
 }) {
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [studentHistory, setStudentHistory] = useState({});
 
-  const toggleRowExpansion = (studentId) => {
+  const toggleRowExpansion = async (studentId) => {
     const newExpanded = new Set(expandedRows);
     if (newExpanded.has(studentId)) {
       newExpanded.delete(studentId);
     } else {
       newExpanded.add(studentId);
+      // Fetch historical data for this student if not already loaded
+      if (!studentHistory[studentId]) {
+        try {
+          // Get all attendance records for this student
+          const attendanceResponse = await getAttendanceByStudent(studentId);
+          const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+          
+          // Get all penalties for this student
+          const penaltiesResponse = await getPenalties();
+          const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+          const studentPenalties = allPenalties.filter(p => p.studentId === studentId);
+          
+          // Combine and format logs
+          const logs = [
+            ...attendanceRecords.map(record => ({
+              type: 'attendance',
+              date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
+              time: record.timestamp || record.date,
+              label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
+              points: record.delta || 0,
+              comment: record.reason || '',
+              severity: 'low',
+              color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
+            })),
+            ...studentPenalties.map(penalty => ({
+              type: 'penalty',
+              date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
+              time: penalty.createdAt,
+              label: penalty.reason || 'Penalty',
+              points: penalty.points || 0,
+              comment: penalty.comment || '',
+              severity: penalty.severity || 'medium',
+              color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
+            }))
+          ].sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateB - dateA;
+          });
+          
+          setStudentHistory(prev => ({
+            ...prev,
+            [studentId]: logs
+          }));
+        } catch (error) {
+          console.error('Error fetching student history:', error);
+        }
+      }
     }
     setExpandedRows(newExpanded);
+  };
+
+  // Group logs by day
+  const groupLogsByDay = (logs) => {
+    const grouped = {};
+    
+    logs.forEach(log => {
+      const date = log.date;
+      if (!grouped[date]) {
+        grouped[date] = {
+          date: date,
+          attendance: [],
+          penalties: [],
+          participation: []
+        };
+      }
+      
+      if (log.type === 'attendance') {
+        grouped[date].attendance.push(log);
+      } else if (log.type === 'penalty') {
+        grouped[date].penalties.push(log);
+      } else if (log.points > 0) {
+        grouped[date].participation.push(log);
+      } else if (log.points < 0) {
+        grouped[date].penalties.push(log);
+      }
+    });
+    
+    return Object.values(grouped);
   };
 
   const getAttendanceBadge = (status) => {
@@ -446,133 +526,242 @@ export default function StudentRoster({
                   {isExpanded && (
                     <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                       <td colSpan="7" style={{ padding: '1rem 2rem' }}>
-                        <div style={{ fontSize: '0.875rem' }}>
-                          <h4 style={{ 
-                            margin: '0 0 0.75rem 0', 
-                            fontSize: '0.75rem', 
-                            fontWeight: 600, 
-                            color: '#6b7280',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em'
+                        {studentHistory[student.id] ? (
+                          <div style={{ fontSize: '0.875rem' }}>
+                            {/*<h4 style={{ */}
+                            {/*  margin: '0 0 0.75rem 0', */}
+                            {/*  fontSize: '0.75rem', */}
+                            {/*  fontWeight: 600, */}
+                            {/*  color: '#6b7280',*/}
+                            {/*  textTransform: 'uppercase',*/}
+                            {/*  letterSpacing: '0.05em'*/}
+                            {/*}}>*/}
+                            {/*  📅 Student History*/}
+                            {/*</h4>*/}
+                            
+                            {groupLogsByDay(studentHistory[student.id]).map((dayGroup, dayIndex) => {
+                              const dateObj = new Date(dayGroup.date);
+                              const dateStr = dateObj.toLocaleDateString('en-US', { 
+                                weekday: 'short', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              });
+                              
+                              return (
+                                <div key={dayIndex} style={{
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '0.5rem',
+                                  overflow: 'hidden',
+                                  marginBottom: '0.75rem'
+                                }}>
+                                  {/* Day Header */}
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '0.75rem 1rem',
+                                      background: '#f9fafb',
+                                      cursor: 'pointer',
+                                      borderBottom: '1px solid #e5e7eb'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827' }}>
+                                        {dateStr}
+                                      </span>
+                                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        {dayGroup.attendance.length > 0 && (
+                                          <span style={{
+                                            fontSize: '0.75rem',
+                                            padding: '0.125rem 0.375rem',
+                                            background: '#22c55e',
+                                            color: 'white',
+                                            borderRadius: '0.25rem'
+                                          }}>
+                                            {dayGroup.attendance.length} Attendance
+                                          </span>
+                                        )}
+                                        {dayGroup.participation.length > 0 && (
+                                          <span style={{
+                                            fontSize: '0.75rem',
+                                            padding: '0.125rem 0.375rem',
+                                            background: '#3b82f6',
+                                            color: 'white',
+                                            borderRadius: '0.25rem'
+                                          }}>
+                                            {dayGroup.participation.length} Participation
+                                          </span>
+                                        )}
+                                        {dayGroup.penalties.length > 0 && (
+                                          <span style={{
+                                            fontSize: '0.75rem',
+                                            padding: '0.125rem 0.375rem',
+                                            background: '#ef4444',
+                                            color: 'white',
+                                            borderRadius: '0.25rem'
+                                          }}>
+                                            {dayGroup.penalties.length} Penalties
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Expanded Content */}
+                                  <div style={{ padding: '1rem' }}>
+                                    {/* Attendance */}
+                                    {dayGroup.attendance.length > 0 && (
+                                      <div style={{ marginBottom: '1rem' }}>
+                                        <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', marginBottom: '0.5rem' }}>
+                                          ATTENDANCE
+                                        </h5>
+                                        {dayGroup.attendance.map((log, idx) => (
+                                          <div key={idx} style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.5rem',
+                                            padding: '0.25rem 0',
+                                            fontSize: '0.8125rem'
+                                          }}>
+                                            <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                              {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                            </span>
+                                            <span style={{ 
+                                              padding: '0.125rem 0.375rem',
+                                              background: log.color,
+                                              color: 'white',
+                                              borderRadius: '0.25rem',
+                                              fontSize: '0.75rem'
+                                            }}>
+                                              {log.label}
+                                            </span>
+                                            {log.comment && (
+                                              <span style={{ color: '#6b7280' }}>
+                                                - {log.comment}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Participation */}
+                                    {dayGroup.participation.length > 0 && (
+                                      <div style={{ marginBottom: '1rem' }}>
+                                        <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6', marginBottom: '0.5rem' }}>
+                                          PARTICIPATION
+                                        </h5>
+                                        {dayGroup.participation.map((log, idx) => (
+                                          <div key={idx} style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.5rem',
+                                            padding: '0.25rem 0',
+                                            fontSize: '0.8125rem'
+                                          }}>
+                                            <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                              {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                            </span>
+                                            <span style={{ 
+                                              padding: '0.125rem 0.375rem',
+                                              background: '#dcfce7',
+                                              color: '#166534',
+                                              borderRadius: '0.25rem',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 600
+                                            }}>
+                                              +{log.points}
+                                            </span>
+                                            <span style={{ color: '#374151' }}>
+                                              {log.label}
+                                            </span>
+                                            {log.comment && (
+                                              <span style={{ color: '#6b7280' }}>
+                                                - {log.comment}
+                                              </span>
+                                            )}
+                                            {log.severity && (
+                                              <span style={{ 
+                                                padding: '0.125rem 0.375rem',
+                                                background: '#f3f4f6',
+                                                color: '#6b7280',
+                                                borderRadius: '0.25rem',
+                                                fontSize: '0.75rem'
+                                              }}>
+                                                {log.severity}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Penalties */}
+                                    {dayGroup.penalties.length > 0 && (
+                                      <div>
+                                        <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.5rem' }}>
+                                          PENALTIES
+                                        </h5>
+                                        {dayGroup.penalties.map((log, idx) => (
+                                          <div key={idx} style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.5rem',
+                                            padding: '0.25rem 0',
+                                            fontSize: '0.8125rem'
+                                          }}>
+                                            <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                              {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                            </span>
+                                            <span style={{ 
+                                              padding: '0.125rem 0.375rem',
+                                              background: '#fee2e2',
+                                              color: '#dc2626',
+                                              borderRadius: '0.25rem',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 600
+                                            }}>
+                                              {log.points > 0 ? `+${log.points}` : log.points}
+                                            </span>
+                                            <span style={{ color: '#374151' }}>
+                                              {log.label}
+                                            </span>
+                                            {log.comment && (
+                                              <span style={{ color: '#6b7280' }}>
+                                                - {log.comment}
+                                              </span>
+                                            )}
+                                            {log.severity && (
+                                              <span style={{ 
+                                                padding: '0.125rem 0.375rem',
+                                                background: '#f3f4f6',
+                                                color: '#6b7280',
+                                                borderRadius: '0.25rem',
+                                                fontSize: '0.75rem'
+                                              }}>
+                                                {log.severity}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            padding: '2rem', 
+                            textAlign: 'center',
+                            color: '#9ca3af',
+                            fontSize: '0.875rem'
                           }}>
-                            📅 Today's History
-                          </h4>
-                          
-                          {(!student.behaviorHistory || student.behaviorHistory.length === 0) &&
-                           (!student.participationHistory || student.participationHistory.length === 0) &&
-                           (!student.penaltyHistory || student.penaltyHistory.length === 0) ? (
-                            <p style={{ color: '#9ca3af', margin: 0, fontSize: '0.8125rem' }}>
-                              No activity recorded for today
-                            </p>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              {student.participationHistory?.map((entry, idx) => (
-                                <div key={`part-${idx}`} style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '0.5rem 0.75rem',
-                                  background: '#ecfdf5',
-                                  borderRadius: '0.375rem',
-                                  border: '1px solid #a7f3d0'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                      {new Date(entry.timestamp).toLocaleTimeString('en-US', {
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
-                                    <span style={{ 
-                                      padding: '0.125rem 0.5rem',
-                                      background: '#059669',
-                                      color: 'white',
-                                      borderRadius: '0.25rem',
-                                      fontSize: '0.6875rem',
-                                      fontWeight: 600
-                                    }}>
-                                      +{entry.points} Part.
-                                    </span>
-                                    <span style={{ color: '#047857', fontSize: '0.8125rem' }}>
-                                      {entry.reason || 'Active participation'}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                              
-                              {student.behaviorHistory?.map((entry, idx) => (
-                                <div key={`behav-${idx}`} style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '0.5rem 0.75rem',
-                                  background: entry.points >= 0 ? '#ecfdf5' : '#fef2f2',
-                                  borderRadius: '0.375rem',
-                                  border: entry.points >= 0 ? '1px solid #a7f3d0' : '1px solid #fecaca'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                      {new Date(entry.timestamp).toLocaleTimeString('en-US', {
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
-                                    <span style={{ 
-                                      padding: '0.125rem 0.5rem',
-                                      background: entry.points >= 0 ? '#059669' : '#dc2626',
-                                      color: 'white',
-                                      borderRadius: '0.25rem',
-                                      fontSize: '0.6875rem',
-                                      fontWeight: 600
-                                    }}>
-                                      {entry.points >= 0 ? '+' : ''}{entry.points} Behav.
-                                    </span>
-                                    <span style={{ 
-                                      color: entry.points >= 0 ? '#047857' : '#991b1b', 
-                                      fontSize: '0.8125rem'
-                                    }}>
-                                      {entry.reason || entry.type}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                              
-                              {student.penaltyHistory?.map((entry, idx) => (
-                                <div key={`penalty-${idx}`} style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '0.5rem 0.75rem',
-                                  background: '#fef2f2',
-                                  borderRadius: '0.375rem',
-                                  border: '1px solid #fecaca'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                      {new Date(entry.createdAt?.toDate?.() || entry.createdAt).toLocaleTimeString('en-US', {
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
-                                    <span style={{ 
-                                      padding: '0.125rem 0.5rem',
-                                      background: '#dc2626',
-                                      color: 'white',
-                                      borderRadius: '0.25rem',
-                                      fontSize: '0.6875rem',
-                                      fontWeight: 600
-                                    }}>
-                                      -{entry.points} Penalty
-                                    </span>
-                                    <span style={{ color: '#991b1b', fontSize: '0.8125rem' }}>
-                                      {entry.reason || entry.type}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                            Loading student history...
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )}
