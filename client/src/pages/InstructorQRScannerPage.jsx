@@ -4,7 +4,7 @@ import { useLang } from '../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, getClasses, getEnrollments } from '../firebase/firestore';
 import { getPrograms, getSubjects } from '../firebase/programs';
-import { markAttendance, getAttendanceByClass } from '../firebase/attendance';
+import { markAttendance, getAttendanceByClass, getAttendanceByStudent } from '../firebase/attendance';
 import { createPenalty, getPenalties } from '../firebase/penalties';
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../constants/behaviorParticipation';
 import { Select, DatePicker, Button, Loading } from '../components/ui';
@@ -323,34 +323,46 @@ const InstructorQRScannerPage = () => {
         console.log('[QR Scanner] Full student object:', student);
         console.log('[QR Scanner] Student fields:', Object.keys(student));
         
-        // Get attendance status for today
-        const todayAttendance = attendance.find(a => a.studentId === student.id);
+        // Get attendance status for today - use docId for student ID matching
+        const studentId = student.id || student.docId;
+        const todayAttendance = attendance.find(a => a.studentId === studentId);
 
-        // Calculate total participation (all time)
-        const participation = student.participationPoints || 0;
-        console.log('[QR Scanner] Student participation points:', participation, 'for', student.displayName || student.name);
+        // Fetch all attendance records for this student to calculate participation and behavior
+        const attendanceResponse = await getAttendanceByStudent(studentId);
+        const studentAttendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+        console.log('[QR Scanner] Student attendance records:', studentAttendanceRecords.length, 'for', student.displayName || student.name);
 
-        // Calculate total behavior (all time)
-        const behavior = student.behaviorPoints || 0;
-        console.log('[QR Scanner] Student behavior points:', behavior, 'for', student.displayName || student.name);
+        // Calculate totals from attendance records
+        let participationTotal = 0;
+        let behaviorTotal = 0;
+        
+        studentAttendanceRecords.forEach(record => {
+          if (record.delta) {
+            if (record.delta > 0) {
+              participationTotal += record.delta;
+            } else if (record.delta < 0) {
+              behaviorTotal += record.delta; // negative values for penalties
+            }
+          }
+        });
 
-        // Calculate total penalty (all time) - try multiple ID fields
-        const studentIdForPenalty = student.id || student.docId || student.studentId;
-        console.log('[QR Scanner] Using student ID for penalty lookup:', studentIdForPenalty);
-        const penalties = studentPenalties.filter(p => p.studentId === studentIdForPenalty);
+        console.log('[QR Scanner] Calculated participation:', participationTotal, 'behavior:', behaviorTotal, 'for', student.displayName || student.name);
+
+        // Calculate total penalty (all time) - use docId for matching
+        const penalties = studentPenalties.filter(p => p.studentId === studentId);
         const penaltyTotal = penalties.reduce((sum, p) => sum + (p.points || 0), 0);
-        console.log('[QR Scanner] Student penalties:', penalties.length, 'records, total:', penaltyTotal, 'for', student.displayName || student.name);
+        console.log('[QR Scanner] Student penalties:', penalties.length, 'records, total:', penaltyTotal, 'for', student.displayName || student.name, 'using studentId:', studentId);
 
         const studentData = {
-          id: student.id || student.docId || student.studentId,
+          id: studentId,
           docId: student.docId,
-          studentId: student.studentId || student.id || student.docId,
+          studentId: student.studentId || studentId,
           studentNumber: student.studentNumber,
           name: student.displayName || student.realName || student.name || student.email,
           email: student.email,
           attendance: todayAttendance?.status || 'absent_no_excuse',
-          participation: participation,
-          behavior: behavior,
+          participation: participationTotal,
+          behavior: behaviorTotal,
           penalty: penaltyTotal,
           isPinned: student.isPinned || false,
           behaviorHistory: student.behaviorHistory || [],
