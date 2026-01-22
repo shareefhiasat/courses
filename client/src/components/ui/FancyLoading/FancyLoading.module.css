@@ -9,6 +9,10 @@
   padding: 2rem;
 }
 
+.standalone {
+  /* No container styles - just the logo */
+}
+
 .fullscreen {
   position: fixed;
   top: 0;

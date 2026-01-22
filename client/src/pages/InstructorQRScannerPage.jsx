@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
+import { useNavigate } from 'react-router-dom';
 import { getUsers, getClasses, getEnrollments } from '../firebase/firestore';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import { markAttendance, getAttendanceByClass } from '../firebase/attendance';
@@ -16,8 +17,9 @@ import '../components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
 
 const InstructorQRScannerPage = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useLang();
+  const navigate = useNavigate();
 
   // Filter state
   const [programs, setPrograms] = useState([]);
@@ -54,7 +56,7 @@ const InstructorQRScannerPage = () => {
   // Memoized options for dropdowns - following DashboardPage pattern
   const programOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'Select Program', icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: 'All Programs', icon: <Filter size={16} color="#374151" /> }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
@@ -68,11 +70,11 @@ const InstructorQRScannerPage = () => {
 
   const subjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'Select Subject', icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: 'All Subjects', icon: <Filter size={16} color="#374151" /> }
     ];
     const validSubjects = subjects
       .filter(sub => {
-        if (!selectedProgramId) return true;
+        if (!selectedProgramId || selectedProgramId === 'all') return true;
         const subProgramId = sub.programId || sub.program || '';
         const formProgramId = selectedProgramId;
         return subProgramId === formProgramId;
@@ -88,11 +90,11 @@ const InstructorQRScannerPage = () => {
 
   const classOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'Select Class', icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: 'All Classes', icon: <Filter size={16} color="#374151" /> }
     ];
     const validClasses = classes
       .filter(cls => {
-        if (!selectedSubjectId) return true;
+        if (!selectedSubjectId || selectedSubjectId === 'all') return true;
         const clsSubjectId = cls.subjectId || cls.subject || '';
         const formSubjectId = selectedSubjectId;
         return clsSubjectId === formSubjectId;
@@ -233,8 +235,28 @@ const InstructorQRScannerPage = () => {
       const allClasses = classesResponse.success ? classesResponse.data : [];
       console.log('[QR Scanner] All classes:', allClasses);
       console.log('[QR Scanner] All classes length:', allClasses.length);
+      console.log('[QR Scanner] User role:', user?.role);
+      console.log('[QR Scanner] User email:', user?.email);
       
-      let filteredClasses = allClasses.filter(c => c.subjectId === subjectId);
+      let filteredClasses = allClasses;
+      
+      // If user is admin or super admin, show all classes
+      if (user?.role === 'admin' || user?.role === 'super_admin') {
+        console.log('[QR Scanner] Admin user - showing all classes');
+        if (subjectId && subjectId !== 'all') {
+          filteredClasses = allClasses.filter(c => c.subjectId === subjectId);
+        }
+      } else {
+        // Regular instructor - only show their classes
+        console.log('[QR Scanner] Instructor user - filtering by instructor');
+        filteredClasses = allClasses.filter(c => 
+          c.instructorId === user?.uid || c.ownerEmail === user?.email
+        );
+        if (subjectId && subjectId !== 'all') {
+          filteredClasses = filteredClasses.filter(c => c.subjectId === subjectId);
+        }
+      }
+      
       console.log('[QR Scanner] Filtered classes for subject', subjectId, ':', filteredClasses);
       console.log('[QR Scanner] Filtered classes length:', filteredClasses.length);
       
@@ -284,7 +306,7 @@ const InstructorQRScannerPage = () => {
       let studentIds = classEnrollments.map(e => e.userId);
       console.log('[QR Scanner] Student IDs from enrollments:', studentIds);
       
-      let studentUsers = allUsers.filter(u => studentIds.includes(u.id));
+      let studentUsers = allUsers.filter(u => studentIds.includes(u.id) || studentIds.includes(u.docId));
       console.log('[QR Scanner] Found student users:', studentUsers);
 
       // Always use real data - remove fallback
@@ -293,7 +315,8 @@ const InstructorQRScannerPage = () => {
       }
 
       // Get attendance for selected date
-      const dateStr = date.toISOString().split('T')[0];
+      const dateObj = new Date(date);
+      const dateStr = dateObj.toISOString().split('T')[0];
       const attendanceResponse = await getAttendanceByClass(classId, dateStr);
       const attendance = attendanceResponse.success ? attendanceResponse.data : [];
       console.log('[QR Scanner] Attendance records:', attendance);
@@ -498,8 +521,8 @@ const InstructorQRScannerPage = () => {
   const { students: displayedStudents, total } = getFilteredAndSortedStudents();
   const totalPages = Math.ceil(total / pageSize);
 
-  // Show loading state
-  if (!user) {
+  // Show loading while auth is initializing
+  if (authLoading) {
     return (
       <div style={{
         display: 'flex',
@@ -508,20 +531,16 @@ const InstructorQRScannerPage = () => {
         minHeight: '100vh',
         background: '#f9fafb'
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid #e5e7eb',
-            borderTop: '4px solid #8b5cf6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 1rem'
-          }}></div>
-          <p style={{ color: '#6b7280' }}>Loading...</p>
-        </div>
+        <FancyLoading />
       </div>
     );
+  }
+
+  // Redirect to login if session expired (no user)
+  if (!user) {
+    console.log('[QR Scanner] No user found - redirecting to login');
+    navigate('/login');
+    return null;
   }
 
   if (initialLoading) {
@@ -881,7 +900,18 @@ const InstructorQRScannerPage = () => {
               <FancyLoading />
             </div>
           ) : loading ? (
-            <Loading />
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <FancyLoading />
+            </div>
           ) : !selectedClassId || selectedClassId === 'all' ? (
             <div style={{
               background: 'white',

@@ -89,8 +89,7 @@ export const getSubjects = async (programId = null) => {
     if (programId) {
       q = query(
         collection(db, 'subjects'),
-        where('programId', '==', programId),
-        orderBy('code', 'asc')
+        where('programId', '==', programId)
       );
     } else {
       q = query(collection(db, 'subjects'), orderBy('code', 'asc'));
@@ -98,6 +97,12 @@ export const getSubjects = async (programId = null) => {
     const qs = await getDocs(q);
     const items = [];
     qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    
+    // Sort client-side when filtering by program to avoid index requirement
+    if (programId) {
+      items.sort((a, b) => (a.code || '').localeCompare(b.code || ''));
+    }
+    
     return { success: true, data: items };
   } catch (error) {
     return { success: false, error: error.message };
