@@ -28,6 +28,9 @@ export const functions = getFunctions(app, 'us-central1');
 export const storage = getStorage(app);
 export const rtdb = getDatabase(app);
 
+// Export getFunctions for use in components
+export { getFunctions };
+
 // Connect to emulators in local development (OPTIONAL)
 // Set USE_EMULATOR=true in environment to enable
 // By default, uses production Firebase even in localhost (no CORS issues!)

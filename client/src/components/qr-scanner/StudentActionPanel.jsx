@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Star } from 'lucide-react';
+import { Star, Mail, QrCode, Users, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
 import { getAttendanceByStudent } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
+import { getFunctions } from '../../firebase/config';
+import { generateStudentQRCode } from '../../utils/qrCode';
 
 const XIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -56,6 +58,36 @@ export default function StudentActionPanel({
   const [todayLogs, setTodayLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [expandedDays, setExpandedDays] = useState(new Set());
+  const [sendingQRCode, setSendingQRCode] = useState(false);
+
+  // Send QR code email
+  const sendQRCodeEmail = async () => {
+    if (!student?.id || !student?.email) {
+      console.error('Student information missing');
+      return;
+    }
+
+    setSendingQRCode(true);
+    try {
+      const functions = getFunctions();
+      const sendQRCodeEmail = functions.httpsCallable('sendQRCodeEmail');
+      
+      const result = await sendQRCodeEmail({
+        studentId: student.id,
+        studentEmail: student.email
+      });
+
+      if (result.success) {
+        console.log('QR code email sent successfully');
+      } else {
+        console.error('Failed to send QR code email:', result.message);
+      }
+    } catch (error) {
+      console.error('Error sending QR code email:', error);
+    } finally {
+      setSendingQRCode(false);
+    }
+  };
 
   const toggleDayExpansion = (dayKey) => {
     const newExpanded = new Set(expandedDays);
@@ -315,6 +347,30 @@ export default function StudentActionPanel({
           <Button variant="ghost" size="icon" onClick={onClose}>
             <XIcon style={{ width: '1rem', height: '1rem' }} />
           </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={sendQRCodeEmail}
+            disabled={sendingQRCode}
+            title="Send QR code to student email"
+          >
+            {sendingQRCode ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{
+                  width: '1rem',
+                  height: '1rem',
+                  border: '2px solid #6b7280',
+                  borderTop: '2px solid transparent',
+                  borderRight: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }} />
+                <span>Sending...</span>
+              </div>
+            ) : (
+              <Mail style={{ width: '1rem', height: '1rem' }} />
+            )}
+          </Button>
         </div>
 
         {/* Points Summary */}
@@ -326,14 +382,14 @@ export default function StudentActionPanel({
         }}>
           <div style={{
             padding: '0.75rem',
-            background: '#ecfdf5',
+            background: '#f3f4f6',
             borderRadius: '0.5rem',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#059669' }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#6b7280' }}>
               {student.participation}
             </div>
-            <div style={{ fontSize: '0.6875rem', color: '#047857', fontWeight: 500 }}>
+            <div style={{ fontSize: '0.6875rem', color: '#6b7280', fontWeight: 500 }}>
               Participation
             </div>
           </div>
@@ -374,41 +430,84 @@ export default function StudentActionPanel({
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Button
-            variant={activeTab === 'participation' ? 'default' : 'ghost'}
-            size="sm"
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <button
             onClick={() => setActiveTab('participation')}
-            style={{ fontSize: '0.8125rem' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8125rem',
+              borderRadius: '0.375rem',
+              border: '1px solid #e2e8f0',
+              background: activeTab === 'participation' ? '#ffffff' : '#f8fafc',
+              color: activeTab === 'participation' ? '#1e40af' : '#64748b',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
           >
+            <Users style={{ width: '14px', height: '14px' }} />
             Participation
-          </Button>
-          <Button
-            variant={activeTab === 'behavior' ? 'default' : 'ghost'}
-            size="sm"
+          </button>
+          <button
             onClick={() => setActiveTab('behavior')}
-            style={{ fontSize: '0.8125rem' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8125rem',
+              borderRadius: '0.375rem',
+              border: '1px solid #e2e8f0',
+              background: activeTab === 'behavior' ? '#ffffff' : '#f8fafc',
+              color: activeTab === 'behavior' ? '#10b981' : '#64748b',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
           >
+            <Star style={{ width: '14px', height: '14px' }} />
             Behavior
-          </Button>
-          <Button
-            variant={activeTab === 'penalty' ? 'default' : 'ghost'}
-            size="sm"
+          </button>
+          <button
             onClick={() => setActiveTab('penalty')}
-            style={{ fontSize: '0.8125rem' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8125rem',
+              borderRadius: '0.375rem',
+              border: '1px solid #e2e8f0',
+              background: activeTab === 'penalty' ? '#ffffff' : '#f8fafc',
+              color: activeTab === 'penalty' ? '#ef4444' : '#64748b',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
           >
+            <AlertCircle style={{ width: '14px', height: '14px' }} />
             Penalty
-          </Button>
+          </button>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Button
-              variant={showFavoritesOnly ? 'default' : 'ghost'}
-              size="sm"
+            <button
               onClick={onToggleFavorites}
-              style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.8125rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #e2e8f0',
+                background: showFavoritesOnly ? '#ffffff' : '#f8fafc',
+                color: showFavoritesOnly ? '#f59e0b' : '#64748b',
+                cursor: 'pointer',
+                boxShadow: showFavoritesOnly ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              }}
             >
               <Star size={14} fill={showFavoritesOnly ? '#8b5cf6' : 'none'} color={showFavoritesOnly ? '#8b5cf6' : '#6b7280'} />
               {showFavoritesOnly ? 'All' : 'Favorites'}
-            </Button>
+            </button>
           </div>
         </div>
       </div>

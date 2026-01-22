@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
 import { getAttendanceByStudent } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
+import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '../../firebase/userPreferences';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SearchIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -64,8 +66,7 @@ const ParticipationIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
     <circle cx="9" cy="7" r="4"/>
-    <line x1="22" y1="12" x2="16" y2="12"/>
-    <path d="M22 9v6"/>
+    <path d="m21 16-8-5-5-5 5"/>
   </svg>
 );
 
@@ -94,6 +95,7 @@ export default function StudentRoster({
   onPageChange,
   totalStudents
 }) {
+  const { user } = useAuth();
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [studentHistory, setStudentHistory] = useState({});
   const [expandedDays, setExpandedDays] = useState(new Set());
@@ -102,6 +104,34 @@ export default function StudentRoster({
     participation: true,
     penalties: true
   });
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favoriteStudents, setFavoriteStudents] = useState([]);
+
+  // Load favorite students from Firebase
+  useEffect(() => {
+    if (user?.uid) {
+      getFavoriteStudents(user.uid).then(setFavoriteStudents);
+    }
+  }, [user?.uid]);
+
+  const toggleFavorite = async (studentId) => {
+    if (!user?.uid) return;
+    
+    const isFavorite = favoriteStudents.includes(studentId);
+    let success = false;
+    
+    if (isFavorite) {
+      success = await removeFavoriteStudent(user.uid, studentId);
+      setFavoriteStudents(prev => prev.filter(id => id !== studentId));
+    } else {
+      success = await addFavoriteStudent(user.uid, studentId);
+      setFavoriteStudents(prev => [...prev, studentId]);
+    }
+    
+    if (!success) {
+      console.error('Failed to update favorite status');
+    }
+  };
 
   const toggleRowExpansion = async (studentId) => {
     const newExpanded = new Set(expandedRows);
@@ -304,6 +334,21 @@ export default function StudentRoster({
           <Button variant="ghost" size="icon" onClick={onFilter}>
             <FilterIcon style={{ width: '1rem', height: '1rem' }} />
           </Button>
+          <Button 
+            variant={showFavoritesOnly ? 'default' : 'ghost'} 
+            size="icon" 
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            title={showFavoritesOnly ? 'Show all students' : 'Show favorites only'}
+          >
+            <StarIcon 
+              style={{ 
+                width: '1rem', 
+                height: '1rem', 
+                color: showFavoritesOnly ? '#f59e0b' : '#6b7280'
+              }} 
+              filled={showFavoritesOnly} 
+            />
+          </Button>
           <Button variant="ghost" size="icon" onClick={onDownload}>
             <DownloadIcon style={{ width: '1rem', height: '1rem' }} />
           </Button>
@@ -410,7 +455,9 @@ export default function StudentRoster({
             </tr>
           </thead>
           <tbody>
-            {students.map((student) => {
+            {students
+              .filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id))
+              .map((student) => {
               const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
               const isExpanded = expandedRows.has(student.id);
               
@@ -476,9 +523,9 @@ export default function StudentRoster({
                             style={{ 
                               width: '1rem', 
                               height: '1rem', 
-                              color: student.isPinned ? '#f59e0b' : '#d1d5db'
+                              color: favoriteStudents.includes(student.id) ? '#f59e0b' : '#d1d5db'
                             }} 
-                            filled={student.isPinned}
+                            filled={favoriteStudents.includes(student.id)}
                           />
                         </button>
                         <div style={{
@@ -577,73 +624,84 @@ export default function StudentRoster({
                       <td colSpan="7" style={{ padding: '0.5rem 1rem' }}>
                         {studentHistory[student.id] ? (
                           <div style={{ fontSize: '0.875rem' }}>
-                            {/* Filter Toggles */}
-                            <div style={{ 
-                              display: 'flex', 
-                              gap: '0.5rem', 
-                              marginBottom: '0.75rem',
-                              padding: '0.5rem',
-                              background: '#f8fafc',
-                              borderRadius: '0.5rem',
-                              border: '1px solid #e2e8f0'
+                            {/* History Header */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              marginBottom: '1rem',
+                              padding: '0 0.5rem'
                             }}>
-                              <button
-                                onClick={() => toggleFilter('attendance')}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.375rem',
-                                  padding: '0.5rem 0.75rem',
-                                  fontSize: '0.8125rem',
-                                  borderRadius: '0.375rem',
-                                  border: '1px solid #e2e8f0',
-                                  background: activeFilters.attendance ? '#ffffff' : '#f8fafc',
-                                  color: activeFilters.attendance ? '#0f766e' : '#64748b',
-                                  cursor: 'pointer',
-                                  boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                                }}
-                              >
-                                <AttendanceIcon style={{ width: '14px', height: '14px' }} />
-                                Attendance
-                              </button>
-                              <button
-                                onClick={() => toggleFilter('participation')}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.375rem',
-                                  padding: '0.5rem 0.75rem',
-                                  fontSize: '0.8125rem',
-                                  borderRadius: '0.375rem',
-                                  border: '1px solid #e2e8f0',
-                                  background: activeFilters.participation ? '#ffffff' : '#f8fafc',
-                                  color: activeFilters.participation ? '#1e40af' : '#64748b',
-                                  cursor: 'pointer',
-                                  boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                                }}
-                              >
-                                <ParticipationIcon style={{ width: '14px', height: '14px' }} />
-                                Participation
-                              </button>
-                              <button
-                                onClick={() => toggleFilter('penalties')}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.375rem',
-                                  padding: '0.5rem 0.75rem',
-                                  fontSize: '0.8125rem',
-                                  borderRadius: '0.375rem',
-                                  border: '1px solid #e2e8f0',
-                                  background: activeFilters.penalties ? '#ffffff' : '#f8fafc',
-                                  color: activeFilters.penalties ? '#b91c1c' : '#64748b',
-                                  cursor: 'pointer',
-                                  boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                                }}
-                              >
-                                <PenaltyIcon style={{ width: '14px', height: '14px' }} />
-                                Penalties
-                              </button>
+                              <h4 style={{
+                                fontSize: '0.875rem',
+                                fontWeight: 600,
+                                color: '#374151',
+                                margin: 0
+                              }}>
+                                Student History
+                              </h4>
+                              <div style={{
+                                display: 'flex',
+                                gap: '0.25rem'
+                              }}>
+                                <button
+                                  onClick={() => toggleFilter('attendance')}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.375rem',
+                                    padding: '0.5rem 0.75rem',
+                                    fontSize: '0.8125rem',
+                                    borderRadius: '0.375rem',
+                                    border: '1px solid #e2e8f0',
+                                    background: activeFilters.attendance ? '#ffffff' : '#f8fafc',
+                                    color: activeFilters.attendance ? '#0f766e' : '#64748b',
+                                    cursor: 'pointer',
+                                    boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                  }}
+                                >
+                                  <AttendanceIcon style={{ width: '14px', height: '14px' }} />
+                                  Attendance
+                                </button>
+                                <button
+                                  onClick={() => toggleFilter('participation')}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.375rem',
+                                    padding: '0.5rem 0.75rem',
+                                    fontSize: '0.8125rem',
+                                    borderRadius: '0.375rem',
+                                    border: '1px solid #e2e8f0',
+                                    background: activeFilters.participation ? '#ffffff' : '#f8fafc',
+                                    color: activeFilters.participation ? '#1e40af' : '#64748b',
+                                    cursor: 'pointer',
+                                    boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                  }}
+                                >
+                                  <ParticipationIcon style={{ width: '14px', height: '14px' }} />
+                                  Participation
+                                </button>
+                                <button
+                                  onClick={() => toggleFilter('penalties')}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.375rem',
+                                    padding: '0.5rem 0.75rem',
+                                    fontSize: '0.8125rem',
+                                    borderRadius: '0.375rem',
+                                    border: '1px solid #e2e8f0',
+                                    background: activeFilters.penalties ? '#ffffff' : '#f8fafc',
+                                    color: activeFilters.penalties ? '#b91c1c' : '#64748b',
+                                    cursor: 'pointer',
+                                    boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                  }}
+                                >
+                                  <PenaltyIcon style={{ width: '14px', height: '14px' }} />
+                                  Penalties
+                                </button>
+                              </div>
                             </div>
                             {/*<h4 style={{ */}
                             {/*  margin: '0 0 0.75rem 0', */}
@@ -711,7 +769,6 @@ export default function StudentRoster({
                                             fontSize: '0.75rem',
                                             color: '#166534'
                                           }}>
-                                            <AttendanceIcon style={{ width: '12px', height: '12px' }} />
                                             {filteredCounts.attendance}
                                           </div>
                                         )}
@@ -727,7 +784,6 @@ export default function StudentRoster({
                                             fontSize: '0.75rem',
                                             color: '#1e40af'
                                           }}>
-                                            <ParticipationIcon style={{ width: '12px', height: '12px' }} />
                                             {filteredCounts.participation}
                                           </div>
                                         )}
@@ -743,7 +799,6 @@ export default function StudentRoster({
                                             fontSize: '0.75rem',
                                             color: '#b91c1c'
                                           }}>
-                                            <PenaltyIcon style={{ width: '12px', height: '12px' }} />
                                             {filteredCounts.penalties}
                                           </div>
                                         )}
@@ -775,12 +830,12 @@ export default function StudentRoster({
                                               gap: '0.5rem',
                                               padding: '0.375rem 0',
                                               fontSize: '0.8125rem',
-                                              borderBottom: '1px solid #f1f5f9'
+                                              borderBottom: idx === dayGroup.attendance.length - 1 ? 'none' : '1px solid #f1f5f9'
                                             }}>
                                               <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                                 {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
-                                              <AttendanceIcon style={{ width: '14px', height: '14px', color: '#0f766e' }} />
+                                              <AttendanceIcon style={{ width: '16px', height: '16px', color: '#10b981', marginRight: '0.5rem' }} />
                                               <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
@@ -804,22 +859,12 @@ export default function StudentRoster({
                                               gap: '0.5rem',
                                               padding: '0.375rem 0',
                                               fontSize: '0.8125rem',
-                                              borderBottom: '1px solid #dbeafe'
+                                              borderBottom: idx === dayGroup.participation.length - 1 ? 'none' : '1px solid #e5e7eb'
                                             }}>
                                               <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                                 {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
-                                              <ParticipationIcon style={{ width: '14px', height: '14px', color: '#1e40af' }} />
-                                              <span style={{ 
-                                                padding: '0.125rem 0.375rem',
-                                                background: '#dbeafe',
-                                                color: '#1e40af',
-                                                borderRadius: '0.25rem',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600
-                                              }}>
-                                                +{log.points}
-                                              </span>
+                                              <ParticipationIcon style={{ width: '16px', height: '16px', color: '#3b82f6', marginRight: '0.5rem' }} />
                                               <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
@@ -854,22 +899,12 @@ export default function StudentRoster({
                                               gap: '0.5rem',
                                               padding: '0.375rem 0',
                                               fontSize: '0.8125rem',
-                                              borderBottom: '1px solid #fecaca'
+                                              borderBottom: idx === dayGroup.penalties.length - 1 ? 'none' : '1px solid #fecaca'
                                             }}>
                                               <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                                 {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
-                                              <PenaltyIcon style={{ width: '14px', height: '14px', color: '#b91c1c' }} />
-                                              <span style={{ 
-                                                padding: '0.125rem 0.375rem',
-                                                background: '#fecaca',
-                                                color: '#b91c1c',
-                                                borderRadius: '0.25rem',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600
-                                              }}>
-                                                {log.points > 0 ? `+${log.points}` : log.points}
-                                              </span>
+                                              <PenaltyIcon style={{ width: '16px', height: '16px', color: '#ef4444', marginRight: '0.5rem' }} />
                                               <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
