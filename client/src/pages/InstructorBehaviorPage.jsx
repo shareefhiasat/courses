@@ -573,7 +573,8 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         return Number(params.value) || 0;
       },
       renderCell: (params) => {
-        const value = params.value || 0;
+        // Get the value from the row data directly to ensure we have the correct points value
+        const value = params.row.points || params.value || 0;
         return (
           <div style={{ 
             display: 'flex', 

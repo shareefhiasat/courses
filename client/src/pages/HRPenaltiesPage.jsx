@@ -620,9 +620,10 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             alignItems: 'center', 
             gap: '4px',
             fontWeight: 'bold',
-            color: value < 0 ? '#ef4444' : '#6b7280'
+            color: value > 0 ? '#22c55e' : value < 0 ? '#ef4444' : '#6b7280'
           }}>
-            {value < 0 && value}
+            {value > 0 && '+'}{value}
+            {value > 0 && <TrendingUp size={14} color="#22c55e" />}
             {value < 0 && <TrendingDown size={14} color="#ef4444" />}
           </div>
         );

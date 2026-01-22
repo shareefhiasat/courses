@@ -689,7 +689,7 @@ export default function StudentActionPanel({
               letterSpacing: '0.05em',
               margin: 0
             }}>
-              History
+              Student History
             </h4>
           </div>
           <div style={{ 
@@ -706,7 +706,7 @@ export default function StudentActionPanel({
                 fontSize: '0.875rem',
                 textAlign: 'center'
               }}>
-                Loading history...
+                Loading student history...
               </div>
             ) : todayLogs.length === 0 ? (
               <div style={{
@@ -905,7 +905,7 @@ export default function StudentActionPanel({
                                   fontSize: '0.75rem',
                                   fontWeight: 600
                                 }}>
-                                  {log.points}
+                                  {log.points > 0 ? `+${log.points}` : log.points}
                                 </span>
                                 <span style={{ color: '#374151' }}>
                                   {log.label}
