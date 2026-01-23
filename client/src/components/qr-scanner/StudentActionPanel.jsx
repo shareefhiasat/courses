@@ -508,11 +508,12 @@ export default function StudentActionPanel({
     const colors = [
       { bg: '#e9d5ff', color: '#6b21a8' },
       { bg: '#fed7aa', color: '#9a3412' },
-      { bg: '#bfdbfe', color: '#1e3a8a' },
-      { bg: '#fbcfe8', color: '#831843' },
+      { bg: '#fecaca', color: '#991b1b' },
       { bg: '#d1fae5', color: '#065f46' },
+      { bg: '#dbeafe', color: '#1e40af' },
+      { bg: '#f3e8ff', color: '#6b21a8' }
     ];
-    const index = name.charCodeAt(0) % colors.length;
+    const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
   };
 

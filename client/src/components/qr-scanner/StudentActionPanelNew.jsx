@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { XIcon, StarIcon, ChevronDownIcon, ChevronRightIcon, Star, Mail, ChevronDown, Users, Zap, AlertCircle } from 'lucide-react';
+import { XIcon, StarIcon, ChevronDownIcon, ChevronRightIcon, Star, Mail, ChevronDown, Users, Zap, AlertCircle, Plus, Minus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { markAttendance } from '../../firebase/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
@@ -297,7 +297,7 @@ export default function StudentActionPanelNew({
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} style={{ marginLeft: 'auto' }}>
+          <Button variant="ghost" size="icon" onClick={onClose} title="Close panel" style={{ marginLeft: 'auto' }}>
             <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
           </Button>
         </div>
@@ -388,17 +388,17 @@ export default function StudentActionPanelNew({
         {/*</div>*/}
 
         {/* Select Reason Grid */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h4 style={{
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '1rem'
-          }}>
-            Select Reason
-          </h4>
+        <div style={{ marginBottom: '0.5rem' }}>
+          {/*<h4 style={{*/}
+          {/*  fontSize: '0.875rem',*/}
+          {/*  fontWeight: 500,*/}
+          {/*  color: '#6b7280',*/}
+          {/*  textTransform: 'uppercase',*/}
+          {/*  letterSpacing: '0.05em',*/}
+          {/*  marginBottom: '1rem'*/}
+          {/*}}>*/}
+          {/*  Select Reason*/}
+          {/*</h4>*/}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -478,6 +478,7 @@ export default function StudentActionPanelNew({
                       e.stopPropagation();
                       onToggleFavorite(option.id);
                     }}
+                    title={favoriteBehaviors.includes(option.id) ? "Remove from favorites" : "Add to favorites"}
                     style={{
                       position: 'absolute',
                       top: '0.25rem',
@@ -495,40 +496,80 @@ export default function StudentActionPanelNew({
                     />
                   </button>
                   
-                  {/* Points Input - Always show when selected */}
+                  {/* Points Controls - Always show when selected */}
                   {isSelected && (
                     <div style={{
                       marginTop: '0.25rem',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem'
+                      gap: '0.125rem'
                     }}>
-                      <span style={{ fontSize: '0.625rem', color: '#6b7280', fontWeight: 500 }}>
-                        Points:
-                      </span>
-                      <input
-                        type="number"
-                        min="-10"
-                        max="10"
-                        value={actionPoints[option.id] || 0}
-                        onChange={(e) => {
-                          const value = Math.max(-10, Math.min(10, parseInt(e.target.value) || 0));
-                          handlePointsChange(option.id, value);
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const currentValue = actionPoints[option.id] || 0;
+                          const newValue = Math.max(-10, currentValue - 1);
+                          handlePointsChange(option.id, newValue);
                         }}
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder="0"
-                        required
+                        title="Decrease points"
                         style={{
-                          width: '2.5rem',
+                          width: '1.5rem',
                           height: '1.5rem',
-                          padding: '0.125rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.625rem',
-                          textAlign: 'center',
-                          fontWeight: 500
+                          borderRadius: '0.375rem',
+                          border: '1px solid #ef4444',
+                          background: '#fef2f2',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1rem',
+                          fontWeight: 'bold'
                         }}
-                      />
+                      >
+                        −
+                      </button>
+                      <div style={{
+                        width: '2rem',
+                        height: '1.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        background: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        color: '#111827',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                      }}>
+                        {actionPoints[option.id] || 0}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const currentValue = actionPoints[option.id] || 0;
+                          const newValue = Math.min(10, currentValue + 1);
+                          handlePointsChange(option.id, newValue);
+                        }}
+                        title="Increase points"
+                        style={{
+                          width: '1.5rem',
+                          height: '1.5rem',
+                          borderRadius: '0.375rem',
+                          border: '1px solid #10b981',
+                          background: '#f0fdf4',
+                          color: '#10b981',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        +
+                      </button>
                     </div>
                   )}
                 </div>
