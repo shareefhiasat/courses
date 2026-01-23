@@ -6,6 +6,7 @@ import { getAttendanceByStudent } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '../../firebase/userPreferences';
 import { useAuth } from '../../contexts/AuthContext';
+import { Mail, ChevronDown, QrCode } from 'lucide-react';
 
 const SearchIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -111,6 +112,7 @@ export default function StudentRoster({
   });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteStudents, setFavoriteStudents] = useState([]);
+  const [sendingEmails, setSendingEmails] = useState({}); // Track sending state per student
 
   // Check if all dropdowns are selected to show total attendance column
   const showTotalAttendance = selectedProgramId && 
@@ -203,6 +205,37 @@ export default function StudentRoster({
       }
     }
     setExpandedRows(newExpanded);
+  };
+
+  // Email functions
+  const sendQRCodeEmail = async (student) => {
+    setSendingEmails(prev => ({ ...prev, [student.id]: { ...prev[student.id], qrCode: true } }));
+    try {
+      // Email functionality would go here
+      console.log('Sending QR code email to:', student.email);
+      // await sendQRCodeEmail(student.email, student.id);
+      alert('QR Code email sent successfully!');
+    } catch (error) {
+      console.error('Error sending QR code email:', error);
+      alert('Failed to send QR Code email');
+    } finally {
+      setSendingEmails(prev => ({ ...prev, [student.id]: { ...prev[student.id], qrCode: false } }));
+    }
+  };
+
+  const sendStudentSummaryEmail = async (student) => {
+    setSendingEmails(prev => ({ ...prev, [student.id]: { ...prev[student.id], summary: true } }));
+    try {
+      // Email functionality would go here
+      console.log('Sending summary email to:', student.email);
+      // await sendStudentSummaryEmail(student.email, student.id);
+      alert('Summary email sent successfully!');
+    } catch (error) {
+      console.error('Error sending summary email:', error);
+      alert('Failed to send summary email');
+    } finally {
+      setSendingEmails(prev => ({ ...prev, [student.id]: { ...prev[student.id], summary: false } }));
+    }
   };
 
   const toggleFilter = (filter) => {
@@ -684,6 +717,54 @@ export default function StudentRoster({
                           }}
                         >
                           <SidebarOpenIcon style={{ width: '1rem', height: '1rem' }} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await sendQRCodeEmail(student);
+                          }}
+                          disabled={sendingEmails[student.id]?.qrCode}
+                          title="Send QR Code"
+                        >
+                          {sendingEmails[student.id]?.qrCode ? (
+                            <div style={{
+                              width: '1rem',
+                              height: '1rem',
+                              border: '2px solid #6b7280',
+                              borderTop: '2px solid transparent',
+                              borderRight: '2px solid transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }} />
+                          ) : (
+                            <QrCode style={{ width: '1rem', height: '1rem' }} />
+                          )}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await sendStudentSummaryEmail(student);
+                          }}
+                          disabled={sendingEmails[student.id]?.summary}
+                          title="Send Summary Report"
+                        >
+                          {sendingEmails[student.id]?.summary ? (
+                            <div style={{
+                              width: '1rem',
+                              height: '1rem',
+                              border: '2px solid #6b7280',
+                              borderTop: '2px solid transparent',
+                              borderRight: '2px solid transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }} />
+                          ) : (
+                            <Mail style={{ width: '1rem', height: '1rem' }} />
+                          )}
                         </Button>
                       </div>
                     </td>

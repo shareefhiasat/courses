@@ -15,6 +15,8 @@ export default function ExpandablePanel({
   className = '',
   titleClassName = '',
   accentColor,
+  sideDrawer = false,
+  width = '28rem'
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = typeof controlledOpen === 'boolean';
@@ -41,7 +43,21 @@ export default function ExpandablePanel({
   const toggle = () => (isControlled ? onToggle?.(!open) : setInternalOpen(v => !v));
 
   return (
-    <div className={`${styles.panel} ${className}`}>
+    <div 
+      className={`${styles.panel} ${className} ${sideDrawer ? styles.sideDrawer : ''}`}
+      style={sideDrawer ? {
+        position: 'fixed',
+        top: 0,
+        right: open ? 0 : `-${width}`,
+        width: width,
+        height: '100%',
+        background: 'white',
+        boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
+        zIndex: 2000,
+        transition: `right ${duration}ms ease`,
+        borderRadius: 0
+      } : {}}
+    >
       <button className={styles.header} onClick={toggle} aria-expanded={open}>
         <div className={styles.titleWrap}>
           {icon ? <span className={styles.icon} style={accentColor ? { color: accentColor } : undefined}>{icon}</span> : null}
@@ -54,10 +70,14 @@ export default function ExpandablePanel({
       </button>
       <div
         className={styles.contentOuter}
-        style={{ height: height, transitionDuration: `${duration}ms` }}
+        style={{ 
+          height: sideDrawer ? 'calc(100% - 60px)' : height, 
+          transitionDuration: `${duration}ms`,
+          overflow: sideDrawer ? 'auto' : 'hidden'
+        }}
         aria-hidden={!open}
       >
-        <div ref={panelRef} className={styles.contentInner}>
+        <div ref={panelRef} className={styles.contentInner} style={sideDrawer ? { padding: '1.5rem' } : {}}>
           {children}
         </div>
       </div>

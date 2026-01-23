@@ -537,10 +537,15 @@ export default function StudentActionPanel({
 
   return (
     <div style={{
-      background: 'white',
-      borderRadius: '0.75rem',
-      border: '1px solid #e5e7eb',
+      position: 'fixed',
+      top: 0,
+      right: 0,
+      width: '100%',
+      maxWidth: '28rem',
       height: '100%',
+      background: 'white',
+      boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
+      zIndex: 2000,
       display: 'flex',
       flexDirection: 'column',
       maxHeight: '100%',
@@ -1460,8 +1465,8 @@ export default function StudentActionPanel({
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        {/* Tabs - COPIED TO StudentActionPanelNew */}
+        {/* <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <button
             onClick={() => setActiveTab('participation')}
             style={{
@@ -1540,175 +1545,175 @@ export default function StudentActionPanel({
               {showFavoritesOnly ? 'All' : 'Favorites'}
             </button>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h4 style={{
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '1rem'
-          }}>
-            Select Reason
-          </h4>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '0.5rem'
-          }}>
-            {options.map((option) => {
-              const isSelected = selectedActions.some(a => a.id === option.id);
-              
-              return (
-                <div
-                  key={option.id}
-                  style={{
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
-                    border: `2px solid ${isSelected ? '#8b5cf6' : '#e5e7eb'}`,
-                    background: isSelected ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
-                    transition: 'all 0.2s',
-                    position: 'relative'
-                  }}
-                >
-                  <button
-                    onClick={() => toggleAction(option)}
-                    type="button"
-                    style={{
-                      width: '100%',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: 0
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      textAlign: 'center'
-                    }}>
-                      <div style={{
-                        width: '2rem',
-                        height: '2rem',
-                        borderRadius: '0.375rem',
-                        background: option.color + '20',
-                        color: option.color,
-                        border: `1px solid ${option.color}40`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        {renderIcon(option.icon, { width: '1rem', height: '1rem' })}
-                      </div>
-                      <span style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 500,
-                        color: '#111827',
-                        lineHeight: '1.2'
-                      }}>
-                        {option.label_en}
-                      </span>
-                      <div style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626'
-                      }}>
-                        {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
-                      </div>
-                    </div>
-                  </button>
-                  
-                  {/* Favorite Toggle */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(option.id);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      top: '0.25rem',
-                      right: '0.25rem',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '0.125rem'
-                    }}
-                  >
-                    <Star 
-                      size={12} 
-                      fill={favoriteBehaviors.includes(option.id) ? '#fbbf24' : 'none'} 
-                      color={favoriteBehaviors.includes(option.id) ? '#fbbf24' : '#d1d5db'} 
-                    />
-                  </button>
-                  
-                  {/* Points Input - Always show when selected */}
-                  {isSelected && (
-                    <div style={{
-                      marginTop: '0.25rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem'
-                    }}>
-                      <span style={{ fontSize: '0.625rem', color: '#6b7280', fontWeight: 500 }}>
-                        Points:
-                      </span>
-                      <input
-                        type="number"
-                        min="-10"
-                        max="10"
-                        value={actionPoints[option.id] || 0}
-                        onChange={(e) => {
-                          const value = Math.max(-10, Math.min(10, parseInt(e.target.value) || 0));
-                          handlePointsChange(option.id, value);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        placeholder="0"
-                        required
-                        style={{
-                          width: '2.5rem',
-                          height: '1.5rem',
-                          padding: '0.125rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.25rem',
-                          fontSize: '0.625rem',
-                          textAlign: 'center',
-                          fontWeight: 500
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+        {/*<div style={{ marginBottom: '1.5rem' }}>*/}
+        {/*  <h4 style={{*/}
+        {/*    fontSize: '0.875rem',*/}
+        {/*    fontWeight: 500,*/}
+        {/*    color: '#6b7280',*/}
+        {/*    textTransform: 'uppercase',*/}
+        {/*    letterSpacing: '0.05em',*/}
+        {/*    marginBottom: '1rem'*/}
+        {/*  }}>*/}
+        {/*    Select Reason*/}
+        {/*  </h4>*/}
+        {/*  <div style={{*/}
+        {/*    display: 'grid',*/}
+        {/*    gridTemplateColumns: 'repeat(3, 1fr)',*/}
+        {/*    gap: '0.5rem'*/}
+        {/*  }}>*/}
+        {/*    {options.map((option) => {*/}
+        {/*      const isSelected = selectedActions.some(a => a.id === option.id);*/}
 
-              );
-            })}
-          </div>
-        </div>
+        {/*      return (*/}
+        {/*        <div*/}
+        {/*          key={option.id}*/}
+        {/*          style={{*/}
+        {/*            padding: '0.75rem',*/}
+        {/*            borderRadius: '0.5rem',*/}
+        {/*            border: `2px solid ${isSelected ? '#8b5cf6' : '#e5e7eb'}`,*/}
+        {/*            background: isSelected ? 'rgba(139, 92, 246, 0.05)' : 'transparent',*/}
+        {/*            transition: 'all 0.2s',*/}
+        {/*            position: 'relative'*/}
+        {/*          }}*/}
+        {/*        >*/}
+        {/*          <button*/}
+        {/*            onClick={() => toggleAction(option)}*/}
+        {/*            type="button"*/}
+        {/*            style={{*/}
+        {/*              width: '100%',*/}
+        {/*              background: 'none',*/}
+        {/*              border: 'none',*/}
+        {/*              cursor: 'pointer',*/}
+        {/*              padding: 0*/}
+        {/*            }}*/}
+        {/*          >*/}
+        {/*            <div style={{*/}
+        {/*              display: 'flex',*/}
+        {/*              flexDirection: 'column',*/}
+        {/*              alignItems: 'center',*/}
+        {/*              gap: '0.25rem',*/}
+        {/*              textAlign: 'center'*/}
+        {/*            }}>*/}
+        {/*              <div style={{*/}
+        {/*                width: '2rem',*/}
+        {/*                height: '2rem',*/}
+        {/*                borderRadius: '0.375rem',*/}
+        {/*                background: option.color + '20',*/}
+        {/*                color: option.color,*/}
+        {/*                border: `1px solid ${option.color}40`,*/}
+        {/*                display: 'flex',*/}
+        {/*                alignItems: 'center',*/}
+        {/*                justifyContent: 'center'*/}
+        {/*              }}>*/}
+        {/*                {renderIcon(option.icon, { width: '1rem', height: '1rem' })}*/}
+        {/*              </div>*/}
+        {/*              <span style={{*/}
+        {/*                fontSize: '0.75rem',*/}
+        {/*                fontWeight: 500,*/}
+        {/*                color: '#111827',*/}
+        {/*                lineHeight: '1.2'*/}
+        {/*              }}>*/}
+        {/*                {option.label_en}*/}
+        {/*              </span>*/}
+        {/*              <div style={{*/}
+        {/*                fontSize: '0.75rem',*/}
+        {/*                fontWeight: 600,*/}
+        {/*                color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626'*/}
+        {/*              }}>*/}
+        {/*                {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}*/}
+        {/*              </div>*/}
+        {/*            </div>*/}
+        {/*          </button>*/}
 
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h4 style={{
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.75rem'
-          }}>
-            Internal Note
-          </h4>
-          <Textarea
-            placeholder="Add details..."
-            value={internalNote}
-            onChange={(e) => setInternalNote(e.target.value)}
-            style={{ minHeight: '6rem', resize: 'none', fontSize: '0.875rem' }}
-          />
-        </div>
+        {/*          /!* Favorite Toggle *!/*/}
+        {/*          <button*/}
+        {/*            onClick={(e) => {*/}
+        {/*              e.stopPropagation();*/}
+        {/*              onToggleFavorite(option.id);*/}
+        {/*            }}*/}
+        {/*            style={{*/}
+        {/*              position: 'absolute',*/}
+        {/*              top: '0.25rem',*/}
+        {/*              right: '0.25rem',*/}
+        {/*              background: 'none',*/}
+        {/*              border: 'none',*/}
+        {/*              cursor: 'pointer',*/}
+        {/*              padding: '0.125rem'*/}
+        {/*            }}*/}
+        {/*          >*/}
+        {/*            <Star*/}
+        {/*              size={12}*/}
+        {/*              fill={favoriteBehaviors.includes(option.id) ? '#fbbf24' : 'none'}*/}
+        {/*              color={favoriteBehaviors.includes(option.id) ? '#fbbf24' : '#d1d5db'}*/}
+        {/*            />*/}
+        {/*          </button>*/}
+
+        {/*          /!* Points Input - Always show when selected *!/*/}
+        {/*          {isSelected && (*/}
+        {/*            <div style={{*/}
+        {/*              marginTop: '0.25rem',*/}
+        {/*              display: 'flex',*/}
+        {/*              alignItems: 'center',*/}
+        {/*              gap: '0.25rem'*/}
+        {/*            }}>*/}
+        {/*              <span style={{ fontSize: '0.625rem', color: '#6b7280', fontWeight: 500 }}>*/}
+        {/*                Points:*/}
+        {/*              </span>*/}
+        {/*              <input*/}
+        {/*                type="number"*/}
+        {/*                min="-10"*/}
+        {/*                max="10"*/}
+        {/*                value={actionPoints[option.id] || 0}*/}
+        {/*                onChange={(e) => {*/}
+        {/*                  const value = Math.max(-10, Math.min(10, parseInt(e.target.value) || 0));*/}
+        {/*                  handlePointsChange(option.id, value);*/}
+        {/*                }}*/}
+        {/*                onClick={(e) => e.stopPropagation()}*/}
+        {/*                placeholder="0"*/}
+        {/*                required*/}
+        {/*                style={{*/}
+        {/*                  width: '2.5rem',*/}
+        {/*                  height: '1.5rem',*/}
+        {/*                  padding: '0.125rem',*/}
+        {/*                  border: '1px solid #d1d5db',*/}
+        {/*                  borderRadius: '0.25rem',*/}
+        {/*                  fontSize: '0.625rem',*/}
+        {/*                  textAlign: 'center',*/}
+        {/*                  fontWeight: 500*/}
+        {/*                }}*/}
+        {/*              />*/}
+        {/*            </div>*/}
+        {/*          )}*/}
+        {/*        </div>*/}
+
+        {/*      );*/}
+        {/*    })}*/}
+        {/*  </div>*/}
+        {/*</div>*/}
+
+        {/*<div style={{ marginBottom: '1.5rem' }}>*/}
+        {/*  <h4 style={{*/}
+        {/*    fontSize: '0.875rem',*/}
+        {/*    fontWeight: 500,*/}
+        {/*    color: '#6b7280',*/}
+        {/*    textTransform: 'uppercase',*/}
+        {/*    letterSpacing: '0.05em',*/}
+        {/*    marginBottom: '0.75rem'*/}
+        {/*  }}>*/}
+        {/*    Internal Note*/}
+        {/*  </h4>*/}
+        {/*  <Textarea*/}
+        {/*    placeholder="Add details..."*/}
+        {/*    value={internalNote}*/}
+        {/*    onChange={(e) => setInternalNote(e.target.value)}*/}
+        {/*    style={{ minHeight: '6rem', resize: 'none', fontSize: '0.875rem' }}*/}
+        {/*  />*/}
+        {/*</div>*/}
 
         <div>
           {/*<div style={{*/}
@@ -1828,10 +1833,10 @@ export default function StudentActionPanel({
               </button>
             </div>
           </div>
-          
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
             gap: '0.75rem'
           }}>
             {logsLoading ? (
@@ -1854,12 +1859,12 @@ export default function StudentActionPanel({
             ) : (
               groupLogsByDay(todayLogs).map((dayGroup, dayIndex) => {
                 const dateObj = new Date(dayGroup.date);
-                const dateStr = dateObj.toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
+                const dateStr = dateObj.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
                 });
-                
+
                 const isDayExpanded = expandedDays.has(dayGroup.date);
                 const filteredCounts = {
                   attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,
@@ -1867,9 +1872,9 @@ export default function StudentActionPanel({
                   penalties: activeFilters.penalties ? dayGroup.penalties.length : 0
                 };
                 const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.penalties > 0;
-                
+
                 if (!hasVisibleItems) return null;
-                
+
                 return (
                   <div key={dayIndex} style={{
                     border: '1px solid #e5e7eb',
@@ -1954,7 +1959,7 @@ export default function StudentActionPanel({
                         </svg>
                       </div>
                     </div>
-                    
+
                     {/* Expanded Content */}
                     {isDayExpanded && (
                       <div style={{ padding: '0.5rem 0.75rem' }}>
@@ -1962,9 +1967,9 @@ export default function StudentActionPanel({
                         {activeFilters.attendance && dayGroup.attendance.length > 0 && (
                           <div style={{ marginBottom: '0.5rem' }}>
                             {dayGroup.attendance.map((log, idx) => (
-                              <div key={idx} style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
+                              <div key={idx} style={{
+                                display: 'flex',
+                                alignItems: 'center',
                                 gap: '0.5rem',
                                 padding: '0.375rem 0',
                                 fontSize: '0.8125rem',
@@ -1984,14 +1989,14 @@ export default function StudentActionPanel({
                             ))}
                           </div>
                         )}
-                        
+
                         {/* Participation */}
                         {activeFilters.participation && dayGroup.participation.length > 0 && (
                           <div style={{ marginBottom: '0.5rem' }}>
                             {dayGroup.participation.map((log, idx) => (
-                              <div key={idx} style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
+                              <div key={idx} style={{
+                                display: 'flex',
+                                alignItems: 'center',
                                 gap: '0.5rem',
                                 padding: '0.375rem 0',
                                 fontSize: '0.8125rem',
@@ -2013,14 +2018,14 @@ export default function StudentActionPanel({
                             ))}
                           </div>
                         )}
-                        
+
                         {/* Penalties */}
                         {activeFilters.penalties && dayGroup.penalties.length > 0 && (
                           <div style={{ marginBottom: '0.5rem' }}>
                             {dayGroup.penalties.map((log, idx) => (
-                              <div key={idx} style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
+                              <div key={idx} style={{
+                                display: 'flex',
+                                alignItems: 'center',
                                 gap: '0.5rem',
                                 padding: '0.375rem 0',
                                 fontSize: '0.8125rem',

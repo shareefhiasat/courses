@@ -1037,10 +1037,10 @@ const InstructorQRScannerPage = () => {
 
         {/* Student Action Panel */}
         {selectedStudent && (
-          <div style={{ position: 'relative' }}>
+          <>
             {gridLoading && (
               <div style={{
-                position: 'absolute',
+                position: 'fixed',
                 top: 0,
                 left: 0,
                 right: 0,
@@ -1072,7 +1072,7 @@ const InstructorQRScannerPage = () => {
                 );
               }}
             />
-          </div>
+          </>
         )}
 
         {/* Student Action Panel New */}
@@ -1085,6 +1085,25 @@ const InstructorQRScannerPage = () => {
               onBehaviorSubmit={handleBehaviorSubmit}
               onParticipationSubmit={handleBehaviorSubmit}
               onPenaltySubmit={handleBehaviorSubmit}
+              onMarkAttendance={handleMarkAttendance}
+              options={[
+                ...BEHAVIOR_TYPES.map(type => ({ ...type, category: 'behavior' })),
+                ...PARTICIPATION_TYPES.map(type => ({ ...type, category: 'participation' })),
+                // Add penalty types if they exist, otherwise create some default ones
+                { id: 'penalty_late', label_en: 'Late Penalty', icon: 'Clock', color: '#dc2626', points: -5, category: 'penalty' },
+                { id: 'penalty_absent', label_en: 'Absent Penalty', icon: 'XCircle', color: '#dc2626', points: -10, category: 'penalty' },
+                { id: 'penalty_disruptive', label_en: 'Disruptive Behavior', icon: 'AlertTriangle', color: '#dc2626', points: -3, category: 'penalty' }
+              ]}
+              showFavoritesOnly={showFavoritesOnly}
+              onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              favoriteBehaviors={favoriteBehaviors}
+              onToggleFavorite={(behaviorId) => {
+                setFavoriteBehaviors(prev => 
+                  prev.includes(behaviorId) 
+                    ? prev.filter(id => id !== behaviorId)
+                    : [...prev, behaviorId]
+                );
+              }}
               selectedDate={selectedDate}
             />
           </>
