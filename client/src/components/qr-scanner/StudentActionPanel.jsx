@@ -552,7 +552,7 @@ export default function StudentActionPanel({
       overflow: 'hidden'
     }}>
       {/* Header */}
-      <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+      <div style={{ padding: '0.8rem', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -578,9 +578,9 @@ export default function StudentActionPanel({
               <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '1rem' }}>
                 {student.displayName || student.realName || student.name || student.email || 'Unknown Student'}
               </h3>
-              <div style={{ 
-                fontSize: '0.75rem', 
-                color: '#6b7280', 
+              <div style={{
+                fontSize: '0.75rem',
+                color: '#6b7280',
                 marginTop: '0.25rem',
                 fontFamily: 'monospace',
                 background: '#f3f4f6',
@@ -603,106 +603,9 @@ export default function StudentActionPanel({
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} style={{ marginLeft: 'auto' }}>
             <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
           </Button>
-          <div style={{ position: 'relative' }} className="email-dropdown-container">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setShowEmailDropdown(!showEmailDropdown)}
-            disabled={sendingQRCode || sendingSummary}
-            title="Send email to student"
-          >
-            {(sendingQRCode || sendingSummary) ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{
-                  width: '1rem',
-                  height: '1rem',
-                  border: '2px solid #6b7280',
-                  borderTop: '2px solid transparent',
-                  borderRight: '2px solid transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }} />
-                <span>Sending...</span>
-              </div>
-            ) : (
-              <Mail style={{ width: '1.25rem', height: '1.25rem' }} />
-            )}
-            <ChevronDown style={{ width: '0.75rem', height: '0.75rem', marginLeft: '0.25rem' }} />
-          </Button>
-          
-          {showEmailDropdown && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              right: 0,
-              background: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              zIndex: 1000,
-              minWidth: '200px',
-              padding: '0.5rem 0',
-              marginTop: '0.25rem'
-            }}>
-              <button
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: 'none',
-                  background: 'transparent',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  fontSize: '0.875rem',
-                  color: '#374151',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                onClick={async () => {
-                  setShowEmailDropdown(false);
-                  await sendQRCodeEmail();
-                }}
-                disabled={sendingQRCode}
-              >
-                <QrCode size={16} />
-                Send QR Code
-              </button>
-              
-              <button
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: 'none',
-                  background: 'transparent',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  fontSize: '0.875rem',
-                  color: '#374151',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                onClick={async () => {
-                  setShowEmailDropdown(false);
-                  await sendStudentSummaryEmail();
-                }}
-                disabled={sendingSummary}
-              >
-                <Mail size={16} />
-                Send Summary Report
-              </button>
-            </div>
-          )}
-        </div>
         </div>
 
         {/* Attendance Status - Moved to top */}
@@ -987,12 +890,12 @@ export default function StudentActionPanel({
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: '0.5rem',
+            gap: '0.25rem',
             marginBottom: '1rem'
           }}>
             {/* Total Present */}
             <div style={{
-              padding: '0.5rem',
+              padding: '0.375rem',
               background: '#16a34a',
               borderRadius: '0.5rem',
               textAlign: 'center',
@@ -1465,87 +1368,87 @@ export default function StudentActionPanel({
           </div>
         </div>
 
-        {/* Tabs - COPIED TO StudentActionPanelNew */}
-        {/* <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <button
-            onClick={() => setActiveTab('participation')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',
-              color: activeTab === 'participation' ? 'white' : '#64748b',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <Users style={{ width: '14px', height: '14px' }} />
-            Participation
-          </button>
-          <button
-            onClick={() => setActiveTab('behavior')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',
-              color: activeTab === 'behavior' ? 'white' : '#64748b',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <Zap style={{ width: '14px', height: '14px' }} />
-            Behavior
-          </button>
-          <button
-            onClick={() => setActiveTab('penalty')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',
-              color: activeTab === 'penalty' ? 'white' : '#64748b',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <AlertCircle style={{ width: '14px', height: '14px' }} />
-            Penalty
-          </button>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button
-              onClick={onToggleFavorites}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.8125rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #e2e8f0',
-                background: showFavoritesOnly ? '#f59e0b' : '#f8fafc',
-                color: showFavoritesOnly ? '#f59e0b' : '#64748b',
-                cursor: 'pointer',
-                boxShadow: showFavoritesOnly ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-              }}
-            >
-              <Star size={14} fill={showFavoritesOnly ? '#8b5cf6' : 'none'} color={showFavoritesOnly ? '#8b5cf6' : '#6b7280'} />
-              {showFavoritesOnly ? 'All' : 'Favorites'}
-            </button>
-          </div>
-        </div> */}
+        {/* Tabs */}
+        {/*<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>*/}
+        {/*  <button*/}
+        {/*    onClick={() => setActiveTab('participation')}*/}
+        {/*    style={{*/}
+        {/*      display: 'flex',*/}
+        {/*      alignItems: 'center',*/}
+        {/*      gap: '0.375rem',*/}
+        {/*      padding: '0.5rem 0.75rem',*/}
+        {/*      fontSize: '0.8125rem',*/}
+        {/*      borderRadius: '0.375rem',*/}
+        {/*      border: '1px solid #e2e8f0',*/}
+        {/*      background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',*/}
+        {/*      color: activeTab === 'participation' ? 'white' : '#64748b',*/}
+        {/*      cursor: 'pointer',*/}
+        {/*      boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
+        {/*    }}*/}
+        {/*  >*/}
+        {/*    <Users style={{ width: '14px', height: '14px' }} />*/}
+        {/*    Participation*/}
+        {/*  </button>*/}
+        {/*  <button*/}
+        {/*    onClick={() => setActiveTab('behavior')}*/}
+        {/*    style={{*/}
+        {/*      display: 'flex',*/}
+        {/*      alignItems: 'center',*/}
+        {/*      gap: '0.375rem',*/}
+        {/*      padding: '0.5rem 0.75rem',*/}
+        {/*      fontSize: '0.8125rem',*/}
+        {/*      borderRadius: '0.375rem',*/}
+        {/*      border: '1px solid #e2e8f0',*/}
+        {/*      background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',*/}
+        {/*      color: activeTab === 'behavior' ? 'white' : '#64748b',*/}
+        {/*      cursor: 'pointer',*/}
+        {/*      boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
+        {/*    }}*/}
+        {/*  >*/}
+        {/*    <Zap style={{ width: '14px', height: '14px' }} />*/}
+        {/*    Behavior*/}
+        {/*  </button>*/}
+        {/*  <button*/}
+        {/*    onClick={() => setActiveTab('penalty')}*/}
+        {/*    style={{*/}
+        {/*      display: 'flex',*/}
+        {/*      alignItems: 'center',*/}
+        {/*      gap: '0.375rem',*/}
+        {/*      padding: '0.5rem 0.75rem',*/}
+        {/*      fontSize: '0.8125rem',*/}
+        {/*      borderRadius: '0.375rem',*/}
+        {/*      border: '1px solid #e2e8f0',*/}
+        {/*      background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',*/}
+        {/*      color: activeTab === 'penalty' ? 'white' : '#64748b',*/}
+        {/*      cursor: 'pointer',*/}
+        {/*      boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
+        {/*    }}*/}
+        {/*  >*/}
+        {/*    <AlertCircle style={{ width: '14px', height: '14px' }} />*/}
+        {/*    Penalty*/}
+        {/*  </button>*/}
+        {/*  <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>*/}
+        {/*    <button*/}
+        {/*      onClick={onToggleFavorites}*/}
+        {/*      style={{*/}
+        {/*        display: 'flex',*/}
+        {/*        alignItems: 'center',*/}
+        {/*        gap: '0.375rem',*/}
+        {/*        padding: '0.5rem 0.75rem',*/}
+        {/*        fontSize: '0.8125rem',*/}
+        {/*        borderRadius: '0.375rem',*/}
+        {/*        border: '1px solid #e2e8f0',*/}
+        {/*        background: showFavoritesOnly ? '#f59e0b' : '#f8fafc',*/}
+        {/*        color: showFavoritesOnly ? '#f59e0b' : '#64748b',*/}
+        {/*        cursor: 'pointer',*/}
+        {/*        boxShadow: showFavoritesOnly ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
+        {/*      }}*/}
+        {/*    >*/}
+        {/*      <Star size={14} fill={showFavoritesOnly ? '#8b5cf6' : 'none'} color={showFavoritesOnly ? '#8b5cf6' : '#6b7280'} />*/}
+        {/*      {showFavoritesOnly ? 'All' : 'Favorites'}*/}
+        {/*    </button>*/}
+        {/*  </div>*/}
+        {/*</div>*/}
       </div>
 
       {/* Content */}

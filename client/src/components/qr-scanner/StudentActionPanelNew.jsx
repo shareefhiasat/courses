@@ -41,18 +41,18 @@ export default function StudentActionPanelNew({
   // Avatar color helper
   const getAvatarColor = (name) => {
     const colors = [
-      { bg: '#fef3c7', color: '#92400e' },
-      { bg: '#dbeafe', color: '#1e40af' },
-      { bg: '#dcfce7', color: '#166534' },
-      { bg: '#fce7f3', color: '#9f1239' },
       { bg: '#e9d5ff', color: '#6b21a8' },
-      { bg: '#fed7aa', color: '#9a3412' }
+      { bg: '#fed7aa', color: '#9a3412' },
+      { bg: '#fecaca', color: '#991b1b' },
+      { bg: '#d1fae5', color: '#065f46' },
+      { bg: '#dbeafe', color: '#1e40af' },
+      { bg: '#f3e8ff', color: '#6b21a8' }
     ];
     const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
   };
 
-  const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
+  const avatarColor = getAvatarColor(student.name);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -222,7 +222,7 @@ export default function StudentActionPanelNew({
       overflow: 'hidden'
     }}>
       {/* Header */}
-      <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+      <div style={{ padding: '0.8rem', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -273,176 +273,95 @@ export default function StudentActionPanelNew({
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Button variant="ghost" size="icon" onClick={onClose} title="Close panel">
-              <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
-            </Button>
-            <div style={{ position: 'relative' }} className="email-dropdown-container">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => setShowEmailDropdown(!showEmailDropdown)}
-                disabled={sendingQRCode || sendingSummary}
-                title="Send email to student"
-              >
-                <Mail style={{ width: '1.25rem', height: '1.25rem' }} />
-                <ChevronDown style={{ width: '0.75rem', height: '0.75rem', marginLeft: '0.25rem' }} />
-              </Button>
-              
-              {showEmailDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  background: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  zIndex: 1000,
-                  minWidth: '200px',
-                  padding: '0.5rem 0',
-                  marginTop: '0.25rem'
-                }}>
-                  <button
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      border: 'none',
-                      background: 'transparent',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      fontSize: '0.875rem',
-                      color: '#374151',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    onClick={async () => {
-                      setShowEmailDropdown(false);
-                    }}
-                    disabled={sendingQRCode}
-                  >
-                    <Mail size={16} />
-                    Send QR Code
-                  </button>
-                  <button
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      border: 'none',
-                      background: 'transparent',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      fontSize: '0.875rem',
-                      color: '#374151',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    onClick={async () => {
-                      setShowEmailDropdown(false);
-                    }}
-                    disabled={sendingSummary}
-                  >
-                    <Mail size={16} />
-                    Send Summary Report
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} style={{ marginLeft: 'auto' }}>
+            <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
+          </Button>
         </div>
       </div>
 
       {/* Action Sections */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '0.5rem' }}>
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <button
-            onClick={() => setActiveTab('participation')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',
-              color: activeTab === 'participation' ? 'white' : '#64748b',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <Users style={{ width: '14px', height: '14px' }} />
-            Participation
-          </button>
-          <button
-            onClick={() => setActiveTab('behavior')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',
-              color: activeTab === 'behavior' ? 'white' : '#64748b',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <Zap style={{ width: '14px', height: '14px' }} />
-            Behavior
-          </button>
-          <button
-            onClick={() => setActiveTab('penalty')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',
-              color: activeTab === 'penalty' ? 'white' : '#64748b',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <AlertCircle style={{ width: '14px', height: '14px' }} />
-            Penalty
-          </button>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button
-              onClick={onToggleFavorites}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.8125rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #e2e8f0',
-                background: showFavoritesOnly ? '#f59e0b' : '#f8fafc',
-                color: showFavoritesOnly ? '#f59e0b' : '#64748b',
-                cursor: 'pointer',
-                boxShadow: showFavoritesOnly ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-              }}
-            >
-              <Star size={14} fill={showFavoritesOnly ? '#8b5cf6' : 'none'} color={showFavoritesOnly ? '#8b5cf6' : '#6b7280'} />
-              {showFavoritesOnly ? 'All' : 'Favorites'}
-            </button>
-          </div>
-        </div>
+        {/*<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>*/}
+        {/*  <button*/}
+        {/*    onClick={() => setActiveTab('participation')}*/}
+        {/*    style={{*/}
+        {/*      display: 'flex',*/}
+        {/*      alignItems: 'center',*/}
+        {/*      gap: '0.375rem',*/}
+        {/*      padding: '0.5rem 0.75rem',*/}
+        {/*      fontSize: '0.8125rem',*/}
+        {/*      borderRadius: '0.375rem',*/}
+        {/*      border: '1px solid #e2e8f0',*/}
+        {/*      background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',*/}
+        {/*      color: activeTab === 'participation' ? 'white' : '#64748b',*/}
+        {/*      cursor: 'pointer',*/}
+        {/*      boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
+        {/*    }}*/}
+        {/*  >*/}
+        {/*    <Users style={{ width: '14px', height: '14px' }} />*/}
+        {/*    Participation*/}
+        {/*  </button>*/}
+        {/*  <button*/}
+        {/*    onClick={() => setActiveTab('behavior')}*/}
+        {/*    style={{*/}
+        {/*      display: 'flex',*/}
+        {/*      alignItems: 'center',*/}
+        {/*      gap: '0.375rem',*/}
+        {/*      padding: '0.5rem 0.75rem',*/}
+        {/*      fontSize: '0.8125rem',*/}
+        {/*      borderRadius: '0.375rem',*/}
+        {/*      border: '1px solid #e2e8f0',*/}
+        {/*      background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',*/}
+        {/*      color: activeTab === 'behavior' ? 'white' : '#64748b',*/}
+        {/*      cursor: 'pointer',*/}
+        {/*      boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
+        {/*    }}*/}
+        {/*  >*/}
+        {/*    <Zap style={{ width: '14px', height: '14px' }} />*/}
+        {/*    Behavior*/}
+        {/*  </button>*/}
+        {/*  <button*/}
+        {/*    onClick={() => setActiveTab('penalty')}*/}
+        {/*    style={{*/}
+        {/*      display: 'flex',*/}
+        {/*      alignItems: 'center',*/}
+        {/*      gap: '0.375rem',*/}
+        {/*      padding: '0.5rem 0.75rem',*/}
+        {/*      fontSize: '0.8125rem',*/}
+        {/*      borderRadius: '0.375rem',*/}
+        {/*      border: '1px solid #e2e8f0',*/}
+        {/*      background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',*/}
+        {/*      color: activeTab === 'penalty' ? 'white' : '#64748b',*/}
+        {/*      cursor: 'pointer',*/}
+        {/*      boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
+        {/*    }}*/}
+        {/*  >*/}
+        {/*    <AlertCircle style={{ width: '14px', height: '14px' }} />*/}
+        {/*    Penalty*/}
+        {/*  </button>*/}
+        {/*  <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>*/}
+        {/*    <button*/}
+        {/*      onClick={onToggleFavorites}*/}
+        {/*      style={{*/}
+        {/*        display: 'flex',*/}
+        {/*        alignItems: 'center',*/}
+        {/*        gap: '0.375rem',*/}
+        {/*        padding: '0.5rem 0.75rem',*/}
+        {/*        fontSize: '0.8125rem',*/}
+        {/*        borderRadius: '0.375rem',*/}
+        {/*        border: '1px solid #e2e8f0',*/}
+        {/*        background: showFavoritesOnly ? '#f59e0b' : '#f8fafc',*/}
+        {/*        color: showFavoritesOnly ? '#f59e0b' : '#64748b',*/}
+        {/*        cursor: 'pointer',*/}
+        {/*        boxShadow: showFavoritesOnly ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
+        {/*      }}*/}
+        {/*    >*/}
+        {/*      <Star size={14} fill={showFavoritesOnly ? '#8b5cf6' : 'none'} color={showFavoritesOnly ? '#8b5cf6' : '#6b7280'} />*/}
+        {/*      {showFavoritesOnly ? 'All' : 'Favorites'}*/}
+        {/*    </button>*/}
+        {/*  </div>*/}
+        {/*</div>*/}
 
         {/* Select Reason Grid */}
         <div style={{ marginBottom: '1.5rem' }}>
@@ -459,7 +378,7 @@ export default function StudentActionPanelNew({
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '0.5rem'
+            gap: '0.25rem'
           }}>
             {options.filter(option => {
               // Filter options based on active tab
@@ -474,7 +393,7 @@ export default function StudentActionPanelNew({
                 <div
                   key={option.id}
                   style={{
-                    padding: '0.75rem',
+                    padding: '0.5rem',
                     borderRadius: '0.5rem',
                     border: `2px solid ${isSelected ? '#8b5cf6' : '#e5e7eb'}`,
                     background: isSelected ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
@@ -488,7 +407,7 @@ export default function StudentActionPanelNew({
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '0.25rem',
+                    gap: '0.125rem',
                     textAlign: 'center'
                   }}>
                     <div style={{
