@@ -20,9 +20,9 @@ export const ATTENDANCE_STATUS = {
 export const ATTENDANCE_STATUS_LABELS = {
   present: { en: 'Present', ar: 'حاضر', color: '#22c55e' },
   absent_no_excuse: { en: 'Absent (No Excuse)', ar: 'غياب بدون عذر', color: '#ef4444' },
-  absent_with_excuse: { en: 'Absent (Excused)', ar: 'غياب بعذر', color: '#f97316' },
+  absent_with_excuse: { en: 'Absent (Excused)', ar: 'غياب بعذر', color: '#ef4444' },
   late: { en: 'Late', ar: 'متأخر', color: '#eab308' },
-  excused_leave: { en: 'Excused Leave', ar: 'استئذان', color: '#800020' },
+  excused_leave: { en: 'Excused Leave', ar: 'استئذان', color: '#ef4444' },
   human_case: { en: 'Human Case', ar: 'حالة إنسانية', color: '#8b5cf6' }
 };
 

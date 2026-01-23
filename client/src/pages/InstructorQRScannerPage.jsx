@@ -171,6 +171,25 @@ const InstructorQRScannerPage = () => {
     }
   }, [selectedClassId, selectedDate]);
 
+  // Load favorite behaviors when student changes
+  useEffect(() => {
+    console.log('[QR Scanner] useEffect for selectedStudent:', {
+      selectedStudent,
+      studentId: selectedStudent?.id
+    });
+    
+    if (selectedStudent?.id) {
+      // Load student's existing favorite behaviors
+      const studentFavorites = selectedStudent.favoriteBehaviors || [];
+      setFavoriteBehaviors(studentFavorites);
+      console.log('[QR Scanner] Loaded favorite behaviors for student:', studentFavorites);
+    } else {
+      // Clear favorites when no student selected
+      setFavoriteBehaviors([]);
+      console.log('[QR Scanner] Cleared favorite behaviors (no student selected)');
+    }
+  }, [selectedStudent?.id]);
+
   const loadPrograms = async () => {
     try {
       const programsResponse = await getPrograms();
@@ -335,6 +354,7 @@ const InstructorQRScannerPage = () => {
         // Calculate totals from attendance records
         let participationTotal = 0;
         let behaviorTotal = 0;
+        let totalAttendance = 0;
         
         studentAttendanceRecords.forEach(record => {
           if (record.delta) {
@@ -343,6 +363,11 @@ const InstructorQRScannerPage = () => {
             } else if (record.delta < 0) {
               behaviorTotal += record.delta; // negative values for penalties
             }
+          }
+          
+          // Count present and late attendance for total attendance
+          if (record.status === 'present' || record.status === 'late') {
+            totalAttendance++;
           }
         });
 
@@ -372,6 +397,7 @@ const InstructorQRScannerPage = () => {
           participation: participationTotal,
           behavior: behaviorTotal,
           penalty: penaltyTotal,
+          totalAttendance: totalAttendance,
           isPinned: student.isPinned || false,
           behaviorHistory: student.behaviorHistory || [],
           participationHistory: student.participationHistory || [],
@@ -386,7 +412,8 @@ const InstructorQRScannerPage = () => {
           studentNumber: studentData.studentNumber,
           participation: studentData.participation,
           behavior: studentData.behavior,
-          penalty: studentData.penalty
+          penalty: studentData.penalty,
+          totalAttendance: studentData.totalAttendance
         });
         
         return studentData;
@@ -398,8 +425,8 @@ const InstructorQRScannerPage = () => {
       console.error('[QR Scanner] Error loading students:', error);
       // Use fallback data even on error
       const fallbackStudents = [
-        { id: 'student1', studentId: 'student1', name: 'John Smith', email: 'john@example.com', attendance: 'present', participation: 10, behavior: 5, penalty: 0 },
-        { id: 'student2', studentId: 'student2', name: 'Jane Doe', email: 'jane@example.com', attendance: 'present', participation: 8, behavior: 7, penalty: 0 }
+        { id: 'student1', studentId: 'student1', name: 'John Smith', email: 'john@example.com', attendance: 'present', participation: 10, behavior: 5, penalty: 0, totalAttendance: 15 },
+        { id: 'student2', studentId: 'student2', name: 'Jane Doe', email: 'jane@example.com', attendance: 'present', participation: 8, behavior: 7, penalty: 0, totalAttendance: 12 }
       ];
       setStudents(fallbackStudents);
       setError('Using sample data - Firebase connection issue: ' + error.message);
@@ -980,6 +1007,10 @@ const InstructorQRScannerPage = () => {
               totalPages={totalPages}
               onPageChange={setCurrentPage}
               totalStudents={total}
+              selectedProgramId={selectedProgramId}
+              selectedSubjectId={selectedSubjectId}
+              selectedClassId={selectedClassId}
+              selectedDate={selectedDate}
             />
           )}
         </div>

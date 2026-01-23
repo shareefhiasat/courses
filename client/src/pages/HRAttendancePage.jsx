@@ -545,27 +545,22 @@ const HRAttendancePage = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2 }}>{className}</div>
-                  {session.instructorName && (
-                    <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 2 }}>
-                      👤 {session.instructorName}
-                    </div>
-                  )}
-                  <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 2 }}>
-                    📅 {createdAt.toLocaleDateString('en-GB')} {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                  <div style={{ fontSize: 10, color: session.status === 'open' ? '#10b981' : '#6b7280', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {session.status === 'open' ? (
-                      <>
-                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#10b981' }}></span>
-                        Active Session
-                      </>
-                    ) : (
-                      <>
-                        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#6b7280' }}></span>
-                        Ended
-                      </>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{className}</div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    {session.instructorName && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <User size={12} style={{ color: '#64748b' }} />
+                        {session.instructorName}
+                      </span>
                     )}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Calendar size={12} style={{ color: '#64748b' }} />
+                      {createdAt.toLocaleDateString('en-GB')} {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: session.status === 'open' ? '#10b981' : '#6b7280', fontWeight: 600 }}>
+                      <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: session.status === 'open' ? '#10b981' : '#6b7280' }}></span>
+                      {session.status === 'open' ? (t('active_session') || 'Active Session') : (t('ended') || 'Ended')}
+                    </span>
                   </div>
                 </div>
               );
@@ -590,7 +585,8 @@ const HRAttendancePage = () => {
                   </div>
                   {selectedSession.instructorName && (
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: '0.25rem' }}>
-                      👤 {selectedSession.instructorName}
+                      <User size={12} style={{ marginRight: 4, color: '#64748b' }} />
+                      {selectedSession.instructorName}
                     </div>
                   )}
                   <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: '0.5rem', fontFamily: 'monospace' }}>
@@ -609,7 +605,7 @@ const HRAttendancePage = () => {
                     color: marks.length > 0 ? '#10b981' : '#6b7280'
                   }}>
                     <Users size={14} />
-                    <span>{marks.length} {marks.length === 1 ? 'scan' : 'scans'}</span>
+                    <span>{marks.length} {t('scans') || 'scans'}</span>
                   </div>
                 </div>
                 <Button 
@@ -671,7 +667,7 @@ const HRAttendancePage = () => {
                       <div key={uniqueKey} style={{ padding: '0.5rem 0.75rem', border: '1px solid var(--border)', borderRadius: 6, background: '#fff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isEditing ? 8 : 0 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2 }}>{mark.userName || mark.uid}</div>
+                            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 2 }}>{mark.userName}</div>
                             <div style={{ fontSize: 10, color: 'var(--muted)' }}>{mark.userEmail}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -687,9 +683,9 @@ const HRAttendancePage = () => {
                         </div>
                         {!isEditing && (mark.reason || mark.feedback) && (
                           <div style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>
-                            {mark.reason && <span><strong>Reason:</strong> {mark.reason}</span>}
+                            {mark.reason && <span><strong>{t('reason') || 'Reason'}:</strong> {mark.reason}</span>}
                             {mark.reason && mark.feedback && <span> • </span>}
-                            {mark.feedback && <span><strong>Note:</strong> {mark.feedback}</span>}
+                            {mark.feedback && <span><strong>{t('feedback') || 'Note'}:</strong> {mark.feedback}</span>}
                           </div>
                         )}
                         {isEditing && (

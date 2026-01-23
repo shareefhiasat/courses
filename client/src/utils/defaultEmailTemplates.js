@@ -808,4 +808,206 @@ export const defaultTemplates = [
       "date",
     ],
   },
+  {
+    id: "qr_code_student",
+    name: "Student QR Code Email - Bilingual",
+    type: "qr_code",
+    subject: "🎓 Your Student QR Code | رمز الطالب الخاص بك",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+  <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h1 style="color: #800020; margin: 0; font-size: 24px;">🎓 Your Student QR Code | رمز الطالب الخاص بك</h1>
+    </div>
+    
+    <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      <p style="color: #374151; font-size: 16px; margin: 0 0 10px 0;">
+        <strong>{{studentName}}</strong><br>
+        <span style="color: #6b7280;">ID: {{studentId}}</span>
+      </p>
+    </div>
+    
+    <div style="text-align: center; margin: 20px 0;">
+      <img src="{{qrCodeDataURL}}" alt="Student QR Code" style="border: 2px solid #e5e7eb; border-radius: 8px;" />
+    </div>
+    
+    <div style="background-color: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 20px;">
+      <h3 style="color: #059669; margin: 0 0 10px 0; font-size: 16px;">📱 How to use your QR code | كيفية استخدام رمزك:</h3>
+      <ol style="color: #374151; font-size: 14px; line-height: 1.6; padding-left: 20px;">
+        <li style="margin-bottom: 8px;">Show this QR code to your instructor for attendance tracking | أظهر هذا الرمز لمدرسك لتتبع الحضور</li>
+        <li style="margin-bottom: 8px;">Keep it saved on your mobile device for easy access | احفظه على جهازك المحمول للوصول السريع</li>
+        <li style="margin-bottom: 8px;">This QR code contains your student ID and profile information | يحتوي هذا الرمز على معرف الطالب ومعلومات ملفك الشخصي</li>
+      </ol>
+    </div>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+      <p style="color: #6b7280; font-size: 12px; margin: 0;">
+        This is an automated email from {{siteName}}.<br>
+        If you did not request this QR code, please contact support.<br><br>
+        هذا بريد إلكتروني تلقائي من {{siteName}}.<br>
+        إذا لم تطلب هذا الرمز، يرجى التواصل مع الدعم.
+      </p>
+    </div>
+  </div>
+</div>
+    `,
+    variables: [
+      "studentName",
+      "studentId",
+      "qrCodeDataURL",
+      "siteName"
+    ],
+  },
+  {
+    id: "student_summary_report",
+    name: "Student Summary Report - Bilingual",
+    type: "student_summary",
+    subject: "📊 Student Summary Report | تقرير ملخص للطالب: {{studentName}}",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; background: #f8f9fa;">
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">📊 Student Summary Report | تقرير ملخص للطالب</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 18px;">{{studentName}}</p>
+  </div>
+  
+  <!-- Content -->
+  <div style="padding: 30px; background: #ffffff;">
+    <!-- Student Info -->
+    <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #1e40af;">
+      <h2 style="color: #1e40af; margin-top: 0; font-size: 20px;">Student Information | معلومات الطالب</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #374151;"><strong>👤 Name:</strong> {{studentName}}</p>
+        <p style="margin: 5px 0; color: #374151;"><strong>📧 Email:</strong> {{studentEmail}}</p>
+        <p style="margin: 5px 0; color: #374151;"><strong>🆔 ID:</strong> {{studentId}}</p>
+        <p style="margin: 5px 0; color: #374151;"><strong>📚 Class:</strong> {{className}}</p>
+      </div>
+    </div>
+
+    <!-- Attendance Summary -->
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+      <h2 style="color: #10b981; margin-top: 0; font-size: 20px;">📅 Attendance Summary | ملخص الحضور</h2>
+      <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 15px 0;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #10b981;">{{attendanceStats.present}}</div>
+            <div style="font-size: 14px; color: #059669;">Present | حاضر</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{attendanceStats.late}}</div>
+            <div style="font-size: 14px; color: #d97706;">Late | متأخر</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{attendanceStats.absent}}</div>
+            <div style="font-size: 14px; color: #dc2626;">Absent | غائب</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #6b7280;">{{attendanceStats.percentage}}%</div>
+            <div style="font-size: 14px; color: #4b5563;">Rate | نسبة</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Participation Summary -->
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+      <h2 style="color: #3b82f6; margin-top: 0; font-size: 20px;">🎯 Participation Summary | ملخص المشاركة</h2>
+      <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 15px 0;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">{{participationStats.total}}</div>
+            <div style="font-size: 14px; color: #1d4ed8;">Total Points | النقاط الإجمالية</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #10b981;">{{participationStats.positive}}</div>
+            <div style="font-size: 14px; color: #059669;">Positive | إيجابي</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{participationStats.neutral}}</div>
+            <div style="font-size: 14px; color: #d97706;">Neutral | محايد</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Behavior Summary -->
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #8b5cf6;">
+      <h2 style="color: #8b5cf6; margin-top: 0; font-size: 20px;">⭐ Behavior Summary | ملخص السلوك</h2>
+      <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 15px 0;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #8b5cf6;">{{behaviorStats.total}}</div>
+            <div style="font-size: 14px; color: #7c3aed;">Total Points | النقاط الإجمالية</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #10b981;">{{behaviorStats.positive}}</div>
+            <div style="font-size: 14px; color: #059669;">Positive | إيجابي</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{behaviorStats.negative}}</div>
+            <div style="font-size: 14px; color: #dc2626;">Negative | سلبي</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Penalties Summary -->
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ef4444;">
+      <h2 style="color: #ef4444; margin-top: 0; font-size: 20px;">⚠️ Penalties Summary | ملخص العقوبات</h2>
+      <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 15px 0;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{penaltyStats.total}}</div>
+            <div style="font-size: 14px; color: #dc2626;">Total Penalties | إجمالي العقوبات</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{penaltyStats.minor}}</div>
+            <div style="font-size: 14px; color: #d97706;">Minor | طفيفة</div>
+          </div>
+          <div>
+            <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{penaltyStats.major}}</div>
+            <div style="font-size: 14px; color: #dc2626;">Major | رئيسية</div>
+          </div>
+        </div>
+        {{#if penaltyStats.recentPenalties}}
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #fecaca;">
+          <h4 style="color: #991b1b; margin: 0 0 10px 0; font-size: 16px;">Recent Penalties | العقوبات الأخيرة:</h4>
+          <div style="color: #7f1d1d; font-size: 14px; line-height: 1.6;">
+            {{penaltyStats.recentPenalties}}
+          </div>
+        </div>
+        {{/if}}
+      </div>
+    </div>
+
+    <!-- Overall Performance -->
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 25px; border-radius: 8px; margin-top: 25px; text-align: center;">
+      <h3 style="color: #1e293b; margin-top: 0; font-size: 18px;">🏆 Overall Performance | الأداء العام</h3>
+      <div style="font-size: 32px; font-weight: bold; color: #1e40af; margin: 15px 0;">{{overallGrade}}</div>
+      <p style="color: #64748b; font-size: 14px; margin: 0;">Performance Rating | تقييم الأداء</p>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f8f9fa;">
+    <p style="margin: 0;">{{siteName}} - {{currentDate}} ({{reportPeriod}})</p>
+    <p style="margin: 5px 0 0 0;">This report was generated automatically | تم إنشاء هذا التقرير تلقائياً</p>
+  </div>
+</div>
+    `,
+    variables: [
+      "studentName",
+      "studentEmail", 
+      "studentId",
+      "className",
+      "attendanceStats",
+      "participationStats",
+      "behaviorStats", 
+      "penaltyStats",
+      "overallGrade",
+      "reportPeriod",
+      "siteName",
+      "currentDate"
+    ],
+  },
 ];

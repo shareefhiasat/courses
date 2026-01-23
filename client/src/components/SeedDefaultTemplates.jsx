@@ -52,7 +52,7 @@ const SeedDefaultTemplates = ({ onComplete }) => {
     }}>
       <h3 style={{ color: '#800020', margin: '0 0 1rem 0' }}>📧 Default Email Templates</h3>
       <p style={{ color: '#666', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-        Create 7 professional bilingual email templates to get started quickly:
+        Create 9 professional bilingual email templates to get started quickly:
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
@@ -82,6 +82,14 @@ const SeedDefaultTemplates = ({ onComplete }) => {
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
           <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Chat Digest</div>
+        </div>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📱</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>QR Code</div>
+        </div>
+        <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Student Summary</div>
         </div>
       </div>
 

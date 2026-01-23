@@ -1912,9 +1912,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       cursor: stat.onClick ? 'pointer' : 'default',
                       transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
                       border: '2px solid transparent',
+                      backgroundColor: theme === 'dark' ? 'var(--card-bg, #1f2937)' : 'var(--card-bg, #ffffff)',
                       ':hover': {
                         transform: stat.onClick ? 'translateY(-1px)' : 'none',
-                        boxShadow: stat.onClick ? '0 2px 6px rgba(0, 0, 0, 0.08)' : 'none',
+                        boxShadow: stat.onClick ? (theme === 'dark' ? '0 2px 6px rgba(0, 0, 0, 0.3)' : '0 2px 6px rgba(0, 0, 0, 0.08)') : 'none',
                         borderColor: config.iconColor
                       }
                     }}
@@ -1950,7 +1951,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         }}>
                           <span style={{ 
                             fontSize: '0.7rem', 
-                            color: '#6b7280',
+                            color: theme === 'dark' ? 'var(--text-secondary, #9ca3af)' : 'var(--text-secondary, #6b7280)',
                             lineHeight: '1.1',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',

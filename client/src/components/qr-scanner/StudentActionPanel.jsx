@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Mail, QrCode, Users, AlertCircle } from 'lucide-react';
+import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
@@ -8,6 +8,7 @@ import { getAttendanceByStudent } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
 import { getFunctions } from '../../firebase/config';
 import { generateStudentQRCode } from '../../utils/qrCode';
+import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../../constants/behaviorParticipation';
 
 const XIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,6 +60,13 @@ export default function StudentActionPanel({
   const [logsLoading, setLogsLoading] = useState(false);
   const [expandedDays, setExpandedDays] = useState(new Set());
   const [sendingQRCode, setSendingQRCode] = useState(false);
+  const [sendingSummary, setSendingSummary] = useState(false);
+  const [showEmailDropdown, setShowEmailDropdown] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    behavior: false,
+    participation: false,
+    penalty: false
+  });
 
   // Send QR code email
   const sendQRCodeEmail = async () => {
@@ -89,6 +97,110 @@ export default function StudentActionPanel({
     }
   };
 
+  // Send student summary email
+  const sendStudentSummaryEmail = async () => {
+    if (!student?.id || !student?.email) {
+      console.error('Student information missing');
+      return;
+    }
+
+    setSendingSummary(true);
+    try {
+      // Calculate statistics from the logs we already have
+      const attendanceStats = {
+        present: logs.filter(log => log.type === 'attendance' && log.data.status === 'present').length,
+        late: logs.filter(log => log.type === 'attendance' && log.data.status === 'late').length,
+        absent: logs.filter(log => log.type === 'attendance' && log.data.status === 'absent').length,
+        percentage: 0 // Will be calculated
+      };
+      
+      const totalAttendance = attendanceStats.present + attendanceStats.late + attendanceStats.absent;
+      if (totalAttendance > 0) {
+        attendanceStats.percentage = Math.round((attendanceStats.present / totalAttendance) * 100);
+      }
+
+      const participationStats = {
+        total: student.participation || 0,
+        positive: logs.filter(log => log.type === 'participation' && log.points > 0).reduce((sum, log) => sum + log.points, 0),
+        neutral: logs.filter(log => log.type === 'participation' && log.points === 0).length
+      };
+
+      const behaviorStats = {
+        total: student.behavior || 0,
+        positive: logs.filter(log => log.type === 'behavior' && log.points > 0).reduce((sum, log) => sum + log.points, 0),
+        negative: Math.abs(logs.filter(log => log.type === 'behavior' && log.points < 0).reduce((sum, log) => sum + log.points, 0))
+      };
+
+      const penaltyStats = {
+        total: logs.filter(log => log.type === 'penalty').length,
+        minor: logs.filter(log => log.type === 'penalty' && log.severity === 'minor').length,
+        major: logs.filter(log => log.type === 'penalty' && log.severity === 'major').length,
+        recentPenalties: logs.filter(log => log.type === 'penalty').slice(0, 3).map(log => 
+          `${log.label} (${new Date(log.time).toLocaleDateString()})`
+        ).join(', ')
+      };
+
+      // Calculate overall grade based on all factors
+      const attendanceScore = attendanceStats.percentage;
+      const participationScore = Math.min(100, participationStats.total * 2);
+      const behaviorScore = Math.max(0, Math.min(100, 50 + behaviorStats.total));
+      const penaltyDeduction = penaltyStats.total * 5;
+      
+      const overallScore = Math.max(0, Math.min(100, 
+        (attendanceScore * 0.4) + 
+        (participationScore * 0.3) + 
+        (behaviorScore * 0.2) + 
+        (100 - penaltyDeduction) * 0.1
+      ));
+
+      let overallGrade = 'F';
+      if (overallScore >= 90) overallGrade = 'A+';
+      else if (overallScore >= 85) overallGrade = 'A';
+      else if (overallScore >= 80) overallGrade = 'B+';
+      else if (overallScore >= 75) overallGrade = 'B';
+      else if (overallScore >= 70) overallGrade = 'C+';
+      else if (overallScore >= 65) overallGrade = 'C';
+      else if (overallScore >= 60) overallGrade = 'D+';
+      else if (overallScore >= 55) overallGrade = 'D';
+
+      const functions = getFunctions();
+      const sendSummaryEmail = functions.httpsCallable('sendSummaryEmail');
+      
+      const result = await sendSummaryEmail({
+        to: student.email,
+        templateId: 'student_summary_report',
+        templateData: {
+          studentName: student.displayName || student.realName || student.name,
+          studentEmail: student.email,
+          studentId: student.studentNumber || student.id,
+          className: selectedClass?.name || selectedClass?.code || 'Class',
+          attendanceStats,
+          participationStats,
+          behaviorStats,
+          penaltyStats,
+          overallGrade,
+          reportPeriod: 'This Term',
+          siteName: 'CS Learning Hub',
+          currentDate: new Date().toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        }
+      });
+
+      if (result.success) {
+        console.log('Student summary email sent successfully');
+      } else {
+        console.error('Failed to send student summary email:', result.message);
+      }
+    } catch (error) {
+      console.error('Error sending student summary email:', error);
+    } finally {
+      setSendingSummary(false);
+    }
+  };
+
   const toggleDayExpansion = (dayKey) => {
     const newExpanded = new Set(expandedDays);
     if (newExpanded.has(dayKey)) {
@@ -97,6 +209,63 @@ export default function StudentActionPanel({
       newExpanded.add(dayKey);
     }
     setExpandedDays(newExpanded);
+  };
+
+  const toggleSectionExpansion = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Calculate detailed statistics for each type
+  const getDetailedStats = () => {
+    const stats = {
+      behavior: {},
+      participation: {},
+      penalty: {}
+    };
+
+    // Calculate behavior stats
+    BEHAVIOR_TYPES.forEach(type => {
+      stats.behavior[type.id] = {
+        count: 0,
+        totalPoints: 0,
+        label: type.label_en,
+        color: type.color,
+        icon: type.icon
+      };
+    });
+
+    // Calculate participation stats
+    PARTICIPATION_TYPES.forEach(type => {
+      stats.participation[type.id] = {
+        count: 0,
+        totalPoints: 0,
+        label: type.label_en,
+        color: '#3b82f6',
+        icon: type.icon
+      };
+    });
+
+    // Process logs to calculate stats
+    todayLogs.forEach(log => {
+      if (log.type === 'penalty') {
+        const penaltyType = log.data.type || 'other';
+        if (stats.behavior[penaltyType]) {
+          stats.behavior[penaltyType].count++;
+          stats.behavior[penaltyType].totalPoints += log.points || 0;
+        }
+      } else if (log.type === 'participation') {
+        const participationType = log.data.type || 'other';
+        if (stats.participation[participationType]) {
+          stats.participation[participationType].count++;
+          stats.participation[participationType].totalPoints += log.points || 0;
+        }
+      }
+    });
+
+    return stats;
   };
 
   // Fetch today's logs when student changes
@@ -279,6 +448,18 @@ export default function StudentActionPanel({
 
   const avatarColor = getAvatarColor(student.name);
   const attendanceStatus = ATTENDANCE_STATUS_LABELS[student.attendance] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
+  
+  // Calculate attendance statistics
+  const attendanceStats = todayLogs.reduce((acc, log) => {
+    if (log.type === 'attendance') {
+      const status = log.data.status;
+      if (status === 'present') acc.present++;
+      else if (status === 'absent_no_excuse' || status === 'absent_with_excuse') acc.absent++;
+      else if (status === 'late') acc.late++;
+    }
+    return acc;
+  }, { present: 0, late: 0, absent: 0 });
+
   const totalPoints = student.participation + student.behavior + student.penalty;
 
   return (
@@ -338,23 +519,26 @@ export default function StudentActionPanel({
                   background: attendanceStatus.color,
                   borderRadius: '9999px'
                 }} />
-                <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  {attendanceStatus.en} • {totalPoints} Points
-                </span>
+                {attendanceStatus.en !== 'Absent (No Excuse)' && (
+                  <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Attended: {attendanceStatus.en}
+                  </span>
+                )}
               </div>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <XIcon style={{ width: '1rem', height: '1rem' }} />
           </Button>
+          <div style={{ position: 'relative' }} className="email-dropdown-container">
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={sendQRCodeEmail}
-            disabled={sendingQRCode}
-            title="Send QR code to student email"
+            onClick={() => setShowEmailDropdown(!showEmailDropdown)}
+            disabled={sendingQRCode || sendingSummary}
+            title="Send email to student"
           >
-            {sendingQRCode ? (
+            {(sendingQRCode || sendingSummary) ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{
                   width: '1rem',
@@ -370,62 +554,338 @@ export default function StudentActionPanel({
             ) : (
               <Mail style={{ width: '1rem', height: '1rem' }} />
             )}
+            <ChevronDown style={{ width: '0.75rem', height: '0.75rem', marginLeft: '0.25rem' }} />
           </Button>
+          
+          {showEmailDropdown && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              background: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 1000,
+              minWidth: '200px',
+              padding: '0.5rem 0',
+              marginTop: '0.25rem'
+            }}>
+              <button
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                onClick={async () => {
+                  setShowEmailDropdown(false);
+                  await sendQRCodeEmail();
+                }}
+                disabled={sendingQRCode}
+              >
+                <QrCode size={16} />
+                Send QR Code
+              </button>
+              
+              <button
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  fontSize: '0.875rem',
+                  color: '#374151',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                onClick={async () => {
+                  setShowEmailDropdown(false);
+                  await sendStudentSummaryEmail();
+                }}
+                disabled={sendingSummary}
+              >
+                <Mail size={16} />
+                Send Summary Report
+              </button>
+            </div>
+          )}
+        </div>
         </div>
 
         {/* Points Summary */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '0.5rem',
-          marginBottom: '1rem'
-        }}>
+        <div style={{ marginBottom: '1rem' }}>
+          {/* Attendance Summary */}
           <div style={{
-            padding: '0.75rem',
-            background: '#f3f4f6',
-            borderRadius: '0.5rem',
-            textAlign: 'center'
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '0.5rem',
+            marginBottom: '1rem'
           }}>
-            <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#6b7280' }}>
-              {student.participation}
+            {/* Attendance Summary Squares */}
+            <div style={{
+              padding: '0.5rem',
+              background: '#22c55e',
+              borderRadius: '0.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '3rem'
+            }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                {attendanceStats.present}
+              </div>
+              <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                Present
+              </div>
             </div>
-            <div style={{ fontSize: '0.6875rem', color: '#6b7280', fontWeight: 500 }}>
-              Participation
+            <div style={{
+              padding: '0.5rem',
+              background: '#16a34a',
+              borderRadius: '0.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '3rem'
+            }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                {attendanceStats.present}
+              </div>
+              <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                Total Present
+              </div>
+            </div>
+            <div style={{
+              padding: '0.5rem',
+              background: '#eab308',
+              borderRadius: '0.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '3rem'
+            }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                {attendanceStats.late}
+              </div>
+              <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                Late
+              </div>
+            </div>
+            <div style={{
+              padding: '0.5rem',
+              background: '#dc2626',
+              borderRadius: '0.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '3rem'
+            }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                {attendanceStats.absent}
+              </div>
+              <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                Total Absent
+              </div>
             </div>
           </div>
-          <div style={{
-            padding: '0.75rem',
-            background: student.behavior >= 0 ? '#ecfdf5' : '#fef2f2',
-            borderRadius: '0.5rem',
-            textAlign: 'center'
-          }}>
-            <div style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: 600, 
-              color: student.behavior >= 0 ? '#059669' : '#dc2626'
-            }}>
-              {student.behavior >= 0 ? '+' : ''}{student.behavior}
+
+          {/* Behavior Section */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div 
+              onClick={() => toggleSectionExpansion('behavior')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.5rem',
+                background: '#f3f4f6',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                marginBottom: '0.5rem'
+              }}
+            >
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
+                Behavior Details ({student.behavior || 0} points)
+              </span>
+              <ChevronDown 
+                style={{ 
+                  width: '16px', 
+                  height: '16px',
+                  transform: expandedSections.behavior ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s'
+                }} 
+              />
             </div>
-            <div style={{ 
-              fontSize: '0.6875rem', 
-              color: student.behavior >= 0 ? '#047857' : '#991b1b',
-              fontWeight: 500
-            }}>
-              Behavior
-            </div>
+            
+            {expandedSections.behavior && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                gap: '0.5rem'
+              }}>
+                {(() => {
+                  const stats = getDetailedStats();
+                  return BEHAVIOR_TYPES.map(type => {
+                    const stat = stats.behavior[type.id];
+                    if (stat.count === 0) return null;
+                    return (
+                      <div key={type.id} style={{
+                        padding: '0.5rem',
+                        background: type.color,
+                        borderRadius: '0.5rem',
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        minHeight: '2.5rem'
+                      }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+                          {stat.count}
+                        </div>
+                        <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                          {type.label_en}
+                        </div>
+                        <div style={{ fontSize: '0.5rem', color: 'white', opacity: 0.8 }}>
+                          {stat.totalPoints} pts
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
           </div>
-          <div style={{
-            padding: '0.75rem',
-            background: '#fef2f2',
-            borderRadius: '0.5rem',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#dc2626' }}>
-              {student.penalty}
+
+          {/* Participation Section */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div 
+              onClick={() => toggleSectionExpansion('participation')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.5rem',
+                background: '#f3f4f6',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                marginBottom: '0.5rem'
+              }}
+            >
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
+                Participation Details ({student.participation || 0} points)
+              </span>
+              <ChevronDown 
+                style={{ 
+                  width: '16px', 
+                  height: '16px',
+                  transform: expandedSections.participation ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s'
+                }} 
+              />
             </div>
-            <div style={{ fontSize: '0.6875rem', color: '#991b1b', fontWeight: 500 }}>
-              Penalty
+            
+            {expandedSections.participation && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                gap: '0.5rem'
+              }}>
+                {(() => {
+                  const stats = getDetailedStats();
+                  return PARTICIPATION_TYPES.map(type => {
+                    const stat = stats.participation[type.id];
+                    if (stat.count === 0) return null;
+                    return (
+                      <div key={type.id} style={{
+                        padding: '0.5rem',
+                        background: '#3b82f6',
+                        borderRadius: '0.5rem',
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        minHeight: '2.5rem'
+                      }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+                          {stat.count}
+                        </div>
+                        <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                          {type.label_en}
+                        </div>
+                        <div style={{ fontSize: '0.5rem', color: 'white', opacity: 0.8 }}>
+                          {stat.totalPoints} pts
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
+          </div>
+
+          {/* Penalty Section */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div 
+              onClick={() => toggleSectionExpansion('penalty')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.5rem',
+                background: '#f3f4f6',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                marginBottom: '0.5rem'
+              }}
+            >
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
+                Penalty Details ({student.penalty || 0} points)
+              </span>
+              <ChevronDown 
+                style={{ 
+                  width: '16px', 
+                  height: '16px',
+                  transform: expandedSections.penalty ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s'
+                }} 
+              />
             </div>
+            
+            {expandedSections.penalty && (
+              <div style={{
+                padding: '0.5rem',
+                background: '#fee2e2',
+                borderRadius: '0.5rem',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#dc2626' }}>
+                  {student.penalty || 0}
+                </div>
+                <div style={{ fontSize: '0.625rem', color: '#dc2626', fontWeight: 500 }}>
+                  Total Penalty Points
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -441,8 +901,8 @@ export default function StudentActionPanel({
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
-              background: activeTab === 'participation' ? '#ffffff' : '#f8fafc',
-              color: activeTab === 'participation' ? '#1e40af' : '#64748b',
+              background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',
+              color: activeTab === 'participation' ? 'white' : '#64748b',
               cursor: 'pointer',
               boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
@@ -460,13 +920,13 @@ export default function StudentActionPanel({
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
-              background: activeTab === 'behavior' ? '#ffffff' : '#f8fafc',
-              color: activeTab === 'behavior' ? '#10b981' : '#64748b',
+              background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',
+              color: activeTab === 'behavior' ? 'white' : '#64748b',
               cursor: 'pointer',
               boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            <Star style={{ width: '14px', height: '14px' }} />
+            <Zap style={{ width: '14px', height: '14px' }} />
             Behavior
           </button>
           <button
@@ -479,8 +939,8 @@ export default function StudentActionPanel({
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
-              background: activeTab === 'penalty' ? '#ffffff' : '#f8fafc',
-              color: activeTab === 'penalty' ? '#ef4444' : '#64748b',
+              background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',
+              color: activeTab === 'penalty' ? 'white' : '#64748b',
               cursor: 'pointer',
               boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
@@ -499,7 +959,7 @@ export default function StudentActionPanel({
                 fontSize: '0.8125rem',
                 borderRadius: '0.375rem',
                 border: '1px solid #e2e8f0',
-                background: showFavoritesOnly ? '#ffffff' : '#f8fafc',
+                background: showFavoritesOnly ? '#f59e0b' : '#f8fafc',
                 color: showFavoritesOnly ? '#f59e0b' : '#64748b',
                 cursor: 'pointer',
                 boxShadow: showFavoritesOnly ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
@@ -695,7 +1155,7 @@ export default function StudentActionPanel({
                 <polyline points="20 6 9 17 4 17"></polyline>
                 <path d="m21 16-8-5-5-5 5"></path>
               </svg>
-              Present
+              {/*Present*/}
             </button>
             <button
               onClick={() => onMarkAttendance(student.id, 'late')}
@@ -719,7 +1179,7 @@ export default function StudentActionPanel({
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 12 12"></polyline>
               </svg>
-              Late
+              {/*Late*/}
             </button>
             <button
               onClick={() => onMarkAttendance(student.id, 'absent')}
@@ -743,7 +1203,7 @@ export default function StudentActionPanel({
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
-              Absent
+              {/*Absent*/}
             </button>
           </div>
         </div>

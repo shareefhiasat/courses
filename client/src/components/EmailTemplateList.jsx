@@ -4,7 +4,7 @@ import ToggleSwitch from './ToggleSwitch';
 import { formatDateTime } from '../utils/date';
 import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { Megaphone, FileText, CheckCircle2, GraduationCap, BookOpen, MessageSquareText, Key, PartyPopper, Mail, Plus, Pencil, Send, Copy, Trash2 } from 'lucide-react';
+import { Megaphone, FileText, CheckCircle2, GraduationCap, BookOpen, MessageSquareText, Key, PartyPopper, Mail, Plus, Pencil, Send, Copy, Trash2, QrCode, BarChart3 } from 'lucide-react';
 import { Loading } from './ui';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
@@ -79,7 +79,9 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       'resource': 'resources',
       'chat_digest': 'chatDigest',
       'password_reset': 'passwordReset',
-      'welcome_signup': 'welcomeSignup'
+      'welcome_signup': 'welcomeSignup',
+      'qr_code': 'qrCode',
+      'student_summary': 'studentSummary'
     };
     return mapping[templateType] || templateType;
   };
@@ -145,6 +147,22 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
         return { ...base, userEmail: 'user@example.com', resetLink: base.platformUrl + '/reset?token=demo' };
       case 'welcome_signup':
         return { ...base, userEmail: 'user@example.com', displayName: 'John D.' };
+      case 'qr_code':
+        return { ...base, studentName: 'John Student', studentId: 'STU-1234', qrCodeDataURL: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==' };
+      case 'student_summary':
+        return { 
+          ...base, 
+          studentName: 'John Student',
+          studentEmail: 'john@example.com',
+          studentId: 'STU-1234',
+          className: 'Computing 1',
+          attendanceStats: { present: 15, late: 2, absent: 1, percentage: 88 },
+          participationStats: { total: 25, positive: 20, neutral: 5 },
+          behaviorStats: { total: 30, positive: 25, negative: 5 },
+          penaltyStats: { total: 2, minor: 1, major: 1, recentPenalties: 'Late arrival (Oct 15), Missing homework (Oct 20)' },
+          overallGrade: 'B+',
+          reportPeriod: 'This Term'
+        };
       default:
         return base;
     }
@@ -203,6 +221,8 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       chat_digest: <MessageSquareText {...common} title="Chat Digest" />,
       password_reset: <Key {...common} title="Password Reset" />,
       welcome_signup: <PartyPopper {...common} title="Welcome" />,
+      qr_code: <QrCode {...common} title="QR Code" />,
+      student_summary: <BarChart3 {...common} title="Student Summary" />,
       custom: <Mail {...common} title="Email" />
     };
     return icons[type] || <Mail {...common} title="Email" />;

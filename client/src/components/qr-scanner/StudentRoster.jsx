@@ -93,7 +93,11 @@ export default function StudentRoster({
   currentPage,
   totalPages,
   onPageChange,
-  totalStudents
+  totalStudents,
+  selectedProgramId,
+  selectedSubjectId,
+  selectedClassId,
+  selectedDate
 }) {
   const { user } = useAuth();
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -106,6 +110,15 @@ export default function StudentRoster({
   });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteStudents, setFavoriteStudents] = useState([]);
+
+  // Check if all dropdowns are selected to show total attendance column
+  const showTotalAttendance = selectedProgramId && 
+    selectedProgramId !== 'all' && 
+    selectedSubjectId && 
+    selectedSubjectId !== 'all' && 
+    selectedClassId && 
+    selectedClassId !== 'all' && 
+    selectedDate;
 
   // Load favorite students from Firebase
   useEffect(() => {
@@ -440,6 +453,24 @@ export default function StudentRoster({
               >
                 Penalty {getSortIcon('penalty')}
               </th>
+              {showTotalAttendance && (
+                <th 
+                  onClick={() => onSort('totalAttendance')}
+                  style={{
+                    textAlign: 'center',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  Total Attendance {getSortIcon('totalAttendance')}
+                </th>
+              )}
               <th style={{
                 textAlign: 'center',
                 padding: '0.75rem 1rem',
@@ -468,13 +499,13 @@ export default function StudentRoster({
                   <tr
                     style={{
                       borderBottom: '1px solid #e5e7eb',
-                      background: selectedStudentId === student.id ? '#f9fafb' : 'transparent',
+                      background: selectedStudentId === student.id ? '#eff6ff' : 'transparent',
                       cursor: 'pointer',
                       transition: 'background-color 0.15s'
                     }}
                     onMouseEnter={(e) => {
                       if (selectedStudentId !== student.id) {
-                        e.currentTarget.style.background = '#f9fafb';
+                        e.currentTarget.style.background = '#eff6ff';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -602,6 +633,24 @@ export default function StudentRoster({
                         {student.penalty}
                       </span>
                     </td>
+                    {showTotalAttendance && (
+                      <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '2.5rem',
+                          height: '2.5rem',
+                          borderRadius: '0.5rem',
+                          fontWeight: 600,
+                          background: '#065f46',
+                          color: 'white',
+                          fontSize: '0.875rem'
+                        }}>
+                          {student.totalAttendance || 0}
+                        </span>
+                      </td>
+                    )}
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Button 
@@ -621,7 +670,7 @@ export default function StudentRoster({
                   {/* Expanded History Row */}
                   {isExpanded && (
                     <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      <td colSpan="7" style={{ padding: '0.5rem 1rem' }}>
+                      <td colSpan={showTotalAttendance ? "8" : "7"} style={{ padding: '0.5rem 1rem' }}>
                         {studentHistory[student.id] ? (
                           <div style={{ fontSize: '0.875rem' }}>
                             {/* History Header */}
@@ -630,7 +679,10 @@ export default function StudentRoster({
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               marginBottom: '1rem',
-                              padding: '0 0.5rem'
+                              padding: '0.5rem',
+                              background: '#f8fafc',
+                              borderRadius: '0.5rem',
+                              border: '1px solid #e2e8f0'
                             }}>
                               <h4 style={{
                                 fontSize: '0.875rem',
@@ -638,7 +690,7 @@ export default function StudentRoster({
                                 color: '#374151',
                                 margin: 0
                               }}>
-                                Student History
+                                History
                               </h4>
                               <div style={{
                                 display: 'flex',
@@ -654,8 +706,8 @@ export default function StudentRoster({
                                     fontSize: '0.8125rem',
                                     borderRadius: '0.375rem',
                                     border: '1px solid #e2e8f0',
-                                    background: activeFilters.attendance ? '#ffffff' : '#f8fafc',
-                                    color: activeFilters.attendance ? '#0f766e' : '#64748b',
+                                    background: activeFilters.attendance ? '#065f46' : '#ffffff',
+                                    color: activeFilters.attendance ? 'white' : '#64748b',
                                     cursor: 'pointer',
                                     boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                                   }}
@@ -673,8 +725,8 @@ export default function StudentRoster({
                                     fontSize: '0.8125rem',
                                     borderRadius: '0.375rem',
                                     border: '1px solid #e2e8f0',
-                                    background: activeFilters.participation ? '#ffffff' : '#f8fafc',
-                                    color: activeFilters.participation ? '#1e40af' : '#64748b',
+                                    background: activeFilters.participation ? '#3b82f6' : '#ffffff',
+                                    color: activeFilters.participation ? 'white' : '#64748b',
                                     cursor: 'pointer',
                                     boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                                   }}
@@ -692,8 +744,8 @@ export default function StudentRoster({
                                     fontSize: '0.8125rem',
                                     borderRadius: '0.375rem',
                                     border: '1px solid #e2e8f0',
-                                    background: activeFilters.penalties ? '#ffffff' : '#f8fafc',
-                                    color: activeFilters.penalties ? '#b91c1c' : '#64748b',
+                                    background: activeFilters.penalties ? '#dc2626' : '#ffffff',
+                                    color: activeFilters.penalties ? 'white' : '#64748b',
                                     cursor: 'pointer',
                                     boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                                   }}
@@ -835,7 +887,7 @@ export default function StudentRoster({
                                               <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                                 {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
-                                              <AttendanceIcon style={{ width: '16px', height: '16px', color: '#10b981', marginRight: '0.5rem' }} />
+                                              <AttendanceIcon style={{ width: '16px', height: '16px', color: log.color || '#10b981', marginRight: '0.5rem' }} />
                                               <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>

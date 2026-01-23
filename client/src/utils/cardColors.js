@@ -92,19 +92,23 @@ import {
  * @returns {string} Theme-appropriate color
  */
 const getThemeAwareColor = (defaultColor, theme = 'light') => {
-  // For dark theme, we'll use lighter versions of the colors or CSS custom properties
-  const darkThemeColors = {
-    "#800020": "#dc2626", // Lighter red for dark theme
-    "#ec4899": "#f472b6", // Lighter pink for dark theme
-    "#6b7280": "#9ca3af", // Lighter gray for dark theme
-    "#10b981": "#34d399", // Lighter green for dark theme
-    "#f59e0b": "#fbbf24", // Lighter amber for dark theme
-    "#ef4444": "#f87171", // Lighter red for dark theme
-    "#6366f1": "#818cf8", // Lighter indigo for dark theme
-    "#8b5cf6": "#a78bfa", // Lighter purple for dark theme
-  };
+  // All icons should be the same color as the navbar - unified purple
+  const navbarPurple = '#8b5cf6'; // Same purple as navbar
   
-  return theme === 'dark' ? (darkThemeColors[defaultColor] || defaultColor) : defaultColor;
+  return navbarPurple;
+};
+
+/**
+ * Get theme-aware background color for card icons
+ * @param {string} defaultColor - Default color for light theme
+ * @param {string} theme - Current theme ('light' or 'dark')
+ * @returns {string} Theme-appropriate background color
+ */
+const getThemeAwareBgColor = (defaultColor, theme = 'light') => {
+  // All card backgrounds should use the same purple as the navbar
+  const navbarPurpleBg = theme === 'dark' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)';
+  
+  return navbarPurpleBg;
 };
 
 /**
@@ -476,7 +480,8 @@ failed: {
   // Apply theme-aware colors
   return {
     ...config,
-    iconColor: getThemeAwareColor(config.iconColor, theme)
+    iconColor: getThemeAwareColor(config.iconColor, theme),
+    bg: getThemeAwareBgColor(config.iconColor, theme)
   };
 };
 

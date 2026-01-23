@@ -3,7 +3,7 @@ import { Select } from './ui';
 import { useToast } from './ToastProvider';
 import VariableHelper from './VariableHelper';
 import Modal from './ui/Modal/Modal';
-import { Eye, Info } from 'lucide-react';
+import { Eye, Info, Copy } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import { collection, doc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -21,6 +21,12 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
     ...template
   });
 
+  // Copy variable to clipboard
+  const copyVariable = (variable) => {
+    navigator.clipboard.writeText(`{{${variable}}}`);
+    toast?.showSuccess(`Variable {{${variable}}} copied to clipboard!`);
+  };
+
   const templateTypes = [
     { value: 'announcement', label: 'Announcement' },
     { value: 'activity', label: 'New Activity' },
@@ -29,6 +35,8 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
     { value: 'enrollment', label: 'Enrollment Welcome' },
     { value: 'resource', label: 'New Resource' },
     { value: 'chat_digest', label: 'Chat Digest' },
+    { value: 'qr_code', label: 'QR Code Email' },
+    { value: 'student_summary', label: 'Student Summary Report' },
     { value: 'custom', label: 'Custom' }
   ];
 
@@ -66,7 +74,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       trigger: 'Manual or automatic on enrollment.',
       actor: 'Admin/Teacher/System',
       audience: 'Newly enrolled student.',
-      variables: ['studentName', 'className', 'classCode', 'term', 'instructorName', 'instructorEmail', 'link']
+      variables: ['studentName', 'studentEmail', 'studentId', 'referenceId', 'studentKey', 'accessKey', 'className', 'term', 'instructorName', 'instructorEmail', 'link']
     },
     resource: {
       purpose: 'Notify users about a new learning resource.',
@@ -81,6 +89,20 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       actor: 'System/Admin',
       audience: 'Students or staff with unread messages.',
       variables: ['unreadCount', 'messages', 'chatLink']
+    },
+    qr_code: {
+      purpose: 'Send student their QR code for attendance tracking.',
+      trigger: 'Manual send from QR scanner or student profile.',
+      actor: 'Teacher/Admin',
+      audience: 'Individual student.',
+      variables: ['studentName', 'studentEmail', 'studentId', 'referenceId', 'studentKey', 'accessKey', 'qrCodeDataURL', 'siteName']
+    },
+    student_summary: {
+      purpose: 'Send comprehensive student performance report.',
+      trigger: 'Manual send from QR scanner or dashboard.',
+      actor: 'Teacher/Admin',
+      audience: 'Individual student or parent.',
+      variables: ['studentName', 'studentEmail', 'studentId', 'referenceId', 'studentKey', 'accessKey', 'className', 'attendanceStats', 'participationStats', 'behaviorStats', 'penaltyStats', 'overallGrade', 'reportPeriod', 'siteName', 'currentDate']
     },
     custom: {
       purpose: 'Free-form custom email for any purpose.',
@@ -412,8 +434,33 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                 <div>
                   <strong>Key Variables:</strong>
                   <div style={{ marginTop: 6, display:'flex', flexWrap:'wrap', gap:6 }}>
-                    {(info.variables || []).map(v => (
-                      <code key={v} style={{ background:'#f8f9fa', border:'1px solid #eee', borderRadius:6, padding:'2px 6px' }}>{`{{${v}}}`}</code>
+                    {Array.from(new Set(info.variables || [])).map(v => (
+                      <code 
+                        key={v} 
+                        style={{ 
+                          background:'#f8f9fa', 
+                          border:'1px solid #eee', 
+                          borderRadius:6, 
+                          padding:'2px 6px',
+                          cursor:'pointer',
+                          position:'relative',
+                          fontSize:'0.8rem'
+                        }}
+                        onClick={() => copyVariable(v)}
+                        title={`Click to copy {{${v}}}`}
+                      >
+                        {`{{${v}}}`}
+                        <Copy 
+                          size={12} 
+                          style={{ 
+                            position:'absolute', 
+                            right:4, 
+                            top:4, 
+                            opacity:0.5,
+                            color:'#666'
+                          }} 
+                        />
+                      </code>
                     ))}
                   </div>
                 </div>
