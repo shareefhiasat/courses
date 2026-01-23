@@ -795,7 +795,10 @@ export default function StudentActionPanel({
               }}
             >
               <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                Behavior Details ({student.behavior || 0} points)
+                Behavior Details ({student.behavior || 0} points, {(() => {
+                  const stats = getDetailedStats();
+                  return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
+                })()} entries)
               </span>
               <ChevronDown 
                 style={{ 
@@ -916,7 +919,10 @@ export default function StudentActionPanel({
               }}
             >
               <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                Participation Details ({student.participation || 0} points)
+                Participation Details ({student.participation || 0} points, {(() => {
+                  const stats = getDetailedStats();
+                  return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
+                })()} entries)
               </span>
               <ChevronDown 
                 style={{ 
