@@ -112,6 +112,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'شرح الدرس', 
     label_en: 'Explained Lesson', 
     icon: 'MessageSquare',
+    color: '#3b82f6',
     points: 5
   },
   { 
@@ -119,6 +120,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'قدم مشروع', 
     label_en: 'Gave Project', 
     icon: 'Award',
+    color: '#8b5cf6',
     points: 10
   },
   { 
@@ -126,6 +128,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'قدم ورقة', 
     label_en: 'Gave Paper', 
     icon: 'FileText',
+    color: '#06b6d4',
     points: 8
   },
   { 
@@ -133,6 +136,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'قدم بحث', 
     label_en: 'Gave Research', 
     icon: 'FileText',
+    color: '#10b981',
     points: 12
   },
   { 
@@ -140,6 +144,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'نقاش نشط', 
     label_en: 'Active Discussion', 
     icon: 'MessageSquare',
+    color: '#f59e0b',
     points: 3
   },
   { 
@@ -147,6 +152,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'أجاب على سؤال', 
     label_en: 'Answered Question', 
     icon: 'HelpCircle',
+    color: '#ec4899',
     points: 2
   },
   { 
@@ -154,6 +160,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'ساعد زميل', 
     label_en: 'Helped Classmate', 
     icon: 'Users',
+    color: '#14b8a6',
     points: 4
   },
   { 
@@ -161,6 +168,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'مشاركة ممتازة', 
     label_en: 'Excellent Participation', 
     icon: 'Star',
+    color: '#fbbf24',
     points: 10
   },
   { 
@@ -168,6 +176,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'مشاركة جيدة', 
     label_en: 'Good Participation', 
     icon: 'ThumbsUp',
+    color: '#22c55e',
     points: 5
   },
   { 
@@ -175,6 +184,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'مشاركة متوسطة', 
     label_en: 'Average Participation', 
     icon: 'Minus',
+    color: '#6b7280',
     points: 2
   },
   { 
@@ -182,6 +192,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'مشارجة ضعيفة', 
     label_en: 'Poor Participation', 
     icon: 'X',
+    color: '#ef4444',
     points: 0
   },
   { 
@@ -189,6 +200,7 @@ export const PARTICIPATION_TYPES = [
     label_ar: 'أخرى', 
     label_en: 'Other', 
     icon: 'MoreHorizontal',
+    color: '#9333ea',
     points: 0
   }
 ];

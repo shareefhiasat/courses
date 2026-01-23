@@ -388,7 +388,7 @@ export default function StudentActionPanelNew({
         </div>
 
         {/* Select Reason Grid */}
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.5rem', marginTop: '1rem' }}>
           {/*<h4 style={{*/}
           {/*  fontSize: '0.875rem',*/}
           {/*  fontWeight: 500,*/}
@@ -502,6 +502,7 @@ export default function StudentActionPanelNew({
                       marginTop: '0.25rem',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '0.125rem'
                     }}>
                       <button
