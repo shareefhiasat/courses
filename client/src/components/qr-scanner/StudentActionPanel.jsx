@@ -248,22 +248,69 @@ export default function StudentActionPanel({
       };
     });
 
+    // Calculate penalty stats (same as behavior but for negative points)
+    BEHAVIOR_TYPES.filter(bt => bt.points < 0).forEach(type => {
+      stats.penalty[type.id] = {
+        count: 0,
+        totalPoints: 0,
+        label: type.label_en,
+        color: type.color,
+        icon: type.icon
+      };
+    });
+
+    // AUDIT LOGS: Debug todayLogs
+    console.log('=== AUDIT: todayLogs ===');
+    console.log('Total logs:', todayLogs.length);
+    console.log('todayLogs:', todayLogs);
+
     // Process logs to calculate stats
-    todayLogs.forEach(log => {
-      if (log.type === 'penalty') {
-        const penaltyType = log.data.type || 'other';
-        if (stats.behavior[penaltyType]) {
-          stats.behavior[penaltyType].count++;
-          stats.behavior[penaltyType].totalPoints += log.points || 0;
+    todayLogs.forEach((log, index) => {
+      console.log(`=== Processing log ${index} ===`);
+      console.log('Log type:', log.type);
+      console.log('Log data:', log.data);
+      console.log('Log points:', log.points);
+      
+      if (log.type === 'behavior') {
+        const behaviorType = log.data.type || 'other';
+        console.log('Behavior type:', behaviorType);
+        
+        if (stats.behavior[behaviorType]) {
+          stats.behavior[behaviorType].count++;
+          stats.behavior[behaviorType].totalPoints += log.points || 0;
+          console.log(`Updated ${behaviorType}: count=${stats.behavior[behaviorType].count}, points=${stats.behavior[behaviorType].totalPoints}`);
+        }
+        // Also add to penalty if it's a negative behavior
+        if (log.points < 0 && stats.penalty[behaviorType]) {
+          stats.penalty[behaviorType].count++;
+          stats.penalty[behaviorType].totalPoints += log.points || 0;
+          console.log(`Updated penalty ${behaviorType}: count=${stats.penalty[behaviorType].count}, points=${stats.penalty[behaviorType].totalPoints}`);
         }
       } else if (log.type === 'participation') {
         const participationType = log.data.type || 'other';
+        console.log('Participation type:', participationType);
+        
         if (stats.participation[participationType]) {
           stats.participation[participationType].count++;
           stats.participation[participationType].totalPoints += log.points || 0;
+          console.log(`Updated ${participationType}: count=${stats.participation[participationType].count}, points=${stats.participation[participationType].totalPoints}`);
+        }
+      } else if (log.type === 'penalty') {
+        const penaltyType = log.data.type || 'other';
+        console.log('Penalty type:', penaltyType);
+        
+        if (stats.penalty[penaltyType]) {
+          stats.penalty[penaltyType].count++;
+          stats.penalty[penaltyType].totalPoints += log.points || 0;
+          console.log(`Updated penalty ${penaltyType}: count=${stats.penalty[penaltyType].count}, points=${stats.penalty[penaltyType].totalPoints}`);
         }
       }
     });
+
+    console.log('=== FINAL STATS ===');
+    console.log('Penalty stats:', stats.penalty);
+    console.log('Behavior stats:', stats.behavior);
+    console.log('Participation stats:', stats.participation);
 
     return stats;
   };
@@ -882,7 +929,11 @@ export default function StudentActionPanel({
               }}
             >
               <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                Penalty Details ({student.penalty || 0} points)
+                Penalty Details ({student.penalty || 0} points, {(() => {
+                  const stats = getDetailedStats();
+                  const penaltyTypes = BEHAVIOR_TYPES.filter(bt => bt.points < 0);
+                  return penaltyTypes.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
+                })()} entries)
               </span>
               <ChevronDown 
                 style={{ 
@@ -896,16 +947,96 @@ export default function StudentActionPanel({
             
             {expandedSections.penalty && (
               <div style={{
-                padding: '0.5rem',
-                background: '#fee2e2',
-                borderRadius: '0.5rem',
-                textAlign: 'center'
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem'
               }}>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#dc2626' }}>
-                  {student.penalty || 0}
-                </div>
-                <div style={{ fontSize: '0.625rem', color: '#dc2626', fontWeight: 500 }}>
-                  Total Penalty Points
+                {(() => {
+                  const stats = getDetailedStats();
+                  const penaltyTypes = BEHAVIOR_TYPES.filter(bt => bt.points < 0);
+                  
+                  return penaltyTypes.map(type => {
+                    const stat = stats.penalty[type.id];
+                    return (
+                      <div key={type.id} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.5rem',
+                        background: '#fee2e2',
+                        borderRadius: '0.375rem',
+                        border: '1px solid #dc2626',
+                        opacity: stat.count > 0 ? 1 : 0.8
+                      }}>
+                        <div style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: '#dc2626',
+                          flex: 1
+                        }}>
+                          {type.label_en}
+                        </div>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: '#991b1b',
+                          minWidth: '3rem',
+                          textAlign: 'center'
+                        }}>
+                          Total: {stat.totalPoints}
+                        </div>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          color: '#dc2626',
+                          minWidth: '3rem',
+                          textAlign: 'right'
+                        }}>
+                          Count: ({stat.count})
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+                
+                {/* Total Penalty Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem',
+                  background: '#dc2626',
+                  borderRadius: '0.375rem',
+                  marginTop: '0.25rem'
+                }}>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: 'white',
+                    flex: 1
+                  }}>
+                    Total Penalty
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'white',
+                    minWidth: '3rem',
+                    textAlign: 'center'
+                  }}>
+                    Total: {student.penalty || 0}
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: 'white',
+                    minWidth: '3rem',
+                    textAlign: 'right'
+                  }}>
+                    Count: ({(() => {
+                      const stats = getDetailedStats();
+                      const penaltyTypes = BEHAVIOR_TYPES.filter(bt => bt.points < 0);
+                      return penaltyTypes.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
+                    })()})
+                  </div>
                 </div>
               </div>
             )}

@@ -64,6 +64,14 @@ export const BEHAVIOR_TYPES = [
     points: -4
   },
   { 
+    id: 'cheating', 
+    label_ar: 'غش', 
+    label_en: 'Cheating', 
+    icon: 'AlertTriangle',
+    color: '#dc2626',
+    points: -5
+  },
+  { 
     id: 'positive', 
     label_ar: 'سلوك إيجابي', 
     label_en: 'Positive Behavior', 
