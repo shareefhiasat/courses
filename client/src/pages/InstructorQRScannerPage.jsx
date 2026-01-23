@@ -958,6 +958,92 @@ const InstructorQRScannerPage = () => {
           {showScanner && selectedClassId && (
             <QRScanner onScan={handleScan} />
           )}
+          
+          {/* Recent Activity */}
+          {selectedClassId && (
+            <div style={{
+              padding: '0.75rem',
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              border: '1px solid #e2e8f0',
+              borderRadius: '0.5rem',
+              fontSize: '0.75rem'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '0.5rem',
+                fontWeight: 600,
+                color: '#374151'
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Recent Activity
+              </div>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                maxHeight: '200px',
+                overflow: 'auto'
+              }}>
+                {/* Get recent activities from the last 5 scans */}
+                {(() => {
+                  // This would normally come from props or state
+                  // For now, we'll show a placeholder
+                  const recentScans = [
+                    { time: new Date(), action: 'Attendance Marked', student: 'John Doe', user: { displayName: 'Instructor' } },
+                    { time: new Date(Date.now() - 300000), action: 'Behavior Logged', student: 'Jane Smith', user: { displayName: 'Instructor' } },
+                    { time: new Date(Date.now() - 600000), action: 'Participation Added', student: 'Mike Johnson', user: { displayName: 'Instructor' } }
+                  ];
+                  
+                  return recentScans.map((activity, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.25rem 0.5rem',
+                      background: 'white',
+                      borderRadius: '0.375rem',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <span style={{ color: '#64748b', fontSize: '0.625rem', minWidth: '60px' }}>
+                        {activity.time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </span>
+                      <span style={{ fontWeight: 500, color: '#374151', fontSize: '0.7rem' }}>
+                        {activity.action}
+                      </span>
+                      <span style={{ color: '#6b7280', fontSize: '0.65rem' }}>
+                        → {activity.student}
+                      </span>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        marginLeft: 'auto',
+                        padding: '0.125rem 0.375rem',
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.6rem',
+                        color: '#166534'
+                      }}>
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span style={{ fontWeight: 500 }}>
+                          {activity.user.displayName}
+                        </span>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
