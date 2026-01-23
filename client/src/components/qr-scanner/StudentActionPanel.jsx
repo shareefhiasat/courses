@@ -809,39 +809,93 @@ export default function StudentActionPanel({
             
             {expandedSections.behavior && (
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                gap: '0.5rem'
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem'
               }}>
                 {(() => {
                   const stats = getDetailedStats();
                   return BEHAVIOR_TYPES.map(type => {
                     const stat = stats.behavior[type.id];
-                    if (stat.count === 0) return null;
                     return (
                       <div key={type.id} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         padding: '0.5rem',
                         background: type.color,
-                        borderRadius: '0.5rem',
-                        textAlign: 'center',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        minHeight: '2.5rem'
+                        borderRadius: '0.375rem',
+                        opacity: stat.count > 0 ? 1 : 0.8
                       }}>
-                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                          {stat.count}
-                        </div>
-                        <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                        <div style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: 'white',
+                          flex: 1
+                        }}>
                           {type.label_en}
                         </div>
-                        <div style={{ fontSize: '0.5rem', color: 'white', opacity: 0.8 }}>
-                          {stat.totalPoints} pts
+                        <div style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'white',
+                          minWidth: '3rem',
+                          textAlign: 'center'
+                        }}>
+                          Total: {stat.totalPoints >= 0 ? '+' : ''}{stat.totalPoints}
+                        </div>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          color: 'white',
+                          minWidth: '3rem',
+                          textAlign: 'right'
+                        }}>
+                          Count: ({stat.count})
                         </div>
                       </div>
                     );
                   });
                 })()}
+                
+                {/* Total Behavior Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem',
+                  background: '#f97316',
+                  borderRadius: '0.375rem',
+                  marginTop: '0.25rem'
+                }}>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: 'white',
+                    flex: 1
+                  }}>
+                    Total Behavior
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'white',
+                    minWidth: '3rem',
+                    textAlign: 'center'
+                  }}>
+                    Total: {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: 'white',
+                    minWidth: '3rem',
+                    textAlign: 'right'
+                  }}>
+                    Count: ({(() => {
+                      const stats = getDetailedStats();
+                      return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
+                    })()})
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -876,39 +930,94 @@ export default function StudentActionPanel({
             
             {expandedSections.participation && (
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                gap: '0.5rem'
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem'
               }}>
                 {(() => {
                   const stats = getDetailedStats();
                   return PARTICIPATION_TYPES.map(type => {
                     const stat = stats.participation[type.id];
-                    if (stat.count === 0) return null;
                     return (
                       <div key={type.id} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         padding: '0.5rem',
                         background: '#3b82f6',
-                        borderRadius: '0.5rem',
-                        textAlign: 'center',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        minHeight: '2.5rem'
+                        borderRadius: '0.375rem',
+                        opacity: stat.count > 0 ? 1 : 0.8
                       }}>
-                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                          {stat.count}
-                        </div>
-                        <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                        <div style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: 'white',
+                          flex: 1
+                        }}>
                           {type.label_en}
                         </div>
-                        <div style={{ fontSize: '0.5rem', color: 'white', opacity: 0.8 }}>
-                          {stat.totalPoints} pts
+                        <div style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'white',
+                          minWidth: '3rem',
+                          textAlign: 'center'
+                        }}>
+                          Total: +{stat.totalPoints}
+                        </div>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          color: 'white',
+                          minWidth: '3rem',
+                          textAlign: 'right'
+                        }}>
+                          Count: ({stat.count})
                         </div>
                       </div>
                     );
                   });
                 })()}
+                
+                {/* Total Participation Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem',
+                  background: '#3b82f6',
+                  borderRadius: '0.375rem',
+                  marginTop: '0.25rem',
+                  border: '2px solid white'
+                }}>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: 'white',
+                    flex: 1
+                  }}>
+                    Total Participation
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'white',
+                    minWidth: '3rem',
+                    textAlign: 'center'
+                  }}>
+                    Total: {student.participation || 0}
+                  </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: 'white',
+                    minWidth: '3rem',
+                    textAlign: 'right'
+                  }}>
+                    Count: ({(() => {
+                      const stats = getDetailedStats();
+                      return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
+                    })()})
+                  </div>
+                </div>
               </div>
             )}
           </div>
