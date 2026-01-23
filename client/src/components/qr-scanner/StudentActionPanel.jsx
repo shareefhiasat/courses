@@ -743,7 +743,7 @@ export default function StudentActionPanel({
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
               Present
-              {attendanceStats.present > 0 && (
+              {attendanceStats.present && attendanceStats.present > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
@@ -752,7 +752,8 @@ export default function StudentActionPanel({
                   borderRadius: '0.125rem',
                   padding: '0.125rem 0.25rem',
                   minWidth: '0.75rem',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  display: 'inline-block'
                 }}>
                   {attendanceStats.present}
                 </span>
