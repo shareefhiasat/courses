@@ -550,7 +550,7 @@ export default function StudentActionPanel({
       <div style={{ padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{
           display: 'flex',
-          alignItems: 'flex-start',
+          alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: '1rem'
         }}>
@@ -599,7 +599,7 @@ export default function StudentActionPanel({
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
-            <XIcon style={{ width: '1rem', height: '1rem' }} />
+            <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
           </Button>
           <div style={{ position: 'relative' }} className="email-dropdown-container">
           <Button 
@@ -623,7 +623,7 @@ export default function StudentActionPanel({
                 <span>Sending...</span>
               </div>
             ) : (
-              <Mail style={{ width: '1rem', height: '1rem' }} />
+              <Mail style={{ width: '1.25rem', height: '1.25rem' }} />
             )}
             <ChevronDown style={{ width: '0.75rem', height: '0.75rem', marginLeft: '0.25rem' }} />
           </Button>
@@ -743,7 +743,7 @@ export default function StudentActionPanel({
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
               Present
-              {attendanceStats.present && attendanceStats.present > 0 && (
+              {attendanceStats.present && Number(attendanceStats.present) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
@@ -786,7 +786,7 @@ export default function StudentActionPanel({
                 <polyline points="12 6 12 12 12 12"></polyline>
               </svg>
               Late
-              {attendanceStats.late > 0 && (
+              {attendanceStats.late && Number(attendanceStats.late) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
@@ -828,7 +828,7 @@ export default function StudentActionPanel({
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
               Absent (No Excuse)
-              {attendanceStats.absent_no_excuse > 0 && (
+              {attendanceStats.absent_no_excuse && Number(attendanceStats.absent_no_excuse) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
@@ -873,7 +873,7 @@ export default function StudentActionPanel({
                 <polyline points="10 9 9 9 8 9"></polyline>
               </svg>
               Absent (Excused)
-              {attendanceStats.absent_with_excuse > 0 && (
+              {attendanceStats.absent_with_excuse && Number(attendanceStats.absent_with_excuse) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
@@ -917,7 +917,7 @@ export default function StudentActionPanel({
                 <line x1="15" y1="9" x2="15.01" y2="9"></line>
               </svg>
               Excused Leave
-              {attendanceStats.excused_leave > 0 && (
+              {attendanceStats.excused_leave && Number(attendanceStats.excused_leave) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
@@ -958,7 +958,7 @@ export default function StudentActionPanel({
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
               Human Case
-              {attendanceStats.human_case > 0 && (
+              {attendanceStats.human_case && Number(attendanceStats.human_case) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
@@ -1853,7 +1853,6 @@ export default function StudentActionPanel({
               </div>
             ) : (
               groupLogsByDay(todayLogs).map((dayGroup, dayIndex) => {
-                const isExpanded = expandedDays.has(dayGroup.date);
                 const dateObj = new Date(dayGroup.date);
                 const dateStr = dateObj.toLocaleDateString('en-US', { 
                   weekday: 'short', 
@@ -1861,6 +1860,7 @@ export default function StudentActionPanel({
                   day: 'numeric' 
                 });
                 
+                const isDayExpanded = expandedDays.has(dayGroup.date);
                 const filteredCounts = {
                   attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,
                   participation: activeFilters.participation ? dayGroup.participation.length : 0,
@@ -1873,8 +1873,9 @@ export default function StudentActionPanel({
                 return (
                   <div key={dayIndex} style={{
                     border: '1px solid #e5e7eb',
-                    borderRadius: '0.5rem',
-                    overflow: 'hidden'
+                    borderRadius: '0.375rem',
+                    overflow: 'hidden',
+                    marginBottom: '0.5rem'
                   }}>
                     {/* Day Header */}
                     <div
@@ -1883,193 +1884,159 @@ export default function StudentActionPanel({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '0.75rem 1rem',
+                        padding: '0.5rem 0.75rem',
                         background: '#f9fafb',
                         cursor: 'pointer',
-                        borderBottom: isExpanded ? '1px solid #e5e7eb' : 'none'
+                        borderBottom: isDayExpanded ? '1px solid #e5e7eb' : 'none'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827' }}>
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
                           {dateStr}
                         </span>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          {dayGroup.attendance.length > 0 && (
-                            <span style={{
+                        <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                          {filteredCounts.attendance > 0 && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              padding: '0.25rem 0.5rem',
+                              background: '#f0fdf4',
+                              border: '1px solid #bbf7d0',
+                              borderRadius: '0.375rem',
                               fontSize: '0.75rem',
-                              padding: '0.125rem 0.375rem',
-                              background: '#22c55e',
-                              color: 'white',
-                              borderRadius: '0.25rem'
+                              color: '#166534'
                             }}>
-                              {dayGroup.attendance.length} Attendance
-                            </span>
+                              {filteredCounts.attendance}
+                            </div>
                           )}
-                          {dayGroup.participation.length > 0 && (
-                            <span style={{
+                          {filteredCounts.participation > 0 && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              padding: '0.25rem 0.5rem',
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: '0.375rem',
                               fontSize: '0.75rem',
-                              padding: '0.125rem 0.375rem',
-                              background: '#3b82f6',
-                              color: 'white',
-                              borderRadius: '0.25rem'
+                              color: '#1e40af'
                             }}>
-                              {dayGroup.participation.length} Participation
-                            </span>
+                              {filteredCounts.participation}
+                            </div>
                           )}
-                          {dayGroup.penalties.length > 0 && (
-                            <span style={{
+                          {filteredCounts.penalties > 0 && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              padding: '0.25rem 0.5rem',
+                              background: '#fef2f2',
+                              border: '1px solid #fecaca',
+                              borderRadius: '0.375rem',
                               fontSize: '0.75rem',
-                              padding: '0.125rem 0.375rem',
-                              background: '#ef4444',
-                              color: 'white',
-                              borderRadius: '0.25rem'
+                              color: '#b91c1c'
                             }}>
-                              {dayGroup.penalties.length} Penalties
-                            </span>
+                              {filteredCounts.penalties}
+                            </div>
                           )}
                         </div>
                       </div>
-                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                        {isExpanded ? '▼' : '▶'}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                          {isDayExpanded ? 'Hide details' : 'Show details'}
+                        </span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{
+                          transform: isDayExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                          transition: 'transform 0.2s'
+                        }}>
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </div>
                     </div>
                     
                     {/* Expanded Content */}
-                    {isExpanded && (
-                      <div style={{ padding: '1rem' }}>
+                    {isDayExpanded && (
+                      <div style={{ padding: '0.5rem 0.75rem' }}>
                         {/* Attendance */}
-                        {dayGroup.attendance.length > 0 && (
-                          <div style={{ marginBottom: '1rem' }}>
-                            <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', marginBottom: '0.5rem' }}>
-                              ATTENDANCE
-                            </h5>
+                        {activeFilters.attendance && dayGroup.attendance.length > 0 && (
+                          <div style={{ marginBottom: '0.5rem' }}>
                             {dayGroup.attendance.map((log, idx) => (
                               <div key={idx} style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 gap: '0.5rem',
-                                padding: '0.25rem 0',
-                                fontSize: '0.8125rem'
+                                padding: '0.375rem 0',
+                                fontSize: '0.8125rem',
+                                borderBottom: idx === dayGroup.attendance.length - 1 ? 'none' : '1px solid #f1f5f9'
                               }}>
-                                <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                   {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                 </span>
-                                <span style={{ 
-                                  padding: '0.125rem 0.375rem',
-                                  background: log.color,
-                                  color: 'white',
-                                  borderRadius: '0.25rem',
-                                  fontSize: '0.75rem'
-                                }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#10b981', marginRight: '0.5rem' }}>
+                                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                  <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <span style={{ color: '#374151', fontWeight: 500 }}>
                                   {log.label}
                                 </span>
-                                {log.comment && (
-                                  <span style={{ color: '#6b7280' }}>
-                                    - {log.comment}
-                                  </span>
-                                )}
                               </div>
                             ))}
                           </div>
                         )}
                         
                         {/* Participation */}
-                        {dayGroup.participation.length > 0 && (
-                          <div style={{ marginBottom: '1rem' }}>
-                            <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6', marginBottom: '0.5rem' }}>
-                              PARTICIPATION
-                            </h5>
+                        {activeFilters.participation && dayGroup.participation.length > 0 && (
+                          <div style={{ marginBottom: '0.5rem' }}>
                             {dayGroup.participation.map((log, idx) => (
                               <div key={idx} style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 gap: '0.5rem',
-                                padding: '0.25rem 0',
-                                fontSize: '0.8125rem'
+                                padding: '0.375rem 0',
+                                fontSize: '0.8125rem',
+                                borderBottom: idx === dayGroup.participation.length - 1 ? 'none' : '1px solid #f1f5f9'
                               }}>
-                                <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                   {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                 </span>
-                                <span style={{ 
-                                  padding: '0.125rem 0.375rem',
-                                  background: '#dcfce7',
-                                  color: '#166534',
-                                  borderRadius: '0.25rem',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 600
-                                }}>
-                                  +{log.points}
-                                </span>
-                                <span style={{ color: '#374151' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#3b82f6', marginRight: '0.5rem' }}>
+                                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                  <circle cx="9" cy="7" r="4"></circle>
+                                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                <span style={{ color: '#374151', fontWeight: 500 }}>
                                   {log.label}
                                 </span>
-                                {log.comment && (
-                                  <span style={{ color: '#6b7280' }}>
-                                    - {log.comment}
-                                  </span>
-                                )}
-                                {log.severity && (
-                                  <span style={{ 
-                                    padding: '0.125rem 0.375rem',
-                                    background: '#f3f4f6',
-                                    color: '#6b7280',
-                                    borderRadius: '0.25rem',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {log.severity}
-                                  </span>
-                                )}
                               </div>
                             ))}
                           </div>
                         )}
                         
                         {/* Penalties */}
-                        {dayGroup.penalties.length > 0 && (
-                          <div>
-                            <h5 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.5rem' }}>
-                              PENALTIES
-                            </h5>
+                        {activeFilters.penalties && dayGroup.penalties.length > 0 && (
+                          <div style={{ marginBottom: '0.5rem' }}>
                             {dayGroup.penalties.map((log, idx) => (
                               <div key={idx} style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 gap: '0.5rem',
-                                padding: '0.25rem 0',
-                                fontSize: '0.8125rem'
+                                padding: '0.375rem 0',
+                                fontSize: '0.8125rem',
+                                borderBottom: idx === dayGroup.penalties.length - 1 ? 'none' : '1px solid #f1f5f9'
                               }}>
-                                <span style={{ color: '#6b7280', minWidth: '80px' }}>
+                                <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                   {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                 </span>
-                                <span style={{ 
-                                  padding: '0.125rem 0.375rem',
-                                  background: '#fee2e2',
-                                  color: '#dc2626',
-                                  borderRadius: '0.25rem',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 600
-                                }}>
-                                  {log.points > 0 ? `+${log.points}` : log.points}
-                                </span>
-                                <span style={{ color: '#374151' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#ef4444', marginRight: '0.5rem' }}>
+                                  <circle cx="12" cy="12" r="10"></circle>
+                                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                                <span style={{ color: '#374151', fontWeight: 500 }}>
                                   {log.label}
                                 </span>
-                                {log.comment && (
-                                  <span style={{ color: '#6b7280' }}>
-                                    - {log.comment}
-                                  </span>
-                                )}
-                                {log.severity && (
-                                  <span style={{ 
-                                    padding: '0.125rem 0.375rem',
-                                    background: '#f3f4f6',
-                                    color: '#6b7280',
-                                    borderRadius: '0.25rem',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {log.severity}
-                                  </span>
-                                )}
                               </div>
                             ))}
                           </div>
@@ -2081,24 +2048,6 @@ export default function StudentActionPanel({
               })
             )}
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
-          <Button
-            onClick={handleApply}
-            disabled={selectedActions.length === 0}
-            style={{ fontSize: '0.875rem' }}
-          >
-            Apply Actions
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            style={{ fontSize: '0.875rem' }}
-          >
-            Cancel
-          </Button>
         </div>
       </div>
     </div>
