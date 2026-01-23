@@ -7,6 +7,7 @@ import { getPenalties } from '../../firebase/penalties';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '../../firebase/userPreferences';
 import { useAuth } from '../../contexts/AuthContext';
 import { Mail, ChevronDown, QrCode, User } from 'lucide-react';
+import eventBus, { EVENTS } from '../../utils/eventBus';
 
 const SearchIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -138,6 +139,102 @@ export default function StudentRoster({
     }
   }, [user?.uid]);
 
+  const fetchStudentHistory = async (studentId) => {
+    try {
+      // Get all attendance records for this student
+      const attendanceResponse = await getAttendanceByStudent(studentId);
+      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+      
+      // Get all penalties for this student
+      const penaltiesResponse = await getPenalties();
+      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      const studentPenalties = allPenalties.filter(p => p.studentId === studentId);
+      
+      // Combine and format logs
+      const logs = [
+        ...attendanceRecords.map(record => ({
+          type: 'attendance',
+          date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
+          time: record.timestamp || record.date,
+          label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
+          points: record.delta || 0,
+          comment: record.reason || '',
+          severity: 'low',
+          color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
+        })),
+        ...studentPenalties.map(penalty => ({
+          type: 'penalty',
+          date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
+          time: penalty.createdAt,
+          label: penalty.reason || 'Penalty',
+          points: penalty.points || 0,
+          comment: penalty.comment || '',
+          severity: penalty.severity || 'medium',
+          color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
+        }))
+      ].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+      });
+      
+      setStudentHistory(prev => ({
+        ...prev,
+        [studentId]: logs
+      }));
+    } catch (error) {
+      console.error('Error fetching student history:', error);
+    }
+  };
+
+  // Listen for real-time activity updates
+  useEffect(() => {
+    const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, () => {
+      console.log('StudentRoster: Activity update received');
+      // Refresh student history for all expanded students
+      const expandedStudents = Array.from(expandedRows);
+      expandedStudents.forEach(studentId => {
+        fetchStudentHistory(studentId);
+      });
+    });
+
+    const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
+      console.log('StudentRoster: Attendance marked for', data.studentId);
+      if (expandedRows.has(data.studentId)) {
+        fetchStudentHistory(data.studentId);
+      }
+    });
+
+    const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, (data) => {
+      console.log('StudentRoster: Behavior logged for', data.studentId);
+      if (expandedRows.has(data.studentId)) {
+        fetchStudentHistory(data.studentId);
+      }
+    });
+
+    const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, (data) => {
+      console.log('StudentRoster: Participation added for', data.studentId);
+      if (expandedRows.has(data.studentId)) {
+        fetchStudentHistory(data.studentId);
+      }
+    });
+
+    const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, (data) => {
+      console.log('StudentRoster: Penalty assigned for', data.studentId);
+      if (expandedRows.has(data.studentId)) {
+        fetchStudentHistory(data.studentId);
+      }
+    });
+
+    return () => {
+      unsubscribeActivity();
+      unsubscribeAttendance();
+      unsubscribeBehavior();
+      unsubscribeParticipation();
+      unsubscribePenalty();
+    };
+  }, [expandedRows, fetchStudentHistory]);
+
   const toggleFavorite = async (studentId) => {
     if (!user?.uid) return;
     
@@ -165,51 +262,7 @@ export default function StudentRoster({
       newExpanded.add(studentId);
       // Fetch historical data for this student if not already loaded
       if (!studentHistory[studentId]) {
-        try {
-          // Get all attendance records for this student
-          const attendanceResponse = await getAttendanceByStudent(studentId);
-          const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
-          
-          // Get all penalties for this student
-          const penaltiesResponse = await getPenalties();
-          const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-          const studentPenalties = allPenalties.filter(p => p.studentId === studentId);
-          
-          // Combine and format logs
-          const logs = [
-            ...attendanceRecords.map(record => ({
-              type: 'attendance',
-              date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
-              time: record.timestamp || record.date,
-              label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
-              points: record.delta || 0,
-              comment: record.reason || '',
-              severity: 'low',
-              color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
-            })),
-            ...studentPenalties.map(penalty => ({
-              type: 'penalty',
-              date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
-              time: penalty.createdAt,
-              label: penalty.reason || 'Penalty',
-              points: penalty.points || 0,
-              comment: penalty.comment || '',
-              severity: penalty.severity || 'medium',
-              color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
-            }))
-          ].sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            return dateB - dateA;
-          });
-          
-          setStudentHistory(prev => ({
-            ...prev,
-            [studentId]: logs
-          }));
-        } catch (error) {
-          console.error('Error fetching student history:', error);
-        }
+        await fetchStudentHistory(studentId);
       }
     }
     setExpandedRows(newExpanded);

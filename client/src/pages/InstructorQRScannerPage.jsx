@@ -16,6 +16,7 @@ import StudentActionPanel from '../components/qr-scanner/StudentActionPanel';
 import StudentActionPanelNew from '../components/qr-scanner/StudentActionPanelNew';
 import '../components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
+import eventBus, { EVENTS } from '../utils/eventBus';
 
 const InstructorQRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -44,6 +45,7 @@ const InstructorQRScannerPage = () => {
   const [error, setError] = useState(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
+  const [showScanner, setShowScanner] = useState(true);
 
   // Debug: Track selectedStudentForAction changes
   React.useEffect(() => {
@@ -51,7 +53,19 @@ const InstructorQRScannerPage = () => {
   }, [selectedStudentForAction]);
 
   // Sidebar state
-  const [showScanner, setShowScanner] = useState(true);
+  const [activityRefresh, setActivityRefresh] = useState(null);
+
+  // Handle activity refresh from QRScanner
+  const handleActivityUpdate = (refreshFunction) => {
+    setActivityRefresh(() => refreshFunction);
+  };
+
+  // Trigger activity refresh when actions are performed
+  const triggerActivityRefresh = () => {
+    if (activityRefresh) {
+      activityRefresh();
+    }
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -469,6 +483,18 @@ const InstructorQRScannerPage = () => {
 
       // Reload students to reflect changes
       await loadStudents(selectedClassId, selectedDate);
+      
+      // Emit real-time event for activity updates
+      eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+        studentId,
+        classId: selectedClassId,
+        status,
+        performedBy: user,
+        timestamp: new Date()
+      });
+      
+      // Trigger activity refresh to update recent activity
+      triggerActivityRefresh();
     } catch (error) {
       console.error('Error marking attendance:', error);
     }
@@ -516,9 +542,44 @@ const InstructorQRScannerPage = () => {
       // Reload students
       await loadStudents(selectedClassId, selectedDate);
 
+      // Emit events for each action type
+      participationActions.forEach(action => {
+        eventBus.emit(EVENTS.PARTICIPATION_ADDED, {
+          studentId,
+          actionType: action.type,
+          points: pointsOverride[action.type] || action.points,
+          performedBy: user,
+          timestamp: new Date()
+        });
+      });
+
+      behaviorActions.forEach(action => {
+        eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {
+          studentId,
+          actionType: action.type,
+          points: pointsOverride[action.type] || action.points,
+          note,
+          performedBy: user,
+          timestamp: new Date()
+        });
+      });
+
+      penaltyActions.forEach(action => {
+        eventBus.emit(EVENTS.PENALTY_ASSIGNED, {
+          studentId,
+          actionType: action.type,
+          points: pointsOverride[action.type] || action.points,
+          performedBy: user,
+          timestamp: new Date()
+        });
+      });
+
       // Update selected student
       const updatedStudent = students.find(s => s.id === studentId);
       setSelectedStudent(updatedStudent);
+      
+      // Trigger activity refresh to update recent activity
+      triggerActivityRefresh();
     } catch (error) {
       console.error('Error submitting behavior:', error);
     }
@@ -956,93 +1017,11 @@ const InstructorQRScannerPage = () => {
           gap: '1.5rem'
         }}>
           {showScanner && selectedClassId && (
-            <QRScanner onScan={handleScan} />
-          )}
-          
-          {/* Recent Activity */}
-          {selectedClassId && (
-            <div style={{
-              padding: '0.75rem',
-              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-              border: '1px solid #e2e8f0',
-              borderRadius: '0.5rem',
-              fontSize: '0.75rem'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginBottom: '0.5rem',
-                fontWeight: 600,
-                color: '#374151'
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                Recent Activity
-              </div>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.25rem',
-                maxHeight: '200px',
-                overflow: 'auto'
-              }}>
-                {/* Get recent activities from the last 5 scans */}
-                {(() => {
-                  // This would normally come from props or state
-                  // For now, we'll show a placeholder
-                  const recentScans = [
-                    { time: new Date(), action: 'Attendance Marked', student: 'John Doe', user: { displayName: 'Instructor' } },
-                    { time: new Date(Date.now() - 300000), action: 'Behavior Logged', student: 'Jane Smith', user: { displayName: 'Instructor' } },
-                    { time: new Date(Date.now() - 600000), action: 'Participation Added', student: 'Mike Johnson', user: { displayName: 'Instructor' } }
-                  ];
-                  
-                  return recentScans.map((activity, idx) => (
-                    <div key={idx} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.25rem 0.5rem',
-                      background: 'white',
-                      borderRadius: '0.375rem',
-                      border: '1px solid #e5e7eb'
-                    }}>
-                      <span style={{ color: '#64748b', fontSize: '0.625rem', minWidth: '60px' }}>
-                        {activity.time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                      </span>
-                      <span style={{ fontWeight: 500, color: '#374151', fontSize: '0.7rem' }}>
-                        {activity.action}
-                      </span>
-                      <span style={{ color: '#6b7280', fontSize: '0.65rem' }}>
-                        → {activity.student}
-                      </span>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        marginLeft: 'auto',
-                        padding: '0.125rem 0.375rem',
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.6rem',
-                        color: '#166534'
-                      }}>
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                          <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        <span style={{ fontWeight: 500 }}>
-                          {activity.user.displayName}
-                        </span>
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
+            <QRScanner 
+              onScan={handleScan} 
+              classId={selectedClassId}
+              onActivityUpdate={handleActivityUpdate}
+            />
           )}
         </div>
 

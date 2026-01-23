@@ -3,6 +3,8 @@ import { Button } from './ui/button';
 import jsQR from 'jsqr';
 import { getAttendanceByClass } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
+import eventBus, { EVENTS } from '../../utils/eventBus';
+import { useAuth } from '../../contexts/AuthContext';
 
 const QrCodeIcon = ({ className }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -20,7 +22,8 @@ const CameraIcon = ({ className }) => (
   </svg>
 );
 
-export default function QRScanner({ onScan, classId }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate }) {
+  const { user } = useAuth();
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState(0);
   const [error, setError] = useState('');
@@ -192,7 +195,9 @@ export default function QRScanner({ onScan, classId }) {
           type: 'attendance',
           label: `${record.studentName || 'Student'} was marked ${record.status || 'Present'}`,
           status: record.status || 'present',
-          method: 'QR Scan'
+          method: record.method || 'QR Scan',
+          performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
+          scanMethod: record.scanMethod || 'auto' // 'auto', 'manual_instructor', 'manual_hr', 'manual_student'
         };
       });
       
@@ -204,6 +209,49 @@ export default function QRScanner({ onScan, classId }) {
       setActivityLoading(false);
     }
   };
+
+  // Listen for real-time activity updates
+  useEffect(() => {
+    const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, () => {
+      console.log('QRScanner: Activity update received');
+      fetchRecentActivity();
+    });
+
+    const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, () => {
+      console.log('QRScanner: Attendance marked');
+      fetchRecentActivity();
+    });
+
+    const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, () => {
+      console.log('QRScanner: Behavior logged');
+      fetchRecentActivity();
+    });
+
+    const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, () => {
+      console.log('QRScanner: Participation added');
+      fetchRecentActivity();
+    });
+
+    const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, () => {
+      console.log('QRScanner: Penalty assigned');
+      fetchRecentActivity();
+    });
+
+    return () => {
+      unsubscribeActivity();
+      unsubscribeAttendance();
+      unsubscribeBehavior();
+      unsubscribeParticipation();
+      unsubscribePenalty();
+    };
+  }, [classId]);
+
+  // Expose refresh function to parent
+  useEffect(() => {
+    if (onActivityUpdate) {
+      onActivityUpdate(fetchRecentActivity);
+    }
+  }, [onActivityUpdate]);
 
   // Fetch activity when classId changes
   useEffect(() => {
@@ -430,6 +478,41 @@ export default function QRScanner({ onScan, classId }) {
             </div>
           ) : (
             recentActivity.map((activity) => {
+              const getScanMethodDisplay = (scanMethod) => {
+                switch(scanMethod) {
+                  case 'auto':
+                    return {
+                      icon: '📱',
+                      text: 'QR Scan',
+                      color: '#10b981'
+                    };
+                  case 'manual_instructor':
+                    return {
+                      icon: '',
+                      text: 'Manual',
+                      color: '#3b82f6'
+                    };
+                  case 'manual_hr':
+                    return {
+                      icon: '',
+                      text: 'Manual (HR)',
+                      color: '#8b5cf6'
+                    };
+                  case 'manual_student':
+                    return {
+                      icon: '',
+                      text: 'Manual (Student)',
+                      color: '#f59e0b'
+                    };
+                  default:
+                    return {
+                      icon: '',
+                      text: 'Manual',
+                      color: '#6b7280'
+                    };
+                }
+              };
+
               const getStatusColor = (status) => {
                 switch(status?.toLowerCase()) {
                   case 'present': return '#dcfce7';
@@ -471,41 +554,52 @@ export default function QRScanner({ onScan, classId }) {
                   <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
                     {activity.label}
                   </span>
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: 'auto' }}>
-                    {activity.method}
-                  </span>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '0.125rem 0.5rem',
+                    background: '#f3f4f6',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.6rem',
+                    color: getScanMethodDisplay(activity.scanMethod).color
+                  }}>
+                    {getScanMethodDisplay(activity.scanMethod).icon && (
+                      <span style={{ fontSize: '0.8rem' }}>
+                        {getScanMethodDisplay(activity.scanMethod).icon}
+                      </span>
+                    )}
+                    <span style={{ fontWeight: 500 }}>
+                      {getScanMethodDisplay(activity.scanMethod).text}
+                    </span>
+                  </div>
+                  {activity.performedBy && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      marginLeft: 'auto',
+                      padding: '0.125rem 0.5rem',
+                      background: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '1rem',
+                      fontSize: '0.6rem',
+                      color: '#166534'
+                    }}>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                      <span style={{ fontWeight: 500 }}>
+                        {activity.performedBy.displayName || activity.performedBy.email?.split('@')[0] || 'Unknown'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })
           )}
         </div>
-          
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.5rem 0'
-          }}>
-            <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '80px' }}>
-              09:44 AM
-            </span>
-            <div style={{
-              padding: '0.25rem 0.5rem',
-              borderRadius: '0.25rem',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              background: '#fed7aa',
-              color: '#92400e'
-            }}>
-              ⏰ Late
-            </div>
-            <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-              Sarah Jenkins was marked Late
-            </span>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: 'auto' }}>
-              Manual
-            </span>
-          </div>
         
         {devices.length > 1 && isScanning && (
           <button
