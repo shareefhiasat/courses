@@ -67,6 +67,11 @@ export default function StudentActionPanel({
     participation: false,
     penalty: false
   });
+  const [activeFilters, setActiveFilters] = useState({
+    attendance: true,
+    participation: true,
+    penalties: true
+  });
 
   // Send QR code email
   const sendQRCodeEmail = async () => {
@@ -480,6 +485,13 @@ export default function StudentActionPanel({
     setSelectedActions([]);
     setActionPoints({});
     setInternalNote('');
+  };
+
+  const toggleFilter = (filter) => {
+    setActiveFilters(prev => ({
+      ...prev,
+      [filter]: !prev[filter]
+    }));
   };
 
   const getInitials = (name) => {
@@ -1533,23 +1545,116 @@ export default function StudentActionPanel({
               background: '#8b5cf6',
               borderRadius: '1.5px'
             }} />
-            <h4 style={{
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              color: '#111827',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              margin: 0
-            }}>
-              Student History
-            </h4>
+            {/*<h4 style={{*/}
+            {/*  fontSize: '0.875rem',*/}
+            {/*  fontWeight: 600,*/}
+            {/*  color: '#111827',*/}
+            {/*  textTransform: 'uppercase',*/}
+            {/*  letterSpacing: '0.05em',*/}
+            {/*  margin: 0*/}
+            {/*}}>*/}
+            {/*  Student History*/}
+            {/*</h4>*/}
           </div>
+          {/* History Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1rem',
+            padding: '0.5rem',
+            background: '#f8fafc',
+            borderRadius: '0.5rem',
+            border: '1px solid #e2e8f0'
+          }}>
+            {/*<h4 style={{*/}
+            {/*  fontSize: '0.875rem',*/}
+            {/*  fontWeight: 600,*/}
+            {/*  color: '#374151',*/}
+            {/*  margin: 0*/}
+            {/*}}>*/}
+            {/*  Student History*/}
+            {/*</h4>*/}
+            <div style={{
+              display: 'flex',
+              gap: '0.25rem'
+            }}>
+              <button
+                onClick={() => toggleFilter('attendance')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid #e2e8f0',
+                  background: activeFilters.attendance ? '#065f46' : '#ffffff',
+                  color: activeFilters.attendance ? 'white' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Attendance
+              </button>
+              <button
+                onClick={() => toggleFilter('participation')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid #e2e8f0',
+                  background: activeFilters.participation ? '#3b82f6' : '#ffffff',
+                  color: activeFilters.participation ? 'white' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Participation
+              </button>
+              <button
+                onClick={() => toggleFilter('penalties')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid #e2e8f0',
+                  background: activeFilters.penalties ? '#dc2626' : '#ffffff',
+                  color: activeFilters.penalties ? 'white' : '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                Penalties
+              </button>
+            </div>
+          </div>
+          
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            gap: '0.75rem', 
-            paddingLeft: '1rem',
-            borderLeft: '3px solid #8b5cf6'
+            gap: '0.75rem'
           }}>
             {logsLoading ? (
               <div style={{
@@ -1577,6 +1682,15 @@ export default function StudentActionPanel({
                   month: 'short', 
                   day: 'numeric' 
                 });
+                
+                const filteredCounts = {
+                  attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,
+                  participation: activeFilters.participation ? dayGroup.participation.length : 0,
+                  penalties: activeFilters.penalties ? dayGroup.penalties.length : 0
+                };
+                const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.penalties > 0;
+                
+                if (!hasVisibleItems) return null;
                 
                 return (
                   <div key={dayIndex} style={{
