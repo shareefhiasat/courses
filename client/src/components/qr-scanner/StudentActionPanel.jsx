@@ -651,18 +651,13 @@ export default function StudentActionPanel({
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
-              Present
+              <div>Present</div>
               {attendanceStats.present && Number(attendanceStats.present) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
                   color: student.attendance === 'present' ? 'white' : '#10b981',
-                  background: student.attendance === 'present' ? 'transparent' : '#10b981',
-                  borderRadius: '0.125rem',
-                  padding: '0.125rem 0.25rem',
-                  minWidth: '0.75rem',
-                  textAlign: 'center',
-                  display: 'inline-block'
+                  textAlign: 'center'
                 }}>
                   {attendanceStats.present}
                 </span>
@@ -736,7 +731,7 @@ export default function StudentActionPanel({
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
-              Absent (No Excuse)
+              <div>Absent (No Excuse)</div>
               {attendanceStats.absent_no_excuse && Number(attendanceStats.absent_no_excuse) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
@@ -825,7 +820,7 @@ export default function StudentActionPanel({
                 <line x1="9" y1="9" x2="9.01" y2="9"></line>
                 <line x1="15" y1="9" x2="15.01" y2="9"></line>
               </svg>
-              Excused Leave
+              <div>Excused Leave</div>
               {attendanceStats.excused_leave && Number(attendanceStats.excused_leave) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
@@ -866,7 +861,7 @@ export default function StudentActionPanel({
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
-              Human Case
+              <div>Human Case</div>
               {attendanceStats.human_case && Number(attendanceStats.human_case) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
@@ -1096,7 +1091,7 @@ export default function StudentActionPanel({
                     minWidth: '3rem',
                     textAlign: 'center'
                   }}>
-                    Total: {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
+                    Total: {student.behavior > 0 ? '+' : ''}{student.behavior || 0}
                   </div>
                   <div style={{
                     fontSize: '0.75rem',
