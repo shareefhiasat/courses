@@ -711,6 +711,7 @@ export default function StudentRoster({
                         <Button 
                           variant="ghost" 
                           size="icon"
+                          title="student details"
                           onClick={(e) => {
                             e.stopPropagation();
                             onStudentSelect(student);

@@ -694,7 +694,7 @@ export default function StudentActionPanel({
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 12 12"></polyline>
               </svg>
-              Late
+              <div>Late</div>
               {attendanceStats.late && Number(attendanceStats.late) > 0 && (
                 <span style={{
                   fontSize: '0.5rem',
