@@ -524,11 +524,14 @@ export default function StudentActionPanel({
     if (log.type === 'attendance') {
       const status = log.data.status;
       if (status === 'present') acc.present++;
-      else if (status === 'absent_no_excuse' || status === 'absent_with_excuse') acc.absent++;
+      else if (status === 'absent_no_excuse') acc.absent_no_excuse++;
+      else if (status === 'absent_with_excuse') acc.absent_with_excuse++;
       else if (status === 'late') acc.late++;
+      else if (status === 'excused_leave') acc.excused_leave++;
+      else if (status === 'human_case') acc.human_case++;
     }
     return acc;
-  }, { present: 0, late: 0, absent: 0 });
+  }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
 
   const totalPoints = student.participation + student.behavior + student.penalty;
 
@@ -711,8 +714,8 @@ export default function StudentActionPanel({
           </h4>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '0.5rem'
+            gridTemplateColumns: 'repeat(6, 1fr)',
+            gap: '0.25rem'
           }}>
             <button
               onClick={async () => {
@@ -720,8 +723,8 @@ export default function StudentActionPanel({
                 // Auto-save immediately
               }}
               style={{
-                padding: '0.5rem',
-                borderRadius: '0.375rem',
+                padding: '0.375rem',
+                borderRadius: '0.25rem',
                 border: '2px solid #10b981',
                 background: student.attendance === 'present' ? '#10b981' : 'white',
                 color: student.attendance === 'present' ? 'white' : '#10b981',
@@ -729,17 +732,32 @@ export default function StudentActionPanel({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.75rem',
+                gap: '0.125rem',
+                fontSize: '0.625rem',
                 fontWeight: 500,
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                minWidth: '3rem'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 17"></polyline>
                 <path d="m21 16-8-5-5-5 5"></path>
               </svg>
               Present
+              {attendanceStats.present > 0 && (
+                <span style={{
+                  fontSize: '0.5rem',
+                  fontWeight: 600,
+                  color: student.attendance === 'present' ? 'white' : '#10b981',
+                  background: student.attendance === 'present' ? 'transparent' : '#10b981',
+                  borderRadius: '0.125rem',
+                  padding: '0.125rem 0.25rem',
+                  minWidth: '0.75rem',
+                  textAlign: 'center'
+                }}>
+                  {attendanceStats.present}
+                </span>
+              )}
             </button>
             <button
               onClick={async () => {
@@ -747,8 +765,8 @@ export default function StudentActionPanel({
                 // Auto-save immediately
               }}
               style={{
-                padding: '0.5rem',
-                borderRadius: '0.375rem',
+                padding: '0.375rem',
+                borderRadius: '0.25rem',
                 border: '2px solid #f59e0b',
                 background: student.attendance === 'late' ? '#f59e0b' : 'white',
                 color: student.attendance === 'late' ? 'white' : '#f59e0b',
@@ -756,44 +774,204 @@ export default function StudentActionPanel({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.75rem',
+                gap: '0.125rem',
+                fontSize: '0.625rem',
                 fontWeight: 500,
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                minWidth: '3rem'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 12 12"></polyline>
               </svg>
               Late
+              {attendanceStats.late > 0 && (
+                <span style={{
+                  fontSize: '0.5rem',
+                  fontWeight: 600,
+                  color: student.attendance === 'late' ? 'white' : '#f59e0b',
+                  background: student.attendance === 'late' ? 'transparent' : '#f59e0b',
+                  borderRadius: '0.125rem',
+                  padding: '0.125rem 0.25rem',
+                  minWidth: '0.75rem',
+                  textAlign: 'center'
+                }}>
+                  {attendanceStats.late}
+                </span>
+              )}
             </button>
             <button
               onClick={async () => {
-                await onMarkAttendance(student.id, 'absent');
+                await onMarkAttendance(student.id, 'absent_no_excuse');
                 // Auto-save immediately
               }}
               style={{
-                padding: '0.5rem',
-                borderRadius: '0.375rem',
+                padding: '0.375rem',
+                borderRadius: '0.25rem',
                 border: '2px solid #ef4444',
-                background: student.attendance === 'absent' ? '#ef4444' : 'white',
-                color: student.attendance === 'absent' ? 'white' : '#ef4444',
+                background: student.attendance === 'absent_no_excuse' ? '#ef4444' : 'white',
+                color: student.attendance === 'absent_no_excuse' ? 'white' : '#ef4444',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.75rem',
+                gap: '0.125rem',
+                fontSize: '0.625rem',
                 fontWeight: 500,
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                minWidth: '3rem'
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
               Absent
+              {attendanceStats.absent_no_excuse > 0 && (
+                <span style={{
+                  fontSize: '0.5rem',
+                  fontWeight: 600,
+                  color: student.attendance === 'absent_no_excuse' ? 'white' : '#ef4444',
+                  background: student.attendance === 'absent_no_excuse' ? 'transparent' : '#ef4444',
+                  borderRadius: '0.125rem',
+                  padding: '0.125rem 0.25rem',
+                  minWidth: '0.75rem',
+                  textAlign: 'center'
+                }}>
+                  {attendanceStats.absent_no_excuse}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={async () => {
+                await onMarkAttendance(student.id, 'absent_with_excuse');
+                // Auto-save immediately
+              }}
+              style={{
+                padding: '0.375rem',
+                borderRadius: '0.25rem',
+                border: '2px solid #f97316',
+                background: student.attendance === 'absent_with_excuse' ? '#f97316' : 'white',
+                color: student.attendance === 'absent_with_excuse' ? 'white' : '#f97316',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.125rem',
+                fontSize: '0.625rem',
+                fontWeight: 500,
+                transition: 'all 0.2s',
+                minWidth: '3rem'
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              Excused
+              {attendanceStats.absent_with_excuse > 0 && (
+                <span style={{
+                  fontSize: '0.5rem',
+                  fontWeight: 600,
+                  color: student.attendance === 'absent_with_excuse' ? 'white' : '#f97316',
+                  background: student.attendance === 'absent_with_excuse' ? 'transparent' : '#f97316',
+                  borderRadius: '0.125rem',
+                  padding: '0.125rem 0.25rem',
+                  minWidth: '0.75rem',
+                  textAlign: 'center'
+                }}>
+                  {attendanceStats.absent_with_excuse}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={async () => {
+                await onMarkAttendance(student.id, 'excused_leave');
+                // Auto-save immediately
+              }}
+              style={{
+                padding: '0.375rem',
+                borderRadius: '0.25rem',
+                border: '2px solid #800020',
+                background: student.attendance === 'excused_leave' ? '#800020' : 'white',
+                color: student.attendance === 'excused_leave' ? 'white' : '#800020',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.125rem',
+                fontSize: '0.625rem',
+                fontWeight: 500,
+                transition: 'all 0.2s',
+                minWidth: '3rem'
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+              </svg>
+              Leave
+              {attendanceStats.excused_leave > 0 && (
+                <span style={{
+                  fontSize: '0.5rem',
+                  fontWeight: 600,
+                  color: student.attendance === 'excused_leave' ? 'white' : '#800020',
+                  background: student.attendance === 'excused_leave' ? 'transparent' : '#800020',
+                  borderRadius: '0.125rem',
+                  padding: '0.125rem 0.25rem',
+                  minWidth: '0.75rem',
+                  textAlign: 'center'
+                }}>
+                  {attendanceStats.excused_leave}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={async () => {
+                await onMarkAttendance(student.id, 'human_case');
+                // Auto-save immediately
+              }}
+              style={{
+                padding: '0.375rem',
+                borderRadius: '0.25rem',
+                border: '2px solid #8b5cf6',
+                background: student.attendance === 'human_case' ? '#8b5cf6' : 'white',
+                color: student.attendance === 'human_case' ? 'white' : '#8b5cf6',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.125rem',
+                fontSize: '0.625rem',
+                fontWeight: 500,
+                transition: 'all 0.2s',
+                minWidth: '3rem'
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+              Human
+              {attendanceStats.human_case > 0 && (
+                <span style={{
+                  fontSize: '0.5rem',
+                  fontWeight: 600,
+                  color: student.attendance === 'human_case' ? 'white' : '#8b5cf6',
+                  background: student.attendance === 'human_case' ? 'transparent' : '#8b5cf6',
+                  borderRadius: '0.125rem',
+                  padding: '0.125rem 0.25rem',
+                  minWidth: '0.75rem',
+                  textAlign: 'center'
+                }}>
+                  {attendanceStats.human_case}
+                </span>
+              )}
             </button>
           </div>
         </div>
