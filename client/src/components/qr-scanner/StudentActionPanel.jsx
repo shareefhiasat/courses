@@ -519,11 +519,9 @@ export default function StudentActionPanel({
                   background: attendanceStatus.color,
                   borderRadius: '9999px'
                 }} />
-                {attendanceStatus.en !== 'Absent (No Excuse)' && (
-                  <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    Attended: {attendanceStatus.en}
-                  </span>
-                )}
+                <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                  {attendanceStatus.en}
+                </span>
               </div>
             </div>
           </div>
@@ -631,31 +629,14 @@ export default function StudentActionPanel({
 
         {/* Points Summary */}
         <div style={{ marginBottom: '1rem' }}>
-          {/* Attendance Summary */}
+          {/* 5 Total Cards Only */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
+            gridTemplateColumns: 'repeat(5, 1fr)',
             gap: '0.5rem',
             marginBottom: '1rem'
           }}>
-            {/* Attendance Summary Squares */}
-            <div style={{
-              padding: '0.5rem',
-              background: '#22c55e',
-              borderRadius: '0.5rem',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              minHeight: '3rem'
-            }}>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
-                {attendanceStats.present}
-              </div>
-              <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                Present
-              </div>
-            </div>
+            {/* Total Present */}
             <div style={{
               padding: '0.5rem',
               background: '#16a34a',
@@ -673,6 +654,8 @@ export default function StudentActionPanel({
                 Total Present
               </div>
             </div>
+            
+            {/* Total Late */}
             <div style={{
               padding: '0.5rem',
               background: '#eab308',
@@ -687,9 +670,11 @@ export default function StudentActionPanel({
                 {attendanceStats.late}
               </div>
               <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                Late
+                Total Late
               </div>
             </div>
+            
+            {/* Total Penalty */}
             <div style={{
               padding: '0.5rem',
               background: '#dc2626',
@@ -701,10 +686,48 @@ export default function StudentActionPanel({
               minHeight: '3rem'
             }}>
               <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
-                {attendanceStats.absent}
+                {student.penalty || 0}
               </div>
               <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                Total Absent
+                Total Penalty
+              </div>
+            </div>
+            
+            {/* Total Behavior */}
+            <div style={{
+              padding: '0.5rem',
+              background: '#f97316',
+              borderRadius: '0.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '3rem'
+            }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
+              </div>
+              <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                Total Behavior
+              </div>
+            </div>
+            
+            {/* Total Participation */}
+            <div style={{
+              padding: '0.5rem',
+              background: '#3b82f6',
+              borderRadius: '0.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '3rem'
+            }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                {student.participation || 0}
+              </div>
+              <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                Total Participation
               </div>
             </div>
           </div>
@@ -718,13 +741,13 @@ export default function StudentActionPanel({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '0.5rem',
-                background: '#f3f4f6',
+                background: '#f97316',
                 borderRadius: '0.5rem',
                 cursor: 'pointer',
                 marginBottom: '0.5rem'
               }}
             >
-              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
                 Behavior Details ({student.behavior || 0} points)
               </span>
               <ChevronDown 
@@ -785,13 +808,13 @@ export default function StudentActionPanel({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '0.5rem',
-                background: '#f3f4f6',
+                background: '#3b82f6',
                 borderRadius: '0.5rem',
                 cursor: 'pointer',
                 marginBottom: '0.5rem'
               }}
             >
-              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
                 Participation Details ({student.participation || 0} points)
               </span>
               <ChevronDown 
@@ -852,13 +875,13 @@ export default function StudentActionPanel({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '0.5rem',
-                background: '#f3f4f6',
+                background: '#dc2626',
                 borderRadius: '0.5rem',
                 cursor: 'pointer',
                 marginBottom: '0.5rem'
               }}
             >
-              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
                 Penalty Details ({student.penalty || 0} points)
               </span>
               <ChevronDown 

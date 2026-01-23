@@ -597,8 +597,8 @@ export default function StudentRoster({
                         height: '2.5rem',
                         borderRadius: '0.5rem',
                         fontWeight: 500,
-                        background: student.participation >= 10 ? '#d1fae5' : student.participation >= 5 ? '#dbeafe' : '#f3f4f6',
-                        color: student.participation >= 10 ? '#065f46' : student.participation >= 5 ? '#1e40af' : '#374151'
+                        background: '#dbeafe',
+                        color: '#1e40af'
                       }}>
                         {student.participation}
                       </span>

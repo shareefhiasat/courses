@@ -1330,7 +1330,7 @@ export default function StudentDashboardPage() {
                                   { key: 'homework', label: t('homework') || 'Homework', value: mark.marks?.homework, color: '#10b981' },
                                   { key: 'labsProjectResearch', label: t('labs_projects') || 'Labs/Projects', value: mark.marks?.labsProjectResearch, color: '#f59e0b' },
                                   { key: 'quizzes', label: t('quizzes') || 'Quizzes', value: mark.marks?.quizzes, color: '#ef4444' },
-                                  { key: 'participation', label: t('participation') || 'Participation', value: mark.marks?.participation, color: '#06b6d4' },
+                                  { key: 'participation', label: t('participation') || 'Participation', value: mark.marks?.participation, color: '#3b82f6' },
                                   { key: 'attendance', label: t('attendance') || 'Attendance', value: mark.marks?.attendance, color: '#84cc16' }
                                 ].filter(item => item.value != null).map((item, idx) => (
                                   <Card key={idx} style={{ borderTop: `4px solid ${item.color}`, padding: '0.75rem' }}>
