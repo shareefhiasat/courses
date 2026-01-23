@@ -13,6 +13,7 @@ import { BookOpen, FileText, Users, Filter, Star } from 'lucide-react';
 import QRScanner from '../components/qr-scanner/QRScanner';
 import StudentRoster from '../components/qr-scanner/StudentRoster';
 import StudentActionPanel from '../components/qr-scanner/StudentActionPanel';
+import StudentActionPanelNew from '../components/qr-scanner/StudentActionPanelNew';
 import '../components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
 
@@ -33,6 +34,7 @@ const InstructorQRScannerPage = () => {
   // Data state
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedStudentForAction, setSelectedStudentForAction] = useState(null);
   const [loading, setLoading] = useState(false);
   const [gridLoading, setGridLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -42,6 +44,11 @@ const InstructorQRScannerPage = () => {
   const [error, setError] = useState(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
+
+  // Debug: Track selectedStudentForAction changes
+  React.useEffect(() => {
+    console.log('selectedStudentForAction changed to:', selectedStudentForAction);
+  }, [selectedStudentForAction]);
 
   // Sidebar state
   const [showScanner, setShowScanner] = useState(true);
@@ -540,6 +547,18 @@ const InstructorQRScannerPage = () => {
     console.log('Open filter dialog');
   };
 
+  const handleStudentAction = (student) => {
+    console.log('Lightning button clicked!', student);
+    console.log('Previous selectedStudentForAction:', selectedStudentForAction);
+    setSelectedStudentForAction(student);
+    console.log('After setSelectedStudentForAction, should be:', student);
+  };
+
+  const handleCloseActionPanel = () => {
+    console.log('Closing action panel');
+    setSelectedStudentForAction(null);
+  };
+
   // Filter and sort students
   const getFilteredAndSortedStudents = () => {
     let filtered = [...students];
@@ -991,6 +1010,7 @@ const InstructorQRScannerPage = () => {
               onTogglePin={handleTogglePin}
               onDownload={handleDownload}
               onFilter={handleFilter}
+              onStudentAction={handleStudentAction}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               sortField={sortField}
@@ -1053,6 +1073,21 @@ const InstructorQRScannerPage = () => {
               }}
             />
           </div>
+        )}
+
+        {/* Student Action Panel New */}
+        {selectedStudentForAction && (
+          <>
+            {console.log('Rendering StudentActionPanelNew for:', selectedStudentForAction)}
+            <StudentActionPanelNew
+              student={selectedStudentForAction}
+              onClose={handleCloseActionPanel}
+              onBehaviorSubmit={handleBehaviorSubmit}
+              onParticipationSubmit={handleBehaviorSubmit}
+              onPenaltySubmit={handleBehaviorSubmit}
+              selectedDate={selectedDate}
+            />
+          </>
         )}
       </div>
     </div>

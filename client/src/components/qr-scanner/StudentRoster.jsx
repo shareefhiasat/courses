@@ -85,6 +85,7 @@ export default function StudentRoster({
   onTogglePin,
   onDownload,
   onFilter,
+  onStudentAction = () => {},
   searchQuery,
   onSearchChange,
   sortField,
@@ -652,7 +653,28 @@ export default function StudentRoster({
                       </td>
                     )}
                     <td style={{ padding: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('Lightning button clicked in StudentRoster!');
+                            console.log('Student data:', student);
+                            console.log('onStudentAction function:', onStudentAction);
+                            try {
+                              onStudentAction(student);
+                              console.log('onStudentAction called successfully');
+                            } catch (error) {
+                              console.error('Error calling onStudentAction:', error);
+                            }
+                          }}
+                          title="Add actions (behavior, participation, penalty)"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                          </svg>
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon"

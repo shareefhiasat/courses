@@ -1711,29 +1711,29 @@ export default function StudentActionPanel({
         </div>
 
         <div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '1rem'
-          }}>
-            <div style={{
-              width: '3px',
-              height: '24px',
-              background: '#8b5cf6',
-              borderRadius: '1.5px'
-            }} />
-            {/*<h4 style={{*/}
-            {/*  fontSize: '0.875rem',*/}
-            {/*  fontWeight: 600,*/}
-            {/*  color: '#111827',*/}
-            {/*  textTransform: 'uppercase',*/}
-            {/*  letterSpacing: '0.05em',*/}
-            {/*  margin: 0*/}
-            {/*}}>*/}
-            {/*  Student History*/}
-            {/*</h4>*/}
-          </div>
+          {/*<div style={{*/}
+          {/*  display: 'flex',*/}
+          {/*  alignItems: 'center',*/}
+          {/*  gap: '0.5rem',*/}
+          {/*  marginBottom: '1rem'*/}
+          {/*}}>*/}
+          {/*  <div style={{*/}
+          {/*    width: '3px',*/}
+          {/*    height: '24px',*/}
+          {/*    background: '#8b5cf6',*/}
+          {/*    borderRadius: '1.5px'*/}
+          {/*  }} />*/}
+          {/*  <h4 style={{*/}
+          {/*    fontSize: '0.875rem',*/}
+          {/*    fontWeight: 600,*/}
+          {/*    color: '#111827',*/}
+          {/*    textTransform: 'uppercase',*/}
+          {/*    letterSpacing: '0.05em',*/}
+          {/*    margin: 0*/}
+          {/*  }}>*/}
+          {/*    Student History*/}
+          {/*  </h4>*/}
+          {/*</div>*/}
           {/* History Header */}
           <div style={{
             display: 'flex',
