@@ -604,7 +604,7 @@ export default function StudentActionPanel({
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} style={{ marginLeft: 'auto' }}>
+          <Button variant="ghost" size="icon" onClick={onClose} title="Close panel" style={{ marginLeft: 'auto' }}>
             <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
           </Button>
         </div>
@@ -1784,7 +1784,7 @@ export default function StudentActionPanel({
                     border: '1px solid #e5e7eb',
                     borderRadius: '0.375rem',
                     overflow: 'hidden',
-                    marginBottom: '0.5rem'
+                    marginBottom: '0.25rem'
                   }}>
                     {/* Day Header */}
                     <div

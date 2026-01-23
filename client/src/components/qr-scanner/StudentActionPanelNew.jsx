@@ -306,65 +306,65 @@ export default function StudentActionPanelNew({
       {/* Action Sections */}
       <div style={{ flex: 1, overflow: 'auto', padding: '0.5rem' }}>
         {/* Tab Navigation */}
-        {/*<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>*/}
-        {/*  <button*/}
-        {/*    onClick={() => setActiveTab('participation')}*/}
-        {/*    style={{*/}
-        {/*      display: 'flex',*/}
-        {/*      alignItems: 'center',*/}
-        {/*      gap: '0.375rem',*/}
-        {/*      padding: '0.5rem 0.75rem',*/}
-        {/*      fontSize: '0.8125rem',*/}
-        {/*      borderRadius: '0.375rem',*/}
-        {/*      border: '1px solid #e2e8f0',*/}
-        {/*      background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',*/}
-        {/*      color: activeTab === 'participation' ? 'white' : '#64748b',*/}
-        {/*      cursor: 'pointer',*/}
-        {/*      boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
-        {/*    }}*/}
-        {/*  >*/}
-        {/*    <Users style={{ width: '14px', height: '14px' }} />*/}
-        {/*    Participation*/}
-        {/*  </button>*/}
-        {/*  <button*/}
-        {/*    onClick={() => setActiveTab('behavior')}*/}
-        {/*    style={{*/}
-        {/*      display: 'flex',*/}
-        {/*      alignItems: 'center',*/}
-        {/*      gap: '0.375rem',*/}
-        {/*      padding: '0.5rem 0.75rem',*/}
-        {/*      fontSize: '0.8125rem',*/}
-        {/*      borderRadius: '0.375rem',*/}
-        {/*      border: '1px solid #e2e8f0',*/}
-        {/*      background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',*/}
-        {/*      color: activeTab === 'behavior' ? 'white' : '#64748b',*/}
-        {/*      cursor: 'pointer',*/}
-        {/*      boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
-        {/*    }}*/}
-        {/*  >*/}
-        {/*    <Zap style={{ width: '14px', height: '14px' }} />*/}
-        {/*    Behavior*/}
-        {/*  </button>*/}
-        {/*  <button*/}
-        {/*    onClick={() => setActiveTab('penalty')}*/}
-        {/*    style={{*/}
-        {/*      display: 'flex',*/}
-        {/*      alignItems: 'center',*/}
-        {/*      gap: '0.375rem',*/}
-        {/*      padding: '0.5rem 0.75rem',*/}
-        {/*      fontSize: '0.8125rem',*/}
-        {/*      borderRadius: '0.375rem',*/}
-        {/*      border: '1px solid #e2e8f0',*/}
-        {/*      background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',*/}
-        {/*      color: activeTab === 'penalty' ? 'white' : '#64748b',*/}
-        {/*      cursor: 'pointer',*/}
-        {/*      boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
-        {/*    }}*/}
-        {/*  >*/}
-        {/*    <AlertCircle style={{ width: '14px', height: '14px' }} />*/}
-        {/*    Penalty*/}
-        {/*  </button>*/}
-        {/*  <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>*/}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>
+          <button
+            onClick={() => setActiveTab('participation')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8125rem',
+              borderRadius: '0.375rem',
+              border: '1px solid #e2e8f0',
+              background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',
+              color: activeTab === 'participation' ? 'white' : '#64748b',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            <Users style={{ width: '14px', height: '14px' }} />
+            Participation
+          </button>
+          <button
+            onClick={() => setActiveTab('behavior')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8125rem',
+              borderRadius: '0.375rem',
+              border: '1px solid #e2e8f0',
+              background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',
+              color: activeTab === 'behavior' ? 'white' : '#64748b',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            <Zap style={{ width: '14px', height: '14px' }} />
+            Behavior
+          </button>
+          <button
+            onClick={() => setActiveTab('penalty')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8125rem',
+              borderRadius: '0.375rem',
+              border: '1px solid #e2e8f0',
+              background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',
+              color: activeTab === 'penalty' ? 'white' : '#64748b',
+              cursor: 'pointer',
+              boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            <AlertCircle style={{ width: '14px', height: '14px' }} />
+            Penalty
+          </button>
+          <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {/*    <button*/}
         {/*      onClick={onToggleFavorites}*/}
         {/*      style={{*/}
@@ -384,8 +384,8 @@ export default function StudentActionPanelNew({
         {/*      <Star size={14} fill={showFavoritesOnly ? '#8b5cf6' : 'none'} color={showFavoritesOnly ? '#8b5cf6' : '#6b7280'} />*/}
         {/*      {showFavoritesOnly ? 'All' : 'Favorites'}*/}
         {/*    </button>*/}
-        {/*  </div>*/}
-        {/*</div>*/}
+          </div>
+        </div>
 
         {/* Select Reason Grid */}
         <div style={{ marginBottom: '0.5rem' }}>
