@@ -97,3 +97,60 @@ export const getFavoriteStudents = async (userId) => {
     return [];
   }
 };
+
+/**
+ * Add behavior to favorites
+ * @param {string} userId - User ID
+ * @param {string} behaviorId - Behavior ID to add to favorites
+ * @returns {Promise<boolean>} Success status
+ */
+export const addFavoriteBehavior = async (userId, behaviorId) => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+      preferences: {
+        favoriteBehaviors: arrayUnion(behaviorId)
+      }
+    });
+    return true;
+  } catch (error) {
+    console.error('Error adding favorite behavior:', error);
+    return false;
+  }
+};
+
+/**
+ * Remove behavior from favorites
+ * @param {string} userId - User ID
+ * @param {string} behaviorId - Behavior ID to remove from favorites
+ * @returns {Promise<boolean>} Success status
+ */
+export const removeFavoriteBehavior = async (userId, behaviorId) => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+      preferences: {
+        favoriteBehaviors: arrayRemove(behaviorId)
+      }
+    });
+    return true;
+  } catch (error) {
+    console.error('Error removing favorite behavior:', error);
+    return false;
+  }
+};
+
+/**
+ * Get favorite behaviors for user
+ * @param {string} userId - User ID
+ * @returns {Promise<Array>} Array of favorite behavior IDs
+ */
+export const getFavoriteBehaviors = async (userId) => {
+  try {
+    const preferences = await getUserPreferences(userId);
+    return preferences.favoriteBehaviors || [];
+  } catch (error) {
+    console.error('Error getting favorite behaviors:', error);
+    return [];
+  }
+};

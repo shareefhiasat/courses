@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { XIcon, StarIcon, ChevronDownIcon, ChevronRightIcon, Star, Mail, ChevronDown, Users, Zap, AlertCircle } from 'lucide-react';
@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { markAttendance } from '../../firebase/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../../constants/behaviorParticipation';
+import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '../../firebase/userPreferences';
 
 export default function StudentActionPanelNew({
   student,
@@ -34,6 +35,21 @@ export default function StudentActionPanelNew({
   const [sendingQRCode, setSendingQRCode] = useState(false);
   const [sendingSummary, setSendingSummary] = useState(false);
   const [activeTab, setActiveTab] = useState('behavior'); // 'behavior', 'participation', 'penalty'
+
+  // Load favorite behaviors from user preferences
+  useEffect(() => {
+    const loadFavoriteBehaviors = async () => {
+      if (user) {
+        try {
+          const favorites = await getFavoriteBehaviors(user.uid);
+          setFavoriteBehaviors(favorites);
+        } catch (error) {
+          console.error('Error loading favorite behaviors:', error);
+        }
+      }
+    };
+    loadFavoriteBehaviors();
+  }, [user]);
 
   // Get current attendance status
   const attendanceStatus = ATTENDANCE_STATUS_LABELS[student.attendance] || ATTENDANCE_STATUS_LABELS.present;
@@ -188,12 +204,20 @@ export default function StudentActionPanelNew({
     }));
   };
 
-  const onToggleFavorite = (optionId) => {
-    setFavoriteBehaviors(prev => 
-      prev.includes(optionId) 
-        ? prev.filter(id => id !== optionId)
-        : [...prev, optionId]
-    );
+  const onToggleFavorite = async (optionId) => {
+    if (!user) return;
+    
+    try {
+      if (favoriteBehaviors.includes(optionId)) {
+        await removeFavoriteBehavior(user.uid, optionId);
+        setFavoriteBehaviors(prev => prev.filter(id => id !== optionId));
+      } else {
+        await addFavoriteBehavior(user.uid, optionId);
+        setFavoriteBehaviors(prev => [...prev, optionId]);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite behavior:', error);
+    }
   };
 
   const getInitials = (name) => {
@@ -386,6 +410,14 @@ export default function StudentActionPanelNew({
               if (activeTab === 'participation') return option.category === 'participation';
               if (activeTab === 'penalty') return option.category === 'penalty';
               return true;
+            }).sort((a, b) => {
+              // Sort favorites to the top
+              const aIsFavorite = favoriteBehaviors.includes(a.id);
+              const bIsFavorite = favoriteBehaviors.includes(b.id);
+              
+              if (aIsFavorite && !bIsFavorite) return -1;
+              if (!aIsFavorite && bIsFavorite) return 1;
+              return 0;
             }).map((option) => {
               const isSelected = selectedActions.some(a => a.id === option.id);
               
@@ -566,22 +598,6 @@ export default function StudentActionPanelNew({
           </Button>
         </div>
       </div>
-
-      {/* Click outside overlay */}
-      {student && (
-        <div
-          onClick={onClose}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1999
-          }}
-        />
-      )}
     </div>
   );
 }
