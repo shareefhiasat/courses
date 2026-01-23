@@ -944,7 +944,7 @@ const InstructorQRScannerPage = () => {
       <div style={{
         padding: '1.5rem',
         display: 'grid',
-        gridTemplateColumns: selectedStudent ? '300px 1fr 400px' : '300px 1fr',
+        gridTemplateColumns: '300px 1fr',
         gap: '1.5rem',
         maxWidth: '1600px',
         margin: '0 auto'
