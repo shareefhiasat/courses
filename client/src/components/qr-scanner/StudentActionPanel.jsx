@@ -53,7 +53,7 @@ export default function StudentActionPanel({
   onToggleFavorite
 }) {
   const [selectedActions, setSelectedActions] = useState([]);
-  const [pointsOverride, setPointsOverride] = useState({});
+  const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
   const [activeTab, setActiveTab] = useState('behavior');
   const [todayLogs, setTodayLogs] = useState([]);
@@ -319,7 +319,7 @@ export default function StudentActionPanel({
   useEffect(() => {
     // Reset when student changes
     setSelectedActions([]);
-    setPointsOverride({});
+    setActionPoints({});
     setInternalNote('');
     
     // Fetch historical logs for the student
@@ -440,8 +440,19 @@ export default function StudentActionPanel({
     setSelectedActions((prev) => {
       const exists = prev.find(a => a.id === option.id);
       if (exists) {
+        // Remove action and its points
+        setActionPoints(prevPoints => {
+          const newPoints = { ...prevPoints };
+          delete newPoints[option.id];
+          return newPoints;
+        });
         return prev.filter(a => a.id !== option.id);
       } else {
+        // Add action with default points
+        setActionPoints(prev => ({
+          ...prev,
+          [option.id]: option.points || 0
+        }));
         return [...prev, option];
       }
     });
@@ -449,7 +460,7 @@ export default function StudentActionPanel({
 
   const handlePointsChange = (optionId, value) => {
     const numValue = parseInt(value) || 0;
-    setPointsOverride(prev => ({
+    setActionPoints(prev => ({
       ...prev,
       [optionId]: numValue
     }));
@@ -460,14 +471,14 @@ export default function StudentActionPanel({
 
     const actions = selectedActions.map((action) => ({
       type: action.id,
-      points: pointsOverride[action.id] !== undefined ? pointsOverride[action.id] : action.points,
+      points: actionPoints[action.id] || 0, // Use the mandatory points field
       timestamp: new Date(),
       category: action.category
     }));
 
-    onBehaviorSubmit(student.id, actions, internalNote, pointsOverride);
+    onBehaviorSubmit(student.id, actions, internalNote);
     setSelectedActions([]);
-    setPointsOverride({});
+    setActionPoints({});
     setInternalNote('');
   };
 
@@ -672,6 +683,107 @@ export default function StudentActionPanel({
             </div>
           )}
         </div>
+        </div>
+
+        {/* Attendance Status - Moved to top */}
+        <div style={{ marginBottom: '1rem' }}>
+          <h4 style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: '#111827',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            marginBottom: '0.5rem'
+          }}>
+            {/*Attendance Status*/}
+          </h4>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '0.5rem'
+          }}>
+            <button
+              onClick={async () => {
+                await onMarkAttendance(student.id, 'present');
+                // Auto-save immediately
+              }}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '0.375rem',
+                border: '2px solid #10b981',
+                background: student.attendance === 'present' ? '#10b981' : 'white',
+                color: student.attendance === 'present' ? 'white' : '#10b981',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.25rem',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                transition: 'all 0.2s'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 17"></polyline>
+                <path d="m21 16-8-5-5-5 5"></path>
+              </svg>
+              Present
+            </button>
+            <button
+              onClick={async () => {
+                await onMarkAttendance(student.id, 'late');
+                // Auto-save immediately
+              }}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '0.375rem',
+                border: '2px solid #f59e0b',
+                background: student.attendance === 'late' ? '#f59e0b' : 'white',
+                color: student.attendance === 'late' ? 'white' : '#f59e0b',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.25rem',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                transition: 'all 0.2s'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 12 12"></polyline>
+              </svg>
+              Late
+            </button>
+            <button
+              onClick={async () => {
+                await onMarkAttendance(student.id, 'absent');
+                // Auto-save immediately
+              }}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '0.375rem',
+                border: '2px solid #ef4444',
+                background: student.attendance === 'absent' ? '#ef4444' : 'white',
+                color: student.attendance === 'absent' ? 'white' : '#ef4444',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.25rem',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                transition: 'all 0.2s'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Absent
+            </button>
+          </div>
         </div>
 
         {/* Points Summary */}
@@ -1261,9 +1373,6 @@ export default function StudentActionPanel({
           }}>
             {options.map((option) => {
               const isSelected = selectedActions.some(a => a.id === option.id);
-              const currentPoints = pointsOverride[option.id] !== undefined 
-                ? pointsOverride[option.id] 
-                : option.points;
               
               return (
                 <div
@@ -1319,9 +1428,9 @@ export default function StudentActionPanel({
                       <div style={{
                         fontSize: '0.75rem',
                         fontWeight: 600,
-                        color: currentPoints >= 0 ? '#059669' : '#dc2626'
+                        color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626'
                       }}>
-                        {currentPoints >= 0 ? '+' : ''}{currentPoints}
+                        {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
                       </div>
                     </div>
                   </button>
@@ -1349,131 +1458,46 @@ export default function StudentActionPanel({
                     />
                   </button>
                   
-                  {/* Points Input */}
+                  {/* Points Input - Always show when selected */}
                   {isSelected && (
                     <div style={{
-                      marginTop: '0.5rem',
+                      marginTop: '0.25rem',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.25rem'
                     }}>
+                      <span style={{ fontSize: '0.625rem', color: '#6b7280', fontWeight: 500 }}>
+                        Points:
+                      </span>
                       <input
                         type="number"
                         min="-10"
                         max="10"
-                        value={pointsOverride[option.id] !== undefined ? pointsOverride[option.id] : option.points}
+                        value={actionPoints[option.id] || 0}
                         onChange={(e) => {
                           const value = Math.max(-10, Math.min(10, parseInt(e.target.value) || 0));
                           handlePointsChange(option.id, value);
                         }}
                         onClick={(e) => e.stopPropagation()}
+                        placeholder="0"
+                        required
                         style={{
-                          width: '3rem',
-                          padding: '0.25rem',
+                          width: '2.5rem',
+                          height: '1.5rem',
+                          padding: '0.125rem',
                           border: '1px solid #d1d5db',
                           borderRadius: '0.25rem',
-                          fontSize: '0.75rem',
-                          textAlign: 'center'
+                          fontSize: '0.625rem',
+                          textAlign: 'center',
+                          fontWeight: 500
                         }}
                       />
-                      <span style={{ fontSize: '0.625rem', color: '#6b7280' }}>pts</span>
                     </div>
                   )}
                 </div>
 
               );
             })}
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h4 style={{
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: '#111827',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '1rem'
-          }}>
-            Attendance Status
-          </h4>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '0.75rem'
-          }}>
-            <button
-              onClick={() => onMarkAttendance(student.id, 'present')}
-              style={{
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                border: '2px solid #10b981',
-                background: student.attendance === 'present' ? '#10b981' : 'white',
-                color: student.attendance === 'present' ? 'white' : '#10b981',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                transition: 'all 0.2s'
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 17"></polyline>
-                <path d="m21 16-8-5-5-5 5"></path>
-              </svg>
-              {/*Present*/}
-            </button>
-            <button
-              onClick={() => onMarkAttendance(student.id, 'late')}
-              style={{
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                border: '2px solid #f59e0b',
-                background: student.attendance === 'late' ? '#f59e0b' : 'white',
-                color: student.attendance === 'late' ? 'white' : '#f59e0b',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                transition: 'all 0.2s'
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 12 12"></polyline>
-              </svg>
-              {/*Late*/}
-            </button>
-            <button
-              onClick={() => onMarkAttendance(student.id, 'absent')}
-              style={{
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                border: '2px solid #ef4444',
-                background: student.attendance === 'absent' ? '#ef4444' : 'white',
-                color: student.attendance === 'absent' ? 'white' : '#ef4444',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                transition: 'all 0.2s'
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-              {/*Absent*/}
-            </button>
           </div>
         </div>
 
