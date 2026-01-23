@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
@@ -20,6 +20,17 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
+
+// Set session persistence to LOCAL (never expires automatically)
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log('✅ Firebase session persistence set to LOCAL - sessions will persist across browser restarts');
+  })
+  .catch((error) => {
+    console.error('❌ Failed to set Firebase session persistence:', error);
+    // Fallback to default behavior
+  });
+
 // Use initializeFirestore to improve reliability on some networks/environments
 export const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true
