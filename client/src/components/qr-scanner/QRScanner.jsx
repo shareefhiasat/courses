@@ -623,7 +623,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                   case 'present': return 'Present';
                   case 'late': return 'Late';
                   case 'absent': return 'Absent';
-                  case 'absent_no_excuse': return 'Absent (No Excuse)';
+                  case 'absent_no_excuse': return 'Absent';
                   case 'absent_with_excuse': return 'Absent (Excused)';
                   case 'excused_leave': return 'Excused Leave';
                   case 'human_case': return 'Human Case';

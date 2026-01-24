@@ -481,8 +481,8 @@ const InstructorQRScannerPage = () => {
         if (student && currentClass) {
           const statusLabels = {
             present: { en: 'Present', ar: 'حاضر' },
-            absent_no_excuse: { en: 'Absent (No Excuse)', ar: 'غائب (بدون عذر)' },
-            absent_with_excuse: { en: 'Absent (With Excuse)', ar: 'غائب (بعذر)' },
+            absent_no_excuse: { en: 'Absent', ar: 'غائب (بدون عذر)' },
+            absent_with_excuse: { en: 'Absent (Excused)', ar: 'غائب (بعذر)' },
             late: { en: 'Late', ar: 'متأخر' },
             excused_leave: { en: 'Excused Leave', ar: 'إجازة' },
             human_case: { en: 'Human Case', ar: 'حالة إنسانية' }
