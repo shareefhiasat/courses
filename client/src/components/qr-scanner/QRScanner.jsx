@@ -366,9 +366,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} style={{
-      background: 'white',
+      background: 'var(--panel, white)',
       borderRadius: '0.75rem',
-      border: '1px solid #e5e7eb',
+      border: '1px solid var(--border, #e5e7eb)',
       padding: '1.5rem'
     }}>
       <div style={{
@@ -378,8 +378,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         marginBottom: '1rem'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <QrCodeIcon className="w-5 h-5" style={{ width: '1.25rem', height: '1.25rem', color: '#8b5cf6' }} />
-          <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '0.875rem' }}>
+          <QrCodeIcon className="w-5 h-5" style={{ width: '1.25rem', height: '1.25rem', color: 'var(--color-primary, #8b5cf6)' }} />
+          <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
             {t('scanner')} {isScanning ? t('active') || 'Active' : t('ready') || 'Ready'}
           </h3>
         </div>
@@ -415,11 +415,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               color: '#475569',
               margin: '0 auto 0.75rem'
             }} />
-            <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: 0 }}>
+            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.875rem', margin: 0 }}>
               {t('tap_to_activate')}
             </p>
             {error && (
-              <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+              <p style={{ color: 'var(--color-danger, #ef4444)', fontSize: '0.75rem', marginTop: '0.5rem' }}>
                 {error}
               </p>
             )}
@@ -764,7 +764,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     }}>
                       {getStatusIcon(activity.status, activity.type, activity.delta)} {getStatusLabel(activity.status, activity.type, activity.delta)}
                     </div>
-                    <span style={{ fontSize: '0.8125rem', color: '#374151', flex: 1 }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1 }}>
                       {activity.studentName}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -777,7 +777,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#ef4444',
+                            color: 'var(--color-danger, #ef4444)',
                             cursor: 'pointer',
                             padding: '0.25rem',
                             display: 'flex',

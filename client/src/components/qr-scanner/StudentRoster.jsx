@@ -530,9 +530,9 @@ export default function StudentRoster({
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} style={{
-      background: 'white',
+      background: 'var(--panel, white)',
       borderRadius: '0.75rem',
-      border: '1px solid #e5e7eb',
+      border: '1px solid var(--border, #e5e7eb)',
       padding: '1.5rem',
       width: '100%',
       maxWidth: '100%'
@@ -548,7 +548,7 @@ export default function StudentRoster({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{
             fontSize: '0.875rem',
-            color: '#6b7280',
+            color: 'var(--text-muted, #6b7280)',
             marginTop: '0.25rem',
             marginBottom: 0
           }}>
@@ -584,7 +584,7 @@ export default function StudentRoster({
               transform: 'translateY(-50%)',
               width: '1rem',
               height: '1rem',
-              color: '#6b7280'
+              color: 'var(--text-muted, #6b7280)'
             }} />
             <Input
               placeholder={t('search_student')}
@@ -634,10 +634,203 @@ export default function StudentRoster({
         </div>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ overflowX: isMobile ? 'visible' : 'auto' }}>
+        {isMobile ? (
+          // Mobile Card Layout
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {students
+              .filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id))
+              .map((student) => {
+              const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
+              const isExpanded = expandedRows.has(student.id);
+              
+              return (
+                <div
+                  key={student.id}
+                  style={{
+                    background: selectedStudentId === student.id ? 'var(--panel-hover, #eff6ff)' : 'var(--panel, white)',
+                    border: '1px solid var(--border, #e5e7eb)',
+                    borderRadius: '0.5rem',
+                    padding: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onClick={() => onStudentSelect(student)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onTogglePin(student.id);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        <StarIcon 
+                          style={{ 
+                            width: '1rem', 
+                            height: '1rem', 
+                            color: favoriteStudents.includes(student.id) ? '#f59e0b' : 'var(--text-muted, #d1d5db)'
+                          }} 
+                          filled={favoriteStudents.includes(student.id)}
+                        />
+                      </button>
+                      <div style={{
+                        width: '2.5rem',
+                        height: '2.5rem',
+                        borderRadius: '9999px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        background: avatarColor.bg,
+                        color: avatarColor.color
+                      }}>
+                        {getInitials(student.displayName || student.realName || student.name || '')}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500, color: 'var(--text, #111827)', fontSize: '0.875rem' }}>
+                          {student.displayName || student.realName || student.name || student.email}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                          ID: STU-{student.studentNumber || student.studentId?.slice(-4) || '0000'}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleRowExpansion(student.id);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0.25rem'
+                      }}
+                    >
+                      {isExpanded ? (
+                        <ChevronDownIcon style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} />
+                      ) : (
+                        isRTL ? (
+                          <ChevronDownIcon style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)', transform: 'rotate(-90deg)' }} />
+                        ) : (
+                          <ChevronRightIcon style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} />
+                        )
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('attendance')}:</span>
+                      {getAttendanceBadge(student.attendance)}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('part')}:</span>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '2rem',
+                        height: '1.75rem',
+                        borderRadius: '0.375rem',
+                        fontWeight: 500,
+                        background: '#dbeafe',
+                        color: '#1e40af',
+                        fontSize: '0.75rem',
+                        padding: '0 0.5rem'
+                      }}>
+                        {student.participation}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('behavior')}:</span>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '2rem',
+                        height: '1.75rem',
+                        borderRadius: '0.375rem',
+                        fontWeight: 500,
+                        background: student.behavior >= 0 ? '#d1fae5' : '#fee2e2',
+                        color: student.behavior >= 0 ? '#065f46' : '#991b1b',
+                        fontSize: '0.75rem',
+                        padding: '0 0.5rem'
+                      }}>
+                        {student.behavior}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('penalties')}:</span>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '2rem',
+                        height: '1.75rem',
+                        borderRadius: '0.375rem',
+                        fontWeight: 500,
+                        background: student.penalty < 0 ? '#fee2e2' : '#f3f4f6',
+                        color: student.penalty < 0 ? '#991b1b' : '#374151',
+                        fontSize: '0.75rem',
+                        padding: '0 0.5rem'
+                      }}>
+                        {student.penalty}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          onStudentAction(student);
+                        } catch (error) {
+                          console.error('Error calling onStudentAction:', error);
+                        }
+                      }}
+                      style={{ flex: 1 }}
+                    >
+                      {t('actions')}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onStudentSelect(student);
+                      }}
+                      style={{ flex: 1 }}
+                    >
+                      {t('stats')}
+                    </Button>
+                  </div>
+                  
+                  {isExpanded && studentHistory[student.id] && (
+                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
+                      {/* History content - same as desktop */}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          // Desktop Table Layout
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+            <tr style={{ borderBottom: '1px solid var(--border, #e5e7eb)' }}>
               <th style={{ width: '40px', padding: '0.75rem 1rem' }}></th>
               <th 
                 onClick={() => onSort('name')}
@@ -646,7 +839,7 @@ export default function StudentRoster({
                   padding: '0.75rem 1rem',
                   fontSize: '0.75rem',
                   fontWeight: 500,
-                  color: '#6b7280',
+                  color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   cursor: 'pointer',
@@ -662,7 +855,7 @@ export default function StudentRoster({
                   padding: '0.75rem 1rem',
                   fontSize: '0.75rem',
                   fontWeight: 500,
-                  color: '#6b7280',
+                  color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   cursor: 'pointer',
@@ -678,7 +871,7 @@ export default function StudentRoster({
                   padding: '0.75rem 1rem',
                   fontSize: '0.75rem',
                   fontWeight: 500,
-                  color: '#6b7280',
+                  color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   cursor: 'pointer',
@@ -694,7 +887,7 @@ export default function StudentRoster({
                   padding: '0.75rem 1rem',
                   fontSize: '0.75rem',
                   fontWeight: 500,
-                  color: '#6b7280',
+                  color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   cursor: 'pointer',
@@ -710,7 +903,7 @@ export default function StudentRoster({
                   padding: '0.75rem 1rem',
                   fontSize: '0.75rem',
                   fontWeight: 500,
-                  color: '#6b7280',
+                  color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   cursor: 'pointer',
@@ -727,7 +920,7 @@ export default function StudentRoster({
                     padding: '0.75rem 1rem',
                     fontSize: '0.75rem',
                     fontWeight: 500,
-                    color: '#6b7280',
+                    color: 'var(--text-muted, #6b7280)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     cursor: 'pointer',
@@ -742,7 +935,7 @@ export default function StudentRoster({
                 padding: '0.75rem 1rem',
                 fontSize: '0.75rem',
                 fontWeight: 500,
-                color: '#6b7280',
+                color: 'var(--text-muted, #6b7280)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 width: '60px'
@@ -764,8 +957,8 @@ export default function StudentRoster({
                 <React.Fragment key={student.id}>
                   <tr
                     style={{
-                      borderBottom: '1px solid #e5e7eb',
-                      background: selectedStudentId === student.id ? '#eff6ff' : 'transparent',
+                      borderBottom: '1px solid var(--border, #e5e7eb)',
+                      background: selectedStudentId === student.id ? 'var(--panel-hover, #eff6ff)' : 'transparent',
                       cursor: 'pointer',
                       transition: 'background-color 0.15s'
                     }}
@@ -796,12 +989,12 @@ export default function StudentRoster({
                         }}
                       >
                         {isExpanded ? (
-                          <ChevronDownIcon style={{ width: '1rem', height: '1rem', color: '#6b7280' }} />
+                          <ChevronDownIcon style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} />
                         ) : (
                           isRTL ? (
-                            <ChevronDownIcon style={{ width: '1rem', height: '1rem', color: '#6b7280', transform: 'rotate(-90deg)' }} />
+                            <ChevronDownIcon style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)', transform: 'rotate(-90deg)' }} />
                           ) : (
-                            <ChevronRightIcon style={{ width: '1rem', height: '1rem', color: '#6b7280' }} />
+                            <ChevronRightIcon style={{ width: '1rem', height: '1rem', color: 'var(--text-muted, #6b7280)' }} />
                           )
                         )}
                       </button>
@@ -824,7 +1017,7 @@ export default function StudentRoster({
                             style={{ 
                               width: '1rem', 
                               height: '1rem', 
-                              color: favoriteStudents.includes(student.id) ? '#f59e0b' : '#d1d5db'
+                              color: favoriteStudents.includes(student.id) ? '#f59e0b' : 'var(--text-muted, #d1d5db)'
                             }} 
                             filled={favoriteStudents.includes(student.id)}
                           />
@@ -844,10 +1037,10 @@ export default function StudentRoster({
                           {getInitials(student.displayName || student.realName || student.name || '')}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 500, color: '#111827' }}>
+                          <div style={{ fontWeight: 500, color: 'var(--text, #111827)' }}>
                             {student.displayName || student.realName || student.name || student.email}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
                             ID: STU-{student.studentNumber || student.studentId?.slice(-4) || '0000'}
                           </div>
                         </div>
@@ -1016,7 +1209,7 @@ export default function StudentRoster({
                   
                   {/* Expanded History Row */}
                   {isExpanded && (
-                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                    <tr style={{ background: 'var(--background-secondary, #f9fafb)', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
                       <td colSpan={showTotalAttendance ? "8" : "7"} style={{ padding: '0.5rem 1rem' }}>
                         {studentHistory[student.id] ? (
                           <div style={{ fontSize: '0.875rem' }}>
@@ -1027,14 +1220,14 @@ export default function StudentRoster({
                               justifyContent: 'space-between',
                               marginBottom: '1rem',
                               padding: '0.5rem',
-                              background: '#f8fafc',
+                              background: 'var(--panel-hover, #f8fafc)',
                               borderRadius: '0.5rem',
                               border: '1px solid #e2e8f0'
                             }}>
                               <h4 style={{
                                 fontSize: '0.875rem',
                                 fontWeight: 600,
-                                color: '#374151',
+                                color: 'var(--text-secondary, #374151)',
                                 margin: 0
                               }}>
                                 {t('history')}
@@ -1168,7 +1361,7 @@ export default function StudentRoster({
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
                                       padding: '0.5rem 0.75rem',
-                                      background: '#f9fafb',
+                                      background: 'var(--background-secondary, #f9fafb)',
                                       cursor: 'pointer',
                                       borderBottom: isDayExpanded ? '1px solid #e5e7eb' : 'none'
                                     }}
@@ -1519,6 +1712,7 @@ export default function StudentRoster({
             })}
           </tbody>
         </table>
+        )}
       </div>
 
       {/* Pagination */}

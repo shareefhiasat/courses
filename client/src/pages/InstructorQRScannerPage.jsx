@@ -964,7 +964,7 @@ const InstructorQRScannerPage = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f9fafb'
+        background: 'var(--background-secondary, #f9fafb)'
       }}>
         <FancyLoading />
       </div>
@@ -982,7 +982,7 @@ const InstructorQRScannerPage = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f9fafb'
+        background: 'var(--background-secondary, #f9fafb)'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
@@ -994,7 +994,7 @@ const InstructorQRScannerPage = () => {
             animation: 'spin 1s linear infinite',
             margin: '0 auto 1rem'
           }}></div>
-          <p style={{ color: '#6b7280' }}>{t('loading_programs')}</p>
+          <p style={{ color: 'var(--text-muted, #6b7280)' }}>{t('loading_programs')}</p>
         </div>
         <style>{`
           @keyframes spin {
@@ -1012,7 +1012,7 @@ const InstructorQRScannerPage = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f9fafb'
+        background: 'var(--background-secondary, #f9fafb)'
       }}>
         <div style={{
           background: 'white',
@@ -1021,8 +1021,8 @@ const InstructorQRScannerPage = () => {
           border: '1px solid #fee2e2',
           maxWidth: '500px'
         }}>
-          <h3 style={{ color: '#dc2626', margin: '0 0 1rem 0' }}>{t('error_loading_page')}</h3>
-          <p style={{ color: '#6b7280', margin: '0 0 1rem 0' }}>{error}</p>
+          <h3 style={{ color: 'var(--color-danger, #dc2626)', margin: '0 0 1rem 0' }}>{t('error_loading_page')}</h3>
+          <p style={{ color: 'var(--text-muted, #6b7280)', margin: '0 0 1rem 0' }}>{error}</p>
           <button
             onClick={() => {
               setError(null);
@@ -1031,7 +1031,7 @@ const InstructorQRScannerPage = () => {
             }}
             style={{
               padding: '0.5rem 1rem',
-              background: '#8b5cf6',
+              background: 'var(--color-primary, #8b5cf6)',
               color: 'white',
               border: 'none',
               borderRadius: '0.375rem',
@@ -1048,13 +1048,13 @@ const InstructorQRScannerPage = () => {
   return (
     <div className="qr-scanner-container" dir={isRTL ? 'rtl' : 'ltr'} style={{
       minHeight: '100vh',
-      background: '#f9fafb',
+      background: 'var(--background-secondary, #f9fafb)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
     }}>
       {/* Top Bar with Filters */}
       <header style={{
-        background: 'white',
-        borderBottom: '1px solid #e5e7eb',
+        background: 'var(--panel, white)',
+        borderBottom: '1px solid var(--border, #e5e7eb)',
         padding: '1rem 1.5rem'
       }}>
         <div style={{
@@ -1081,8 +1081,15 @@ const InstructorQRScannerPage = () => {
           {/*  <span>{t('qr_scanner')}</span>*/}
           {/*</div>*/}
 
-          <div style={{ display: 'flex', gap: '0.75rem', flex: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ minWidth: '180px' }}>
+          <div style={{ 
+            display: 'flex', 
+            gap: '0.75rem', 
+            flex: 1, 
+            alignItems: 'center', 
+            flexWrap: 'wrap',
+            flexDirection: isMobile ? 'column' : 'row'
+          }}>
+            <div style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : '180px' }}>
               <Select
                 size="small"
                 searchable
@@ -1093,12 +1100,12 @@ const InstructorQRScannerPage = () => {
                   setSelectedClassId('all');
                 }}
                 options={programOptions}
-                style={{ minWidth: 180 }}
+                style={{ width: isMobile ? '100%' : 180, minWidth: isMobile ? 'auto' : 180 }}
                 placeholder={t('all_programs')}
               />
             </div>
 
-            <div style={{ minWidth: '180px' }}>
+            <div style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : '180px' }}>
               <Select
                 size="small"
                 searchable
@@ -1108,12 +1115,12 @@ const InstructorQRScannerPage = () => {
                   setSelectedClassId('all');
                 }}
                 options={subjectOptions}
-                style={{ minWidth: 180 }}
+                style={{ width: isMobile ? '100%' : 180, minWidth: isMobile ? 'auto' : 180 }}
                 placeholder={t('all_subjects')}
               />
             </div>
 
-            <div style={{ minWidth: '180px' }}>
+            <div style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : '180px' }}>
               <Select
                 size="small"
                 searchable
@@ -1122,12 +1129,12 @@ const InstructorQRScannerPage = () => {
                   setSelectedClassId(e.target.value);
                 }}
                 options={classOptions}
-                style={{ minWidth: 180 }}
+                style={{ width: isMobile ? '100%' : 180, minWidth: isMobile ? 'auto' : 180 }}
                 placeholder={t('all_classes')}
               />
             </div>
 
-            <div style={{ minWidth: '150px' }}>
+            <div style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : '150px' }}>
               <DatePicker
                 value={selectedDate}
                 onChange={(date) => setSelectedDate(date)}
@@ -1141,7 +1148,7 @@ const InstructorQRScannerPage = () => {
             alignItems: 'center',
             gap: '0.5rem',
             padding: '0.5rem 1rem',
-            background: '#f3f4f6',
+            background: 'var(--panel-hover, #f3f4f6)',
             borderRadius: '0.5rem'
           }}>
             <div style={{
@@ -1164,10 +1171,10 @@ const InstructorQRScannerPage = () => {
             </span>
             <span style={{
               fontSize: '0.75rem',
-              color: '#6b7280',
+              color: 'var(--text-muted, #6b7280)',
               [isRTL ? 'marginRight' : 'marginLeft']: '0.5rem',
               padding: '0.25rem 0.5rem',
-              background: 'white',
+              background: 'var(--panel, white)',
               borderRadius: '0.25rem'
             }}>
               {t('live')}
@@ -1184,7 +1191,7 @@ const InstructorQRScannerPage = () => {
               background: sendNotifications ? '#f0fdf4' : '#fef2f2',
               borderRadius: '0.5rem',
               cursor: 'pointer',
-              border: `1px solid ${sendNotifications ? '#bbf7d0' : '#fecaca'}`,
+              border: `1px solid ${sendNotifications ? 'var(--color-success-light, #bbf7d0)' : 'var(--color-danger-light, #fecaca)'}`,
               transition: 'all 0.2s',
               userSelect: 'none',
               whiteSpace: 'nowrap'
@@ -1263,7 +1270,8 @@ const InstructorQRScannerPage = () => {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              backgroundColor: 'var(--overlay, rgba(0, 0, 0, 0.5))',
+              backdropFilter: 'blur(4px)',
               zIndex: 9999,
               display: 'flex',
               alignItems: 'center',
@@ -1292,7 +1300,7 @@ const InstructorQRScannerPage = () => {
               padding: '3rem',
               textAlign: 'center'
             }}>
-              <p style={{ color: '#6b7280', margin: 0 }}>
+              <p style={{ color: 'var(--text-muted, #6b7280)', margin: 0 }}>
                 {t('select_filters_to_view_students')}
               </p>
             </div>
@@ -1468,14 +1476,14 @@ const InstructorQRScannerPage = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'var(--overlay, rgba(0, 0, 0, 0.5))',
             zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
             <div style={{
-              background: 'white',
+              background: 'var(--panel, white)',
               borderRadius: '0.75rem',
               padding: '2rem',
               width: '90%',
@@ -1483,12 +1491,12 @@ const InstructorQRScannerPage = () => {
               maxHeight: '80vh',
               overflow: 'auto'
             }}>
-              <h3 style={{ margin: '0 0 1.5rem 0', color: '#111827', fontSize: '1.25rem' }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', color: 'var(--text, #111827)', fontSize: '1.25rem' }}>
                 {t('filter_students')}
               </h3>
               
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#374151' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: 'var(--text-secondary, #374151)' }}>
                   {t('attendance_status')}
                 </label>
                 <select
@@ -1497,7 +1505,9 @@ const InstructorQRScannerPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.5rem',
-                    border: '1px solid #d1d5db',
+                    border: '1px solid var(--border, #d1d5db)',
+                    background: 'var(--input-bg, white)',
+                    color: 'var(--text, #111827)',
                     borderRadius: '0.375rem',
                     fontSize: '0.875rem'
                   }}
@@ -1525,12 +1535,14 @@ const InstructorQRScannerPage = () => {
                     style={{
                       flex: 1,
                       padding: '0.5rem',
-                      border: '1px solid #d1d5db',
+                      border: '1px solid var(--border, #d1d5db)',
+                    background: 'var(--input-bg, white)',
+                    color: 'var(--text, #111827)',
                       borderRadius: '0.375rem',
                       fontSize: '0.875rem'
                     }}
                   />
-                  <span style={{ color: '#6b7280' }}>{t('to')}</span>
+                  <span style={{ color: 'var(--text-muted, #6b7280)' }}>{t('to')}</span>
                   <input
                     type="number"
                     placeholder={t('max')}
@@ -1539,7 +1551,9 @@ const InstructorQRScannerPage = () => {
                     style={{
                       flex: 1,
                       padding: '0.5rem',
-                      border: '1px solid #d1d5db',
+                      border: '1px solid var(--border, #d1d5db)',
+                    background: 'var(--input-bg, white)',
+                    color: 'var(--text, #111827)',
                       borderRadius: '0.375rem',
                       fontSize: '0.875rem'
                     }}
@@ -1557,7 +1571,9 @@ const InstructorQRScannerPage = () => {
                   style={{
                     width: '100%',
                     padding: '0.5rem',
-                    border: '1px solid #d1d5db',
+                    border: '1px solid var(--border, #d1d5db)',
+                    background: 'var(--input-bg, white)',
+                    color: 'var(--text, #111827)',
                     borderRadius: '0.375rem',
                     fontSize: '0.875rem'
                   }}
@@ -1573,9 +1589,11 @@ const InstructorQRScannerPage = () => {
                   onClick={clearFilters}
                   style={{
                     padding: '0.5rem 1rem',
-                    border: '1px solid #d1d5db',
+                    border: '1px solid var(--border, #d1d5db)',
+                    background: 'var(--input-bg, white)',
+                    color: 'var(--text, #111827)',
                     background: 'white',
-                    color: '#6b7280',
+                    color: 'var(--text-muted, #6b7280)',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
                     fontSize: '0.875rem'
@@ -1587,9 +1605,11 @@ const InstructorQRScannerPage = () => {
                   onClick={() => setShowFilterDialog(false)}
                   style={{
                     padding: '0.5rem 1rem',
-                    border: '1px solid #d1d5db',
+                    border: '1px solid var(--border, #d1d5db)',
+                    background: 'var(--input-bg, white)',
+                    color: 'var(--text, #111827)',
                     background: 'white',
-                    color: '#6b7280',
+                    color: 'var(--text-muted, #6b7280)',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
                     fontSize: '0.875rem'
@@ -1602,7 +1622,7 @@ const InstructorQRScannerPage = () => {
                   style={{
                     padding: '0.5rem 1rem',
                     border: 'none',
-                    background: '#8b5cf6',
+                    background: 'var(--color-primary, #8b5cf6)',
                     color: 'white',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',

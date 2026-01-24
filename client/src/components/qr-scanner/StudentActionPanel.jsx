@@ -709,7 +709,7 @@ export default function StudentActionPanel({
         width: isMobile ? '100%' : '100%',
         maxWidth: isMobile ? '100%' : '28rem',
         height: '100%',
-        background: 'white',
+        background: 'var(--panel, white)',
         boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
         zIndex: 9999,
         display: 'flex',
@@ -718,7 +718,7 @@ export default function StudentActionPanel({
         overflow: 'hidden'
       }}>
         {/* Header */}
-        <div style={{ padding: '0.8rem', borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{ padding: '0.8rem', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -741,15 +741,15 @@ export default function StudentActionPanel({
                 {getInitials(student.displayName || student.realName || student.name || '')}
               </div>
               <div>
-                <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '1rem' }}>
+                <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '1rem' }}>
                   {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                 </h3>
                 <div style={{
                   fontSize: '0.75rem',
-                  color: '#6b7280',
+                  color: 'var(--text-muted, #6b7280)',
                   marginTop: '0.25rem',
                   fontFamily: 'monospace',
-                  background: '#f3f4f6',
+                  background: 'var(--panel-hover, #f3f4f6)',
                   padding: '0.25rem 0.5rem',
                   borderRadius: '0.25rem',
                   display: 'inline-block'
@@ -837,7 +837,7 @@ export default function StudentActionPanel({
             <h4 style={{
               fontSize: '0.875rem',
               fontWeight: 600,
-              color: '#111827',
+              color: 'var(--text, #111827)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: '0.5rem'
@@ -1837,7 +1837,7 @@ export default function StudentActionPanel({
           {/*              <span style={{*/}
           {/*                fontSize: '0.75rem',*/}
           {/*                fontWeight: 500,*/}
-          {/*                color: '#111827',*/}
+          {/*                color: 'var(--text, #111827)',*/}
           {/*                lineHeight: '1.2'*/}
           {/*              }}>*/}
           {/*                {option.label_en}*/}
@@ -1968,14 +1968,14 @@ export default function StudentActionPanel({
               justifyContent: 'space-between',
               marginBottom: '1rem',
               padding: '0.5rem',
-              background: '#f8fafc',
+              background: 'var(--panel-hover, #f8fafc)',
               borderRadius: '0.5rem',
-              border: '1px solid #e2e8f0'
+              border: '1px solid var(--border-light, #e2e8f0)'
             }}>
               <h4 style={{
                 fontSize: '0.875rem',
                 fontWeight: 600,
-                color: '#374151',
+                color: 'var(--text-secondary, #374151)',
                 margin: 0
               }}>
                 {/*{t('history')}*/}
@@ -1993,9 +1993,9 @@ export default function StudentActionPanel({
                     padding: '0.5rem 0.75rem',
                     fontSize: '0.8125rem',
                     borderRadius: '0.375rem',
-                    border: '1px solid #e2e8f0',
-                    background: activeFilters.attendance ? '#065f46' : '#ffffff',
-                    color: activeFilters.attendance ? 'white' : '#64748b',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    background: activeFilters.attendance ? '#065f46' : 'var(--panel, #ffffff)',
+                    color: activeFilters.attendance ? 'white' : 'var(--text-muted, #64748b)',
                     cursor: 'pointer',
                     boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                   }}
@@ -2015,9 +2015,9 @@ export default function StudentActionPanel({
                     padding: '0.5rem 0.75rem',
                     fontSize: '0.8125rem',
                     borderRadius: '0.375rem',
-                    border: '1px solid #e2e8f0',
-                    background: activeFilters.participation ? '#3b82f6' : '#ffffff',
-                    color: activeFilters.participation ? 'white' : '#64748b',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    background: activeFilters.participation ? '#3b82f6' : 'var(--panel, #ffffff)',
+                    color: activeFilters.participation ? 'white' : 'var(--text-muted, #64748b)',
                     cursor: 'pointer',
                     boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                   }}
@@ -2039,9 +2039,9 @@ export default function StudentActionPanel({
                     padding: '0.5rem 0.75rem',
                     fontSize: '0.8125rem',
                     borderRadius: '0.375rem',
-                    border: '1px solid #e2e8f0',
-                    background: activeFilters.behavior ? '#f97316' : '#ffffff',
-                    color: activeFilters.behavior ? 'white' : '#64748b',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    background: activeFilters.behavior ? '#f97316' : 'var(--panel, #ffffff)',
+                    color: activeFilters.behavior ? 'white' : 'var(--text-muted, #64748b)',
                     cursor: 'pointer',
                     boxShadow: activeFilters.behavior ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                   }}
@@ -2085,7 +2085,7 @@ export default function StudentActionPanel({
               {logsLoading ? (
                 <div style={{
                   padding: '1rem',
-                  color: '#9ca3af',
+                  color: 'var(--text-muted, #9ca3af)',
                   fontSize: '0.875rem',
                   textAlign: 'center'
                 }}>
@@ -2094,7 +2094,7 @@ export default function StudentActionPanel({
               ) : todayLogs.length === 0 ? (
                 <div style={{
                   padding: '1rem',
-                  color: '#9ca3af',
+                  color: 'var(--text-muted, #9ca3af)',
                   fontSize: '0.875rem'
                 }}>
                   {t('no_history_found')}
