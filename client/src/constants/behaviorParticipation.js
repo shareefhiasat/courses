@@ -48,14 +48,6 @@ export const BEHAVIOR_TYPES = [
     points: -3
   },
   { 
-    id: 'late_arrival', 
-    label_ar: 'تأخر الوصول', 
-    label_en: 'Late Arrival', 
-    icon: 'Clock',
-    color: '#f59e0b',
-    points: -1
-  },
-  { 
     id: 'inappropriate_language', 
     label_ar: 'لغة غير لائقة', 
     label_en: 'Inappropriate Language', 
@@ -203,20 +195,6 @@ export const PARTICIPATION_TYPES = [
     color: '#9333ea',
     points: 0
   }
-];
-
-// Legacy constants for backward compatibility
-export const BEHAVIOR_OPTIONS = BEHAVIOR_TYPES.map(type => ({
-  value: type.id,
-  label: type.label_en,
-  color: type.color
-}));
-
-export const PARTICIPATION_OPTIONS = [
-  { value: 'excellent', label: 'Excellent Participation', points: 10 },
-  { value: 'good', label: 'Good Participation', points: 5 },
-  { value: 'average', label: 'Average Participation', points: 2 },
-  { value: 'poor', label: 'Poor Participation', points: 0 }
 ];
 
 // Helper functions

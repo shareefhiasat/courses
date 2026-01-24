@@ -75,9 +75,12 @@ const AttendanceIcon = ({ style }) => (
 
 const ParticipationIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <path d="m21 16-8-5-5-5 5"/>
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
   </svg>
 );
 
@@ -177,12 +180,12 @@ export default function StudentRoster({
       const logs = [
         ...attendanceRecords.map(record => ({
           id: record.id,
-          type: 'attendance',
+          type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
           date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
           label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
           points: record.delta || 0,
-          comment: record.reason || '',
+          comment: record.reason || record.notes || '',
           severity: 'low',
           color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
         })),
@@ -433,7 +436,8 @@ export default function StudentRoster({
           date: date,
           attendance: [],
           penalties: [],
-          participation: []
+          participation: [],
+          behavior: []
         };
       }
       
@@ -441,9 +445,15 @@ export default function StudentRoster({
         grouped[date].attendance.push(log);
       } else if (log.type === 'penalty') {
         grouped[date].penalties.push(log);
+      } else if (log.type === 'participation') {
+        grouped[date].participation.push(log);
+      } else if (log.type === 'behavior') {
+        grouped[date].behavior.push(log);
       } else if (log.points > 0) {
+        // Fallback for older records
         grouped[date].participation.push(log);
       } else if (log.points < 0) {
+        // Fallback for older records
         grouped[date].penalties.push(log);
       }
     });
@@ -1238,7 +1248,7 @@ export default function StudentRoster({
                                             <div key={idx} style={{ 
                                               display: 'flex', 
                                               alignItems: 'center', 
-                                              gap: '0.5rem',
+                                              gap: '0.5rem', 
                                               padding: '0.375rem 0',
                                               fontSize: '0.8125rem',
                                               borderBottom: idx === dayGroup.attendance.length - 1 ? 'none' : '1px solid #f1f5f9'
@@ -1316,15 +1326,15 @@ export default function StudentRoster({
                                                   - {log.comment}
                                                 </span>
                                               )}
-                                              {log.severity && (
+                                              {log.points && (
                                                 <span style={{ 
                                                   padding: '0.125rem 0.375rem',
-                                                  background: '#f1f5f9',
+                                                  background: '#eff6ff',
                                                   color: '#1e40af',
                                                   borderRadius: '0.25rem',
                                                   fontSize: '0.75rem'
                                                 }}>
-                                                  {log.severity}
+                                                  +{log.points}
                                                 </span>
                                               )}
                                               {/* User Attribution */}
@@ -1359,7 +1369,7 @@ export default function StudentRoster({
                                             <div key={idx} style={{ 
                                               display: 'flex', 
                                               alignItems: 'center', 
-                                              gap: '0.5rem',
+                                              gap: '0.5rem', 
                                               padding: '0.375rem 0',
                                               fontSize: '0.8125rem',
                                               borderBottom: idx === dayGroup.behavior.length - 1 ? 'none' : '1px solid #fed7aa'
@@ -1381,12 +1391,12 @@ export default function StudentRoster({
                                               {log.points && (
                                                 <span style={{ 
                                                   padding: '0.125rem 0.375rem',
-                                                  background: '#fef3c7',
-                                                  color: '#92400e',
+                                                  background: log.points > 0 ? '#f0fdf4' : '#fff7ed',
+                                                  color: log.points > 0 ? '#166534' : '#c2410c',
                                                   borderRadius: '0.25rem',
                                                   fontSize: '0.75rem'
                                                 }}>
-                                                  +{log.points}
+                                                  {log.points > 0 ? '+' : ''}{log.points}
                                                 </span>
                                               )}
                                               {/* User Attribution */}

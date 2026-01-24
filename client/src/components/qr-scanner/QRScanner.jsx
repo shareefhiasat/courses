@@ -34,7 +34,7 @@ const AttendanceIcon = ({ style }) => (
   </svg>
 );
 
-export default function QRScanner({ onScan, classId, onActivityUpdate }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity }) {
   const { user } = useAuth();
   const { t } = useLang();
   const [isScanning, setIsScanning] = useState(false);
@@ -193,6 +193,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
     
     setActivityLoading(true);
     try {
+      // Small delay to ensure Firestore has processed the update
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Use local date string YYYY-MM-DD to avoid timezone shifts
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -211,34 +214,50 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
       
       // Create a map of studentId to student name
       const studentMap = {};
-      allUsers.forEach(user => {
-        const userId = user.id || user.docId;
-        // Try to get the best name available, prefer displayName over email
-        const name = user.displayName || user.realName || user.name || (user.email ? user.email.split('@')[0] : 'Unknown');
+      allUsers.forEach(u => {
+        const userId = u.id || u.docId;
+        const name = u.displayName || u.realName || u.name || (u.email ? u.email.split('@')[0] : 'Unknown');
         studentMap[userId] = name;
-        console.log('[QR Scanner] Student map:', userId, '->', name);
       });
       
-      console.log('[QR Scanner] Attendance records found:', attendanceRecords.length);
-      console.log('[QR Scanner] Attendance records:', attendanceRecords);
+      // Filter penalties for today only
+      const todayPenalties = allPenalties.filter(p => {
+        if (!p.studentId || !studentMap[p.studentId]) return false;
+        
+        // Handle Firestore serverTimestamp field values (might be null if just created locally)
+        const timestamp = p.createdAt || p.timestamp;
+        if (!timestamp) return true; // Assume today if no timestamp yet (just created)
+        
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        
+        return dateStr === todayStr;
+      });
+      
+      console.log('[QR Scanner] Activity refresh found:', attendanceRecords.length, 'attendance,', todayPenalties.length, 'penalties');
       
       // Combine and format activity logs
       const activityLogs = [
         ...attendanceRecords.map(record => ({
           id: record.id || `attendance-${Math.random()}`,
           time: record.timestamp || record.updatedAt || record.date,
-          type: 'attendance',
+          type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
+          studentId: record.studentId,
           studentName: studentMap[record.studentId] || 'Unknown Student',
           status: record.status || 'present',
+          delta: record.delta,
+          label: record.notes || record.reason || '',
           method: record.method || 'QR Scan',
           performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
           scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor')
         })),
-        ...allPenalties.filter(p => p.studentId && studentMap[p.studentId]).map(record => ({
+        ...todayPenalties.map(record => ({
           id: record.id || record.docId || `penalty-${Math.random()}`,
-          time: record.createdAt || record.timestamp,
+          time: record.createdAt || record.timestamp || new Date(),
           type: 'penalty',
+          studentId: record.studentId,
           studentName: studentMap[record.studentId] || 'Unknown Student',
+          status: 'penalty',
           label: record.reason || record.type || 'Penalty',
           points: record.points,
           performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
@@ -248,27 +267,28 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
         return timeB - timeA;
-      }).slice(0, 10);
+      }).slice(0, 15);
       
-      // Remove duplicate attendance records for same student on same date
+      // Remove duplicate attendance records for same student
       const uniqueLogs = [];
       const seen = new Set();
       
       activityLogs.forEach(log => {
+        // Create a unique key based on student and action type
+        // For attendance, we only want the latest one
         if (log.type === 'attendance') {
-          const key = `${log.studentId}-${log.date || log.time}`;
+          const key = `${log.studentId}-${log.type}`;
           if (!seen.has(key)) {
             seen.add(key);
             uniqueLogs.push(log);
-          } else {
-            console.log('[QR Scanner] Removing duplicate attendance record:', log);
           }
         } else {
+          // For behavior/participation/penalty, show all
           uniqueLogs.push(log);
         }
       });
       
-      console.log('[QR Scanner] Final activity logs (deduped):', uniqueLogs);
+      console.log('[QR Scanner] Final activity logs (deduped):', uniqueLogs.length);
       
       // Format time for display
       const formattedLogs = uniqueLogs.map(log => ({
@@ -615,7 +635,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                 }
               };
 
-              const getStatusColor = (status) => {
+              const getStatusColor = (status, type, delta) => {
+                if (type === 'participation' || delta > 0) return '#3b82f6';
+                if (type === 'behavior' || delta < 0) return '#f97316';
+                if (type === 'penalty') return '#dc2626';
+                
                 switch(status?.toLowerCase()) {
                   case 'present': return '#16a34a';
                   case 'late': return '#eab308';
@@ -629,7 +653,33 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                 }
               };
               
-              const getStatusIcon = (status) => {
+              const getStatusIcon = (status, type, delta) => {
+                if (type === 'participation' || delta > 0) {
+                  return (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="m21 16-8-5-5-5 5"/>
+                    </svg>
+                  );
+                }
+                if (type === 'behavior' || delta < 0) {
+                  return (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  );
+                }
+                if (type === 'penalty') {
+                  return (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                  );
+                }
+
                 switch(status?.toLowerCase()) {
                   case 'present': 
                     return (
@@ -669,7 +719,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                 }
               };
               
-              const getStatusLabel = (status) => {
+              const getStatusLabel = (status, type, delta) => {
+                if (type === 'participation' || delta > 0) return t('participation') || 'Participation';
+                if (type === 'behavior' || delta < 0) return t('behavior') || 'Behavior';
+                if (type === 'penalty') return t('penalty') || 'Penalty';
+
                 switch(status?.toLowerCase()) {
                   case 'present': return t('present');
                   case 'late': return t('late');
@@ -702,32 +756,60 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                       borderRadius: '0.25rem',
                       fontSize: '0.75rem',
                       fontWeight: 600,
-                      background: getStatusColor(activity.status),
+                      background: getStatusColor(activity.status, activity.type, activity.delta),
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.25rem'
                     }}>
-                      {getStatusIcon(activity.status)} {getStatusLabel(activity.status)}
+                      {getStatusIcon(activity.status, activity.type, activity.delta)} {getStatusLabel(activity.status, activity.type, activity.delta)}
                     </div>
                     <span style={{ fontSize: '0.8125rem', color: '#374151', flex: 1 }}>
                       {activity.studentName}
                     </span>
-                    <svg 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      style={{
-                        transform: expandedActivities.has(activity.id) ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s',
-                        color: '#6b7280'
-                      }}
-                    >
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {onDeleteActivity && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteActivity(activity);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '0.25rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '0.25rem'
+                          }}
+                          title="Delete activity"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                          </svg>
+                        </button>
+                      )}
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        style={{
+                          transform: expandedActivities.has(activity.id) ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s',
+                          color: '#6b7280'
+                        }}
+                      >
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </div>
                   </div>
                   
                   {expandedActivities.has(activity.id) && (

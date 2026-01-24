@@ -4,8 +4,11 @@ import { useLang } from '../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, getClasses, getEnrollments } from '../firebase/firestore';
 import { getPrograms, getSubjects } from '../firebase/programs';
-import { markAttendance, getAttendanceByClass, getAttendanceByStudent } from '../firebase/attendance';
-import { createPenalty, getPenalties } from '../firebase/penalties';
+import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '../firebase/attendance';
+import { createPenalty, getPenalties, PENALTY_TYPES, deletePenalty } from '../firebase/penalties';
+import { db } from '../firebase/config';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
+import { addNotification } from '../firebase/notifications';
 import { sendStudentNotification } from '../utils/notificationService';
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../constants/behaviorParticipation';
 import { Select, DatePicker, Button, Loading } from '../components/ui';
@@ -18,6 +21,7 @@ import StudentActionPanelNew from '../components/qr-scanner/StudentActionPanelNe
 import '../components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
 import eventBus, { EVENTS } from '../utils/eventBus';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 
 const InstructorQRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -79,11 +83,51 @@ const InstructorQRScannerPage = () => {
 
   // Sidebar state
   const [activityRefresh, setActivityRefresh] = useState(null);
+  const [deleteActivityModalOpen, setDeleteActivityModalOpen] = useState(false);
+  const [activityToDelete, setDeleteActivityData] = useState(null);
+  const [deleteActivityLoading, setDeleteActivityLoading] = useState(false);
 
   // Handle activity refresh from QRScanner
   const handleActivityUpdate = useCallback((refreshFunction) => {
     setActivityRefresh(() => refreshFunction);
   }, []);
+
+  // Handle activity deletion from QRScanner
+  const handleDeleteActivity = (activity) => {
+    setDeleteActivityData(activity);
+    setDeleteActivityModalOpen(true);
+  };
+
+  const confirmDeleteActivity = async () => {
+    if (!activityToDelete) return;
+    
+    setDeleteActivityLoading(true);
+    try {
+      let result;
+      if (activityToDelete.type === 'attendance') {
+        result = await deleteAttendance(activityToDelete.id);
+        if (result.success) {
+          eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId: activityToDelete.studentId });
+        }
+      } else if (activityToDelete.type === 'penalty') {
+        result = await deletePenalty(activityToDelete.id);
+        if (result.success) {
+          eventBus.emit(EVENTS.PENALTY_ASSIGNED, { studentId: activityToDelete.studentId });
+        }
+      }
+      
+      if (result?.success) {
+        triggerActivityRefresh();
+        loadStudents(selectedClassId, selectedDate);
+      }
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+    } finally {
+      setDeleteActivityLoading(false);
+      setDeleteActivityModalOpen(false);
+      setDeleteActivityData(null);
+    }
+  };
 
   // Trigger activity refresh when actions are performed
   const triggerActivityRefresh = () => {
@@ -370,85 +414,90 @@ const InstructorQRScannerPage = () => {
       console.log('[QR Scanner] Processing student data for', studentUsers.length, 'students');
       
       const studentsWithData = await Promise.all(studentUsers.map(async (student) => {
-        console.log('[QR Scanner] Processing student:', student.displayName || student.name || student.email, 'ID:', student.id);
-        console.log('[QR Scanner] Full student object:', student);
-        console.log('[QR Scanner] Student fields:', Object.keys(student));
-        
-        // Get attendance status for today - use docId for student ID matching
         const studentId = student.id || student.docId;
-        const todayAttendance = attendance.find(a => a.studentId === studentId);
+        const studentName = student.displayName || student.realName || student.name || student.email;
+        
+        console.log('[QR Scanner] Processing student:', studentName, 'ID:', studentId);
+        
+        // Find the primary attendance record (the one without a delta points value)
+        const studentRecords = attendance.filter(a => a.studentId === studentId);
+        const todayAttendance = studentRecords.find(a => !a.delta) || studentRecords[0];
         
         console.log('[QR Scanner] Looking for attendance for studentId:', studentId, 'found:', todayAttendance?.status);
 
         // Fetch all attendance records for this student to calculate participation and behavior
-        const attendanceResponse = await getAttendanceByStudent(studentId);
-        const studentAttendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
-        console.log('[QR Scanner] Student attendance records:', studentAttendanceRecords.length, 'for', student.displayName || student.name);
+        const studentAttendanceResponse = await getAttendanceByStudent(studentId);
+        const studentAttendanceRecords = studentAttendanceResponse.success ? studentAttendanceResponse.data : [];
+        console.log('[QR Scanner] Student attendance records:', studentAttendanceRecords.length, 'for', studentName);
 
         // Calculate totals from attendance records
         let participationTotal = 0;
         let behaviorTotal = 0;
-        let totalAttendance = 0;
+        let totalAttendanceCount = 0;
+        const studentParticipationHistory = [];
+        const studentBehaviorHistory = [];
         
         studentAttendanceRecords.forEach(record => {
           if (record.delta) {
-            if (record.delta > 0) {
+            const historyItem = {
+              id: record.id,
+              date: record.date,
+              time: record.timestamp,
+              points: record.delta,
+              reason: record.notes || record.reason || '',
+              markedBy: record.markedBy,
+              category: record.category // Include category
+            };
+
+            // Use the explicit category if available, otherwise fallback to delta sign
+            const category = record.category || (record.delta > 0 ? 'participation' : 'behavior');
+
+            if (category === 'participation') {
               participationTotal += record.delta;
-            } else if (record.delta < 0) {
-              behaviorTotal += record.delta; // negative values for penalties
+              studentParticipationHistory.push(historyItem);
+            } else if (category === 'behavior') {
+              behaviorTotal += record.delta; // can be positive or negative
+              studentBehaviorHistory.push(historyItem);
             }
           }
           
           // Count present and late attendance for total attendance
           if (record.status === 'present' || record.status === 'late') {
-            totalAttendance++;
+            totalAttendanceCount++;
           }
         });
 
-        console.log('[QR Scanner] Calculated participation:', participationTotal, 'behavior:', behaviorTotal, 'for', student.displayName || student.name);
+        console.log('[QR Scanner] Calculated participation:', participationTotal, 'behavior:', behaviorTotal, 'for', studentName);
 
         // Calculate total penalty (all time) - use docId for matching
         const penalties = studentPenalties.filter(p => p.studentId === studentId);
         const penaltyTotal = penalties.reduce((sum, p) => {
-          const points = p.points;
-          // Only add if points is a valid number (not null, undefined, empty string, or NaN)
-          if (points !== null && points !== undefined && points !== '' && !isNaN(points)) {
-            return sum + Number(points);
+          const pPoints = p.points;
+          if (pPoints !== null && pPoints !== undefined && pPoints !== '' && !isNaN(pPoints)) {
+            return sum + Number(pPoints);
           }
           return sum;
         }, 0);
-        console.log('[QR Scanner] Student penalties:', penalties.length, 'records, total:', penaltyTotal, 'for', student.displayName || student.name, 'using studentId:', studentId);
-        console.log('[QR Scanner] Penalty details:', penalties.map(p => ({ points: p.points, comment: p.comment, date: p.date })));
+        
+        console.log('[QR Scanner] Student penalties:', penalties.length, 'records, total:', penaltyTotal, 'for', studentName);
 
         const studentData = {
           id: studentId,
           docId: student.docId,
           studentId: student.studentId || studentId,
           studentNumber: student.studentNumber,
-          name: student.displayName || student.realName || student.name || student.email,
+          name: studentName,
           email: student.email,
           attendance: todayAttendance?.status || 'absent_no_excuse',
           participation: participationTotal,
           behavior: behaviorTotal,
           penalty: penaltyTotal,
-          totalAttendance: totalAttendance,
+          totalAttendance: totalAttendanceCount,
           isPinned: student.isPinned || false,
-          behaviorHistory: student.behaviorHistory || [],
-          participationHistory: student.participationHistory || [],
+          behaviorHistory: studentBehaviorHistory,
+          participationHistory: studentParticipationHistory,
           penaltyHistory: penalties || []
         };
-        
-        console.log('[QR Scanner] Final student data:', {
-          name: studentData.name,
-          id: studentData.id,
-          docId: studentData.docId,
-          studentId: studentData.studentId,
-          studentNumber: studentData.studentNumber,
-          participation: studentData.participation,
-          behavior: studentData.behavior,
-          penalty: studentData.penalty,
-          totalAttendance: studentData.totalAttendance
-        });
         
         return studentData;
       }));
@@ -598,13 +647,50 @@ const InstructorQRScannerPage = () => {
             markedBy: user.uid,
             method: 'manual',
             notes: `${action.label_en || action.type}: ${note}`,
-            delta: points
+            delta: points,
+            category: action.category
           });
+
+          // ALSO add to dedicated collections for Dashboard compatibility
+          try {
+            if (action.category === 'behavior') {
+              await addDoc(collection(db, 'behaviors'), {
+                studentId,
+                classId: selectedClassId,
+                subjectId: selectedSubjectId,
+                type: action.type,
+                points: points,
+                description: note,
+                createdBy: user.uid,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              });
+            } else if (action.category === 'participation') {
+              await addDoc(collection(db, 'participations'), {
+                studentId,
+                classId: selectedClassId,
+                subjectId: selectedSubjectId,
+                type: action.type,
+                points: points,
+                description: note,
+                createdBy: user.uid,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              });
+            }
+          } catch (e) {
+            console.error(`Error saving to ${action.category} collection:`, e);
+          }
         }
       }
 
-      // Reload students
-      await loadStudents(selectedClassId, selectedDate);
+      // Reload students with a small delay to allow Firestore to propagate
+      setTimeout(async () => {
+        await loadStudents(selectedClassId, selectedDate);
+        
+        // Trigger activity refresh to update recent activity
+        triggerActivityRefresh();
+      }, 500);
 
       // Emit events for each action type
       participationActions.forEach(action => {
@@ -641,9 +727,6 @@ const InstructorQRScannerPage = () => {
       // Update selected student
       const updatedStudent = students.find(s => s.id === studentId);
       setSelectedStudent(updatedStudent);
-      
-      // Trigger activity refresh to update recent activity
-      triggerActivityRefresh();
 
       // Send notifications if enabled
       if (sendNotifications) {
@@ -1267,12 +1350,13 @@ const InstructorQRScannerPage = () => {
               onScan={handleScan} 
               classId={selectedClassId}
               onActivityUpdate={handleActivityUpdate}
+              onDeleteActivity={handleDeleteActivity}
             />
           )}
         </div>
 
         {/* Main Content */}
-        <div>
+        <div style={{ width: isMobile ? '100%' : 'calc(100% - 300px)' }}>
           {initialLoading ? (
             <div style={{
               position: 'fixed',
@@ -1450,19 +1534,15 @@ const InstructorQRScannerPage = () => {
               options={[
                 ...BEHAVIOR_TYPES.map(type => ({ ...type, category: 'behavior' })),
                 ...PARTICIPATION_TYPES.map(type => ({ ...type, category: 'participation' })),
-                // Comprehensive penalty options
-                { id: 'penalty_late', label_en: 'Late', icon: 'Clock', color: '#dc2626', points: -5, category: 'penalty' },
-                { id: 'penalty_absent', label_en: 'Absent', icon: 'XCircle', color: '#dc2626', points: -10, category: 'penalty' },
-                { id: 'penalty_disruptive', label_en: 'Disruptive Behavior', icon: 'AlertTriangle', color: '#dc2626', points: -3, category: 'penalty' },
-                { id: 'penalty_phone', label_en: 'Phone Usage', icon: 'Smartphone', color: '#dc2626', points: -2, category: 'penalty' },
-                { id: 'penalty_homework', label_en: 'Missing Homework', icon: 'FileText', color: '#dc2626', points: -4, category: 'penalty' },
-                { id: 'penalty_uniform', label_en: 'Uniform Violation', icon: 'X', color: '#dc2626', points: -1, category: 'penalty' },
-                { id: 'penalty_talking', label_en: 'Excessive Talking', icon: 'MessageSquare', color: '#dc2626', points: -2, category: 'penalty' },
-                { id: 'penalty_cheating', label_en: 'Cheating', icon: 'XCircle', color: '#dc2626', points: -15, category: 'penalty' },
-                { id: 'penalty_sleeping', label_en: 'Sleeping in Class', icon: 'Bed', color: '#dc2626', points: -3, category: 'penalty' },
-                { id: 'penalty_respect', label_en: 'Disrespectful', icon: 'AlertTriangle', color: '#dc2626', points: -5, category: 'penalty' },
-                { id: 'penalty_materials', label_en: 'No Materials', icon: 'FileText', color: '#dc2626', points: -2, category: 'penalty' },
-                { id: 'penalty_eating', label_en: 'Eating/Drinking', icon: 'MoreHorizontal', color: '#dc2626', points: -1, category: 'penalty' }
+                ...PENALTY_TYPES.map(type => ({
+                  id: type.id,
+                  label_en: type.label_en,
+                  label_ar: type.label_ar,
+                  icon: type.icon,
+                  color: type.color,
+                  points: -type.points, // Make points negative for penalties
+                  category: 'penalty'
+                }))
               ]}
               showFavoritesOnly={showFavoritesOnly}
               onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
@@ -1636,6 +1716,16 @@ const InstructorQRScannerPage = () => {
             </div>
           </div>
         )}
+
+        {/* Delete Activity Confirmation Modal */}
+        <DeleteConfirmationModal
+          open={deleteActivityModalOpen}
+          onClose={() => setDeleteActivityModalOpen(false)}
+          onConfirm={confirmDeleteActivity}
+          title={`Delete ${activityToDelete?.type === 'attendance' ? 'Attendance' : 'Penalty'} Activity`}
+          message={`Are you sure you want to delete this activity for ${activityToDelete?.studentName}? This action cannot be undone.`}
+          loading={deleteActivityLoading}
+        />
       </div>
     </div>
   );

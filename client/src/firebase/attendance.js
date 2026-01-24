@@ -162,18 +162,30 @@ export async function markAttendance({
   className = '',
   sendNotification = true,
   previousStatus = null,
-  delta = null
+  delta = null,
+  category = null
 }) {
   try {
     const attendanceRef = collection(db, 'attendance');
-    const attendanceId = `${classId}_${studentId}_${date}`;
+    // For delta records (participation/behavior), use unique IDs so they don't overwrite
+    // For status records (present/late/absent), use fixed ID to allow updates
+    const attendanceId = delta !== null 
+      ? `${classId}_${studentId}_${date}_${category || 'delta'}_${Date.now()}`
+      : `${classId}_${studentId}_${date}`;
+    
     const docRef = doc(attendanceRef, attendanceId);
     
-    // Check if this is an update (status change)
-    const existingDoc = await getDoc(docRef);
-    const isUpdate = existingDoc.exists();
-    const oldStatus = existingDoc.exists() ? existingDoc.data().status : null;
-    const statusChanged = isUpdate && oldStatus !== status;
+    // Check if this is an update (status change) - only applicable for non-delta records
+    let isUpdate = false;
+    let oldStatus = null;
+    let statusChanged = false;
+
+    if (delta === null) {
+      const existingDoc = await getDoc(docRef);
+      isUpdate = existingDoc.exists();
+      oldStatus = existingDoc.exists() ? existingDoc.data().status : null;
+      statusChanged = isUpdate && oldStatus !== status;
+    }
     
     await setDoc(docRef, {
       classId,
@@ -185,8 +197,9 @@ export async function markAttendance({
       notes,
       timestamp: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      // Include delta if provided
+      // Include delta and category if provided
       ...(delta !== null && { delta }),
+      ...(category !== null && { category }),
       // Track history of changes
       ...(statusChanged ? {
         history: [...(existingDoc.data().history || []), {

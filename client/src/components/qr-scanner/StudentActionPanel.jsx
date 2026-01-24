@@ -471,13 +471,13 @@ export default function StudentActionPanel({
       const logs = [
         ...attendanceRecords.map(record => ({
           id: record.id || record.docId,
-          type: 'attendance',
+          type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
           date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
           data: record,
           label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
           points: record.delta || 0,
-          comment: record.reason || '',
+          comment: record.reason || record.notes || '',
           severity: 'low',
           color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
         })),
@@ -518,7 +518,8 @@ export default function StudentActionPanel({
           date: date,
           attendance: [],
           penalties: [],
-          participation: []
+          participation: [],
+          behavior: []
         };
       }
 
@@ -526,9 +527,15 @@ export default function StudentActionPanel({
         grouped[date].attendance.push(log);
       } else if (log.type === 'penalty') {
         grouped[date].penalties.push(log);
+      } else if (log.type === 'participation') {
+        grouped[date].participation.push(log);
+      } else if (log.type === 'behavior') {
+        grouped[date].behavior.push(log);
       } else if (log.points > 0) {
+        // Fallback for older records
         grouped[date].participation.push(log);
       } else if (log.points < 0) {
+        // Fallback for older records
         grouped[date].penalties.push(log);
       }
     });
