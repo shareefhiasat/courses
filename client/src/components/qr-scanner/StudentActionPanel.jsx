@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown } from 'lucide-react';
+import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
@@ -9,11 +9,12 @@ import { deleteAttendance } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
 import { deletePenalty } from '../../firebase/penalties';
 import { getFunctions } from '../../firebase/config';
-import { generateStudentQRCode } from '../../utils/qrCode';
+import { generateReferenceId, generateStudentQRCode } from '../../utils/qrCode';
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../../constants/behaviorParticipation';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { FancyLoading } from '../ui/FancyLoading/FancyLoading';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLang } from '../../contexts/LangContext';
 
 const XIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -56,11 +57,19 @@ export default function StudentActionPanel({
   onToggleFavorites,
   favoriteBehaviors = [],
   onToggleFavorite,
-  sendNotifications = true,
+  sendNotifications = false,
   onToggleNotifications
 }) {
   const { user } = useAuth();
+  const { t } = useLang();
   const [selectedActions, setSelectedActions] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
   const [activeTab, setActiveTab] = useState('behavior');
@@ -663,8 +672,8 @@ export default function StudentActionPanel({
         position: 'fixed',
         top: 0,
         right: 0,
-        width: '100%',
-        maxWidth: '28rem',
+        width: isMobile ? '100%' : '100%',
+        maxWidth: isMobile ? '100%' : '28rem',
         height: '100%',
         background: 'white',
         boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
@@ -727,9 +736,9 @@ export default function StudentActionPanel({
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
-              <div 
+              <div
                 onClick={onToggleNotifications}
-                title={sendNotifications ? 'Notifications are ON' : 'Notifications are OFF'}
+                title={sendNotifications ? t('notifs_on') : t('notifs_off')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -767,10 +776,23 @@ export default function StudentActionPanel({
                   fontWeight: 600, 
                   color: sendNotifications ? '#166534' : '#991b1b',
                 }}>
-                  NOTIFS
+                  {t('notifs')}
                 </span>
               </div>
-              <Button variant="ghost" size="icon" onClick={onClose} title="Close panel">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={async () => {
+                  const referenceId = student.studentNumber ? `STU-${student.studentNumber}` : generateReferenceId(student.id || student.docId);
+                  const qrDataUrl = await generateStudentQRCode(referenceId, { width: 512, margin: 4 });
+                  const newTab = window.open();
+                  newTab.document.write(`<html><head><title>QR Code</title></head><body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f3f4f6;"><img src="${qrDataUrl}" style="width:300px;height:300px;"/><h1 style="margin:1rem 0 0;">${student.displayName || student.name}</h1></body></html>`);
+                }}
+                title={t('open_qr_code')}
+              >
+                <ExternalLink style={{ width: '1.25rem', height: '1.25rem' }} />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onClose} title={t('close')}>
                 <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
               </Button>
             </div>
@@ -833,12 +855,13 @@ export default function StudentActionPanel({
                     </span>
                   )}
                 </div>
-                <div>Present</div>
+                <div>{t('present')}</div>
               </button>
               <button
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'late');
                 }}
+                disabled={showLoadingOverlay}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -876,12 +899,13 @@ export default function StudentActionPanel({
                     </span>
                   )}
                 </div>
-                <div>Late</div>
+                <div>{t('late')}</div>
               </button>
               <button
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'absent_no_excuse');
                 }}
+                disabled={showLoadingOverlay}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -919,12 +943,13 @@ export default function StudentActionPanel({
                     </span>
                   )}
                 </div>
-                <div>Absent</div>
+                <div>{t('absent')}</div>
               </button>
               <button
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'absent_with_excuse');
                 }}
+                disabled={showLoadingOverlay}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -965,12 +990,13 @@ export default function StudentActionPanel({
                     </span>
                   )}
                 </div>
-                <div>Absent (Excused)</div>
+                <div>{t('absent_excused')}</div>
               </button>
               <button
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'excused_leave');
                 }}
+                disabled={showLoadingOverlay}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -1010,12 +1036,13 @@ export default function StudentActionPanel({
                     </span>
                   )}
                 </div>
-                <div>Excused Leave</div>
+                <div>{t('excused_leave')}</div>
               </button>
               <button
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'human_case');
                 }}
+                disabled={showLoadingOverlay}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -1053,7 +1080,7 @@ export default function StudentActionPanel({
                     </span>
                   )}
                 </div>
-                <div>Human Case</div>
+                <div>{t('human_case')}</div>
               </button>
             </div>
           </div>
@@ -1082,7 +1109,7 @@ export default function StudentActionPanel({
                   {attendanceStats.present}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Present
+                  {t('present')}
                 </div>
               </div>
 
@@ -1101,7 +1128,7 @@ export default function StudentActionPanel({
                   {student.penalty || 0}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Penalty
+                  {t('penalty')}
                 </div>
               </div>
 
@@ -1120,7 +1147,7 @@ export default function StudentActionPanel({
                   {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Behavior
+                  {t('behavior')}
                 </div>
               </div>
 
@@ -1139,7 +1166,7 @@ export default function StudentActionPanel({
                   {student.participation || 0}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Participation
+                  {t('participation')}
                 </div>
               </div>
             </div>
@@ -1166,7 +1193,7 @@ export default function StudentActionPanel({
                   {attendanceStats.late}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Late
+                  {t('late')}
                 </div>
               </div>
 
@@ -1185,7 +1212,7 @@ export default function StudentActionPanel({
                   {attendanceStats.human_case}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Human Case
+                  {t('human_case')}
                 </div>
               </div>
 
@@ -1204,7 +1231,7 @@ export default function StudentActionPanel({
                   {attendanceStats.excused_leave}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Excused Leave
+                  {t('excused_leave')}
                 </div>
               </div>
 
@@ -1223,7 +1250,7 @@ export default function StudentActionPanel({
                   {attendanceStats.absent_with_excuse}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Absent (Excused)
+                  {t('absent_excused')}
                 </div>
               </div>
 
@@ -1242,7 +1269,7 @@ export default function StudentActionPanel({
                   {attendanceStats.absent_no_excuse}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Absents
+                  {t('absent')}
                 </div>
               </div>
             </div>
@@ -1263,7 +1290,7 @@ export default function StudentActionPanel({
                 }}
               >
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                  Behavior Details ({student.behavior || 0} points, {(() => {
+                  {t('behavior')} ({student.behavior || 0} points, {(() => {
                     const stats = getDetailedStats();
                     return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
                   })()} entries)
@@ -1911,14 +1938,14 @@ export default function StudentActionPanel({
               borderRadius: '0.5rem',
               border: '1px solid #e2e8f0'
             }}>
-              {/*<h4 style={{*/}
-              {/*  fontSize: '0.875rem',*/}
-              {/*  fontWeight: 600,*/}
-              {/*  color: '#374151',*/}
-              {/*  margin: 0*/}
-              {/*}}>*/}
-              {/*  Student History*/}
-              {/*</h4>*/}
+              <h4 style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: '#374151',
+                margin: 0
+              }}>
+                {t('history')}
+              </h4>
               <div style={{
                 display: 'flex',
                 gap: '0.25rem'
@@ -1943,7 +1970,7 @@ export default function StudentActionPanel({
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                   </svg>
-                  Attendance
+                  {t('attendance')}
                 </button>
                 <button
                   onClick={() => toggleFilter('participation')}
@@ -1967,7 +1994,7 @@ export default function StudentActionPanel({
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                   </svg>
-                  Participation
+                  {t('participation')}
                 </button>
                 <button
                   onClick={() => toggleFilter('behavior')}
@@ -1988,7 +2015,7 @@ export default function StudentActionPanel({
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                   </svg>
-                  Behavior
+                  {t('behavior')}
                 </button>
                 <button
                   onClick={() => toggleFilter('penalties')}
@@ -2011,7 +2038,7 @@ export default function StudentActionPanel({
                     <line x1="12" y1="8" x2="12" y2="12"></line>
                     <line x1="12" y1="16" x2="12.01" y2="16"></line>
                   </svg>
-                  Penalties
+                  {t('penalties')}
                 </button>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { getPenalties } from '../../firebase/penalties';
 import { getUsers } from '../../firebase/firestore';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLang } from '../../contexts/LangContext';
 
 const QrCodeIcon = ({ className }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -34,6 +35,7 @@ const AttendanceIcon = ({ style }) => (
 
 export default function QRScanner({ onScan, classId, onActivityUpdate }) {
   const { user } = useAuth();
+  const { t } = useLang();
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState(0);
   const [error, setError] = useState('');
@@ -357,7 +359,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <QrCodeIcon className="w-5 h-5" style={{ width: '1.25rem', height: '1.25rem', color: '#8b5cf6' }} />
           <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '0.875rem' }}>
-            Scanner {isScanning ? 'Active' : 'Ready'}
+            {t('scanner')} {isScanning ? t('active') || 'Active' : t('ready') || 'Ready'}
           </h3>
         </div>
         <span style={{
@@ -368,7 +370,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
           borderRadius: '0.375rem',
           fontWeight: 500
         }}>
-          {isScanning ? 'SCANNING' : 'IDLE'}
+          {isScanning ? t('scanning') || 'SCANNING' : t('idle') || 'IDLE'}
         </span>
       </div>
 
@@ -393,7 +395,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
               margin: '0 auto 0.75rem'
             }} />
             <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: 0 }}>
-              Tap to activate camera
+              {t('tap_to_activate')}
             </p>
             {error && (
               <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.5rem' }}>
@@ -549,7 +551,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
               color: '#9ca3af',
               fontSize: '0.875rem'
             }}>
-              No recent activity today
+              {t('no_recent_activity')}
             </div>
           ) : (
             recentActivity.map((activity) => {
@@ -644,14 +646,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
               
               const getStatusLabel = (status) => {
                 switch(status?.toLowerCase()) {
-                  case 'present': return 'Present';
-                  case 'late': return 'Late';
-                  case 'absent': return 'Absent';
-                  case 'absent_no_excuse': return 'Absent';
-                  case 'absent_with_excuse': return 'Absent (Excused)';
-                  case 'excused_leave': return 'Excused Leave';
-                  case 'human_case': return 'Human Case';
-                  default: return status || 'Present';
+                  case 'present': return t('present');
+                  case 'late': return t('late');
+                  case 'absent': return t('absent');
+                  case 'absent_no_excuse': return t('absent');
+                  case 'absent_with_excuse': return t('absent_excused');
+                  case 'excused_leave': return t('excused_leave');
+                  case 'human_case': return t('human_case');
+                  default: return status || t('present');
                 }
               };
               

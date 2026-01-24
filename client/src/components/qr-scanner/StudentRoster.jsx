@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
-import { getAttendanceByStudent } from '../../firebase/attendance';
-import { getPenalties } from '../../firebase/penalties';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '../../firebase/attendance';
+import { getPenalties, deletePenalty } from '../../firebase/penalties';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '../../firebase/userPreferences';
 import { useAuth } from '../../contexts/AuthContext';
-import { Mail, ChevronDown, QrCode, User } from 'lucide-react';
+import { useLang } from '../../contexts/LangContext';
+import { Mail, ChevronDown, QrCode, User, Trash2, ExternalLink } from 'lucide-react';
 import eventBus, { EVENTS } from '../../utils/eventBus';
+import { generateReferenceId, generateStudentQRCode } from '../../utils/qrCode';
 
 const SearchIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -110,7 +111,15 @@ export default function StudentRoster({
   selectedDate
 }) {
   const { user } = useAuth();
+  const { t } = useLang();
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [studentHistory, setStudentHistory] = useState({});
   const [expandedDays, setExpandedDays] = useState(new Set());
   const [activeFilters, setActiveFilters] = useState({
@@ -153,6 +162,7 @@ export default function StudentRoster({
       // Combine and format logs
       const logs = [
         ...attendanceRecords.map(record => ({
+          id: record.id,
           type: 'attendance',
           date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
@@ -163,6 +173,7 @@ export default function StudentRoster({
           color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
         })),
         ...studentPenalties.map(penalty => ({
+          id: penalty.docId || penalty.id,
           type: 'penalty',
           date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
           time: penalty.createdAt,
@@ -173,8 +184,8 @@ export default function StudentRoster({
           color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
         }))
       ].sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
+        const dateA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+        const dateB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
         return dateB - dateA;
       });
       
@@ -184,6 +195,67 @@ export default function StudentRoster({
       }));
     } catch (error) {
       console.error('Error fetching student history:', error);
+    }
+  };
+
+  const handleDeleteAttendance = async (studentId, logId) => {
+    if (!window.confirm(t('confirm_delete_record') || 'Are you sure you want to delete this record?')) return;
+    try {
+      const result = await deleteAttendance(logId);
+      if (result.success) {
+        fetchStudentHistory(studentId);
+        eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId });
+      }
+    } catch (error) {
+      console.error('Error deleting attendance:', error);
+    }
+  };
+
+  const handleDeletePenalty = async (studentId, logId) => {
+    if (!window.confirm(t('confirm_delete_record') || 'Are you sure you want to delete this record?')) return;
+    try {
+      const result = await deletePenalty(logId);
+      if (result.success) {
+        fetchStudentHistory(studentId);
+        eventBus.emit(EVENTS.PENALTY_ASSIGNED, { studentId });
+      }
+    } catch (error) {
+      console.error('Error deleting penalty:', error);
+    }
+  };
+
+  const openQRCodeInNewTab = async (student) => {
+    try {
+      const referenceId = student.studentNumber ? `STU-${student.studentNumber}` : generateReferenceId(student.id || student.docId);
+      const qrDataUrl = await generateStudentQRCode(referenceId, { width: 512, margin: 4 });
+      
+      const newTab = window.open();
+      newTab.document.write(`
+        <html>
+          <head>
+            <title>QR Code - ${student.displayName || student.name}</title>
+            <style>
+              body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; background: #f3f4f6; }
+              .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); text-align: center; }
+              img { width: 300px; height: 300px; margin-bottom: 1rem; }
+              h1 { margin: 0; color: #111827; font-size: 1.5rem; }
+              p { margin: 0.5rem 0 0; color: #6b7280; font-size: 1rem; }
+              .ref { font-family: monospace; font-weight: bold; color: #059669; margin-top: 0.5rem; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <img src="${qrDataUrl}" alt="QR Code" />
+              <h1>${student.displayName || student.name}</h1>
+              <p>${student.email || ''}</p>
+              <div class="ref">${referenceId}</div>
+            </div>
+          </body>
+        </html>
+      `);
+    } catch (error) {
+      console.error('Failed to open QR code:', error);
+      alert('Failed to generate QR code');
     }
   };
 
@@ -398,31 +470,44 @@ export default function StudentRoster({
     }}>
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
         justifyContent: 'space-between',
+        gap: '1rem',
         marginBottom: '1.5rem'
       }}>
-        <div>
-          {/*<h2 style={{*/}
-          {/*  fontSize: '1.125rem',*/}
-          {/*  fontWeight: 600,*/}
-          {/*  color: '#111827',*/}
-          {/*  margin: 0*/}
-          {/*}}>*/}
-          {/*  STUDENT ROSTER*/}
-          {/*</h2>*/}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{
             fontSize: '0.875rem',
             color: '#6b7280',
             marginTop: '0.25rem',
             marginBottom: 0
           }}>
-            {totalStudents} Students
+            {totalStudents} {t('students') || 'Students'}
           </p>
+          {isMobile && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Button variant="ghost" size="icon" onClick={onFilter}>
+                <FilterIcon style={{ width: '1rem', height: '1rem' }} />
+              </Button>
+              <Button 
+                variant={showFavoritesOnly ? 'default' : 'ghost'} 
+                size="icon" 
+                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              >
+                <StarIcon style={{ width: '1rem', height: '1rem', color: showFavoritesOnly ? '#f59e0b' : '#6b7280' }} filled={showFavoritesOnly} />
+              </Button>
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ position: 'relative' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.75rem',
+          flexDirection: isMobile ? 'column' : 'row'
+        }}>
+          <div style={{ position: 'relative', width: isMobile ? '100%' : '16rem' }}>
             <SearchIcon style={{
               position: 'absolute',
               left: '0.75rem',
@@ -433,33 +518,47 @@ export default function StudentRoster({
               color: '#6b7280'
             }} />
             <Input
-              placeholder="Search student..."
+              placeholder={t('search_student')}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              style={{ paddingLeft: '2.5rem', width: '16rem' }}
+              style={{ paddingLeft: '2.5rem', width: '100%' }}
             />
           </div>
-          <Button variant="ghost" size="icon" onClick={onFilter}>
-            <FilterIcon style={{ width: '1rem', height: '1rem' }} />
-          </Button>
-          <Button 
-            variant={showFavoritesOnly ? 'default' : 'ghost'} 
-            size="icon" 
-            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-            title={showFavoritesOnly ? 'Show all students' : 'Show favorites only'}
-          >
-            <StarIcon 
-              style={{ 
-                width: '1rem', 
-                height: '1rem', 
-                color: showFavoritesOnly ? '#f59e0b' : '#6b7280'
-              }} 
-              filled={showFavoritesOnly} 
-            />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onDownload}>
-            <DownloadIcon style={{ width: '1rem', height: '1rem' }} />
-          </Button>
+          {!isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Button variant="ghost" size="icon" onClick={onFilter}>
+                <FilterIcon style={{ width: '1rem', height: '1rem' }} />
+              </Button>
+              <Button 
+                variant={showFavoritesOnly ? 'default' : 'ghost'} 
+                size="icon" 
+                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                title={showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')}
+              >
+                <StarIcon 
+                  style={{ 
+                    width: '1rem', 
+                    height: '1rem', 
+                    color: showFavoritesOnly ? '#f59e0b' : '#6b7280'
+                  }} 
+                  filled={showFavoritesOnly} 
+                />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onDownload}>
+                <DownloadIcon style={{ width: '1rem', height: '1rem' }} />
+              </Button>
+            </div>
+          )}
+          {isMobile && (
+            <Button 
+              variant="outline" 
+              style={{ width: '100%', justifyContent: 'center', gap: '0.5rem' }} 
+              onClick={onDownload}
+            >
+              <DownloadIcon style={{ width: '1rem', height: '1rem' }} />
+              {t('export_csv')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -785,10 +884,21 @@ export default function StudentRoster({
                           size="icon"
                           onClick={async (e) => {
                             e.stopPropagation();
+                            await openQRCodeInNewTab(student);
+                          }}
+                          title={t('open_qr_code') || "Open QR Code in New Tab"}
+                        >
+                          <ExternalLink style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             await sendQRCodeEmail(student);
                           }}
                           disabled={sendingEmails[student.id]?.qrCode}
-                          title="Send QR Code"
+                          title={t('send_qr_code') || "Send QR Code"}
                         >
                           {sendingEmails[student.id]?.qrCode ? (
                             <div style={{
@@ -855,7 +965,7 @@ export default function StudentRoster({
                                 color: '#374151',
                                 margin: 0
                               }}>
-                                History
+                                {t('history')}
                               </h4>
                               <div style={{
                                 display: 'flex',
@@ -1078,6 +1188,18 @@ export default function StudentRoster({
                                               <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeleteAttendance(student.id, log.id);
+                                                }}
+                                                style={{ marginLeft: '0.5rem', color: '#ef4444' }}
+                                                title={t('delete_attendance_record') || "Delete attendance record"}
+                                              >
+                                                <Trash2 style={{ width: '14px', height: '14px' }} />
+                                              </Button>
                                               {log.comment && (
                                                 <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
                                                   - {log.comment}
@@ -1249,6 +1371,18 @@ export default function StudentRoster({
                                               <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeletePenalty(student.id, log.id);
+                                                }}
+                                                style={{ marginLeft: '0.5rem', color: '#ef4444' }}
+                                                title={t('delete_penalty_record') || "Delete penalty record"}
+                                              >
+                                                <Trash2 style={{ width: '14px', height: '14px' }} />
+                                              </Button>
                                               {log.comment && (
                                                 <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
                                                   - {log.comment}

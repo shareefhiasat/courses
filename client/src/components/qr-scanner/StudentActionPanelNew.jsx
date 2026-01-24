@@ -7,6 +7,7 @@ import { markAttendance } from '../../firebase/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../../constants/behaviorParticipation';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '../../firebase/userPreferences';
+import { useLang } from '../../contexts/LangContext';
 
 export default function StudentActionPanelNew({
   student,
@@ -19,17 +20,24 @@ export default function StudentActionPanelNew({
   showFavoritesOnly = false,
   onToggleFavorites = () => {},
   selectedDate,
-  sendNotifications = true,
+  sendNotifications = false,
   onToggleNotifications
 }) {
-  console.log('StudentActionPanelNew rendering for:', student);
   const { user } = useAuth();
+  const { t, lang } = useLang();
+  const [selectedActions, setSelectedActions] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [expandedSections, setExpandedSections] = useState({
     behavior: false,
     participation: false,
     penalty: false
   });
-  const [selectedActions, setSelectedActions] = useState([]);
   const [internalNote, setInternalNote] = useState('');
   const [actionPoints, setActionPoints] = useState({});
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
@@ -236,8 +244,8 @@ export default function StudentActionPanelNew({
       position: 'fixed',
       top: 0,
       right: 0,
-      width: '100%',
-      maxWidth: '28rem',
+      width: isMobile ? '100%' : '100%',
+      maxWidth: isMobile ? '100%' : '28rem',
       height: '100%',
       background: 'white',
       boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
@@ -294,7 +302,7 @@ export default function StudentActionPanelNew({
                   borderRadius: '9999px'
                 }} />
                 <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  {attendanceStatus.en}
+                  {lang === 'ar' ? attendanceStatus.ar : attendanceStatus.en}
                 </span>
               </div>
             </div>
@@ -371,7 +379,7 @@ export default function StudentActionPanelNew({
             }}
           >
             <Users style={{ width: '14px', height: '14px' }} />
-            Participation
+            {t('participation')}
           </button>
           <button
             onClick={() => setActiveTab('behavior')}
@@ -390,7 +398,7 @@ export default function StudentActionPanelNew({
             }}
           >
             <Zap style={{ width: '14px', height: '14px' }} />
-            Behavior
+            {t('behavior')}
           </button>
           <button
             onClick={() => setActiveTab('penalty')}
@@ -409,7 +417,7 @@ export default function StudentActionPanelNew({
             }}
           >
             <AlertCircle style={{ width: '14px', height: '14px' }} />
-            Penalty
+            {t('penalty')}
           </button>
           <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {/*    <button*/}

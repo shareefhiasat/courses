@@ -50,7 +50,14 @@ const InstructorQRScannerPage = () => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
   const [showScanner, setShowScanner] = useState(true);
-  const [sendNotifications, setSendNotifications] = useState(true);
+  const [sendNotifications, setSendNotifications] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Debug: Track selectedStudentForAction changes
   React.useEffect(() => {
@@ -872,7 +879,7 @@ const InstructorQRScannerPage = () => {
               <rect x="14" y="12" width="7" height="9" />
               <rect x="3" y="16" width="7" height="5" />
             </svg>
-            <span>QR Scanner</span>
+            <span>{t('qr_scanner')}</span>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', flex: 1, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1081,7 +1088,7 @@ const InstructorQRScannerPage = () => {
               background: 'white',
               borderRadius: '0.25rem'
             }}>
-              LIVE
+              {t('live') || 'LIVE'}
             </span>
           </div>
 
@@ -1097,7 +1104,8 @@ const InstructorQRScannerPage = () => {
               cursor: 'pointer',
               border: `1px solid ${sendNotifications ? '#bbf7d0' : '#fecaca'}`,
               transition: 'all 0.2s',
-              userSelect: 'none'
+              userSelect: 'none',
+              whiteSpace: 'nowrap'
             }}
           >
             <div style={{
@@ -1106,7 +1114,8 @@ const InstructorQRScannerPage = () => {
               background: sendNotifications ? '#10b981' : '#ef4444',
               borderRadius: '1rem',
               position: 'relative',
-              transition: 'background 0.2s'
+              transition: 'background 0.2s',
+              flexShrink: 0
             }}>
               <div style={{
                 width: '1rem',
@@ -1127,10 +1136,10 @@ const InstructorQRScannerPage = () => {
                 color: sendNotifications ? '#166534' : '#991b1b',
                 lineHeight: 1
               }}>
-                {sendNotifications ? 'Notifications: ON' : 'Notifications: OFF'}
+                {sendNotifications ? t('notifications') + ': ON' : t('notifications') + ': OFF'}
               </span>
               <span style={{ fontSize: '0.625rem', color: sendNotifications ? '#15803d' : '#b91c1c', marginTop: '2px' }}>
-                Email + System
+                {t('email_notification')} + System
               </span>
             </div>
           </div>
@@ -1138,9 +1147,9 @@ const InstructorQRScannerPage = () => {
       </header>
 
       <div style={{
-        padding: '1.5rem',
-        display: 'grid',
-        gridTemplateColumns: '300px 1fr',
+        padding: isMobile ? '0.5rem' : '1.5rem',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         gap: '1.5rem',
         maxWidth: '1600px',
         margin: '0 auto'
@@ -1149,7 +1158,9 @@ const InstructorQRScannerPage = () => {
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '1.5rem'
+          gap: '1.5rem',
+          width: isMobile ? '100%' : '300px',
+          flexShrink: 0
         }}>
           {showScanner && selectedClassId && (
             <QRScanner 
@@ -1234,7 +1245,7 @@ const InstructorQRScannerPage = () => {
                         borderRadius: '50%',
                         animation: 'spin 1s linear infinite'
                       }}></div>
-                      Refreshing...
+                      {t('loading')}
                     </>
                   ) : (
                     <>
@@ -1243,7 +1254,7 @@ const InstructorQRScannerPage = () => {
                         <path d="M1 20v-6h6"/>
                         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                       </svg>
-                      Refresh List
+                      {t('refresh')}
                     </>
                   )}
                 </button>
