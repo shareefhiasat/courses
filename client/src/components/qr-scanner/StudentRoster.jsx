@@ -6,7 +6,7 @@ import { getPenalties, deletePenalty } from '../../firebase/penalties';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '../../firebase/userPreferences';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LangContext';
-import { Mail, ChevronDown, QrCode, User, Trash2, ExternalLink } from 'lucide-react';
+import { Mail, ChevronDown, QrCode, User, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '../../utils/qrCode';
 
@@ -88,6 +88,14 @@ const PenaltyIcon = ({ style }) => (
   </svg>
 );
 
+const RefreshIcon = ({ style }) => (
+  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 4 23 10 17 10"></polyline>
+    <polyline points="1 20 1 14 7 14"></polyline>
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+  </svg>
+);
+
 export default function StudentRoster({
   students,
   onStudentSelect,
@@ -95,6 +103,7 @@ export default function StudentRoster({
   onTogglePin,
   onDownload,
   onFilter,
+  onRefresh,
   onStudentAction = () => {},
   searchQuery,
   onSearchChange,
@@ -420,6 +429,29 @@ export default function StudentRoster({
   const getAttendanceBadge = (status) => {
     const statusInfo = ATTENDANCE_STATUS_LABELS[status] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
     
+    // Special handling for Present status with green checkmark
+    if (status === 'present') {
+      return (
+        <span style={{
+          padding: '0.25rem 0.75rem',
+          borderRadius: '0.375rem',
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          background: '#22c55e',
+          color: 'white',
+          border: '1px solid #22c55e',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.375rem'
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          {statusInfo.en}
+        </span>
+      );
+    }
+    
     return (
       <span style={{
         padding: '0.25rem 0.75rem',
@@ -547,6 +579,9 @@ export default function StudentRoster({
               <Button variant="ghost" size="icon" onClick={onDownload}>
                 <DownloadIcon style={{ width: '1rem', height: '1rem' }} />
               </Button>
+              <Button variant="ghost" size="icon" onClick={onRefresh} title="Refresh">
+                <RefreshIcon style={{ width: '1rem', height: '1rem' }} />
+              </Button>
             </div>
           )}
           {isMobile && (
@@ -581,7 +616,7 @@ export default function StudentRoster({
                   userSelect: 'none'
                 }}
               >
-                Student Name {getSortIcon('name')}
+                Student {getSortIcon('name')}
               </th>
               <th 
                 onClick={() => onSort('attendance')}
@@ -662,7 +697,7 @@ export default function StudentRoster({
                     userSelect: 'none'
                   }}
                 >
-                  Total Attendance {getSortIcon('totalAttendance')}
+                  ATT. {getSortIcon('totalAttendance')}
                 </th>
               )}
               <th style={{
@@ -988,7 +1023,7 @@ export default function StudentRoster({
                                   }}
                                 >
                                   <AttendanceIcon style={{ width: '14px', height: '14px' }} />
-                                  Attendance
+                                  Today Attendance
                                 </button>
                                 <button
                                   onClick={() => toggleFilter('participation')}

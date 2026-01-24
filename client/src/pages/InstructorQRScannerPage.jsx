@@ -35,6 +35,11 @@ const InstructorQRScannerPage = () => {
     const today = new Date();
     return today.toISOString().split('T')[0]; // Format as yyyy-MM-dd
   });
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
+  const [attendanceFilter, setAttendanceFilter] = useState('all');
+  const [participationMin, setParticipationMin] = useState('');
+  const [participationMax, setParticipationMax] = useState('');
+  const [penaltyFilter, setPenaltyFilter] = useState('all');
 
   // Data state
   const [students, setStudents] = useState([]);
@@ -693,13 +698,75 @@ const InstructorQRScannerPage = () => {
   };
 
   const handleDownload = () => {
-    // TODO: Implement CSV download
-    console.log('Download students data');
+    try {
+      // Get current class and subject info for filename
+      const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
+      const currentSubject = subjects.find(s => (s.id || s.docId) === selectedSubjectId);
+      
+      const className = currentClass?.name || currentClass?.code || 'Class';
+      const subjectName = currentSubject?.name || currentSubject?.code || 'Subject';
+      const dateStr = selectedDate || new Date().toISOString().split('T')[0];
+      
+      // Create CSV content
+      const headers = ['Student ID', 'Name', 'Email', 'Attendance', 'Participation', 'Behavior', 'Penalty', 'Total Attendance'];
+      const csvContent = [
+        headers.join(','),
+        ...displayedStudents.map(student => [
+          `STU-${student.studentNumber || student.id?.slice(-4) || '0000'}`,
+          `"${student.name || 'Unknown'}"`,
+          student.email || '',
+          student.attendance || 'absent_no_excuse',
+          student.participation || 0,
+          student.behavior || 0,
+          student.penalty || 0,
+          student.totalAttendance || 0
+        ].join(','))
+      ].join('\n');
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${className}_${subjectName}_${dateStr}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('CSV downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading CSV:', error);
+      alert('Failed to download CSV. Please try again.');
+    }
+  };
+
+  const handleRefresh = () => {
+    // Reload students data
+    if (selectedClassId && selectedClassId !== 'all') {
+      loadStudents(selectedClassId, selectedDate);
+    }
+    // Trigger activity refresh
+    triggerActivityRefresh();
   };
 
   const handleFilter = () => {
-    // TODO: Implement advanced filters
-    console.log('Open filter dialog');
+    setShowFilterDialog(true);
+  };
+
+  const applyFilters = () => {
+    setShowFilterDialog(false);
+    // The filtering will be applied in getFilteredAndSortedStudents
+  };
+
+  const clearFilters = () => {
+    setAttendanceFilter('all');
+    setParticipationMin('');
+    setParticipationMax('');
+    setPenaltyFilter('all');
+    setShowFilterDialog(false);
   };
 
   const handleStudentAction = (student) => {
@@ -724,6 +791,26 @@ const InstructorQRScannerPage = () => {
         s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
       );
+    }
+
+    // Attendance filter
+    if (attendanceFilter !== 'all') {
+      filtered = filtered.filter(s => s.attendance === attendanceFilter);
+    }
+
+    // Participation range filter
+    if (participationMin !== '') {
+      filtered = filtered.filter(s => s.participation >= parseInt(participationMin));
+    }
+    if (participationMax !== '') {
+      filtered = filtered.filter(s => s.participation <= parseInt(participationMax));
+    }
+
+    // Penalty filter
+    if (penaltyFilter === 'none') {
+      filtered = filtered.filter(s => s.penalty === 0);
+    } else if (penaltyFilter === 'hasPenalty') {
+      filtered = filtered.filter(s => s.penalty > 0);
     }
 
     // Sort
@@ -1267,6 +1354,7 @@ const InstructorQRScannerPage = () => {
               onTogglePin={handleTogglePin}
               onDownload={handleDownload}
               onFilter={handleFilter}
+              onRefresh={handleRefresh}
               onStudentAction={handleStudentAction}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -1349,10 +1437,19 @@ const InstructorQRScannerPage = () => {
               options={[
                 ...BEHAVIOR_TYPES.map(type => ({ ...type, category: 'behavior' })),
                 ...PARTICIPATION_TYPES.map(type => ({ ...type, category: 'participation' })),
-                // Add penalty types if they exist, otherwise create some default ones
-                { id: 'penalty_late', label_en: 'Late Penalty', icon: 'Clock', color: '#dc2626', points: -5, category: 'penalty' },
-                { id: 'penalty_absent', label_en: 'Absent Penalty', icon: 'XCircle', color: '#dc2626', points: -10, category: 'penalty' },
-                { id: 'penalty_disruptive', label_en: 'Disruptive Behavior', icon: 'AlertTriangle', color: '#dc2626', points: -3, category: 'penalty' }
+                // Comprehensive penalty options
+                { id: 'penalty_late', label_en: 'Late', icon: 'Clock', color: '#dc2626', points: -5, category: 'penalty' },
+                { id: 'penalty_absent', label_en: 'Absent', icon: 'XCircle', color: '#dc2626', points: -10, category: 'penalty' },
+                { id: 'penalty_disruptive', label_en: 'Disruptive Behavior', icon: 'AlertTriangle', color: '#dc2626', points: -3, category: 'penalty' },
+                { id: 'penalty_phone', label_en: 'Phone Usage', icon: 'Smartphone', color: '#dc2626', points: -2, category: 'penalty' },
+                { id: 'penalty_homework', label_en: 'Missing Homework', icon: 'FileText', color: '#dc2626', points: -4, category: 'penalty' },
+                { id: 'penalty_uniform', label_en: 'Uniform Violation', icon: 'X', color: '#dc2626', points: -1, category: 'penalty' },
+                { id: 'penalty_talking', label_en: 'Excessive Talking', icon: 'MessageSquare', color: '#dc2626', points: -2, category: 'penalty' },
+                { id: 'penalty_cheating', label_en: 'Cheating', icon: 'XCircle', color: '#dc2626', points: -15, category: 'penalty' },
+                { id: 'penalty_sleeping', label_en: 'Sleeping in Class', icon: 'Bed', color: '#dc2626', points: -3, category: 'penalty' },
+                { id: 'penalty_respect', label_en: 'Disrespectful', icon: 'AlertTriangle', color: '#dc2626', points: -5, category: 'penalty' },
+                { id: 'penalty_materials', label_en: 'No Materials', icon: 'FileText', color: '#dc2626', points: -2, category: 'penalty' },
+                { id: 'penalty_eating', label_en: 'Eating/Drinking', icon: 'MoreHorizontal', color: '#dc2626', points: -1, category: 'penalty' }
               ]}
               showFavoritesOnly={showFavoritesOnly}
               onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
@@ -1369,6 +1466,162 @@ const InstructorQRScannerPage = () => {
               selectedDate={selectedDate}
             />
           </>
+        )}
+
+        {/* Filter Dialog */}
+        {showFilterDialog && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '0.75rem',
+              padding: '2rem',
+              width: '90%',
+              maxWidth: '500px',
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', color: '#111827', fontSize: '1.25rem' }}>
+                Filter Students
+              </h3>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#374151' }}>
+                  Attendance Status
+                </label>
+                <select
+                  value={attendanceFilter}
+                  onChange={(e) => setAttendanceFilter(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  <option value="all">All Status</option>
+                  <option value="present">Present</option>
+                  <option value="absent_no_excuse">Absent (No Excuse)</option>
+                  <option value="absent_with_excuse">Absent (Excused)</option>
+                  <option value="late">Late</option>
+                  <option value="excused_leave">Excused Leave</option>
+                  <option value="human_case">Human Case</option>
+                </select>
+              </div>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#374151' }}>
+                  Participation Range
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={participationMin}
+                    onChange={(e) => setParticipationMin(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem'
+                    }}
+                  />
+                  <span style={{ color: '#6b7280' }}>to</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={participationMax}
+                    onChange={(e) => setParticipationMax(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem'
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#374151' }}>
+                  Penalty Status
+                </label>
+                <select
+                  value={penaltyFilter}
+                  onChange={(e) => setPenaltyFilter(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  <option value="all">All Students</option>
+                  <option value="none">No Penalties</option>
+                  <option value="hasPenalty">Has Penalties</option>
+                </select>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={clearFilters}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: '1px solid #d1d5db',
+                    background: 'white',
+                    color: '#6b7280',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setShowFilterDialog(false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: '1px solid #d1d5db',
+                    background: 'white',
+                    color: '#6b7280',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={applyFilters}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: 'none',
+                    background: '#8b5cf6',
+                    color: 'white',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

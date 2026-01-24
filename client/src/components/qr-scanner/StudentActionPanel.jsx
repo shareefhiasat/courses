@@ -1944,7 +1944,7 @@ export default function StudentActionPanel({
                 color: '#374151',
                 margin: 0
               }}>
-                {t('history')}
+                {/*{t('history')}*/}
               </h4>
               <div style={{
                 display: 'flex',

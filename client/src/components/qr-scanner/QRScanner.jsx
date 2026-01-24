@@ -7,6 +7,7 @@ import { getUsers } from '../../firebase/firestore';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LangContext';
+import { RefreshCw } from 'lucide-react';
 
 const QrCodeIcon = ({ className }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -506,6 +507,30 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
       </div>
 
       <div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1rem'
+        }}>
+          <h4 style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: '#111827',
+            margin: 0
+          }}>
+            {t('recent_activity') || 'Recent Activity'}
+          </h4>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={fetchRecentActivity}
+            title="Refresh activity"
+            style={{ padding: '0.25rem' }}
+          >
+            <RefreshCw style={{ width: '1rem', height: '1rem' }} />
+          </Button>
+        </div>
         {/*<div style={{*/}
         {/*  display: 'flex',*/}
         {/*  alignItems: 'center',*/}
