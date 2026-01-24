@@ -354,9 +354,9 @@ export default function StudentRoster({
         borderRadius: '0.375rem',
         fontSize: '0.75rem',
         fontWeight: 500,
-        background: statusInfo.color + '20',
-        color: statusInfo.color,
-        border: `1px solid ${statusInfo.color}40`
+        background: statusInfo.color,
+        color: 'white',
+        border: `1px solid ${statusInfo.color}`
       }}>
         {statusInfo.en}
       </span>

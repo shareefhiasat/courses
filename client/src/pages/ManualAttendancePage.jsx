@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Container, Loading, Button, Select, Card, EmptyState } from '../components/ui';
+import { Container, Loading, Button, Select, Card, CardBody, EmptyState } from '../components/ui';
 import { 
   Calendar, Users, CheckCircle, XCircle, Clock, Download, 
   Filter, Search, BarChart3, TrendingUp, User as UserIcon,
@@ -19,7 +19,7 @@ import {
   ATTENDANCE_STATUS,
   ATTENDANCE_STATUS_LABELS
 } from '../firebase/attendance';
-import { addActivityLog } from '../firebase/firestore';
+import { addActivityLog, getClasses, getEnrollments, getUsers } from '../firebase/firestore';
 import { getCardConfig, getShapeRadius } from '../utils/cardColors';
 import styles from './ManualAttendancePage.module.css';
 

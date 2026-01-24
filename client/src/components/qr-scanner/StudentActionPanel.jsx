@@ -5,12 +5,15 @@ import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
 import { getAttendanceByStudent } from '../../firebase/attendance';
+import { deleteAttendance } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
+import { deletePenalty } from '../../firebase/penalties';
 import { getFunctions } from '../../firebase/config';
 import { generateStudentQRCode } from '../../utils/qrCode';
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../../constants/behaviorParticipation';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { FancyLoading } from '../ui/FancyLoading/FancyLoading';
+import { useAuth } from '../../contexts/AuthContext';
 
 const XIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -56,6 +59,7 @@ export default function StudentActionPanel({
   sendNotifications = true,
   onToggleNotifications
 }) {
+  const { user } = useAuth();
   const [selectedActions, setSelectedActions] = useState([]);
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
@@ -360,6 +364,68 @@ export default function StudentActionPanel({
       console.error('Error marking attendance:', error);
     } finally {
       setShowLoadingOverlay(false);
+    }
+  };
+
+  // Delete attendance log
+  const handleDeleteAttendance = async (logId) => {
+    if (!window.confirm('Are you sure you want to delete this attendance record?')) {
+      return;
+    }
+
+    try {
+      const result = await deleteAttendance(logId);
+      if (result.success) {
+        // Refresh the history
+        setHistoryRefreshKey(prev => prev + 1);
+        await fetchHistoricalLogs();
+        
+        // Emit event for real-time updates
+        eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+          studentId: student.id,
+          classId: student.classId,
+          status: 'deleted',
+          performedBy: user,
+          timestamp: new Date()
+        });
+      } else {
+        console.error('Failed to delete attendance record:', result.error);
+        alert('Failed to delete attendance record: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting attendance record:', error);
+      alert('Error deleting attendance record: ' + error.message);
+    }
+  };
+
+  // Delete penalty log
+  const handleDeletePenalty = async (logId) => {
+    if (!window.confirm('Are you sure you want to delete this penalty record?')) {
+      return;
+    }
+
+    try {
+      const result = await deletePenalty(logId);
+      if (result.success) {
+        // Refresh the history
+        setHistoryRefreshKey(prev => prev + 1);
+        await fetchHistoricalLogs();
+        
+        // Emit event for real-time updates
+        eventBus.emit(EVENTS.PENALTY_ASSIGNED, {
+          studentId: student.id,
+          classId: student.classId,
+          status: 'deleted',
+          performedBy: user,
+          timestamp: new Date()
+        });
+      } else {
+        console.error('Failed to delete penalty record:', result.error);
+        alert('Failed to delete penalty record: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting penalty record:', error);
+      alert('Error deleting penalty record: ' + error.message);
     }
   };
 
@@ -2087,21 +2153,45 @@ export default function StudentActionPanel({
                                 <div key={idx} style={{
                                   display: 'flex',
                                   alignItems: 'center',
+                                  justifyContent: 'space-between',
                                   gap: '0.2rem',
                                   padding: '0.375rem 0',
                                   fontSize: '0.8125rem',
                                   borderBottom: idx === dayGroup.attendance.length - 1 ? 'none' : '1px solid #f1f5f9'
                                 }}>
-                                  <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
-                                    {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#10b981', marginRight: '0.5rem' }}>
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                  </svg>
-                                  <span style={{ color: '#374151', fontWeight: 500 }}>
-                                    {log.label}
-                                  </span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
+                                      {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                    </span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#10b981', marginRight: '0.5rem' }}>
+                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                      <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <span style={{ color: '#374151', fontWeight: 500 }}>
+                                      {log.label}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleDeleteAttendance(log.id)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#ef4444',
+                                      cursor: 'pointer',
+                                      padding: '0.25rem',
+                                      borderRadius: '0.25rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                    title="Delete attendance record"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M3 6h18"/>
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -2185,22 +2275,46 @@ export default function StudentActionPanel({
                                 <div key={idx} style={{
                                   display: 'flex',
                                   alignItems: 'center',
+                                  justifyContent: 'space-between',
                                   gap: '0.5rem',
                                   padding: '0.375rem 0',
                                   fontSize: '0.8125rem',
                                   borderBottom: idx === dayGroup.penalties.length - 1 ? 'none' : '1px solid #f1f5f9'
                                 }}>
-                                  <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
-                                    {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#ef4444', marginRight: '0.5rem' }}>
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                  </svg>
-                                  <span style={{ color: '#374151', fontWeight: 500 }}>
-                                    {log.label}
-                                  </span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
+                                      {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                    </span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#ef4444', marginRight: '0.5rem' }}>
+                                      <circle cx="12" cy="12" r="10"></circle>
+                                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                    <span style={{ color: '#374151', fontWeight: 500 }}>
+                                      {log.label}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleDeletePenalty(log.id)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#ef4444',
+                                      cursor: 'pointer',
+                                      padding: '0.25rem',
+                                      borderRadius: '0.25rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                    title="Delete penalty record"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M3 6h18"/>
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                  </button>
                                 </div>
                               ))}
                             </div>

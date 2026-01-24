@@ -31,7 +31,10 @@ const InstructorQRScannerPage = () => {
   const [selectedProgramId, setSelectedProgramId] = useState('all');
   const [selectedSubjectId, setSelectedSubjectId] = useState('all');
   const [selectedClassId, setSelectedClassId] = useState('all');
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0]; // Format as yyyy-MM-dd
+  });
 
   // Data state
   const [students, setStudents] = useState([]);
@@ -206,6 +209,23 @@ const InstructorQRScannerPage = () => {
     }
   }, [selectedStudent?.id]);
 
+  // Listen for real-time attendance updates
+  useEffect(() => {
+    const unsubscribe = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
+      console.log('[QR Scanner] Real-time attendance update received:', data);
+      
+      // If the update is for the current class, refresh students
+      if (data.classId === selectedClassId) {
+        console.log('[QR Scanner] Refreshing students due to attendance update');
+        loadStudents(selectedClassId, selectedDate);
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [selectedClassId, selectedDate]);
+
   const loadPrograms = async () => {
     try {
       const programsResponse = await getPrograms();
@@ -321,7 +341,6 @@ const InstructorQRScannerPage = () => {
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       console.log('[QR Scanner] All penalties data:', allPenalties);
-      console.log('[QR Scanner] Sample penalty record:', allPenalties[0]);
       console.log('[QR Scanner] Student IDs from enrollments:', studentIds);
       const studentPenalties = allPenalties.filter(p => studentIds.includes(p.studentId));
       console.log('[QR Scanner] Student penalties:', studentPenalties);
@@ -338,6 +357,8 @@ const InstructorQRScannerPage = () => {
         // Get attendance status for today - use docId for student ID matching
         const studentId = student.id || student.docId;
         const todayAttendance = attendance.find(a => a.studentId === studentId);
+        
+        console.log('[QR Scanner] Looking for attendance for studentId:', studentId, 'found:', todayAttendance?.status);
 
         // Fetch all attendance records for this student to calculate participation and behavior
         const attendanceResponse = await getAttendanceByStudent(studentId);
@@ -443,12 +464,8 @@ const InstructorQRScannerPage = () => {
 
   const handleMarkAttendance = async (studentId, status, notes = '') => {
     try {
-      // Ensure selectedDate is a Date object
-      const date = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
+      // Ensure selectedDate is a string in yyyy-MM-dd format
+      const dateStr = typeof selectedDate === 'string' ? selectedDate : selectedDate.toISOString().split('T')[0];
       
       await markAttendance({
         classId: selectedClassId,
@@ -461,6 +478,9 @@ const InstructorQRScannerPage = () => {
 
       // Reload students to reflect changes
       await loadStudents(selectedClassId, selectedDate);
+      
+      // Small delay to ensure state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Emit real-time event for activity updates
       eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -1183,7 +1203,53 @@ const InstructorQRScannerPage = () => {
               </p>
             </div>
           ) : (
-            <StudentRoster
+            <div>
+              {/* Refresh Button */}
+              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => loadStudents(selectedClassId, selectedDate)}
+                  disabled={loading}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    opacity: loading ? 0.6 : 1
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <div style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid white',
+                        borderTop: '2px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 4v6h-6"/>
+                        <path d="M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                      </svg>
+                      Refresh List
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              <StudentRoster
               students={displayedStudents}
               onStudentSelect={handleStudentSelect}
               selectedStudentId={selectedStudent?.id}
@@ -1212,6 +1278,7 @@ const InstructorQRScannerPage = () => {
               selectedClassId={selectedClassId}
               selectedDate={selectedDate}
             />
+            </div>
           )}
         </div>
 

@@ -1,4 +1,4 @@
-import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, getDocs, query, where, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, getDocs, query, where, getDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './config';
 import { addNotification } from './notifications';
@@ -433,5 +433,24 @@ export async function getAttendanceHistory(classId = null, studentId = null, sta
   } catch (error) {
     console.error('Error getting attendance history:', error);
     return { success: false, error: error.message, data: [] };
+  }
+}
+
+/**
+ * Delete an attendance record
+ */
+export async function deleteAttendance(attendanceId) {
+  try {
+    if (!attendanceId) {
+      return { success: false, error: 'Attendance ID is required' };
+    }
+    
+    await deleteDoc(doc(db, 'attendance', attendanceId));
+    console.log('[Attendance] Deleted attendance record:', attendanceId);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting attendance record:', error);
+    return { success: false, error: error.message };
   }
 }

@@ -210,8 +210,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
       const studentMap = {};
       allUsers.forEach(user => {
         const userId = user.id || user.docId;
-        studentMap[userId] = user.displayName || user.name || user.email?.split('@')[0] || 'Unknown';
+        // Try to get the best name available, prefer displayName over email
+        const name = user.displayName || user.realName || user.name || (user.email ? user.email.split('@')[0] : 'Unknown');
+        studentMap[userId] = name;
+        console.log('[QR Scanner] Student map:', userId, '->', name);
       });
+      
+      console.log('[QR Scanner] Attendance records found:', attendanceRecords.length);
+      console.log('[QR Scanner] Attendance records:', attendanceRecords);
       
       // Combine and format activity logs
       const activityLogs = [
@@ -239,25 +245,29 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
         return timeB - timeA;
-      }).slice(0, 10).map(log => {
-        const time = log.time;
-        const timeStr = time?.toDate ? time.toDate().toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit',
-          hour12: true 
-        }) : (time instanceof Date ? time.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit',
-          hour12: true 
-        }) : '');
-
-        return {
-          ...log,
-          time: timeStr
-        };
+      }).slice(0, 10);
+      
+      // Remove duplicate attendance records for same student on same date
+      const uniqueLogs = [];
+      const seen = new Set();
+      
+      activityLogs.forEach(log => {
+        if (log.type === 'attendance') {
+          const key = `${log.studentId}-${log.date || log.time}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueLogs.push(log);
+          } else {
+            console.log('[QR Scanner] Removing duplicate attendance record:', log);
+          }
+        } else {
+          uniqueLogs.push(log);
+        }
       });
       
-      setRecentActivity(activityLogs);
+      console.log('[QR Scanner] Final activity logs (deduped):', uniqueLogs);
+      
+      setRecentActivity(uniqueLogs);
     } catch (error) {
       console.error('Error fetching recent activity:', error);
       setRecentActivity([]);
