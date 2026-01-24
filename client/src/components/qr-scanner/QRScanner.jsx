@@ -482,7 +482,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                 switch(scanMethod) {
                   case 'auto':
                     return {
-                      icon: '📱',
+                      icon: '',
                       text: 'QR Scan',
                       color: '#10b981'
                     };

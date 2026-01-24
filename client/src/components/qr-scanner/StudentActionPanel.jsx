@@ -695,8 +695,8 @@ export default function StudentActionPanel({
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
-                  color: student.attendance === 'late' ? 'white' : '#f59e0b',
-                  background: student.attendance === 'late' ? 'transparent' : '#f59e0b',
+                  color: 'white',
+                  background: '#f59e0b',
                   borderRadius: '0.125rem',
                   padding: '0.125rem 0.25rem',
                   minWidth: '0.75rem',
@@ -737,8 +737,8 @@ export default function StudentActionPanel({
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
-                  color: student.attendance === 'absent_no_excuse' ? 'white' : '#ef4444',
-                  background: student.attendance === 'absent_no_excuse' ? 'transparent' : '#ef4444',
+                  color: 'white',
+                  background: '#ef4444',
                   borderRadius: '0.125rem',
                   padding: '0.125rem 0.25rem',
                   minWidth: '0.75rem',
@@ -782,8 +782,8 @@ export default function StudentActionPanel({
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
-                  color: student.attendance === 'absent_with_excuse' ? 'white' : '#ef4444',
-                  background: student.attendance === 'absent_with_excuse' ? 'transparent' : '#ef4444',
+                  color: 'white',
+                  background: '#ef4444',
                   borderRadius: '0.125rem',
                   padding: '0.125rem 0.25rem',
                   minWidth: '0.75rem',
@@ -826,8 +826,8 @@ export default function StudentActionPanel({
                 <span style={{
                   fontSize: '0.5rem',
                   fontWeight: 600,
-                  color: student.attendance === 'excused_leave' ? 'white' : '#ef4444',
-                  background: student.attendance === 'excused_leave' ? 'transparent' : '#ef4444',
+                  color: 'white',
+                  background: '#ef4444',
                   borderRadius: '0.125rem',
                   padding: '0.125rem 0.25rem',
                   minWidth: '0.75rem',

@@ -59,6 +59,11 @@ export const AuthProvider = ({ children }) => {
       console.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
       timeoutId = setTimeout(async () => {
         console.log('[Auth] Session timeout reached - logging out user');
+        
+        // Store logout reason in sessionStorage
+        sessionStorage.setItem('logoutReason', 'session_timeout');
+        sessionStorage.setItem('logoutTimestamp', Date.now().toString());
+        
         // Log session timeout
         try {
           await ActivityLogger.sessionTimeout();
@@ -112,8 +117,16 @@ export const AuthProvider = ({ children }) => {
         console.warn('[Auth] Session storage at logout:', {
           hasLoggedIn: sessionStorage.getItem('hasLoggedInThisSession'),
           sessionStart: sessionStorage.getItem('sessionStart'),
-          userProfile: sessionStorage.getItem('userProfile') ? 'exists' : 'missing'
+          userProfile: sessionStorage.getItem('userProfile') ? 'exists' : 'missing',
+          logoutReason: sessionStorage.getItem('logoutReason')
         });
+        
+        // Store logout reason if not already set (likely Firebase auth error)
+        if (!sessionStorage.getItem('logoutReason')) {
+          sessionStorage.setItem('logoutReason', 'auth_error');
+          sessionStorage.setItem('logoutTimestamp', Date.now().toString());
+        }
+        
         setUser(null);
         setIsAdmin(false);
         setRole('guest');

@@ -42,6 +42,12 @@ export const signOutUser = async (user = null) => {
     sessionStorage.removeItem('hasLoggedInThisSession');
     sessionStorage.removeItem('sessionStart');
     
+    // Store logout reason if not already set (manual logout)
+    if (!sessionStorage.getItem('logoutReason')) {
+      sessionStorage.setItem('logoutReason', 'manual_logout');
+      sessionStorage.setItem('logoutTimestamp', Date.now().toString());
+    }
+    
     // Log logout activity before signing out
     if (user) {
       try {
