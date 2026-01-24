@@ -994,10 +994,10 @@ export default function StudentActionPanel({
 
           {/* Points Summary */}
           <div style={{ marginBottom: '1rem' }}>
-            {/* 5 Total Cards Only */}
+            {/* 4 Total Cards Only - without Late */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '0.25rem',
               marginBottom: '1rem'
             }}>
@@ -1016,26 +1016,7 @@ export default function StudentActionPanel({
                   {attendanceStats.present}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Present
-                </div>
-              </div>
-
-              {/* Total Late */}
-              <div style={{
-                padding: '0.5rem',
-                background: '#eab308',
-                borderRadius: '0.5rem',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                minHeight: '3rem'
-              }}>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
-                  {attendanceStats.late}
-                </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Late
+                  Present
                 </div>
               </div>
 
@@ -1054,7 +1035,7 @@ export default function StudentActionPanel({
                   {student.penalty || 0}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Penalty
+                  Penalty
                 </div>
               </div>
 
@@ -1073,7 +1054,7 @@ export default function StudentActionPanel({
                   {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Behavior
+                  Behavior
                 </div>
               </div>
 
@@ -1092,7 +1073,7 @@ export default function StudentActionPanel({
                   {student.participation || 0}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Participation
+                  Participation
                 </div>
               </div>
             </div>
@@ -1100,10 +1081,29 @@ export default function StudentActionPanel({
             {/* Additional Attendance Totals Row */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(5, 1fr)',
               gap: '0.25rem',
               marginBottom: '1rem'
             }}>
+              {/* Total Late */}
+              <div style={{
+                padding: '0.5rem',
+                background: '#eab308',
+                borderRadius: '0.5rem',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                minHeight: '3rem'
+              }}>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
+                  {attendanceStats.late}
+                </div>
+                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                  Late
+                </div>
+              </div>
+
               {/* Total Human Case */}
               <div style={{
                 padding: '0.5rem',
@@ -1119,7 +1119,7 @@ export default function StudentActionPanel({
                   {attendanceStats.human_case}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Human Case
+                  Human Case
                 </div>
               </div>
 
@@ -1138,7 +1138,7 @@ export default function StudentActionPanel({
                   {attendanceStats.excused_leave}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Excused Leave
+                  Excused Leave
                 </div>
               </div>
 
@@ -1157,7 +1157,7 @@ export default function StudentActionPanel({
                   {attendanceStats.absent_with_excuse}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Absent (Excused)
+                  Absent (Excused)
                 </div>
               </div>
 
@@ -1176,7 +1176,7 @@ export default function StudentActionPanel({
                   {attendanceStats.absent_no_excuse}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
-                  Tot. Absents
+                  Absents
                 </div>
               </div>
             </div>
@@ -1278,7 +1278,7 @@ export default function StudentActionPanel({
                       color: 'white',
                       flex: 1
                     }}>
-                      Tot. Behavior
+                      Behavior
                     </div>
                     <div style={{
                       fontSize: '0.75rem',
@@ -1403,7 +1403,7 @@ export default function StudentActionPanel({
                       color: 'white',
                       flex: 1
                     }}>
-                      Tot. Participation
+                      Participation
                     </div>
                     <div style={{
                       fontSize: '0.75rem',
@@ -1531,7 +1531,7 @@ export default function StudentActionPanel({
                       color: 'white',
                       flex: 1
                     }}>
-                      Tot. Penalty
+                      Penalty
                     </div>
                     <div style={{
                       fontSize: '0.75rem',
