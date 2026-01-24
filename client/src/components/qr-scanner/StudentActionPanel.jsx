@@ -15,6 +15,7 @@ import eventBus, { EVENTS } from '../../utils/eventBus';
 import { FancyLoading } from '../ui/FancyLoading/FancyLoading';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LangContext';
+import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 
 const XIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -64,6 +65,10 @@ export default function StudentActionPanel({
   const { t } = useLang();
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState('');
+  const [deleteLogId, setDeleteLogId] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -378,63 +383,70 @@ export default function StudentActionPanel({
 
   // Delete attendance log
   const handleDeleteAttendance = async (logId) => {
-    if (!window.confirm('Are you sure you want to delete this attendance record?')) {
-      return;
-    }
-
-    try {
-      const result = await deleteAttendance(logId);
-      if (result.success) {
-        // Refresh the history
-        setHistoryRefreshKey(prev => prev + 1);
-        await fetchHistoricalLogs();
-        
-        // Emit event for real-time updates
-        eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
-          studentId: student.id,
-          classId: student.classId,
-          status: 'deleted',
-          performedBy: user,
-          timestamp: new Date()
-        });
-      } else {
-        console.error('Failed to delete attendance record:', result.error);
-        alert('Failed to delete attendance record: ' + result.error);
-      }
-    } catch (error) {
-      console.error('Error deleting attendance record:', error);
-      alert('Error deleting attendance record: ' + error.message);
-    }
+    setDeleteType('attendance');
+    setDeleteLogId(logId);
+    setDeleteModalOpen(true);
   };
 
   // Delete penalty log
   const handleDeletePenalty = async (logId) => {
-    if (!window.confirm('Are you sure you want to delete this penalty record?')) {
-      return;
-    }
+    setDeleteType('penalty');
+    setDeleteLogId(logId);
+    setDeleteModalOpen(true);
+  };
 
+  // Handle actual deletion after confirmation
+  const handleConfirmDelete = async () => {
+    setDeleteLoading(true);
     try {
-      const result = await deletePenalty(logId);
-      if (result.success) {
-        // Refresh the history
-        setHistoryRefreshKey(prev => prev + 1);
-        await fetchHistoricalLogs();
-        
-        // Emit event for real-time updates
-        eventBus.emit(EVENTS.PENALTY_ASSIGNED, {
-          studentId: student.id,
-          classId: student.classId,
-          status: 'deleted',
-          performedBy: user,
-          timestamp: new Date()
-        });
-      } else {
-        console.error('Failed to delete penalty record:', result.error);
-        alert('Failed to delete penalty record: ' + result.error);
+      let result;
+      if (deleteType === 'attendance') {
+        result = await deleteAttendance(deleteLogId);
+        if (result.success) {
+          // Refresh the history
+          setHistoryRefreshKey(prev => prev + 1);
+          await fetchHistoricalLogs();
+          
+          // Emit event for real-time updates
+          eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+            studentId: student.id,
+            classId: student.classId,
+            status: 'deleted',
+            performedBy: user,
+            timestamp: new Date()
+          });
+        } else {
+          console.error('Failed to delete attendance record:', result.error);
+          alert('Failed to delete attendance record: ' + result.error);
+        }
+      } else if (deleteType === 'penalty') {
+        result = await deletePenalty(deleteLogId);
+        if (result.success) {
+          // Refresh the history
+          setHistoryRefreshKey(prev => prev + 1);
+          await fetchHistoricalLogs();
+          
+          // Emit event for real-time updates
+          eventBus.emit(EVENTS.PENALTY_ASSIGNED, {
+            studentId: student.id,
+            classId: student.classId,
+            status: 'deleted',
+            performedBy: user,
+            timestamp: new Date()
+          });
+        } else {
+          console.error('Failed to delete penalty record:', result.error);
+          alert('Failed to delete penalty record: ' + result.error);
+        }
       }
     } catch (error) {
-      console.error('Error deleting penalty record:', error);
-      alert('Error deleting penalty record: ' + error.message);
+      console.error(`Error deleting ${deleteType} record:`, error);
+      alert(`Error deleting ${deleteType} record: ` + error.message);
+    } finally {
+      setDeleteLoading(false);
+      setDeleteModalOpen(false);
+      setDeleteType('');
+      setDeleteLogId('');
     }
   };
 
@@ -458,6 +470,7 @@ export default function StudentActionPanel({
       // Combine and format logs with date information
       const logs = [
         ...attendanceRecords.map(record => ({
+          id: record.id || record.docId,
           type: 'attendance',
           date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
@@ -469,6 +482,7 @@ export default function StudentActionPanel({
           color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
         })),
         ...studentPenalties.map(penalty => ({
+          id: penalty.id || penalty.docId,
           type: 'penalty',
           date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
           time: penalty.createdAt,
@@ -643,6 +657,19 @@ export default function StudentActionPanel({
 
   return (
     <>
+      {/* Overlay */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1999
+        }}
+        onClick={onClose}
+      />
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
@@ -2356,6 +2383,16 @@ export default function StudentActionPanel({
           </div>
         </div>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={`Delete ${deleteType === 'attendance' ? 'Attendance' : 'Penalty'} Record`}
+        message={`Are you sure you want to delete this ${deleteType === 'attendance' ? 'attendance' : 'penalty'} record? This action cannot be undone.`}
+        loading={deleteLoading}
+      />
     </>
   );
 };

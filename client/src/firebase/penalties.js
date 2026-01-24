@@ -242,46 +242,6 @@ export const PENALTY_TYPES = [
     description_en: "Forging signatures or official school documents"
   },
   {
-    id: "repetitive_absence_with_excuse",
-    label_ar: "غياب متكرر بعذر",
-    label_en: "Repetitive Absence (With Excuse)",
-    points: 2,
-    description_ar: "التغيب المتكرر عن الحصص مع تقديم أعذار",
-    description_en: "Frequent absences from classes with excuses"
-  },
-  {
-    id: "repetitive_absence_without_excuse",
-    label_ar: "غياب متكرر بدون عذر",
-    label_en: "Repetitive Absence (Without Excuse)",
-    points: 5,
-    description_ar: "التغيب المتكرر عن الحصص بدون تقديم أعذار مقبولة",
-    description_en: "Frequent absences from classes without valid excuses"
-  },
-  {
-    id: "absent_no_excuse",
-    label_ar: "غياب بدون عذر",
-    label_en: "Absent (No Excuse)",
-    points: 3,
-    description_ar: "الغياب بدون تقديم عذر مقبول",
-    description_en: "Absence without providing an acceptable excuse"
-  },
-  {
-    id: "absent_with_excuse",
-    label_ar: "غياب بعذر",
-    label_en: "Absent (With Excuse)",
-    points: 1,
-    description_ar: "الغياب مع تقديم عذر رسمي مقبول",
-    description_en: "Absence with an accepted official excuse"
-  },
-  { 
-    id: "late", 
-    label_ar: "تأخر", 
-    label_en: "Late",
-    points: 1,
-    description_ar: "التأخر عن الحصة بدون عذر مقبول",
-    description_en: "Arriving late to class without an acceptable excuse"
-  },
-  {
     id: "other",
     label_ar: "مخالفات أخرى تعطل النظام العام",
     label_en: "Other Violations Disrupting Public Order",

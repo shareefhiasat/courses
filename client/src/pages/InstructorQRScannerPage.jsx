@@ -64,6 +64,14 @@ const InstructorQRScannerPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Redirect to login if session expired (no user)
+  useEffect(() => {
+    if (!user && !authLoading) {
+      console.log('[QR Scanner] No user found - redirecting to login');
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
+
   // Debug: Track selectedStudentForAction changes
   React.useEffect(() => {
     console.log('selectedStudentForAction changed to:', selectedStudentForAction);
@@ -580,10 +588,18 @@ const InstructorQRScannerPage = () => {
             reason: note,
             createdBy: user.uid
           });
-        } else {
-          // Add participation/behavior through user update
-          // This would need a specific API endpoint
-          // For now, we'll handle it in the reload
+        } else if (points > 0) {
+          // Add participation/behavior using markAttendance with delta
+          await markAttendance({
+            classId: selectedClassId,
+            studentId,
+            date: selectedDate,
+            status: 'present', // Keep as present but add delta
+            markedBy: user.uid,
+            method: 'manual',
+            notes: `${action.label_en || action.type}: ${note}`,
+            delta: points
+          });
         }
       }
 
@@ -856,10 +872,7 @@ const InstructorQRScannerPage = () => {
     );
   }
 
-  // Redirect to login if session expired (no user)
-  if (!user) {
-    console.log('[QR Scanner] No user found - redirecting to login');
-    navigate('/login');
+  if (!user && !authLoading) {
     return null;
   }
 
@@ -1301,9 +1314,9 @@ const InstructorQRScannerPage = () => {
               </p>
             </div>
           ) : (
-            <div>
+            <div style={{ width: '100%' }}>
               {/* Refresh Button */}
-              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+              {/* <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => loadStudents(selectedClassId, selectedDate)}
                   disabled={loading}
@@ -1345,7 +1358,7 @@ const InstructorQRScannerPage = () => {
                     </>
                   )}
                 </button>
-              </div>
+              </div> */}
               
               <StudentRoster
               students={displayedStudents}

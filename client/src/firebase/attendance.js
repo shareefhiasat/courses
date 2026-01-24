@@ -161,7 +161,8 @@ export async function markAttendance({
   studentInfo = null,
   className = '',
   sendNotification = true,
-  previousStatus = null
+  previousStatus = null,
+  delta = null
 }) {
   try {
     const attendanceRef = collection(db, 'attendance');
@@ -184,6 +185,8 @@ export async function markAttendance({
       notes,
       timestamp: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      // Include delta if provided
+      ...(delta !== null && { delta }),
       // Track history of changes
       ...(statusChanged ? {
         history: [...(existingDoc.data().history || []), {

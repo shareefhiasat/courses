@@ -9,6 +9,7 @@ import { useLang } from '../../contexts/LangContext';
 import { Mail, ChevronDown, QrCode, User, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '../../utils/qrCode';
+import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 
 const SearchIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -123,6 +124,10 @@ export default function StudentRoster({
   const { t } = useLang();
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState('');
+  const [deleteLogId, setDeleteLogId] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -208,28 +213,48 @@ export default function StudentRoster({
   };
 
   const handleDeleteAttendance = async (studentId, logId) => {
-    if (!window.confirm(t('confirm_delete_record') || 'Are you sure you want to delete this record?')) return;
-    try {
-      const result = await deleteAttendance(logId);
-      if (result.success) {
-        fetchStudentHistory(studentId);
-        eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId });
-      }
-    } catch (error) {
-      console.error('Error deleting attendance:', error);
-    }
+    setDeleteType('attendance');
+    setDeleteLogId(logId);
+    setDeleteModalOpen(true);
   };
 
   const handleDeletePenalty = async (studentId, logId) => {
-    if (!window.confirm(t('confirm_delete_record') || 'Are you sure you want to delete this record?')) return;
+    setDeleteType('penalty');
+    setDeleteLogId(logId);
+    setDeleteModalOpen(true);
+  };
+
+  // Handle actual deletion after confirmation
+  const handleConfirmDelete = async () => {
+    setDeleteLoading(true);
     try {
-      const result = await deletePenalty(logId);
-      if (result.success) {
-        fetchStudentHistory(studentId);
-        eventBus.emit(EVENTS.PENALTY_ASSIGNED, { studentId });
+      let result;
+      if (deleteType === 'attendance') {
+        result = await deleteAttendance(deleteLogId);
+        if (result.success) {
+          // Find the student ID from the log or refresh all
+          students.forEach(student => {
+            fetchStudentHistory(student.id);
+          });
+          eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId: deleteLogId.split('_')[1] });
+        }
+      } else if (deleteType === 'penalty') {
+        result = await deletePenalty(deleteLogId);
+        if (result.success) {
+          // Find the student ID from the log or refresh all
+          students.forEach(student => {
+            fetchStudentHistory(student.id);
+          });
+          eventBus.emit(EVENTS.PENALTY_ASSIGNED, { studentId: deleteLogId.split('_')[1] });
+        }
       }
     } catch (error) {
-      console.error('Error deleting penalty:', error);
+      console.error(`Error deleting ${deleteType}:`, error);
+    } finally {
+      setDeleteLoading(false);
+      setDeleteModalOpen(false);
+      setDeleteType('');
+      setDeleteLogId('');
     }
   };
 
@@ -498,7 +523,9 @@ export default function StudentRoster({
       background: 'white',
       borderRadius: '0.75rem',
       border: '1px solid #e5e7eb',
-      padding: '1.5rem'
+      padding: '1.5rem',
+      width: '100%',
+      maxWidth: '100%'
     }}>
       <div style={{
         display: 'flex',
@@ -1517,6 +1544,16 @@ export default function StudentRoster({
           </Button>
         </div>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={`Delete ${deleteType === 'attendance' ? 'Attendance' : 'Penalty'} Record`}
+        message={`Are you sure you want to delete this ${deleteType === 'attendance' ? 'attendance' : 'penalty'} record? This action cannot be undone.`}
+        loading={deleteLoading}
+      />
     </div>
   );
 }

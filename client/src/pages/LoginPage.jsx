@@ -198,7 +198,7 @@ const LoginPage = () => {
       </Container>
       
       {/* Add slideUp animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes slideUp {
           from {
             opacity: 0;

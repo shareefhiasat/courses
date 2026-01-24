@@ -8,6 +8,7 @@ import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/atte
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../../constants/behaviorParticipation';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '../../firebase/userPreferences';
 import { useLang } from '../../contexts/LangContext';
+import { useToast } from '../ui';
 
 export default function StudentActionPanelNew({
   student,
@@ -25,6 +26,7 @@ export default function StudentActionPanelNew({
 }) {
   const { user } = useAuth();
   const { t, lang } = useLang();
+  const { showSuccess, showError } = useToast();
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -240,21 +242,35 @@ export default function StudentActionPanelNew({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      right: 0,
-      width: isMobile ? '100%' : '100%',
-      maxWidth: isMobile ? '100%' : '28rem',
-      height: '100%',
-      background: 'white',
-      boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
-      zIndex: 2000,
-      display: 'flex',
-      flexDirection: 'column',
-      maxHeight: '100%',
-      overflow: 'hidden'
-    }}>
+    <>
+      {/* Overlay */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1999
+        }}
+        onClick={onClose}
+      />
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        width: isMobile ? '100%' : '100%',
+        maxWidth: isMobile ? '100%' : '28rem',
+        height: '100%',
+        background: 'white',
+        boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
+        zIndex: 2000,
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: '100%',
+        overflow: 'hidden'
+      }}>
       {/* Header */}
       <div style={{ padding: '0.8rem', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{
@@ -675,10 +691,11 @@ export default function StudentActionPanelNew({
                 setSelectedActions([]);
                 setInternalNote('');
                 setActionPoints({});
-                alert('Actions saved successfully!');
+                showSuccess('Actions saved successfully!');
+                onClose(); // Close panel after successful save
               } catch (error) {
                 console.error('Error saving actions:', error);
-                alert('Failed to save actions');
+                showError('Failed to save actions');
               }
             }}
             disabled={selectedActions.length === 0}
@@ -696,6 +713,7 @@ export default function StudentActionPanelNew({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
