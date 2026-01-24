@@ -22,7 +22,6 @@ import HRPenaltiesPage from './pages/HRPenaltiesPage';
 import InstructorParticipationPage from './pages/InstructorParticipationPage';
 import InstructorBehaviorPage from './pages/InstructorBehaviorPage';
 import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
-import ManualAttendancePage from './pages/ManualAttendancePage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
 import MigrationPage from './pages/MigrationPage';
 import ManageEnrollmentsPage from './pages/ManageEnrollmentsPage';
@@ -108,7 +107,6 @@ const AppContent = () => {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/profile" element={<ProfileSettingsPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
-          <Route path="/manual-attendance" element={<ManualAttendancePage />} />
           <Route path="/my-attendance" element={<StudentAttendancePage />} />
           <Route path="/hr-attendance" element={<HRAttendancePage />} />
           <Route path="/hr-penalties" element={<HRPenaltiesPage />} />

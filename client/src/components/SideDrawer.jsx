@@ -378,7 +378,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/attendance', icon: <QrCode size={18} />, label: (t('attendance') || 'Attendance').charAt(0).toUpperCase() + (t('attendance') || 'Attendance').slice(1) },
         { path: '/qr-scanner', icon: <QrCode size={18} />, label: (t('qr_scanner') || 'QR Scanner').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
-        { path: '/manual-attendance', icon: <ClipboardList size={18} />, label: (t('manual_attendance') || 'Manual Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
         { path: '/hr-attendance', icon: <QrCode size={18} />, label: (t('hr_attendance') || 'HR Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
