@@ -22,6 +22,15 @@ const CameraIcon = ({ className }) => (
   </svg>
 );
 
+const AttendanceIcon = ({ style }) => (
+  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="m22 21-3-3 3-3"/>
+    <path d="M16 8h6"/>
+  </svg>
+);
+
 export default function QRScanner({ onScan, classId, onActivityUpdate }) {
   const { user } = useAuth();
   const [isScanning, setIsScanning] = useState(false);
@@ -193,11 +202,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
           id: `attendance-${index}`,
           time: timeStr,
           type: 'attendance',
-          label: `${record.studentName || 'Student'} was marked ${record.status || 'Present'}`,
+          studentName: record.studentName || record.displayName || 'Student',
           status: record.status || 'present',
           method: record.method || 'QR Scan',
           performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
-          scanMethod: record.scanMethod || 'auto' // 'auto', 'manual_instructor', 'manual_hr', 'manual_student'
+          scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor') // Better detection
         };
       });
       
@@ -538,9 +547,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                   gap: '0.75rem',
                   padding: '0.5rem 0'
                 }}>
-                  <span style={{ fontSize: '0.8125rem', color: '#6b7280', minWidth: '80px' }}>
-                    {activity.time}
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', minWidth: '90px' }}>
+                    {new Date().toLocaleDateString()} {activity.time}
                   </span>
+                  <AttendanceIcon style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    color: getStatusColor(activity.status), 
+                    marginRight: '0.5rem' 
+                  }} />
                   <div style={{
                     padding: '0.25rem 0.5rem',
                     borderRadius: '0.25rem',
@@ -552,7 +567,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                     {getStatusIcon(activity.status)} {activity.status || 'Present'}
                   </div>
                   <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-                    {activity.label}
+                    {activity.studentName || 'Student'}
                   </span>
                   <div style={{
                     display: 'flex',
