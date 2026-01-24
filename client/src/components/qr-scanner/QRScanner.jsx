@@ -267,7 +267,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
       
       console.log('[QR Scanner] Final activity logs (deduped):', uniqueLogs);
       
-      setRecentActivity(uniqueLogs);
+      // Format time for display
+      const formattedLogs = uniqueLogs.map(log => ({
+        ...log,
+        time: log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }) : (log.time instanceof Date ? log.time.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }) : log.time || '')
+      }));
+      
+      setRecentActivity(formattedLogs);
     } catch (error) {
       console.error('Error fetching recent activity:', error);
       setRecentActivity([]);
@@ -697,7 +711,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                       color: '#6b7280'
                     }}>
                       <div style={{ marginBottom: '0.25rem' }}>
-                        <strong>Date:</strong> {new Date().toLocaleDateString()} {activity.time}
+                        <strong>Date:</strong> {new Date().toLocaleDateString()} {activity.time?.toDate ? activity.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (activity.time instanceof Date ? activity.time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : activity.time || '')}
                       </div>
                       <div style={{ marginBottom: '0.25rem' }}>
                         <strong>Method:</strong> {getScanMethodDisplay(activity.scanMethod).text}
