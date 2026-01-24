@@ -190,8 +190,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
     
     setActivityLoading(true);
     try {
+      // Use local date string YYYY-MM-DD to avoid timezone shifts
       const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
       // Get today's attendance records for this class
       const attendanceResponse = await getAttendanceByClass(classId, todayStr);
@@ -209,65 +210,50 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
       const studentMap = {};
       allUsers.forEach(user => {
         const userId = user.id || user.docId;
-        // Format name properly: handle email fallback and capitalize
-        let displayName = user.displayName || user.name || '';
-        if (!displayName && user.email) {
-          displayName = user.email.split('@')[0].replace('.', ' ').replace('_', ' ');
-          // Capitalize each word
-          displayName = displayName.split(' ').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-          ).join(' ');
-        } else if (displayName) {
-          // Ensure proper capitalization if it's an email username
-          if (displayName.includes('.') || displayName.includes('_')) {
-            displayName = displayName.replace('.', ' ').replace('_', ' ');
-            displayName = displayName.split(' ').map(word => 
-              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            ).join(' ');
-          }
-        }
-        studentMap[userId] = displayName || 'Unknown Student';
+        studentMap[userId] = user.displayName || user.name || user.email?.split('@')[0] || 'Unknown';
       });
       
-      // console.log('=== Student Map Debug ===');
-      // console.log('Total users found:', allUsers.length);
-      // console.log('Student map sample:', Object.entries(studentMap).slice(0, 3));
-      
       // Combine and format activity logs
-      const activityLogs = attendanceRecords.slice(0, 5).map((record, index) => {
-        const time = record.timestamp || record.date;
-        const timeStr = time?.toDate ? time.toDate().toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit',
-          hour12: true 
-        }) : '';
-        
-        // console.log('=== Student Map Debug for Record', index, '===');
-        // console.log('Looking for studentId:', record.studentId);
-        // console.log('Student map contains key:', record.studentId in studentMap);
-        // if (record.studentId in studentMap) {
-        //   console.log('Found student name:', studentMap[record.studentId]);
-        // } else {
-        //   console.log('Student ID not found in map. Available IDs:', Object.keys(studentMap).slice(0, 10));
-        // }
-        
-        // Debug: Log the record structure to find student name
-        // console.log(`=== Attendance Record ${index} ===`);
-        // console.log('Full record:', record);
-        // console.log('Student ID:', record.studentId);
-        // console.log('Student object:', record.student);
-        // console.log('Available fields:', Object.keys(record));
-        // console.log('Student name from map:', studentMap[record.studentId]);
-        
-        return {
-          id: `attendance-${index}`,
-          time: timeStr,
+      const activityLogs = [
+        ...attendanceRecords.map(record => ({
+          id: record.id || `attendance-${Math.random()}`,
+          time: record.timestamp || record.updatedAt || record.date,
           type: 'attendance',
           studentName: studentMap[record.studentId] || 'Unknown Student',
           status: record.status || 'present',
           method: record.method || 'QR Scan',
           performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
           scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor')
+        })),
+        ...allPenalties.filter(p => p.studentId && studentMap[p.studentId]).map(record => ({
+          id: record.id || record.docId || `penalty-${Math.random()}`,
+          time: record.createdAt || record.timestamp,
+          type: 'penalty',
+          studentName: studentMap[record.studentId] || 'Unknown Student',
+          label: record.reason || record.type || 'Penalty',
+          points: record.points,
+          performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
+          scanMethod: 'manual_instructor'
+        }))
+      ].sort((a, b) => {
+        const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+        const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+        return timeB - timeA;
+      }).slice(0, 10).map(log => {
+        const time = log.time;
+        const timeStr = time?.toDate ? time.toDate().toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }) : (time instanceof Date ? time.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }) : '');
+
+        return {
+          ...log,
+          time: timeStr
         };
       });
       
@@ -283,27 +269,22 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
   // Listen for real-time activity updates
   useEffect(() => {
     const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, () => {
-      console.log('QRScanner: Activity update received');
       fetchRecentActivity();
     });
 
     const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, () => {
-      console.log('QRScanner: Attendance marked');
       fetchRecentActivity();
     });
 
     const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, () => {
-      console.log('QRScanner: Behavior logged');
       fetchRecentActivity();
     });
 
     const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, () => {
-      console.log('QRScanner: Participation added');
       fetchRecentActivity();
     });
 
     const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, () => {
-      console.log('QRScanner: Penalty assigned');
       fetchRecentActivity();
     });
 
@@ -712,7 +693,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                         <strong>Method:</strong> {getScanMethodDisplay(activity.scanMethod).text}
                       </div>
                       <div>
-                        <strong>By:</strong> {activity.performedBy.displayName || activity.performedBy.email?.split('@')[0] || 'Unknown'}
+                        <strong>By:</strong> {activity.performedBy?.displayName || activity.performedBy?.email?.split('@')[0] || 'Unknown'}
                       </div>
                     </div>
                   )}

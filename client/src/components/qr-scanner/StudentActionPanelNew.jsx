@@ -18,7 +18,9 @@ export default function StudentActionPanelNew({
   options,
   showFavoritesOnly = false,
   onToggleFavorites = () => {},
-  selectedDate
+  selectedDate,
+  sendNotifications = true,
+  onToggleNotifications
 }) {
   console.log('StudentActionPanelNew rendering for:', student);
   const { user } = useAuth();
@@ -297,9 +299,54 @@ export default function StudentActionPanelNew({
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} title="Close panel" style={{ marginLeft: 'auto' }}>
-            <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+            <div 
+              onClick={onToggleNotifications}
+              title={sendNotifications ? 'Notifications are ON' : 'Notifications are OFF'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.25rem 0.5rem',
+                background: sendNotifications ? '#f0fdf4' : '#fef2f2',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                border: `1px solid ${sendNotifications ? '#bbf7d0' : '#fecaca'}`,
+                transition: 'all 0.2s',
+                userSelect: 'none'
+              }}
+            >
+              <div style={{
+                width: '1.75rem',
+                height: '0.875rem',
+                background: sendNotifications ? '#10b981' : '#ef4444',
+                borderRadius: '1rem',
+                position: 'relative',
+                transition: 'background 0.2s'
+              }}>
+                <div style={{
+                  width: '0.625rem',
+                  height: '0.625rem',
+                  background: 'white',
+                  borderRadius: '50%',
+                  position: 'absolute',
+                  top: '0.125rem',
+                  left: sendNotifications ? '1rem' : '0.125rem',
+                  transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }} />
+              </div>
+              <span style={{ 
+                fontSize: '0.625rem', 
+                fontWeight: 600, 
+                color: sendNotifications ? '#166534' : '#991b1b',
+              }}>
+                NOTIFS
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose} title="Close panel">
+              <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
+            </Button>
+          </div>
         </div>
       </div>
 

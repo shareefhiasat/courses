@@ -6,6 +6,7 @@ import { getUsers, getClasses, getEnrollments } from '../firebase/firestore';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import { markAttendance, getAttendanceByClass, getAttendanceByStudent } from '../firebase/attendance';
 import { createPenalty, getPenalties } from '../firebase/penalties';
+import { sendStudentNotification } from '../utils/notificationService';
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../constants/behaviorParticipation';
 import { Select, DatePicker, Button, Loading } from '../components/ui';
 import { FancyLoading } from '../components/ui/FancyLoading/FancyLoading';
@@ -46,6 +47,7 @@ const InstructorQRScannerPage = () => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
   const [showScanner, setShowScanner] = useState(true);
+  const [sendNotifications, setSendNotifications] = useState(true);
 
   // Debug: Track selectedStudentForAction changes
   React.useEffect(() => {
@@ -245,26 +247,18 @@ const InstructorQRScannerPage = () => {
 
   const loadClasses = async (subjectId) => {
     try {
-      console.log('[QR Scanner] Loading classes for subject:', subjectId);
       const classesResponse = await getClasses();
-      console.log('[QR Scanner] Classes response:', classesResponse);
       const allClasses = classesResponse.success ? classesResponse.data : [];
-      console.log('[QR Scanner] All classes:', allClasses);
-      console.log('[QR Scanner] All classes length:', allClasses.length);
-      console.log('[QR Scanner] User role:', user?.role);
-      console.log('[QR Scanner] User email:', user?.email);
       
       let filteredClasses = allClasses;
       
       // If user is admin or super admin, show all classes
       if (user?.role === 'admin' || user?.role === 'super_admin') {
-        console.log('[QR Scanner] Admin user - showing all classes');
         if (subjectId && subjectId !== 'all') {
           filteredClasses = allClasses.filter(c => c.subjectId === subjectId);
         }
       } else {
         // Regular instructor - only show their classes
-        console.log('[QR Scanner] Instructor user - filtering by instructor');
         filteredClasses = allClasses.filter(c => 
           c.instructorId === user?.uid || c.ownerEmail === user?.email
         );
@@ -273,23 +267,8 @@ const InstructorQRScannerPage = () => {
         }
       }
       
-      console.log('[QR Scanner] Filtered classes for subject', subjectId, ':', filteredClasses);
-      console.log('[QR Scanner] Filtered classes length:', filteredClasses.length);
-      
-      // Log each class
-      filteredClasses.forEach((cls, index) => {
-        console.log(`[QR Scanner] Class ${index}:`, {
-          id: cls.id || cls.docId,
-          name: cls.name || cls.code,
-          subjectId: cls.subjectId,
-          instructorId: cls.instructorId,
-          ownerEmail: cls.ownerEmail,
-          instructor: cls.instructor
-        });
-      });
-
       if (filteredClasses.length === 0) {
-        console.warn('[QR Scanner] No classes found in database for subject:', subjectId);
+        // console.warn('[QR Scanner] No classes found');
       }
 
       setClasses(filteredClasses);
@@ -464,7 +443,13 @@ const InstructorQRScannerPage = () => {
 
   const handleMarkAttendance = async (studentId, status, notes = '') => {
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      // Ensure selectedDate is a Date object
+      const date = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
       await markAttendance({
         classId: selectedClassId,
         studentId,
@@ -488,6 +473,44 @@ const InstructorQRScannerPage = () => {
       
       // Trigger activity refresh to update recent activity
       triggerActivityRefresh();
+
+      // Send notifications if enabled
+      if (sendNotifications) {
+        const student = students.find(s => s.id === studentId);
+        const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
+        if (student && currentClass) {
+          const statusLabels = {
+            present: { en: 'Present', ar: 'حاضر' },
+            absent_no_excuse: { en: 'Absent (No Excuse)', ar: 'غائب (بدون عذر)' },
+            absent_with_excuse: { en: 'Absent (With Excuse)', ar: 'غائب (بعذر)' },
+            late: { en: 'Late', ar: 'متأخر' },
+            excused_leave: { en: 'Excused Leave', ar: 'إجازة' },
+            human_case: { en: 'Human Case', ar: 'حالة إنسانية' }
+          };
+
+          const label = statusLabels[status] || { en: status, ar: status };
+
+          await sendStudentNotification({
+            userId: student.id,
+            email: student.email,
+            title: 'Attendance Marked',
+            message: `Your attendance for ${currentClass.name || currentClass.code} has been marked as ${label.en}.`,
+            type: 'attendance',
+            templateId: 'attendance_marked_default',
+            variables: {
+              recipientName: student.displayName || student.realName || student.name || student.email,
+              className: currentClass.name || currentClass.code,
+              className_ar: currentClass.name_ar || currentClass.name || currentClass.code,
+              status: label.en,
+              status_ar: label.ar,
+              date: dateStr,
+              notes: notes,
+              notes_ar: notes
+            },
+            sendEmailNotification: true
+          });
+        }
+      }
     } catch (error) {
       console.error('Error marking attendance:', error);
     }
@@ -573,6 +596,57 @@ const InstructorQRScannerPage = () => {
       
       // Trigger activity refresh to update recent activity
       triggerActivityRefresh();
+
+      // Send notifications if enabled
+      if (sendNotifications) {
+        const student = students.find(s => s.id === studentId);
+        const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
+        if (student && currentClass) {
+          for (const action of actions) {
+            const points = pointsOverride[action.type] !== undefined
+              ? pointsOverride[action.type]
+              : action.points;
+
+            let type = 'info';
+            let templateId = '';
+            let title = '';
+
+            if (points < 0) {
+              type = 'penalty';
+              templateId = 'penalty_assigned_default';
+              title = 'Penalty Assigned';
+            } else if (PARTICIPATION_TYPES.some(pt => pt.id === action.type)) {
+              type = 'participation';
+              templateId = 'participation_added_default';
+              title = 'Participation Added';
+            } else {
+              type = 'behavior';
+              templateId = 'behavior_logged_default';
+              title = 'Behavior Logged';
+            }
+
+            await sendStudentNotification({
+              userId: student.id,
+              email: student.email,
+              title,
+              message: `A new ${type} action has been logged for you in ${currentClass.name || currentClass.code}: ${action.label_en || action.label || action.type}`,
+              type,
+              templateId,
+              variables: {
+                recipientName: student.displayName || student.realName || student.name || student.email,
+                className: currentClass.name || currentClass.code,
+                className_ar: currentClass.name_ar || currentClass.name || currentClass.code,
+                label: action.label_en || action.label || action.type,
+                label_ar: action.label_ar || action.label || action.type,
+                points: points >= 0 ? `+${points}` : points,
+                notes: note,
+                notes_ar: note
+              },
+              sendEmailNotification: true
+            });
+          }
+        }
+      }
     } catch (error) {
       console.error('Error submitting behavior:', error);
     }
@@ -990,6 +1064,56 @@ const InstructorQRScannerPage = () => {
               LIVE
             </span>
           </div>
+
+          <div 
+            onClick={() => setSendNotifications(!sendNotifications)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.5rem 1rem',
+              background: sendNotifications ? '#f0fdf4' : '#fef2f2',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              border: `1px solid ${sendNotifications ? '#bbf7d0' : '#fecaca'}`,
+              transition: 'all 0.2s',
+              userSelect: 'none'
+            }}
+          >
+            <div style={{
+              width: '2.5rem',
+              height: '1.25rem',
+              background: sendNotifications ? '#10b981' : '#ef4444',
+              borderRadius: '1rem',
+              position: 'relative',
+              transition: 'background 0.2s'
+            }}>
+              <div style={{
+                width: '1rem',
+                height: '1rem',
+                background: 'white',
+                borderRadius: '50%',
+                position: 'absolute',
+                top: '0.125rem',
+                left: sendNotifications ? '1.375rem' : '0.125rem',
+                transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+              }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 600, 
+                color: sendNotifications ? '#166534' : '#991b1b',
+                lineHeight: 1
+              }}>
+                {sendNotifications ? 'Notifications: ON' : 'Notifications: OFF'}
+              </span>
+              <span style={{ fontSize: '0.625rem', color: sendNotifications ? '#15803d' : '#b91c1c', marginTop: '2px' }}>
+                Email + System
+              </span>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -1127,6 +1251,8 @@ const InstructorQRScannerPage = () => {
                     : [...prev, behaviorId]
                 );
               }}
+              sendNotifications={sendNotifications}
+              onToggleNotifications={() => setSendNotifications(!sendNotifications)}
             />
           </>
         )}
@@ -1160,6 +1286,8 @@ const InstructorQRScannerPage = () => {
                     : [...prev, behaviorId]
                 );
               }}
+              sendNotifications={sendNotifications}
+              onToggleNotifications={() => setSendNotifications(!sendNotifications)}
               selectedDate={selectedDate}
             />
           </>

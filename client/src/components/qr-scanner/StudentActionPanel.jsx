@@ -9,6 +9,7 @@ import { getPenalties } from '../../firebase/penalties';
 import { getFunctions } from '../../firebase/config';
 import { generateStudentQRCode } from '../../utils/qrCode';
 import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../../constants/behaviorParticipation';
+import eventBus, { EVENTS } from '../../utils/eventBus';
 
 const XIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -50,7 +51,9 @@ export default function StudentActionPanel({
   showFavoritesOnly = false,
   onToggleFavorites,
   favoriteBehaviors = [],
-  onToggleFavorite
+  onToggleFavorite,
+  sendNotifications = true,
+  onToggleNotifications
 }) {
   const [selectedActions, setSelectedActions] = useState([]);
   const [actionPoints, setActionPoints] = useState({});
@@ -267,63 +270,41 @@ export default function StudentActionPanel({
       };
     });
 
-    // AUDIT LOGS: Debug todayLogs
-    console.log('=== AUDIT: todayLogs ===');
-    console.log('Total logs:', todayLogs.length);
-    console.log('todayLogs:', todayLogs);
-
     // Process logs to calculate stats
-    todayLogs.forEach((log, index) => {
-      console.log(`=== Processing log ${index} ===`);
-      console.log('Log type:', log.type);
-      console.log('Log data:', log.data);
-      console.log('Log points:', log.points);
-
+    todayLogs.forEach((log) => {
       if (log.type === 'behavior') {
         const behaviorType = log.data.type || 'other';
-        console.log('Behavior type:', behaviorType);
 
         if (stats.behavior[behaviorType]) {
           stats.behavior[behaviorType].count++;
           stats.behavior[behaviorType].totalPoints += log.points || 0;
-          console.log(`Updated ${behaviorType}: count=${stats.behavior[behaviorType].count}, points=${stats.behavior[behaviorType].totalPoints}`);
         }
         // Also add to penalty if it's a negative behavior
         if (log.points < 0 && stats.penalty[behaviorType]) {
           stats.penalty[behaviorType].count++;
           stats.penalty[behaviorType].totalPoints += log.points || 0;
-          console.log(`Updated penalty ${behaviorType}: count=${stats.penalty[behaviorType].count}, points=${stats.penalty[behaviorType].totalPoints}`);
         }
       } else if (log.type === 'participation') {
         const participationType = log.data.type || 'other';
-        console.log('Participation type:', participationType);
 
         if (stats.participation[participationType]) {
           stats.participation[participationType].count++;
           stats.participation[participationType].totalPoints += log.points || 0;
-          console.log(`Updated ${participationType}: count=${stats.participation[participationType].count}, points=${stats.participation[participationType].totalPoints}`);
         }
       } else if (log.type === 'penalty') {
         const penaltyType = log.data.type || 'other';
-        console.log('Penalty type:', penaltyType);
 
         if (stats.penalty[penaltyType]) {
           stats.penalty[penaltyType].count++;
           stats.penalty[penaltyType].totalPoints += log.points || 0;
-          console.log(`Updated penalty ${penaltyType}: count=${stats.penalty[penaltyType].count}, points=${stats.penalty[penaltyType].totalPoints}`);
         }
       }
     });
 
-    console.log('=== FINAL STATS ===');
-    console.log('Penalty stats:', stats.penalty);
-    console.log('Behavior stats:', stats.behavior);
-    console.log('Participation stats:', stats.participation);
-
     return stats;
   };
 
-  // Fetch today's logs when student changes
+  // Fetch today's logs when student changes or manual refresh triggered
   useEffect(() => {
     // Reset when student changes
     setSelectedActions([]);
@@ -334,7 +315,35 @@ export default function StudentActionPanel({
     if (student?.id) {
       fetchHistoricalLogs();
     }
-  }, [student?.id, historyRefreshKey]);
+  }, [student?.id, student?.attendance, student?.behavior, student?.participation, student?.penalty, historyRefreshKey]);
+
+  // Real-time updates for history
+  useEffect(() => {
+    if (!student?.id) return;
+
+    const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
+      if (data.studentId === student.id) fetchHistoricalLogs();
+    });
+
+    const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, (data) => {
+      if (data.studentId === student.id) fetchHistoricalLogs();
+    });
+
+    const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, (data) => {
+      if (data.studentId === student.id) fetchHistoricalLogs();
+    });
+
+    const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, (data) => {
+      if (data.studentId === student.id) fetchHistoricalLogs();
+    });
+
+    return () => {
+      unsubscribeAttendance();
+      unsubscribeBehavior();
+      unsubscribeParticipation();
+      unsubscribePenalty();
+    };
+  }, [student?.id]);
 
   // Fetch real data from Firebase
   const handleMarkAttendance = async (studentId, status) => {
@@ -357,6 +366,9 @@ export default function StudentActionPanel({
 
     setLogsLoading(true);
     try {
+      // Small delay to ensure Firestore has processed the update
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Get all attendance records for this student (no date filter)
       const attendanceResponse = await getAttendanceByStudent(student.id);
       const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
@@ -391,9 +403,8 @@ export default function StudentActionPanel({
           color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
         }))
       ].sort((a, b) => {
-        // Sort by date descending (most recent first)
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
+        const dateA = a.time?.toDate ? a.time.toDate() : new Date(a.time || a.date);
+        const dateB = b.time?.toDate ? b.time.toDate() : new Date(b.time || b.date);
         return dateB - dateA;
       });
 
@@ -406,7 +417,6 @@ export default function StudentActionPanel({
     }
   };
 
-  // Group logs by day
   const groupLogsByDay = (logs) => {
     const grouped = {};
 
@@ -585,7 +595,7 @@ export default function StudentActionPanel({
             justifyContent: 'space-between',
             marginBottom: '1rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
               <div style={{
                 width: '3rem',
                 height: '3rem',
@@ -629,9 +639,54 @@ export default function StudentActionPanel({
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} title="Close panel" style={{ marginLeft: 'auto' }}>
-              <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
-            </Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+              <div 
+                onClick={onToggleNotifications}
+                title={sendNotifications ? 'Notifications are ON' : 'Notifications are OFF'}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.25rem 0.5rem',
+                  background: sendNotifications ? '#f0fdf4' : '#fef2f2',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  border: `1px solid ${sendNotifications ? '#bbf7d0' : '#fecaca'}`,
+                  transition: 'all 0.2s',
+                  userSelect: 'none'
+                }}
+              >
+                <div style={{
+                  width: '1.75rem',
+                  height: '0.875rem',
+                  background: sendNotifications ? '#10b981' : '#ef4444',
+                  borderRadius: '1rem',
+                  position: 'relative',
+                  transition: 'background 0.2s'
+                }}>
+                  <div style={{
+                    width: '0.625rem',
+                    height: '0.625rem',
+                    background: 'white',
+                    borderRadius: '50%',
+                    position: 'absolute',
+                    top: '0.125rem',
+                    left: sendNotifications ? '1rem' : '0.125rem',
+                    transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }} />
+                </div>
+                <span style={{ 
+                  fontSize: '0.625rem', 
+                  fontWeight: 600, 
+                  color: sendNotifications ? '#166534' : '#991b1b',
+                }}>
+                  NOTIFS
+                </span>
+              </div>
+              <Button variant="ghost" size="icon" onClick={onClose} title="Close panel">
+                <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
+              </Button>
+            </div>
           </div>
 
           {/* Attendance Status - Moved to top */}
@@ -681,7 +736,11 @@ export default function StudentActionPanel({
                   <span style={{
                     fontSize: '0.5rem',
                     fontWeight: 600,
-                    color: student.attendance === 'present' ? 'white' : '#10b981',
+                    color: 'white',
+                    background: '#10b981',
+                    borderRadius: '0.125rem',
+                    padding: '0.125rem 0.25rem',
+                    minWidth: '0.75rem',
                     textAlign: 'center'
                   }}>
                     {attendanceStats.present}
@@ -690,9 +749,9 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await onMarkAttendance(student.id, 'late');
-                  // Auto-save immediately
+                  await handleMarkAttendance(student.id, 'late');
                 }}
+                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -732,9 +791,9 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await onMarkAttendance(student.id, 'absent_no_excuse');
-                  // Auto-save immediately
+                  await handleMarkAttendance(student.id, 'absent_no_excuse');
                 }}
+                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -774,9 +833,9 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await onMarkAttendance(student.id, 'absent_with_excuse');
-                  // Auto-save immediately
+                  await handleMarkAttendance(student.id, 'absent_with_excuse');
                 }}
+                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -819,9 +878,9 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await onMarkAttendance(student.id, 'excused_leave');
-                  // Auto-save immediately
+                  await handleMarkAttendance(student.id, 'excused_leave');
                 }}
+                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -916,8 +975,8 @@ export default function StudentActionPanel({
                   <span style={{
                     fontSize: '0.5rem',
                     fontWeight: 600,
-                    color: student.attendance === 'human_case' ? 'white' : '#8b5cf6',
-                    background: student.attendance === 'human_case' ? 'transparent' : '#8b5cf6',
+                    color: 'white',
+                    background: '#8b5cf6',
                     borderRadius: '0.125rem',
                     padding: '0.125rem 0.25rem',
                     minWidth: '0.75rem',
@@ -1807,7 +1866,7 @@ export default function StudentActionPanel({
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.75rem'
+              gap: '0.15rem'
             }}>
               {logsLoading ? (
                 <div style={{
@@ -1933,15 +1992,15 @@ export default function StudentActionPanel({
 
                       {/* Expanded Content */}
                       {isDayExpanded && (
-                        <div style={{ padding: '0.5rem 0.75rem' }}>
+                        <div style={{ padding: '0.2rem 0.75rem' }}>
                           {/* Attendance */}
                           {activeFilters.attendance && dayGroup.attendance.length > 0 && (
-                            <div style={{ marginBottom: '0.5rem' }}>
+                            <div style={{ marginBottom: '0.2rem' }}>
                               {dayGroup.attendance.map((log, idx) => (
                                 <div key={idx} style={{
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: '0.5rem',
+                                  gap: '0.2rem',
                                   padding: '0.375rem 0',
                                   fontSize: '0.8125rem',
                                   borderBottom: idx === dayGroup.attendance.length - 1 ? 'none' : '1px solid #f1f5f9'

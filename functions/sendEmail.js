@@ -1,6 +1,7 @@
 const functions = require("firebase-functions");
 const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
+const { renderEmailTemplate, getEmailTemplate } = require("./emailRenderer");
 
 /**
  * Firebase Cloud Function to send emails
@@ -16,17 +17,43 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
   }
 
   // Validate input
-  if (!data.to || !data.subject) {
+  if (!data.to || (!data.subject && !data.templateId)) {
     throw new functions.https.HttpsError(
       "invalid-argument",
-      "Missing required fields: to, subject"
+      "Missing required fields: to, subject or templateId"
     );
   }
 
+  const db = admin.firestore();
+
   try {
+    // 1. Prepare email content (either from template or raw HTML)
+    let emailHtml = data.html || data.body || data.text || "";
+    let emailSubject = data.subject || "";
+
+    if (data.templateId) {
+      try {
+        const template = await getEmailTemplate(db, data.templateId);
+        emailHtml = renderEmailTemplate(template.html || template.body, data.variables || {}, data.siteUrl);
+        
+        // Render subject if it contains variables
+        if (template.subject) {
+          emailSubject = renderEmailTemplate(template.subject, data.variables || {}, data.siteUrl);
+        }
+      } catch (templateError) {
+        console.error("Error rendering template:", templateError);
+        // If template fails and no fallback subject/html, throw error
+        if (!emailSubject || !emailHtml) {
+          throw new functions.https.HttpsError(
+            "internal",
+            "Failed to render email template: " + templateError.message
+          );
+        }
+      }
+    }
+
     // Get SMTP configuration from Firestore
-    const configDoc = await admin
-      .firestore()
+    const configDoc = await db
       .collection("config")
       .doc("smtp")
       .get();
@@ -73,9 +100,9 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
         smtpConfig.user
       }>`,
       to: Array.isArray(data.to) ? data.to.join(", ") : data.to,
-      subject: data.subject,
-      html: data.html || data.body || data.text,
-      text: data.text || data.body,
+      subject: emailSubject,
+      html: emailHtml,
+      text: data.text || data.body || emailSubject, // Fallback text
     };
 
     // Add CC and BCC if provided

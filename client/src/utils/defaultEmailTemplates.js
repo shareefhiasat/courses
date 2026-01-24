@@ -1010,4 +1010,168 @@ export const defaultTemplates = [
       "currentDate"
     ],
   },
+
+  {
+    id: "attendance_marked_default",
+    name: "Attendance Marked Email - Bilingual",
+    type: "attendance",
+    subject: "✅ Attendance Marked | تم تسجيل الحضور: {{status}}",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+  <div style="background: linear-gradient(135deg, #065f46 0%, #047857 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">✅ Attendance Marked | تم تسجيل الحضور</h1>
+  </div>
+  <div style="padding: 30px; background: #ffffff;">
+    <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{recipientName}},</p>
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #065f46;">
+      <p style="color: #555; font-size: 15px;">Your attendance for <strong>{{className}}</strong> has been marked as <strong>{{status}}</strong>.</p>
+      <div style="background: #f0fdf4; padding: 15px; border-radius: 6px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #333;"><strong>📅 Date:</strong> {{date}}</p>
+        {{#if notes}}<p style="margin: 5px 0; color: #333;"><strong>📝 Notes:</strong> {{notes}}</p>{{/if}}
+      </div>
+    </div>
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #047857;">
+      <p style="color: #555; font-size: 15px;">تم تسجيل حضورك في <strong>{{className_ar}}</strong> كـ <strong>{{status_ar}}</strong>.</p>
+      <div style="background: #f0fdf4; padding: 15px; border-radius: 6px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #333;"><strong>📅 التاريخ:</strong> {{date}}</p>
+        {{#if notes}}<p style="margin: 5px 0; color: #333;"><strong>📝 ملاحظات:</strong> {{notes_ar}}</p>{{/if}}
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="{{link}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #065f46, #047857); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+        View Dashboard | عرض لوحة التحكم
+      </a>
+    </div>
+  </div>
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5;">
+    <p style="margin: 0;">{{siteName}} - {{currentDate}}</p>
+  </div>
+</div>
+    `,
+    variables: ["recipientName", "className", "className_ar", "status", "status_ar", "date", "notes", "notes_ar", "link", "siteName", "currentDate"],
+  },
+
+  {
+    id: "behavior_logged_default",
+    name: "Behavior Logged Email - Bilingual",
+    type: "behavior",
+    subject: "⚡ Behavior Logged | تم تسجيل سلوك: {{label}}",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+  <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">⚡ Behavior Logged | تم تسجيل سلوك</h1>
+  </div>
+  <div style="padding: 30px; background: #ffffff;">
+    <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{recipientName}},</p>
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f97316;">
+      <p style="color: #555; font-size: 15px;">A new behavior has been logged for you in <strong>{{className}}</strong>.</p>
+      <div style="background: #fff7ed; padding: 15px; border-radius: 6px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #333;"><strong>🎯 Action:</strong> {{label}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>⭐ Points:</strong> {{points}}</p>
+        {{#if notes}}<p style="margin: 5px 0; color: #333;"><strong>📝 Notes:</strong> {{notes}}</p>{{/if}}
+      </div>
+    </div>
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #ea580c;">
+      <p style="color: #555; font-size: 15px;">تم تسجيل سلوك جديد لك في <strong>{{className_ar}}</strong>.</p>
+      <div style="background: #fff7ed; padding: 15px; border-radius: 6px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #333;"><strong>🎯 الإجراء:</strong> {{label_ar}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>⭐ النقاط:</strong> {{points}}</p>
+        {{#if notes}}<p style="margin: 5px 0; color: #333;"><strong>📝 ملاحظات:</strong> {{notes_ar}}</p>{{/if}}
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="{{link}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #f97316, #ea580c); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+        View Details | عرض التفاصيل
+      </a>
+    </div>
+  </div>
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5;">
+    <p style="margin: 0;">{{siteName}} - {{currentDate}}</p>
+  </div>
+</div>
+    `,
+    variables: ["recipientName", "className", "className_ar", "label", "label_ar", "points", "notes", "notes_ar", "link", "siteName", "currentDate"],
+  },
+
+  {
+    id: "participation_added_default",
+    name: "Participation Added Email - Bilingual",
+    type: "participation",
+    subject: "🤝 Participation Added | إضافة مشاركة: {{label}}",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+  <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">🤝 Participation Added | تم إضافة مشاركة</h1>
+  </div>
+  <div style="padding: 30px; background: #ffffff;">
+    <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{recipientName}},</p>
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+      <p style="color: #555; font-size: 15px;">New participation has been added for you in <strong>{{className}}</strong>.</p>
+      <div style="background: #eff6ff; padding: 15px; border-radius: 6px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #333;"><strong>🎯 Action:</strong> {{label}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>⭐ Points:</strong> {{points}}</p>
+      </div>
+    </div>
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #2563eb;">
+      <p style="color: #555; font-size: 15px;">تم إضافة مشاركة جديدة لك في <strong>{{className_ar}}</strong>.</p>
+      <div style="background: #eff6ff; padding: 15px; border-radius: 6px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #333;"><strong>🎯 الإجراء:</strong> {{label_ar}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>⭐ النقاط:</strong> {{points}}</p>
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="{{link}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+        View Details | عرض التفاصيل
+      </a>
+    </div>
+  </div>
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5;">
+    <p style="margin: 0;">{{siteName}} - {{currentDate}}</p>
+  </div>
+</div>
+    `,
+    variables: ["recipientName", "className", "className_ar", "label", "label_ar", "points", "link", "siteName", "currentDate"],
+  },
+
+  {
+    id: "penalty_assigned_default",
+    name: "Penalty Assigned Email - Bilingual",
+    type: "penalty",
+    subject: "⚠️ Penalty Assigned | تم تسجيل جزاء: {{label}}",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+  <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Penalty Assigned | تم تسجيل جزاء</h1>
+  </div>
+  <div style="padding: 30px; background: #ffffff;">
+    <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {{recipientName}},</p>
+    <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc2626;">
+      <p style="color: #555; font-size: 15px;">A penalty has been assigned to you in <strong>{{className}}</strong>.</p>
+      <div style="background: #fef2f2; padding: 15px; border-radius: 6px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #333;"><strong>⚠️ Reason:</strong> {{label}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>🔻 Points:</strong> {{points}}</p>
+        {{#if notes}}<p style="margin: 5px 0; color: #333;"><strong>📝 Notes:</strong> {{notes}}</p>{{/if}}
+      </div>
+    </div>
+    <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #b91c1c;">
+      <p style="color: #555; font-size: 15px;">تم تسجيل جزاء لك في <strong>{{className_ar}}</strong>.</p>
+      <div style="background: #fef2f2; padding: 15px; border-radius: 6px; margin-top: 15px;">
+        <p style="margin: 5px 0; color: #333;"><strong>⚠️ السبب:</strong> {{label_ar}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>🔻 النقاط:</strong> {{points}}</p>
+        {{#if notes}}<p style="margin: 5px 0; color: #333;"><strong>📝 ملاحظات:</strong> {{notes_ar}}</p>{{/if}}
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="{{link}}" style="display: inline-block; padding: 15px 35px; background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+        View Details | عرض التفاصيل
+      </a>
+    </div>
+  </div>
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5;">
+    <p style="margin: 0;">{{siteName}} - {{currentDate}}</p>
+  </div>
+</div>
+    `,
+    variables: ["recipientName", "className", "className_ar", "label", "label_ar", "points", "notes", "notes_ar", "link", "siteName", "currentDate"],
+  },
 ];
