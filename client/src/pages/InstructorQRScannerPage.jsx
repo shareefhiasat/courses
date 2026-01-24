@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
@@ -56,9 +56,9 @@ const InstructorQRScannerPage = () => {
   const [activityRefresh, setActivityRefresh] = useState(null);
 
   // Handle activity refresh from QRScanner
-  const handleActivityUpdate = (refreshFunction) => {
+  const handleActivityUpdate = useCallback((refreshFunction) => {
     setActivityRefresh(() => refreshFunction);
-  };
+  }, []);
 
   // Trigger activity refresh when actions are performed
   const triggerActivityRefresh = () => {
@@ -138,17 +138,10 @@ const InstructorQRScannerPage = () => {
 
   // Load subjects when program changes
   useEffect(() => {
-    console.log('[QR Scanner] useEffect for selectedProgramId:', {
-      selectedProgramId,
-      subjectsLength: subjects.length,
-      shouldLoad: selectedProgramId && selectedProgramId !== 'all'
-    });
-    
     if (selectedProgramId && selectedProgramId !== 'all') {
       setGridLoading(true);
       loadSubjects(selectedProgramId);
     } else {
-      console.log('[QR Scanner] Loading all subjects (program is all or empty)');
       setGridLoading(true);
       loadSubjects(null);
       setSubjects([]);
@@ -865,7 +858,6 @@ const InstructorQRScannerPage = () => {
                         label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim(),
                         icon: <FileText size={16} color="#374151" />
                       };
-                      console.log('[QR Scanner] Subject mapped:', mapped);
                       return mapped;
                     })
                 ]}
@@ -944,7 +936,6 @@ const InstructorQRScannerPage = () => {
                         label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`,
                         icon: <Users size={16} color="#374151" />
                       };
-                      console.log('[QR Scanner] Class mapped:', mapped);
                       return mapped;
                     })
                 ]}

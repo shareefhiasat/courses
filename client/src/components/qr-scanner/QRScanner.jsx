@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import jsQR from 'jsqr';
 import { getAttendanceByClass } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
+import { getUsers } from '../../firebase/firestore';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -41,6 +42,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
   const [isMobile, setIsMobile] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [expandedActivities, setExpandedActivities] = useState(new Set());
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -145,7 +147,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
   };
 
   const handleQRCodeDetected = (data) => {
-    console.log('QR Code detected:', data);
+    // console.log('QR Code detected:', data);
     onScan(data);
     setRecentScans(prev => prev + 1);
     stopCamera();
@@ -173,6 +175,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
   };
 
   // Fetch real activity data
+  const toggleActivityExpansion = (activityId) => {
+    const newExpanded = new Set(expandedActivities);
+    if (newExpanded.has(activityId)) {
+      newExpanded.delete(activityId);
+    } else {
+      newExpanded.add(activityId);
+    }
+    setExpandedActivities(newExpanded);
+  };
+
   const fetchRecentActivity = async () => {
     if (!classId) return;
     
@@ -189,6 +201,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       
+      // Get all users to find student names
+      const usersResponse = await getUsers();
+      const allUsers = usersResponse.success ? usersResponse.data : [];
+      
+      // Create a map of studentId to student name
+      const studentMap = {};
+      allUsers.forEach(user => {
+        const userId = user.id || user.docId;
+        studentMap[userId] = user.displayName || user.name || user.email?.split('@')[0] || 'Unknown Student';
+      });
+      
+      // console.log('=== Student Map Debug ===');
+      // console.log('Total users found:', allUsers.length);
+      // console.log('Student map sample:', Object.entries(studentMap).slice(0, 3));
+      
       // Combine and format activity logs
       const activityLogs = attendanceRecords.slice(0, 5).map((record, index) => {
         const time = record.timestamp || record.date;
@@ -198,15 +225,32 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
           hour12: true 
         }) : '';
         
+        // console.log('=== Student Map Debug for Record', index, '===');
+        // console.log('Looking for studentId:', record.studentId);
+        // console.log('Student map contains key:', record.studentId in studentMap);
+        // if (record.studentId in studentMap) {
+        //   console.log('Found student name:', studentMap[record.studentId]);
+        // } else {
+        //   console.log('Student ID not found in map. Available IDs:', Object.keys(studentMap).slice(0, 10));
+        // }
+        
+        // Debug: Log the record structure to find student name
+        // console.log(`=== Attendance Record ${index} ===`);
+        // console.log('Full record:', record);
+        // console.log('Student ID:', record.studentId);
+        // console.log('Student object:', record.student);
+        // console.log('Available fields:', Object.keys(record));
+        // console.log('Student name from map:', studentMap[record.studentId]);
+        
         return {
           id: `attendance-${index}`,
           time: timeStr,
           type: 'attendance',
-          studentName: record.studentName || record.displayName || 'Student',
+          studentName: studentMap[record.studentId] || 'Unknown Student',
           status: record.status || 'present',
           method: record.method || 'QR Scan',
           performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
-          scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor') // Better detection
+          scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor')
         };
       });
       
@@ -222,27 +266,27 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
   // Listen for real-time activity updates
   useEffect(() => {
     const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, () => {
-      console.log('QRScanner: Activity update received');
+      // console.log('QRScanner: Activity update received');
       fetchRecentActivity();
     });
 
     const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, () => {
-      console.log('QRScanner: Attendance marked');
+      // console.log('QRScanner: Attendance marked');
       fetchRecentActivity();
     });
 
     const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, () => {
-      console.log('QRScanner: Behavior logged');
+      // console.log('QRScanner: Behavior logged');
       fetchRecentActivity();
     });
 
     const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, () => {
-      console.log('QRScanner: Participation added');
+      // console.log('QRScanner: Participation added');
       fetchRecentActivity();
     });
 
     const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, () => {
-      console.log('QRScanner: Penalty assigned');
+      // console.log('QRScanner: Penalty assigned');
       fetchRecentActivity();
     });
 
@@ -438,27 +482,27 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
       </div>
 
       <div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.875rem',
-          marginBottom: '1rem',
-          fontWeight: 600,
-          color: '#111827'
-        }}>
-          <span>Recent Activity</span>
-          <span style={{ 
-            fontSize: '0.75rem', 
-            background: '#8b5cf6', 
-            color: 'white', 
-            padding: '0.25rem 0.5rem', 
-            borderRadius: '0.25rem',
-            fontWeight: 500 
-          }}>
-            ACTIVE
-          </span>
-        </div>
+        {/*<div style={{*/}
+        {/*  display: 'flex',*/}
+        {/*  alignItems: 'center',*/}
+        {/*  justifyContent: 'space-between',*/}
+        {/*  fontSize: '0.875rem',*/}
+        {/*  marginBottom: '1rem',*/}
+        {/*  fontWeight: 600,*/}
+        {/*  color: '#111827'*/}
+        {/*}}>*/}
+        {/*  <span>Recent Activity</span>*/}
+        {/*  <span style={{ */}
+        {/*    fontSize: '0.75rem', */}
+        {/*    background: '#8b5cf6', */}
+        {/*    color: 'white', */}
+        {/*    padding: '0.25rem 0.5rem', */}
+        {/*    borderRadius: '0.25rem',*/}
+        {/*    fontWeight: 500 */}
+        {/*  }}>*/}
+        {/*    ACTIVE*/}
+        {/*  </span>*/}
+        {/*</div>*/}
         
         <div style={{ 
           display: 'flex', 
@@ -524,10 +568,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
 
               const getStatusColor = (status) => {
                 switch(status?.toLowerCase()) {
-                  case 'present': return '#dcfce7';
-                  case 'late': return '#fed7aa';
-                  case 'absent': return '#fee2e2';
-                  default: return '#e5e7eb';
+                  case 'present': return '#16a34a';
+                  case 'late': return '#eab308';
+                  case 'human_case': return '#8b5cf6';
+                  case 'absent': 
+                  case 'absent_no_excuse': 
+                  case 'absent_with_excuse':
+                  case 'excused_leave':
+                    return '#dc2626';
+                  default: return '#6b7280';
                 }
               };
               
@@ -542,72 +591,107 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
               
               return (
                 <div key={activity.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.5rem 0'
+                  borderBottom: '1px solid #e5e7eb',
+                  paddingBottom: expandedActivities.has(activity.id) ? '0.75rem' : '0.25rem'
                 }}>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', minWidth: '90px' }}>
-                    {new Date().toLocaleDateString()} {activity.time}
-                  </span>
-                  <AttendanceIcon style={{ 
-                    width: '16px', 
-                    height: '16px', 
-                    color: getStatusColor(activity.status), 
-                    marginRight: '0.5rem' 
-                  }} />
-                  <div style={{
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    background: getStatusColor(activity.status),
-                    color: '#ffffff'
-                  }}>
-                    {getStatusIcon(activity.status)} {activity.status || 'Present'}
-                  </div>
-                  <span style={{ fontSize: '0.8125rem', color: '#374151' }}>
-                    {activity.studentName || 'Student'}
-                  </span>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    padding: '0.125rem 0.5rem',
-                    background: '#f3f4f6',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.6rem',
-                    color: getScanMethodDisplay(activity.scanMethod).color
-                  }}>
-                    {getScanMethodDisplay(activity.scanMethod).icon && (
-                      <span style={{ fontSize: '0.8rem' }}>
-                        {getScanMethodDisplay(activity.scanMethod).icon}
-                      </span>
-                    )}
-                    <span style={{ fontWeight: 500 }}>
-                      {getScanMethodDisplay(activity.scanMethod).text}
-                    </span>
-                  </div>
-                  {activity.performedBy && (
-                    <div style={{
+                  <div 
+                    style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem',
-                      marginLeft: 'auto',
-                      padding: '0.125rem 0.5rem',
-                      background: '#f0fdf4',
-                      border: '1px solid #bbf7d0',
-                      borderRadius: '1rem',
-                      fontSize: '0.6rem',
-                      color: '#166534'
-                    }}>
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                      </svg>
-                      <span style={{ fontWeight: 500 }}>
-                        {activity.performedBy.displayName || activity.performedBy.email?.split('@')[0] || 'Unknown'}
+                      gap: '0.75rem',
+                      padding: '0.5rem 0',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => toggleActivityExpansion(activity.id)}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', minWidth: '60px' }}>
+                        {new Date().toLocaleDateString()}
                       </span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', minWidth: '60px' }}>
+                        {activity.time}
+                      </span>
+                    </div>
+                    <div style={{
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      background: getStatusColor(activity.status),
+                      color: '#ffffff'
+                    }}>
+                      {getStatusIcon(activity.status)} {activity.status || 'Present'}
+                    </div>
+                    <span style={{ fontSize: '0.8125rem', color: '#374151', flex: 1 }}>
+                      {activity.studentName}
+                    </span>
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      style={{
+                        transform: expandedActivities.has(activity.id) ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s',
+                        color: '#6b7280'
+                      }}
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                  
+                  {expandedActivities.has(activity.id) && (
+                    <div style={{
+                      paddingLeft: '3.5rem',
+                      paddingTop: '0.5rem',
+                      display: 'flex',
+                      gap: '0.75rem',
+                      alignItems: 'center',
+                      fontSize: '0.75rem',
+                      color: '#6b7280'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '0.125rem 0.5rem',
+                        background: '#f3f4f6',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.6rem',
+                        color: getScanMethodDisplay(activity.scanMethod).color
+                      }}>
+                        {getScanMethodDisplay(activity.scanMethod).icon && (
+                          <span style={{ fontSize: '0.8rem' }}>
+                            {getScanMethodDisplay(activity.scanMethod).icon}
+                          </span>
+                        )}
+                        <span style={{ fontWeight: 500 }}>
+                          {getScanMethodDisplay(activity.scanMethod).text}
+                        </span>
+                      </div>
+                      {activity.performedBy && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.125rem 0.5rem',
+                          background: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '1rem',
+                          fontSize: '0.6rem',
+                          color: '#166534'
+                        }}>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                          </svg>
+                          <span style={{ fontWeight: 500 }}>
+                            {activity.performedBy.displayName || activity.performedBy.email?.split('@')[0] || 'Unknown'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

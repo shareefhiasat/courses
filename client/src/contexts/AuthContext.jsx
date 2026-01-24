@@ -56,9 +56,9 @@ export const AuthProvider = ({ children }) => {
 
     const resetTimeout = () => {
       if (timeoutId) clearTimeout(timeoutId);
-      console.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
+      // console.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
       timeoutId = setTimeout(async () => {
-        console.log('[Auth] Session timeout reached - logging out user');
+        // console.log('[Auth] Session timeout reached - logging out user');
         
         // Store logout reason in sessionStorage
         sessionStorage.setItem('logoutReason', 'session_timeout');
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }) => {
     // Reset timeout on user activity
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     const handleActivity = () => {
-      console.log('[Auth] User activity detected - resetting session timeout');
+      // console.log('[Auth] User activity detected - resetting session timeout');
       resetTimeout();
     };
 
@@ -113,13 +113,13 @@ export const AuthProvider = ({ children }) => {
     let userDocUnsub = null;
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (!firebaseUser) {
-        console.warn('[Auth] User signed out - Firebase auth state changed to null');
-        console.warn('[Auth] Session storage at logout:', {
-          hasLoggedIn: sessionStorage.getItem('hasLoggedInThisSession'),
-          sessionStart: sessionStorage.getItem('sessionStart'),
-          userProfile: sessionStorage.getItem('userProfile') ? 'exists' : 'missing',
-          logoutReason: sessionStorage.getItem('logoutReason')
-        });
+        // console.warn('[Auth] User signed out - Firebase auth state changed to null');
+        // console.warn('[Auth] Session storage at logout:', {
+        //   hasLoggedIn: sessionStorage.getItem('hasLoggedInThisSession'),
+        //   sessionStart: sessionStorage.getItem('sessionStart'),
+        //   userProfile: sessionStorage.getItem('userProfile') ? 'exists' : 'missing',
+        //   logoutReason: sessionStorage.getItem('logoutReason')
+        // });
         
         // Store logout reason if not already set (likely Firebase auth error)
         if (!sessionStorage.getItem('logoutReason')) {

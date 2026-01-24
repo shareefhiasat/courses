@@ -190,7 +190,7 @@ export default function StudentRoster({
   // Listen for real-time activity updates
   useEffect(() => {
     const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, () => {
-      console.log('StudentRoster: Activity update received');
+      // console.log('StudentRoster: Activity update received');
       // Refresh student history for all expanded students
       const expandedStudents = Array.from(expandedRows);
       expandedStudents.forEach(studentId => {
@@ -199,28 +199,28 @@ export default function StudentRoster({
     });
 
     const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
-      console.log('StudentRoster: Attendance marked for', data.studentId);
+      // console.log('StudentRoster: Attendance marked for', data.studentId);
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
       }
     });
 
     const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, (data) => {
-      console.log('StudentRoster: Behavior logged for', data.studentId);
+      // console.log('StudentRoster: Behavior logged for', data.studentId);
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
       }
     });
 
     const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, (data) => {
-      console.log('StudentRoster: Participation added for', data.studentId);
+      // console.log('StudentRoster: Participation added for', data.studentId);
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
       }
     });
 
     const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, (data) => {
-      console.log('StudentRoster: Penalty assigned for', data.studentId);
+      // console.log('StudentRoster: Penalty assigned for', data.studentId);
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
       }
@@ -753,12 +753,12 @@ export default function StudentRoster({
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log('Lightning button clicked in StudentRoster!');
-                            console.log('Student data:', student);
-                            console.log('onStudentAction function:', onStudentAction);
+                            // console.log('Lightning button clicked in StudentRoster!');
+                            // console.log('Student data:', student);
+                            // console.log('onStudentAction function:', onStudentAction);
                             try {
                               onStudentAction(student);
-                              console.log('onStudentAction called successfully');
+                              // console.log('onStudentAction called successfully');
                             } catch (error) {
                               console.error('Error calling onStudentAction:', error);
                             }
