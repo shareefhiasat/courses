@@ -25,7 +25,7 @@ export default function StudentActionPanelNew({
   onToggleNotifications
 }) {
   const { user } = useAuth();
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { showSuccess, showError } = useToast();
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -256,15 +256,15 @@ export default function StudentActionPanelNew({
         }}
         onClick={onClose}
       />
-      <div style={{
+      <div dir={isRTL ? 'rtl' : 'ltr'} style={{
         position: 'fixed',
         top: 0,
-        right: 0,
+        [isRTL ? 'left' : 'right']: 0,
         width: isMobile ? '100%' : '100%',
         maxWidth: isMobile ? '100%' : '28rem',
         height: '100%',
         background: 'white',
-        boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
+        boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
         zIndex: 2000,
         display: 'flex',
         flexDirection: 'column',
@@ -296,7 +296,7 @@ export default function StudentActionPanelNew({
             </div>
             <div>
               <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '1rem' }}>
-                {student.displayName || student.realName || student.name || student.email || 'Unknown Student'}
+                {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
               </h3>
               <div style={{ 
                 fontSize: '0.75rem', 
@@ -318,15 +318,15 @@ export default function StudentActionPanelNew({
                   borderRadius: '9999px'
                 }} />
                 <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  {lang === 'ar' ? attendanceStatus.ar : attendanceStatus.en}
+                  {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                 </span>
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
             <div 
               onClick={onToggleNotifications}
-              title={sendNotifications ? 'Notifications are ON' : 'Notifications are OFF'}
+              title={sendNotifications ? t('notifications_on') : t('notifications_off')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -355,7 +355,7 @@ export default function StudentActionPanelNew({
                   borderRadius: '50%',
                   position: 'absolute',
                   top: '0.125rem',
-                  left: sendNotifications ? '1rem' : '0.125rem',
+                  left: sendNotifications ? (isRTL ? '0.125rem' : '1rem') : (isRTL ? '1rem' : '0.125rem'),
                   transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 }} />
               </div>
@@ -364,10 +364,10 @@ export default function StudentActionPanelNew({
                 fontWeight: 600, 
                 color: sendNotifications ? '#166534' : '#991b1b',
               }}>
-                NOTIFS
+                {t('notifs')}
               </span>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} title="Close panel">
+            <Button variant="ghost" size="icon" onClick={onClose} title={t('close_panel')}>
               <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
             </Button>
           </div>
@@ -532,7 +532,7 @@ export default function StudentActionPanelNew({
                       color: '#111827',
                       lineHeight: '1.2'
                     }}>
-                      {option.label_en}
+                      {lang === 'ar' ? (option.label_ar || option.label_en) : option.label_en}
                     </span>
                     <div style={{
                       fontSize: '0.75rem',
@@ -659,10 +659,10 @@ export default function StudentActionPanelNew({
             letterSpacing: '0.05em',
             marginBottom: '0.75rem'
           }}>
-            Internal Note
+            {t('internal_note')}
           </h4>
           <Textarea
-            placeholder="Add details..."
+            placeholder={t('add_details')}
             value={internalNote}
             onChange={(e) => setInternalNote(e.target.value)}
             style={{ minHeight: '6rem', resize: 'none', fontSize: '0.875rem' }}
@@ -676,7 +676,7 @@ export default function StudentActionPanelNew({
           <Button
             onClick={async () => {
               if (selectedActions.length === 0) {
-                alert('Please select at least one action');
+                alert(t('please_select_at_least_one_action'));
                 return;
               }
               
@@ -691,24 +691,24 @@ export default function StudentActionPanelNew({
                 setSelectedActions([]);
                 setInternalNote('');
                 setActionPoints({});
-                showSuccess('Actions saved successfully!');
+                showSuccess(t('actions_saved_successfully'));
                 onClose(); // Close panel after successful save
               } catch (error) {
                 console.error('Error saving actions:', error);
-                showError('Failed to save actions');
+                showError(t('failed_to_save_actions'));
               }
             }}
             disabled={selectedActions.length === 0}
             style={{ flex: 1, fontSize: '0.875rem' }}
           >
-            Save Actions ({selectedActions.length})
+            {t('save_actions')} ({selectedActions.length})
           </Button>
           <Button
             variant="ghost"
             onClick={onClose}
             style={{ fontSize: '0.875rem' }}
           >
-            Cancel
+            {t('cancel')}
           </Button>
         </div>
       </div>

@@ -124,7 +124,7 @@ export default function StudentRoster({
   selectedDate
 }) {
   const { user } = useAuth();
-  const { t } = useLang();
+  const { t, lang, isRTL } = useLang();
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -529,7 +529,7 @@ export default function StudentRoster({
   };
 
   return (
-    <div style={{
+    <div dir={isRTL ? 'rtl' : 'ltr'} style={{
       background: 'white',
       borderRadius: '0.75rem',
       border: '1px solid #e5e7eb',
@@ -579,7 +579,7 @@ export default function StudentRoster({
           <div style={{ position: 'relative', width: isMobile ? '100%' : '16rem' }}>
             <SearchIcon style={{
               position: 'absolute',
-              left: '0.75rem',
+              [isRTL ? 'right' : 'left']: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
               width: '1rem',
@@ -590,7 +590,7 @@ export default function StudentRoster({
               placeholder={t('search_student')}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              style={{ paddingLeft: '2.5rem', width: '100%' }}
+              style={{ [isRTL ? 'paddingRight' : 'paddingLeft']: '2.5rem', width: '100%' }}
             />
           </div>
           {!isMobile && (
@@ -613,10 +613,10 @@ export default function StudentRoster({
                   filled={showFavoritesOnly} 
                 />
               </Button>
-              <Button variant="ghost" size="icon" onClick={onDownload}>
+              <Button variant="ghost" size="icon" onClick={onDownload} title={t('export_csv')}>
                 <DownloadIcon style={{ width: '1rem', height: '1rem' }} />
               </Button>
-              <Button variant="ghost" size="icon" onClick={onRefresh} title="Refresh">
+              <Button variant="ghost" size="icon" onClick={onRefresh} title={t('refresh')}>
                 <RefreshIcon style={{ width: '1rem', height: '1rem' }} />
               </Button>
             </div>
@@ -642,7 +642,7 @@ export default function StudentRoster({
               <th 
                 onClick={() => onSort('name')}
                 style={{
-                  textAlign: 'left',
+                  textAlign: isRTL ? 'right' : 'left',
                   padding: '0.75rem 1rem',
                   fontSize: '0.75rem',
                   fontWeight: 500,
@@ -653,12 +653,12 @@ export default function StudentRoster({
                   userSelect: 'none'
                 }}
               >
-                Student {getSortIcon('name')}
+                {t('student')} {getSortIcon('name')}
               </th>
               <th 
                 onClick={() => onSort('attendance')}
                 style={{
-                  textAlign: 'left',
+                  textAlign: isRTL ? 'right' : 'left',
                   padding: '0.75rem 1rem',
                   fontSize: '0.75rem',
                   fontWeight: 500,
@@ -669,7 +669,7 @@ export default function StudentRoster({
                   userSelect: 'none'
                 }}
               >
-                Attendance {getSortIcon('attendance')}
+                {t('attendance')} {getSortIcon('attendance')}
               </th>
               <th 
                 onClick={() => onSort('participation')}
@@ -685,7 +685,7 @@ export default function StudentRoster({
                   userSelect: 'none'
                 }}
               >
-                Part. {getSortIcon('participation')}
+                {t('part')} {getSortIcon('participation')}
               </th>
               <th 
                 onClick={() => onSort('behavior')}
@@ -701,7 +701,7 @@ export default function StudentRoster({
                   userSelect: 'none'
                 }}
               >
-                Behav. {getSortIcon('behavior')}
+                {t('behavior')} {getSortIcon('behavior')}
               </th>
               <th 
                 onClick={() => onSort('penalty')}
@@ -717,7 +717,7 @@ export default function StudentRoster({
                   userSelect: 'none'
                 }}
               >
-                Penalty {getSortIcon('penalty')}
+                {t('penalties')} {getSortIcon('penalty')}
               </th>
               {showTotalAttendance && (
                 <th 
@@ -734,7 +734,7 @@ export default function StudentRoster({
                     userSelect: 'none'
                   }}
                 >
-                  ATT. {getSortIcon('totalAttendance')}
+                  {t('stats')} {getSortIcon('totalAttendance')}
                 </th>
               )}
               <th style={{
@@ -798,7 +798,11 @@ export default function StudentRoster({
                         {isExpanded ? (
                           <ChevronDownIcon style={{ width: '1rem', height: '1rem', color: '#6b7280' }} />
                         ) : (
-                          <ChevronRightIcon style={{ width: '1rem', height: '1rem', color: '#6b7280' }} />
+                          isRTL ? (
+                            <ChevronDownIcon style={{ width: '1rem', height: '1rem', color: '#6b7280', transform: 'rotate(-90deg)' }} />
+                          ) : (
+                            <ChevronRightIcon style={{ width: '1rem', height: '1rem', color: '#6b7280' }} />
+                          )
                         )}
                       </button>
                     </td>
@@ -924,17 +928,13 @@ export default function StudentRoster({
                           size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
-                            // console.log('Lightning button clicked in StudentRoster!');
-                            // console.log('Student data:', student);
-                            // console.log('onStudentAction function:', onStudentAction);
                             try {
                               onStudentAction(student);
-                              // console.log('onStudentAction called successfully');
                             } catch (error) {
                               console.error('Error calling onStudentAction:', error);
                             }
                           }}
-                          title="Add actions (behavior, participation, penalty)"
+                          title={t('actions')}
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -943,7 +943,7 @@ export default function StudentRoster({
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          title="student details"
+                          title={t('stats')}
                           onClick={(e) => {
                             e.stopPropagation();
                             onStudentSelect(student);
@@ -958,7 +958,7 @@ export default function StudentRoster({
                             e.stopPropagation();
                             await openQRCodeInNewTab(student);
                           }}
-                          title={t('open_qr_code') || "Open QR Code in New Tab"}
+                          title={t('open_qr_code')}
                         >
                           <ExternalLink style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
                         </Button>
@@ -970,7 +970,7 @@ export default function StudentRoster({
                             await sendQRCodeEmail(student);
                           }}
                           disabled={sendingEmails[student.id]?.qrCode}
-                          title={t('send_qr_code') || "Send QR Code"}
+                          title={t('send_qr_code')}
                         >
                           {sendingEmails[student.id]?.qrCode ? (
                             <div style={{
@@ -994,7 +994,7 @@ export default function StudentRoster({
                             await sendStudentSummaryEmail(student);
                           }}
                           disabled={sendingEmails[student.id]?.summary}
-                          title="Send Summary Report"
+                          title={t('send_summary_report')}
                         >
                           {sendingEmails[student.id]?.summary ? (
                             <div style={{
@@ -1060,7 +1060,7 @@ export default function StudentRoster({
                                   }}
                                 >
                                   <AttendanceIcon style={{ width: '14px', height: '14px' }} />
-                                  Today Attendance
+                                  {t('attendance')}
                                 </button>
                                 <button
                                   onClick={() => toggleFilter('participation')}
@@ -1079,7 +1079,7 @@ export default function StudentRoster({
                                   }}
                                 >
                                   <ParticipationIcon style={{ width: '14px', height: '14px' }} />
-                                  Participation
+                                  {t('participation')}
                                 </button>
                                 <button
                                   onClick={() => toggleFilter('behavior')}
@@ -1100,7 +1100,7 @@ export default function StudentRoster({
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                                   </svg>
-                                  Behavior
+                                  {t('behavior')}
                                 </button>
                                 <button
                                   onClick={() => toggleFilter('penalties')}
@@ -1119,7 +1119,7 @@ export default function StudentRoster({
                                   }}
                                 >
                                   <PenaltyIcon style={{ width: '14px', height: '14px' }} />
-                                  Penalties
+                                  {t('penalties')}
                                 </button>
                               </div>
                             </div>
@@ -1227,12 +1227,12 @@ export default function StudentRoster({
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                       <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                        {isDayExpanded ? 'Hide details' : 'Show details'}
+                                        {isDayExpanded ? (isRTL ? 'إخفاء التفاصيل' : 'Hide details') : (isRTL ? 'إظهار التفاصيل' : 'Show details')}
                                       </span>
                                       <ChevronDownIcon style={{ 
                                         width: '16px', 
                                         height: '16px',
-                                        transform: isDayExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                        transform: isDayExpanded ? (isRTL ? 'rotate(180deg)' : 'rotate(0deg)') : (isRTL ? 'rotate(90deg)' : 'rotate(-90deg)'),
                                         transition: 'transform 0.2s'
                                       }} />
                                     </div>
@@ -1256,7 +1256,7 @@ export default function StudentRoster({
                                               <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                                 {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                               </span>
-                                              <AttendanceIcon style={{ width: '16px', height: '16px', color: log.color || '#10b981', marginRight: '0.5rem' }} />
+                                              <AttendanceIcon style={{ width: '16px', height: '16px', color: log.color || '#10b981', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }} />
                                               <span style={{ color: '#374151', fontWeight: 500 }}>
                                                 {log.label}
                                               </span>
@@ -1283,7 +1283,7 @@ export default function StudentRoster({
                                                   display: 'flex',
                                                   alignItems: 'center',
                                                   gap: '0.25rem',
-                                                  marginLeft: 'auto',
+                                                  [isRTL ? 'marginRight' : 'marginLeft']: 'auto',
                                                   padding: '0.125rem 0.5rem',
                                                   background: '#f0f9ff',
                                                   border: '1px solid #bae6fd',
@@ -1343,7 +1343,7 @@ export default function StudentRoster({
                                                   display: 'flex',
                                                   alignItems: 'center',
                                                   gap: '0.25rem',
-                                                  marginLeft: 'auto',
+                                                  [isRTL ? 'marginRight' : 'marginLeft']: 'auto',
                                                   padding: '0.125rem 0.5rem',
                                                   background: '#eff6ff',
                                                   border: '1px solid #bfdbfe',
@@ -1405,7 +1405,7 @@ export default function StudentRoster({
                                                   display: 'flex',
                                                   alignItems: 'center',
                                                   gap: '0.25rem',
-                                                  marginLeft: 'auto',
+                                                  [isRTL ? 'marginRight' : 'marginLeft']: 'auto',
                                                   padding: '0.125rem 0.5rem',
                                                   background: '#fff7ed',
                                                   border: '1px solid #fed7aa',
@@ -1477,7 +1477,7 @@ export default function StudentRoster({
                                                   display: 'flex',
                                                   alignItems: 'center',
                                                   gap: '0.25rem',
-                                                  marginLeft: 'auto',
+                                                  [isRTL ? 'marginRight' : 'marginLeft']: 'auto',
                                                   padding: '0.125rem 0.5rem',
                                                   background: '#fef2f2',
                                                   border: '1px solid #fecaca',
@@ -1529,8 +1529,8 @@ export default function StudentRoster({
         marginTop: '1.5rem'
       }}>
         <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
-          Showing {students.length} of {totalStudents} students
-          {currentPage > 1 && ` (Page ${currentPage} of ${totalPages})`}
+          {t('showing_of_students', { count: students.length, total: totalStudents })}
+          {currentPage > 1 && ` (${t('page_of', { current: currentPage, total: totalPages })})`}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Button 
@@ -1539,7 +1539,7 @@ export default function StudentRoster({
             disabled={currentPage === 1}
             onClick={() => onPageChange(currentPage - 1)}
           >
-            Previous
+            {t('previous')}
           </Button>
           <span style={{ fontSize: '0.875rem', color: '#6b7280', padding: '0 0.5rem' }}>
             {currentPage} / {totalPages}
@@ -1550,7 +1550,7 @@ export default function StudentRoster({
             disabled={currentPage === totalPages}
             onClick={() => onPageChange(currentPage + 1)}
           >
-            Next
+            {t('next')}
           </Button>
         </div>
       </div>

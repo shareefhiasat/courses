@@ -25,7 +25,7 @@ import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 
 const InstructorQRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
-  const { t } = useLang();
+  const { t, lang, isRTL } = useLang();
   const navigate = useNavigate();
 
   // Filter state
@@ -146,21 +146,21 @@ const InstructorQRScannerPage = () => {
   // Memoized options for dropdowns - following DashboardPage pattern
   const programOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: 'All Programs', icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
       .map(prog => {
         const value = prog.docId || prog.id;
-        const label = prog.name_en || prog.name || prog.code || value;
+        const label = lang === 'ar' ? (prog.name_ar || prog.name_en || prog.name || prog.code || value) : (prog.name_en || prog.name || prog.code || value);
         return { value, label, icon: <BookOpen size={16} color="#374151" /> };
       });
     return [...opts, ...validPrograms];
-  }, [programs]);
+  }, [programs, t, lang]);
 
   const subjectOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: 'All Subjects', icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -172,15 +172,15 @@ const InstructorQRScannerPage = () => {
       .filter(sub => sub.docId || sub.id)
       .map(sub => {
         const value = sub.docId || sub.id;
-        const label = sub.name_en || sub.name || sub.code || value;
+        const label = lang === 'ar' ? (sub.name_ar || sub.name_en || sub.name || sub.code || value) : (sub.name_en || sub.name || sub.code || value);
         return { value, label, icon: <FileText size={16} color="#374151" /> };
       });
     return [...opts, ...validSubjects];
-  }, [subjects, selectedProgramId]);
+  }, [subjects, selectedProgramId, t, lang]);
 
   const classOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: 'All Classes', icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> }
     ];
     const validClasses = classes
       .filter(cls => {
@@ -192,12 +192,12 @@ const InstructorQRScannerPage = () => {
       .filter(cls => cls.docId || cls.id)
       .map(cls => {
         const value = cls.docId || cls.id;
-        const name = cls.name || cls.name_ar || 'Unnamed Class';
+        const name = lang === 'ar' ? (cls.name_ar || cls.name) : (cls.name || cls.name_ar || t('unnamed_class'));
         const label = `${name}${cls.code ? ` (${cls.code})` : ''}`;
         return { value, label, icon: <Users size={16} color="#374151" /> };
       });
     return [...opts, ...validClasses];
-  }, [classes, selectedSubjectId]);
+  }, [classes, selectedSubjectId, t, lang]);
 
   // Load programs on mount
   useEffect(() => {
@@ -582,8 +582,11 @@ const InstructorQRScannerPage = () => {
           await sendStudentNotification({
             userId: student.id,
             email: student.email,
-            title: 'Attendance Marked',
-            message: `Your attendance for ${currentClass.name || currentClass.code} has been marked as ${label.en}.`,
+            title: t('attendance_marked_title'),
+            message: t('attendance_marked_msg', { 
+              className: currentClass.name || currentClass.code,
+              status: lang === 'ar' ? (label.ar || label.en) : label.en
+            }),
             type: 'attendance',
             templateId: 'attendance_marked_default',
             variables: {
@@ -745,22 +748,26 @@ const InstructorQRScannerPage = () => {
             if (points < 0) {
               type = 'penalty';
               templateId = 'penalty_assigned_default';
-              title = 'Penalty Assigned';
+              title = t('delete_penalty_title');
             } else if (PARTICIPATION_TYPES.some(pt => pt.id === action.type)) {
               type = 'participation';
               templateId = 'participation_added_default';
-              title = 'Participation Added';
+              title = t('participation_recorded');
             } else {
               type = 'behavior';
               templateId = 'behavior_logged_default';
-              title = 'Behavior Logged';
+              title = t('behavior_recorded');
             }
 
             await sendStudentNotification({
               userId: student.id,
               email: student.email,
               title,
-              message: `A new ${type} action has been logged for you in ${currentClass.name || currentClass.code}: ${action.label_en || action.label || action.type}`,
+              message: t('action_logged_msg', {
+                type: t(type),
+                className: currentClass.name || currentClass.code,
+                label: lang === 'ar' ? (action.label_ar || action.label_en || action.type) : (action.label_en || action.label || action.type)
+              }),
               type,
               templateId,
               variables: {
@@ -807,7 +814,16 @@ const InstructorQRScannerPage = () => {
       const dateStr = selectedDate || new Date().toISOString().split('T')[0];
       
       // Create CSV content
-      const headers = ['Student ID', 'Name', 'Email', 'Attendance', 'Participation', 'Behavior', 'Penalty', 'Total Attendance'];
+      const headers = [
+        t('student_id') || 'Student ID',
+        t('student') || 'Name',
+        t('email') || 'Email',
+        t('attendance') || 'Attendance',
+        t('participation') || 'Participation',
+        t('behavior') || 'Behavior',
+        t('penalty') || 'Penalty',
+        t('total_attendance') || 'Total Attendance'
+      ];
       const csvContent = [
         headers.join(','),
         ...displayedStudents.map(student => [
@@ -978,7 +994,7 @@ const InstructorQRScannerPage = () => {
             animation: 'spin 1s linear infinite',
             margin: '0 auto 1rem'
           }}></div>
-          <p style={{ color: '#6b7280' }}>Loading programs...</p>
+          <p style={{ color: '#6b7280' }}>{t('loading_programs')}</p>
         </div>
         <style>{`
           @keyframes spin {
@@ -1005,7 +1021,7 @@ const InstructorQRScannerPage = () => {
           border: '1px solid #fee2e2',
           maxWidth: '500px'
         }}>
-          <h3 style={{ color: '#dc2626', margin: '0 0 1rem 0' }}>Error Loading Page</h3>
+          <h3 style={{ color: '#dc2626', margin: '0 0 1rem 0' }}>{t('error_loading_page')}</h3>
           <p style={{ color: '#6b7280', margin: '0 0 1rem 0' }}>{error}</p>
           <button
             onClick={() => {
@@ -1022,7 +1038,7 @@ const InstructorQRScannerPage = () => {
               cursor: 'pointer'
             }}
           >
-            Retry
+            {t('retry')}
           </button>
         </div>
       </div>
@@ -1030,7 +1046,7 @@ const InstructorQRScannerPage = () => {
   }
 
   return (
-    <div className="qr-scanner-container" style={{
+    <div className="qr-scanner-container" dir={isRTL ? 'rtl' : 'ltr'} style={{
       minHeight: '100vh',
       background: '#f9fafb',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -1049,21 +1065,21 @@ const InstructorQRScannerPage = () => {
           margin: '0 auto',
           flexWrap: 'wrap'
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            color: '#111827',
-            fontWeight: 600
-          }}>
-            <svg style={{ width: '1.25rem', height: '1.25rem', color: '#8b5cf6' }} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="9" />
-              <rect x="14" y="3" width="7" height="5" />
-              <rect x="14" y="12" width="7" height="9" />
-              <rect x="3" y="16" width="7" height="5" />
-            </svg>
-            <span>{t('qr_scanner')}</span>
-          </div>
+          {/*<div style={{*/}
+          {/*  display: 'flex',*/}
+          {/*  alignItems: 'center',*/}
+          {/*  gap: '0.5rem',*/}
+          {/*  color: '#111827',*/}
+          {/*  fontWeight: 600*/}
+          {/*}}>*/}
+          {/*  <svg style={{ width: '1.25rem', height: '1.25rem', color: '#8b5cf6' }} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">*/}
+          {/*    <rect x="3" y="3" width="7" height="9" />*/}
+          {/*    <rect x="14" y="3" width="7" height="5" />*/}
+          {/*    <rect x="14" y="12" width="7" height="9" />*/}
+          {/*    <rect x="3" y="16" width="7" height="5" />*/}
+          {/*  </svg>*/}
+          {/*  <span>{t('qr_scanner')}</span>*/}
+          {/*</div>*/}
 
           <div style={{ display: 'flex', gap: '0.75rem', flex: 1, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ minWidth: '180px' }}>
@@ -1072,25 +1088,11 @@ const InstructorQRScannerPage = () => {
                 searchable
                 value={selectedProgramId}
                 onChange={(e) => {
-                  console.log('[QR Scanner] Program dropdown changed:', {
-                    oldValue: selectedProgramId,
-                    newValue: e.target.value,
-                    subjectsBefore: subjects.length,
-                    classesBefore: classes.length
-                  });
                   setSelectedProgramId(e.target.value);
                   setSelectedSubjectId('all');
                   setSelectedClassId('all');
-                  console.log('[QR Scanner] After program change - resetting subject and class to all');
                 }}
-                options={[
-                  { value: 'all', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> },
-                  ...programs.map(p => ({
-                    value: p.docId || p.id,
-                    label: p.name_en || p.name_ar || p.code || p.docId,
-                    icon: <BookOpen size={16} color="#374151" />
-                  }))
-                ]}
+                options={programOptions}
                 style={{ minWidth: 180 }}
                 placeholder={t('all_programs')}
               />
@@ -1102,49 +1104,10 @@ const InstructorQRScannerPage = () => {
                 searchable
                 value={selectedSubjectId}
                 onChange={(e) => {
-                  console.log('[QR Scanner] Subject dropdown changed:', {
-                    oldValue: selectedSubjectId,
-                    newValue: e.target.value,
-                    currentProgramId: selectedProgramId,
-                    subjectsAvailable: subjects.length,
-                    classesBefore: classes.length
-                  });
                   setSelectedSubjectId(e.target.value);
                   setSelectedClassId('all');
-                  console.log('[QR Scanner] After subject change - resetting class to all');
                 }}
-                onOpen={() => {
-                  console.log('[QR Scanner] Subject dropdown opened:', {
-                    selectedProgramId,
-                    subjectsCount: subjects.length,
-                    filteredSubjects: subjects.filter(s => selectedProgramId === 'all' || s.programId === selectedProgramId).length,
-                    currentSelectedSubject: selectedSubjectId
-                  });
-                }}
-                options={[
-                  { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> },
-                  ...subjects
-                    .filter(s => {
-                      const shouldInclude = selectedProgramId === 'all' || s.programId === selectedProgramId;
-                      if (!shouldInclude) {
-                        console.log('[QR Scanner] Subject filtered out:', {
-                          subjectId: s.docId || s.id,
-                          subjectName: s.name_en || s.name_ar,
-                          subjectProgramId: s.programId,
-                          selectedProgramId
-                        });
-                      }
-                      return shouldInclude;
-                    })
-                    .map(s => {
-                      const mapped = {
-                        value: s.docId || s.id,
-                        label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim(),
-                        icon: <FileText size={16} color="#374151" />
-                      };
-                      return mapped;
-                    })
-                ]}
+                options={subjectOptions}
                 style={{ minWidth: 180 }}
                 placeholder={t('all_subjects')}
               />
@@ -1156,75 +1119,11 @@ const InstructorQRScannerPage = () => {
                 searchable
                 value={selectedClassId}
                 onChange={(e) => {
-                  console.log('[QR Scanner] Class dropdown changed:', {
-                    oldValue: selectedClassId,
-                    newValue: e.target.value,
-                    currentProgramId: selectedProgramId,
-                    currentSubjectId: selectedSubjectId,
-                    classesAvailable: classes.length
-                  });
                   setSelectedClassId(e.target.value);
                 }}
-                onOpen={() => {
-                  console.log('[QR Scanner] Class dropdown opened:', {
-                    selectedProgramId,
-                    selectedSubjectId,
-                    classesCount: classes.length,
-                    currentSelectedClass: selectedClassId
-                  });
-                }}
-                options={[
-                  { value: 'all', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> },
-                  ...classes
-                    .filter(c => {
-                      let shouldInclude = true;
-                      let reason = '';
-                      
-                      if (selectedProgramId !== 'all') {
-                        const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                        if (!subject || subject.programId !== selectedProgramId) {
-                          shouldInclude = false;
-                          reason = `subject ${c.subjectId} not in program ${selectedProgramId}`;
-                        }
-                      }
-                      
-                      if (shouldInclude && selectedSubjectId !== 'all') {
-                        if (c.subjectId !== selectedSubjectId) {
-                          shouldInclude = false;
-                          reason = `class subject ${c.subjectId} != selected subject ${selectedSubjectId}`;
-                        }
-                      }
-                      
-                      // Filter for instructors
-                      if (shouldInclude && user && !user.isAdmin && !user.isSuperAdmin && user.isInstructor) {
-                        if (!(c.instructorId === user.uid || c.ownerEmail === user.email || c.instructor === user.email)) {
-                          shouldInclude = false;
-                          reason = 'instructor filter';
-                        }
-                      }
-                      
-                      if (!shouldInclude) {
-                        console.log('[QR Scanner] Class filtered out:', {
-                          classId: c.id || c.docId,
-                          className: c.name || c.code,
-                          subjectId: c.subjectId,
-                          reason
-                        });
-                      }
-                      
-                      return shouldInclude;
-                    })
-                    .map(c => {
-                      const mapped = {
-                        value: c.id || c.docId,
-                        label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`,
-                        icon: <Users size={16} color="#374151" />
-                      };
-                      return mapped;
-                    })
-                ]}
+                options={classOptions}
                 style={{ minWidth: 180 }}
-                placeholder={t('all_classes') || 'All Classes'}
+                placeholder={t('all_classes')}
               />
             </div>
 
@@ -1266,12 +1165,12 @@ const InstructorQRScannerPage = () => {
             <span style={{
               fontSize: '0.75rem',
               color: '#6b7280',
-              marginLeft: '0.5rem',
+              [isRTL ? 'marginRight' : 'marginLeft']: '0.5rem',
               padding: '0.25rem 0.5rem',
               background: 'white',
               borderRadius: '0.25rem'
             }}>
-              {t('live') || 'LIVE'}
+              {t('live')}
             </span>
           </div>
 
@@ -1307,8 +1206,8 @@ const InstructorQRScannerPage = () => {
                 borderRadius: '50%',
                 position: 'absolute',
                 top: '0.125rem',
-                left: sendNotifications ? '1.375rem' : '0.125rem',
-                transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                left: sendNotifications ? (isRTL ? '0.125rem' : '1.375rem') : (isRTL ? '1.375rem' : '0.125rem'),
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
               }} />
             </div>
@@ -1319,10 +1218,10 @@ const InstructorQRScannerPage = () => {
                 color: sendNotifications ? '#166534' : '#991b1b',
                 lineHeight: 1
               }}>
-                {sendNotifications ? t('notifications') + ': ON' : t('notifications') + ': OFF'}
+                {sendNotifications ? `${t('notifications')}: ${lang === 'ar' ? 'مفعلة' : 'ON'}` : `${t('notifications')}: ${lang === 'ar' ? 'معطلة' : 'OFF'}`}
               </span>
               <span style={{ fontSize: '0.625rem', color: sendNotifications ? '#15803d' : '#b91c1c', marginTop: '2px' }}>
-                {t('email_notification')} + System
+                {t('email_notification')} + {lang === 'ar' ? 'النظام' : 'System'}
               </span>
             </div>
           </div>
@@ -1394,7 +1293,7 @@ const InstructorQRScannerPage = () => {
               textAlign: 'center'
             }}>
               <p style={{ color: '#6b7280', margin: 0 }}>
-                Please select a program, subject, and class to view students
+                {t('select_filters_to_view_students')}
               </p>
             </div>
           ) : (
@@ -1585,12 +1484,12 @@ const InstructorQRScannerPage = () => {
               overflow: 'auto'
             }}>
               <h3 style={{ margin: '0 0 1.5rem 0', color: '#111827', fontSize: '1.25rem' }}>
-                Filter Students
+                {t('filter_students')}
               </h3>
               
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#374151' }}>
-                  Attendance Status
+                  {t('attendance_status')}
                 </label>
                 <select
                   value={attendanceFilter}
@@ -1603,24 +1502,24 @@ const InstructorQRScannerPage = () => {
                     fontSize: '0.875rem'
                   }}
                 >
-                  <option value="all">All Status</option>
-                  <option value="present">Present</option>
-                  <option value="absent_no_excuse">Absent (No Excuse)</option>
-                  <option value="absent_with_excuse">Absent (Excused)</option>
-                  <option value="late">Late</option>
-                  <option value="excused_leave">Excused Leave</option>
-                  <option value="human_case">Human Case</option>
+                  <option value="all">{t('all_status')}</option>
+                  <option value="present">{lang === 'ar' ? 'حاضر' : 'Present'}</option>
+                  <option value="absent_no_excuse">{lang === 'ar' ? 'غائب (بدون عذر)' : 'Absent (No Excuse)'}</option>
+                  <option value="absent_with_excuse">{lang === 'ar' ? 'غائب (بعذر)' : 'Absent (Excused)'}</option>
+                  <option value="late">{lang === 'ar' ? 'متأخر' : 'Late'}</option>
+                  <option value="excused_leave">{lang === 'ar' ? 'إجازة' : 'Excused Leave'}</option>
+                  <option value="human_case">{lang === 'ar' ? 'حالة إنسانية' : 'Human Case'}</option>
                 </select>
               </div>
               
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#374151' }}>
-                  Participation Range
+                  {t('participation_range')}
                 </label>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <input
                     type="number"
-                    placeholder="Min"
+                    placeholder={t('min')}
                     value={participationMin}
                     onChange={(e) => setParticipationMin(e.target.value)}
                     style={{
@@ -1631,10 +1530,10 @@ const InstructorQRScannerPage = () => {
                       fontSize: '0.875rem'
                     }}
                   />
-                  <span style={{ color: '#6b7280' }}>to</span>
+                  <span style={{ color: '#6b7280' }}>{t('to')}</span>
                   <input
                     type="number"
-                    placeholder="Max"
+                    placeholder={t('max')}
                     value={participationMax}
                     onChange={(e) => setParticipationMax(e.target.value)}
                     style={{
@@ -1650,7 +1549,7 @@ const InstructorQRScannerPage = () => {
               
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: '#374151' }}>
-                  Penalty Status
+                  {t('penalty_status')}
                 </label>
                 <select
                   value={penaltyFilter}
@@ -1663,9 +1562,9 @@ const InstructorQRScannerPage = () => {
                     fontSize: '0.875rem'
                   }}
                 >
-                  <option value="all">All Students</option>
-                  <option value="none">No Penalties</option>
-                  <option value="hasPenalty">Has Penalties</option>
+                  <option value="all">{t('all_students')}</option>
+                  <option value="none">{t('no_penalties')}</option>
+                  <option value="hasPenalty">{t('has_penalties')}</option>
                 </select>
               </div>
               
@@ -1682,7 +1581,7 @@ const InstructorQRScannerPage = () => {
                     fontSize: '0.875rem'
                   }}
                 >
-                  Clear
+                  {t('clear')}
                 </button>
                 <button
                   onClick={() => setShowFilterDialog(false)}
@@ -1696,7 +1595,7 @@ const InstructorQRScannerPage = () => {
                     fontSize: '0.875rem'
                   }}
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={applyFilters}
@@ -1710,7 +1609,7 @@ const InstructorQRScannerPage = () => {
                     fontSize: '0.875rem'
                   }}
                 >
-                  Apply Filters
+                  {t('apply_filters')}
                 </button>
               </div>
             </div>
@@ -1722,8 +1621,8 @@ const InstructorQRScannerPage = () => {
           open={deleteActivityModalOpen}
           onClose={() => setDeleteActivityModalOpen(false)}
           onConfirm={confirmDeleteActivity}
-          title={`Delete ${activityToDelete?.type === 'attendance' ? 'Attendance' : 'Penalty'} Activity`}
-          message={`Are you sure you want to delete this activity for ${activityToDelete?.studentName}? This action cannot be undone.`}
+          title={t('delete_activity_title', { type: activityToDelete?.type === 'attendance' ? t('attendance') : t('penalties') })}
+          message={t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}
           loading={deleteActivityLoading}
         />
       </div>

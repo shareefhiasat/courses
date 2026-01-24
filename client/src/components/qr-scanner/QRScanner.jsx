@@ -36,7 +36,7 @@ const AttendanceIcon = ({ style }) => (
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity }) {
   const { user } = useAuth();
-  const { t } = useLang();
+  const { t, lang, isRTL } = useLang();
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState(0);
   const [error, setError] = useState('');
@@ -365,7 +365,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   return (
-    <div style={{
+    <div dir={isRTL ? 'rtl' : 'ltr'} style={{
       background: 'white',
       borderRadius: '0.75rem',
       border: '1px solid #e5e7eb',
@@ -577,8 +577,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           display: 'flex', 
           flexDirection: 'column', 
           gap: '0.75rem',
-          paddingLeft: '1rem',
-          borderLeft: '3px solid #8b5cf6'
+          [isRTL ? 'paddingRight' : 'paddingLeft']: '1rem',
+          [isRTL ? 'borderRight' : 'borderLeft']: '3px solid #8b5cf6'
         }}>
           {/* Real activity logs from Firebase */}
           {activityLoading ? (
@@ -588,7 +588,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               fontSize: '0.875rem',
               textAlign: 'center'
             }}>
-              Loading recent activity...
+              {t('loading')}...
             </div>
           ) : recentActivity.length === 0 ? (
             <div style={{
@@ -605,31 +605,31 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   case 'auto':
                     return {
                       icon: '',
-                      text: 'QR Scan',
+                      text: lang === 'ar' ? 'مسح QR' : 'QR Scan',
                       color: '#10b981'
                     };
                   case 'manual_instructor':
                     return {
                       icon: '',
-                      text: 'Manual',
+                      text: lang === 'ar' ? 'يدوي' : 'Manual',
                       color: '#3b82f6'
                     };
                   case 'manual_hr':
                     return {
                       icon: '',
-                      text: 'Manual (HR)',
+                      text: lang === 'ar' ? 'يدوي (موارد بشرية)' : 'Manual (HR)',
                       color: '#8b5cf6'
                     };
                   case 'manual_student':
                     return {
                       icon: '',
-                      text: 'Manual (Student)',
+                      text: lang === 'ar' ? 'يدوي (طالب)' : 'Manual (Student)',
                       color: '#f59e0b'
                     };
                   default:
                     return {
                       icon: '',
-                      text: 'Manual',
+                      text: lang === 'ar' ? 'يدوي' : 'Manual',
                       color: '#6b7280'
                     };
                 }
@@ -802,7 +802,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         stroke="currentColor" 
                         strokeWidth="2" 
                         style={{
-                          transform: expandedActivities.has(activity.id) ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transform: expandedActivities.has(activity.id) ? (isRTL ? 'rotate(180deg)' : 'rotate(180deg)') : (isRTL ? 'rotate(90deg)' : 'rotate(0deg)'),
                           transition: 'transform 0.2s',
                           color: '#6b7280'
                         }}
@@ -820,13 +820,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       color: '#6b7280'
                     }}>
                       <div style={{ marginBottom: '0.25rem' }}>
-                        <strong>Date:</strong> {new Date().toLocaleDateString()} {activity.time?.toDate ? activity.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (activity.time instanceof Date ? activity.time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : activity.time || '')}
+                        <strong>{t('date') || 'Date'}:</strong> {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')} {activity.time?.toDate ? activity.time.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (activity.time instanceof Date ? activity.time.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : activity.time || '')}
                       </div>
                       <div style={{ marginBottom: '0.25rem' }}>
-                        <strong>Method:</strong> {getScanMethodDisplay(activity.scanMethod).text}
+                        <strong>{t('method') || 'Method'}:</strong> {getScanMethodDisplay(activity.scanMethod).text}
                       </div>
                       <div>
-                        <strong>By:</strong> {activity.performedBy?.displayName || activity.performedBy?.email?.split('@')[0] || 'Unknown'}
+                        <strong>{t('by') || 'By'}:</strong> {activity.performedBy?.displayName || activity.performedBy?.email?.split('@')[0] || t('unknown')}
                       </div>
                     </div>
                   )}

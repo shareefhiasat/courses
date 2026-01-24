@@ -62,7 +62,7 @@ export default function StudentActionPanel({
   onToggleNotifications
 }) {
   const { user } = useAuth();
-  const { t } = useLang();
+  const { t, lang, isRTL } = useLang();
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -702,15 +702,15 @@ export default function StudentActionPanel({
         </div>
       )}
       
-      <div style={{
+      <div dir={isRTL ? 'rtl' : 'ltr'} style={{
         position: 'fixed',
         top: 0,
-        right: 0,
+        [isRTL ? 'left' : 'right']: 0,
         width: isMobile ? '100%' : '100%',
         maxWidth: isMobile ? '100%' : '28rem',
         height: '100%',
         background: 'white',
-        boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
+        boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
@@ -742,7 +742,7 @@ export default function StudentActionPanel({
               </div>
               <div>
                 <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '1rem' }}>
-                  {student.displayName || student.realName || student.name || student.email || 'Unknown Student'}
+                  {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                 </h3>
                 <div style={{
                   fontSize: '0.75rem',
@@ -764,15 +764,15 @@ export default function StudentActionPanel({
                     borderRadius: '9999px'
                   }} />
                   <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    {attendanceStatus.en}
+                    {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                   </span>
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
               <div
                 onClick={onToggleNotifications}
-                title={sendNotifications ? t('notifs_on') : t('notifs_off')}
+                title={sendNotifications ? t('notifications_on') : t('notifications_off')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -801,7 +801,7 @@ export default function StudentActionPanel({
                     borderRadius: '50%',
                     position: 'absolute',
                     top: '0.125rem',
-                    left: sendNotifications ? '1rem' : '0.125rem',
+                    left: sendNotifications ? (isRTL ? '0.125rem' : '1rem') : (isRTL ? '1rem' : '0.125rem'),
                     transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   }} />
                 </div>
@@ -1324,10 +1324,10 @@ export default function StudentActionPanel({
                 }}
               >
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                  {t('behavior')} ({student.behavior || 0} points, {(() => {
+                  {t('behavior_details')} ({student.behavior || 0} {t('points')}, {(() => {
                     const stats = getDetailedStats();
                     return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
-                  })()} entries)
+                  })()} {t('entries')})
                 </span>
                 <ChevronDown
                   style={{
@@ -1365,7 +1365,7 @@ export default function StudentActionPanel({
                             color: 'white',
                             flex: 1
                           }}>
-                            {type.label_en}
+                            {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
@@ -1374,15 +1374,15 @@ export default function StudentActionPanel({
                             minWidth: '3rem',
                             textAlign: 'center'
                           }}>
-                            Total: {stat.totalPoints >= 0 ? '+' : ''}{stat.totalPoints}
+                            {t('total')}: {stat.totalPoints >= 0 ? '+' : ''}{stat.totalPoints}
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
                             color: 'white',
                             minWidth: '3rem',
-                            textAlign: 'right'
+                            textAlign: isRTL ? 'left' : 'right'
                           }}>
-                            Count: ({stat.count})
+                            {t('count')}: ({stat.count})
                           </div>
                         </div>
                       );
@@ -1405,7 +1405,7 @@ export default function StudentActionPanel({
                       color: 'white',
                       flex: 1
                     }}>
-                      Behavior
+                      {t('behavior')}
                     </div>
                     <div style={{
                       fontSize: '0.75rem',
@@ -1414,15 +1414,15 @@ export default function StudentActionPanel({
                       minWidth: '3rem',
                       textAlign: 'center'
                     }}>
-                      Total: {student.behavior > 0 ? '+' : ''}{student.behavior || 0}
+                      {t('total')}: {student.behavior > 0 ? '+' : ''}{student.behavior || 0}
                     </div>
                     <div style={{
                       fontSize: '0.75rem',
                       color: 'white',
                       minWidth: '3rem',
-                      textAlign: 'right'
+                      textAlign: isRTL ? 'left' : 'right'
                     }}>
-                      Count: ({(() => {
+                      {t('count')}: ({(() => {
                         const stats = getDetailedStats();
                         return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
                       })()})
@@ -1448,10 +1448,10 @@ export default function StudentActionPanel({
                 }}
               >
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                  Participation Details ({student.participation || 0} points, {(() => {
+                  {t('participation_details')} ({student.participation || 0} {t('points')}, {(() => {
                     const stats = getDetailedStats();
                     return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
-                  })()} entries)
+                  })()} {t('entries')})
                 </span>
                 <ChevronDown
                   style={{
@@ -1489,7 +1489,7 @@ export default function StudentActionPanel({
                             color: 'white',
                             flex: 1
                           }}>
-                            {type.label_en}
+                            {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
@@ -1498,15 +1498,15 @@ export default function StudentActionPanel({
                             minWidth: '3rem',
                             textAlign: 'center'
                           }}>
-                            Total: +{stat.totalPoints}
+                            {t('total')}: +{stat.totalPoints}
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
                             color: 'white',
                             minWidth: '3rem',
-                            textAlign: 'right'
+                            textAlign: isRTL ? 'left' : 'right'
                           }}>
-                            Count: ({stat.count})
+                            {t('count')}: ({stat.count})
                           </div>
                         </div>
                       );
@@ -1545,9 +1545,9 @@ export default function StudentActionPanel({
                       fontSize: '0.75rem',
                       color: 'white',
                       minWidth: '3rem',
-                      textAlign: 'right'
+                      textAlign: isRTL ? 'left' : 'right'
                     }}>
-                      Count: ({(() => {
+                      {t('count')}: ({(() => {
                         const stats = getDetailedStats();
                         return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
                       })()})
@@ -1573,11 +1573,11 @@ export default function StudentActionPanel({
                 }}
               >
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                  Penalty Details ({student.penalty || 0} points, {(() => {
+                  {t('penalty_details')} ({student.penalty || 0} {t('points')}, {(() => {
                     const stats = getDetailedStats();
                     const penaltyTypes = BEHAVIOR_TYPES.filter(bt => bt.points < 0);
                     return penaltyTypes.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
-                  })()} entries)
+                  })()} {t('entries')})
                 </span>
                 <ChevronDown
                   style={{
@@ -1618,7 +1618,7 @@ export default function StudentActionPanel({
                             color: '#dc2626',
                             flex: 1
                           }}>
-                            {type.label_en}
+                            {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
@@ -1658,7 +1658,7 @@ export default function StudentActionPanel({
                       color: 'white',
                       flex: 1
                     }}>
-                      Penalty
+                      {t('penalty')}
                     </div>
                     <div style={{
                       fontSize: '0.75rem',
@@ -1667,15 +1667,15 @@ export default function StudentActionPanel({
                       minWidth: '3rem',
                       textAlign: 'center'
                     }}>
-                      Total: {student.penalty || 0}
+                      {t('total')}: {student.penalty || 0}
                     </div>
                     <div style={{
                       fontSize: '0.75rem',
                       color: 'white',
                       minWidth: '3rem',
-                      textAlign: 'right'
+                      textAlign: isRTL ? 'left' : 'right'
                     }}>
-                      Count: ({(() => {
+                      {t('count')}: ({(() => {
                         const stats = getDetailedStats();
                         const penaltyTypes = BEHAVIOR_TYPES.filter(bt => bt.points < 0);
                         return penaltyTypes.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
@@ -2089,7 +2089,7 @@ export default function StudentActionPanel({
                   fontSize: '0.875rem',
                   textAlign: 'center'
                 }}>
-                  Loading student history...
+                  {t('loading')}...
                 </div>
               ) : todayLogs.length === 0 ? (
                 <div style={{
@@ -2097,7 +2097,7 @@ export default function StudentActionPanel({
                   color: '#9ca3af',
                   fontSize: '0.875rem'
                 }}>
-                  No history found
+                  {t('no_history_found')}
                 </div>
               ) : (
                 groupLogsByDay(todayLogs).map((dayGroup, dayIndex) => {
@@ -2193,10 +2193,10 @@ export default function StudentActionPanel({
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                            {isDayExpanded ? 'Hide details' : 'Show details'}
+                            {isDayExpanded ? (isRTL ? 'إخفاء التفاصيل' : 'Hide details') : (isRTL ? 'إظهار التفاصيل' : 'Show details')}
                           </span>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{
-                            transform: isDayExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                            transform: isDayExpanded ? (isRTL ? 'rotate(180deg)' : 'rotate(0deg)') : (isRTL ? 'rotate(90deg)' : 'rotate(-90deg)'),
                             transition: 'transform 0.2s'
                           }}>
                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -2224,7 +2224,7 @@ export default function StudentActionPanel({
                                     <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                       {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                     </span>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#10b981', marginRight: '0.5rem' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#10b981', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
                                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                       <circle cx="12" cy="7" r="4"></circle>
                                     </svg>
@@ -2245,7 +2245,7 @@ export default function StudentActionPanel({
                                       alignItems: 'center',
                                       justifyContent: 'center'
                                     }}
-                                    title="Delete attendance record"
+                                    title={t('delete_attendance_record')}
                                   >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                       <path d="M3 6h18"/>
@@ -2302,7 +2302,7 @@ export default function StudentActionPanel({
                                   <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                     {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                   </span>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f97316', marginRight: '0.5rem' }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f97316', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
                                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                                   </svg>
                                   <span style={{ color: '#374151', fontWeight: 500 }}>
@@ -2346,7 +2346,7 @@ export default function StudentActionPanel({
                                     <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
                                       {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                     </span>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#ef4444', marginRight: '0.5rem' }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#ef4444', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
                                       <circle cx="12" cy="12" r="10"></circle>
                                       <line x1="12" y1="8" x2="12" y2="12"></line>
                                       <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -2368,7 +2368,7 @@ export default function StudentActionPanel({
                                       alignItems: 'center',
                                       justifyContent: 'center'
                                     }}
-                                    title="Delete penalty record"
+                                    title={t('delete_penalty_record')}
                                   >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                       <path d="M3 6h18"/>
@@ -2396,8 +2396,8 @@ export default function StudentActionPanel({
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        title={`Delete ${deleteType === 'attendance' ? 'Attendance' : 'Penalty'} Record`}
-        message={`Are you sure you want to delete this ${deleteType === 'attendance' ? 'attendance' : 'penalty'} record? This action cannot be undone.`}
+        title={t('delete_activity_title', { type: deleteType === 'attendance' ? t('attendance') : t('penalty') })}
+        message={t('delete_activity_msg', { studentName: student.displayName || student.name || t('this_student') })}
         loading={deleteLoading}
       />
     </>
