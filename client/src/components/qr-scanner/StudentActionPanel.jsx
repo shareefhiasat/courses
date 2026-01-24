@@ -349,7 +349,6 @@ export default function StudentActionPanel({
 
   // Fetch real data from Firebase
   const handleMarkAttendance = async (studentId, status) => {
-    setAttendanceLoading(true);
     setShowLoadingOverlay(true);
     try {
       await onMarkAttendance(studentId, status);
@@ -360,7 +359,6 @@ export default function StudentActionPanel({
     } catch (error) {
       console.error('Error marking attendance:', error);
     } finally {
-      setAttendanceLoading(false);
       setShowLoadingOverlay(false);
     }
   };
@@ -585,7 +583,7 @@ export default function StudentActionPanel({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'white',
           zIndex: 10000,
           display: 'flex',
           alignItems: 'center',
@@ -733,7 +731,6 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'present');
                 }}
-                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -776,7 +773,6 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'late');
                 }}
-                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -820,7 +816,6 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'absent_no_excuse');
                 }}
-                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -864,7 +859,6 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'absent_with_excuse');
                 }}
-                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -911,7 +905,6 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'excused_leave');
                 }}
-                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
@@ -957,14 +950,13 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, 'human_case');
                 }}
-                disabled={attendanceLoading}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #8b5cf6',
                   background: student.attendance === 'human_case' ? '#8b5cf6' : 'white',
                   color: student.attendance === 'human_case' ? 'white' : '#8b5cf6',
-                  cursor: attendanceLoading ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -973,33 +965,9 @@ export default function StudentActionPanel({
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem',
-                  opacity: attendanceLoading ? 0.6 : 1,
                   position: 'relative'
                 }}
               >
-                {attendanceLoading && student.attendance === 'human_case' && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(139, 92, 246, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '0.25rem'
-                  }}>
-                    <div style={{
-                      width: '12px',
-                      height: '12px',
-                      border: '2px solid #8b5cf6',
-                      borderTop: '2px solid transparent',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }}></div>
-                  </div>
-                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
