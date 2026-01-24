@@ -20,20 +20,33 @@ const LoginPage = () => {
   useEffect(() => {
     const reason = sessionStorage.getItem('logoutReason');
     const timestamp = sessionStorage.getItem('logoutTimestamp');
+    const lastActivity = sessionStorage.getItem('lastActivityTime');
     
     if (reason && timestamp) {
       const logoutTime = new Date(parseInt(timestamp));
       const timeAgo = getTimeAgo(logoutTime);
       
+      let lastActivityInfo = null;
+      if (lastActivity) {
+        const lastActivityTime = new Date(parseInt(lastActivity));
+        const inactiveDuration = Math.floor((logoutTime - lastActivityTime) / 1000 / 60); // minutes
+        lastActivityInfo = {
+          time: lastActivityTime,
+          inactiveMinutes: inactiveDuration
+        };
+      }
+      
       setLogoutReason({
         type: reason,
         timeAgo: timeAgo,
-        timestamp: logoutTime
+        timestamp: logoutTime,
+        lastActivity: lastActivityInfo
       });
       
       // Clear the logout reason after displaying it
       sessionStorage.removeItem('logoutReason');
       sessionStorage.removeItem('logoutTimestamp');
+      sessionStorage.removeItem('lastActivityTime');
     }
   }, []);
 
@@ -49,9 +62,18 @@ const LoginPage = () => {
   const getLogoutMessage = (reason) => {
     switch (reason.type) {
       case 'session_timeout':
+        let message = `You were automatically logged out due to inactivity ${reason.timeAgo}.`;
+        if (reason.lastActivity) {
+          const inactiveMinutes = reason.lastActivity.inactiveMinutes;
+          if (inactiveMinutes >= 30) {
+            message += ` Last activity was ${inactiveMinutes} minute${inactiveMinutes > 1 ? 's' : ''} ago.`;
+          } else {
+            message += ` Last activity was just now.`;
+          }
+        }
         return {
           title: 'Session Expired',
-          message: `You were automatically logged out due to inactivity ${reason.timeAgo}.`,
+          message: message,
           type: 'warning',
           icon: '⏰'
         };
@@ -101,10 +123,12 @@ const LoginPage = () => {
   return (
     <div className={pageClass}>
       <Container maxWidth="sm" className={styles.formContainer}>
-        {/* Logout Reason Message */}
+        <AuthForm />
+        
+        {/* Logout Reason Message - Moved to bottom */}
         {logoutReason && (
           <div style={{
-            marginBottom: '1.5rem',
+            marginTop: '1.5rem',
             padding: '1rem',
             borderRadius: '0.5rem',
             border: `1px solid ${
@@ -113,22 +137,25 @@ const LoginPage = () => {
             }`,
             background: isDark ? '#1f2937' : '#ffffff',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            animation: 'slideDown 0.3s ease-out'
+            animation: 'slideUp 0.3s ease-out',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
           }}>
             <div style={{
               display: 'flex',
               alignItems: 'flex-start',
               gap: '0.75rem'
             }}>
-              <span style={{ fontSize: '1.25rem' }}>
+              <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>
                 {getLogoutMessage(logoutReason).icon}
               </span>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <h4 style={{
                   margin: '0 0 0.25rem 0',
                   fontSize: '0.875rem',
                   fontWeight: 600,
-                  color: isDark ? '#f3f4f6' : '#111827'
+                  color: isDark ? '#f3f4f6' : '#111827',
+                  wordBreak: 'break-word'
                 }}>
                   {getLogoutMessage(logoutReason).title}
                 </h4>
@@ -136,7 +163,8 @@ const LoginPage = () => {
                   margin: 0,
                   fontSize: '0.75rem',
                   color: isDark ? '#d1d5db' : '#6b7280',
-                  lineHeight: '1.4'
+                  lineHeight: '1.4',
+                  wordBreak: 'break-word'
                 }}>
                   {getLogoutMessage(logoutReason).message}
                 </p>
@@ -157,7 +185,8 @@ const LoginPage = () => {
                   cursor: 'pointer',
                   padding: '0.25rem',
                   borderRadius: '0.25rem',
-                  fontSize: '0.75rem'
+                  fontSize: '0.75rem',
+                  flexShrink: 0
                 }}
                 title="Dismiss message"
               >
@@ -166,16 +195,14 @@ const LoginPage = () => {
             </div>
           </div>
         )}
-        
-        <AuthForm />
       </Container>
       
-      {/* Add slideDown animation */}
+      {/* Add slideUp animation */}
       <style jsx>{`
-        @keyframes slideDown {
+        @keyframes slideUp {
           from {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(10px);
           }
           to {
             opacity: 1;

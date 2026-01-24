@@ -209,7 +209,24 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
       const studentMap = {};
       allUsers.forEach(user => {
         const userId = user.id || user.docId;
-        studentMap[userId] = user.displayName || user.name || user.email?.split('@')[0] || 'Unknown Student';
+        // Format name properly: handle email fallback and capitalize
+        let displayName = user.displayName || user.name || '';
+        if (!displayName && user.email) {
+          displayName = user.email.split('@')[0].replace('.', ' ').replace('_', ' ');
+          // Capitalize each word
+          displayName = displayName.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          ).join(' ');
+        } else if (displayName) {
+          // Ensure proper capitalization if it's an email username
+          if (displayName.includes('.') || displayName.includes('_')) {
+            displayName = displayName.replace('.', ' ').replace('_', ' ');
+            displayName = displayName.split(' ').map(word => 
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            ).join(' ');
+          }
+        }
+        studentMap[userId] = displayName || 'Unknown Student';
       });
       
       // console.log('=== Student Map Debug ===');
@@ -266,27 +283,27 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
   // Listen for real-time activity updates
   useEffect(() => {
     const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, () => {
-      // console.log('QRScanner: Activity update received');
+      console.log('QRScanner: Activity update received');
       fetchRecentActivity();
     });
 
     const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, () => {
-      // console.log('QRScanner: Attendance marked');
+      console.log('QRScanner: Attendance marked');
       fetchRecentActivity();
     });
 
     const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, () => {
-      // console.log('QRScanner: Behavior logged');
+      console.log('QRScanner: Behavior logged');
       fetchRecentActivity();
     });
 
     const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, () => {
-      // console.log('QRScanner: Participation added');
+      console.log('QRScanner: Participation added');
       fetchRecentActivity();
     });
 
     const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, () => {
-      // console.log('QRScanner: Penalty assigned');
+      console.log('QRScanner: Penalty assigned');
       fetchRecentActivity();
     });
 
@@ -582,10 +599,54 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
               
               const getStatusIcon = (status) => {
                 switch(status?.toLowerCase()) {
-                  case 'present': return '✓';
-                  case 'late': return '⏰';
-                  case 'absent': return '✗';
-                  default: return '○';
+                  case 'present': 
+                    return (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    );
+                  case 'late': 
+                    return (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 12 12"></polyline>
+                      </svg>
+                    );
+                  case 'absent':
+                  case 'absent_no_excuse':
+                  case 'absent_with_excuse':
+                  case 'excused_leave':
+                    return (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    );
+                  case 'human_case':
+                    return (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                      </svg>
+                    );
+                  default: 
+                    return (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                      </svg>
+                    );
+                }
+              };
+              
+              const getStatusLabel = (status) => {
+                switch(status?.toLowerCase()) {
+                  case 'present': return 'Present';
+                  case 'late': return 'Late';
+                  case 'absent': return 'Absent';
+                  case 'absent_no_excuse': return 'Absent (No Excuse)';
+                  case 'absent_with_excuse': return 'Absent (Excused)';
+                  case 'excused_leave': return 'Excused Leave';
+                  case 'human_case': return 'Human Case';
+                  default: return status || 'Present';
                 }
               };
               
@@ -604,23 +665,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                     }}
                     onClick={() => toggleActivityExpansion(activity.id)}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
-                      <span style={{ fontSize: '0.7rem', color: '#64748b', minWidth: '60px' }}>
-                        {new Date().toLocaleDateString()}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b', minWidth: '60px' }}>
-                        {activity.time}
-                      </span>
-                    </div>
                     <div style={{
                       padding: '0.25rem 0.5rem',
                       borderRadius: '0.25rem',
                       fontSize: '0.75rem',
                       fontWeight: 600,
                       background: getStatusColor(activity.status),
-                      color: '#ffffff'
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
                     }}>
-                      {getStatusIcon(activity.status)} {activity.status || 'Present'}
+                      {getStatusIcon(activity.status)} {getStatusLabel(activity.status)}
                     </div>
                     <span style={{ fontSize: '0.8125rem', color: '#374151', flex: 1 }}>
                       {activity.studentName}
@@ -643,55 +699,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate }) {
                   </div>
                   
                   {expandedActivities.has(activity.id) && (
-                    <div style={{
+                    <div style={{ 
                       paddingLeft: '3.5rem',
                       paddingTop: '0.5rem',
-                      display: 'flex',
-                      gap: '0.75rem',
-                      alignItems: 'center',
                       fontSize: '0.75rem',
                       color: '#6b7280'
                     }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        padding: '0.125rem 0.5rem',
-                        background: '#f3f4f6',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.6rem',
-                        color: getScanMethodDisplay(activity.scanMethod).color
-                      }}>
-                        {getScanMethodDisplay(activity.scanMethod).icon && (
-                          <span style={{ fontSize: '0.8rem' }}>
-                            {getScanMethodDisplay(activity.scanMethod).icon}
-                          </span>
-                        )}
-                        <span style={{ fontWeight: 500 }}>
-                          {getScanMethodDisplay(activity.scanMethod).text}
-                        </span>
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Date:</strong> {new Date().toLocaleDateString()} {activity.time}
                       </div>
-                      {activity.performedBy && (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          padding: '0.125rem 0.5rem',
-                          background: '#f0fdf4',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: '1rem',
-                          fontSize: '0.6rem',
-                          color: '#166534'
-                        }}>
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                          </svg>
-                          <span style={{ fontWeight: 500 }}>
-                            {activity.performedBy.displayName || activity.performedBy.email?.split('@')[0] || 'Unknown'}
-                          </span>
-                        </div>
-                      )}
+                      <div style={{ marginBottom: '0.25rem' }}>
+                        <strong>Method:</strong> {getScanMethodDisplay(activity.scanMethod).text}
+                      </div>
+                      <div>
+                        <strong>By:</strong> {activity.performedBy.displayName || activity.performedBy.email?.split('@')[0] || 'Unknown'}
+                      </div>
                     </div>
                   )}
                 </div>

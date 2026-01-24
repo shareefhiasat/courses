@@ -53,16 +53,19 @@ export const AuthProvider = ({ children }) => {
 
     const sessionTimeout = 30 * 60 * 1000; // 30 minutes (for testing)
     let timeoutId;
+    let lastActivityTime = Date.now();
 
     const resetTimeout = () => {
       if (timeoutId) clearTimeout(timeoutId);
+      lastActivityTime = Date.now();
       // console.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
       timeoutId = setTimeout(async () => {
         // console.log('[Auth] Session timeout reached - logging out user');
         
-        // Store logout reason in sessionStorage
+        // Store logout reason with last activity info
         sessionStorage.setItem('logoutReason', 'session_timeout');
         sessionStorage.setItem('logoutTimestamp', Date.now().toString());
+        sessionStorage.setItem('lastActivityTime', lastActivityTime.toString());
         
         // Log session timeout
         try {
