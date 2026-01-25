@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -44,20 +45,7 @@ const ReviewResultsPage = () => {
   const [filterRequiresSubmission, setFilterRequiresSubmission] = useState('all'); // all, yes, no
   const [searchActivityId, setSearchActivityId] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user, mode]);
-
-  useEffect(() => {
-    if (user && programs.length > 0) {
-      loadResults();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedActivity, selectedProgram, selectedSubject, selectedClass, selectedStudent, mode, user]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       // Load programs, subjects, classes with permission filtering
@@ -117,7 +105,7 @@ const ReviewResultsPage = () => {
                 return { id: studentId, docId: studentId, ...studentDoc.data() };
               }
             } catch (err) {
-              console.warn('Failed to load student:', studentId, err);
+              logger.warn('Failed to load student:', studentId, err);
             }
             return null;
           })
@@ -129,14 +117,20 @@ const ReviewResultsPage = () => {
         setStudents(studentsData);
       }
     } catch (error) {
-      console.error('Failed to load data:', error);
+      logger.error('Failed to load data:', error);
       toast.error('Failed to load data: ' + error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, mode, isAdmin, isInstructor, isSuperAdmin, toast]);
 
-  const loadResults = async () => {
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user, mode, loadData]);
+
+  const loadResults = useCallback(async () => {
     setLoading(true);
     try {
       // Load submissions based on mode
@@ -158,7 +152,7 @@ const ReviewResultsPage = () => {
           q = query(collection(db, collectionName), orderBy('submittedAt', 'desc'));
         }
       } catch (orderByError) {
-        console.warn('OrderBy failed, trying without:', orderByError);
+        logger.warn('OrderBy failed, trying without:', orderByError);
         if (selectedActivity !== 'all') {
           q = query(collection(db, collectionName), where('activityId', '==', selectedActivity));
         } else {
@@ -230,7 +224,7 @@ const ReviewResultsPage = () => {
                 enrichedResult.activityData = activityData;
               }
             } catch (err) {
-              console.warn('Failed to load activity:', result.activityId, err);
+              logger.warn('Failed to load activity:', result.activityId, err);
             }
           }
 
@@ -244,7 +238,7 @@ const ReviewResultsPage = () => {
                 enrichedResult.studentEmail = studentData.email;
               }
             } catch (err) {
-              console.warn('Failed to load student:', result.userId, err);
+              logger.warn('Failed to load student:', result.userId, err);
             }
           }
 
@@ -259,7 +253,7 @@ const ReviewResultsPage = () => {
                 enrichedResult.classSubjectId = classData.subjectId;
               }
             } catch (err) {
-              console.warn('Failed to load class:', classId, err);
+              logger.warn('Failed to load class:', classId, err);
             }
           }
           
@@ -273,7 +267,7 @@ const ReviewResultsPage = () => {
                 enrichedResult.subjectProgramId = subjectData.programId;
               }
             } catch (err) {
-              console.warn('Failed to load subject:', enrichedResult.classSubjectId, err);
+              logger.warn('Failed to load subject:', enrichedResult.classSubjectId, err);
             }
           }
           
@@ -286,11 +280,11 @@ const ReviewResultsPage = () => {
                 enrichedResult.programName = programData.name_en || programData.name_ar || programData.code || 'N/A';
               }
             } catch (err) {
-              console.warn('Failed to load program:', enrichedResult.subjectProgramId, err);
+              logger.warn('Failed to load program:', enrichedResult.subjectProgramId, err);
             }
           }
         } catch (err) {
-          console.warn('Failed to enrich result:', err);
+          logger.warn('Failed to enrich result:', err);
         }
         return enrichedResult;
       }));
@@ -387,7 +381,13 @@ const ReviewResultsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedActivity, selectedProgram, selectedSubject, selectedClass, selectedStudent, filterRetake, filterDifficulty, filterHasImage, filterIsOptional, filterIsFeatured, filterRequiresSubmission, searchActivityId, mode, activities, classes, subjects, programs, students, toast]);
+
+  useEffect(() => {
+    if (user && programs.length > 0) {
+      loadResults();
+    }
+  }, [selectedActivity, selectedProgram, selectedSubject, selectedClass, selectedStudent, mode, user, programs.length, loadResults]);
 
   // Filter activities based on selections
   const filteredActivities = useMemo(() => {

@@ -3,9 +3,11 @@
  * Manage reusable questions library
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '../contexts/LangContext';
 import {
   Container,
   Card,
@@ -70,35 +72,35 @@ export default function QuestionBankPage() {
     }
     loadQuestions();
     loadTags();
-  }, [user, isAdmin, isInstructor]);
+  }, [user, isAdmin, isInstructor, loadQuestions, loadTags]);
 
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     setLoading(true);
     try {
       const result = await getAllQuestions();
       if (result.success) {
         setQuestions(result.data);
       } else {
-        toast.error('Failed to load questions');
+        toast.error(t('failed_to_load_questions'));
       }
     } catch (error) {
-      console.error('Error loading questions:', error);
-      toast.error('Error loading questions');
+      logger.error('Error loading questions:', error);
+      toast.error(t('error_loading_questions'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, t]);
 
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       const result = await getAllTags();
       if (result.success) {
         setAllTags(result.data);
       }
     } catch (error) {
-      console.error('Error loading tags:', error);
+      logger.error('Error loading tags:', error);
     }
-  };
+  }, []);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
@@ -165,14 +167,14 @@ export default function QuestionBankPage() {
     try {
       const result = await duplicateQuestion(questionId);
       if (result.success) {
-        toast.success('Question duplicated');
+        toast.success(t('question_duplicated'));
         loadQuestions();
       } else {
-        toast.error('Failed to duplicate question');
+        toast.error(t('failed_to_duplicate_question'));
       }
     } catch (error) {
-      console.error('Error duplicating question:', error);
-      toast.error('Error duplicating question');
+      logger.error('Error duplicating question:', error);
+      toast.error(t('error_duplicating_question'));
     }
   };
 
@@ -197,18 +199,21 @@ export default function QuestionBankPage() {
         const importResult = await bulkImportQuestions(result.data, user.uid);
         if (importResult.success) {
           toast.success(
-            `Imported ${importResult.data.successful} questions (${importResult.data.failed} failed)`
+            t('imported_questions', { 
+              successful: importResult.data.successful, 
+              failed: importResult.data.failed 
+            })
           );
           loadQuestions();
         } else {
-          toast.error('Failed to import questions');
+          toast.error(t('failed_to_import_questions'));
         }
       } else {
-        toast.error('Failed to parse CSV file');
+        toast.error(t('failed_to_parse_csv'));
       }
     } catch (error) {
-      console.error('Error importing questions:', error);
-      toast.error('Error importing questions');
+      logger.error('Error importing questions:', error);
+      toast.error(t('error_importing_questions'));
     }
   };
 
@@ -272,7 +277,7 @@ export default function QuestionBankPage() {
               <SearchBar
                 value={searchTerm}
                 onChange={handleSearch}
-                placeholder="Search questions by text or tags..."
+                placeholder={t('search_questions_placeholder')}
                 className={styles.searchBar}
               />
               <Button
@@ -280,7 +285,7 @@ export default function QuestionBankPage() {
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter size={16} />
-                Filters
+                {t('filter')}
               </Button>
             </div>
 
@@ -290,7 +295,7 @@ export default function QuestionBankPage() {
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
                   options={[
-                    { value: '', label: 'All Types' },
+                    { value: '', label: t('all_types') },
                     ...Object.entries(QUESTION_TYPE_CONFIG).map(([key, config]) => ({
                       value: key,
                       label: config.label
@@ -301,10 +306,10 @@ export default function QuestionBankPage() {
                   value={selectedDifficulty}
                   onChange={(e) => setSelectedDifficulty(e.target.value)}
                   options={[
-                    { value: '', label: 'All Difficulties' },
-                    { value: 'easy', label: 'Easy' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'hard', label: 'Hard' }
+                    { value: '', label: t('all_difficulties') },
+                    { value: 'easy', label: t('easy') },
+                    { value: 'medium', label: t('medium') },
+                    { value: 'hard', label: t('hard') }
                   ]}
                 />
                 <div className={styles.tagsFilter}>
@@ -336,7 +341,7 @@ export default function QuestionBankPage() {
             <CardBody>
               <div className={styles.stat}>
                 <span className={styles.statValue}>{filteredQuestions.length}</span>
-                <span className={styles.statLabel}>Questions</span>
+                <span className={styles.statLabel}>{t('questions')}</span>
               </div>
             </CardBody>
           </Card>
@@ -344,7 +349,7 @@ export default function QuestionBankPage() {
             <CardBody>
               <div className={styles.stat}>
                 <span className={styles.statValue}>{allTags.length}</span>
-                <span className={styles.statLabel}>Tags</span>
+                <span className={styles.statLabel}>{t('tags')}</span>
               </div>
             </CardBody>
           </Card>
@@ -354,7 +359,7 @@ export default function QuestionBankPage() {
                 <span className={styles.statValue}>
                   {new Set(questions.map((q) => q.type)).size}
                 </span>
-                <span className={styles.statLabel}>Types</span>
+                <span className={styles.statLabel}>{t('types')}</span>
               </div>
             </CardBody>
           </Card>
@@ -423,13 +428,13 @@ export default function QuestionBankPage() {
                         question.difficulty === 'easy' ? 'success' :
                         question.difficulty === 'hard' ? 'danger' : 'warning'
                       }>
-                        {question.difficulty}
+                        {t(question.difficulty)}
                       </Badge>
                       <span className={styles.usageCount}>
                         <TrendingUp size={14} />
-                        Used {question.usageCount || 0} times
+                        {t('used_times', { count: question.usageCount || 0 })}
                       </span>
-                      <span className={styles.points}>{question.points || 1} pts</span>
+                      <span className={styles.points}>{question.points || 1} {t('pts')}</span>
                     </div>
                   </CardBody>
                 </Card>

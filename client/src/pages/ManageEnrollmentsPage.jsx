@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
@@ -136,7 +137,7 @@ const ManageEnrollmentsPage = () => {
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
     } catch (e) {
-      console.error('[ManageEnrollments] Error loading data:', e);
+      logger.error('[ManageEnrollments] Error loading data:', e);
     } finally {
       setInitialLoading(false);
     }
@@ -152,12 +153,12 @@ const ManageEnrollmentsPage = () => {
 
       // Get enrollments for this class
       const enrollmentsResult = await getEnrollments();
-      console.log('🔍 [ManageEnrollments] All enrollments:', enrollmentsResult.data);
+      logger.debug('🔍 [ManageEnrollments] All enrollments:', enrollmentsResult.data);
       const classEnrollments = (enrollmentsResult.data || []).filter(e => {
         const eClassId = e.classId || e.classDocId;
         const matchesClass = String(eClassId) === String(classId);
         const isStudentRole = e.role === 'student' || e.role === 'Student';
-        console.log('🔍 [ManageEnrollments] Checking enrollment:', { 
+        logger.debug('🔍 [ManageEnrollments] Checking enrollment:', { 
           eClassId, 
           classId, 
           matchesClass, 
@@ -168,13 +169,13 @@ const ManageEnrollmentsPage = () => {
         return matchesClass && isStudentRole;
       });
 
-      console.log('🔍 [ManageEnrollments] Class ID:', classId);
-      console.log('🔍 [ManageEnrollments] Found enrollments:', classEnrollments.length, classEnrollments);
+      logger.debug('🔍 [ManageEnrollments] Class ID:', classId);
+      logger.debug('🔍 [ManageEnrollments] Found enrollments:', classEnrollments.length, classEnrollments);
 
       // Get user IDs from enrollments
       const studentIds = classEnrollments.map(e => {
         const uid = e.userId || e.userDocId;
-        console.log('🔍 [ManageEnrollments] Enrollment userId:', uid, 'from enrollment:', e);
+        logger.debug('🔍 [ManageEnrollments] Enrollment userId:', uid, 'from enrollment:', e);
         return uid;
       }).filter(Boolean);
       

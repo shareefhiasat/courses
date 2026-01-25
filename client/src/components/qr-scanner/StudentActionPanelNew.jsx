@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import logger from '../../utils/logger';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { XIcon, StarIcon, ChevronDownIcon, ChevronRightIcon, Star, Mail, ChevronDown, Users, Zap, AlertCircle, Plus, Minus } from 'lucide-react';
@@ -56,7 +57,7 @@ export default function StudentActionPanelNew({
           const favorites = await getFavoriteBehaviors(user.uid);
           setFavoriteBehaviors(favorites);
         } catch (error) {
-          console.error('Error loading favorite behaviors:', error);
+          logger.error('Error loading favorite behaviors:', error);
         }
       }
     };
@@ -64,10 +65,14 @@ export default function StudentActionPanelNew({
   }, [user]);
 
   // Get current attendance status
-  const attendanceStatus = ATTENDANCE_STATUS_LABELS[student.attendance] || ATTENDANCE_STATUS_LABELS.present;
+  const attendanceStatus = useMemo(() => 
+    ATTENDANCE_STATUS_LABELS[student?.attendance] || ATTENDANCE_STATUS_LABELS.present,
+    [student?.attendance]
+  );
 
   // Avatar color helper
-  const getAvatarColor = (name) => {
+  // Memoized utility functions
+  const getAvatarColor = useCallback((name) => {
     const colors = [
       { bg: '#e9d5ff', color: '#6b21a8' },
       { bg: '#fed7aa', color: '#9a3412' },
@@ -78,16 +83,16 @@ export default function StudentActionPanelNew({
     ];
     const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
-  };
+  }, []);
 
-  const avatarColor = getAvatarColor(student.name);
+  const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name, getAvatarColor]);
 
-  const toggleSection = (section) => {
+  const toggleSection = useCallback((section) => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
-  };
+  }, []);
 
   const renderIcon = (iconName, style = {}) => {
     const icons = {
@@ -198,7 +203,7 @@ export default function StudentActionPanelNew({
     return icons[iconName] || icons.MessageSquare;
   };
 
-  const toggleAction = (option) => {
+  const toggleAction = useCallback((option) => {
     setSelectedActions(prev => {
       const exists = prev.find(a => a.id === option.id);
       if (exists) {
@@ -207,16 +212,16 @@ export default function StudentActionPanelNew({
         return [...prev, { ...option, points: actionPoints[option.id] || option.points || 0 }];
       }
     });
-  };
+  }, [actionPoints]);
 
-  const handlePointsChange = (optionId, value) => {
+  const handlePointsChange = useCallback((optionId, value) => {
     setActionPoints(prev => ({
       ...prev,
       [optionId]: value
     }));
-  };
+  }, []);
 
-  const onToggleFavorite = async (optionId) => {
+  const onToggleFavorite = useCallback(async (optionId) => {
     if (!user) return;
     
     try {
@@ -228,18 +233,18 @@ export default function StudentActionPanelNew({
         setFavoriteBehaviors(prev => [...prev, optionId]);
       }
     } catch (error) {
-      console.error('Error toggling favorite behavior:', error);
+      logger.error('Error toggling favorite behavior:', error);
     }
-  };
+  }, [user, favoriteBehaviors]);
 
-  const getInitials = (name) => {
+  const getInitials = useCallback((name) => {
     return name
       .split(' ')
       .map(word => word.charAt(0))
       .join('')
       .toUpperCase()
       .slice(0, 2);
-  };
+  }, []);
 
   return (
     <>
@@ -303,7 +308,7 @@ export default function StudentActionPanelNew({
                 color: 'var(--text-muted, #6b7280)', 
                 marginTop: '0.25rem',
                 fontFamily: 'monospace',
-                background: '#f3f4f6',
+                background: 'var(--panel-hover, #f3f4f6)',
                 padding: '0.25rem 0.5rem',
                 borderRadius: '0.25rem',
                 display: 'inline-block'
@@ -674,7 +679,7 @@ export default function StudentActionPanelNew({
       <div style={{ padding: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button
-            onClick={async () => {
+            onClick={useCallback(async () => {
               if (selectedActions.length === 0) {
                 alert(t('please_select_at_least_one_action'));
                 return;
@@ -694,10 +699,10 @@ export default function StudentActionPanelNew({
                 showSuccess(t('actions_saved_successfully'));
                 onClose(); // Close panel after successful save
               } catch (error) {
-                console.error('Error saving actions:', error);
+                logger.error('Error saving actions:', error);
                 showError(t('failed_to_save_actions'));
               }
-            }}
+            }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onClose, t, showSuccess, showError])}
             disabled={selectedActions.length === 0}
             style={{ flex: 1, fontSize: '0.875rem' }}
           >
@@ -716,4 +721,3 @@ export default function StudentActionPanelNew({
     </>
   );
 }
-

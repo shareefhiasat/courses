@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
@@ -49,12 +50,7 @@ const HRAttendancePage = () => {
     })();
   }, []);
 
-  // Load attendance sessions
-  useEffect(() => {
-    loadSessions();
-  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo]);
-
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
       const snap = await getDocs(collection(db, 'attendanceSessions'));
@@ -83,7 +79,7 @@ const HRAttendancePage = () => {
             }
           }
         } catch (err) {
-          console.warn('Failed to enrich session:', err);
+          logger.warn('Failed to enrich session:', err);
         }
         return session;
       }));
@@ -205,7 +201,7 @@ const HRAttendancePage = () => {
               }
             }
           } catch (err) {
-            console.warn('Failed to enrich session:', err);
+            logger.warn('Failed to enrich session:', err);
           }
           return session;
         }));
@@ -243,11 +239,16 @@ const HRAttendancePage = () => {
       setSessions(filtered);
       setInitialDataLoaded(true);
     } catch (e) {
-      console.error('[HR] Error loading sessions:', e);
+      logger.error('[HR] Error loading sessions:', e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, dateFrom, dateTo, classes, subjects]);
+
+  // Load attendance sessions
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
 
   const loadMarks = async (sessionId) => {
     setLoading(true);
@@ -282,7 +283,7 @@ const HRAttendancePage = () => {
 
       setMarks(filtered);
     } catch (e) {
-      console.error('[HR] Error loading marks:', e);
+      logger.error('[HR] Error loading marks:', e);
     } finally {
       setLoading(false);
     }
@@ -303,7 +304,7 @@ const HRAttendancePage = () => {
       setReason('');
       setFeedback('');
     } catch (e) {
-      console.error('[HR] Error updating mark:', e);
+      logger.error('[HR] Error updating mark:', e);
       alert('Failed to update: ' + (e?.message || 'unknown error'));
     }
   };

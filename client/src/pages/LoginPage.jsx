@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -50,16 +50,16 @@ const LoginPage = () => {
     }
   }, []);
 
-  const getTimeAgo = (date) => {
+  const getTimeAgo = useCallback((date) => {
     const seconds = Math.floor((new Date() - date) / 1000);
     
     if (seconds < 60) return 'just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)} minute${Math.floor(seconds / 60) > 1 ? 's' : ''} ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)} hour${Math.floor(seconds / 3600) > 1 ? 's' : ''} ago`;
     return `${Math.floor(seconds / 86400)} day${Math.floor(seconds / 86400) > 1 ? 's' : ''} ago`;
-  };
+  }, []);
 
-  const getLogoutMessage = (reason) => {
+  const getLogoutMessage = useCallback((reason) => {
     switch (reason.type) {
       case 'session_timeout':
         let message = `You were automatically logged out due to inactivity ${reason.timeAgo}.`;
@@ -106,7 +106,7 @@ const LoginPage = () => {
           icon: 'ℹ️'
         };
     }
-  };
+  }, []);
 
   if (loading) {
     return (

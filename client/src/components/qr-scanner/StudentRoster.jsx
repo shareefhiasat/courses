@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import logger from '../../utils/logger';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '../../firebase/attendance';
@@ -100,7 +101,7 @@ const RefreshIcon = ({ style }) => (
   </svg>
 );
 
-export default function StudentRoster({
+const StudentRoster = React.memo(function StudentRoster({
   students,
   onStudentSelect,
   selectedStudentId,
@@ -165,7 +166,8 @@ export default function StudentRoster({
     }
   }, [user?.uid]);
 
-  const fetchStudentHistory = async (studentId) => {
+  // Memoized fetchStudentHistory to prevent unnecessary re-renders
+  const fetchStudentHistory = useCallback(async (studentId) => {
     try {
       // Get all attendance records for this student
       const attendanceResponse = await getAttendanceByStudent(studentId);
@@ -211,9 +213,9 @@ export default function StudentRoster({
         [studentId]: logs
       }));
     } catch (error) {
-      console.error('Error fetching student history:', error);
+      logger.error('Error fetching student history:', error);
     }
-  };
+  }, []);
 
   const handleDeleteAttendance = async (studentId, logId) => {
     setDeleteType('attendance');
@@ -252,7 +254,7 @@ export default function StudentRoster({
         }
       }
     } catch (error) {
-      console.error(`Error deleting ${deleteType}:`, error);
+      logger.error(`Error deleting ${deleteType}:`, error);
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
@@ -291,7 +293,7 @@ export default function StudentRoster({
         </html>
       `);
     } catch (error) {
-      console.error('Failed to open QR code:', error);
+      logger.error('Failed to open QR code:', error);
       alert('Failed to generate QR code');
     }
   };
@@ -344,7 +346,7 @@ export default function StudentRoster({
     };
   }, [expandedRows, fetchStudentHistory]);
 
-  const toggleFavorite = async (studentId) => {
+  const toggleFavorite = useCallback(async (studentId) => {
     if (!user?.uid) return;
     
     const isFavorite = favoriteStudents.includes(studentId);
@@ -359,34 +361,36 @@ export default function StudentRoster({
     }
     
     if (!success) {
-      console.error('Failed to update favorite status');
+      logger.error('Failed to update favorite status');
     }
-  };
+  }, [user?.uid, favoriteStudents]);
 
-  const toggleRowExpansion = async (studentId) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(studentId)) {
-      newExpanded.delete(studentId);
-    } else {
-      newExpanded.add(studentId);
-      // Fetch historical data for this student if not already loaded
-      if (!studentHistory[studentId]) {
-        await fetchStudentHistory(studentId);
+  const toggleRowExpansion = useCallback(async (studentId) => {
+    setExpandedRows(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(studentId)) {
+        newExpanded.delete(studentId);
+      } else {
+        newExpanded.add(studentId);
+        // Fetch historical data for this student if not already loaded
+        if (!studentHistory[studentId]) {
+          fetchStudentHistory(studentId);
+        }
       }
-    }
-    setExpandedRows(newExpanded);
-  };
+      return newExpanded;
+    });
+  }, [studentHistory, fetchStudentHistory]);
 
   // Email functions
   const sendQRCodeEmail = async (student) => {
     setSendingEmails(prev => ({ ...prev, [student.id]: { ...prev[student.id], qrCode: true } }));
     try {
       // Email functionality would go here
-      console.log('Sending QR code email to:', student.email);
+      logger.debug('Sending QR code email to:', student.email);
       // await sendQRCodeEmail(student.email, student.id);
       alert('QR Code email sent successfully!');
     } catch (error) {
-      console.error('Error sending QR code email:', error);
+      logger.error('Error sending QR code email:', error);
       alert('Failed to send QR Code email');
     } finally {
       setSendingEmails(prev => ({ ...prev, [student.id]: { ...prev[student.id], qrCode: false } }));
@@ -401,32 +405,34 @@ export default function StudentRoster({
       // await sendStudentSummaryEmail(student.email, student.id);
       alert('Summary email sent successfully!');
     } catch (error) {
-      console.error('Error sending summary email:', error);
+      logger.error('Error sending summary email:', error);
       alert('Failed to send summary email');
     } finally {
       setSendingEmails(prev => ({ ...prev, [student.id]: { ...prev[student.id], summary: false } }));
     }
   };
 
-  const toggleFilter = (filter) => {
+  const toggleFilter = useCallback((filter) => {
     setActiveFilters(prev => ({
       ...prev,
       [filter]: !prev[filter]
     }));
-  };
+  }, []);
 
-  const toggleDayExpansion = (dayKey) => {
-    const newExpanded = new Set(expandedDays);
-    if (newExpanded.has(dayKey)) {
-      newExpanded.delete(dayKey);
-    } else {
-      newExpanded.add(dayKey);
-    }
-    setExpandedDays(newExpanded);
-  };
+  const toggleDayExpansion = useCallback((dayKey) => {
+    setExpandedDays(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(dayKey)) {
+        newExpanded.delete(dayKey);
+      } else {
+        newExpanded.add(dayKey);
+      }
+      return newExpanded;
+    });
+  }, []);
 
-  // Group logs by day
-  const groupLogsByDay = (logs) => {
+  // Memoized group logs by day for performance
+  const groupLogsByDay = useCallback((logs) => {
     const grouped = {};
     
     logs.forEach(log => {
@@ -459,9 +465,10 @@ export default function StudentRoster({
     });
     
     return Object.values(grouped);
-  };
+  }, []);
 
-  const getAttendanceBadge = (status) => {
+  // Memoized badge component for performance
+  const getAttendanceBadge = useCallback((status) => {
     const statusInfo = ATTENDANCE_STATUS_LABELS[status] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
     
     // Special handling for Present status with green checkmark
@@ -500,18 +507,18 @@ export default function StudentRoster({
         {statusInfo.en}
       </span>
     );
-  };
+  }, []);
 
-  const getInitials = (name) => {
+  const getInitials = useCallback((name) => {
     return name
       .split(' ')
       .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
-  };
+  }, []);
 
-  const getAvatarColor = (name) => {
+  const getAvatarColor = useCallback((name) => {
     const colors = [
       { bg: '#e9d5ff', color: '#6b21a8' },
       { bg: '#fed7aa', color: '#9a3412' },
@@ -521,12 +528,12 @@ export default function StudentRoster({
     ];
     const index = name.charCodeAt(0) % colors.length;
     return colors[index];
-  };
+  }, []);
 
-  const getSortIcon = (field) => {
+  const getSortIcon = useCallback((field) => {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ? '↑' : '↓';
-  };
+  }, [sortField, sortDirection]);
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'} style={{
@@ -951,7 +958,6 @@ export default function StudentRoster({
               const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
               const isExpanded = expandedRows.has(student.id);
               
-              console.log('[StudentRoster] Rendering student:', student.name, 'participation:', student.participation, 'behavior:', student.behavior, 'penalty:', student.penalty);
               
               return (
                 <React.Fragment key={student.id}>
@@ -1124,7 +1130,7 @@ export default function StudentRoster({
                             try {
                               onStudentAction(student);
                             } catch (error) {
-                              console.error('Error calling onStudentAction:', error);
+                              logger.error('Error calling onStudentAction:', error);
                             }
                           }}
                           title={t('actions')}
@@ -1327,7 +1333,7 @@ export default function StudentRoster({
                             {/*  📅 Student History*/}
                             {/*</h4>*/}
                             
-                            {groupLogsByDay(studentHistory[student.id]).map((dayGroup, dayIndex) => {
+                            {useMemo(() => groupLogsByDay(studentHistory[student.id] || []), [studentHistory, student.id, groupLogsByDay]).map((dayGroup, dayIndex) => {
                               const dateObj = new Date(dayGroup.date);
                               const dateStr = dateObj.toLocaleDateString('en-US', { 
                                 weekday: 'short', 
@@ -1698,10 +1704,10 @@ export default function StudentRoster({
                           <div style={{ 
                             padding: '2rem', 
                             textAlign: 'center',
-                            color: '#9ca3af',
+                            color: 'var(--text-muted, #9ca3af)',
                             fontSize: '0.875rem'
                           }}>
-                            Loading student history...
+                            {t('loading')}...
                           </div>
                         )}
                       </td>
@@ -1722,7 +1728,7 @@ export default function StudentRoster({
         justifyContent: 'space-between',
         marginTop: '1.5rem'
       }}>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', margin: 0 }}>
           {t('showing_of_students', { count: students.length, total: totalStudents })}
           {currentPage > 1 && ` (${t('page_of', { current: currentPage, total: totalPages })})`}
         </p>
@@ -1754,10 +1760,12 @@ export default function StudentRoster({
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        title={`Delete ${deleteType === 'attendance' ? 'Attendance' : 'Penalty'} Record`}
-        message={`Are you sure you want to delete this ${deleteType === 'attendance' ? 'attendance' : 'penalty'} record? This action cannot be undone.`}
+        title={t('delete_activity_title', { type: deleteType === 'attendance' ? t('attendance') : t('penalty') })}
+        message={t('delete_activity_msg', { studentName: students.find(s => s.id === deleteLogId?.split('_')[1])?.name || t('this_student') })}
         loading={deleteLoading}
       />
     </div>
   );
-}
+});
+
+export default StudentRoster;

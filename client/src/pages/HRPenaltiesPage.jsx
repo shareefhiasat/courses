@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -58,7 +58,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [saving, setSaving] = useState(false);
 
   // Function to fetch user data on demand and cache it
-  const fetchUser = async (userId) => {
+  const fetchUser = useCallback(async (userId) => {
     if (!userId || userCache[userId]) {
       return userCache[userId];
     }
@@ -74,7 +74,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       logger.error('Failed to fetch user:', userId, err);
     }
     return null;
-  };
+  }, [userCache]);
 
   // Filters
   const [programFilter, setProgramFilter] = useState('all');
@@ -464,11 +464,11 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         const rowId = row.id || row.docId || params?.id;
         
         // Debug logging for user investigation
-        console.log('=== HR PENALTIES USER DEBUG ===');
-        console.log('HR Penalties User Debug - Row data:', row);
-        console.log('HR Penalties User Debug - studentName from row:', row.studentName);
-        console.log('HR Penalties User Debug - studentEmail from row:', row.studentEmail);
-        console.log('HR Penalties User Debug - studentId from row:', row.studentId);
+        logger.debug('=== HR PENALTIES USER DEBUG ===');
+        logger.debug('HR Penalties User Debug - Row data:', row);
+        logger.debug('HR Penalties User Debug - studentName from row:', row.studentName);
+        logger.debug('HR Penalties User Debug - studentEmail from row:', row.studentEmail);
+        logger.debug('HR Penalties User Debug - studentId from row:', row.studentId);
         
         // Get studentName and studentEmail from row first
         let studentName = row.studentName || params?.value;
@@ -481,19 +481,19 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
           if (user?.realName) {
             studentName = user.realName;
-            console.log('HR Penalties User Debug - Found realName from students array:', user.realName);
+            logger.debug('HR Penalties User Debug - Found realName from students array:', user.realName);
           } else if (user?.displayName) {
             studentName = user.displayName;
-            console.log('HR Penalties User Debug - Found displayName from students array:', user.displayName);
+            logger.debug('HR Penalties User Debug - Found displayName from students array:', user.displayName);
           } else if (studentId && userCache[studentId]) {
             // Try cached user data
             const cachedUser = userCache[studentId];
             if (cachedUser?.realName) {
               studentName = cachedUser.realName;
-              console.log('HR Penalties User Debug - Found realName from cache:', cachedUser.realName);
+              logger.debug('HR Penalties User Debug - Found realName from cache:', cachedUser.realName);
             } else if (cachedUser?.displayName) {
               studentName = cachedUser.displayName;
-              console.log('HR Penalties User Debug - Found displayName from cache:', cachedUser.displayName);
+              logger.debug('HR Penalties User Debug - Found displayName from cache:', cachedUser.displayName);
             }
           } else if (studentId) {
             // Fetch user data asynchronously (non-blocking)

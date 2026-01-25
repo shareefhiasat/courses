@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import logger from '../../utils/logger';
 import { Button } from './ui/button';
 import jsQR from 'jsqr';
 import { getAttendanceByClass } from '../../firebase/attendance';
@@ -104,7 +105,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Start scanning for QR codes
       scanIntervalRef.current = setInterval(scanQRCode, 100);
     } catch (err) {
-      console.error('Error accessing camera:', err);
+      logger.error('Error accessing camera:', err);
       setError('Unable to access camera. Please check permissions.');
       setIsScanning(false);
     }
@@ -188,7 +189,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     setExpandedActivities(newExpanded);
   };
 
-  const fetchRecentActivity = async () => {
+  // Memoized fetchRecentActivity for performance
+  const fetchRecentActivity = useCallback(async () => {
     if (!classId) return;
     
     setActivityLoading(true);
@@ -234,7 +236,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         return dateStr === todayStr;
       });
       
-      console.log('[QR Scanner] Activity refresh found:', attendanceRecords.length, 'attendance,', todayPenalties.length, 'penalties');
+      logger.debug('[QR Scanner] Activity refresh found:', attendanceRecords.length, 'attendance,', todayPenalties.length, 'penalties');
       
       // Combine and format activity logs
       const activityLogs = [
@@ -288,7 +290,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       });
       
-      console.log('[QR Scanner] Final activity logs (deduped):', uniqueLogs.length);
+      logger.debug('[QR Scanner] Final activity logs (deduped):', uniqueLogs.length);
       
       // Format time for display
       const formattedLogs = uniqueLogs.map(log => ({
@@ -306,34 +308,157 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       
       setRecentActivity(formattedLogs);
     } catch (error) {
-      console.error('Error fetching recent activity:', error);
+      logger.error('Error fetching recent activity:', error);
       setRecentActivity([]);
     } finally {
       setActivityLoading(false);
     }
-  };
+  }, [classId, user]);
 
-  // Listen for real-time activity updates
+  // Memoized helper functions for activity display - defined outside map for performance
+  const getScanMethodDisplay = useCallback((scanMethod) => {
+    switch(scanMethod) {
+      case 'auto':
+        return {
+          icon: '',
+          text: lang === 'ar' ? 'مسح QR' : 'QR Scan',
+          color: '#10b981'
+        };
+      case 'manual_instructor':
+        return {
+          icon: '',
+          text: lang === 'ar' ? 'يدوي' : 'Manual',
+          color: '#3b82f6'
+        };
+      case 'manual_hr':
+        return {
+          icon: '',
+          text: lang === 'ar' ? 'يدوي (موارد بشرية)' : 'Manual (HR)',
+          color: '#8b5cf6'
+        };
+      case 'manual_student':
+        return {
+          icon: '',
+          text: lang === 'ar' ? 'يدوي (طالب)' : 'Manual (Student)',
+          color: '#f59e0b'
+        };
+      default:
+        return {
+          icon: '',
+          text: lang === 'ar' ? 'يدوي' : 'Manual',
+          color: '#6b7280'
+        };
+    }
+  }, [lang]);
+
+  const getStatusColor = useCallback((status, type, delta) => {
+    if (type === 'participation' || delta > 0) return '#3b82f6';
+    if (type === 'behavior' || delta < 0) return '#f97316';
+    if (type === 'penalty') return '#dc2626';
+    
+    switch(status?.toLowerCase()) {
+      case 'present': return '#16a34a';
+      case 'late': return '#eab308';
+      case 'human_case': return '#8b5cf6';
+      case 'absent': 
+      case 'absent_no_excuse': 
+      case 'absent_with_excuse':
+      case 'excused_leave':
+        return '#dc2626';
+      default: return '#6b7280';
+    }
+  }, []);
+
+  const getStatusIcon = useCallback((status, type, delta) => {
+    if (type === 'participation' || delta > 0) {
+      return (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="m21 16-8-5-5-5 5"/>
+        </svg>
+      );
+    }
+    if (type === 'behavior' || delta < 0) {
+      return (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+      );
+    }
+    if (type === 'penalty') {
+      return (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      );
+    }
+
+    switch(status?.toLowerCase()) {
+      case 'present': 
+        return (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        );
+      case 'late': 
+        return (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 12 12"></polyline>
+          </svg>
+        );
+      case 'absent':
+      case 'absent_no_excuse':
+      case 'absent_with_excuse':
+      case 'excused_leave':
+        return (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        );
+      case 'human_case':
+        return (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        );
+      default: 
+        return (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+          </svg>
+        );
+    }
+  }, []);
+
+  const getStatusLabel = useCallback((status, type, delta) => {
+    if (type === 'participation' || delta > 0) return t('participation') || 'Participation';
+    if (type === 'behavior' || delta < 0) return t('behavior') || 'Behavior';
+    if (type === 'penalty') return t('penalty') || 'Penalty';
+
+    switch(status?.toLowerCase()) {
+      case 'present': return t('present');
+      case 'late': return t('late');
+      case 'absent': return t('absent');
+      case 'absent_no_excuse': return t('absent');
+      case 'absent_with_excuse': return t('absent_excused');
+      case 'excused_leave': return t('excused_leave');
+      case 'human_case': return t('human_case');
+      default: return status || t('present');
+    }
+  }, [t]);
+
+  // Listen for real-time activity updates - optimized with useCallback
   useEffect(() => {
-    const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, () => {
-      fetchRecentActivity();
-    });
-
-    const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, () => {
-      fetchRecentActivity();
-    });
-
-    const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, () => {
-      fetchRecentActivity();
-    });
-
-    const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, () => {
-      fetchRecentActivity();
-    });
-
-    const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, () => {
-      fetchRecentActivity();
-    });
+    const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, fetchRecentActivity);
+    const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, fetchRecentActivity);
+    const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, fetchRecentActivity);
+    const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, fetchRecentActivity);
+    const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, fetchRecentActivity);
 
     return () => {
       unsubscribeActivity();
@@ -342,14 +467,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       unsubscribeParticipation();
       unsubscribePenalty();
     };
-  }, [classId]);
+  }, [fetchRecentActivity]);
 
   // Expose refresh function to parent
   useEffect(() => {
     if (onActivityUpdate) {
       onActivityUpdate(fetchRecentActivity);
     }
-  }, [onActivityUpdate]);
+  }, [onActivityUpdate, fetchRecentActivity]);
 
   // Fetch activity when classId changes
   useEffect(() => {
@@ -600,142 +725,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             </div>
           ) : (
             recentActivity.map((activity) => {
-              const getScanMethodDisplay = (scanMethod) => {
-                switch(scanMethod) {
-                  case 'auto':
-                    return {
-                      icon: '',
-                      text: lang === 'ar' ? 'مسح QR' : 'QR Scan',
-                      color: '#10b981'
-                    };
-                  case 'manual_instructor':
-                    return {
-                      icon: '',
-                      text: lang === 'ar' ? 'يدوي' : 'Manual',
-                      color: '#3b82f6'
-                    };
-                  case 'manual_hr':
-                    return {
-                      icon: '',
-                      text: lang === 'ar' ? 'يدوي (موارد بشرية)' : 'Manual (HR)',
-                      color: '#8b5cf6'
-                    };
-                  case 'manual_student':
-                    return {
-                      icon: '',
-                      text: lang === 'ar' ? 'يدوي (طالب)' : 'Manual (Student)',
-                      color: '#f59e0b'
-                    };
-                  default:
-                    return {
-                      icon: '',
-                      text: lang === 'ar' ? 'يدوي' : 'Manual',
-                      color: '#6b7280'
-                    };
-                }
-              };
 
-              const getStatusColor = (status, type, delta) => {
-                if (type === 'participation' || delta > 0) return '#3b82f6';
-                if (type === 'behavior' || delta < 0) return '#f97316';
-                if (type === 'penalty') return '#dc2626';
-                
-                switch(status?.toLowerCase()) {
-                  case 'present': return '#16a34a';
-                  case 'late': return '#eab308';
-                  case 'human_case': return '#8b5cf6';
-                  case 'absent': 
-                  case 'absent_no_excuse': 
-                  case 'absent_with_excuse':
-                  case 'excused_leave':
-                    return '#dc2626';
-                  default: return '#6b7280';
-                }
-              };
-              
-              const getStatusIcon = (status, type, delta) => {
-                if (type === 'participation' || delta > 0) {
-                  return (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                      <circle cx="9" cy="7" r="4"/>
-                      <path d="m21 16-8-5-5-5 5"/>
-                    </svg>
-                  );
-                }
-                if (type === 'behavior' || delta < 0) {
-                  return (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                    </svg>
-                  );
-                }
-                if (type === 'penalty') {
-                  return (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                  );
-                }
-
-                switch(status?.toLowerCase()) {
-                  case 'present': 
-                    return (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                    );
-                  case 'late': 
-                    return (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 12 12"></polyline>
-                      </svg>
-                    );
-                  case 'absent':
-                  case 'absent_no_excuse':
-                  case 'absent_with_excuse':
-                  case 'excused_leave':
-                    return (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    );
-                  case 'human_case':
-                    return (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                      </svg>
-                    );
-                  default: 
-                    return (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                      </svg>
-                    );
-                }
-              };
-              
-              const getStatusLabel = (status, type, delta) => {
-                if (type === 'participation' || delta > 0) return t('participation') || 'Participation';
-                if (type === 'behavior' || delta < 0) return t('behavior') || 'Behavior';
-                if (type === 'penalty') return t('penalty') || 'Penalty';
-
-                switch(status?.toLowerCase()) {
-                  case 'present': return t('present');
-                  case 'late': return t('late');
-                  case 'absent': return t('absent');
-                  case 'absent_no_excuse': return t('absent');
-                  case 'absent_with_excuse': return t('absent_excused');
-                  case 'excused_leave': return t('excused_leave');
-                  case 'human_case': return t('human_case');
-                  default: return status || t('present');
-                }
-              };
-              
               return (
                 <div key={activity.id} style={{
                   borderBottom: '1px solid #e5e7eb',

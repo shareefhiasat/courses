@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -33,18 +34,17 @@ export default function QuizManagementPage() {
       setLoading(false);
       setError('Please log in to view quizzes');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user]);
+  }, [authLoading, user, loadQuizzes]);
 
-  const toDate = (value) => {
+  const toDate = useCallback((value) => {
     if (!value) return null;
     if (value instanceof Date) return value;
     if (typeof value.toDate === 'function') return value.toDate();
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
+  }, []);
 
-  const formatQuiz = async (quiz) => {
+  const formatQuiz = useCallback(async (quiz) => {
     const createdAt = toDate(quiz.createdAt);
     const settings = quiz.settings || {};
     const questionsArray = Array.isArray(quiz.questions) ? quiz.questions : [];
@@ -60,7 +60,7 @@ export default function QuizManagementPage() {
           creatorName = displayName || name || emailName || 'Unknown';
         }
       } catch (err) {
-        console.warn('Failed to load creator name:', err);
+        logger.warn('Failed to load creator name:', err);
       }
     }
 
@@ -80,9 +80,9 @@ export default function QuizManagementPage() {
       creatorName,
       updatedAt: toDate(quiz.updatedAt)
     };
-  };
+  }, [lang, toDate]);
 
-  const loadQuizzes = async () => {
+  const loadQuizzes = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setError('');
@@ -114,7 +114,7 @@ export default function QuizManagementPage() {
 
       setQuizzes(normalized);
     } catch (error) {
-      console.error('Error loading quizzes:', error);
+      logger.error('Error loading quizzes:', error);
       const message = String(error?.message || '').toLowerCase().includes('permission')
         ? 'You do not have permission to view quizzes yet.'
         : (error?.message || 'Failed to load quizzes');
@@ -122,7 +122,7 @@ export default function QuizManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isAdmin, isInstructor, formatQuiz]);
 
   const handleEdit = (quiz) => {
     navigate(`/quiz-builder?id=${quiz.id}`,
@@ -163,7 +163,7 @@ export default function QuizManagementPage() {
                 quizId,
                 quizTitle: quiz?.title || quiz?.name || 'Unknown'
               });
-            } catch (e) { console.warn('Failed to log activity:', e); }
+            } catch (e) { logger.warn('Failed to log activity:', e); }
 
             // Best-effort clean up of mirrored activity document
             try {
@@ -191,7 +191,7 @@ export default function QuizManagementPage() {
           : null
       });
     } catch (error) {
-      console.error('Failed to check related data:', error);
+      logger.error('Failed to check related data:', error);
       // Still show modal but without related data
       setDeleteModal({
         open: true,

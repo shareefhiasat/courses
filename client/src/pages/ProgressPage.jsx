@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
@@ -23,13 +24,8 @@ const ProgressPage = () => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
 
-  useEffect(() => {
-    if (user) {
-      loadProgress();
-    }
-  }, [user]);
 
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     try {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (userDoc.exists()) {
@@ -51,11 +47,17 @@ const ProgressPage = () => {
       const resResult = await getResources();
       setResources(resResult.data || []);
     } catch (error) {
-      console.error('Error loading progress:', error);
+      logger.error('Error loading progress:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadProgress();
+    }
+  }, [user, loadProgress]);
 
   if (authLoading || loading) {
     return (

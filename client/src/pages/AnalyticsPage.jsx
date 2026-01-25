@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import logger from '../utils/logger';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,11 +40,7 @@ export default function AnalyticsPage() {
   const [submissionStats, setSubmissionStats] = useState({ total: 0, graded: 0, pending: 0, late: 0 });
   const [performanceStats, setPerformanceStats] = useState({ avgScore: 0, topPerformers: [] });
 
-  useEffect(() => {
-    loadAnalytics();
-  }, []);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     setLoading(true);
     setErr('');
     try {
@@ -135,7 +132,11 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   const maxByClass = useMemo(() => byClass.reduce((m, r) => Math.max(m, r.total), 0), [byClass]);
   const attendanceRate = attendanceStats.totalMarks > 0 ? ((attendanceStats.present / attendanceStats.totalMarks) * 100).toFixed(1) : 0;

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -21,11 +22,8 @@ export default function QuizPreviewPage() {
   const [quizData, setQuizData] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadQuiz();
-  }, [quizId]);
 
-  const loadQuiz = async () => {
+  const loadQuiz = useCallback(async () => {
     if (!quizId) {
       setError('Quiz ID not provided');
       return;
@@ -51,7 +49,7 @@ export default function QuizPreviewPage() {
             creatorName = realName || displayName || name || emailName || 'Unknown';
           }
         } catch (err) {
-          console.warn('Failed to load creator name:', err);
+          logger.warn('Failed to load creator name:', err);
         }
       }
 
@@ -62,13 +60,17 @@ export default function QuizPreviewPage() {
       });
     } catch (error) {
       setError(error.message || 'Failed to load quiz');
-      console.error('Error loading quiz:', error);
+      logger.error('Error loading quiz:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [quizId, toast]);
 
-  const getQuestionIcon = (type) => {
+  useEffect(() => {
+    loadQuiz();
+  }, [loadQuiz]);
+
+  const getQuestionIcon = useCallback((type) => {
     switch (type) {
       case 'multiple_choice':
         return <ListChecks size={16} />;
@@ -79,9 +81,9 @@ export default function QuizPreviewPage() {
       default:
         return <HelpCircle size={16} />;
     }
-  };
+  }, []);
 
-  const getQuestionTypeLabel = (type) => {
+  const getQuestionTypeLabel = useCallback((type) => {
     switch (type) {
       case 'multiple_choice':
         return 'Multiple Choice';
@@ -92,9 +94,9 @@ export default function QuizPreviewPage() {
       default:
         return 'Question';
     }
-  };
+  }, []);
 
-  const getDifficultyColor = (difficulty) => {
+  const getDifficultyColor = useCallback((difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
       case 'beginner':
         return 'success';
@@ -105,9 +107,9 @@ export default function QuizPreviewPage() {
       default:
         return 'primary';
     }
-  };
+  }, []);
 
-  const getDifficultyLabel = (difficulty) => {
+  const getDifficultyLabel = useCallback((difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
       case 'beginner':
         return 'Beginner';
@@ -118,7 +120,7 @@ export default function QuizPreviewPage() {
       default:
         return difficulty || 'General';
     }
-  };
+  }, []);
 
   const handleStartQuiz = () => {
     toast?.showInfo?.('Starting quiz...');

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
@@ -55,13 +56,13 @@ const MarksEntryPage = () => {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
 
-  // Normalize Select onChange (our Select sometimes passes event, sometimes raw value)
-  const getSelectValue = (eventOrValue) => {
+  // Memoized normalize Select onChange (our Select sometimes passes event, sometimes raw value)
+  const getSelectValue = useCallback((eventOrValue) => {
     if (eventOrValue && typeof eventOrValue === 'object' && 'target' in eventOrValue) {
       return eventOrValue.target?.value ?? 'all';
     }
     return eventOrValue ?? 'all';
-  };
+  }, []);
 
   // Side window state
   const [sideWindowOpen, setSideWindowOpen] = useState(false);
@@ -246,7 +247,7 @@ const MarksEntryPage = () => {
       loadData();
       logActivity(ACTIVITY_TYPES.MARK_ENTRY_VIEWED);
     }
-  }, [authLoading, isAdmin, isSuperAdmin, isInstructor]);
+  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
 
   useEffect(() => {
     if (selectedSubject && classFilter !== 'all' && enrollments.length > 0) {
@@ -256,9 +257,9 @@ const MarksEntryPage = () => {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [selectedSubject, classFilter, enrollments.length]);
+  }, [selectedSubject, classFilter, enrollments.length, loadMarksData]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [programsRes, subjectsRes, classesRes, enrollmentsRes] = await Promise.all([
@@ -300,9 +301,9 @@ const MarksEntryPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, isInstructor, isAdmin, isSuperAdmin, user]);
 
-  const loadMarksData = async () => {
+  const loadMarksData = useCallback(async () => {
     if (!selectedSubject) return;
     
     setLoading(true);
@@ -392,9 +393,9 @@ const MarksEntryPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedSubject, toast]);
 
-  const handleEditMarks = (student) => {
+  const handleEditMarks = useCallback((student) => {
     setEditingStudent(student);
     
     const studentId = student.uid || student.docId;
@@ -422,9 +423,9 @@ const MarksEntryPage = () => {
     }
     
     setShowModal(true);
-  };
+  }, []);
 
-  const calculateTotalScore = () => {
+  const calculateTotalScore = useCallback(() => {
     if (!marksDistribution) return 0;
     
     return (
@@ -436,9 +437,9 @@ const MarksEntryPage = () => {
       (formData.participation * marksDistribution.participation / 100) +
       (formData.attendance * marksDistribution.attendance / 100)
     );
-  };
+  }, [formData, marksDistribution]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     if (!editingStudent || !selectedSubject || classFilter === 'all') {
@@ -481,12 +482,12 @@ const MarksEntryPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [editingStudent, formData, marksDistribution, selectedSubject, classFilter, user, toast, t, loadMarksData, calculateTotalScore]);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setShowModal(false);
     setEditingStudent(null);
-  };
+  }, []);
 
   const openSideWindow = (content, student, filters) => {
     setSideWindowContent(content);
@@ -502,9 +503,9 @@ const MarksEntryPage = () => {
     setSideWindowFilters({});
   };
 
-  const handleAttendanceClick = () => {
+  const handleAttendanceClick = useCallback(() => {
     toast.info(t('attendance_feature_coming_soon') || 'Attendance feature coming soon! You can still add attendance marks manually.');
-  };
+  }, [toast, t]);
 
   if (authLoading) {
     return <Loading variant="overlay" message="Loading..." fancyVariant="dots" />;

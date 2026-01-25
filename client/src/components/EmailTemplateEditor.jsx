@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Select } from './ui';
 import { useToast } from './ToastProvider';
+import { useLang } from '../contexts/LangContext';
 import VariableHelper from './VariableHelper';
 import Modal from './ui/Modal/Modal';
 import { Eye, Info, Copy } from 'lucide-react';
@@ -10,6 +11,7 @@ import { db } from '../firebase/config';
 
 const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   const toast = useToast();
+  const { t } = useLang();
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,20 +26,20 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   // Copy variable to clipboard
   const copyVariable = (variable) => {
     navigator.clipboard.writeText(`{{${variable}}}`);
-    toast?.showSuccess(`Variable {{${variable}}} copied to clipboard!`);
+    toast?.showSuccess(t('variable_copied', { variable: `{{${variable}}}` }) || `Variable {{${variable}}} copied to clipboard!`);
   };
 
   const templateTypes = [
-    { value: 'announcement', label: 'Announcement' },
-    { value: 'activity', label: 'New Activity' },
-    { value: 'activity_complete', label: 'Activity Complete' },
-    { value: 'activity_graded', label: 'Activity Graded' },
-    { value: 'enrollment', label: 'Enrollment Welcome' },
-    { value: 'resource', label: 'New Resource' },
-    { value: 'chat_digest', label: 'Chat Digest' },
-    { value: 'qr_code', label: 'QR Code Email' },
-    { value: 'student_summary', label: 'Student Summary Report' },
-    { value: 'custom', label: 'Custom' }
+    { value: 'announcement', label: t('announcement') || 'Announcement' },
+    { value: 'activity', label: t('new_activity') || 'New Activity' },
+    { value: 'activity_complete', label: t('activity_complete') || 'Activity Complete' },
+    { value: 'activity_graded', label: t('activity_graded') || 'Activity Graded' },
+    { value: 'enrollment', label: t('enrollment_welcome') || 'Enrollment Welcome' },
+    { value: 'resource', label: t('new_resource') || 'New Resource' },
+    { value: 'chat_digest', label: t('chat_digest') || 'Chat Digest' },
+    { value: 'qr_code', label: t('qr_code_email') || 'QR Code Email' },
+    { value: 'student_summary', label: t('student_summary_report') || 'Student Summary Report' },
+    { value: 'custom', label: t('custom') || 'Custom' }
   ];
 
   const helpByType = {
@@ -132,15 +134,15 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      toast?.showError('Template name is required');
+      toast?.showError(t('template_name_required') || 'Template name is required');
       return;
     }
     if (!formData.subject.trim()) {
-      toast?.showError('Subject line is required');
+      toast?.showError(t('subject_line_required') || 'Subject line is required');
       return;
     }
     if (!formData.html.trim()) {
-      toast?.showError('HTML content is required');
+      toast?.showError(t('html_content_required') || 'HTML content is required');
       return;
     }
 
@@ -155,18 +157,18 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       if (template?.id) {
         // Update existing
         await updateDoc(doc(db, 'emailTemplates', template.id), templateData);
-        toast?.showSuccess('Template updated successfully!');
+        toast?.showSuccess(t('template_updated_successfully') || 'Template updated successfully!');
       } else {
         // Create new
         templateData.createdAt = Timestamp.now();
         await addDoc(collection(db, 'emailTemplates'), templateData);
-        toast?.showSuccess('Template created successfully!');
+        toast?.showSuccess(t('template_created_successfully') || 'Template created successfully!');
       }
 
       onSave?.();
     } catch (error) {
       console.error('Error saving template:', error);
-      toast?.showError('Failed to save template: ' + error.message);
+      toast?.showError(t('failed_to_save_template') + ': ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -253,19 +255,19 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
         <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: 12, padding: '1.5rem' }}>
           <h3 style={{ margin: '0 0 1.5rem 0', color: '#333' }}>
-            {template?.id ? 'Edit Template' : 'Create New Template'}
+            {template?.id ? (t('edit_template') || 'Edit Template') : (t('create_new_template') || 'Create New Template')}
           </h3>
 
           <div style={{ display: 'grid', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                Template Name *
+                {t('template_name') || 'Template Name'} *
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Announcement Email - Bilingual"
+                placeholder={t('template_name_placeholder') || 'e.g., Announcement Email - Bilingual'}
                 style={{
                   width: '100%',
                   padding: '10px',
@@ -278,7 +280,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
 
             <div>
               <Select
-                label="Template Type *"
+                label={t('template_type') + ' *' || 'Template Type *'}
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 options={templateTypes.map(type => ({
@@ -292,13 +294,13 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
 
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                Subject Line *
+                {t('subject_line') || 'Subject Line'} *
               </label>
               <input
                 type="text"
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                placeholder="e.g., New Announcement | إعلان جديد: {{title}}"
+                placeholder={t('subject_line_placeholder') || 'e.g., New Announcement | إعلان جديد: {{title}}'}
                 style={{
                   width: '100%',
                   padding: '10px',
@@ -308,18 +310,18 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                 }}
               />
               <p style={{ margin: '0.5rem 0 0 0', color: '#666', fontSize: '0.8rem' }}>
-                You can use variables in the subject line too!
+                {t('subject_line_variables_hint') || 'You can use variables in the subject line too!'}
               </p>
             </div>
 
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                HTML Content *
+                {t('html_content') || 'HTML Content'} *
               </label>
               <textarea
                 value={formData.html}
                 onChange={(e) => handleHtmlChange(e.target.value)}
-                placeholder="Paste your HTML here from Unlayer, Stripo, or write your own..."
+                placeholder={t('html_content_placeholder') || 'Paste your HTML here from Unlayer, Stripo, or write your own...'}
                 style={{
                   width: '100%',
                   minHeight: '400px',
@@ -332,14 +334,14 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                 }}
               />
               <p style={{ margin: '0.5rem 0 0 0', color: '#666', fontSize: '0.8rem' }}>
-                Use <code>{`{{variableName}}`}</code> for dynamic content. Check the Variable Helper →
+                {t('html_content_variables_hint') || `Use ${'{{variableName}}'} for dynamic content. Check the Variable Helper →`}
               </p>
             </div>
 
             {formData.variables.length > 0 && (
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                  Detected Variables ({formData.variables.length})
+                  {t('detected_variables', { count: formData.variables.length }) || `Detected Variables (${formData.variables.length})`}
                 </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {formData.variables.map(variable => (
@@ -377,7 +379,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                 opacity: loading ? 0.7 : 1
               }}
             >
-              {loading ? 'Saving...' : (template?.id ? 'Update Template' : 'Create Template')}
+              {loading ? (t('saving') || 'Saving...') : (template?.id ? (t('update_template') || 'Update Template') : (t('create_template') || 'Create Template'))}
             </button>
             <button
               type="button"
@@ -398,7 +400,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                 fontWeight: 600
               }}
             >
-              <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}><Eye size={16} /> Preview</span>
+              <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}><Eye size={16} /> {t('preview') || 'Preview'}</span>
             </button>
             <button
               onClick={onCancel}
@@ -411,7 +413,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                 cursor: 'pointer'
               }}
             >
-              Cancel
+              {t('cancel') || 'Cancel'}
             </button>
           </div>
         </div>
@@ -421,18 +423,18 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: 12, padding: '1rem' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:'0.5rem', color:'#333' }}>
-            <Info size={18} /> <strong>About this template</strong>
+            <Info size={18} /> <strong>{t('about_this_template') || 'About this template'}</strong>
           </div>
           {(() => {
             const info = helpByType[formData.type] || helpByType.custom;
             return (
               <div style={{ fontSize:'0.9rem', color:'#555', display:'grid', gap:'0.4rem' }}>
-                <div><strong>Purpose:</strong> {info.purpose}</div>
-                <div><strong>Trigger:</strong> {info.trigger}</div>
-                <div><strong>Actor:</strong> {info.actor}</div>
-                <div><strong>Audience:</strong> {info.audience}</div>
+                <div><strong>{t('purpose') || 'Purpose'}:</strong> {info.purpose}</div>
+                <div><strong>{t('trigger') || 'Trigger'}:</strong> {info.trigger}</div>
+                <div><strong>{t('actor') || 'Actor'}:</strong> {info.actor}</div>
+                <div><strong>{t('audience') || 'Audience'}:</strong> {info.audience}</div>
                 <div>
-                  <strong>Key Variables:</strong>
+                  <strong>{t('key_variables') || 'Key Variables'}:</strong>
                   <div style={{ marginTop: 6, display:'flex', flexWrap:'wrap', gap:6 }}>
                     {Array.from(new Set(info.variables || [])).map(v => (
                       <code 
@@ -475,7 +477,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       <Modal
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
-        title="📧 Email Preview"
+        title={t('email_preview') || '📧 Email Preview'}
         size="large"
         showCloseButton={true}
       >
@@ -487,7 +489,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
           marginBottom: '1rem'
         }}>
           <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>
-            <strong>Subject:</strong> {formData.subject}
+            <strong>{t('subject') || 'Subject'}:</strong> {formData.subject}
           </p>
         </div>
 

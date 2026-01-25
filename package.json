@@ -15,7 +15,13 @@
     "deploy:hosting": "npm run build && firebase deploy --only hosting",
     "deploy:functions": "firebase deploy --only functions",
     "deploy:firestore": "firebase deploy --only firestore",
-    "deploy:all": "npm run build && firebase deploy --only hosting,functions,firestore"
+    "deploy:all": "npm run build && firebase deploy --only hosting,functions,firestore",
+    "test": "cd client && npm run lint",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "lint": "cd client && npm run lint",
+    "lint:fix": "cd client && npm run lint -- --fix"
   },
   "keywords": [
     "react",

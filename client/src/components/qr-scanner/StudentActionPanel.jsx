@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import logger from '../../utils/logger';
 import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -47,7 +48,7 @@ const renderIcon = (iconName, style) => {
   return icons[iconName] || icons.MessageSquare;
 };
 
-export default function StudentActionPanel({
+const StudentActionPanel = React.memo(function StudentActionPanel({
   student,
   onClose,
   onBehaviorSubmit,
@@ -70,10 +71,20 @@ export default function StudentActionPanel({
   const [deleteLogId, setDeleteLogId] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Debounced resize handler for performance
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth <= 768);
+      }, 150);
+    };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
@@ -102,7 +113,7 @@ export default function StudentActionPanel({
   // Send QR code email
   const sendQRCodeEmail = async () => {
     if (!student?.id || !student?.email) {
-      console.error('Student information missing');
+      logger.error('Student information missing');
       return;
     }
 
@@ -117,12 +128,12 @@ export default function StudentActionPanel({
       });
 
       if (result.success) {
-        console.log('QR code email sent successfully');
+        logger.debug('QR code email sent successfully');
       } else {
-        console.error('Failed to send QR code email:', result.message);
+        logger.error('Failed to send QR code email:', result.message);
       }
     } catch (error) {
-      console.error('Error sending QR code email:', error);
+      logger.error('Error sending QR code email:', error);
     } finally {
       setSendingQRCode(false);
     }
@@ -131,7 +142,7 @@ export default function StudentActionPanel({
   // Send student summary email
   const sendStudentSummaryEmail = async () => {
     if (!student?.id || !student?.email) {
-      console.error('Student information missing');
+      logger.error('Student information missing');
       return;
     }
 
@@ -221,36 +232,38 @@ export default function StudentActionPanel({
       });
 
       if (result.success) {
-        console.log('Student summary email sent successfully');
+        logger.debug('Student summary email sent successfully');
       } else {
-        console.error('Failed to send student summary email:', result.message);
+        logger.error('Failed to send student summary email:', result.message);
       }
     } catch (error) {
-      console.error('Error sending student summary email:', error);
+      logger.error('Error sending student summary email:', error);
     } finally {
       setSendingSummary(false);
     }
   };
 
-  const toggleDayExpansion = (dayKey) => {
-    const newExpanded = new Set(expandedDays);
-    if (newExpanded.has(dayKey)) {
-      newExpanded.delete(dayKey);
-    } else {
-      newExpanded.add(dayKey);
-    }
-    setExpandedDays(newExpanded);
-  };
+  const toggleDayExpansion = useCallback((dayKey) => {
+    setExpandedDays(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(dayKey)) {
+        newExpanded.delete(dayKey);
+      } else {
+        newExpanded.add(dayKey);
+      }
+      return newExpanded;
+    });
+  }, []);
 
-  const toggleSectionExpansion = (section) => {
+  const toggleSectionExpansion = useCallback((section) => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
-  };
+  }, []);
 
-  // Calculate detailed statistics for each type
-  const getDetailedStats = () => {
+  // Memoized detailed statistics calculation for performance
+  const getDetailedStats = useCallback(() => {
     const stats = {
       behavior: {},
       participation: {},
@@ -322,7 +335,7 @@ export default function StudentActionPanel({
     });
 
     return stats;
-  };
+  }, [todayLogs]);
 
   // Fetch today's logs when student changes or manual refresh triggered
   useEffect(() => {
@@ -335,7 +348,7 @@ export default function StudentActionPanel({
     if (student?.id) {
       fetchHistoricalLogs();
     }
-  }, [student?.id, student?.attendance, student?.behavior, student?.participation, student?.penalty, historyRefreshKey]);
+  }, [student?.id, historyRefreshKey, fetchHistoricalLogs]);
 
   // Real-time updates for history
   useEffect(() => {
@@ -363,10 +376,10 @@ export default function StudentActionPanel({
       unsubscribeParticipation();
       unsubscribePenalty();
     };
-  }, [student?.id]);
+  }, [student?.id, fetchHistoricalLogs]);
 
-  // Fetch real data from Firebase
-  const handleMarkAttendance = async (studentId, status) => {
+  // Fetch real data from Firebase - memoized
+  const handleMarkAttendance = useCallback(async (studentId, status) => {
     setShowLoadingOverlay(true);
     try {
       await onMarkAttendance(studentId, status);
@@ -375,28 +388,28 @@ export default function StudentActionPanel({
       // Refresh data after marking attendance
       await fetchHistoricalLogs();
     } catch (error) {
-      console.error('Error marking attendance:', error);
+      logger.error('Error marking attendance:', error);
     } finally {
       setShowLoadingOverlay(false);
     }
-  };
+  }, [onMarkAttendance, fetchHistoricalLogs]);
 
   // Delete attendance log
-  const handleDeleteAttendance = async (logId) => {
+  const handleDeleteAttendance = useCallback((logId) => {
     setDeleteType('attendance');
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
-  };
+  }, []);
 
   // Delete penalty log
-  const handleDeletePenalty = async (logId) => {
+  const handleDeletePenalty = useCallback((logId) => {
     setDeleteType('penalty');
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
-  };
+  }, []);
 
-  // Handle actual deletion after confirmation
-  const handleConfirmDelete = async () => {
+  // Handle actual deletion after confirmation - memoized
+  const handleConfirmDelete = useCallback(async () => {
     setDeleteLoading(true);
     try {
       let result;
@@ -435,12 +448,12 @@ export default function StudentActionPanel({
             timestamp: new Date()
           });
         } else {
-          console.error('Failed to delete penalty record:', result.error);
+          logger.error('Failed to delete penalty record:', result.error);
           alert('Failed to delete penalty record: ' + result.error);
         }
       }
     } catch (error) {
-      console.error(`Error deleting ${deleteType} record:`, error);
+      logger.error(`Error deleting ${deleteType} record:`, error);
       alert(`Error deleting ${deleteType} record: ` + error.message);
     } finally {
       setDeleteLoading(false);
@@ -448,9 +461,9 @@ export default function StudentActionPanel({
       setDeleteType('');
       setDeleteLogId('');
     }
-  };
+  }, [deleteType, deleteLogId, student, user, fetchHistoricalLogs]);
 
-  const fetchHistoricalLogs = async () => {
+  const fetchHistoricalLogs = useCallback(async () => {
     if (!student?.id) return;
 
     setLogsLoading(true);
@@ -501,14 +514,15 @@ export default function StudentActionPanel({
 
       setTodayLogs(logs);
     } catch (error) {
-      console.error('Error fetching historical logs:', error);
+      logger.error('Error fetching historical logs:', error);
       setTodayLogs([]);
     } finally {
       setLogsLoading(false);
     }
-  };
+  }, [student?.id]);
 
-  const groupLogsByDay = (logs) => {
+  // Memoized group logs by day for performance
+  const groupLogsByDay = useCallback((logs) => {
     const grouped = {};
 
     logs.forEach(log => {
@@ -541,11 +555,12 @@ export default function StudentActionPanel({
     });
 
     return Object.values(grouped);
-  };
+  }, []);
 
   if (!student) return null;
 
-  const getAvailableOptions = () => {
+  // Memoized available options for performance
+  const options = useMemo(() => {
     if (activeTab === 'participation') {
       return participationTypes.map(pt => ({
         ...pt,
@@ -563,11 +578,9 @@ export default function StudentActionPanel({
       }));
     }
     return [];
-  };
+  }, [activeTab, participationTypes, behaviorTypes]);
 
-  const options = getAvailableOptions();
-
-  const toggleAction = (option) => {
+  const toggleAction = useCallback((option) => {
     setSelectedActions((prev) => {
       const exists = prev.find(a => a.id === option.id);
       if (exists) {
@@ -587,17 +600,17 @@ export default function StudentActionPanel({
         return [...prev, option];
       }
     });
-  };
+  }, []);
 
-  const handlePointsChange = (optionId, value) => {
+  const handlePointsChange = useCallback((optionId, value) => {
     const numValue = parseInt(value) || 0;
     setActionPoints(prev => ({
       ...prev,
       [optionId]: numValue
     }));
-  };
+  }, []);
 
-  const handleApply = () => {
+  const handleApply = useCallback(() => {
     if (selectedActions.length === 0) return;
 
     const actions = selectedActions.map((action) => ({
@@ -611,16 +624,16 @@ export default function StudentActionPanel({
     setSelectedActions([]);
     setActionPoints({});
     setInternalNote('');
-  };
+  }, [selectedActions, actionPoints, internalNote, student.id, onBehaviorSubmit]);
 
-  const toggleFilter = (filter) => {
+  const toggleFilter = useCallback((filter) => {
     setActiveFilters(prev => ({
       ...prev,
       [filter]: !prev[filter]
     }));
-  };
+  }, []);
 
-  const getInitials = (name) => {
+  const getInitials = useCallback((name) => {
     if (!name) return '??';
     return name
       .split(' ')
@@ -628,7 +641,7 @@ export default function StudentActionPanel({
       .join('')
       .toUpperCase()
       .slice(0, 2);
-  };
+  }, []);
 
   const getAvatarColor = (name) => {
     const colors = [
@@ -643,24 +656,33 @@ export default function StudentActionPanel({
     return colors[index];
   };
 
-  const avatarColor = getAvatarColor(student.name);
-  const attendanceStatus = ATTENDANCE_STATUS_LABELS[student.attendance] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
+  // Memoized computed values for performance
+  const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name, getAvatarColor]);
+  const attendanceStatus = useMemo(() => 
+    ATTENDANCE_STATUS_LABELS[student?.attendance] || ATTENDANCE_STATUS_LABELS.absent_no_excuse,
+    [student?.attendance]
+  );
 
-  // Calculate attendance statistics
-  const attendanceStats = todayLogs.reduce((acc, log) => {
-    if (log.type === 'attendance') {
-      const status = log.data.status;
-      if (status === 'present') acc.present++;
-      else if (status === 'absent_no_excuse') acc.absent_no_excuse++;
-      else if (status === 'absent_with_excuse') acc.absent_with_excuse++;
-      else if (status === 'late') acc.late++;
-      else if (status === 'excused_leave') acc.excused_leave++;
-      else if (status === 'human_case') acc.human_case++;
-    }
-    return acc;
-  }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
+  // Memoized attendance statistics calculation
+  const attendanceStats = useMemo(() => {
+    return todayLogs.reduce((acc, log) => {
+      if (log.type === 'attendance') {
+        const status = log.data?.status;
+        if (status === 'present') acc.present++;
+        else if (status === 'absent_no_excuse') acc.absent_no_excuse++;
+        else if (status === 'absent_with_excuse') acc.absent_with_excuse++;
+        else if (status === 'late') acc.late++;
+        else if (status === 'excused_leave') acc.excused_leave++;
+        else if (status === 'human_case') acc.human_case++;
+      }
+      return acc;
+    }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
+  }, [todayLogs]);
 
-  const totalPoints = student.participation + student.behavior + student.penalty;
+  const totalPoints = useMemo(() => 
+    (student?.participation || 0) + (student?.behavior || 0) + (student?.penalty || 0),
+    [student?.participation, student?.behavior, student?.penalty]
+  );
 
   return (
     <>
@@ -672,7 +694,7 @@ export default function StudentActionPanel({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'var(--overlay, rgba(0, 0, 0, 0.5))',
           zIndex: 1999
         }}
         onClick={onClose}
@@ -692,7 +714,7 @@ export default function StudentActionPanel({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'white',
+          backgroundColor: 'var(--panel, white)',
           zIndex: 10000,
           display: 'flex',
           alignItems: 'center',
@@ -2100,7 +2122,7 @@ export default function StudentActionPanel({
                   {t('no_history_found')}
                 </div>
               ) : (
-                groupLogsByDay(todayLogs).map((dayGroup, dayIndex) => {
+                useMemo(() => groupLogsByDay(todayLogs), [todayLogs, groupLogsByDay]).map((dayGroup, dayIndex) => {
                   const dateObj = new Date(dayGroup.date);
                   const dateStr = dateObj.toLocaleDateString('en-US', {
                     weekday: 'short',
@@ -2402,4 +2424,6 @@ export default function StudentActionPanel({
       />
     </>
   );
-};
+});
+
+export default StudentActionPanel;

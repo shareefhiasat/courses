@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
@@ -46,7 +47,7 @@ const QuizResultsPage = () => {
     if (user) {
       loadData();
     }
-  }, [user]);
+  }, [user, loadData]);
 
   useEffect(() => {
     if (user && programs.length > 0) {
@@ -55,7 +56,7 @@ const QuizResultsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQuiz, selectedProgram, selectedSubject, selectedClass, selectedStudent, user]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       // Load programs, subjects, classes with permission filtering
@@ -122,7 +123,7 @@ const QuizResultsPage = () => {
                 return { id: studentId, docId: studentId, ...studentDoc.data() };
               }
             } catch (err) {
-              console.warn('Failed to load student:', studentId, err);
+              logger.warn('Failed to load student:', studentId, err);
             }
             return null;
           })
@@ -135,12 +136,12 @@ const QuizResultsPage = () => {
         setStudents(studentsData);
       }
     } catch (error) {
-      console.error('Failed to load data:', error);
+      logger.error('Failed to load data:', error);
       toast.error('Failed to load data: ' + error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isAdmin, isInstructor, isSuperAdmin, toast]);
 
   // Filter classes based on program/subject selection
   const filteredClasses = useMemo(() => {
@@ -186,7 +187,7 @@ const QuizResultsPage = () => {
         }
       } catch (orderByError) {
         // If orderBy fails (no index), try without it
-        console.warn('OrderBy failed, trying without:', orderByError);
+        logger.warn('OrderBy failed, trying without:', orderByError);
         if (selectedQuiz !== 'all') {
           q = query(collection(db, 'quizSubmissions'), where('quizId', '==', selectedQuiz));
         } else {
@@ -249,7 +250,7 @@ const QuizResultsPage = () => {
                 enrichedResult.quizClassId = quizData.classId || (quizData.assignedClassIds && quizData.assignedClassIds.length > 0 ? quizData.assignedClassIds[0] : null);
               }
             } catch (err) {
-              console.warn('Failed to load quiz:', result.quizId, err);
+              logger.warn('Failed to load quiz:', result.quizId, err);
             }
           }
 
@@ -263,7 +264,7 @@ const QuizResultsPage = () => {
                 enrichedResult.studentEmail = studentData.email;
               }
             } catch (err) {
-              console.warn('Failed to load student:', result.userId, err);
+              logger.warn('Failed to load student:', result.userId, err);
             }
           }
 
@@ -284,7 +285,7 @@ const QuizResultsPage = () => {
                 enrichedResult.classSubjectId = classData.subjectId;
               }
             } catch (err) {
-              console.warn('Failed to load class:', classId, err);
+              logger.warn('Failed to load class:', classId, err);
             }
           }
           
@@ -298,7 +299,7 @@ const QuizResultsPage = () => {
                 enrichedResult.subjectProgramId = subjectData.programId;
               }
             } catch (err) {
-              console.warn('Failed to load subject:', enrichedResult.classSubjectId, err);
+              logger.warn('Failed to load subject:', enrichedResult.classSubjectId, err);
             }
           }
           

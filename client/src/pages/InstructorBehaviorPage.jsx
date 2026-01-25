@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -41,8 +41,8 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
   });
   const [saving, setSaving] = useState(false);
 
-  // Function to fetch user data on demand and cache it
-  const fetchUser = async (userId) => {
+  // Memoized function to fetch user data on demand and cache it
+  const fetchUser = useCallback(async (userId) => {
     if (!userId || userCache[userId]) {
       return userCache[userId];
     }
@@ -58,7 +58,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       logger.error('Failed to fetch user:', userId, err);
     }
     return null;
-  };
+  }, [userCache]);
 
   // Filters
   const [programFilter, setProgramFilter] = useState('all');
@@ -427,11 +427,11 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         const rowId = row.id || row.docId || params?.id;
         
         // Debug logging for user investigation
-        console.log('=== BEHAVIOR USER DEBUG ===');
-        console.log('Behavior User Debug - Row data:', row);
-        console.log('Behavior User Debug - studentName from row:', row.studentName);
-        console.log('Behavior User Debug - studentEmail from row:', row.studentEmail);
-        console.log('Behavior User Debug - studentId from row:', row.studentId);
+        logger.debug('=== BEHAVIOR USER DEBUG ===');
+        logger.debug('Behavior User Debug - Row data:', row);
+        logger.debug('Behavior User Debug - studentName from row:', row.studentName);
+        logger.debug('Behavior User Debug - studentEmail from row:', row.studentEmail);
+        logger.debug('Behavior User Debug - studentId from row:', row.studentId);
         
         // Get studentName and studentEmail from row first
         let studentName = row.studentName || params?.value;
@@ -444,19 +444,19 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
           if (user?.realName) {
             studentName = user.realName;
-            console.log('Behavior User Debug - Found realName from students array:', user.realName);
+            logger.debug('Behavior User Debug - Found realName from students array:', user.realName);
           } else if (user?.displayName) {
             studentName = user.displayName;
-            console.log('Behavior User Debug - Found displayName from students array:', user.displayName);
+            logger.debug('Behavior User Debug - Found displayName from students array:', user.displayName);
           } else if (studentId && userCache[studentId]) {
             // Try cached user data
             const cachedUser = userCache[studentId];
             if (cachedUser?.realName) {
               studentName = cachedUser.realName;
-              console.log('Behavior User Debug - Found realName from cache:', cachedUser.realName);
+              logger.debug('Behavior User Debug - Found realName from cache:', cachedUser.realName);
             } else if (cachedUser?.displayName) {
               studentName = cachedUser.displayName;
-              console.log('Behavior User Debug - Found displayName from cache:', cachedUser.displayName);
+              logger.debug('Behavior User Debug - Found displayName from cache:', cachedUser.displayName);
             }
           } else if (studentId) {
             // Fetch user data asynchronously (non-blocking)

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { scanAttendance, simpleDeviceHash } from '../firebase/attendance';
@@ -82,7 +83,7 @@ const StudentAttendancePage = () => {
             }
             await html5QrCodeRef.current.clear();
           } catch (e) {
-            console.warn('[StudentAttendance] Cleanup warning:', e);
+            logger.warn('[StudentAttendance] Cleanup warning:', e);
           }
         }
         
@@ -147,12 +148,12 @@ const StudentAttendancePage = () => {
             // Ignore scanning errors (they're frequent during scanning)
             // Only show errors if scanning is not active
             if (!scanning) {
-              console.log('[QR Scanner]', errorMessage);
+              logger.debug('[QR Scanner]', errorMessage);
             }
           }
         );
       } catch (e) {
-        console.error('[StudentAttendance] QR Scanner error:', e);
+        logger.error('[StudentAttendance] QR Scanner error:', e);
         setMessage(e?.message || 'Failed to start camera. Please check permissions and use manual entry.');
         setScanning(false);
         
@@ -266,7 +267,7 @@ const StudentAttendancePage = () => {
         setClassOptions(options);
         if (!classId && options.length === 1) setClassId(options[0].id);
       } catch (e) {
-        console.error('[StudentAttendance] Error loading classes:', e);
+        logger.error('[StudentAttendance] Error loading classes:', e);
       }
     };
     load();
@@ -355,7 +356,7 @@ const StudentAttendancePage = () => {
         
         setHistory(allMarks);
       } catch (e) {
-        console.error('[StudentAttendance] Error loading history:', e);
+        logger.error('[StudentAttendance] Error loading history:', e);
       } finally {
         setHistLoading(false);
       }
@@ -447,7 +448,7 @@ const StudentAttendancePage = () => {
         parsed.sid = foundSession.id;
         parsed.token = foundSession.token;
       } catch (e) {
-        console.error('[StudentAttendance] Error looking up manual code:', e);
+        logger.error('[StudentAttendance] Error looking up manual code:', e);
         setMessage(t('error_looking_up') || 'Error looking up session. Please use the full attendance link.');
         setLastResult({ ok: false, error: e?.message || 'Lookup failed' });
         if (toast?.error) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import logger from '../utils/logger';
  // import Joyride from 'react-joyride';
 import { useAuth } from '../contexts/AuthContext';
@@ -64,15 +64,15 @@ const DashboardPage = () => {
   const { lang, setLang, t } = useLang();
   const { theme } = useTheme();
   
-  // Helper function for theme-aware filter icon colors
-  const getFilterIconColor = () => {
+  // Memoized helper function for theme-aware filter icon colors
+  const getFilterIconColor = useCallback(() => {
     return theme === 'dark' ? '#9ca3af' : '#374151';
-  };
+  }, [theme]);
   // Joyride tour state
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
-  // Joyride callback to persist tour completion
-  const handleJoyrideCallback = (data) => {
+  // Memoized Joyride callback to persist tour completion
+  const handleJoyrideCallback = useCallback((data) => {
     const { status } = data || {};
     if (status === 'finished' || status === 'skipped') {
       setRunTour(false);
@@ -82,7 +82,7 @@ const DashboardPage = () => {
         // ignore
       }
     }
-  };
+  }, [lang]);
 
   // Build localized tour steps when language changes
   useEffect(() => {
@@ -196,7 +196,7 @@ const DashboardPage = () => {
   const [activityLastUpdatedAt, setActivityLastUpdatedAt] = useState(Date.now());
   const [activityNowTick, setActivityNowTick] = useState(Date.now());
 
-  const handleTabChange = (tab, { source = 'user', shouldEmit = true } = {}) => {
+  const handleTabChange = useCallback((tab, { source = 'user', shouldEmit = true } = {}) => {
     if (!tab) {
       return;
     }
@@ -260,7 +260,7 @@ const DashboardPage = () => {
         source
       });
     }
-  };
+  }, [navigate, location, t]);
 
   const latestHandleTabChange = useRef(handleTabChange);
   useEffect(() => {
@@ -432,7 +432,7 @@ const DashboardPage = () => {
   };
 
   // Edit handlers
-  const handleEditActivity = (activity) => {
+  const handleEditActivity = useCallback((activity) => {
     setEditingActivity(activity);
     // Ensure all fields are properly initialized, especially for dropdowns
     const formData = {
@@ -449,9 +449,9 @@ const DashboardPage = () => {
       course: activity.course || 'python'
     };
     setActivityForm(formData);
-  };
+  }, []);
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingActivity(null);
     setActivityForm({
       id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
@@ -460,7 +460,7 @@ const DashboardPage = () => {
       featured: false, optional: false, quizId: '', requiresSubmission: false, maxScore: 10, overrideQuizSettings: false
     });
     setFormErrors({});
-  };
+  }, []);
 
   // Data states
   const [activities, setActivities] = useState([]);
@@ -1062,9 +1062,9 @@ const DashboardPage = () => {
       ]);
 
       if (activitiesRes.success) {
-        console.log('Dashboard Debug - Raw activities data:', activitiesRes.data);
-        console.log('Dashboard Debug - First activity sample:', activitiesRes.data[0]);
-        console.log('Dashboard Debug - First activity createdAt:', activitiesRes.data[0]?.createdAt);
+        logger.debug('Dashboard Debug - Raw activities data:', activitiesRes.data);
+        logger.debug('Dashboard Debug - First activity sample:', activitiesRes.data[0]);
+        logger.debug('Dashboard Debug - First activity createdAt:', activitiesRes.data[0]?.createdAt);
         setActivities(activitiesRes.data);
       }
       if (announcementsRes.success) setAnnouncements(announcementsRes.data);
@@ -2752,26 +2752,26 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       if (!params.value) return 'Unknown';
                       
                       // Log the raw value for debugging
-                      console.log('Activities Date Debug - Raw params.value:', params.value);
-                      console.log('Activities Date Debug - Type:', typeof params.value);
-                      console.log('Activities Date Debug - Has toDate:', typeof params.value?.toDate);
+                      logger.debug('Activities Date Debug - Raw params.value:', params.value);
+                      logger.debug('Activities Date Debug - Type:', typeof params.value);
+                      logger.debug('Activities Date Debug - Has toDate:', typeof params.value?.toDate);
                       
                       let date;
                       if (params.value?.toDate) {
                         date = params.value.toDate();
-                        console.log('Activities Date Debug - Using toDate():', date);
+                        logger.debug('Activities Date Debug - Using toDate():', date);
                       } else if (params.value?.seconds) {
                         date = new Date(params.value.seconds * 1000);
-                        console.log('Activities Date Debug - Using seconds:', params.value.seconds, '-> date:', date);
+                        logger.debug('Activities Date Debug - Using seconds:', params.value.seconds, '-> date:', date);
                       } else if (typeof params.value === 'string' || typeof params.value === 'number') {
                         date = new Date(params.value);
-                        console.log('Activities Date Debug - Using new Date():', date);
+                        logger.debug('Activities Date Debug - Using new Date():', date);
                       } else {
                         date = new Date(params.value);
-                        console.log('Activities Date Debug - Fallback new Date():', date);
+                        logger.debug('Activities Date Debug - Fallback new Date():', date);
                       }
                       
-                      console.log('Activities Date Debug - Final date:', date, 'isValid:', !isNaN(date.getTime()));
+                      logger.debug('Activities Date Debug - Final date:', date, 'isValid:', !isNaN(date.getTime()));
                       
                       if (isNaN(date.getTime())) {
                         return 'Invalid Date';

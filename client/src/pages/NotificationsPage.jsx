@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import logger from '../utils/logger';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Trash2, Eye, EyeOff, MessageCircle, Mail, Clock, UserCheck, Volume2, Vibrate, TestTube } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
-import { Button, Input, Select, Badge, Container } from '../components/ui';
+import { Button, Input, Select, Badge, Container, Loading } from '../components/ui';
 import ToggleSwitch from '../components/ToggleSwitch';
 import useNotifications from '../hooks/useNotifications';
 import { PENALTY_TYPES, ABSENCE_TYPES } from '../firebase/penalties';
@@ -76,21 +77,22 @@ const NotificationsPage = () => {
 
 
   // Load programs, subjects, classes for filters
-  useEffect(() => {
-    const loadFilters = async () => {
-      try {
-        const [programsRes, subjectsRes, classesRes] = await Promise.all([
-          getPrograms(),
-          getSubjects(),
-          getClasses()
-        ]);
-        if (programsRes.success) setPrograms(programsRes.data || []);
-        if (subjectsRes.success) setSubjects(subjectsRes.data || []);
-        if (classesRes.success) setClasses(classesRes.data || []);
-      } catch {}
-    };
-    loadFilters();
+  const loadFilters = useCallback(async () => {
+    try {
+      const [programsRes, subjectsRes, classesRes] = await Promise.all([
+        getPrograms(),
+        getSubjects(),
+        getClasses()
+      ]);
+      if (programsRes.success) setPrograms(programsRes.data || []);
+      if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+      if (classesRes.success) setClasses(classesRes.data || []);
+    } catch {}
   }, []);
+
+  useEffect(() => {
+    loadFilters();
+  }, [loadFilters]);
 
   // Filter notifications
   const filteredNotifications = useMemo(() => {
@@ -291,7 +293,7 @@ const NotificationsPage = () => {
       try {
         await triggerNotification('default', 'Test Notification', 'This is a test browser notification!');
       } catch (error) {
-        console.error('Failed to send test notification:', error);
+        logger.error('Failed to send test notification:', error);
       }
     }
   };

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
@@ -31,9 +32,9 @@ const ProgramsManagementPage = () => {
     if (!authLoading && (isAdmin || isSuperAdmin)) {
       loadPrograms();
     }
-  }, [authLoading, isAdmin, isSuperAdmin]);
+  }, [authLoading, isAdmin, isSuperAdmin, loadPrograms]);
 
-  const loadPrograms = async () => {
+  const loadPrograms = useCallback(async () => {
     setLoading(true);
     try {
       const result = await getPrograms();
@@ -47,7 +48,7 @@ const ProgramsManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, t]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,7 +76,7 @@ const ProgramsManagementPage = () => {
             programName: formData.name_en,
             programCode: formData.code
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { logger.warn('Failed to log activity:', e); }
         toast.success(editingProgram ? t('program_updated_successfully') || 'Program updated successfully' : t('program_created_successfully') || 'Program created successfully');
         setEditingProgram(null);
         resetForm();
@@ -120,7 +121,7 @@ const ProgramsManagementPage = () => {
             programName: program.name_en,
             programCode: program.code
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { logger.warn('Failed to log activity:', e); }
         toast.success(t('program_deleted_successfully') || 'Program deleted successfully');
         loadPrograms();
       } else {

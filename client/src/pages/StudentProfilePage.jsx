@@ -105,7 +105,7 @@ const StudentProfilePage = () => {
         return { value, label, icon: <BookOpen size={16} color="#374151" /> };
       });
     return [...opts, ...validClasses];
-  }, [classes, filters.programId, filters.subjectId]);
+  }, [allClasses, filters.programId, filters.subjectId]);
 
   const yearOptions = useMemo(() => {
     const opts = [

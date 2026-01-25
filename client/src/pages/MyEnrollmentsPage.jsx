@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -18,11 +19,8 @@ export default function MyEnrollmentsPage() {
   const [enrollments, setEnrollments] = useState([]);
   const [filter, setFilter] = useState('all'); // all, active, completed
 
-  useEffect(() => {
-    loadEnrollments();
-  }, []);
 
-  const loadEnrollments = async () => {
+  const loadEnrollments = useCallback(async () => {
     setLoading(true);
     try {
       // Mock data - replace with actual Firebase call
@@ -116,16 +114,20 @@ export default function MyEnrollmentsPage() {
       
       setEnrollments(mockEnrollments);
     } catch (error) {
-      console.error('Error loading enrollments:', error);
+      logger.error('Error loading enrollments:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getFilteredEnrollments = () => {
+  useEffect(() => {
+    loadEnrollments();
+  }, [loadEnrollments]);
+
+  const getFilteredEnrollments = useMemo(() => {
     if (filter === 'all') return enrollments;
     return enrollments.filter(e => e.status === filter);
-  };
+  }, [enrollments, filter]);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -179,7 +181,7 @@ export default function MyEnrollmentsPage() {
     );
   }
 
-  const filteredEnrollments = getFilteredEnrollments();
+  const filteredEnrollments = getFilteredEnrollments;
   const activeCount = enrollments.filter(e => e.status === 'active').length;
   const completedCount = enrollments.filter(e => e.status === 'completed').length;
 

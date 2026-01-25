@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { db } from '../firebase/config';
@@ -171,7 +172,7 @@ const ClassSchedulePage = () => {
     } catch (e) {
       // permission-denied should not spam console
       if (e?.code === 'permission-denied') return;
-      console.error('[Schedule] Error loading classes:', e);
+      logger.error('[Schedule] Error loading classes:', e);
     } finally {
       setLoading(false);
     }
@@ -249,7 +250,7 @@ const ClassSchedulePage = () => {
       toast?.success?.(t('schedule_saved') || 'Schedule saved successfully!');
       await loadClasses();
     } catch (e) {
-      console.error('[Schedule] Error saving:', e);
+      logger.error('[Schedule] Error saving:', e);
       toast?.error?.((t('schedule_save_failed') || 'Failed to save schedule: ') + (e?.message || 'unknown error'));
     } finally {
       setSaving(false);

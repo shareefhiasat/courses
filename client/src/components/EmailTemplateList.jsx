@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from './ToastProvider';
+import { useLang } from '../contexts/LangContext';
 import ToggleSwitch from './ToggleSwitch';
 import { formatDateTime } from '../utils/date';
-import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { Megaphone, FileText, CheckCircle2, GraduationCap, BookOpen, MessageSquareText, Key, PartyPopper, Mail, Plus, Pencil, Send, Copy, Trash2, QrCode, BarChart3 } from 'lucide-react';
 import { Loading } from './ui';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();
+  const { t } = useLang();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,10 +107,10 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       };
       setSettings(next);
       await setDoc(ref, next, { merge: true });
-      toast?.showSuccess('Email notifications ' + (enabled ? 'enabled' : 'disabled'));
+      toast?.showSuccess(enabled ? (t('email_notifications_enabled') || 'Email notifications enabled') : (t('email_notifications_disabled') || 'Email notifications disabled'));
     } catch (e) {
       console.error('Error saving setting:', e);
-      toast?.showError('Failed to save setting: ' + e.message);
+      toast?.showError(t('failed_to_save_setting') + ': ' + e.message);
     }
   };
 
@@ -169,17 +171,17 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   };
 
   const deleteTemplate = async (templateId, templateName) => {
-    if (!window.confirm(`Delete template "${templateName}"? This cannot be undone.`)) {
+    if (!window.confirm(t('confirm_delete_template', { name: templateName }) || `Delete template "${templateName}"? This cannot be undone.`)) {
       return;
     }
 
     try {
       await deleteDoc(doc(db, 'emailTemplates', templateId));
-      toast?.showSuccess('Template deleted successfully!');
+      toast?.showSuccess(t('template_deleted_successfully') || 'Template deleted successfully!');
       loadTemplates();
     } catch (error) {
       console.error('Error deleting template:', error);
-      toast?.showError('Failed to delete template: ' + error.message);
+      toast?.showError(t('failed_to_delete_template') + ': ' + error.message);
     }
   };
 
@@ -187,7 +189,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
     try {
       const newTemplate = {
         ...template,
-        name: `${template.name} (Copy)`,
+        name: `${template.name} ${t('copy') || '(Copy)'}`,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now()
       };
@@ -195,11 +197,11 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       delete newTemplate.id;
       
       const docRef = await addDoc(collection(db, 'emailTemplates'), newTemplate);
-      toast?.showSuccess('Template duplicated successfully!');
+      toast?.showSuccess(t('template_duplicated_successfully') || 'Template duplicated successfully!');
       loadTemplates();
     } catch (error) {
       console.error('Error duplicating template:', error);
-      toast?.showError('Failed to duplicate template: ' + error.message);
+      toast?.showError(t('failed_to_duplicate_template') + ': ' + error.message);
     }
   };
 
@@ -229,7 +231,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   };
 
   if (loading) {
-    return <Loading message="Loading email templates..." fancyVariant="dots" />;
+    return <Loading message={t('loading_email_templates') || 'Loading email templates...'} fancyVariant="dots" />;
   }
 
   return (
@@ -237,7 +239,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <input
           type="text"
-          placeholder="Search templates..."
+          placeholder={t('search_templates') || 'Search templates...'}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
@@ -262,7 +264,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
             fontSize: '0.95rem'
           }}
         >
-          Create New Template
+          {t('create_new_template') || 'Create New Template'}
         </button>
       </div>
 
@@ -275,7 +277,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
           border: '2px dashed #ddd'
         }}>
           <p style={{ fontSize: '1.1rem', color: '#666', marginBottom: '1rem' }}>
-            {searchTerm ? 'No templates found matching your search.' : 'No email templates yet.'}
+            {searchTerm ? (t('no_templates_found') || 'No templates found matching your search.') : (t('no_email_templates_yet') || 'No email templates yet.')}
           </p>
           {!searchTerm && (
             <button
@@ -290,7 +292,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                 fontWeight: 600
               }}
             >
-              Create Your First Template
+              {t('create_your_first_template') || 'Create Your First Template'}
             </button>
           )}
         </div>
@@ -330,7 +332,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems:'center' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8, marginRight:12 }}>
-                        <span style={{ color:'#666', fontSize:'0.85rem' }}>Enabled</span>
+                        <span style={{ color:'#666', fontSize:'0.85rem' }}>{t('enabled') || 'Enabled'}</span>
                         <ToggleSwitch
                           checked={!!settings?.[mapTypeToTrigger(template.type)]?.enabled}
                           onChange={(val) => saveSetting(template.type, val, template.id)}
@@ -352,7 +354,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           fontSize: '0.85rem'
                         }}
                       >
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Pencil size={14} /> Edit</span>
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Pencil size={14} /> {t('edit') || 'Edit'}</span>
                       </button>
                       <button
                         onClick={async (e) => {
@@ -365,13 +367,13 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                             const vars = generateSampleVariables(template);
                             const res = await sendTest({ templateId: template.id, variables: vars });
                             if (res.data?.success) {
-                              toast?.showSuccess('Test email sent to your email');
+                              toast?.showSuccess(t('test_email_sent') || 'Test email sent to your email');
                             } else {
-                              toast?.showError('Failed to send test email');
+                              toast?.showError(t('failed_to_send_test_email') || 'Failed to send test email');
                             }
                           } catch (err) {
                             console.error(err);
-                            toast?.showError('Failed to send test email: ' + err.message);
+                            toast?.showError(t('failed_to_send_test_email') + ': ' + err.message);
                           } finally {
                             setTestingEmail(null);
                           }
@@ -387,8 +389,8 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                         }}
                       >
                         {testingEmail === template.id
-                          ? 'Sending…'
-                          : <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Send size={14} /> Test Email</span>}
+                          ? (t('sending') || 'Sending…')
+                          : <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Send size={14} /> {t('test_email') || 'Test Email'}</span>}
                       </button>
                       <button
                         onClick={(e) => {
@@ -405,7 +407,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           fontSize: '0.85rem'
                         }}
                       >
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Copy size={14} /> Duplicate</span>
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Copy size={14} /> {t('duplicate') || 'Duplicate'}</span>
                       </button>
                       <button
                         onClick={(e) => {
@@ -422,12 +424,12 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           fontSize: '0.85rem'
                         }}
                       >
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Trash2 size={14} /> Delete</span>
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Trash2 size={14} /> {t('delete') || 'Delete'}</span>
                       </button>
                     </div>
                   </div>
                   <p style={{ margin: '0.75rem 0', color: '#555', fontSize: '0.9rem' }}>
-                    <strong>Subject:</strong> {template.subject}
+                    <strong>{t('subject') || 'Subject'}:</strong> {template.subject}
                   </p>
                   {template.variables && template.variables.length > 0 && (
                     <div style={{ marginTop: '0.75rem' }}>

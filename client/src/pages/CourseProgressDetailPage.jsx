@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -212,7 +213,7 @@ export default function CourseProgressDetailPage() {
       // Mock data loading - replace with actual Firebase calls
       await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error) {
-      console.error('Error loading course data:', error);
+      logger.error('Error loading course data:', error);
     } finally {
       setLoading(false);
     }

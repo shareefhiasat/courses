@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
@@ -38,9 +39,9 @@ const SubjectsManagementPage = () => {
       loadData();
       logActivity(ACTIVITY_TYPES.SUBJECT_VIEWED);
     }
-  }, [authLoading, isAdmin, isSuperAdmin, isInstructor]);
+  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [subjectsResult, programsResult] = await Promise.all([
@@ -59,9 +60,9 @@ const SubjectsManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     // Validation
@@ -88,7 +89,7 @@ const SubjectsManagementPage = () => {
             subjectCode: formData.code,
             programId: formData.programId
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { logger.warn('Failed to log activity:', e); }
         toast.success(editingSubject ? t('subject_updated_successfully') || 'Subject updated successfully' : t('subject_created_successfully') || 'Subject created successfully');
         setEditingSubject(null);
         resetForm();
@@ -101,7 +102,7 @@ const SubjectsManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [editingSubject, formData, toast, t, loadData]);
 
   const handleEdit = (subject) => {
     setEditingSubject(subject);
@@ -136,7 +137,7 @@ const SubjectsManagementPage = () => {
             subjectId: subject.docId,
             subjectName: subject.name_en
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { logger.warn('Failed to log activity:', e); }
         toast.success(t('subject_deleted_successfully') || 'Subject deleted successfully');
         loadData();
       } else {

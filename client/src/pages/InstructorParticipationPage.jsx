@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -41,8 +41,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   });
   const [saving, setSaving] = useState(false);
 
-  // Function to fetch user data on demand and cache it
-  const fetchUser = async (userId) => {
+  // Memoized function to fetch user data on demand and cache it
+  const fetchUser = useCallback(async (userId) => {
     if (!userId || userCache[userId]) {
       return userCache[userId];
     }
@@ -58,7 +58,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       logger.error('Failed to fetch user:', userId, err);
     }
     return null;
-  };
+  }, [userCache]);
 
   // Filters
   const [programFilter, setProgramFilter] = useState('all');
@@ -441,11 +441,11 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         const rowId = row.id || row.docId || params?.id;
         
         // Debug logging for user investigation
-        console.log('=== USER DEBUG ===');
-        console.log('User Debug - Row data:', row);
-        console.log('User Debug - studentName from row:', row.studentName);
-        console.log('User Debug - studentEmail from row:', row.studentEmail);
-        console.log('User Debug - studentId from row:', row.studentId);
+        logger.debug('=== USER DEBUG ===');
+        logger.debug('User Debug - Row data:', row);
+        logger.debug('User Debug - studentName from row:', row.studentName);
+        logger.debug('User Debug - studentEmail from row:', row.studentEmail);
+        logger.debug('User Debug - studentId from row:', row.studentId);
         
         // Get studentName and studentEmail from row first
         let studentName = row.studentName;
@@ -458,16 +458,16 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
           if (user?.realName) {
             studentName = user.realName;
-            console.log('User Debug - Found realName from students array:', user.realName);
+            logger.debug('User Debug - Found realName from students array:', user.realName);
           } else if (user?.displayName) {
             studentName = user.displayName;
-            console.log('User Debug - Found displayName from students array:', user.displayName);
+            logger.debug('User Debug - Found displayName from students array:', user.displayName);
           } else if (studentId && userCache[studentId]) {
             // Try cached user data
             const cachedUser = userCache[studentId];
             if (cachedUser?.realName) {
               studentName = cachedUser.realName;
-              console.log('User Debug - Found realName from cache:', cachedUser.realName);
+              logger.debug('User Debug - Found realName from cache:', cachedUser.realName);
             } else if (cachedUser?.displayName) {
               studentName = cachedUser.displayName;
               console.log('User Debug - Found displayName from cache:', cachedUser.displayName);
@@ -475,7 +475,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           } else if (studentId) {
             // Fetch user data asynchronously (non-blocking)
             fetchUser(studentId);
-            console.log('User Debug - Triggered async fetch for studentId:', studentId);
+            logger.debug('User Debug - Triggered async fetch for studentId:', studentId);
           }
         }
         
@@ -485,40 +485,40 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           studentName = foundRow?.studentName;
           studentEmail = foundRow?.studentEmail;
           studentId = foundRow?.studentId;
-          console.log('User Debug - Found from participations state:', { studentName, studentEmail, studentId });
+          logger.debug('User Debug - Found from participations state:', { studentName, studentEmail, studentId });
           
           // Try to get realName from user data
           if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
             const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
             if (user?.realName) {
               studentName = user.realName;
-              console.log('User Debug - Found realName from students array (fallback):', user.realName);
+              logger.debug('User Debug - Found realName from students array (fallback):', user.realName);
             } else if (user?.displayName) {
               studentName = user.displayName;
-              console.log('User Debug - Found displayName from students array (fallback):', user.displayName);
+              logger.debug('User Debug - Found displayName from students array (fallback):', user.displayName);
             } else if (studentId && userCache[studentId]) {
               // Try cached user data
               const cachedUser = userCache[studentId];
               if (cachedUser?.realName) {
                 studentName = cachedUser.realName;
-                console.log('User Debug - Found realName from cache (fallback):', cachedUser.realName);
+                logger.debug('User Debug - Found realName from cache (fallback):', cachedUser.realName);
               } else if (cachedUser?.displayName) {
                 studentName = cachedUser.displayName;
-                console.log('User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
+                logger.debug('User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
               }
             } else if (studentId) {
               // Fetch user data asynchronously (non-blocking)
               fetchUser(studentId);
-              console.log('User Debug - Triggered async fetch for studentId (fallback):', studentId);
+              logger.debug('User Debug - Triggered async fetch for studentId (fallback):', studentId);
             }
           }
         }
         
         const displayName = studentName && studentName !== 'N/A' ? studentName : (studentEmail || 'N/A');
         
-        console.log('User Debug - Final displayName:', displayName);
-        console.log('User Debug - Final studentEmail:', studentEmail);
-        console.log('=== END USER DEBUG ===');
+        logger.debug('User Debug - Final displayName:', displayName);
+        logger.debug('User Debug - Final studentEmail:', studentEmail);
+        logger.debug('=== END USER DEBUG ===');
         
         // Format as "Name (email)" like enrollments, but only if we have both and they're different
         if (studentEmail && studentEmail !== displayName && !displayName.includes('@')) {
@@ -619,26 +619,26 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       width: 150,
       valueGetter: (params) => {
         // Debug logging for date investigation
-        console.log('=== DATE DEBUG ===');
-        console.log('Date Debug - params:', params);
-        console.log('Date Debug - params.value:', params.value);
-        console.log('Date Debug - params.row:', params.row);
+        logger.debug('=== DATE DEBUG ===');
+        logger.debug('Date Debug - params:', params);
+        logger.debug('Date Debug - params.value:', params.value);
+        logger.debug('Date Debug - params.row:', params.row);
         
         // Check if params directly contains the timestamp (as shown in logs)
         if (params && typeof params === 'object' && params.seconds) {
           const date = new Date(params.seconds * 1000);
-          console.log('Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
-          console.log('Date Debug - Formatted date:', formatQatarDateOnly(date));
-          console.log('=== END DATE DEBUG ===');
+          logger.debug('Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
+          logger.debug('Date Debug - Formatted date:', formatQatarDateOnly(date));
+          logger.debug('=== END DATE DEBUG ===');
           return formatQatarDateOnly(date);
         }
         
         // Check if params.value directly contains the timestamp
         if (params.value && typeof params.value === 'object' && params.value.seconds) {
           const date = new Date(params.value.seconds * 1000);
-          console.log('Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
-          console.log('Date Debug - Formatted date:', formatQatarDateOnly(date));
-          console.log('=== END DATE DEBUG ===');
+          logger.debug('Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
+          logger.debug('Date Debug - Formatted date:', formatQatarDateOnly(date));
+          logger.debug('=== END DATE DEBUG ===');
           return formatQatarDateOnly(date);
         }
         
@@ -654,16 +654,16 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           }
         }
         
-        console.log('Date Debug - rowId:', rowId);
-        console.log('Date Debug - Row data:', row);
-        console.log('Date Debug - createdAt:', row.createdAt);
-        console.log('Date Debug - createdAt type:', typeof row.createdAt);
-        console.log('Date Debug - Has toDate method:', typeof row.createdAt?.toDate);
-        console.log('Date Debug - createdAt keys:', row.createdAt ? Object.keys(row.createdAt) : 'N/A');
+        logger.debug('Date Debug - rowId:', rowId);
+        logger.debug('Date Debug - Row data:', row);
+        logger.debug('Date Debug - createdAt:', row.createdAt);
+        logger.debug('Date Debug - createdAt type:', typeof row.createdAt);
+        logger.debug('Date Debug - Has toDate method:', typeof row.createdAt?.toDate);
+        logger.debug('Date Debug - createdAt keys:', row.createdAt ? Object.keys(row.createdAt) : 'N/A');
         
         if (!row.createdAt) {
-          console.log('Date Debug - No createdAt found, returning "No Date"');
-          console.log('=== END DATE DEBUG ===');
+          logger.debug('Date Debug - No createdAt found, returning "No Date"');
+          logger.debug('=== END DATE DEBUG ===');
           return 'No Date';
         }
         
@@ -671,29 +671,29 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         // Check if createdAt is a Firebase Timestamp object with toDate method
         if (typeof row.createdAt.toDate === 'function') {
           date = row.createdAt.toDate();
-          console.log('Date Debug - Using toDate():', date);
+          logger.debug('Date Debug - Using toDate():', date);
         } 
         // Check if createdAt is an object with seconds property (likely a raw Firebase Timestamp)
         else if (row.createdAt && typeof row.createdAt === 'object' && row.createdAt.seconds) {
           date = new Date(row.createdAt.seconds * 1000);
-          console.log('Date Debug - Using seconds:', row.createdAt.seconds, '-> date:', date);
+          logger.debug('Date Debug - Using seconds:', row.createdAt.seconds, '-> date:', date);
         } 
         // Otherwise, assume it's a string or number that Date constructor can handle
         else {
           date = new Date(row.createdAt);
-          console.log('Date Debug - Using new Date():', date);
+          logger.debug('Date Debug - Using new Date():', date);
         }
 
         console.log('Date Debug - Final date:', date, 'isValid:', !isNaN(date.getTime()));
 
         if (isNaN(date.getTime())) {
-          console.log('Date Debug - Invalid date, returning "Invalid Date"');
-          console.log('=== END DATE DEBUG ===');
+          logger.debug('Date Debug - Invalid date, returning "Invalid Date"');
+          logger.debug('=== END DATE DEBUG ===');
           return 'Invalid Date';
         }
         const formattedDate = formatQatarDateOnly(date);
-        console.log('Date Debug - Formatted date:', formattedDate);
-        console.log('=== END DATE DEBUG ===');
+        logger.debug('Date Debug - Formatted date:', formattedDate);
+        logger.debug('=== END DATE DEBUG ===');
         return formattedDate;
       }
     },

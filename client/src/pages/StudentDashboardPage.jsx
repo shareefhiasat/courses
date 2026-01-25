@@ -4,7 +4,8 @@
  * Serves: Students, HR, Instructors, Admins
  */
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -97,7 +98,7 @@ export default function StudentDashboardPage() {
         isHR,
         isSuperAdmin
       });
-      console.log('🔍 [StudentDashboard] Loading data for user:', displayUserId, 'selectedStudent:', selectedStudent);
+      logger.debug('🔍 [StudentDashboard] Loading data for user:', displayUserId, 'selectedStudent:', selectedStudent);
       loadDashboardData();
     }
   }, [user, selectedStudent, displayUserId, isAdmin, isInstructor, isHR, isSuperAdmin, selectedProgram, selectedSubject, selectedClass]);
@@ -112,7 +113,7 @@ export default function StudentDashboardPage() {
     setLoading(true);
     try {
       const targetUserId = displayUserId;
-      console.log('🔍 [StudentDashboard] Loading dashboard data for user ID:', targetUserId);
+      logger.debug('🔍 [StudentDashboard] Loading dashboard data for user ID:', targetUserId);
 
       // Load classes and enrollments
       const enrollmentsQuery = query(
@@ -125,7 +126,7 @@ export default function StudentDashboardPage() {
         ...doc.data()
       }));
       
-      console.log('🔍 [StudentDashboard] Found enrollments:', enrollmentsData.length, enrollmentsData);
+      logger.debug('🔍 [StudentDashboard] Found enrollments:', enrollmentsData.length, enrollmentsData);
       setEnrollments(enrollmentsData);
 
       const classIds = enrollmentsData.map(e => e.classId).filter(Boolean);
@@ -140,7 +141,7 @@ export default function StudentDashboardPage() {
               classesData.push({ id: classDoc.id, ...classDoc.data() });
             }
           } catch (err) {
-            console.warn('Failed to load class:', classId, err);
+            logger.warn('Failed to load class:', classId, err);
           }
         }
         setClasses(classesData);
@@ -208,7 +209,7 @@ export default function StudentDashboardPage() {
             setTasks(tasksArray);
           } catch (permError) {
             // Permission error - skip activities loading (non-critical)
-            console.warn('No permission to load activities (non-critical):', permError);
+            logger.warn('No permission to load activities (non-critical):', permError);
             setTasks([]);
           }
         } else {
@@ -216,7 +217,7 @@ export default function StudentDashboardPage() {
           setTasks([]);
         }
       } catch (error) {
-        console.warn('Failed to load activities/tasks:', error);
+        logger.warn('Failed to load activities/tasks:', error);
         setTasks([]);
       }
 
@@ -227,7 +228,7 @@ export default function StudentDashboardPage() {
           setAttendance(attendanceResult.data);
         }
       } catch (error) {
-        console.warn('Failed to load attendance:', error);
+        logger.warn('Failed to load attendance:', error);
       }
 
       // Load attendance stats for all enrolled classes
@@ -252,7 +253,7 @@ export default function StudentDashboardPage() {
           
           setAttendanceStats(combinedStats);
         } catch (error) {
-          console.warn('Failed to load attendance stats:', error);
+          logger.warn('Failed to load attendance stats:', error);
         }
       }
 

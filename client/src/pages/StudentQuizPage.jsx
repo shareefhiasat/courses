@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
@@ -140,14 +141,14 @@ export default function StudentQuizPage() {
         localStorage.setItem(progressKey, JSON.stringify(progress));
         setLastSaved(new Date());
         setIsSaving(false);
-        console.log('[Auto-save] Progress saved:', { 
+        logger.debug('[Auto-save] Progress saved:', { 
           quizId, 
           questionIndex: currentQuestionIndex, 
           answersCount: Object.keys(answers).length,
           timestamp: new Date().toISOString()
         });
       } catch (err) {
-        console.error('[Auto-save] Failed to save progress:', err);
+        logger.error('[Auto-save] Failed to save progress:', err);
         setIsSaving(false);
       }
     };
@@ -190,14 +191,14 @@ export default function StudentQuizPage() {
         if (!started && !showResults) {
           setShowResumeModal(true);
         }
-        console.log('[Auto-save] Found saved progress:', {
+        logger.debug('[Auto-save] Found saved progress:', {
           questionIndex: progress.currentQuestionIndex,
           answersCount: Object.keys(progress.answers || {}).length,
           savedAt: progress.savedAt
         });
       }
     } catch (err) {
-      console.error('Error checking saved progress:', err);
+      logger.error('Error checking saved progress:', err);
     }
   };
 

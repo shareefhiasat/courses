@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
@@ -44,14 +45,7 @@ const ScheduledReportsPage = () => {
   const [editingReport, setEditingReport] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      loadReports();
-      loadTemplates();
-    }
-  }, [authLoading, user]);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
     try {
       const result = await getScheduledReports(isSuperAdmin ? null : user.uid);
@@ -70,20 +64,44 @@ const ScheduledReportsPage = () => {
       setLoading(false);
       setInitialLoading(false);
     }
-  };
+  }, [user, isSuperAdmin]);
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       const result = await getEmailTemplates();
       if (result.success) {
         setTemplates(result.data || []);
       }
     } catch (error) {
-      console.error('Error loading templates:', error);
+      logger.error('Error loading templates:', error);
     }
-  };
+  }, []);
 
-  const handleAddRecipient = () => {
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadReports();
+      loadTemplates();
+    }
+  }, [authLoading, user, loadReports, loadTemplates]);
+
+  const resetForm = useCallback(() => {
+    setEditingReport(null);
+    setSelectedReport(null);
+    setFormData({
+      title: '',
+      description: '',
+      schedule: 'daily',
+      recipients: [],
+      templateId: '',
+      reportType: 'analytics',
+      filters: {},
+      enabled: true,
+      customSchedule: ''
+    });
+    setRecipientInput('');
+  }, []);
+
+  const handleAddRecipient = useCallback(() => {
     const email = recipientInput.trim();
     if (email && email.includes('@')) {
       if (!formData.recipients.includes(email)) {
@@ -91,13 +109,13 @@ const ScheduledReportsPage = () => {
       }
       setRecipientInput('');
     }
-  };
+  }, [formData, recipientInput]);
 
-  const handleRemoveRecipient = (email) => {
+  const handleRemoveRecipient = useCallback((email) => {
     setFormData({ ...formData, recipients: formData.recipients.filter(e => e !== email) });
-  };
+  }, [formData]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!formData.title.trim()) {
       toast.error('Title is required');
       return;
@@ -153,9 +171,9 @@ const ScheduledReportsPage = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [formData, editingReport, user, toast, loadReports, resetForm]);
 
-  const handleDelete = async (reportId) => {
+  const handleDelete = useCallback(async (reportId) => {
     if (!window.confirm('Are you sure you want to delete this scheduled report?')) {
       return;
     }
@@ -176,9 +194,9 @@ const ScheduledReportsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, loadReports]);
 
-  const handleToggleEnabled = async (report) => {
+  const handleToggleEnabled = useCallback(async (report) => {
     setLoading(true);
     try {
       const result = await updateScheduledReport(report.docId, { enabled: !report.enabled });
@@ -196,9 +214,9 @@ const ScheduledReportsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, loadReports, selectedReport]);
 
-  const handleEdit = (report) => {
+  const handleEdit = useCallback((report) => {
     setEditingReport(report);
     setSelectedReport(report);
     setFormData({
@@ -213,24 +231,7 @@ const ScheduledReportsPage = () => {
       customSchedule: report.nextRunAt ? new Date(report.nextRunAt).toISOString().slice(0, 16) : ''
     });
     setShowAddForm(true);
-  };
-
-  const resetForm = () => {
-    setEditingReport(null);
-    setSelectedReport(null);
-    setFormData({
-      title: '',
-      description: '',
-      schedule: 'daily',
-      recipients: [],
-      templateId: '',
-      reportType: 'analytics',
-      filters: {},
-      enabled: true,
-      customSchedule: ''
-    });
-    setRecipientInput('');
-  };
+  }, []);
 
   const exportToCSV = () => {
     const headers = ['Title', 'Type', 'Schedule', 'Recipients', 'Next Run', 'Last Run', 'Status'];

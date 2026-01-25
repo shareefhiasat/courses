@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '../firebase/attendance';
@@ -105,7 +106,7 @@ const AttendancePageEnhanced = () => {
         if (!classId && opts.length === 1) setClassId(opts[0].id);
         setInitialLoading(false);
       } catch (e) {
-        if (e?.code !== 'permission-denied') console.error('[Attendance] load data:', e);
+        if (e?.code !== 'permission-denied') logger.error('[Attendance] load data:', e);
       }
     })();
   }, [user, isAdmin, isInstructor, isHR]);
@@ -126,7 +127,7 @@ const AttendancePageEnhanced = () => {
           });
         }
       } catch (e) {
-        if (e?.code !== 'permission-denied') console.error('[Attendance] load cfg:', e);
+        if (e?.code !== 'permission-denied') logger.error('[Attendance] load cfg:', e);
       }
     })();
   }, [user, isAdmin]);
@@ -155,7 +156,7 @@ const AttendancePageEnhanced = () => {
     setLoading(true);
     try {
       setErr('');
-      console.log('[Attendance] startSession clicked', { classId, uid: user?.uid });
+      logger.debug('[Attendance] startSession clicked', { classId, uid: user?.uid });
       const { id } = await createSession({ classId, createdBy: user.uid });
       console.log('[Attendance] createSession returned', { id });
       if (!id) throw new Error('No session id returned from backend');

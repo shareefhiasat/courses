@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, memo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import { Globe2, Code2, Monitor, Sigma, BookOpen, Award, HelpCircle, ClipboardList, Play, StarOff, Hourglass, Repeat, CheckCircle, Star, Pin, Clock, AlertCircle, FileText, Link2, Video, LayoutGrid, Plus } from 'lucide-react';
@@ -115,7 +115,7 @@ const HomePage = memo(() => {
   // Listen for help button click from navbar
   useEffect(() => {
     const startTour = () => {
-      console.log('[HomePage] Launching Joyride tour via app event');
+      logger.debug('[HomePage] Launching Joyride tour via app event');
       setRunTour(true);
     };
     // Listen for both legacy help event and the joyride event from Navbar
@@ -176,9 +176,9 @@ const HomePage = memo(() => {
         }
       } catch (e) {
         if (e?.code === 'permission-denied') {
-          console.warn('[Home] permission-denied reading users/', user.uid);
+          logger.warn('[Home] permission-denied reading users/', user.uid);
         } else {
-          console.error('[Home] enrollments error:', e);
+          logger.error('[Home] enrollments error:', e);
         }
       }
     };
@@ -202,7 +202,7 @@ const HomePage = memo(() => {
       if (announcementsResult.success) setAnnouncements(announcementsResult.data || []);
       if (coursesResult.success) setCourses(coursesResult.data || []);
     } catch (error) {
-        console.error('Error loading data:', error);
+        logger.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -484,7 +484,7 @@ const HomePage = memo(() => {
         }
       }, { merge: true });
     } catch (e) {
-      console.error('Failed to update bookmark:', e);
+      logger.error('Failed to update bookmark:', e);
     }
   };
 
@@ -504,7 +504,7 @@ const HomePage = memo(() => {
         resourceProgress: newProgress
       }, { merge: true });
     } catch (error) {
-      console.error('Error updating progress:', error);
+      logger.error('Error updating progress:', error);
       setUserProgress(userProgress); // Revert on error
     }
   };
@@ -1537,15 +1537,15 @@ const HomePage = memo(() => {
           }
         }}
         callback={(data) => {
-          console.log('[HomePage] Joyride callback:', data);
+          logger.debug('[HomePage] Joyride callback:', data);
           if (data.status === 'finished' || data.status === 'skipped') {
             console.log('[HomePage] Tour finished/skipped, setting runTour to false');
             setRunTour(false);
             try {
               localStorage.setItem(tourSeenKey, 'true');
-              console.log('[HomePage] Saved tour seen key:', tourSeenKey);
+              logger.debug('[HomePage] Saved tour seen key:', tourSeenKey);
             } catch (e) {
-              console.error('[HomePage] Failed to save tour seen key:', e);
+              logger.error('[HomePage] Failed to save tour seen key:', e);
             }
           }
         }}

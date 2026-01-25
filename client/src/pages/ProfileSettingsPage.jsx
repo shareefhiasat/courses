@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { Navigate } from 'react-router-dom';
@@ -73,7 +74,7 @@ const ProfileSettingsPage = () => {
           applyAccentColorGlobally(fallbackColor);
         }
       } catch (error) {
-        console.error('Error loading profile:', error);
+        logger.error('Error loading profile:', error);
         toast.error(t('error_loading_profile') || 'Error loading profile');
       } finally {
         setLoading(false);
@@ -95,7 +96,7 @@ const ProfileSettingsPage = () => {
           });
         toast.success(t('test_notification_sent') || 'Test notification sent');
       } catch (error) {
-        console.error('Failed to send test notification:', error);
+        logger.error('Failed to send test notification:', error);
         toast.error(t('failed_to_send_test_notification') || 'Failed to send test notification');
       }
     } else {
@@ -123,7 +124,7 @@ const ProfileSettingsPage = () => {
       try {
         await ActivityLogger.profileUpdate();
       } catch (error) {
-        console.warn('Failed to log profile update activity:', error);
+        logger.warn('Failed to log profile update activity:', error);
       }
 
       // Apply color globally immediately
@@ -131,7 +132,7 @@ const ProfileSettingsPage = () => {
       
       toast.success(t('profile_updated') || 'Profile updated successfully');
     } catch (error) {
-      console.error('Error updating profile:', error);
+      logger.error('Error updating profile:', error);
       toast.error(t('error_updating_profile') || 'Error updating profile');
     } finally {
       setSaving(false);

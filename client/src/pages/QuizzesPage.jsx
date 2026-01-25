@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import logger from '../utils/logger';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -265,7 +266,7 @@ export default function QuizzesPage() {
           creatorName = displayName || name || emailName || 'Unknown';
         }
       } catch (err) {
-        console.warn('Failed to load creator name:', err);
+        logger.warn('Failed to load creator name:', err);
       }
     }
 
@@ -343,7 +344,7 @@ export default function QuizzesPage() {
         setViewMode('edit');
       }
     } catch (error) {
-      console.error('Error loading quiz:', error);
+      logger.error('Error loading quiz:', error);
     } finally {
       setLoading(false);
     }
@@ -386,7 +387,7 @@ export default function QuizzesPage() {
             }
           }
         } catch (error) {
-          console.warn('Failed to check connected activities:', error);
+          logger.warn('Failed to check connected activities:', error);
         }
       }
     }
@@ -397,10 +398,10 @@ export default function QuizzesPage() {
       let targetQuizId = quizId;
 
       if (quizId) {
-        console.log('[Save] Updating quiz:', quizId);
+        logger.debug('[Save] Updating quiz:', quizId);
         const result = await updateQuiz(quizId, quizData);
         if (result.success) {
-          console.log('[Save] Quiz updated successfully');
+          logger.debug('[Save] Quiz updated successfully');
           toast?.showSuccess?.('Quiz updated successfully!');
           setViewMode('list');
           loadQuizzes();
@@ -408,7 +409,7 @@ export default function QuizzesPage() {
           throw new Error(result.error);
         }
       } else {
-        console.log('[Save] Creating new quiz');
+        logger.debug('[Save] Creating new quiz');
         const result = await createQuiz(quizData, user.uid);
         if (result.success) {
           targetQuizId = result.id;

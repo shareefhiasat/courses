@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -283,7 +284,7 @@ export default function QuizBuilderPage() {
         setActiveQuestionIndex(normalized.questions.length > 0 ? 0 : -1);
       }
     } catch (error) {
-      console.error('Error loading quiz:', error);
+      logger.error('Error loading quiz:', error);
     } finally {
       setLoading(false);
     }
@@ -386,14 +387,14 @@ export default function QuizBuilderPage() {
               }
             }
           } catch (notifyError) {
-            console.warn('Failed to send quiz notifications:', notifyError);
+            logger.warn('Failed to send quiz notifications:', notifyError);
             // Don't fail the save operation if notifications fail
           }
         }
       }
 
     } catch (error) {
-      console.error('Error saving quiz:', error);
+      logger.error('Error saving quiz:', error);
       toast?.showError?.('Failed to save quiz: ' + error.message);
     } finally {
       setSaving(false);
@@ -457,7 +458,7 @@ export default function QuizBuilderPage() {
 
   // Also, let's add logging to the updateOption function
   const updateOption = useCallback((questionIndex, optionId, updates) => {
-    console.log('Updating option:', { questionIndex, optionId, updates });
+    logger.debug('Updating option:', { questionIndex, optionId, updates });
     setQuizData(prev => {
       const updatedQuestions = [...prev.questions];
       const question = updatedQuestions[questionIndex];
@@ -472,7 +473,7 @@ export default function QuizBuilderPage() {
               ...question.options.slice(optionIndex + 1)
             ]
           };
-          console.log('Options after update:', updatedQuestions[questionIndex].options);
+          logger.debug('Options after update:', updatedQuestions[questionIndex].options);
         }
       }
       return { ...prev, questions: updatedQuestions };

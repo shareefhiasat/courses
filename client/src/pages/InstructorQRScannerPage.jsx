@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import logger from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
@@ -60,26 +61,31 @@ const InstructorQRScannerPage = () => {
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
   const [showScanner, setShowScanner] = useState(true);
   const [sendNotifications, setSendNotifications] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
 
+  // Debounced resize handler for performance
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth <= 768);
+      }, 150);
+    };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   // Redirect to login if session expired (no user)
   useEffect(() => {
     if (!user && !authLoading) {
-      console.log('[QR Scanner] No user found - redirecting to login');
+      logger.debug('[QR Scanner] No user found - redirecting to login');
       navigate('/login');
     }
   }, [user, authLoading, navigate]);
-
-  // Debug: Track selectedStudentForAction changes
-  React.useEffect(() => {
-    console.log('selectedStudentForAction changed to:', selectedStudentForAction);
-  }, [selectedStudentForAction]);
 
   // Sidebar state
   const [activityRefresh, setActivityRefresh] = useState(null);
@@ -129,12 +135,12 @@ const InstructorQRScannerPage = () => {
     }
   };
 
-  // Trigger activity refresh when actions are performed
-  const triggerActivityRefresh = () => {
+  // Memoized trigger activity refresh
+  const triggerActivityRefresh = useCallback(() => {
     if (activityRefresh) {
       activityRefresh();
     }
-  };
+  }, [activityRefresh]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -142,6 +148,15 @@ const InstructorQRScannerPage = () => {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  // Debounce search query for performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Memoized options for dropdowns - following DashboardPage pattern
   const programOptions = useMemo(() => {
@@ -201,8 +216,9 @@ const InstructorQRScannerPage = () => {
 
   // Load programs on mount
   useEffect(() => {
-    console.log('[QR Scanner] Initializing page...');
+    logger.debug('[QR Scanner] Initializing page...');
     loadPrograms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load subjects when program changes
@@ -222,65 +238,40 @@ const InstructorQRScannerPage = () => {
 
   // Load classes when subject changes
   useEffect(() => {
-    console.log('[QR Scanner] useEffect for selectedSubjectId:', {
-      selectedSubjectId,
-      classesLength: classes.length,
-      shouldLoad: selectedSubjectId && selectedSubjectId !== 'all'
-    });
-    
     if (selectedSubjectId && selectedSubjectId !== 'all') {
       loadClasses(selectedSubjectId);
     } else {
-      console.log('[QR Scanner] Clearing classes (subject is all or empty)');
       setClasses([]);
       setSelectedClassId('all');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubjectId]);
 
   // Load students when class or date changes
   useEffect(() => {
-    console.log('[QR Scanner] useEffect for selectedClassId/date:', {
-      selectedClassId,
-      selectedDate,
-      studentsLength: students.length,
-      shouldLoad: selectedClassId && selectedClassId !== 'all'
-    });
-    
     if (selectedClassId && selectedClassId !== 'all') {
       loadStudents(selectedClassId, selectedDate);
     } else {
-      console.log('[QR Scanner] Clearing students (class is all or empty)');
       setStudents([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClassId, selectedDate]);
 
   // Load favorite behaviors when student changes
   useEffect(() => {
-    console.log('[QR Scanner] useEffect for selectedStudent:', {
-      selectedStudent,
-      studentId: selectedStudent?.id
-    });
-    
     if (selectedStudent?.id) {
-      // Load student's existing favorite behaviors
       const studentFavorites = selectedStudent.favoriteBehaviors || [];
       setFavoriteBehaviors(studentFavorites);
-      console.log('[QR Scanner] Loaded favorite behaviors for student:', studentFavorites);
     } else {
-      // Clear favorites when no student selected
       setFavoriteBehaviors([]);
-      console.log('[QR Scanner] Cleared favorite behaviors (no student selected)');
     }
   }, [selectedStudent?.id]);
 
   // Listen for real-time attendance updates
   useEffect(() => {
     const unsubscribe = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
-      console.log('[QR Scanner] Real-time attendance update received:', data);
-      
       // If the update is for the current class, refresh students
       if (data.classId === selectedClassId) {
-        console.log('[QR Scanner] Refreshing students due to attendance update');
         loadStudents(selectedClassId, selectedDate);
       }
     });
@@ -288,6 +279,7 @@ const InstructorQRScannerPage = () => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClassId, selectedDate]);
 
   const loadPrograms = async () => {
@@ -296,13 +288,13 @@ const InstructorQRScannerPage = () => {
       let programsData = programsResponse.success ? programsResponse.data : [];
 
       if (programsData.length === 0) {
-        console.warn('[QR Scanner] No programs found in database');
+        logger.warn('[QR Scanner] No programs found in database');
       }
 
       setPrograms(programsData);
       setInitialLoading(false);
     } catch (error) {
-      console.error('[QR Scanner] Error loading programs:', error);
+      logger.error('[QR Scanner] Error loading programs:', error);
       setPrograms([]);
       setError('Failed to load programs: ' + error.message);
       setInitialLoading(false);
@@ -322,7 +314,7 @@ const InstructorQRScannerPage = () => {
       setSubjects(subjectsData);
       setGridLoading(false);
     } catch (error) {
-      console.error('[QR Scanner] Error loading subjects:', error);
+      logger.error('[QR Scanner] Error loading subjects:', error);
       setSubjects([]);
       setGridLoading(false);
       setError('Failed to load subjects: ' + error.message);
@@ -357,40 +349,40 @@ const InstructorQRScannerPage = () => {
 
       setClasses(filteredClasses);
     } catch (error) {
-      console.error('[QR Scanner] Error loading classes:', error);
+      logger.error('[QR Scanner] Error loading classes:', error);
       setClasses([]);
       setError('Failed to load classes: ' + error.message);
     }
   };
 
-  const loadStudents = async (classId, date) => {
+  // Memoized loadStudents function for performance
+  const loadStudents = useCallback(async (classId, date) => {
     try {
-      console.log('[QR Scanner] Loading students for class:', classId, 'date:', date);
+      logger.debug('[QR Scanner] Loading students for class:', classId, 'date:', date);
       setLoading(true);
 
-      // Get enrollments for this class
-      const enrollmentsResponse = await getEnrollments();
+      // Parallel data fetching for better performance
+      const [enrollmentsResponse, usersResponse, penaltiesResponse] = await Promise.all([
+        getEnrollments(),
+        getUsers(),
+        getPenalties()
+      ]);
+
       const allEnrollments = enrollmentsResponse.success ? enrollmentsResponse.data : [];
-      console.log('[QR Scanner] All enrollments:', allEnrollments);
+      const allUsers = usersResponse.success ? usersResponse.data : [];
+      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       
-      let classEnrollments = allEnrollments.filter(e => e.classId === classId);
-      console.log('[QR Scanner] Class enrollments:', classEnrollments);
+      // Create Set for O(1) lookup performance
+      const classEnrollments = allEnrollments.filter(e => e.classId === classId);
+      const studentIdSet = new Set(classEnrollments.map(e => e.userId));
+      const studentUsers = allUsers.filter(u => 
+        studentIdSet.has(u.id) || studentIdSet.has(u.docId)
+      );
+      
       setEnrollments(classEnrollments);
 
-      // Get student data
-      const usersResponse = await getUsers();
-      const allUsers = usersResponse.success ? usersResponse.data : [];
-      console.log('[QR Scanner] All users:', allUsers);
-      
-      let studentIds = classEnrollments.map(e => e.userId);
-      console.log('[QR Scanner] Student IDs from enrollments:', studentIds);
-      
-      let studentUsers = allUsers.filter(u => studentIds.includes(u.id) || studentIds.includes(u.docId));
-      console.log('[QR Scanner] Found student users:', studentUsers);
-
-      // Always use real data - remove fallback
       if (studentUsers.length === 0) {
-        console.warn('[QR Scanner] No students found for this class');
+        logger.warn('[QR Scanner] No students found for this class');
       }
 
       // Get attendance for selected date
@@ -398,140 +390,127 @@ const InstructorQRScannerPage = () => {
       const dateStr = dateObj.toISOString().split('T')[0];
       const attendanceResponse = await getAttendanceByClass(classId, dateStr);
       const attendance = attendanceResponse.success ? attendanceResponse.data : [];
-      console.log('[QR Scanner] Attendance records:', attendance);
       setAttendanceRecords(attendance);
 
-      // Get penalties for these students
-      const penaltiesResponse = await getPenalties();
-      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-      console.log('[QR Scanner] All penalties data:', allPenalties);
-      console.log('[QR Scanner] Student IDs from enrollments:', studentIds);
-      const studentPenalties = allPenalties.filter(p => studentIds.includes(p.studentId));
-      console.log('[QR Scanner] Student penalties:', studentPenalties);
-      setPenaltyRecords(studentPenalties);
+      // Create penalty map for O(1) lookup
+      const penaltyMap = new Map();
+      allPenalties.forEach(p => {
+        if (studentIdSet.has(p.studentId)) {
+          const existing = penaltyMap.get(p.studentId) || [];
+          existing.push(p);
+          penaltyMap.set(p.studentId, existing);
+        }
+      });
+      setPenaltyRecords(Array.from(penaltyMap.values()).flat());
 
-      // Calculate totals and format data
-      console.log('[QR Scanner] Processing student data for', studentUsers.length, 'students');
+      // Process students in parallel batches for better performance
+      const BATCH_SIZE = 10;
+      const studentsWithData = [];
       
-      const studentsWithData = await Promise.all(studentUsers.map(async (student) => {
-        const studentId = student.id || student.docId;
-        const studentName = student.displayName || student.realName || student.name || student.email;
-        
-        console.log('[QR Scanner] Processing student:', studentName, 'ID:', studentId);
-        
-        // Find the primary attendance record (the one without a delta points value)
-        const studentRecords = attendance.filter(a => a.studentId === studentId);
-        const todayAttendance = studentRecords.find(a => !a.delta) || studentRecords[0];
-        
-        console.log('[QR Scanner] Looking for attendance for studentId:', studentId, 'found:', todayAttendance?.status);
-
-        // Fetch all attendance records for this student to calculate participation and behavior
-        const studentAttendanceResponse = await getAttendanceByStudent(studentId);
-        const studentAttendanceRecords = studentAttendanceResponse.success ? studentAttendanceResponse.data : [];
-        console.log('[QR Scanner] Student attendance records:', studentAttendanceRecords.length, 'for', studentName);
-
-        // Calculate totals from attendance records
-        let participationTotal = 0;
-        let behaviorTotal = 0;
-        let totalAttendanceCount = 0;
-        const studentParticipationHistory = [];
-        const studentBehaviorHistory = [];
-        
-        studentAttendanceRecords.forEach(record => {
-          if (record.delta) {
-            const historyItem = {
-              id: record.id,
-              date: record.date,
-              time: record.timestamp,
-              points: record.delta,
-              reason: record.notes || record.reason || '',
-              markedBy: record.markedBy,
-              category: record.category // Include category
-            };
-
-            // Use the explicit category if available, otherwise fallback to delta sign
-            const category = record.category || (record.delta > 0 ? 'participation' : 'behavior');
-
-            if (category === 'participation') {
-              participationTotal += record.delta;
-              studentParticipationHistory.push(historyItem);
-            } else if (category === 'behavior') {
-              behaviorTotal += record.delta; // can be positive or negative
-              studentBehaviorHistory.push(historyItem);
-            }
-          }
+      for (let i = 0; i < studentUsers.length; i += BATCH_SIZE) {
+        const batch = studentUsers.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(batch.map(async (student) => {
+          const studentId = student.id || student.docId;
+          const studentName = student.displayName || student.realName || student.name || student.email;
           
-          // Count present and late attendance for total attendance
-          if (record.status === 'present' || record.status === 'late') {
-            totalAttendanceCount++;
-          }
-        });
+          // Find the primary attendance record
+          const studentRecords = attendance.filter(a => a.studentId === studentId);
+          const todayAttendance = studentRecords.find(a => !a.delta) || studentRecords[0];
 
-        console.log('[QR Scanner] Calculated participation:', participationTotal, 'behavior:', behaviorTotal, 'for', studentName);
+          // Fetch all attendance records for this student
+          const studentAttendanceResponse = await getAttendanceByStudent(studentId);
+          const studentAttendanceRecords = studentAttendanceResponse.success ? studentAttendanceResponse.data : [];
 
-        // Calculate total penalty (all time) - use docId for matching
-        const penalties = studentPenalties.filter(p => p.studentId === studentId);
-        const penaltyTotal = penalties.reduce((sum, p) => {
-          const pPoints = p.points;
-          if (pPoints !== null && pPoints !== undefined && pPoints !== '' && !isNaN(pPoints)) {
-            return sum + Number(pPoints);
-          }
-          return sum;
-        }, 0);
+          // Calculate totals efficiently
+          let participationTotal = 0;
+          let behaviorTotal = 0;
+          let totalAttendanceCount = 0;
+          const studentParticipationHistory = [];
+          const studentBehaviorHistory = [];
+          
+          studentAttendanceRecords.forEach(record => {
+            if (record.delta) {
+              const category = record.category || (record.delta > 0 ? 'participation' : 'behavior');
+              const historyItem = {
+                id: record.id,
+                date: record.date,
+                time: record.timestamp,
+                points: record.delta,
+                reason: record.notes || record.reason || '',
+                markedBy: record.markedBy,
+                category
+              };
+
+              if (category === 'participation') {
+                participationTotal += record.delta;
+                studentParticipationHistory.push(historyItem);
+              } else if (category === 'behavior') {
+                behaviorTotal += record.delta;
+                studentBehaviorHistory.push(historyItem);
+              }
+            }
+            
+            if (record.status === 'present' || record.status === 'late') {
+              totalAttendanceCount++;
+            }
+          });
+
+          // Get penalties from map
+          const penalties = penaltyMap.get(studentId) || [];
+          const penaltyTotal = penalties.reduce((sum, p) => {
+            const pPoints = p.points;
+            if (pPoints !== null && pPoints !== undefined && pPoints !== '' && !isNaN(pPoints)) {
+              return sum + Number(pPoints);
+            }
+            return sum;
+          }, 0);
+
+          return {
+            id: studentId,
+            docId: student.docId,
+            studentId: student.studentId || studentId,
+            studentNumber: student.studentNumber,
+            name: studentName,
+            email: student.email,
+            attendance: todayAttendance?.status || 'absent_no_excuse',
+            participation: participationTotal,
+            behavior: behaviorTotal,
+            penalty: penaltyTotal,
+            totalAttendance: totalAttendanceCount,
+            isPinned: student.isPinned || false,
+            behaviorHistory: studentBehaviorHistory,
+            participationHistory: studentParticipationHistory,
+            penaltyHistory: penalties
+          };
+        }));
         
-        console.log('[QR Scanner] Student penalties:', penalties.length, 'records, total:', penaltyTotal, 'for', studentName);
+        studentsWithData.push(...batchResults);
+      }
 
-        const studentData = {
-          id: studentId,
-          docId: student.docId,
-          studentId: student.studentId || studentId,
-          studentNumber: student.studentNumber,
-          name: studentName,
-          email: student.email,
-          attendance: todayAttendance?.status || 'absent_no_excuse',
-          participation: participationTotal,
-          behavior: behaviorTotal,
-          penalty: penaltyTotal,
-          totalAttendance: totalAttendanceCount,
-          isPinned: student.isPinned || false,
-          behaviorHistory: studentBehaviorHistory,
-          participationHistory: studentParticipationHistory,
-          penaltyHistory: penalties || []
-        };
-        
-        return studentData;
-      }));
-
-      console.log('[QR Scanner] Students loaded:', studentsWithData);
       setStudents(studentsWithData);
     } catch (error) {
-      console.error('[QR Scanner] Error loading students:', error);
-      // Use fallback data even on error
-      const fallbackStudents = [
-        { id: 'student1', studentId: 'student1', name: 'John Smith', email: 'john@example.com', attendance: 'present', participation: 10, behavior: 5, penalty: 0, totalAttendance: 15 },
-        { id: 'student2', studentId: 'student2', name: 'Jane Doe', email: 'jane@example.com', attendance: 'present', participation: 8, behavior: 7, penalty: 0, totalAttendance: 12 }
-      ];
-      setStudents(fallbackStudents);
-      setError('Using sample data - Firebase connection issue: ' + error.message);
+      logger.error('[QR Scanner] Error loading students:', error);
+      setStudents([]);
+      setError('Failed to load students: ' + error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleScan = (studentId) => {
+  const handleScan = useCallback((studentId) => {
     const student = students.find(s => s.studentId === studentId || s.id === studentId);
     if (student) {
       setSelectedStudent(student);
       // Auto-mark as present
       handleMarkAttendance(student.id, 'present');
     }
-  };
+  }, [students]);
 
-  const handleStudentSelect = (student) => {
+  const handleStudentSelect = useCallback((student) => {
     setSelectedStudent(student);
-  };
+  }, []);
 
-  const handleMarkAttendance = async (studentId, status, notes = '') => {
+  const handleMarkAttendance = useCallback(async (studentId, status, notes = '') => {
     try {
       // Ensure selectedDate is a string in yyyy-MM-dd format
       const dateStr = typeof selectedDate === 'string' ? selectedDate : selectedDate.toISOString().split('T')[0];
@@ -604,11 +583,11 @@ const InstructorQRScannerPage = () => {
         }
       }
     } catch (error) {
-      console.error('Error marking attendance:', error);
+      logger.error('Error marking attendance:', error);
     }
-  };
+  }, [selectedClassId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
-  const handleBehaviorSubmit = async (studentId, actions, note, pointsOverride = {}) => {
+  const handleBehaviorSubmit = useCallback(async (studentId, actions, note, pointsOverride = {}) => {
     try {
       // Handle participation
       const participationActions = actions.filter(a =>
@@ -682,7 +661,7 @@ const InstructorQRScannerPage = () => {
               });
             }
           } catch (e) {
-            console.error(`Error saving to ${action.category} collection:`, e);
+            logger.error(`Error saving to ${action.category} collection:`, e);
           }
         }
       }
@@ -786,24 +765,24 @@ const InstructorQRScannerPage = () => {
         }
       }
     } catch (error) {
-      console.error('Error submitting behavior:', error);
+      logger.error('Error submitting behavior:', error);
     }
-  };
+  }, [selectedClassId, selectedSubjectId, selectedDate, user?.uid, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
-  const handleTogglePin = async (studentId) => {
+  const handleTogglePin = useCallback((studentId) => {
     // TODO: Implement pin/unpin in Firebase
     setStudents(prevStudents =>
       prevStudents.map(s =>
         s.id === studentId ? { ...s, isPinned: !s.isPinned } : s
       )
     );
-  };
+  }, []);
 
-  const handleClosePanel = () => {
+  const handleClosePanel = useCallback(() => {
     setSelectedStudent(null);
-  };
+  }, []);
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(() => {
     try {
       // Get current class and subject info for filename
       const currentClass = classes.find(c => (c.id || c.docId) === selectedClassId);
@@ -826,7 +805,7 @@ const InstructorQRScannerPage = () => {
       ];
       const csvContent = [
         headers.join(','),
-        ...displayedStudents.map(student => [
+        ...students.map(student => [
           `STU-${student.studentNumber || student.id?.slice(-4) || '0000'}`,
           `"${student.name || 'Unknown'}"`,
           student.email || '',
@@ -851,110 +830,46 @@ const InstructorQRScannerPage = () => {
       link.click();
       document.body.removeChild(link);
       
-      console.log('CSV downloaded successfully');
+      logger.debug('CSV downloaded successfully');
     } catch (error) {
-      console.error('Error downloading CSV:', error);
+      logger.error('Error downloading CSV:', error);
       alert('Failed to download CSV. Please try again.');
     }
-  };
+  }, [students, classes, subjects, selectedClassId, selectedSubjectId, selectedDate, t]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     // Reload students data
     if (selectedClassId && selectedClassId !== 'all') {
       loadStudents(selectedClassId, selectedDate);
     }
     // Trigger activity refresh
     triggerActivityRefresh();
-  };
+  }, [selectedClassId, selectedDate, loadStudents, triggerActivityRefresh]);
 
-  const handleFilter = () => {
+  const handleFilter = useCallback(() => {
     setShowFilterDialog(true);
-  };
+  }, []);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     setShowFilterDialog(false);
-    // The filtering will be applied in getFilteredAndSortedStudents
-  };
+    // The filtering will be applied in useMemo
+  }, []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setAttendanceFilter('all');
     setParticipationMin('');
     setParticipationMax('');
     setPenaltyFilter('all');
     setShowFilterDialog(false);
-  };
+  }, []);
 
-  const handleStudentAction = (student) => {
-    console.log('Lightning button clicked!', student);
-    console.log('Previous selectedStudentForAction:', selectedStudentForAction);
+  const handleStudentAction = useCallback((student) => {
     setSelectedStudentForAction(student);
-    console.log('After setSelectedStudentForAction, should be:', student);
-  };
+  }, []);
 
-  const handleCloseActionPanel = () => {
-    console.log('Closing action panel');
+  const handleCloseActionPanel = useCallback(() => {
     setSelectedStudentForAction(null);
-  };
-
-  // Filter and sort students
-  const getFilteredAndSortedStudents = () => {
-    let filtered = [...students];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(s =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Attendance filter
-    if (attendanceFilter !== 'all') {
-      filtered = filtered.filter(s => s.attendance === attendanceFilter);
-    }
-
-    // Participation range filter
-    if (participationMin !== '') {
-      filtered = filtered.filter(s => s.participation >= parseInt(participationMin));
-    }
-    if (participationMax !== '') {
-      filtered = filtered.filter(s => s.participation <= parseInt(participationMax));
-    }
-
-    // Penalty filter
-    if (penaltyFilter === 'none') {
-      filtered = filtered.filter(s => s.penalty === 0);
-    } else if (penaltyFilter === 'hasPenalty') {
-      filtered = filtered.filter(s => s.penalty > 0);
-    }
-
-    // Sort
-    filtered.sort((a, b) => {
-      let aVal = a[sortField];
-      let bVal = b[sortField];
-
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
-      }
-
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    // Pagination
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-
-    return {
-      students: filtered.slice(start, end),
-      total: filtered.length
-    };
-  };
-
-  const { students: displayedStudents, total } = getFilteredAndSortedStudents();
-  const totalPages = Math.ceil(total / pageSize);
+  }, []);
 
   // Show loading while auth is initializing
   if (authLoading) {
@@ -1352,7 +1267,7 @@ const InstructorQRScannerPage = () => {
               </div> */}
               
               <StudentRoster
-              students={displayedStudents}
+              students={students}
               onStudentSelect={handleStudentSelect}
               selectedStudentId={selectedStudent?.id}
               onTogglePin={handleTogglePin}
@@ -1364,17 +1279,17 @@ const InstructorQRScannerPage = () => {
               onSearchChange={setSearchQuery}
               sortField={sortField}
               sortDirection={sortDirection}
-              onSort={(field) => {
+              onSort={useCallback((field) => {
                 if (sortField === field) {
                   setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
                 } else {
                   setSortField(field);
                   setSortDirection('asc');
                 }
-              }}
+              }, [sortField, sortDirection])}
               currentPage={currentPage}
               totalPages={totalPages}
-              onPageChange={setCurrentPage}
+              onPageChange={useCallback((page) => setCurrentPage(page), [])}
               totalStudents={total}
               selectedProgramId={selectedProgramId}
               selectedSubjectId={selectedSubjectId}
@@ -1591,8 +1506,6 @@ const InstructorQRScannerPage = () => {
                     padding: '0.5rem 1rem',
                     border: '1px solid var(--border, #d1d5db)',
                     background: 'var(--input-bg, white)',
-                    color: 'var(--text, #111827)',
-                    background: 'white',
                     color: 'var(--text-muted, #6b7280)',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
@@ -1607,8 +1520,6 @@ const InstructorQRScannerPage = () => {
                     padding: '0.5rem 1rem',
                     border: '1px solid var(--border, #d1d5db)',
                     background: 'var(--input-bg, white)',
-                    color: 'var(--text, #111827)',
-                    background: 'white',
                     color: 'var(--text-muted, #6b7280)',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
