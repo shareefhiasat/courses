@@ -17,9 +17,12 @@
     "deploy:firestore": "firebase deploy --only firestore",
     "deploy:all": "npm run build && firebase deploy --only hosting,functions,firestore",
     "test": "cd client && npm run lint",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.js",
+    "test:e2e:ui": "playwright test --config=tests/e2e/playwright.config.js --ui",
+    "test:e2e:headed": "playwright test --config=tests/e2e/playwright.config.js --headed",
+    "test:e2e:debug": "playwright test --config=tests/e2e/playwright.config.js --debug",
+    "test:e2e:smoke": "playwright test --config=tests/e2e/playwright.config.js --grep @smoke",
+    "test:e2e:report": "playwright show-report",
     "lint": "cd client && npm run lint",
     "lint:fix": "cd client && npm run lint -- --fix"
   },
@@ -32,6 +35,7 @@
   "author": "CS Learning Hub Team",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "cross-env": "^7.0.3"
   },
   "dependencies": {
