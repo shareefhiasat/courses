@@ -42,11 +42,11 @@ import ReviewResultsPage from './pages/ReviewResultsPage';
 import ProgramsManagementPage from './pages/ProgramsManagementPage';
 import SubjectsManagementPage from './pages/SubjectsManagementPage';
 import ScheduledReportsPage from './pages/ScheduledReportsPage';
+import AdvancedAnalytics from './components/AdvancedAnalytics';
 import FancyLoading from './components/ui/FancyLoading/FancyLoading';
 
 // Lazy loaded heavy components
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
-const AdvancedAnalytics = lazy(() => import('./components/AdvancedAnalytics'));
 const MarksEntryPage = lazy(() => import('./pages/MarksEntryPage'));
 import './App.css';
 import './styles/colors.css';
@@ -121,6 +121,7 @@ const AppContent = () => {
           <Route path="/role-access-pro" element={<RoleAccessPro />} />
           {/* Redirect old student-profile to new unified dashboard */}
           <Route path="/student-profile" element={<StudentProfilePage />} />
+          <Route path="/student-dashboard" element={<StudentDashboardPage />} />
           <Route path="/my-enrollments" element={<MyEnrollmentsPage />} />
           <Route path="/course-progress/:courseId" element={<CourseProgressDetailPage />} />
           <Route path="/quizzes" element={<QuizzesPage />} />
