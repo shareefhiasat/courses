@@ -179,12 +179,14 @@ export async function markAttendance({
     let isUpdate = false;
     let oldStatus = null;
     let statusChanged = false;
+    let existingHistory = [];
 
     if (delta === null) {
       const existingDoc = await getDoc(docRef);
       isUpdate = existingDoc.exists();
       oldStatus = existingDoc.exists() ? existingDoc.data().status : null;
       statusChanged = isUpdate && oldStatus !== status;
+      existingHistory = existingDoc.exists() ? (existingDoc.data().history || []) : [];
     }
     
     await setDoc(docRef, {
@@ -202,7 +204,7 @@ export async function markAttendance({
       ...(category !== null && { category }),
       // Track history of changes
       ...(statusChanged ? {
-        history: [...(existingDoc.data().history || []), {
+        history: [...existingHistory, {
           from: oldStatus,
           to: status,
           changedBy: markedBy,

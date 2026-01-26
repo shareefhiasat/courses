@@ -3,13 +3,19 @@ import logger from '../../utils/logger';
 import { Button } from './ui/button';
 import jsQR from 'jsqr';
 import { getAttendanceByClass } from '../../firebase/attendance';
+import { markAttendance } from '../../firebase/attendance';
 import { getPenalties } from '../../firebase/penalties';
+import { createPenalty } from '../../firebase/penalties';
 import { getUsers } from '../../firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LangContext';
 import { useToast } from '../ui/Toast';
 import { RefreshCw } from 'lucide-react';
+import StudentActionPanel from './StudentActionPanel';
+import StudentActionPanelNew from './StudentActionPanelNew';
 
 const QrCodeIcon = ({ className }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -36,7 +42,7 @@ const AttendanceIcon = ({ style }) => (
   </svg>
 );
 
-export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { addToast } = useToast();
@@ -51,6 +57,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [expandedActivities, setExpandedActivities] = useState(new Set());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
+  const [lastScannedStudent, setLastScannedStudent] = useState(null);
+  const [showScanDialog, setShowScanDialog] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebugBox, setShowDebugBox] = useState(false);
+  const [isScanningLocked, setIsScanningLocked] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultModalData, setResultModalData] = useState({ type: '', message: '' });
+  const [showStudentActionPanel, setShowStudentActionPanel] = useState(false);
+  const [showStudentActionPanelNew, setShowStudentActionPanelNew] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [studentForAction, setStudentForAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [currentAction, setCurrentAction] = useState(null);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualStudentId, setManualStudentId] = useState('');
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -160,6 +181,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+    
+    addDebugLog('🛑 Camera stopped and cleaned up', 'info');
   };
 
   const scanQRCode = () => {
@@ -183,10 +206,28 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   };
 
+  // Debug logging function
+  const addDebugLog = useCallback((message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = {
+      timestamp,
+      message,
+      type,
+      id: Date.now() + Math.random()
+    };
+    setDebugLogs(prev => [logEntry, ...prev].slice(0, 50)); // Keep last 50 logs
+    console.log(`[${timestamp}] ${message}`);
+  }, []);
+
+  // Show result modal function
+  const showResult = useCallback((type, message) => {
+    setResultModalData({ type, message });
+    setShowResultModal(true);
+    addDebugLog(`📢 Showing result modal: ${type} - ${message}`, 'info');
+  }, [addDebugLog]);
+
   // Play feedback sound and vibration
   const playFeedbackSound = useCallback((type) => {
-    if (!soundEnabled && !vibrationEnabled) return;
-    
     try {
       // Vibration for error only (as requested)
       if (type === 'error' && vibrationEnabled && navigator.vibrate) {
@@ -222,19 +263,26 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       }
       
-      // Show toast notification
-      const message = type === 'success' 
-        ? (t('qr_scan_success') || 'QR Code scanned successfully!')
-        : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
-      
-      addToast(message, type);
+      // Don't show toast notification - using modal system instead
+      // const message = type === 'success' 
+      //   ? (t('qr_scan_success') || 'QR Code scanned successfully!')
+      //   : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
+      // 
+      // addToast(message, type);
     } catch (error) {
       console.warn('Could not play feedback sound:', error);
     }
   }, [soundEnabled, vibrationEnabled, t, addToast]);
 
-  const handleQRCodeDetected = (data) => {
-    // console.log('QR Code detected:', data);
+  const handleQRCodeDetected = async (data) => {
+    // Prevent infinite scanning - lock scanning for 3 seconds
+    if (isScanningLocked) {
+      addDebugLog('🔒 Scanning locked - ignoring duplicate scan', 'warning');
+      return;
+    }
+    
+    setIsScanningLocked(true);
+    addDebugLog(`🔍 QR Code scanned: ${data}`, 'success');
     
     // Play success feedback
     playFeedbackSound('success');
@@ -242,7 +290,43 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     onScan(data);
     setRecentScans(prev => prev + 1);
     
-    // Stop camera briefly then restart for continuous scanning
+    // Parse QR data to get student info
+    let studentInfo = null;
+    try {
+      if (typeof data === 'string') {
+        if (data.startsWith('STU-')) {
+          // Reference ID format
+          studentInfo = { referenceId: data };
+        } else if (data.includes('/qr/student/')) {
+          // URL format like https://localhost:5174/qr/student/STU-JLHXQ2
+          const urlParts = data.split('/qr/student/');
+          if (urlParts.length > 1) {
+            const studentId = urlParts[1].split('?')[0]; // Remove query params if any
+            studentInfo = { referenceId: studentId };
+          }
+        } else {
+          // Try to parse as JSON
+          const parsed = JSON.parse(data);
+          studentInfo = parsed;
+        }
+      } else {
+        studentInfo = data;
+      }
+    } catch (error) {
+      addDebugLog(`❌ Error parsing QR data: ${error.message}`, 'error');
+      addToast('Invalid QR code format', 'error');
+      setIsScanningLocked(false);
+      return;
+    }
+    
+    addDebugLog(`👤 Student info parsed: ${JSON.stringify(studentInfo)}`, 'info');
+    setLastScannedStudent(studentInfo);
+    
+    // Always use semi-auto mode - show dialog to choose action
+    addDebugLog('🔄 Semi-auto mode: Showing action dialog', 'info');
+    setShowScanDialog(true);
+    
+    // Stop camera after scan - user will manually restart
     stopCamera();
     setTimeout(() => {
       if (videoRef.current && canvasRef.current) {
@@ -250,15 +334,51 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         videoRef.current.srcObject = null;
       }
     }, 100);
+    
+    // Unlock scanning immediately for next manual scan
+    setIsScanningLocked(false);
+    addDebugLog('🔓 Scanning unlocked - ready for next manual scan', 'info');
   };
 
-  const toggleCamera = () => {
+  const toggleCamera = useCallback(() => {
     if (isScanning) {
       stopCamera();
     } else {
+      // Validate that program, subject, and class are selected
+      if (!selectedProgramId || selectedProgramId === 'all' || 
+          !selectedSubjectId || selectedSubjectId === 'all' || 
+          !selectedClassId || selectedClassId === 'all') {
+        showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+        return;
+      }
+      
       startCamera();
     }
-  };
+  }, [selectedProgramId, selectedSubjectId, selectedClassId, t]);
+
+  const handleManualSubmit = useCallback(() => {
+    if (!manualStudentId.trim()) return;
+    
+    const studentInfo = { referenceId: manualStudentId.trim() };
+    setLastScannedStudent(studentInfo);
+    setShowScanDialog(true);
+    setShowManualInput(false);
+    setManualStudentId('');
+    
+    addDebugLog(`📝 Manual student ID entered: ${manualStudentId.trim()}`, 'info');
+    playFeedbackSound('success');
+  }, [manualStudentId, addDebugLog, playFeedbackSound]);
+
+  const findStudentData = useCallback(async (referenceId) => {
+    try {
+      const students = await getUsers();
+      const student = students.find(s => s.referenceId === referenceId);
+      return student;
+    } catch (error) {
+      addDebugLog(`❌ Error finding student data: ${error.message}`, 'error');
+      return null;
+    }
+  }, [addDebugLog]);
 
   const switchCameraMode = () => {
     const newMode = cameraMode === 'environment' ? 'user' : 'environment';
@@ -760,15 +880,30 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           borderRadius: '0.5rem',
           border: '1px solid var(--border, #e5e7eb)'
         }}>
-          <h4 style={{
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: '#111827',
-            margin: 0
-          }}>
-            {t('scanner_settings') || 'Scanner Settings'}
-          </h4>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setVibrationEnabled(!vibrationEnabled)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: vibrationEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
+                color: vibrationEnabled ? 'white' : 'var(--text, #111827)',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M2 8v8l2-2m0 0l2 2m-2-2v6m14-10v8l-2-2m0 0l-2 2m2-2v6m-8-10v6l-2-2m0 0l-2 2m2-2v6"/>
+              </svg>
+            </button>
+            
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               style={{
@@ -791,11 +926,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
               </svg>
-              {t('sound') || 'Sound'}
             </button>
             
             <button
-              onClick={() => setVibrationEnabled(!vibrationEnabled)}
+              onClick={() => setShowDebugBox(!showDebugBox)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -803,23 +937,46 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 padding: '0.5rem 0.75rem',
                 borderRadius: '0.375rem',
                 border: '1px solid var(--border, #e5e7eb)',
-                background: vibrationEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
-                color: vibrationEnabled ? 'white' : 'var(--text, #111827)',
+                background: showDebugBox ? '#ef4444' : 'white',
+                color: showDebugBox ? 'white' : 'var(--text, #111827)',
                 fontSize: '0.75rem',
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
-              title={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')}
+              title="Toggle debug console"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M10 2v2.5"></path>
-                <path d="M14 2v2.5"></path>
-                <path d="M16.5 13.5L12 21l-4.5-7.5"></path>
-                <path d="M12 21V8.5"></path>
-                <path d="M8 8.5L12 2l4 6.5"></path>
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
               </svg>
-              {t('vibration') || 'Vibration'}
+            </button>
+            
+            <button
+              onClick={() => setShowManualInput(!showManualInput)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: showManualInput ? '#3b82f6' : 'white',
+                color: showManualInput ? 'white' : 'var(--text, #111827)',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title="Manual student ID input"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+              </svg>
             </button>
           </div>
         </div>
@@ -979,11 +1136,29 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       paddingLeft: '3.5rem',
                       paddingTop: '0.5rem',
                       fontSize: '0.75rem',
-                      color: '#6b7280'
+                      color: '#6b7280',
+                      display: isMobile ? 'flex' : 'block',
+                      flexDirection: isMobile ? 'column' : 'none',
+                      gap: isMobile ? '0.25rem' : '0'
                     }}>
                       <div style={{ marginBottom: '0.25rem' }}>
                         <strong>{t('date') || 'Date'}:</strong> {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')} {activity.time?.toDate ? activity.time.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (activity.time instanceof Date ? activity.time.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : activity.time || '')}
                       </div>
+                      {activity.program && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>{t('program') || 'Program'}:</strong> {activity.program}
+                        </div>
+                      )}
+                      {activity.subject && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>{t('subject') || 'Subject'}:</strong> {activity.subject}
+                        </div>
+                      )}
+                      {activity.class && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>{t('class') || 'Class'}:</strong> {activity.class}
+                        </div>
+                      )}
                       <div style={{ marginBottom: '0.25rem' }}>
                         <strong>{t('method') || 'Method'}:</strong> {getScanMethodDisplay(activity.scanMethod).text}
                       </div>
@@ -1016,6 +1191,806 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           </button>
         )}
       </div>
+      
+      {/* Scan Action Dialog */}
+      {showScanDialog && lastScannedStudent && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '0.5rem',
+            padding: '1.5rem',
+            maxWidth: '400px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: '#111827',
+              margin: '0 0 1rem 0'
+            }}>
+              {t('choose_action') || 'Choose Action'}
+            </h3>
+            
+            <div style={{
+              marginBottom: '1rem',
+              padding: '0.75rem',
+              background: '#f9fafb',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              color: '#6b7280'
+            }}>
+              <strong>{t('scanned_student') || 'Scanned Student'}:</strong>
+              <br />
+              {lastScannedStudent.referenceId || lastScannedStudent.email || JSON.stringify(lastScannedStudent)}
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem'
+            }}>
+              <button
+                onClick={async () => {
+                  console.log('✅ Mark as present');
+                  addDebugLog('✅ Marking student as present', 'success');
+                  
+                  setActionLoading(true);
+                  setCurrentAction('present');
+                  
+                  try {
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    // Check if already marked present today
+                    const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
+                    if (existingDoc.exists() && existingDoc.data().status === 'present') {
+                      showResult('info', 'Student is already marked as present today.');
+                      return;
+                    }
+                    
+                    const result = await markAttendance({
+                      classId,
+                      studentId: lastScannedStudent.referenceId,
+                      date: today,
+                      status: 'present',
+                      markedBy: user.uid,
+                      method: 'qr_scan',
+                      notes: 'Marked present via QR scan'
+                    });
+                    
+                    if (result.success) {
+                      setShowScanDialog(false);
+                      showResult('success', 'Student marked as present successfully!');
+                      
+                      // Trigger activity update
+                      if (onActivityUpdate) {
+                        onActivityUpdate();
+                      }
+                    } else {
+                      showResult('error', result.error || 'Failed to mark attendance');
+                    }
+                  } catch (error) {
+                    addDebugLog(`❌ Error marking attendance: ${error.message}`, 'error');
+                    showResult('error', `Failed to mark attendance: ${error.message}`);
+                  } finally {
+                    setActionLoading(false);
+                    setCurrentAction(null);
+                  }
+                }}
+                disabled={actionLoading}
+                style={{
+                  padding: '0.75rem',
+                  border: 'none',
+                  background: actionLoading && currentAction === 'present' ? '#94a3b8' : '#16a34a',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: actionLoading ? 0.7 : 1
+                }}
+              >
+                {actionLoading && currentAction === 'present' ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    {t('processing') || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 6L9 17l-5-5"/>
+                    </svg>
+                    {t('mark_present') || 'Mark Present'}
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={async () => {
+                  console.log('📝 Open behavior actions');
+                  addDebugLog('📝 Opening behavior actions', 'info');
+                  
+                  setActionLoading(true);
+                  setCurrentAction('behavior');
+                  
+                  try {
+                    const studentData = await findStudentData(lastScannedStudent.referenceId);
+                    if (studentData) {
+                      setStudentForAction(studentData);
+                      setShowStudentActionPanelNew(true);
+                      setShowScanDialog(false);
+                      addDebugLog(`✅ Found student for behavior: ${studentData.name || studentData.email}`, 'success');
+                    } else {
+                      showResult('error', 'Student not found with this reference ID');
+                    }
+                  } catch (error) {
+                    addDebugLog(`❌ Error opening behavior actions: ${error.message}`, 'error');
+                    showResult('error', `Failed to open behavior actions: ${error.message}`);
+                  } finally {
+                    setActionLoading(false);
+                    setCurrentAction(null);
+                  }
+                }}
+                disabled={actionLoading}
+                style={{
+                  padding: '0.75rem',
+                  border: 'none',
+                  background: actionLoading && currentAction === 'behavior' ? '#94a3b8' : '#f59e0b',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: actionLoading ? 0.7 : 1
+                }}
+              >
+                {actionLoading && currentAction === 'behavior' ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    {t('processing') || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    {t('behavior') || 'Behavior'}
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={async () => {
+                  console.log('⚖️ Open penalty actions');
+                  addDebugLog('⚖️ Opening penalty actions', 'info');
+                  
+                  setActionLoading(true);
+                  setCurrentAction('penalty');
+                  
+                  try {
+                    const studentData = await findStudentData(lastScannedStudent.referenceId);
+                    if (studentData) {
+                      setStudentForAction(studentData);
+                      setShowStudentActionPanelNew(true);
+                      setShowScanDialog(false);
+                      addDebugLog(`✅ Found student for penalty: ${studentData.name || studentData.email}`, 'success');
+                    } else {
+                      showResult('error', 'Student not found with this reference ID');
+                    }
+                  } catch (error) {
+                    addDebugLog(`❌ Error opening penalty actions: ${error.message}`, 'error');
+                    showResult('error', `Failed to open penalty actions: ${error.message}`);
+                  } finally {
+                    setActionLoading(false);
+                    setCurrentAction(null);
+                  }
+                }}
+                disabled={actionLoading}
+                style={{
+                  padding: '0.75rem',
+                  border: 'none',
+                  background: actionLoading && currentAction === 'penalty' ? '#94a3b8' : '#dc2626',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: actionLoading ? 0.7 : 1
+                }}
+              >
+                {actionLoading && currentAction === 'penalty' ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    {t('processing') || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                      <path d="M12 8v4"/>
+                      <path d="M12 16h.01"/>
+                    </svg>
+                    {t('penalty') || 'Penalty'}
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={async () => {
+                  console.log('⏰ Mark as late');
+                  addDebugLog('⏰ Marking student as late', 'info');
+                  
+                  setActionLoading(true);
+                  setCurrentAction('late');
+                  try {
+                    const today = new Date().toISOString().split('T')[0];
+                    const result = await markAttendance({
+                      classId,
+                      studentId: lastScannedStudent.referenceId,
+                      date: today,
+                      status: 'late',
+                      markedBy: user.uid,
+                      method: 'qr_scan',
+                      notes: 'Marked late via QR scan'
+                    });
+                    
+                    if (result.success) {
+                      setShowScanDialog(false);
+                      showResult('late', 'Student marked as late successfully!');
+                      
+                      // Trigger activity update
+                      if (onActivityUpdate) {
+                        onActivityUpdate();
+                      }
+                    } else {
+                      showResult('error', result.error || 'Failed to mark late');
+                    }
+                  } catch (error) {
+                    addDebugLog(`❌ Error marking late: ${error.message}`, 'error');
+                    showResult('error', `Failed to mark late: ${error.message}`);
+                  } finally {
+                    setActionLoading(false);
+                    setCurrentAction(null);
+                  }
+                }}
+                disabled={actionLoading}
+                style={{
+                  padding: '0.75rem',
+                  border: 'none',
+                  background: actionLoading && currentAction === 'late' ? '#94a3b8' : '#eab308',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: actionLoading ? 0.7 : 1
+                }}
+              >
+                {actionLoading && currentAction === 'late' ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    {t('processing') || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    {t('late') || 'Late'}
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={async () => {
+                  console.log('👥 Open participation actions');
+                  addDebugLog('👥 Opening participation actions', 'info');
+                  
+                  setActionLoading(true);
+                  setCurrentAction('participation');
+                  
+                  try {
+                    const studentData = await findStudentData(lastScannedStudent.referenceId);
+                    if (studentData) {
+                      setStudentForAction(studentData);
+                      setShowStudentActionPanelNew(true);
+                      setShowScanDialog(false);
+                      addDebugLog(`✅ Found student for participation: ${studentData.name || studentData.email}`, 'success');
+                    } else {
+                      showResult('error', 'Student not found with this reference ID');
+                    }
+                  } catch (error) {
+                    addDebugLog(`❌ Error opening participation actions: ${error.message}`, 'error');
+                    showResult('error', `Failed to open participation actions: ${error.message}`);
+                  } finally {
+                    setActionLoading(false);
+                    setCurrentAction(null);
+                  }
+                }}
+                disabled={actionLoading}
+                style={{
+                  padding: '0.75rem',
+                  border: 'none',
+                  background: actionLoading && currentAction === 'participation' ? '#94a3b8' : '#3b82f6',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: actionLoading ? 0.7 : 1
+                }}
+              >
+                {actionLoading && currentAction === 'participation' ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    {t('processing') || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="m22 21-3-3 3-3"/>
+                      <path d="M16 8h6"/>
+                    </svg>
+                    {t('participation') || 'Participation'}
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={async () => {
+                  console.log('👤 Open student details');
+                  addDebugLog('👤 Opening student details', 'info');
+                  
+                  setActionLoading(true);
+                  setCurrentAction('details');
+                  
+                  try {
+                    const studentData = await findStudentData(lastScannedStudent.referenceId);
+                    if (studentData) {
+                      setStudentForAction(studentData);
+                      setShowStudentActionPanel(true);
+                      setShowScanDialog(false);
+                      addDebugLog(`✅ Found student: ${studentData.name || studentData.email}`, 'success');
+                    } else {
+                      showResult('error', 'Student not found with this reference ID');
+                    }
+                  } catch (error) {
+                    addDebugLog(`❌ Error opening student details: ${error.message}`, 'error');
+                    showResult('error', `Failed to open student details: ${error.message}`);
+                  } finally {
+                    setActionLoading(false);
+                    setCurrentAction(null);
+                  }
+                }}
+                disabled={actionLoading}
+                style={{
+                  padding: '0.75rem',
+                  border: 'none',
+                  background: actionLoading && currentAction === 'details' ? '#94a3b8' : '#6b7280',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: actionLoading ? 0.7 : 1
+                }}
+              >
+                {actionLoading && currentAction === 'details' ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    {t('processing') || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="m22 21-3-3 3-3"/>
+                      <path d="M16 8h6"/>
+                    </svg>
+                    {t('student_details') || 'Student Details'}
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log('❌ Cancel scan action');
+                  setShowScanDialog(false);
+                }}
+                style={{
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  background: 'white',
+                  color: '#6b7280',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                {t('cancel') || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Debug Log Box */}
+      {showDebugBox && (
+        <div style={{
+          position: 'fixed',
+          bottom: '1rem',
+          right: '1rem',
+          width: isMobile ? '90vw' : '400px',
+          height: '300px',
+          background: '#1a1a1a',
+          border: '1px solid #333',
+          borderRadius: '0.5rem',
+          zIndex: 1001,
+          display: 'flex',
+          flexDirection: 'column',
+          fontFamily: 'monospace',
+          fontSize: '0.75rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '0.5rem',
+            background: '#333',
+            borderBottom: '1px solid #444',
+            color: 'white'
+          }}>
+            <span>🐛 Debug Console</span>
+            <button
+              onClick={() => setDebugLogs([])}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#999',
+                cursor: 'pointer',
+                fontSize: '0.75rem'
+              }}
+            >
+              Clear
+            </button>
+          </div>
+          <div style={{
+            flex: 1,
+            overflow: 'auto',
+            padding: '0.5rem'
+          }}>
+            {debugLogs.length === 0 ? (
+              <div style={{ color: '#666', textAlign: 'center', marginTop: '1rem' }}>
+                No logs yet...
+              </div>
+            ) : (
+              debugLogs.map(log => (
+                <div
+                  key={log.id}
+                  style={{
+                    marginBottom: '0.25rem',
+                    color: log.type === 'error' ? '#ef4444' : 
+                           log.type === 'warning' ? '#f59e0b' : 
+                           log.type === 'success' ? '#10b981' : '#d1d5db',
+                    fontSize: '0.7rem',
+                    lineHeight: '1.3'
+                  }}
+                >
+                  <span style={{ color: '#666' }}>[{log.timestamp}]</span> {log.message}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Manual Input Dialog */}
+      {showManualInput && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'white',
+          borderRadius: '0.5rem',
+          padding: '1.5rem',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+          zIndex: 1003,
+          minWidth: '350px',
+          maxWidth: '90%'
+        }}>
+          <h3 style={{
+            margin: '0 0 1rem 0',
+            fontSize: '1.125rem',
+            fontWeight: 600,
+            color: '#111827'
+          }}>
+            {t('manual_student_id') || 'Manual Student ID'}
+          </h3>
+          
+          <input
+            type="text"
+            value={manualStudentId}
+            onChange={(e) => setManualStudentId(e.target.value)}
+            placeholder={t('enter_reference_id') || 'Enter reference ID (STU-XXXXXX)'}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              marginBottom: '1rem',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleManualSubmit();
+              }
+            }}
+          />
+          
+          <div style={{
+            display: 'flex',
+            gap: '0.75rem',
+            justifyContent: 'flex-end'
+          }}>
+            <button
+              onClick={() => {
+                setShowManualInput(false);
+                setManualStudentId('');
+              }}
+              style={{
+                padding: '0.5rem 1rem',
+                border: '1px solid #d1d5db',
+                background: 'white',
+                color: '#6b7280',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              {t('cancel') || 'Cancel'}
+            </button>
+            
+            <button
+              onClick={handleManualSubmit}
+              disabled={!manualStudentId.trim()}
+              style={{
+                padding: '0.5rem 1rem',
+                border: 'none',
+                background: manualStudentId.trim() ? '#3b82f6' : '#9ca3af',
+                color: 'white',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                cursor: manualStudentId.trim() ? 'pointer' : 'not-allowed'
+              }}
+            >
+              {t('simulate_scan') || 'Simulate Scan'}
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Result Modal */}
+      {showResultModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1002
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '0.5rem',
+            padding: '2rem',
+            maxWidth: '400px',
+            width: '90%',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: resultModalData.type === 'success' ? '#16a34a' : 
+                         resultModalData.type === 'error' ? '#dc2626' : 
+                         resultModalData.type === 'late' ? '#eab308' : '#3b82f6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto'
+            }}>
+              {resultModalData.type === 'success' ? (
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              ) : resultModalData.type === 'error' ? (
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              ) : resultModalData.type === 'late' ? (
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              ) : (
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+              )}
+            </div>
+            
+            <h3 style={{
+              fontSize: '1.25rem',
+              fontWeight: 600,
+              color: '#111827',
+              margin: '0 0 0.5rem 0'
+            }}>
+              {resultModalData.type === 'success' ? 'Success!' : 
+               resultModalData.type === 'error' ? 'Error!' : 'Information'}
+            </h3>
+            
+            <p style={{
+              fontSize: '1rem',
+              color: '#6b7280',
+              margin: '0 0 1.5rem 0',
+              lineHeight: '1.5'
+            }}>
+              {resultModalData.message}
+            </p>
+            
+            <button
+              onClick={() => setShowResultModal(false)}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: resultModalData.type === 'success' ? '#16a34a' : 
+                           resultModalData.type === 'error' ? '#dc2626' : 
+                           resultModalData.type === 'late' ? '#eab308' : '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                fontSize: '1rem',
+                fontWeight: 500,
+                cursor: 'pointer'
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Student Action Panel */}
+      {showStudentActionPanel && studentForAction && (
+        <StudentActionPanel
+          student={studentForAction}
+          onClose={() => {
+            setShowStudentActionPanel(false);
+            setStudentForAction(null);
+          }}
+          onUpdate={() => {
+            if (onActivityUpdate) {
+              onActivityUpdate();
+            }
+          }}
+        />
+      )}
+      
+      {/* Student Action Panel New */}
+      {showStudentActionPanelNew && studentForAction && (
+        <StudentActionPanelNew
+          student={studentForAction}
+          onClose={() => {
+            setShowStudentActionPanelNew(false);
+            setStudentForAction(null);
+          }}
+          onUpdate={() => {
+            if (onActivityUpdate) {
+              onActivityUpdate();
+            }
+          }}
+        />
+      )}
 
       <style jsx>{`
         @keyframes qr-scan-line {

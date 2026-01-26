@@ -971,7 +971,7 @@ const InstructorQRScannerPage = () => {
         minHeight: '100vh',
         background: 'var(--background-secondary, #f9fafb)'
       }}>
-        <FancyLoading />
+        <FancyLoading fullscreen />
       </div>
     );
   }
@@ -1093,9 +1093,9 @@ const InstructorQRScannerPage = () => {
             flex: 1, 
             alignItems: 'center', 
             flexWrap: 'wrap',
-            flexDirection: isMobile ? 'column' : 'row'
+            flexDirection: 'column'
           }}>
-            <div style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : '180px' }}>
+            <div style={{ width: '100%', minWidth: '100%' }}>
               <Select
                 size="small"
                 searchable
@@ -1106,12 +1106,13 @@ const InstructorQRScannerPage = () => {
                   setSelectedClassId('all');
                 }}
                 options={programOptions}
-                style={{ width: isMobile ? '100%' : 180, minWidth: isMobile ? 'auto' : 180 }}
-                placeholder={t('all_programs')}
+                style={{ width: '100%', minWidth: '100%' }}
+                placeholder={gridLoading ? t('loading') || 'Loading...' : (t('all_programs') || 'All Programs')}
+                disabled={gridLoading}
               />
             </div>
 
-            <div style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : '180px' }}>
+            <div style={{ width: '100%', minWidth: '100%' }}>
               <Select
                 size="small"
                 searchable
@@ -1121,12 +1122,13 @@ const InstructorQRScannerPage = () => {
                   setSelectedClassId('all');
                 }}
                 options={subjectOptions}
-                style={{ width: isMobile ? '100%' : 180, minWidth: isMobile ? 'auto' : 180 }}
-                placeholder={t('all_subjects')}
+                style={{ width: '100%', minWidth: '100%' }}
+                placeholder={gridLoading ? t('loading') || 'Loading...' : (t('all_subjects') || 'All Subjects')}
+                disabled={gridLoading}
               />
             </div>
 
-            <div style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : '180px' }}>
+            <div style={{ width: '100%', minWidth: '100%' }}>
               <Select
                 size="small"
                 searchable
@@ -1135,126 +1137,79 @@ const InstructorQRScannerPage = () => {
                   setSelectedClassId(e.target.value);
                 }}
                 options={classOptions}
-                style={{ width: isMobile ? '100%' : 180, minWidth: isMobile ? 'auto' : 180 }}
+                style={{ width: '100%', minWidth: '100%' }}
                 placeholder={t('all_classes')}
               />
             </div>
-
-            {!isMobile && (
-              <div style={{ width: 'auto', minWidth: '150px' }}>
-                <DatePicker
-                  value={selectedDate}
-                  onChange={(date) => setSelectedDate(date)}
-                  format="yyyy-MM-dd"
-                />
-              </div>
-            )}
           </div>
 
-          {/* Date picker row for mobile */}
-          {isMobile && (
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center',
-              marginTop: '0.5rem'
-            }}>
-              <div style={{ width: '100%', maxWidth: '300px' }}>
-                <DatePicker
-                  value={selectedDate}
-                  onChange={(date) => setSelectedDate(date)}
-                  format="yyyy-MM-dd"
-                />
-              </div>
-            </div>
-          )}
-
-          <div style={{
-            display: 'flex',
+          {/* Date picker and notification on same row */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1rem',
-            background: 'var(--panel-hover, #f3f4f6)',
-            borderRadius: '0.5rem'
+            gap: '1rem',
+            marginTop: '0.5rem',
+            flexWrap: 'wrap'
           }}>
-            <div style={{
-              width: '0.5rem',
-              height: '0.5rem',
-              background: '#10b981',
-              borderRadius: '9999px'
-            }} />
-            <span style={{
-              fontFamily: 'monospace',
-              fontSize: '0.875rem',
-              fontWeight: 500
-            }}>
-              {new Date().toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-              })}
-            </span>
-            <span style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-muted, #6b7280)',
-              [isRTL ? 'marginRight' : 'marginLeft']: '0.5rem',
-              padding: '0.25rem 0.5rem',
-              background: 'var(--panel, white)',
-              borderRadius: '0.25rem'
-            }}>
-              {t('live')}
-            </span>
-          </div>
-
-          <div 
-            onClick={() => setSendNotifications(!sendNotifications)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.5rem 1rem',
-              background: sendNotifications ? '#f0fdf4' : '#fef2f2',
-              borderRadius: '0.5rem',
-              cursor: 'pointer',
-              border: `1px solid ${sendNotifications ? 'var(--color-success-light, #bbf7d0)' : 'var(--color-danger-light, #fecaca)'}`,
-              transition: 'all 0.2s',
-              userSelect: 'none',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <div style={{
-              width: '2.5rem',
-              height: '1.25rem',
-              background: sendNotifications ? '#10b981' : '#ef4444',
-              borderRadius: '1rem',
-              position: 'relative',
-              transition: 'background 0.2s',
-              flexShrink: 0
-            }}>
-              <div style={{
-                width: '1rem',
-                height: '1rem',
-                background: 'white',
-                borderRadius: '50%',
-                position: 'absolute',
-                top: '0.125rem',
-                left: sendNotifications ? (isRTL ? '0.125rem' : '1.375rem') : (isRTL ? '1.375rem' : '0.125rem'),
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-              }} />
+            <div style={{ width: '100%', maxWidth: '300px' }}>
+              <DatePicker
+                value={selectedDate}
+                onChange={(date) => setSelectedDate(date)}
+                format="yyyy-MM-dd"
+              />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ 
-                fontSize: '0.75rem', 
-                fontWeight: 600, 
-                color: sendNotifications ? '#166534' : '#991b1b',
-                lineHeight: 1
+            
+            <div 
+              onClick={() => setSendNotifications(!sendNotifications)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.5rem 1rem',
+                background: sendNotifications ? '#f0fdf4' : '#fef2f2',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                border: `1px solid ${sendNotifications ? 'var(--color-success-light, #bbf7d0)' : 'var(--color-danger-light, #fecaca)'}`,
+                transition: 'all 0.2s',
+                userSelect: 'none',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <div style={{
+                width: '2.5rem',
+                height: '1.25rem',
+                background: sendNotifications ? '#10b981' : '#ef4444',
+                borderRadius: '1rem',
+                position: 'relative',
+                transition: 'background 0.2s',
+                flexShrink: 0
               }}>
-                {sendNotifications ? `${t('notifications')}: ${lang === 'ar' ? 'مفعلة' : 'ON'}` : `${t('notifications')}: ${lang === 'ar' ? 'معطلة' : 'OFF'}`}
-              </span>
-              <span style={{ fontSize: '0.625rem', color: sendNotifications ? '#15803d' : '#b91c1c', marginTop: '2px' }}>
-                {t('email_notification')} + {lang === 'ar' ? 'النظام' : 'System'}
-              </span>
+                <div style={{
+                  width: '1rem',
+                  height: '1rem',
+                  background: 'white',
+                  borderRadius: '50%',
+                  position: 'absolute',
+                  top: '0.125rem',
+                  left: sendNotifications ? (isRTL ? '0.125rem' : '1.375rem') : (isRTL ? '1.375rem' : '0.125rem'),
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: 600, 
+                  color: sendNotifications ? '#166534' : '#991b1b',
+                  lineHeight: 1
+                }}>
+                  {sendNotifications ? `${t('notifications')}: ${lang === 'ar' ? 'مفعلة' : 'ON'}` : `${t('notifications')}: ${lang === 'ar' ? 'معطلة' : 'OFF'}`}
+                </span>
+                <span style={{ fontSize: '0.625rem', color: sendNotifications ? '#15803d' : '#b91c1c', marginTop: '2px' }}>
+                  {t('email_notification')} + {lang === 'ar' ? 'النظام' : 'System'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -1282,6 +1237,9 @@ const InstructorQRScannerPage = () => {
               classId={selectedClassId}
               onActivityUpdate={handleActivityUpdate}
               onDeleteActivity={handleDeleteActivity}
+              selectedProgramId={selectedProgramId}
+              selectedSubjectId={selectedSubjectId}
+              selectedClassId={selectedClassId}
             />
           )}
         </div>
@@ -1302,7 +1260,7 @@ const InstructorQRScannerPage = () => {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <FancyLoading />
+              <FancyLoading fullscreen />
             </div>
           ) : loading ? (
             <div style={{
@@ -1315,7 +1273,7 @@ const InstructorQRScannerPage = () => {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <FancyLoading />
+              <FancyLoading fullscreen />
             </div>
           ) : !selectedClassId || selectedClassId === 'all' ? (
             <div style={{
@@ -1419,7 +1377,7 @@ const InstructorQRScannerPage = () => {
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <FancyLoading />
+                <FancyLoading fullscreen />
               </div>
             )}
             <StudentActionPanel
