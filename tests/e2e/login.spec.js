@@ -3,7 +3,7 @@
 import { test, expect } from '@playwright/test';
 
 test('login with env credentials', async ({ page }) => {
-  const baseURL = process.env.BASE_URL || 'http://localhost:3000';
+  const baseURL = process.env.BASE_URL || 'https://localhost:5174';
   const username = process.env.TEST_USERNAME;
   const password = process.env.TEST_PASSWORD;
 

@@ -746,14 +746,25 @@ export const sendEmail = async (emailData) => {
 };
 
 // ===== SMTP Configuration =====
+// DEPRECATED: Use client/src/config/smtp.js getSMTPConfig() instead
+// This function is kept for backward compatibility and as fallback
 export const getSMTPConfig = async () => {
   try {
-    const docRef = doc(db, "config", "smtp");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { success: true, data: docSnap.data() };
+    // Try to use centralized config first
+    try {
+      const { getSMTPConfig: getCentralizedSMTPConfig } = await import('../config/smtp');
+      const config = await getCentralizedSMTPConfig();
+      // Convert to old format for backward compatibility
+      return { success: true, data: config };
+    } catch (importError) {
+      // Fallback to Firestore if centralized config not available
+      const docRef = doc(db, "config", "smtp");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { success: true, data: docSnap.data() };
+      }
+      return { success: true, data: null };
     }
-    return { success: true, data: null };
   } catch (error) {
     return { success: false, error: error.message };
   }

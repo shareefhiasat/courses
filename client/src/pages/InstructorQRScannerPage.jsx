@@ -19,6 +19,7 @@ import QRScanner from '../components/qr-scanner/QRScanner';
 import StudentRoster from '../components/qr-scanner/StudentRoster';
 import StudentActionPanel from '../components/qr-scanner/StudentActionPanel';
 import StudentActionPanelNew from '../components/qr-scanner/StudentActionPanelNew';
+import ToastContainer from '../components/ui/ToastContainer';
 import '../components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
 import eventBus, { EVENTS } from '../utils/eventBus';
@@ -846,6 +847,19 @@ const InstructorQRScannerPage = () => {
     triggerActivityRefresh();
   }, [selectedClassId, selectedDate, loadStudents, triggerActivityRefresh]);
 
+  const handleSort = useCallback((field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  }, [sortField, sortDirection]);
+
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+  }, []);
+
   const handleFilter = useCallback(() => {
     setShowFilterDialog(true);
   }, []);
@@ -870,6 +884,82 @@ const InstructorQRScannerPage = () => {
   const handleCloseActionPanel = useCallback(() => {
     setSelectedStudentForAction(null);
   }, []);
+
+  // Memoized filtered students for performance
+  const filteredStudents = useMemo(() => {
+    let filtered = students;
+
+    // Apply search filter
+    if (debouncedSearchQuery) {
+      filtered = filtered.filter(student =>
+        student.name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        student.email?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        student.studentId?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        student.studentNumber?.toString().includes(debouncedSearchQuery)
+      );
+    }
+
+    // Apply attendance filter
+    if (attendanceFilter !== 'all') {
+      filtered = filtered.filter(student => student.attendance === attendanceFilter);
+    }
+
+    // Apply participation range filter
+    if (participationMin !== '') {
+      const min = parseFloat(participationMin);
+      if (!isNaN(min)) {
+        filtered = filtered.filter(student => student.participation >= min);
+      }
+    }
+    if (participationMax !== '') {
+      const max = parseFloat(participationMax);
+      if (!isNaN(max)) {
+        filtered = filtered.filter(student => student.participation <= max);
+      }
+    }
+
+    // Apply penalty filter
+    if (penaltyFilter === 'none') {
+      filtered = filtered.filter(student => !student.penalty || student.penalty === 0);
+    } else if (penaltyFilter === 'hasPenalty') {
+      filtered = filtered.filter(student => student.penalty && student.penalty > 0);
+    }
+
+    // Sort students
+    const sorted = [...filtered].sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+
+      // Handle nested values
+      if (sortField === 'name') {
+        aValue = aValue || '';
+        bValue = bValue || '';
+      }
+
+      // Handle numeric values
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      // Handle string values
+      aValue = aValue?.toString() || '';
+      bValue = bValue?.toString() || '';
+
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    });
+
+    return sorted;
+  }, [students, debouncedSearchQuery, attendanceFilter, participationMin, participationMax, penaltyFilter, sortField, sortDirection]);
+
+  // Calculate pagination
+  const total = filteredStudents.length;
+  const totalPages = Math.ceil(total / pageSize);
+  const paginatedStudents = filteredStudents.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   // Show loading while auth is initializing
   if (authLoading) {
@@ -970,7 +1060,7 @@ const InstructorQRScannerPage = () => {
       <header style={{
         background: 'var(--panel, white)',
         borderBottom: '1px solid var(--border, #e5e7eb)',
-        padding: '1rem 1.5rem'
+        padding: isMobile ? '0.5rem 1rem' : '1rem 1.5rem'
       }}>
         <div style={{
           display: 'flex',
@@ -1049,14 +1139,33 @@ const InstructorQRScannerPage = () => {
               />
             </div>
 
-            <div style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? 'auto' : '150px' }}>
-              <DatePicker
-                value={selectedDate}
-                onChange={(date) => setSelectedDate(date)}
-                format="yyyy-MM-dd"
-              />
-            </div>
+            {!isMobile && (
+              <div style={{ width: 'auto', minWidth: '150px' }}>
+                <DatePicker
+                  value={selectedDate}
+                  onChange={(date) => setSelectedDate(date)}
+                  format="yyyy-MM-dd"
+                />
+              </div>
+            )}
           </div>
+
+          {/* Date picker row for mobile */}
+          {isMobile && (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center',
+              marginTop: '0.5rem'
+            }}>
+              <div style={{ width: '100%', maxWidth: '300px' }}>
+                <DatePicker
+                  value={selectedDate}
+                  onChange={(date) => setSelectedDate(date)}
+                  format="yyyy-MM-dd"
+                />
+              </div>
+            </div>
+          )}
 
           <div style={{
             display: 'flex',
@@ -1267,7 +1376,7 @@ const InstructorQRScannerPage = () => {
               </div> */}
               
               <StudentRoster
-              students={students}
+              students={paginatedStudents}
               onStudentSelect={handleStudentSelect}
               selectedStudentId={selectedStudent?.id}
               onTogglePin={handleTogglePin}
@@ -1279,17 +1388,10 @@ const InstructorQRScannerPage = () => {
               onSearchChange={setSearchQuery}
               sortField={sortField}
               sortDirection={sortDirection}
-              onSort={useCallback((field) => {
-                if (sortField === field) {
-                  setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-                } else {
-                  setSortField(field);
-                  setSortDirection('asc');
-                }
-              }, [sortField, sortDirection])}
+              onSort={handleSort}
               currentPage={currentPage}
               totalPages={totalPages}
-              onPageChange={useCallback((page) => setCurrentPage(page), [])}
+              onPageChange={handlePageChange}
               totalStudents={total}
               selectedProgramId={selectedProgramId}
               selectedSubjectId={selectedSubjectId}
@@ -1556,6 +1658,9 @@ const InstructorQRScannerPage = () => {
           message={t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}
           loading={deleteActivityLoading}
         />
+        
+        {/* Toast Container */}
+        <ToastContainer />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 // Playwright configuration for E2E tests
 import { defineConfig, devices } from '@playwright/test';
+import { BASE_URL } from './config/constants.js';
 
 export default defineConfig({
   testDir: './specs',
@@ -17,7 +18,7 @@ export default defineConfig({
     ['json', { outputFile: 'test-results/results.json' }]
   ],
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:5174',
+    baseURL: BASE_URL,
     // headless: true = no browser visible (faster, for CI)
     // headless: false = browser visible (good for debugging)
     // Use --headed flag to override: npx playwright test --headed
@@ -50,7 +51,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: process.env.BASE_URL || 'http://localhost:5174',
+    url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000,
   },

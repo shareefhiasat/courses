@@ -279,7 +279,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: 'MAIN',
       items: [
         { path: '/', icon: <Home size={18} />, label: 'Home' },
-        { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+        { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Student' },
         { path: '/student-dashboard', icon: <BarChart3 size={18} />, label: 'Progress' },
         { path: '/?mode=activities', icon: <Activity size={18} />, label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
         { path: '/?mode=quizzes', icon: <Gamepad2 size={18} />, label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
@@ -336,7 +336,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/', icon: <Home size={18} />, label: 'Home' },
         { path: '/dashboard', icon: <LayoutDashboard size={18} />, label: t('dashboard') || 'Dashboard' },
-        { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Student Dashboard' },
+        { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Student' },
         { path: '/?mode=activities', icon: <Activity size={18} />, label: t('activities') || 'Activities' },
         // Role Access only visible for SuperAdmin (conditionally added below)
       ]
@@ -377,21 +377,21 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: 'ATTENDANCE',
       items: [
         { path: '/attendance', icon: <QrCode size={18} />, label: (t('attendance') || 'Attendance').charAt(0).toUpperCase() + (t('attendance') || 'Attendance').slice(1) },
-        { path: '/qr-scanner', icon: <QrCode size={18} />, label: (t('qr_scanner') || 'QR Scanner').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/qr-scanner', icon: <QrCode size={18} />, label: 'QR Attendance' },
         { path: '/hr-attendance', icon: <QrCode size={18} />, label: (t('hr_attendance') || 'HR Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     analytics: {
       label: 'ANALYTICS',
       items: [
-        { path: '/analytics', icon: <BarChart3 size={18} />, label: t('analytics') || 'Analytics' },
-        { path: '/advanced-analytics', icon: <BarChart3 size={18} />, label: 'Advanced Analytics' },
+        { path: '/analytics', icon: <BarChart3 size={18} />, label: 'Dashboards' },
+        { path: '/advanced-analytics', icon: <BarChart3 size={18} />, label: 'Advanced' },
       ]
     },
     communication: {
       label: 'COMMUNICATION',
       items: [
-        { path: '/scheduled-reports', icon: <Calendar size={18} />, label: 'Scheduled Reports' },
+        { path: '/scheduled-reports', icon: <Calendar size={18} />, label: 'Scheduling' },
       ]
     },
     community: {
@@ -412,7 +412,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/notifications', icon: <Bell size={18} />, label: t('notifications') || 'Notifications' },
         { path: '/student-profile', icon: <UserIcon size={18} />, label: t('student_profile') || 'Student Profile' },
-        { path: '/profile', icon: <Settings size={18} />, label: t('workspace_settings') || 'Workspace Settings' }
+        { path: '/profile', icon: <Settings size={18} />, label: t('settings') || 'Settings' }
       ]
     }
   };
@@ -627,7 +627,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
               borderBottom: '1px solid rgba(255,255,255,0.08)',
               background: 'rgba(0,0,0,0.15)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
                   <div style={{
                     width: '42px',
@@ -843,7 +843,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
             {/* Navigation Links (Tree Structure) */}
             <nav style={{ flex: 1, padding: '0.5rem 0 1rem 0', overflowY: 'auto' }}>
               {Object.entries(links).map(([groupKey, group]) => (
-                <div key={groupKey} style={{ marginTop: '0.5rem' }}>
+                <div key={groupKey} style={{ marginTop: '0.1rem' }}>
                   {/* Section Header - Collapsible */}
                   {(!collapsed && (!autoHide || isHovering)) && (
                     <button
@@ -853,7 +853,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '0.4rem 1rem',
+                        padding: '0.15rem 0.6rem',
                         background: 'transparent',
                         border: 'none',
                         color: theme==='light' ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.5)',
@@ -1045,36 +1045,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}><Languages size={16} /></span>
                 {!collapsed && <span>{lang === 'en' ? 'العربية' : 'English'}</span>}
               </button>
-
-              {/* Sticky Mode Toggle - Pin Icon */}
-              {!collapsed && (
-                <button
-                  onClick={() => setStickyMode(v => !v)}
-                  title={stickyMode ? (t('disable_sticky') || 'Disable Sticky Mode') : (t('enable_sticky') || 'Enable Sticky Mode')}
-                  style={{
-                    width: collapsed ? 40 : '100%',
-                    padding: '0.6rem',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 8,
-                    background: stickyMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.06)',
-                    color: stickyMode ? '#10b981' : 'white',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    marginBottom: '0.6rem',
-                    fontWeight: 500,
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={onFooterHover}
-                  onMouseLeave={onFooterLeave}
-                >
-                  {stickyMode ? <PinOff size={14} /> : <Pin size={14} />}
-                  {!collapsed && <span>{stickyMode ? 'Sticky On' : 'Sticky Off'}</span>}
-                </button>
-              )}
 
               {/* Logout */}
               <button

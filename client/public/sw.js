@@ -12,7 +12,11 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        return cache.addAll(urlsToCache);
+        return cache.addAll(urlsToCache).catch((error) => {
+          console.log('Cache addAll failed:', error);
+          // Continue with partial cache
+          return Promise.resolve();
+        });
       })
   );
 });

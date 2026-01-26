@@ -52,20 +52,9 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
       }
     }
 
-    // Get SMTP configuration from Firestore
-    const configDoc = await db
-      .collection("config")
-      .doc("smtp")
-      .get();
-
-    if (!configDoc.exists) {
-      throw new functions.https.HttpsError(
-        "failed-precondition",
-        "SMTP configuration not found. Please configure email settings in the dashboard."
-      );
-    }
-
-    const smtpConfig = configDoc.data();
+    // Get SMTP configuration (priority: env vars → test SMTP → Firestore → Gmail default)
+    const { getSMTPConfigForFunctions } = require("./config/smtp");
+    const smtpConfig = await getSMTPConfigForFunctions();
 
     // Validate SMTP config
     if (
@@ -76,7 +65,7 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
     ) {
       throw new functions.https.HttpsError(
         "failed-precondition",
-        "Incomplete SMTP configuration"
+        `Incomplete SMTP configuration (source: ${smtpConfig.source || 'unknown'}). Please configure SMTP via environment variables or Firestore.`
       );
     }
 

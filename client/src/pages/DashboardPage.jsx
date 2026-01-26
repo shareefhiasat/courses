@@ -166,7 +166,7 @@ const DashboardPage = () => {
       activities: 'content', announcements: 'content', resources: 'content',
       users: 'users', allowlist: 'users',
       classes: 'academic', enrollments: 'academic', submissions: 'academic',
-      smtp: 'communication', emailTemplates: 'communication', emailLogs: 'communication',
+      /* smtp: 'communication' - DEPRECATED */ emailTemplates: 'communication', emailLogs: 'communication',
       categories: 'settings', login: 'settings'
     };
     return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
@@ -216,7 +216,7 @@ const DashboardPage = () => {
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
 
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', 'smtp', 'emailTemplates', 'emailLogs', 'scheduled-reports', 'categories', 'login'];
+    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'emailLogs', 'scheduled-reports', 'categories', 'login'];
 
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
@@ -318,7 +318,7 @@ const DashboardPage = () => {
       id: 'communication',
       label: t('communication'),
       items: [
-        { key: 'smtp', label: t('smtp') },
+        // { key: 'smtp', label: t('smtp') }, // DEPRECATED - Use environment variables instead
         { key: 'emailTemplates', label: t('templates') },
         { key: 'emailLogs', label: t('notifications') },
         { key: 'scheduled-reports', label: t('scheduled_reports') }
@@ -5623,7 +5623,43 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
         {activeTab === 'smtp' && (
           <div className="smtp-tab">
-            <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 12, padding: '1.5rem', maxWidth: 760 }}>
+            {/* Deprecation Notice */}
+            <div style={{ 
+              padding: '1rem 1.5rem', 
+              background: '#fef3c7', 
+              border: '1px solid #fbbf24', 
+              borderRadius: 12, 
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.75rem'
+            }}>
+              <AlertTriangle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#92400e' }}>
+                  ⚠️ SMTP Configuration Deprecated
+                </div>
+                <div style={{ color: '#78350f', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                  SMTP configuration is now managed via <strong>environment variables</strong> for better testing, tracking, and single source of truth.
+                  <br />
+                  <br />
+                  <strong>Configuration:</strong>
+                  <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
+                    <li>Production: Set <code>VITE_SMTP_*</code> variables in <code>.env</code></li>
+                    <li>Testing: Set <code>VITE_USE_TEST_SMTP=true</code> to use Mailtrap</li>
+                    <li>Fallback: Firestore <code>config/smtp</code> (if env vars not set)</li>
+                    <li>Default: Gmail super admin (last resort)</li>
+                  </ul>
+                  <br />
+                  See <code>client/env.template</code> for all SMTP environment variables.
+                  <br />
+                  <br />
+                  <strong>This UI will be removed in a future version.</strong> Please migrate to environment variables.
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 12, padding: '1.5rem', maxWidth: 760, opacity: 0.6 }}>
               {(() => {
                 if (!smtpLoading && !smtpConfig.__loaded) {
                   (async () => {

@@ -23,12 +23,20 @@ coverage/
 .env.*
 *.local
 *.env
+ENV.local.txt
+ENV.*.txt
 
 # Firebase/Google credentials (never commit service accounts)
 *.secret.*
 *.key.json
 service-account.json
 credentials.json
+
+# SSL/TLS certificates (localhost development)
+*.pem
+*.crt
+*.key
+localhost+*.pem
 
 # Editor/IDE
 .vscode/
@@ -71,3 +79,16 @@ posthog_*.json
 # Analytics and tracking local data
 analytics_local.json
 tracking_*.json
+
+# Playwright test artifacts
+playwright-report/
+test-results/
+/playwright-report/
+/test-results/
+tests/e2e/test-results/
+
+# IDE directories
+.claude/
+.cursor/
+.kilocode/
+.windsurf/

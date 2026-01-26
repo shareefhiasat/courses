@@ -207,20 +207,71 @@
 
 /* Mobile responsive */
 @media (max-width: 768px) {
+  .tabsContainer {
+    margin-bottom: 1rem;
+  }
+
   .tabsWrapper {
     flex-wrap: wrap;
     width: 100%;
+    gap: 2px;
+    padding: 2px;
   }
 
   .tab {
     flex: 1;
     min-width: 0;
-    padding: 8px 12px;
-    font-size: 0.875rem;
+    padding: 6px 8px;
+    font-size: 0.75rem;
+    gap: 4px;
+    min-height: 36px;
   }
 
   .tabLabel {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tabIcon svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .tabBadge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.7rem;
+    margin-left: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabsWrapper {
+    gap: 1px;
+  }
+
+  .tab {
+    padding: 4px 6px;
+    font-size: 0.7rem;
+    min-height: 32px;
+  }
+
+  .tabLabel {
+    font-size: 0.65rem;
+  }
+
+  .tabIcon svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .tabBadge {
+    min-width: 14px;
+    height: 14px;
+    font-size: 0.65rem;
   }
 }

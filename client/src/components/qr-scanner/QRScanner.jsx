@@ -47,6 +47,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [recentActivity, setRecentActivity] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [expandedActivities, setExpandedActivities] = useState(new Set());
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -85,6 +87,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         streamRef.current.getTracks().forEach(track => track.stop());
       }
 
+      // Check if mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not available in this browser. Please try using a modern browser like Chrome, Firefox, or Safari.');
+      }
+
       // Request camera access with appropriate constraints
       const constraints = {
         video: {
@@ -94,7 +101,29 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (permissionError) {
+        // Handle specific permission errors
+        let errorMessage = '';
+        if (permissionError.name === 'NotAllowedError') {
+          errorMessage = 'Camera permission denied. Please allow camera access in your browser settings and refresh the page.';
+        } else if (permissionError.name === 'NotFoundError') {
+          errorMessage = 'No camera found. Please connect a camera and try again.';
+        } else if (permissionError.name === 'NotReadableError') {
+          errorMessage = 'Camera is already in use by another application. Please close other apps using the camera and try again.';
+        } else if (permissionError.name === 'OverconstrainedError') {
+          errorMessage = 'Camera does not support the required settings. Try switching cameras.';
+        } else {
+          errorMessage = `Camera access failed: ${permissionError.message}`;
+        }
+        
+        // Play error feedback
+        playFeedbackSound('error');
+        throw new Error(errorMessage);
+      }
+
       streamRef.current = stream;
 
       if (videoRef.current) {
@@ -106,8 +135,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       scanIntervalRef.current = setInterval(scanQRCode, 100);
     } catch (err) {
       logger.error('Error accessing camera:', err);
-      setError('Unable to access camera. Please check permissions.');
+      setError(err.message || 'Unable to access camera. Please check permissions.');
       setIsScanning(false);
+      // Play error feedback for camera errors
+      playFeedbackSound('error');
     }
   };
 
@@ -150,11 +181,75 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   };
 
+  // Play feedback sound and vibration
+  const playFeedbackSound = useCallback((type) => {
+    if (!soundEnabled && !vibrationEnabled) return;
+    
+    try {
+      // Vibration for error only (as requested)
+      if (type === 'error' && vibrationEnabled && navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+      
+      // Sound feedback
+      if (soundEnabled) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        if (type === 'success') {
+          // Success sound: ascending tone
+          oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+          oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+          oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        } else if (type === 'error') {
+          // Error sound: descending tone
+          oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+          oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.2); // A3
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        }
+      }
+      
+      // Show toast notification
+      if (window.showToast) {
+        const message = type === 'success' 
+          ? (t('qr_scan_success') || 'QR Code scanned successfully!')
+          : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
+        
+        window.showToast(message, type, 3000);
+      }
+    } catch (error) {
+      console.warn('Could not play feedback sound:', error);
+    }
+  }, [soundEnabled, vibrationEnabled, t]);
+
   const handleQRCodeDetected = (data) => {
     // console.log('QR Code detected:', data);
+    
+    // Play success feedback
+    playFeedbackSound('success');
+    
     onScan(data);
     setRecentScans(prev => prev + 1);
+    
+    // Stop camera briefly then restart for continuous scanning
     stopCamera();
+    setTimeout(() => {
+      if (videoRef.current && canvasRef.current) {
+        // Clear the video element to prevent black screen
+        videoRef.current.srcObject = null;
+      }
+    }, 100);
   };
 
   const toggleCamera = () => {
@@ -523,14 +618,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       <div style={{
         background: '#0f172a',
         borderRadius: '0.5rem',
-        aspectRatio: '4/3',
+        aspectRatio: isMobile ? '1/1' : '4/3',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: '1rem',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        width: '100%',
+        maxWidth: isMobile ? '100%' : '600px',
+        margin: isMobile ? '0 auto 1rem auto' : '0 0 1rem 0'
       }}>
         {!isScanning ? (
           <div style={{ textAlign: 'center', zIndex: 1 }}>
@@ -652,6 +750,80 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       </div>
 
       <div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          background: 'var(--background-secondary, #f9fafb)',
+          borderRadius: '0.5rem',
+          border: '1px solid var(--border, #e5e7eb)'
+        }}>
+          <h4 style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: '#111827',
+            margin: 0
+          }}>
+            {t('scanner_settings') || 'Scanner Settings'}
+          </h4>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: soundEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
+                color: soundEnabled ? 'white' : 'var(--text, #111827)',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title={soundEnabled ? (t('disable_sound') || 'Disable sound') : (t('enable_sound') || 'Enable sound')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+              {t('sound') || 'Sound'}
+            </button>
+            
+            <button
+              onClick={() => setVibrationEnabled(!vibrationEnabled)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: vibrationEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
+                color: vibrationEnabled ? 'white' : 'var(--text, #111827)',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M10 2v2.5"></path>
+                <path d="M14 2v2.5"></path>
+                <path d="M16.5 13.5L12 21l-4.5-7.5"></path>
+                <path d="M12 21V8.5"></path>
+                <path d="M8 8.5L12 2l4 6.5"></path>
+              </svg>
+              {t('vibration') || 'Vibration'}
+            </button>
+          </div>
+        </div>
+
         <div style={{
           display: 'flex',
           alignItems: 'center',

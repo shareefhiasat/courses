@@ -256,4 +256,65 @@
   .qr-textarea {
     font-size: 16px; /* Prevent zoom on iOS */
   }
+  
+  /* QR Scanner specific responsive styles */
+  .qr-scanner-wrapper {
+    width: 100%;
+    max-width: 100vw;
+    margin: 0;
+  }
+  
+  .qr-scanner-video-container {
+    aspect-ratio: 1/1 !important;
+    width: 100%;
+    max-width: 100vw;
+  }
+  
+  .qr-scanner-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .qr-scanner-settings {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .qr-scanner-settings button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* QR Scanner animations */
+@keyframes qr-scan-line {
+  0% {
+    top: 0;
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    top: calc(100% - 2px);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

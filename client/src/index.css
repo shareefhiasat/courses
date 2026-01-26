@@ -83,6 +83,9 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  -webkit-text-size-adjust: 100%; /* Prevent iOS zoom */
+  -ms-text-size-adjust: 100%; /* Prevent Windows zoom */
 }
 
 /* Global tab/content transition helpers */

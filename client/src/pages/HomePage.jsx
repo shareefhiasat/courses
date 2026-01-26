@@ -717,11 +717,12 @@ const HomePage = memo(() => {
                 </div>
 
           {/* Row 2: Common Filter Chips - Show word+icon or icon-only based on view mode */}
-          <div data-tour="status-filters" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+          <div data-tour="status-filters" className="filter-container filter-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '0.5rem' }}>
             {/* Status chips - word+icon (full) or icon-only (minified) */}
             {isMinified ? (
               <>
                 <button
+                  className={`filter-button ${isMinified ? 'minified' : ''}`}
                   onClick={() => setCompletedFilter(v => !v)}
                   title={t('completed') || 'Completed'}
                   style={{
@@ -742,6 +743,7 @@ const HomePage = memo(() => {
                 </button>
                 
                 <button
+                  className={`filter-button ${isMinified ? 'minified' : ''}`}
                   onClick={() => setPendingFilter(v => !v)}
                   title={t('pending') || 'Pending'}
                   style={{
@@ -782,6 +784,7 @@ const HomePage = memo(() => {
                 </button>
 
                 <button
+                  className="filter-button"
                   onClick={() => setOptionalFilter(v => !v)}
                   title={t('optional') || 'Optional'}
                   style={{
@@ -802,6 +805,7 @@ const HomePage = memo(() => {
                 </button>
 
                 <button
+                  className="filter-button"
                   onClick={() => setOverdueFilter(v => !v)}
                   title={t('overdue') || 'Overdue'}
                   style={{
@@ -824,6 +828,7 @@ const HomePage = memo(() => {
             ) : (
               <>
                 <button
+                  className="filter-button"
                   onClick={() => setCompletedFilter(v => !v)}
                   style={{
                     padding: '4px 10px',
@@ -844,6 +849,7 @@ const HomePage = memo(() => {
                 </button>
                 
                 <button
+                  className="filter-button"
                   onClick={() => setPendingFilter(v => !v)}
                   style={{
                     padding: '4px 10px',
@@ -864,6 +870,7 @@ const HomePage = memo(() => {
                 </button>
 
                 <button
+                  className="filter-button"
                   onClick={() => setRequiredFilter(v => !v)}
                   style={{
                     padding: '4px 10px',
@@ -884,6 +891,7 @@ const HomePage = memo(() => {
                 </button>
 
                 <button
+                  className="filter-button"
                   onClick={() => setOptionalFilter(v => !v)}
                   style={{
                     padding: '4px 10px',
@@ -904,6 +912,7 @@ const HomePage = memo(() => {
                 </button>
 
                 <button
+                  className="filter-button"
                   onClick={() => setOverdueFilter(v => !v)}
                   style={{
                     padding: '4px 10px',
@@ -927,10 +936,11 @@ const HomePage = memo(() => {
               </div>
 
           {/* Row 3: Difficulty + Mode-specific + Icon toggles */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="filter-container filter-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             {/* Difficulty chips - Show first */}
             <div data-tour="difficulty-filters" style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
               <button
+                className="filter-button"
                 onClick={() => setDifficultyFilter('all')}
                 title={t('all_levels') || 'All Levels'}
                 style={{
@@ -947,7 +957,7 @@ const HomePage = memo(() => {
                 }}
               >
                 <Globe2 size={12} />
-                {!isMinified && <span>{t('all_levels') || 'All Levels'}</span>}
+                <span>{t('all_levels') || 'All Levels'}</span>
               </button>
                   {[
                     { id: 'beginner', label: t('beginner') || 'Beginner', bg: '#e8f5e9', fg: '#2e7d32' },
