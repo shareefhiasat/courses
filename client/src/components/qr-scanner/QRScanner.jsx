@@ -8,6 +8,7 @@ import { getUsers } from '../../firebase/firestore';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LangContext';
+import { useToast } from '../ui/Toast';
 import { RefreshCw } from 'lucide-react';
 
 const QrCodeIcon = ({ className }) => (
@@ -38,6 +39,7 @@ const AttendanceIcon = ({ style }) => (
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
+  const { addToast } = useToast();
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState(0);
   const [error, setError] = useState('');
@@ -221,17 +223,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }
       
       // Show toast notification
-      if (window.showToast) {
-        const message = type === 'success' 
-          ? (t('qr_scan_success') || 'QR Code scanned successfully!')
-          : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
-        
-        window.showToast(message, type, 3000);
-      }
+      const message = type === 'success' 
+        ? (t('qr_scan_success') || 'QR Code scanned successfully!')
+        : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
+      
+      addToast(message, type);
     } catch (error) {
       console.warn('Could not play feedback sound:', error);
     }
-  }, [soundEnabled, vibrationEnabled, t]);
+  }, [soundEnabled, vibrationEnabled, t, addToast]);
 
   const handleQRCodeDetected = (data) => {
     // console.log('QR Code detected:', data);

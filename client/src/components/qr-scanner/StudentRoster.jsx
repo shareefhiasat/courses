@@ -1163,6 +1163,7 @@ const StudentRoster = React.memo(function StudentRoster({
                           </div>
                         );
                       })}
+                      )}
                     </div>
                   )}
                 </div>
@@ -2036,18 +2037,17 @@ const StudentRoster = React.memo(function StudentRoster({
                                   )}
                                 </div>
                               );
-                            })}
+                            });
+                          })()}
                           </div>
-                        ) : (
-                          <div style={{ 
-                            padding: '2rem', 
-                            textAlign: 'center',
-                            color: 'var(--text-muted, #9ca3af)',
-                            fontSize: '0.875rem'
-                          }}>
-                            {t('loading')}...
-                          </div>
-                        )}
+                        ): <div style={{
+                          padding: '2rem',
+                          textAlign: 'center',
+                          color: 'var(--text-muted, #9ca3af)',
+                          fontSize: '0.875rem'
+                        }}>
+                          {t('loading')}...
+                        </div>}
                       </td>
                     </tr>
                   )}

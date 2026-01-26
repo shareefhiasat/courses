@@ -337,6 +337,67 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
     return stats;
   }, [todayLogs]);
 
+  // Fetch historical logs for student - defined before usage
+  const fetchHistoricalLogs = useCallback(async () => {
+    if (!student?.id) return;
+
+    setLogsLoading(true);
+    try {
+      // Small delay to ensure Firestore has processed the update
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Get all attendance records for this student (no date filter)
+      const attendanceResponse = await getAttendanceByStudent(student.id);
+      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+
+      // Get all penalties for this student
+      const penaltiesResponse = await getPenalties();
+      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      const studentPenalties = allPenalties.filter(p => p.studentId === student.id);
+
+      // Combine and format logs with date information
+      const logs = [
+        ...attendanceRecords.map(record => ({
+          id: record.id || record.docId,
+          type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
+          date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
+          time: record.timestamp || record.date,
+          data: record,
+          label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
+          points: record.delta || 0,
+          comment: record.reason || record.notes || '',
+          severity: 'low',
+          color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
+        })),
+        ...studentPenalties.map(penalty => ({
+          id: penalty.id || penalty.docId,
+          type: 'penalty',
+          date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
+          time: penalty.createdAt,
+          data: penalty,
+          label: penalty.reason || 'Penalty',
+          points: penalty.points || 0,
+          comment: penalty.comment || '',
+          severity: penalty.severity || 'medium',
+          color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
+        }))
+      ].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA; // Most recent first
+      });
+
+      setHistoricalLogs(logs);
+      setLogsError('');
+    } catch (error) {
+      logger.error('Error fetching historical logs:', error);
+      setLogsError('Failed to load history');
+      setHistoricalLogs([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [student?.id]);
+
   // Fetch today's logs when student changes or manual refresh triggered
   useEffect(() => {
     // Reset when student changes
@@ -462,64 +523,6 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
       setDeleteLogId('');
     }
   }, [deleteType, deleteLogId, student, user, fetchHistoricalLogs]);
-
-  const fetchHistoricalLogs = useCallback(async () => {
-    if (!student?.id) return;
-
-    setLogsLoading(true);
-    try {
-      // Small delay to ensure Firestore has processed the update
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Get all attendance records for this student (no date filter)
-      const attendanceResponse = await getAttendanceByStudent(student.id);
-      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
-
-      // Get all penalties for this student
-      const penaltiesResponse = await getPenalties();
-      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-      const studentPenalties = allPenalties.filter(p => p.studentId === student.id);
-
-      // Combine and format logs with date information
-      const logs = [
-        ...attendanceRecords.map(record => ({
-          id: record.id || record.docId,
-          type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
-          date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
-          time: record.timestamp || record.date,
-          data: record,
-          label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
-          points: record.delta || 0,
-          comment: record.reason || record.notes || '',
-          severity: 'low',
-          color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
-        })),
-        ...studentPenalties.map(penalty => ({
-          id: penalty.id || penalty.docId,
-          type: 'penalty',
-          date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
-          time: penalty.createdAt,
-          data: penalty,
-          label: penalty.reason || 'Penalty',
-          points: penalty.points || 0,
-          comment: penalty.comment || '',
-          severity: penalty.severity || 'medium',
-          color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
-        }))
-      ].sort((a, b) => {
-        const dateA = a.time?.toDate ? a.time.toDate() : new Date(a.time || a.date);
-        const dateB = b.time?.toDate ? b.time.toDate() : new Date(b.time || b.date);
-        return dateB - dateA;
-      });
-
-      setTodayLogs(logs);
-    } catch (error) {
-      logger.error('Error fetching historical logs:', error);
-      setTodayLogs([]);
-    } finally {
-      setLogsLoading(false);
-    }
-  }, [student?.id]);
 
   // Memoized group logs by day for performance
   const groupLogsByDay = useCallback((logs) => {

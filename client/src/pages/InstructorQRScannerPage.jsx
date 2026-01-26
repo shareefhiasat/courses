@@ -19,7 +19,7 @@ import QRScanner from '../components/qr-scanner/QRScanner';
 import StudentRoster from '../components/qr-scanner/StudentRoster';
 import StudentActionPanel from '../components/qr-scanner/StudentActionPanel';
 import StudentActionPanelNew from '../components/qr-scanner/StudentActionPanelNew';
-import ToastContainer from '../components/ui/ToastContainer';
+import { ToastProvider } from '../components/ui/Toast';
 import '../components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
 import eventBus, { EVENTS } from '../utils/eventBus';
@@ -1051,11 +1051,12 @@ const InstructorQRScannerPage = () => {
   }
 
   return (
-    <div className="qr-scanner-container" dir={isRTL ? 'rtl' : 'ltr'} style={{
-      minHeight: '100vh',
-      background: 'var(--background-secondary, #f9fafb)',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-    }}>
+    <ToastProvider>
+      <div className="qr-scanner-container" dir={isRTL ? 'rtl' : 'ltr'} style={{
+        minHeight: '100vh',
+        background: 'var(--background-secondary, #f9fafb)',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+      }}>
       {/* Top Bar with Filters */}
       <header style={{
         background: 'var(--panel, white)',
@@ -1658,11 +1659,9 @@ const InstructorQRScannerPage = () => {
           message={t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}
           loading={deleteActivityLoading}
         />
-        
-        {/* Toast Container */}
-        <ToastContainer />
       </div>
     </div>
+    </ToastProvider>
   );
 };
 
