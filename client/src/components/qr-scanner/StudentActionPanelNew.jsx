@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import logger from '../../utils/logger';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { XIcon, StarIcon, ChevronDownIcon, ChevronRightIcon, Star, Mail, ChevronDown, Users, Zap, AlertCircle, Plus, Minus } from 'lucide-react';
+import { XIcon, StarIcon, ChevronDownIcon, ChevronRightIcon, Star, Mail, ChevronDown, Users, Zap, AlertCircle, Plus, Minus, Grid, List } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { markAttendance } from '../../firebase/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
@@ -48,6 +48,7 @@ export default function StudentActionPanelNew({
   const [sendingQRCode, setSendingQRCode] = useState(false);
   const [sendingSummary, setSendingSummary] = useState(false);
   const [activeTab, setActiveTab] = useState('behavior'); // 'behavior', 'participation', 'penalty'
+  const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
 
   // Load favorite behaviors from user preferences
   useEffect(() => {
@@ -300,31 +301,33 @@ export default function StudentActionPanelNew({
               {getInitials(student.displayName || student.realName || student.name || '')}
             </div>
             <div>
-              <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '1rem' }}>
-                {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
+                  {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span style={{
+                    width: '0.375rem',
+                    height: '0.375rem',
+                    background: attendanceStatus.color,
+                    borderRadius: '9999px'
+                  }} />
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                    {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
+                  </span>
+                </div>
+              </div>
               <div style={{ 
-                fontSize: '0.75rem', 
+                fontSize: '0.625rem', 
                 color: 'var(--text-muted, #6b7280)', 
-                marginTop: '0.25rem',
+                marginTop: '0.125rem',
                 fontFamily: 'monospace',
                 background: 'var(--panel-hover, #f3f4f6)',
-                padding: '0.25rem 0.5rem',
+                padding: '0.125rem 0.375rem',
                 borderRadius: '0.25rem',
                 display: 'inline-block'
               }}>
                 ID: STU-{student.studentNumber || student.id?.slice(-4) || '0000'}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                <span style={{
-                  width: '0.5rem',
-                  height: '0.5rem',
-                  background: attendanceStatus.color,
-                  borderRadius: '9999px'
-                }} />
-                <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                </span>
               </div>
             </div>
           </div>
@@ -441,6 +444,25 @@ export default function StudentActionPanelNew({
             {t('penalty')}
           </button>
           <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.8125rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #e2e8f0',
+                background: '#f8fafc',
+                color: '#64748b',
+                cursor: 'pointer',
+                boxShadow: 'none'
+              }}
+              title={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+            >
+              {viewMode === 'grid' ? <List style={{ width: '14px', height: '14px' }} /> : <Grid style={{ width: '14px', height: '14px' }} />}
+            </button>
         {/*    <button*/}
         {/*      onClick={onToggleFavorites}*/}
         {/*      style={{*/}
@@ -476,9 +498,10 @@ export default function StudentActionPanelNew({
           {/*  Select Reason*/}
           {/*</h4>*/}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '0.25rem'
+            display: viewMode === 'grid' ? 'grid' : 'flex',
+            gridTemplateColumns: viewMode === 'grid' ? 'repeat(3, 1fr)' : 'none',
+            flexDirection: viewMode === 'list' ? 'column' : 'row',
+            gap: viewMode === 'grid' ? '0.25rem' : '0.125rem'
           }}>
             {options.filter(option => {
               // Filter options based on active tab
@@ -501,7 +524,7 @@ export default function StudentActionPanelNew({
                 <div
                   key={option.id}
                   style={{
-                    padding: '0.5rem',
+                    padding: viewMode === 'grid' ? '0.5rem' : '0.375rem 0.5rem',
                     borderRadius: '0.5rem',
                     border: `2px solid ${isSelected ? 'var(--color-primary, #8b5cf6)' : 'var(--border, #e5e7eb)'}`,
                     background: isSelected ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
@@ -513,36 +536,39 @@ export default function StudentActionPanelNew({
                 >
                   <div style={{
                     display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.125rem',
-                    textAlign: 'center'
+                    flexDirection: viewMode === 'grid' ? 'column' : 'row',
+                    alignItems: viewMode === 'grid' ? 'center' : 'center',
+                    gap: viewMode === 'grid' ? '0.125rem' : '0.5rem',
+                    textAlign: viewMode === 'grid' ? 'center' : 'left'
                   }}>
                     <div style={{
-                      width: '2rem',
-                      height: '2rem',
+                      width: viewMode === 'grid' ? '2rem' : '1.5rem',
+                      height: viewMode === 'grid' ? '2rem' : '1.5rem',
                       borderRadius: '0.375rem',
                       background: option.color + '20',
                       color: option.color,
                       border: `1px solid ${option.color}40`,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}>
-                      {renderIcon(option.icon, { width: '1rem', height: '1rem' })}
+                      {renderIcon(option.icon, { width: viewMode === 'grid' ? '1rem' : '0.875rem', height: viewMode === 'grid' ? '1rem' : '0.875rem' })}
                     </div>
                     <span style={{
-                      fontSize: '0.75rem',
+                      fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
                       fontWeight: 500,
                       color: 'var(--text, #111827)',
-                      lineHeight: '1.2'
+                      lineHeight: '1.2',
+                      flex: 1
                     }}>
                       {lang === 'ar' ? (option.label_ar || option.label_en) : option.label_en}
                     </span>
                     <div style={{
-                      fontSize: '0.75rem',
+                      fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
                       fontWeight: 600,
-                      color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626'
+                      color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626',
+                      flexShrink: 0
                     }}>
                       {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
                     </div>

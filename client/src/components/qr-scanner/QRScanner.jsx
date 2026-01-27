@@ -829,12 +829,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   }, [onActivityUpdate, fetchRecentActivity]);
 
-  // Fetch activity when classId changes
+  // Fetch activity when classId or students change
   useEffect(() => {
     if (classId) {
       fetchRecentActivity();
     }
-  }, [classId]);
+  }, [classId, students]);
 
   useEffect(() => {
     return () => {
