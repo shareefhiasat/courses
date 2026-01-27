@@ -1163,7 +1163,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             color: '#111827',
             margin: 0
           }}>
-            {t('recent_activity') || 'Recent Activity'}
+            {t('todays_transactions') || 'Today\'s Transactions'}
           </h4>
           <Button
             variant="ghost"
@@ -1220,7 +1220,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               color: '#9ca3af',
               fontSize: '0.875rem'
             }}>
-              {t('no_recent_activity')}
+              {t('no_todays_transactions') || 'No transactions today'}
             </div>
           ) : (
             recentActivity.map((activity) => {
