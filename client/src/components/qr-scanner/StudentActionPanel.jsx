@@ -1205,29 +1205,29 @@ export default function StudentActionPanel({
                 {getInitials(student.displayName || student.realName || student.name || '')}
               </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
                     {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                   </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <span style={{
-                      width: '0.5rem',
-                      height: '0.5rem',
+                      width: '0.375rem',
+                      height: '0.375rem',
                       background: attendanceStatus.color,
                       borderRadius: '9999px'
                     }} />
-                    <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                       {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                     </span>
                   </div>
                 </div>
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: 'var(--text-muted, #6b7280)',
-                  marginTop: '0.25rem',
+                <div style={{ 
+                  fontSize: '0.625rem', 
+                  color: 'var(--text-muted, #6b7280)', 
+                  marginTop: '0.125rem',
                   fontFamily: 'monospace',
                   background: 'var(--panel-hover, #f3f4f6)',
-                  padding: '0.25rem 0.5rem',
+                  padding: '0.125rem 0.375rem',
                   borderRadius: '0.25rem',
                   display: 'inline-block'
                 }}>
@@ -1272,14 +1272,17 @@ export default function StudentActionPanel({
                   }} />
                 </div>
                 <span style={{ 
-                  fontSize: '0.5rem', 
+                  fontSize: '0.625rem', 
                   fontWeight: 600, 
                   color: sendNotifications ? '#166534' : '#991b1b',
                 }}>
                   {t('notifs')}
                 </span>
               </div>
-              <Button 
+              <Button variant="ghost" size="icon" onClick={onClose} title={t('close')}>
+                <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
+              </Button>
+              {/* <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={async () => {
@@ -1291,15 +1294,12 @@ export default function StudentActionPanel({
                 title={t('open_qr_code')}
               >
                 <ExternalLink style={{ width: '1.25rem', height: '1.25rem' }} />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={onClose} title={t('close')}>
-                <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
-              </Button>
+              </Button> */}
             </div>
           </div>
 
           {/* Attendance Status - Moved to top */}
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: '0.5rem' }}>
             <h4 style={{
               fontSize: '0.875rem',
               fontWeight: 600,
@@ -1586,7 +1586,7 @@ export default function StudentActionPanel({
           </div>
 
           {/* Points Summary */}
-          <div style={{ marginBottom: '0.15rem' }}>
+          <div style={{ marginBottom: '0.5rem' }}>
             {/* 4 Total Cards Only - without Late */}
             <div style={{
               display: 'grid',
@@ -1774,8 +1774,19 @@ export default function StudentActionPanel({
               </div>
             </div>
 
-            {/* Behavior Section */}
-            <div style={{ marginBottom: '0.15rem' }}>
+            {/* Entries Tabs Container */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              padding: '0.5rem',
+              background: 'var(--panel-hover, #f8fafc)',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border-light, #e2e8f0)',
+              marginBottom: '0.5rem'
+            }}>
+              {/* Behavior Section */}
+              <div style={{ marginBottom: '0.15rem' }}>
               <div
                 onClick={() => toggleSectionExpansion('behavior')}
                 style={{
@@ -2151,89 +2162,9 @@ export default function StudentActionPanel({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Tabs */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>
-            <button
-              onClick={() => setActiveTab('participation')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.8125rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #e2e8f0',
-                background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',
-                color: activeTab === 'participation' ? 'white' : '#64748b',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-              }}
-            >
-              <Users style={{ width: '14px', height: '14px' }} />
-              {t('participation')}
-            </button>
-            <button
-              onClick={() => setActiveTab('behavior')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.8125rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #e2e8f0',
-                background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',
-                color: activeTab === 'behavior' ? 'white' : '#64748b',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-              }}
-            >
-              <Zap style={{ width: '14px', height: '14px' }} />
-              {t('behavior')}
-            </button>
-            <button
-              onClick={() => setActiveTab('penalty')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.8125rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #e2e8f0',
-                background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',
-                color: activeTab === 'penalty' ? 'white' : '#64748b',
-                cursor: 'pointer',
-                boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-              }}
-            >
-              <AlertCircle style={{ width: '14px', height: '14px' }} />
-              {t('penalty')}
-            </button>
-            <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  padding: '0.5rem 0.75rem',
-                  fontSize: '0.8125rem',
-                  borderRadius: '0.375rem',
-                  border: '1px solid #e2e8f0',
-                  background: '#f8fafc',
-                  color: '#64748b',
-                  cursor: 'pointer',
-                  boxShadow: 'none'
-                }}
-                title={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
-              >
-                {viewMode === 'grid' ? <List style={{ width: '14px', height: '14px' }} /> : <Grid style={{ width: '14px', height: '14px' }} />}
-              </button>
             </div>
           </div>
+
         </div>
 
         {/* Content */}
@@ -2244,20 +2175,12 @@ export default function StudentActionPanel({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: '1rem',
+              marginBottom: '0.5rem',
               padding: '0.5rem',
               background: 'var(--panel-hover, #f8fafc)',
               borderRadius: '0.5rem',
               border: '1px solid var(--border-light, #e2e8f0)'
             }}>
-              <h4 style={{
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: 'var(--text-secondary, #374151)',
-                margin: 0
-              }}>
-                {/*{t('history')}*/}
-              </h4>
               <div style={{
                 display: 'flex',
                 gap: '0.25rem'
@@ -2267,8 +2190,8 @@ export default function StudentActionPanel({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.375rem',
-                    padding: '0.5rem 0.75rem',
+                    gap: '0.1rem',
+                    padding: '0.1rem 0.2rem',
                     fontSize: '0.8125rem',
                     borderRadius: '0.375rem',
                     border: '1px solid var(--border-light, #e2e8f0)',
@@ -2289,8 +2212,8 @@ export default function StudentActionPanel({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.375rem',
-                    padding: '0.5rem 0.75rem',
+                    gap: '0.1rem',
+                    padding: '0.1rem 0.2rem',
                     fontSize: '0.8125rem',
                     borderRadius: '0.375rem',
                     border: '1px solid var(--border-light, #e2e8f0)',
@@ -2313,8 +2236,8 @@ export default function StudentActionPanel({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.375rem',
-                    padding: '0.5rem 0.75rem',
+                    gap: '0.1rem',
+                    padding: '0.1rem 0.2rem',
                     fontSize: '0.8125rem',
                     borderRadius: '0.375rem',
                     border: '1px solid var(--border-light, #e2e8f0)',
@@ -2334,8 +2257,8 @@ export default function StudentActionPanel({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.375rem',
-                    padding: '0.5rem 0.75rem',
+                    gap: '0.1rem',
+                    padding: '0.1rem 0.2rem',
                     fontSize: '0.8125rem',
                     borderRadius: '0.375rem',
                     border: '1px solid #e2e8f0',
