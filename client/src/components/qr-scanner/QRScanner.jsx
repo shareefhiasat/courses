@@ -616,7 +616,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const activityLogs = [
         ...attendanceRecords.map((record, index) => {
           const studentId = record.studentId;
-          const studentName = studentMap[studentId] || 'Unknown Student';
+          let studentName = studentMap[studentId] || 'Unknown Student';
+          
+          // If not found in map, try to find the student by generating reference ID from user IDs
+          if (studentName === 'Unknown Student' && students.length > 0) {
+            const foundStudent = students.find(s => {
+              const generatedRefId = generateReferenceId(s.id);
+              return generatedRefId === studentId || s.id === studentId;
+            });
+            if (foundStudent) {
+              studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
+            }
+          }
           
           logger.debug('[QR Scanner] Processing attendance record #' + index + ':', {
             studentId,
@@ -651,21 +662,36 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             class: selectedClassName
           };
         }),
-        ...todayPenalties.map(record => ({
-          id: record.id || record.docId || `penalty-${Math.random()}`,
-          time: record.createdAt || record.timestamp || new Date(),
-          type: 'penalty',
-          studentId: record.studentId,
-          studentName: studentMap[record.studentId] || 'Unknown Student',
-          status: 'penalty',
-          label: record.reason || record.type || 'Penalty',
-          points: record.points,
-          performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
-          scanMethod: 'manual_instructor',
-          subject: selectedSubjectName,
-          program: selectedProgramName,
-          class: selectedClassName
-        }))
+        ...todayPenalties.map(record => {
+          let studentName = studentMap[record.studentId] || 'Unknown Student';
+          
+          // If not found in map, try to find the student by generating reference ID from user IDs
+          if (studentName === 'Unknown Student' && students.length > 0) {
+            const foundStudent = students.find(s => {
+              const generatedRefId = generateReferenceId(s.id);
+              return generatedRefId === record.studentId || s.id === record.studentId;
+            });
+            if (foundStudent) {
+              studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
+            }
+          }
+          
+          return {
+            id: record.id || record.docId || `penalty-${Math.random()}`,
+            time: record.createdAt || record.timestamp || new Date(),
+            type: 'penalty',
+            studentId: record.studentId,
+            studentName,
+            status: 'penalty',
+            label: record.reason || record.type || 'Penalty',
+            points: record.points,
+            performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
+            scanMethod: 'manual_instructor',
+            subject: selectedSubjectName,
+            program: selectedProgramName,
+            class: selectedClassName
+          };
+        })
       ].sort((a, b) => {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
@@ -1279,7 +1305,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               color: '#9ca3af',
               fontSize: '0.875rem'
             }}>
-              {t('no_todays_transactions') || 'No transactions today'}
+              {t('no_todays_transactions') || 'No transactions Today'}
             </div>
           ) : (
             recentActivity.map((activity) => {
@@ -1467,10 +1493,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             </div>
             
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem'
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.75rem'
             }}>
+              {/* First Row: Primary Actions */}
               <button
                 onClick={async () => {
                   console.log('✅ Mark as present');
@@ -1585,6 +1612,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
                     if (existingDoc.exists() && (existingDoc.data().status === 'present' || existingDoc.data().status === 'late')) {
                       showResult('info', 'Student is already marked for today.');
+                      setShowScanDialog(false);
                       return;
                     }
                     
@@ -1595,8 +1623,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       date: today,
                       status: 'present',
                       markedBy: user.uid,
-                      method: 'qr_scan',
-                      notes: 'Marked present via QR scan'
+                      method: 'manual_instructor',
+                      notes: 'Marked present manually'
                     });
                     
                     if (result.success) {
@@ -1631,21 +1659,37 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     setCurrentAction(null);
                   }
                 }}
-                disabled={actionLoading || (todayAttendanceStatus === 'present' || todayAttendanceStatus === 'late')}
+                disabled={actionLoading}
                 style={{
-                  padding: '0.75rem',
+                  padding: '0.875rem',
                   border: 'none',
-                  background: actionLoading && currentAction === 'present' ? '#94a3b8' : '#16a34a',
+                  background: actionLoading && currentAction === 'present' ? '#94a3b8' : '#10b981',
                   color: 'white',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   cursor: actionLoading ? 'not-allowed' : 'pointer',
                   textAlign: 'left',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: actionLoading ? 0.7 : 1
+                  gap: '0.625rem',
+                  opacity: actionLoading ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#059669';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#10b981';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.2)';
+                  }
                 }}
               >
                 {actionLoading && currentAction === 'present' ? (
@@ -1662,142 +1706,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </>
                 ) : (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20 6L9 17l-5-5"/>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
-                    {t('mark_present') || 'Mark Present'}
-                  </>
-                )}
-              </button>
-              
-              <button
-                onClick={async () => {
-                  console.log('📝 Open behavior actions');
-                  addDebugLog('📝 Opening behavior actions', 'info');
-                  
-                  setActionLoading(true);
-                  setCurrentAction('behavior');
-                  
-                  try {
-                    const studentData = await processStudentData(lastScannedStudent.referenceId);
-                    if (studentData) {
-                      setStudentForAction(studentData);
-                      setShowStudentActionPanelNew(true);
-                      setShowScanDialog(false);
-                      addDebugLog(`✅ Found student for behavior: ${studentData.name || studentData.email}`, 'success');
-                    } else {
-                      showResult('error', 'Student not found with this reference ID');
-                    }
-                  } catch (error) {
-                    addDebugLog(`❌ Error opening behavior actions: ${error.message}`, 'error');
-                    showResult('error', `Failed to open behavior actions: ${error.message}`);
-                  } finally {
-                    setActionLoading(false);
-                    setCurrentAction(null);
-                  }
-                }}
-                disabled={actionLoading}
-                style={{
-                  padding: '0.75rem',
-                  border: 'none',
-                  background: actionLoading && currentAction === 'behavior' ? '#94a3b8' : '#f59e0b',
-                  color: 'white',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  cursor: actionLoading ? 'not-allowed' : 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: actionLoading ? 0.7 : 1
-                }}
-              >
-                {actionLoading && currentAction === 'behavior' ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid white',
-                      borderTop: '2px solid transparent',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }} />
-                    {t('processing') || 'Processing...'}
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                    {t('behavior') || 'Behavior'}
-                  </>
-                )}
-              </button>
-              
-              <button
-                onClick={async () => {
-                  console.log('⚖️ Open penalty actions');
-                  addDebugLog('⚖️ Opening penalty actions', 'info');
-                  
-                  setActionLoading(true);
-                  setCurrentAction('penalty');
-                  
-                  try {
-                    const studentData = await processStudentData(lastScannedStudent.referenceId);
-                    if (studentData) {
-                      setStudentForAction(studentData);
-                      setShowStudentActionPanelNew(true);
-                      setShowScanDialog(false);
-                      addDebugLog(`✅ Found student for penalty: ${studentData.name || studentData.email}`, 'success');
-                    } else {
-                      showResult('error', 'Student not found with this reference ID');
-                    }
-                  } catch (error) {
-                    addDebugLog(`❌ Error opening penalty actions: ${error.message}`, 'error');
-                    showResult('error', `Failed to open penalty actions: ${error.message}`);
-                  } finally {
-                    setActionLoading(false);
-                    setCurrentAction(null);
-                  }
-                }}
-                disabled={actionLoading}
-                style={{
-                  padding: '0.75rem',
-                  border: 'none',
-                  background: actionLoading && currentAction === 'penalty' ? '#94a3b8' : '#dc2626',
-                  color: 'white',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  cursor: actionLoading ? 'not-allowed' : 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: actionLoading ? 0.7 : 1
-                }}
-              >
-                {actionLoading && currentAction === 'penalty' ? (
-                  <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid white',
-                      borderTop: '2px solid transparent',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite'
-                    }} />
-                    {t('processing') || 'Processing...'}
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                      <path d="M12 8v4"/>
-                      <path d="M12 16h.01"/>
-                    </svg>
-                    {t('penalty') || 'Penalty'}
+                    {t('present') || 'Present'}
                   </>
                 )}
               </button>
@@ -1831,11 +1743,24 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     
                     // If still no student ID, try to find it in the students array
                     if (!studentId && lastScannedStudent?.referenceId) {
-                      const foundStudent = students.find(s => 
-                        s.referenceId === lastScannedStudent.referenceId ||
-                        s.studentId === lastScannedStudent.referenceId ||
-                        `STU-${s.studentNumber}` === lastScannedStudent.referenceId
-                      );
+                      const foundStudent = students.find(s => {
+                        const generatedReferenceId = generateReferenceId(s.id);
+                        const matches = [
+                          s.referenceId === lastScannedStudent.referenceId,
+                          s.studentId === lastScannedStudent.referenceId,
+                          `STU-${s.studentNumber}` === lastScannedStudent.referenceId,
+                          generatedReferenceId === lastScannedStudent.referenceId
+                        ];
+                        
+                        logger.debug('Checking student (late):', {
+                          student: s,
+                          searchingFor: lastScannedStudent.referenceId,
+                          generatedReferenceId: generatedReferenceId,
+                          matches: matches
+                        });
+                        
+                        return matches.some(Boolean);
+                      });
                       studentId = foundStudent?.id;
                       logger.debug('Found student ID from students array (late):', {
                         referenceId: lastScannedStudent.referenceId,
@@ -1853,6 +1778,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
                     if (existingDoc.exists() && (existingDoc.data().status === 'present' || existingDoc.data().status === 'late')) {
                       showResult('info', 'Student is already marked for today.');
+                      setShowScanDialog(false);
                       return;
                     }
                     
@@ -1862,8 +1788,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       date: today,
                       status: 'late',
                       markedBy: user.uid,
-                      method: 'qr_scan',
-                      notes: 'Marked late via QR scan'
+                      method: 'manual_instructor',
+                      notes: 'Marked late manually'
                     });
                     
                     if (result.success) {
@@ -1898,21 +1824,37 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     setCurrentAction(null);
                   }
                 }}
-                disabled={actionLoading || (todayAttendanceStatus === 'present' || todayAttendanceStatus === 'late')}
+                disabled={actionLoading}
                 style={{
-                  padding: '0.75rem',
+                  padding: '0.875rem',
                   border: 'none',
-                  background: actionLoading && currentAction === 'late' ? '#94a3b8' : '#eab308',
+                  background: actionLoading && currentAction === 'late' ? '#94a3b8' : '#f59e0b',
                   color: 'white',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   cursor: actionLoading ? 'not-allowed' : 'pointer',
                   textAlign: 'left',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: actionLoading ? 0.7 : 1
+                  gap: '0.625rem',
+                  opacity: actionLoading ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#d97706';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(245, 158, 11, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#f59e0b';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(245, 158, 11, 0.2)';
+                  }
                 }}
               >
                 {actionLoading && currentAction === 'late' ? (
@@ -1929,11 +1871,95 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </>
                 ) : (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/>
                       <polyline points="12 6 12 12 16 14"/>
                     </svg>
                     {t('late') || 'Late'}
+                  </>
+                )}
+              </button>
+              
+              {/* Second Row: Secondary Actions */}
+              <button
+                onClick={async () => {
+                  console.log('⚡ Add penalty');
+                  addDebugLog('⚡ Adding penalty', 'info');
+                  
+                  setActionLoading(true);
+                  setCurrentAction('penalty');
+                  
+                  try {
+                    const studentData = await processStudentData(lastScannedStudent.referenceId);
+                    if (studentData) {
+                      setStudentForAction(studentData);
+                      setShowStudentActionPanelNew(true);
+                      setShowScanDialog(false);
+                      addDebugLog(`✅ Found student for penalty: ${studentData.name || studentData.email}`, 'success');
+                    } else {
+                      showResult('error', 'Student not found with this reference ID');
+                    }
+                  } catch (error) {
+                    addDebugLog(`❌ Error adding penalty: ${error.message}`, 'error');
+                    showResult('error', `Failed to add penalty: ${error.message}`);
+                  } finally {
+                    setActionLoading(false);
+                    setCurrentAction(null);
+                  }
+                }}
+                disabled={actionLoading}
+                style={{
+                  padding: '0.875rem',
+                  border: 'none',
+                  background: actionLoading && currentAction === 'penalty' ? '#94a3b8' : '#ef4444',
+                  color: 'white',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.625rem',
+                  opacity: actionLoading ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#dc2626';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#ef4444';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
+                  }
+                }}
+              >
+                {actionLoading && currentAction === 'penalty' ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    {t('processing') || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                      <path d="M12 8v4"/>
+                      <path d="M12 16h.01"/>
+                    </svg>
+                    {t('penalty') || 'Penalty'}
                   </>
                 )}
               </button>
@@ -1966,19 +1992,35 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 }}
                 disabled={actionLoading}
                 style={{
-                  padding: '0.75rem',
+                  padding: '0.875rem',
                   border: 'none',
                   background: actionLoading && currentAction === 'participation' ? '#94a3b8' : '#3b82f6',
                   color: 'white',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   cursor: actionLoading ? 'not-allowed' : 'pointer',
                   textAlign: 'left',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: actionLoading ? 0.7 : 1
+                  gap: '0.625rem',
+                  opacity: actionLoading ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#2563eb';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#3b82f6';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.2)';
+                  }
                 }}
               >
                 {actionLoading && currentAction === 'participation' ? (
@@ -1995,7 +2037,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </>
                 ) : (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                       <circle cx="9" cy="7" r="4"/>
                       <path d="m22 21-3-3 3-3"/>
@@ -2005,11 +2047,58 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </>
                 )}
               </button>
+            </div>
+            
+            {/* Third Row: Student Details (Far Right) and Cancel */}
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem',
+              marginTop: '0.5rem'
+            }}>
+              <button
+                onClick={async () => {
+                  console.log('❌ Cancel scan action');
+                  setShowScanDialog(false);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.875rem',
+                  border: '2px solid #e5e7eb',
+                  background: 'white',
+                  color: '#6b7280',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.625rem',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#f9fafb';
+                  e.target.style.borderColor = '#d1d5db';
+                  e.target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'white';
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                {t('cancel') || 'Cancel'}
+              </button>
               
               <button
                 onClick={async () => {
-                  console.log('👤 Open student details');
-                  addDebugLog('👤 Opening student details', 'info');
+                  console.log('🗑️ Open student details');
+                  addDebugLog('🗑️ Opening student details', 'info');
                   
                   setActionLoading(true);
                   setCurrentAction('details');
@@ -2034,19 +2123,37 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 }}
                 disabled={actionLoading}
                 style={{
-                  padding: '0.75rem',
+                  flex: 2,
+                  padding: '0.875rem',
                   border: 'none',
-                  background: actionLoading && currentAction === 'details' ? '#94a3b8' : '#6b7280',
+                  background: actionLoading && currentAction === 'details' ? '#94a3b8' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                   color: 'white',
-                  borderRadius: '0.375rem',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   cursor: actionLoading ? 'not-allowed' : 'pointer',
-                  textAlign: 'left',
+                  textAlign: 'center',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: actionLoading ? 0.7 : 1
+                  justifyContent: 'center',
+                  gap: '0.625rem',
+                  opacity: actionLoading ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 6px rgba(139, 92, 246, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 12px rgba(139, 92, 246, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 6px rgba(139, 92, 246, 0.3)';
+                  }
                 }}
               >
                 {actionLoading && currentAction === 'details' ? (
@@ -2063,47 +2170,155 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </>
                 ) : (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                      <circle cx="9" cy="7" r="4"/>
-                      <path d="m22 21-3-3 3-3"/>
-                      <path d="M16 8h6"/>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                      <path d="m16 11-2.5-2.5L11 11"/>
                     </svg>
                     {t('student_details') || 'Student Details'}
                   </>
                 )}
               </button>
-              
+            </div>
+            
+            {/* Fourth Row: Clear Today's Scans */}
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem',
+              marginTop: '0.25rem'
+            }}>
               <button
-                onClick={() => {
-                  console.log('❌ Cancel scan action');
-                  setShowScanDialog(false);
+                onClick={async () => {
+                  console.log('🗑️ Clear today\'s scans');
+                  addDebugLog('🗑️ Clearing all scans for today', 'warning');
+                  
+                  if (window.confirm('Are you sure you want to clear all scans for today? This will permanently delete all attendance, penalties, and participation records for today\'s date.')) {
+                    setActionLoading(true);
+                    setCurrentAction('clear');
+                    
+                    try {
+                      const today = new Date().toISOString().split('T')[0];
+                      logger.debug('Clearing all records for date:', today);
+                      
+                      // Get all attendance records for today
+                      const attendanceResponse = await getAttendanceByClass(classId, today);
+                      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+                      
+                      // Get all penalties for today
+                      const penaltiesResponse = await getPenalties();
+                      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+                      const todayPenalties = allPenalties.filter(p => {
+                        const timestamp = p.createdAt || p.timestamp;
+                        if (!timestamp) return false;
+                        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                        return dateStr === today;
+                      });
+                      
+                      logger.debug('Records to delete:', {
+                        attendanceCount: attendanceRecords.length,
+                        penaltyCount: todayPenalties.length,
+                        attendanceIds: attendanceRecords.map(r => r.id),
+                        penaltyIds: todayPenalties.map(p => p.id || p.docId)
+                      });
+                      
+                      // Delete all attendance records for today
+                      for (const record of attendanceRecords) {
+                        try {
+                          await deleteAttendance(record.id);
+                          logger.debug('Deleted attendance record:', record.id);
+                        } catch (error) {
+                          logger.error('Failed to delete attendance record:', record.id, error);
+                        }
+                      }
+                      
+                      // Delete all penalty records for today
+                      for (const penalty of todayPenalties) {
+                        try {
+                          await deletePenalty(penalty.id || penalty.docId);
+                          logger.debug('Deleted penalty record:', penalty.id || penalty.docId);
+                        } catch (error) {
+                          logger.error('Failed to delete penalty record:', penalty.id || penalty.docId, error);
+                        }
+                      }
+                      
+                      // Refresh the activity display
+                      fetchRecentActivity();
+                      
+                      showResult('success', `Successfully cleared ${attendanceRecords.length} attendance records and ${todayPenalties.length} penalties for today.`);
+                      addDebugLog(`✅ Cleared ${attendanceRecords.length} attendance and ${todayPenalties.length} penalty records for today`, 'success');
+                      
+                      setShowScanDialog(false);
+                    } catch (error) {
+                      addDebugLog(`❌ Error clearing today's scans: ${error.message}`, 'error');
+                      showResult('error', `Failed to clear today's scans: ${error.message}`);
+                    } finally {
+                      setActionLoading(false);
+                      setCurrentAction(null);
+                    }
+                  }
                 }}
+                disabled={actionLoading}
                 style={{
-                  padding: '0.75rem',
-                  border: '1px solid #d1d5db',
-                  background: 'white',
-                  color: '#6b7280',
-                  borderRadius: '0.375rem',
+                  padding: '0.875rem',
+                  border: 'none',
+                  background: actionLoading && currentAction === 'clear' ? '#94a3b8' : '#dc2626',
+                  color: 'white',
+                  borderRadius: '0.5rem',
                   fontSize: '0.875rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  textAlign: 'left',
+                  fontWeight: 600,
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  textAlign: 'center',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem'
+                  justifyContent: 'center',
+                  gap: '0.625rem',
+                  opacity: actionLoading ? 0.7 : 1,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#b91c1c';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 8px rgba(220, 38, 38, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!actionLoading) {
+                    e.target.style.background = '#dc2626';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 4px rgba(220, 38, 38, 0.2)';
+                  }
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-                {t('cancel') || 'Cancel'}
+                {actionLoading && currentAction === 'clear' ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid white',
+                      borderTop: '2px solid transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    {t('processing') || 'Processing...'}
+                  </>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      <path d="M12 14v-2"/>
+                      <path d="M12 10v-2"/>
+                      <path d="M12 6v-2"/>
+                    </svg>
+                    {t('clear_today_scans') || 'Clear Today\'s Scans'}
+                  </>
+                )}
               </button>
             </div>
-          </div>
-        </div>
-      )}
       
       {/* Debug Log Box */}
       {showDebugBox && (

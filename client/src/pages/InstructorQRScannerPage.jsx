@@ -510,7 +510,7 @@ const InstructorQRScannerPage = () => {
         userId: student.id,
         studentName: student.displayName || student.name
       });
-      handleMarkAttendance(student.id, 'present');
+      handleMarkAttendance(student.id, 'present', 'Marked present via QR camera scan', 'qr_camera');
     } else {
       logger.error('handleScan: Student not found', { studentId });
     }
@@ -534,7 +534,7 @@ const InstructorQRScannerPage = () => {
     };
   }, [selectedClassId, selectedDate, loadStudents]);
 
-  const handleMarkAttendance = useCallback(async (studentId, status, notes = '') => {
+  const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = 'manual_instructor') => {
     try {
       // Ensure selectedDate is a string in yyyy-MM-dd format
       const dateStr = typeof selectedDate === 'string' ? selectedDate : selectedDate.toISOString().split('T')[0];
@@ -545,6 +545,7 @@ const InstructorQRScannerPage = () => {
         date: dateStr,
         status,
         notes,
+        method,
         markedBy: user.uid
       });
 

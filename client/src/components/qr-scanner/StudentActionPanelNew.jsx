@@ -318,14 +318,15 @@ export default function StudentActionPanelNew({
                 </div>
               </div>
               <div style={{ 
-                fontSize: '0.625rem', 
+                fontSize: '0.875rem', 
                 color: 'var(--text-muted, #6b7280)', 
                 marginTop: '0.125rem',
                 fontFamily: 'monospace',
                 background: 'var(--panel-hover, #f3f4f6)',
-                padding: '0.125rem 0.375rem',
+                padding: '0.25rem 0.5rem',
                 borderRadius: '0.25rem',
-                display: 'inline-block'
+                display: 'inline-block',
+                fontWeight: 600
               }}>
                 ID: STU-{student.studentNumber || student.id?.slice(-4) || '0000'}
               </div>

@@ -658,9 +658,9 @@ const StudentRoster = React.memo(function StudentRoster({
           borderRadius: '0.375rem',
           fontSize: '0.75rem',
           fontWeight: 500,
-          background: '#22c55e',
+          background: '#16a34a', // Darker green to match other interface elements
           color: 'white',
-          border: '1px solid #22c55e',
+          border: '1px solid #16a34a',
           display: 'inline-flex',
           alignItems: 'center',
           gap: '0.375rem'
@@ -915,7 +915,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('attendance')}:</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('todays_attendance') || "Today's Attendance"}:</span>
                       {getAttendanceBadge(student.attendance)}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1385,7 +1385,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   userSelect: 'none'
                 }}
               >
-                {t('attendance')} {getSortIcon('attendance')}
+                {t('todays_attendance') || "Today's Attendance"} {getSortIcon('attendance')}
               </th>
               <th 
                 onClick={() => onSort('participation')}
