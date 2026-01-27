@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '../../utils/logger';
-import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink, Trophy } from 'lucide-react';
+import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink, Trophy, Grid, List } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
@@ -490,6 +490,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
   const [activeTab, setActiveTab] = useState('behavior');
+  const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
   const [todayLogs, setTodayLogs] = useState([]);
   const [historicalLogs, setHistoricalLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -2153,107 +2154,253 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
           </div>
 
           {/* Tabs */}
-          {/*<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>*/}
-          {/*  <button*/}
-          {/*    onClick={() => setActiveTab('participation')}*/}
-          {/*    style={{*/}
-          {/*      display: 'flex',*/}
-          {/*      alignItems: 'center',*/}
-          {/*      gap: '0.375rem',*/}
-          {/*      padding: '0.5rem 0.75rem',*/}
-          {/*      fontSize: '0.8125rem',*/}
-          {/*      borderRadius: '0.375rem',*/}
-          {/*      border: '1px solid #e2e8f0',*/}
-          {/*      background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',*/}
-          {/*      color: activeTab === 'participation' ? 'white' : '#64748b',*/}
-          {/*      cursor: 'pointer',*/}
-          {/*      boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
-          {/*    }}*/}
-          {/*  >*/}
-          {/*    <Users style={{ width: '14px', height: '14px' }} />*/}
-          {/*    Participation*/}
-          {/*  </button>*/}
-          {/*  <button*/}
-          {/*    onClick={() => setActiveTab('behavior')}*/}
-          {/*    style={{*/}
-          {/*      display: 'flex',*/}
-          {/*      alignItems: 'center',*/}
-          {/*      gap: '0.375rem',*/}
-          {/*      padding: '0.5rem 0.75rem',*/}
-          {/*      fontSize: '0.8125rem',*/}
-          {/*      borderRadius: '0.375rem',*/}
-          {/*      border: '1px solid #e2e8f0',*/}
-          {/*      background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',*/}
-          {/*      color: activeTab === 'behavior' ? 'white' : '#64748b',*/}
-          {/*      cursor: 'pointer',*/}
-          {/*      boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
-          {/*    }}*/}
-          {/*  >*/}
-          {/*    <Zap style={{ width: '14px', height: '14px' }} />*/}
-          {/*    Behavior*/}
-          {/*  </button>*/}
-          {/*  <button*/}
-          {/*    onClick={() => setActiveTab('penalty')}*/}
-          {/*    style={{*/}
-          {/*      display: 'flex',*/}
-          {/*      alignItems: 'center',*/}
-          {/*      gap: '0.375rem',*/}
-          {/*      padding: '0.5rem 0.75rem',*/}
-          {/*      fontSize: '0.8125rem',*/}
-          {/*      borderRadius: '0.375rem',*/}
-          {/*      border: '1px solid #e2e8f0',*/}
-          {/*      background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',*/}
-          {/*      color: activeTab === 'penalty' ? 'white' : '#64748b',*/}
-          {/*      cursor: 'pointer',*/}
-          {/*      boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
-          {/*    }}*/}
-          {/*  >*/}
-          {/*    <AlertCircle style={{ width: '14px', height: '14px' }} />*/}
-          {/*    Penalty*/}
-          {/*  </button>*/}
-          {/*  <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>*/}
-          {/*    <button*/}
-          {/*      onClick={onToggleFavorites}*/}
-          {/*      style={{*/}
-          {/*        display: 'flex',*/}
-          {/*        alignItems: 'center',*/}
-          {/*        gap: '0.375rem',*/}
-          {/*        padding: '0.5rem 0.75rem',*/}
-          {/*        fontSize: '0.8125rem',*/}
-          {/*        borderRadius: '0.375rem',*/}
-          {/*        border: '1px solid #e2e8f0',*/}
-          {/*        background: showFavoritesOnly ? '#f59e0b' : '#f8fafc',*/}
-          {/*        color: showFavoritesOnly ? '#f59e0b' : '#64748b',*/}
-          {/*        cursor: 'pointer',*/}
-          {/*        boxShadow: showFavoritesOnly ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'*/}
-          {/*      }}*/}
-          {/*    >*/}
-          {/*      <Star size={14} fill={showFavoritesOnly ? '#8b5cf6' : 'none'} color={showFavoritesOnly ? '#8b5cf6' : '#6b7280'} />*/}
-          {/*      {showFavoritesOnly ? 'All' : 'Favorites'}*/}
-          {/*    </button>*/}
-          {/*  </div>*/}
-          {/*</div>*/}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>
+            <button
+              onClick={() => setActiveTab('participation')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.8125rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #e2e8f0',
+                background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',
+                color: activeTab === 'participation' ? 'white' : '#64748b',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              }}
+            >
+              <Users style={{ width: '14px', height: '14px' }} />
+              {t('participation')}
+            </button>
+            <button
+              onClick={() => setActiveTab('behavior')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.8125rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #e2e8f0',
+                background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',
+                color: activeTab === 'behavior' ? 'white' : '#64748b',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              }}
+            >
+              <Zap style={{ width: '14px', height: '14px' }} />
+              {t('behavior')}
+            </button>
+            <button
+              onClick={() => setActiveTab('penalty')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.8125rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #e2e8f0',
+                background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',
+                color: activeTab === 'penalty' ? 'white' : '#64748b',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              }}
+            >
+              <AlertCircle style={{ width: '14px', height: '14px' }} />
+              {t('penalty')}
+            </button>
+            <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  boxShadow: 'none'
+                }}
+                title={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+              >
+                {viewMode === 'grid' ? <List style={{ width: '14px', height: '14px' }} /> : <Grid style={{ width: '14px', height: '14px' }} />}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
-          {/*<div style={{ marginBottom: '1.5rem' }}>*/}
-          {/*  <h4 style={{*/}
-          {/*    fontSize: '0.875rem',*/}
-          {/*    fontWeight: 500,*/}
-          {/*    color: '#6b7280',*/}
-          {/*    textTransform: 'uppercase',*/}
-          {/*    letterSpacing: '0.05em',*/}
-          {/*    marginBottom: '1rem'*/}
-          {/*  }}>*/}
-          {/*    Select Reason*/}
-          {/*  </h4>*/}
-          {/*  <div style={{*/}
-          {/*    display: 'grid',*/}
-          {/*    gridTemplateColumns: 'repeat(3, 1fr)',*/}
-          {/*    gap: '0.5rem'*/}
-          {/*  }}>*/}
-          {/*    {options.map((option) => {*/}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h4 style={{
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: '#6b7280',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '1rem'
+            }}>
+              Select Reason
+            </h4>
+            <div style={{
+              display: viewMode === 'grid' ? 'grid' : 'flex',
+              gridTemplateColumns: viewMode === 'grid' ? 'repeat(3, 1fr)' : 'none',
+              flexDirection: viewMode === 'list' ? 'column' : 'row',
+              gap: viewMode === 'grid' ? '0.5rem' : '0.125rem'
+            }}>
+              {options.map((option) => {
+                const isSelected = selectedActions.some(a => a.id === option.id);
+
+                return (
+                  <div
+                    key={option.id}
+                    style={{
+                      padding: viewMode === 'grid' ? '0.75rem' : '0.5rem',
+                      borderRadius: '0.5rem',
+                      border: `2px solid ${isSelected ? '#8b5cf6' : '#e5e7eb'}`,
+                      background: isSelected ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
+                      transition: 'all 0.2s',
+                      position: 'relative',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => toggleAction(option)}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: viewMode === 'grid' ? 'column' : 'row',
+                      alignItems: viewMode === 'grid' ? 'center' : 'center',
+                      gap: viewMode === 'grid' ? '0.25rem' : '0.5rem',
+                      textAlign: viewMode === 'grid' ? 'center' : 'left'
+                    }}>
+                      <div style={{
+                        width: viewMode === 'grid' ? '2rem' : '1.5rem',
+                        height: viewMode === 'grid' ? '2rem' : '1.5rem',
+                        borderRadius: '0.375rem',
+                        background: option.color + '20',
+                        color: option.color,
+                        border: `1px solid ${option.color}40`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        {renderIcon(option.icon, { width: viewMode === 'grid' ? '1rem' : '0.875rem', height: viewMode === 'grid' ? '1rem' : '0.875rem' })}
+                      </div>
+                      <span style={{
+                        fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
+                        fontWeight: 500,
+                        color: 'var(--text, #111827)',
+                        lineHeight: '1.2',
+                        flex: 1
+                      }}>
+                        {option.label_en}
+                      </span>
+                      <div style={{
+                        fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
+                        fontWeight: 600,
+                        color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}>
+                        {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
+                        
+                        {/* Favorite Toggle - positioned to avoid overlap */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(option.id);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '0.125rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title={favoriteBehaviors.includes(option.id) ? "Remove from favorites" : "Add to favorites"}
+                        >
+                          <Star
+                            size={viewMode === 'grid' ? 10 : 12}
+                            fill={favoriteBehaviors.includes(option.id) ? '#fbbf24' : 'none'}
+                            color={favoriteBehaviors.includes(option.id) ? '#fbbf24' : '#d1d5db'}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Points Input - Always show when selected */}
+                    {isSelected && (
+                      <div style={{
+                        marginTop: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}>
+                        <span style={{ fontSize: '0.5rem', color: '#6b7280', fontWeight: 500 }}>
+                          Points:
+                        </span>
+                        <input
+                          type="number"
+                          min="-10"
+                          max="10"
+                          value={actionPoints[option.id] || 0}
+                          onChange={(e) => {
+                            const value = Math.max(-10, Math.min(10, parseInt(e.target.value) || 0));
+                            handlePointsChange(option.id, value);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="0"
+                          required
+                          style={{
+                            width: '2.5rem',
+                            height: '1.5rem',
+                            padding: '0.125rem',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.5rem',
+                            textAlign: 'center',
+                            fontWeight: 500
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h4 style={{
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: '#6b7280',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '0.75rem'
+            }}>
+              Internal Note
+            </h4>
+            <Textarea
+              placeholder="Add details..."
+              value={internalNote}
+              onChange={(e) => setInternalNote(e.target.value)}
+              style={{ minHeight: '6rem', resize: 'none', fontSize: '0.875rem' }}
+            />
+          </div>
+
+          <div>
           {/*      const isSelected = selectedActions.some(a => a.id === option.id);*/}
 
           {/*      return (*/}
