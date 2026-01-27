@@ -934,7 +934,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   return (
-    < dir {isRTL ? 'rtl' : 'ltr'} style={{
+    <div {isRTL ? 'rtl' : 'ltr'} style={{
       background: 'var(--panel, white)',
       borderRadius: '0.75rem',
       border: '1px solid var(--border, #e5e7eb)',
@@ -2622,8 +2622,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           to { transform: rotate(360deg); }
         }
       `}</style>
+      </div>
     </div>
-  </div>
       )}
-    </>
-}
+    </div>
+  )};
