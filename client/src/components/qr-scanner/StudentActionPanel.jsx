@@ -1330,7 +1330,7 @@ export default function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.5rem',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1373,7 +1373,7 @@ export default function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.5rem',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1417,7 +1417,7 @@ export default function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.5rem',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1461,7 +1461,7 @@ export default function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.5rem',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1508,7 +1508,7 @@ export default function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.5rem',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1554,7 +1554,7 @@ export default function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.5rem',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem',
@@ -1608,7 +1608,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {totalAttendanceStats.present}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('present')}
                 </div>
               </div>
@@ -1627,7 +1627,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {student.penalty || 0}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('penalty')}
                 </div>
               </div>
@@ -1646,7 +1646,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('behavior')}
                 </div>
               </div>
@@ -1665,7 +1665,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {student.participation || 0}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('participation')}
                 </div>
               </div>
@@ -1692,7 +1692,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {totalAttendanceStats.late}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('late')}
                 </div>
               </div>
@@ -1711,7 +1711,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {attendanceStats.human_case}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('human_case')}
                 </div>
               </div>
@@ -1730,7 +1730,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {attendanceStats.excused_leave}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('excused_leave')}
                 </div>
               </div>
@@ -1749,7 +1749,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {attendanceStats.absent_with_excuse}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('absent_excused')}
                 </div>
               </div>
@@ -1768,7 +1768,7 @@ export default function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {attendanceStats.absent_no_excuse}
                 </div>
-                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.75rem', color: 'white', fontWeight: 500 }}>
                   {t('absent')}
                 </div>
               </div>
