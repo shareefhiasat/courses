@@ -38,6 +38,7 @@ export const EVENTS = {
   ACTIVITY_UPDATE: 'activity_update',
   STUDENT_UPDATE: 'student_update',
   ATTENDANCE_MARKED: 'attendance_marked',
+  ATTENDANCE_DELETED: 'attendance_deleted',
   BEHAVIOR_LOGGED: 'behavior_logged',
   PARTICIPATION_ADDED: 'participation_added',
   PENALTY_ASSIGNED: 'penalty_assigned'

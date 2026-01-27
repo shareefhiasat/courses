@@ -242,6 +242,7 @@ const StudentRoster = React.memo(function StudentRoster({
             fetchStudentHistory(student.id);
           });
           eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId: deleteLogId.split('_')[1] });
+          eventBus.emit(EVENTS.ATTENDANCE_DELETED, { studentId: deleteLogId.split('_')[1] });
         }
       } else if (deleteType === 'penalty') {
         result = await deletePenalty(deleteLogId);
@@ -469,6 +470,23 @@ const StudentRoster = React.memo(function StudentRoster({
 
   // Memoized badge component for performance
   const getAttendanceBadge = useCallback((status) => {
+    // If no status, show "NOTHING YET" with indication color
+    if (!status) {
+      return (
+        <span style={{
+          padding: '0.25rem 0.75rem',
+          borderRadius: '0.375rem',
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          background: '#fef3c7',
+          color: '#92400e',
+          border: '1px solid #fbbf24'
+        }}>
+          {t('nothing_yet') || 'NOTHING YET'}
+        </span>
+      );
+    }
+    
     const statusInfo = ATTENDANCE_STATUS_LABELS[status] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
     
     // Special handling for Present status with green checkmark

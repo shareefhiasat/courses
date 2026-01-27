@@ -16,6 +16,7 @@ import { useToast } from '../ui/Toast';
 import { RefreshCw } from 'lucide-react';
 import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';
+import { generateReferenceId } from '../../utils/qrCode';
 
 const QrCodeIcon = ({ className }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -23,13 +24,6 @@ const QrCodeIcon = ({ className }) => (
     <rect x="14" y="3" width="7" height="7"/>
     <rect x="14" y="14" width="7" height="7"/>
     <rect x="3" y="14" width="7" height="7"/>
-  </svg>
-);
-
-const CameraIcon = ({ className }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-    <circle cx="12" cy="13" r="3"/>
   </svg>
 );
 
@@ -42,7 +36,7 @@ const AttendanceIcon = ({ style }) => (
   </svg>
 );
 
-export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, loading = false, students = [] }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { addToast } = useToast();
@@ -68,6 +62,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [showStudentActionPanelNew, setShowStudentActionPanelNew] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentForAction, setStudentForAction] = useState(null);
+  const [todayAttendanceStatus, setTodayAttendanceStatus] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState(null);
   const [showManualInput, setShowManualInput] = useState(false);
@@ -101,6 +96,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   const startCamera = async () => {
+    // Check if all required fields are selected before starting camera
+    if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+      showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+      addDebugLog('❌ Cannot start camera: Missing required selections', 'error');
+      return;
+    }
+    
     try {
       setError('');
       setIsScanning(true);
@@ -322,6 +324,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     addDebugLog(`👤 Student info parsed: ${JSON.stringify(studentInfo)}`, 'info');
     setLastScannedStudent(studentInfo);
     
+    // Check if all required fields are selected
+    if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+      showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+      addDebugLog('❌ Cannot scan: Missing required selections', 'error');
+      stopCamera();
+      return;
+    }
+    
     // Always use semi-auto mode - show dialog to choose action
     addDebugLog('🔄 Semi-auto mode: Showing action dialog', 'info');
     setShowScanDialog(true);
@@ -359,6 +369,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const handleManualSubmit = useCallback(() => {
     if (!manualStudentId.trim()) return;
     
+    // Check if all required fields are selected
+    if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+      showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+      addDebugLog('❌ Cannot scan manually: Missing required selections', 'error');
+      return;
+    }
+    
     const studentInfo = { referenceId: manualStudentId.trim() };
     setLastScannedStudent(studentInfo);
     setShowScanDialog(true);
@@ -367,11 +384,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     
     addDebugLog(`📝 Manual student ID entered: ${manualStudentId.trim()}`, 'info');
     playFeedbackSound('success');
-  }, [manualStudentId, addDebugLog, playFeedbackSound]);
+  }, [manualStudentId, selectedProgramId, selectedSubjectId, selectedClassId, t, addDebugLog, playFeedbackSound]);
 
   const findStudentData = useCallback(async (referenceId) => {
     try {
-      const students = await getUsers();
+      const result = await getUsers();
+      const students = result.success ? result.data : [];
       const student = students.find(s => s.referenceId === referenceId);
       return student;
     } catch (error) {
@@ -379,6 +397,38 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       return null;
     }
   }, [addDebugLog]);
+
+  const checkTodayAttendanceStatus = useCallback(async (referenceId) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${referenceId}_${today}`));
+      
+      if (existingDoc.exists()) {
+        const data = existingDoc.data();
+        return data.status; // 'present', 'late', or null
+      }
+      return null;
+    } catch (error) {
+      addDebugLog(`❌ Error checking attendance status: ${error.message}`, 'error');
+      return null;
+    }
+  }, [classId, addDebugLog]);
+
+  const processStudentData = useCallback(async (referenceId) => {
+    try {
+      const [studentData, attendanceStatus] = await Promise.all([
+        findStudentData(referenceId),
+        checkTodayAttendanceStatus(referenceId)
+      ]);
+      
+      setTodayAttendanceStatus(attendanceStatus);
+      return studentData;
+    } catch (error) {
+      addDebugLog(`❌ Error processing student data: ${error.message}`, 'error');
+      setTodayAttendanceStatus(null);
+      return null;
+    }
+  }, [findStudentData, checkTodayAttendanceStatus, addDebugLog]);
 
   const switchCameraMode = () => {
     const newMode = cameraMode === 'environment' ? 'user' : 'environment';
@@ -417,25 +467,60 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
+      logger.debug('[QR Scanner] Date filtering:', {
+        today: today.toISOString(),
+        todayStr: todayStr,
+        classId: classId
+      });
+      
       // Get today's attendance records for this class
       const attendanceResponse = await getAttendanceByClass(classId, todayStr);
       const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+      
+      logger.debug('[QR Scanner] Attendance records fetched:', {
+        success: attendanceResponse.success,
+        count: attendanceRecords.length,
+        records: attendanceRecords.map(r => ({
+          id: r.id,
+          studentId: r.studentId,
+          status: r.status,
+          date: r.date,
+          timestamp: r.timestamp,
+          category: r.category,
+          delta: r.delta
+        }))
+      });
       
       // Get today's penalty records for students in this class
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       
-      // Get all users to find student names
-      const usersResponse = await getUsers();
-      const allUsers = usersResponse.success ? usersResponse.data : [];
-      
-      // Create a map of studentId to student name
+      // Create a map of referenceId to student name from passed students
       const studentMap = {};
-      allUsers.forEach(u => {
-        const userId = u.id || u.docId;
-        const name = u.displayName || u.realName || u.name || (u.email ? u.email.split('@')[0] : 'Unknown');
-        studentMap[userId] = name;
+      logger.debug('[QR Scanner] Creating student map from', students.length, 'students');
+      students.forEach(student => {
+        const studentId = student.id || student.docId;
+        const referenceId = student.studentNumber ? `STU-${student.studentNumber}` : (student.referenceId || generateReferenceId(studentId));
+        const name = student.displayName || student.realName || student.name || (student.email ? student.email.split('@')[0] : 'Unknown');
+        studentMap[referenceId] = name;
+        logger.debug('[QR Scanner] Student map entry:', referenceId, '->', name, '(from studentId:', studentId, ')');
       });
+      
+      // Fallback: Get all users if no students provided or to find missing students
+      if (students.length === 0) {
+        logger.debug('[QR Scanner] No students provided, fetching all users as fallback');
+        const usersResponse = await getUsers();
+        const allUsers = usersResponse.success ? usersResponse.data : [];
+        allUsers.forEach(u => {
+          const userId = u.id || u.docId;
+          const referenceId = u.studentNumber ? `STU-${u.studentNumber}` : (u.referenceId || generateReferenceId(userId));
+          const name = u.displayName || u.realName || u.name || (u.email ? u.email.split('@')[0] : 'Unknown');
+          if (!studentMap[referenceId]) {
+            studentMap[referenceId] = name;
+            logger.debug('[QR Scanner] Fallback student map entry:', referenceId, '->', name, '(from userId:', userId, ')');
+          }
+        });
+      }
       
       // Filter penalties for today only
       const todayPenalties = allPenalties.filter(p => {
@@ -454,20 +539,56 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       logger.debug('[QR Scanner] Activity refresh found:', attendanceRecords.length, 'attendance,', todayPenalties.length, 'penalties');
       
       // Combine and format activity logs
+      logger.debug('[QR Scanner] Processing', attendanceRecords.length, 'attendance records');
+      logger.debug('[QR Scanner] First attendance record details:', attendanceRecords.length > 0 ? {
+        fullRecord: attendanceRecords[0],
+        id: attendanceRecords[0]?.id,
+        studentId: attendanceRecords[0]?.studentId,
+        status: attendanceRecords[0]?.status,
+        category: attendanceRecords[0]?.category,
+        delta: attendanceRecords[0]?.delta,
+        date: attendanceRecords[0]?.date,
+        timestamp: attendanceRecords[0]?.timestamp,
+        method: attendanceRecords[0]?.method,
+        notes: attendanceRecords[0]?.notes,
+        reason: attendanceRecords[0]?.reason
+      } : 'No attendance records');
+      
       const activityLogs = [
-        ...attendanceRecords.map(record => ({
-          id: record.id || `attendance-${Math.random()}`,
-          time: record.timestamp || record.updatedAt || record.date,
-          type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
-          studentId: record.studentId,
-          studentName: studentMap[record.studentId] || 'Unknown Student',
-          status: record.status || 'present',
-          delta: record.delta,
-          label: record.notes || record.reason || '',
-          method: record.method || 'QR Scan',
-          performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
-          scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor')
-        })),
+        ...attendanceRecords.map((record, index) => {
+          const studentId = record.studentId;
+          const studentName = studentMap[studentId] || 'Unknown Student';
+          
+          logger.debug('[QR Scanner] Processing attendance record #' + index + ':', {
+            studentId,
+            studentName,
+            status: record.status,
+            category: record.category,
+            delta: record.delta,
+            date: record.date,
+            timestamp: record.timestamp,
+            method: record.method,
+            notes: record.notes,
+            reason: record.reason,
+            availableInMap: !!studentMap[studentId],
+            totalStudentsInMap: Object.keys(studentMap).length,
+            computedType: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance')
+          });
+          
+          return {
+            id: record.id || `attendance-${Math.random()}`,
+            time: record.timestamp || record.updatedAt || record.date,
+            type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
+            studentId,
+            studentName,
+            status: record.status || 'present',
+            delta: record.delta,
+            label: record.notes || record.reason || '',
+            method: record.method || 'QR Scan',
+            performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
+            scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor')
+          };
+        }),
         ...todayPenalties.map(record => ({
           id: record.id || record.docId || `penalty-${Math.random()}`,
           time: record.createdAt || record.timestamp || new Date(),
@@ -505,7 +626,24 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       });
       
+      // Sort by time (most recent first)
+      uniqueLogs.sort((a, b) => {
+        const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+        const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+        return timeB - timeA;
+      });
+      
       logger.debug('[QR Scanner] Final activity logs (deduped):', uniqueLogs.length);
+      logger.debug('[QR Scanner] First activity log details:', uniqueLogs.length > 0 ? {
+        studentId: uniqueLogs[0]?.studentId,
+        studentName: uniqueLogs[0]?.studentName,
+        status: uniqueLogs[0]?.status,
+        type: uniqueLogs[0]?.type,
+        delta: uniqueLogs[0]?.delta,
+        label: uniqueLogs[0]?.label,
+        method: uniqueLogs[0]?.method,
+        time: uniqueLogs[0]?.time
+      } : 'No activity logs');
       
       // Format time for display
       const formattedLogs = uniqueLogs.map(log => ({
@@ -750,15 +888,32 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         maxWidth: isMobile ? '100%' : '600px',
         margin: isMobile ? '0 auto 1rem auto' : '0 0 1rem 0'
       }}>
-        {!isScanning ? (
-          <div style={{ textAlign: 'center', zIndex: 1 }}>
-            <CameraIcon className="w-12 h-12" style={{ 
-              width: '3rem', 
-              height: '3rem', 
-              color: '#475569',
+        {loading ? (
+          <div style={{ textAlign: 'center', zIndex: 10, position: 'relative', background: 'white', padding: '2rem' }}>
+            <div style={{
+              width: '3rem',
+              height: '3rem',
+              border: '3px solid #1e293b',
+              borderTop: '3px solid #8b5cf6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
               margin: '0 auto 0.75rem'
-            }} />
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.875rem', margin: 0 }}>
+            }}></div>
+            <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: 0 }}>
+              {t('loading') || 'Loading...'}
+            </p>
+          </div>
+        ) : !isScanning ? (
+          <div style={{ 
+            textAlign: 'center', 
+            zIndex: 1, 
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '100%'
+          }}>
+            <p style={{ color: '#ffffff', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
               {t('tap_to_activate')}
             </p>
             {error && (
@@ -953,7 +1108,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             </button>
             
             <button
-              onClick={() => setShowManualInput(!showManualInput)}
+              onClick={() => {
+                // Check if all required fields are selected before allowing manual input
+                if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+                  showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+                  return;
+                }
+                setShowManualInput(!showManualInput);
+              }}
+              disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -961,14 +1124,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 padding: '0.5rem 0.75rem',
                 borderRadius: '0.375rem',
                 border: '1px solid var(--border, #e5e7eb)',
-                background: showManualInput ? '#3b82f6' : 'white',
-                color: showManualInput ? 'white' : 'var(--text, #111827)',
+                background: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
+                color: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#9ca3af' : (showManualInput ? 'white' : 'var(--text, #111827)'),
                 fontSize: '0.75rem',
                 fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'all 0.2s'
+                cursor: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? 0.6 : 1
               }}
-              title="Manual student ID input"
+              title={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning') : 'Manual student ID input'}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -1087,7 +1251,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       {activity.studentName}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      {onDeleteActivity && (
+                      {onDeleteActivity && activity.type !== 'attendance' && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1193,7 +1357,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       </div>
       
       {/* Scan Action Dialog */}
-      {showScanDialog && lastScannedStudent && (
+      {showScanDialog && lastScannedStudent && selectedProgramId && selectedSubjectId && selectedClassId && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -1255,8 +1419,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     
                     // Check if already marked present today
                     const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
-                    if (existingDoc.exists() && existingDoc.data().status === 'present') {
-                      showResult('info', 'Student is already marked as present today.');
+                    if (existingDoc.exists() && (existingDoc.data().status === 'present' || existingDoc.data().status === 'late')) {
+                      showResult('info', 'Student is already marked for today.');
                       return;
                     }
                     
@@ -1276,7 +1440,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       
                       // Trigger activity update
                       if (onActivityUpdate) {
-                        onActivityUpdate();
+                        onActivityUpdate(() => {
+                          logger.debug('[QR Scanner] Triggering activity refresh after marking present');
+                          fetchRecentActivity();
+                        });
                       }
                     } else {
                       showResult('error', result.error || 'Failed to mark attendance');
@@ -1289,7 +1456,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     setCurrentAction(null);
                   }
                 }}
-                disabled={actionLoading}
+                disabled={actionLoading || (todayAttendanceStatus === 'present' || todayAttendanceStatus === 'late')}
                 style={{
                   padding: '0.75rem',
                   border: 'none',
@@ -1337,7 +1504,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('behavior');
                   
                   try {
-                    const studentData = await findStudentData(lastScannedStudent.referenceId);
+                    const studentData = await processStudentData(lastScannedStudent.referenceId);
                     if (studentData) {
                       setStudentForAction(studentData);
                       setShowStudentActionPanelNew(true);
@@ -1402,7 +1569,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('penalty');
                   
                   try {
-                    const studentData = await findStudentData(lastScannedStudent.referenceId);
+                    const studentData = await processStudentData(lastScannedStudent.referenceId);
                     if (studentData) {
                       setStudentForAction(studentData);
                       setShowStudentActionPanelNew(true);
@@ -1469,6 +1636,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('late');
                   try {
                     const today = new Date().toISOString().split('T')[0];
+                    
+                    // Check if already marked present or late today
+                    const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
+                    if (existingDoc.exists() && (existingDoc.data().status === 'present' || existingDoc.data().status === 'late')) {
+                      showResult('info', 'Student is already marked for today.');
+                      return;
+                    }
+                    
                     const result = await markAttendance({
                       classId,
                       studentId: lastScannedStudent.referenceId,
@@ -1485,7 +1660,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       
                       // Trigger activity update
                       if (onActivityUpdate) {
-                        onActivityUpdate();
+                        onActivityUpdate(() => {
+                          logger.debug('[QR Scanner] Triggering activity refresh after marking late');
+                          fetchRecentActivity();
+                        });
                       }
                     } else {
                       showResult('error', result.error || 'Failed to mark late');
@@ -1498,7 +1676,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     setCurrentAction(null);
                   }
                 }}
-                disabled={actionLoading}
+                disabled={actionLoading || (todayAttendanceStatus === 'present' || todayAttendanceStatus === 'late')}
                 style={{
                   padding: '0.75rem',
                   border: 'none',
@@ -1547,7 +1725,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('participation');
                   
                   try {
-                    const studentData = await findStudentData(lastScannedStudent.referenceId);
+                    const studentData = await processStudentData(lastScannedStudent.referenceId);
                     if (studentData) {
                       setStudentForAction(studentData);
                       setShowStudentActionPanelNew(true);
@@ -1615,7 +1793,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('details');
                   
                   try {
-                    const studentData = await findStudentData(lastScannedStudent.referenceId);
+                    const studentData = await processStudentData(lastScannedStudent.referenceId);
                     if (studentData) {
                       setStudentForAction(studentData);
                       setShowStudentActionPanel(true);
@@ -1970,7 +2148,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           }}
           onUpdate={() => {
             if (onActivityUpdate) {
-              onActivityUpdate();
+              onActivityUpdate(() => {
+                logger.debug('[QR Scanner] Triggering activity refresh from StudentActionPanel');
+                fetchRecentActivity();
+              });
             }
           }}
         />
@@ -1986,7 +2167,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           }}
           onUpdate={() => {
             if (onActivityUpdate) {
-              onActivityUpdate();
+              onActivityUpdate(() => {
+                logger.debug('[QR Scanner] Triggering activity refresh from StudentActionPanelNew');
+                fetchRecentActivity();
+              });
             }
           }}
         />
@@ -1996,6 +2180,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         @keyframes qr-scan-line {
           0% { transform: translateY(-100%); }
           100% { transform: translateY(100%); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '../../utils/logger';
-import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink } from 'lucide-react';
+import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink, Trophy } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
@@ -48,6 +48,423 @@ const renderIcon = (iconName, style) => {
   return icons[iconName] || icons.MessageSquare;
 };
 
+// Separate component for historical logs to avoid hooks order issues
+const HistoricalLogsList = React.memo(({ 
+  groupedLogs, 
+  expandedDays, 
+  activeFilters, 
+  toggleDayExpansion, 
+  handleDeleteAttendance, 
+  handleDeletePenalty, 
+  t, 
+  isRTL 
+}) => {
+  return groupedLogs.map((dayGroup, dayIndex) => {
+    const dateObj = new Date(dayGroup.date);
+    const dateStr = dateObj.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    const isDayExpanded = expandedDays.has(dayGroup.date);
+    const filteredCounts = {
+      attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,
+      participation: activeFilters.participation ? dayGroup.participation.length : 0,
+      behavior: activeFilters.behavior ? (dayGroup.behavior ? dayGroup.behavior.length : 0) : 0,
+      penalties: activeFilters.penalties ? dayGroup.penalties.length : 0
+    };
+    const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.behavior + filteredCounts.penalties > 0;
+
+    return (
+      <div key={dayIndex} style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: '0.375rem',
+        overflow: 'hidden',
+        marginBottom: '0.25rem',
+        display: hasVisibleItems ? 'block' : 'none'
+      }}>
+        {/* Day Header */}
+        <div
+          onClick={() => toggleDayExpansion(dayGroup.date)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.5rem 0.75rem',
+            background: '#f9fafb',
+            cursor: 'pointer',
+            borderBottom: isDayExpanded ? '1px solid #e5e7eb' : 'none'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
+              {dateStr}
+            </span>
+            <div style={{ display: 'flex', gap: '0.15', alignItems: 'center' }}>
+              {filteredCounts.attendance > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.15',
+                  padding: '0.25rem 0.15rem',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: '#166534'
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  {filteredCounts.attendance}
+                </div>
+              )}
+              {filteredCounts.participation > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.25rem 0.5rem',
+                  background: '#dbeafe',
+                  border: '1px solid #93c5fd',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: '#1e40af'
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                    <path d="M4 22h16" />
+                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                  </svg>
+                  {filteredCounts.participation}
+                </div>
+              )}
+              {filteredCounts.behavior > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.25rem 0.5rem',
+                  background: '#fed7aa',
+                  border: '1px solid #fdba74',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: '#9a3412'
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  {filteredCounts.behavior}
+                </div>
+              )}
+              {filteredCounts.penalties > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.25rem 0.5rem',
+                  background: '#fee2e2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: '#991b1b'
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                  {filteredCounts.penalties}
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              {isDayExpanded ? t('hide_details') : t('show_details')}
+            </span>
+            <svg 
+              width="14" 
+              height="14" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              style={{
+                transform: isDayExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s'
+              }}
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        {/* Expanded Content */}
+        {isDayExpanded && (
+          <div style={{ padding: '0.75rem' }}>
+            {/* Attendance */}
+            {activeFilters.attendance && dayGroup.attendance.length > 0 && (
+              <div style={{ marginBottom: '0.5rem' }}>
+                {dayGroup.attendance.map((log, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    padding: '0.375rem 0',
+                    fontSize: '0.8125rem',
+                    borderBottom: idx === dayGroup.attendance.length - 1 ? 'none' : '1px solid #f1f5f9'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
+                        {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#22c55e', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span style={{ color: '#374151', fontWeight: 500 }}>
+                        {log.label}
+                      </span>
+                      {log.comment && (
+                        <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                          - {log.comment}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteAttendance(log.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        borderRadius: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title={t('delete_attendance_record')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Participation */}
+            {activeFilters.participation && dayGroup.participation.length > 0 && (
+              <div style={{ marginBottom: '0.5rem' }}>
+                {dayGroup.participation.map((log, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    padding: '0.375rem 0',
+                    fontSize: '0.8125rem',
+                    borderBottom: idx === dayGroup.participation.length - 1 ? 'none' : '1px solid #f1f5f9'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
+                        {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#3b82f6', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
+                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                        <path d="M4 22h16" />
+                        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                      </svg>
+                      <span style={{ color: '#374151', fontWeight: 500 }}>
+                        {log.label}
+                      </span>
+                      {log.comment && (
+                        <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                          - {log.comment}
+                        </span>
+                      )}
+                      {log.points && (
+                        <span style={{
+                          padding: '0.125rem 0.375rem',
+                          background: '#dbeafe',
+                          color: '#1e40af',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem'
+                        }}>
+                          +{log.points}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteAttendance(log.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        borderRadius: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title={t('delete_attendance_record')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Behavior */}
+            {activeFilters.behavior && dayGroup.behavior && dayGroup.behavior.length > 0 && (
+              <div style={{ marginBottom: '0.5rem' }}>
+                {dayGroup.behavior.map((log, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    padding: '0.375rem 0',
+                    fontSize: '0.8125rem',
+                    borderBottom: idx === dayGroup.behavior.length - 1 ? 'none' : '1px solid #f1f5f9'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
+                        {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#f97316', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                      </svg>
+                      <span style={{ color: '#374151', fontWeight: 500 }}>
+                        {log.label}
+                      </span>
+                      {log.comment && (
+                        <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                          - {log.comment}
+                        </span>
+                      )}
+                      {log.points && (
+                        <span style={{
+                          padding: '0.125rem 0.375rem',
+                          background: '#fed7aa',
+                          color: '#9a3412',
+                          borderRadius: '0.25rem',
+                          fontSize: '0.75rem'
+                        }}>
+                          +{log.points}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteAttendance(log.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        borderRadius: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title={t('delete_attendance_record')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Penalties */}
+            {activeFilters.penalties && dayGroup.penalties.length > 0 && (
+              <div style={{ marginBottom: '0.5rem' }}>
+                {dayGroup.penalties.map((log, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    padding: '0.375rem 0',
+                    fontSize: '0.8125rem',
+                    borderBottom: idx === dayGroup.penalties.length - 1 ? 'none' : '1px solid #f1f5f9'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
+                        {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#ef4444', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                      </svg>
+                      <span style={{ color: '#374151', fontWeight: 500 }}>
+                        {log.label}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDeletePenalty(log.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        borderRadius: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title={t('delete_penalty_record')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  });
+});
+
+HistoricalLogsList.displayName = 'HistoricalLogsList';
+
 const StudentActionPanel = React.memo(function StudentActionPanel({
   student,
   onClose,
@@ -70,22 +487,6 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
   const [deleteType, setDeleteType] = useState('');
   const [deleteLogId, setDeleteLogId] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // Debounced resize handler for performance
-  useEffect(() => {
-    let timeoutId;
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth <= 768);
-      }, 150);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
   const [activeTab, setActiveTab] = useState('behavior');
@@ -111,6 +512,22 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
     behavior: true,
     penalties: true
   });
+
+  // Debounced resize handler for performance
+  useEffect(() => {
+    let timeoutId;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth <= 768);
+      }, 150);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Send QR code email
   const sendQRCodeEmail = async () => {
@@ -562,6 +979,9 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
     return Object.values(grouped);
   }, []);
 
+  // Memoized grouped logs for display
+  const memoizedGroupedLogs = useMemo(() => groupLogsByDay(historicalLogs), [historicalLogs, groupLogsByDay]);
+
   if (!student) return null;
 
   // Memoized available options for performance
@@ -663,12 +1083,18 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
 
   // Memoized computed values for performance
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name, getAvatarColor]);
-  const attendanceStatus = useMemo(() => 
-    ATTENDANCE_STATUS_LABELS[student?.attendance] || ATTENDANCE_STATUS_LABELS.absent_no_excuse,
-    [student?.attendance]
-  );
+  const attendanceStatus = useMemo(() => {
+    if (!student?.attendance) {
+      return {
+        en: t('nothing_yet') || 'NOTHING YET',
+        ar: t('nothing_yet') || 'لا شيء بعد',
+        color: '#fbbf24'
+      };
+    }
+    return ATTENDANCE_STATUS_LABELS[student?.attendance] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
+  }, [student?.attendance, t]);
 
-  // Memoized attendance statistics calculation
+  // Memoized attendance statistics calculation (TODAY ONLY)
   const attendanceStats = useMemo(() => {
     return todayLogs.reduce((acc, log) => {
       if (log.type === 'attendance') {
@@ -683,6 +1109,22 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
       return acc;
     }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
   }, [todayLogs]);
+
+  // Memoized TOTAL attendance statistics calculation (ALL TIME)
+  const totalAttendanceStats = useMemo(() => {
+    return historicalLogs.reduce((acc, log) => {
+      if (log.type === 'attendance') {
+        const status = log.data?.status;
+        if (status === 'present') acc.present++;
+        else if (status === 'absent_no_excuse') acc.absent_no_excuse++;
+        else if (status === 'absent_with_excuse') acc.absent_with_excuse++;
+        else if (status === 'late') acc.late++;
+        else if (status === 'excused_leave') acc.excused_leave++;
+        else if (status === 'human_case') acc.human_case++;
+      }
+      return acc;
+    }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
+  }, [historicalLogs]);
 
   const totalPoints = useMemo(() => 
     (student?.participation || 0) + (student?.behavior || 0) + (student?.penalty || 0),
@@ -704,12 +1146,6 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
         }}
         onClick={onClose}
       />
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
       
       {/* Loading Overlay */}
       {showLoadingOverlay && (
@@ -1147,13 +1583,13 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
           </div>
 
           {/* Points Summary */}
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: '0.15rem' }}>
             {/* 4 Total Cards Only - without Late */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '0.25rem',
-              marginBottom: '1rem'
+              gap: '0.15rem',
+              marginBottom: '0.5rem'
             }}>
               {/* Total Present */}
               <div style={{
@@ -1167,7 +1603,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 minHeight: '3rem'
               }}>
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
-                  {attendanceStats.present}
+                  {totalAttendanceStats.present}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
                   {t('present')}
@@ -1237,7 +1673,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
               display: 'grid',
               gridTemplateColumns: 'repeat(5, 1fr)',
               gap: '0.25rem',
-              marginBottom: '1rem'
+              marginBottom: '0.5rem'
             }}>
               {/* Total Late */}
               <div style={{
@@ -1251,7 +1687,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 minHeight: '3rem'
               }}>
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
-                  {attendanceStats.late}
+                  {totalAttendanceStats.late}
                 </div>
                 <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
                   {t('late')}
@@ -1336,7 +1772,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
             </div>
 
             {/* Behavior Section */}
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{ marginBottom: '0.15rem' }}>
               <div
                 onClick={() => toggleSectionExpansion('behavior')}
                 style={{
@@ -1347,7 +1783,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   background: '#f97316',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
-                  marginBottom: '0.5rem'
+                  marginBottom: '0.15rem'
                 }}
               >
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
@@ -1460,7 +1896,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
             </div>
 
             {/* Participation Section */}
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{ marginBottom: '0.15rem' }}>
               <div
                 onClick={() => toggleSectionExpansion('participation')}
                 style={{
@@ -1471,7 +1907,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   background: '#3b82f6',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
-                  marginBottom: '0.5rem'
+                  marginBottom: '0.15rem'
                 }}
               >
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
@@ -2118,7 +2554,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 }}>
                   {t('loading')}...
                 </div>
-              ) : todayLogs.length === 0 ? (
+              ) : historicalLogs.length === 0 ? (
                 <div style={{
                   padding: '1rem',
                   color: 'var(--text-muted, #9ca3af)',
@@ -2127,291 +2563,16 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   {t('no_history_found')}
                 </div>
               ) : (
-                useMemo(() => groupLogsByDay(todayLogs), [todayLogs, groupLogsByDay]).map((dayGroup, dayIndex) => {
-                  const dateObj = new Date(dayGroup.date);
-                  const dateStr = dateObj.toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric'
-                  });
-
-                  const isDayExpanded = expandedDays.has(dayGroup.date);
-                  const filteredCounts = {
-                    attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,
-                    participation: activeFilters.participation ? dayGroup.participation.length : 0,
-                    behavior: activeFilters.behavior ? (dayGroup.behavior ? dayGroup.behavior.length : 0) : 0,
-                    penalties: activeFilters.penalties ? dayGroup.penalties.length : 0
-                  };
-                  const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.behavior + filteredCounts.penalties > 0;
-
-                  if (!hasVisibleItems) return null;
-
-                  return (
-                    <div key={dayIndex} style={{
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '0.375rem',
-                      overflow: 'hidden',
-                      marginBottom: '0.25rem'
-                    }}>
-                      {/* Day Header */}
-                      <div
-                        onClick={() => toggleDayExpansion(dayGroup.date)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.5rem 0.75rem',
-                          background: '#f9fafb',
-                          cursor: 'pointer',
-                          borderBottom: isDayExpanded ? '1px solid #e5e7eb' : 'none'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
-                            {dateStr}
-                          </span>
-                          <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-                            {filteredCounts.attendance > 0 && (
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                                padding: '0.25rem 0.5rem',
-                                background: '#f0fdf4',
-                                border: '1px solid #bbf7d0',
-                                borderRadius: '0.375rem',
-                                fontSize: '0.75rem',
-                                color: '#166534'
-                              }}>
-                                {filteredCounts.attendance}
-                              </div>
-                            )}
-                            {filteredCounts.participation > 0 && (
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                                padding: '0.25rem 0.5rem',
-                                background: '#eff6ff',
-                                border: '1px solid #bfdbfe',
-                                borderRadius: '0.375rem',
-                                fontSize: '0.75rem',
-                                color: '#1e40af'
-                              }}>
-                                {filteredCounts.participation}
-                              </div>
-                            )}
-                            {filteredCounts.penalties > 0 && (
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                                padding: '0.25rem 0.5rem',
-                                background: '#fef2f2',
-                                border: '1px solid #fecaca',
-                                borderRadius: '0.375rem',
-                                fontSize: '0.75rem',
-                                color: '#b91c1c'
-                              }}>
-                                {filteredCounts.penalties}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                            {isDayExpanded ? (isRTL ? 'إخفاء التفاصيل' : 'Hide details') : (isRTL ? 'إظهار التفاصيل' : 'Show details')}
-                          </span>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{
-                            transform: isDayExpanded ? (isRTL ? 'rotate(180deg)' : 'rotate(0deg)') : (isRTL ? 'rotate(90deg)' : 'rotate(-90deg)'),
-                            transition: 'transform 0.2s'
-                          }}>
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                          </svg>
-                        </div>
-                      </div>
-
-                      {/* Expanded Content */}
-                      {isDayExpanded && (
-                        <div style={{ padding: '0.2rem 0.75rem' }}>
-                          {/* Attendance */}
-                          {activeFilters.attendance && dayGroup.attendance.length > 0 && (
-                            <div style={{ marginBottom: '0.2rem' }}>
-                              {dayGroup.attendance.map((log, idx) => (
-                                <div key={idx} style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '0.2rem',
-                                  padding: '0.375rem 0',
-                                  fontSize: '0.8125rem',
-                                  borderBottom: idx === dayGroup.attendance.length - 1 ? 'none' : '1px solid #f1f5f9'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                    <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
-                                      {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                    </span>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#10b981', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
-                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                      <circle cx="12" cy="7" r="4"></circle>
-                                    </svg>
-                                    <span style={{ color: '#374151', fontWeight: 500 }}>
-                                      {log.label}
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => handleDeleteAttendance(log.id)}
-                                    style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      color: '#ef4444',
-                                      cursor: 'pointer',
-                                      padding: '0.25rem',
-                                      borderRadius: '0.25rem',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}
-                                    title={t('delete_attendance_record')}
-                                  >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M3 6h18"/>
-                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-                                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    </svg>
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Participation */}
-                          {activeFilters.participation && dayGroup.participation.length > 0 && (
-                            <div style={{ marginBottom: '0.5rem' }}>
-                              {dayGroup.participation.map((log, idx) => (
-                                <div key={idx} style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.5rem',
-                                  padding: '0.375rem 0',
-                                  fontSize: '0.8125rem',
-                                  borderBottom: idx === dayGroup.participation.length - 1 ? 'none' : '1px solid #f1f5f9'
-                                }}>
-                                  <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
-                                    {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#3b82f6', marginRight: '0.5rem' }}>
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                  </svg>
-                                  <span style={{ color: '#374151', fontWeight: 500 }}>
-                                    {log.label}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Behavior */}
-                          {activeFilters.behavior && dayGroup.behavior && dayGroup.behavior.length > 0 && (
-                            <div style={{ marginBottom: '0.5rem' }}>
-                              {dayGroup.behavior.map((log, idx) => (
-                                <div key={idx} style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.5rem',
-                                  padding: '0.375rem 0',
-                                  fontSize: '0.8125rem',
-                                  borderBottom: idx === dayGroup.behavior.length - 1 ? 'none' : '1px solid #fed7aa'
-                                }}>
-                                  <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
-                                    {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f97316', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
-                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                                  </svg>
-                                  <span style={{ color: '#374151', fontWeight: 500 }}>
-                                    {log.label}
-                                  </span>
-                                  {log.comment && (
-                                    <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
-                                      - {log.comment}
-                                    </span>
-                                  )}
-                                  {log.points && (
-                                    <span style={{
-                                      padding: '0.125rem 0.375rem',
-                                      background: '#fef3c7',
-                                      color: '#92400e',
-                                      borderRadius: '0.25rem',
-                                      fontSize: '0.75rem'
-                                    }}>
-                                      +{log.points}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Penalties */}
-                          {activeFilters.penalties && dayGroup.penalties.length > 0 && (
-                            <div style={{ marginBottom: '0.5rem' }}>
-                              {dayGroup.penalties.map((log, idx) => (
-                                <div key={idx} style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: '0.5rem',
-                                  padding: '0.375rem 0',
-                                  fontSize: '0.8125rem',
-                                  borderBottom: idx === dayGroup.penalties.length - 1 ? 'none' : '1px solid #f1f5f9'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
-                                      {log.time?.toDate ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                    </span>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: log.color || '#ef4444', [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem' }}>
-                                      <circle cx="12" cy="12" r="10"></circle>
-                                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                    </svg>
-                                    <span style={{ color: '#374151', fontWeight: 500 }}>
-                                      {log.label}
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => handleDeletePenalty(log.id)}
-                                    style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      color: '#ef4444',
-                                      cursor: 'pointer',
-                                      padding: '0.25rem',
-                                      borderRadius: '0.25rem',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}
-                                    title={t('delete_penalty_record')}
-                                  >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <path d="M3 6h18"/>
-                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-                                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    </svg>
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+                <HistoricalLogsList 
+                  groupedLogs={memoizedGroupedLogs}
+                  expandedDays={expandedDays}
+                  activeFilters={activeFilters}
+                  toggleDayExpansion={toggleDayExpansion}
+                  handleDeleteAttendance={handleDeleteAttendance}
+                  handleDeletePenalty={handleDeletePenalty}
+                  t={t}
+                  isRTL={isRTL}
+                />
               )}
             </div>
           </div>

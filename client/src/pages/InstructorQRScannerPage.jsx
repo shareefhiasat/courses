@@ -19,7 +19,6 @@ import QRScanner from '../components/qr-scanner/QRScanner';
 import StudentRoster from '../components/qr-scanner/StudentRoster';
 import StudentActionPanel from '../components/qr-scanner/StudentActionPanel';
 import StudentActionPanelNew from '../components/qr-scanner/StudentActionPanelNew';
-import { ToastProvider } from '../components/ui/Toast';
 import '../components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
 import eventBus, { EVENTS } from '../utils/eventBus';
@@ -96,7 +95,9 @@ const InstructorQRScannerPage = () => {
 
   // Handle activity refresh from QRScanner
   const handleActivityUpdate = useCallback((refreshFunction) => {
-    setActivityRefresh(() => refreshFunction);
+    if (refreshFunction) {
+      refreshFunction(); // Call the refresh function immediately
+    }
   }, []);
 
   // Handle activity deletion from QRScanner
@@ -510,6 +511,20 @@ const InstructorQRScannerPage = () => {
   const handleStudentSelect = useCallback((student) => {
     setSelectedStudent(student);
   }, []);
+
+  // Listen for attendance updates to refresh students
+  useEffect(() => {
+    const unsubscribeAttendanceDeleted = eventBus.on(EVENTS.ATTENDANCE_DELETED, () => {
+      // Refresh students when attendance is deleted
+      if (selectedClassId && selectedDate) {
+        loadStudents(selectedClassId, selectedDate);
+      }
+    });
+
+    return () => {
+      unsubscribeAttendanceDeleted();
+    };
+  }, [selectedClassId, selectedDate, loadStudents]);
 
   const handleMarkAttendance = useCallback(async (studentId, status, notes = '') => {
     try {
@@ -1051,12 +1066,11 @@ const InstructorQRScannerPage = () => {
   }
 
   return (
-    <ToastProvider>
-      <div className="qr-scanner-container" dir={isRTL ? 'rtl' : 'ltr'} style={{
-        minHeight: '100vh',
-        background: 'var(--background-secondary, #f9fafb)',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-      }}>
+    <div className="qr-scanner-container" dir={isRTL ? 'rtl' : 'ltr'} style={{
+      minHeight: '100vh',
+      background: 'var(--background-secondary, #f9fafb)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+    }}>
       {/* Top Bar with Filters */}
       <header style={{
         background: 'var(--panel, white)',
@@ -1153,11 +1167,43 @@ const InstructorQRScannerPage = () => {
             flexWrap: 'wrap'
           }}>
             <div style={{ width: '100%', maxWidth: '300px' }}>
-              <DatePicker
-                value={selectedDate}
-                onChange={(date) => setSelectedDate(date)}
-                format="yyyy-MM-dd"
-              />
+              {!gridLoading && selectedClassId && selectedClassId !== 'all' && (
+                <DatePicker
+                  value={selectedDate}
+                  onChange={(date) => setSelectedDate(date)}
+                  format="yyyy-MM-dd"
+                />
+              )}
+              {gridLoading && (
+                <div style={{
+                  height: '38px',
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#9ca3af',
+                  fontSize: '0.875rem'
+                }}>
+                  {t('loading') || 'Loading...'}
+                </div>
+              )}
+              {!gridLoading && (!selectedClassId || selectedClassId === 'all') && (
+                <div style={{
+                  height: '38px',
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#9ca3af',
+                  fontSize: '0.875rem'
+                }}>
+                  {t('select_class_first') || 'Select class first'}
+                </div>
+              )}
             </div>
             
             <div 
@@ -1240,6 +1286,8 @@ const InstructorQRScannerPage = () => {
               selectedProgramId={selectedProgramId}
               selectedSubjectId={selectedSubjectId}
               selectedClassId={selectedClassId}
+              loading={false}
+              students={students}
             />
           )}
         </div>
@@ -1619,7 +1667,6 @@ const InstructorQRScannerPage = () => {
         />
       </div>
     </div>
-    </ToastProvider>
   );
 };
 

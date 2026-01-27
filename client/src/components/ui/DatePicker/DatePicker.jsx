@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { Calendar, Clock } from 'lucide-react';
 import styles from './DatePicker.module.css';
 
 /**
@@ -40,12 +39,6 @@ const DatePicker = ({
     disabled && styles.disabled,
   ].filter(Boolean).join(' ');
 
-  const handleIconClick = () => {
-    if (inputRef.current && !disabled) {
-      inputRef.current.showPicker?.();
-    }
-  };
-
   return (
     <div className={wrapperClasses} data-empty={!value ? 'true' : 'false'}>
       {label && (
@@ -56,14 +49,6 @@ const DatePicker = ({
       )}
       
       <div className={styles.inputWrapper}>
-        <div className={styles.iconWrapper} onClick={handleIconClick} style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}>
-          {showTime || type === 'time' ? (
-            <Clock size={18} className={styles.icon} />
-          ) : (
-            <Calendar size={18} className={styles.icon} />
-          )}
-        </div>
-        
         <input
           ref={inputRef}
           type={inputType}

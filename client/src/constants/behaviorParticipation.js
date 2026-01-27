@@ -83,7 +83,7 @@ export const BEHAVIOR_TYPES = [
     id: 'participation', 
     label_ar: 'مشاركة جيدة', 
     label_en: 'Good Participation', 
-    icon: 'Award',
+    icon: 'CheckCircle',
     color: '#3b82f6',
     points: 1
   },
