@@ -312,8 +312,18 @@ const StudentRoster = React.memo(function StudentRoster({
 
     const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
       // console.log('StudentRoster: Attendance marked for', data.studentId);
+      // Always refresh history if row is expanded
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
+      }
+      
+      // Update the student's attendance status in real-time
+      // This ensures the main roster display reflects the new attendance
+      if (data.status && onRefresh) {
+        // Trigger a refresh of the students data to update attendance status
+        setTimeout(() => {
+          onRefresh();
+        }, 100); // Small delay to ensure Firebase has processed the update
       }
     });
 
@@ -322,6 +332,13 @@ const StudentRoster = React.memo(function StudentRoster({
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
       }
+      
+      // Refresh students data to update behavior points
+      if (onRefresh) {
+        setTimeout(() => {
+          onRefresh();
+        }, 100);
+      }
     });
 
     const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, (data) => {
@@ -329,12 +346,26 @@ const StudentRoster = React.memo(function StudentRoster({
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
       }
+      
+      // Refresh students data to update participation points
+      if (onRefresh) {
+        setTimeout(() => {
+          onRefresh();
+        }, 100);
+      }
     });
 
     const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, (data) => {
       // console.log('StudentRoster: Penalty assigned for', data.studentId);
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
+      }
+      
+      // Refresh students data to update penalty points
+      if (onRefresh) {
+        setTimeout(() => {
+          onRefresh();
+        }, 100);
       }
     });
 
@@ -345,7 +376,7 @@ const StudentRoster = React.memo(function StudentRoster({
       unsubscribeParticipation();
       unsubscribePenalty();
     };
-  }, [expandedRows, fetchStudentHistory]);
+  }, [expandedRows, fetchStudentHistory, onRefresh]);
 
   const toggleFavorite = useCallback(async (studentId) => {
     if (!user?.uid) return;

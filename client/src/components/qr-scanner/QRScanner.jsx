@@ -586,7 +586,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             label: record.notes || record.reason || '',
             method: record.method || 'QR Scan',
             performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
-            scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor')
+            scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor'),
+            subject: selectedSubjectId,
+            program: selectedProgramId,
+            class: selectedClassId
           };
         }),
         ...todayPenalties.map(record => ({
@@ -599,7 +602,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           label: record.reason || record.type || 'Penalty',
           points: record.points,
           performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
-          scanMethod: 'manual_instructor'
+          scanMethod: 'manual_instructor',
+          subject: selectedSubjectId,
+          program: selectedProgramId,
+          class: selectedClassId
         }))
       ].sort((a, b) => {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
@@ -666,7 +672,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } finally {
       setActivityLoading(false);
     }
-  }, [classId, user]);
+  }, [classId, user, selectedProgramId, selectedSubjectId, selectedClassId]);
 
   // Memoized helper functions for activity display - defined outside map for performance
   const getScanMethodDisplay = useCallback((scanMethod) => {
@@ -1251,7 +1257,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       {activity.studentName}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      {onDeleteActivity && activity.type !== 'attendance' && (
+                      {onDeleteActivity && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1308,14 +1314,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       <div style={{ marginBottom: '0.25rem' }}>
                         <strong>{t('date') || 'Date'}:</strong> {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')} {activity.time?.toDate ? activity.time.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (activity.time instanceof Date ? activity.time.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : activity.time || '')}
                       </div>
-                      {activity.program && (
-                        <div style={{ marginBottom: '0.25rem' }}>
-                          <strong>{t('program') || 'Program'}:</strong> {activity.program}
-                        </div>
-                      )}
                       {activity.subject && (
                         <div style={{ marginBottom: '0.25rem' }}>
                           <strong>{t('subject') || 'Subject'}:</strong> {activity.subject}
+                        </div>
+                      )}
+                      {activity.program && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>{t('program') || 'Program'}:</strong> {activity.program}
                         </div>
                       )}
                       {activity.class && (
