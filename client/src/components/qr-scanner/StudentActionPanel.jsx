@@ -187,7 +187,7 @@ const HistoricalLogsList = React.memo(({
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
               {isDayExpanded ? t('hide_details') : t('show_details')}
             </span>
@@ -1181,7 +1181,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
         overflow: 'hidden'
       }}>
         {/* Header */}
-        <div style={{ padding: '0.8rem', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
+        <div style={{ padding: '0.8rem', borderBottom: '1px solid var(--border, #e5e7eb)', paddingBottom: '0.15rem' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -1204,9 +1204,22 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 {getInitials(student.displayName || student.realName || student.name || '')}
               </div>
               <div>
-                <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '1rem' }}>
-                  {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '1rem' }}>
+                    {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{
+                      width: '0.5rem',
+                      height: '0.5rem',
+                      background: attendanceStatus.color,
+                      borderRadius: '9999px'
+                    }} />
+                    <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                      {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
+                    </span>
+                  </div>
+                </div>
                 <div style={{
                   fontSize: '0.75rem',
                   color: 'var(--text-muted, #6b7280)',
@@ -1218,17 +1231,6 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   display: 'inline-block'
                 }}>
                   ID: STU-{student.studentNumber || student.id?.slice(-4) || '0000'}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{
-                    width: '0.5rem',
-                    height: '0.5rem',
-                    background: attendanceStatus.color,
-                    borderRadius: '9999px'
-                  }} />
-                  <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                  </span>
                 </div>
               </div>
             </div>
@@ -1269,7 +1271,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   }} />
                 </div>
                 <span style={{ 
-                  fontSize: '0.625rem', 
+                  fontSize: '0.5rem', 
                   fontWeight: 600, 
                   color: sendNotifications ? '#166534' : '#991b1b',
                 }}>
@@ -1327,7 +1329,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.625rem',
+                  fontSize: '0.5rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1370,7 +1372,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.625rem',
+                  fontSize: '0.5rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1414,7 +1416,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.625rem',
+                  fontSize: '0.5rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1458,7 +1460,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.625rem',
+                  fontSize: '0.5rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1505,7 +1507,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.625rem',
+                  fontSize: '0.5rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem'
@@ -1551,7 +1553,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '0.125rem',
-                  fontSize: '0.625rem',
+                  fontSize: '0.5rem',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   minWidth: '3rem',
@@ -1605,7 +1607,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {totalAttendanceStats.present}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('present')}
                 </div>
               </div>
@@ -1624,7 +1626,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {student.penalty || 0}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('penalty')}
                 </div>
               </div>
@@ -1643,7 +1645,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('behavior')}
                 </div>
               </div>
@@ -1662,7 +1664,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {student.participation || 0}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('participation')}
                 </div>
               </div>
@@ -1689,7 +1691,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {totalAttendanceStats.late}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('late')}
                 </div>
               </div>
@@ -1708,7 +1710,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {attendanceStats.human_case}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('human_case')}
                 </div>
               </div>
@@ -1727,7 +1729,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {attendanceStats.excused_leave}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('excused_leave')}
                 </div>
               </div>
@@ -1746,7 +1748,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {attendanceStats.absent_with_excuse}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('absent_excused')}
                 </div>
               </div>
@@ -1765,7 +1767,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: 'white' }}>
                   {attendanceStats.absent_no_excuse}
                 </div>
-                <div style={{ fontSize: '0.625rem', color: 'white', fontWeight: 500 }}>
+                <div style={{ fontSize: '0.5rem', color: 'white', fontWeight: 500 }}>
                   {t('absent')}
                 </div>
               </div>
@@ -2346,7 +2348,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
           {/*              alignItems: 'center',*/}
           {/*              gap: '0.25rem'*/}
           {/*            }}>*/}
-          {/*              <span style={{ fontSize: '0.625rem', color: '#6b7280', fontWeight: 500 }}>*/}
+          {/*              <span style={{ fontSize: '0.5rem', color: '#6b7280', fontWeight: 500 }}>*/}
           {/*                Points:*/}
           {/*              </span>*/}
           {/*              <input*/}
@@ -2367,7 +2369,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
           {/*                  padding: '0.125rem',*/}
           {/*                  border: '1px solid #d1d5db',*/}
           {/*                  borderRadius: '0.25rem',*/}
-          {/*                  fontSize: '0.625rem',*/}
+          {/*                  fontSize: '0.5rem',*/}
           {/*                  textAlign: 'center',*/}
           {/*                  fontWeight: 500*/}
           {/*                }}*/}
