@@ -2035,7 +2035,7 @@ export default function StudentActionPanel({
             </div>
 
             {/* Penalty Section */}
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{ marginBottom: '0.0rem' }}>
               <div
                 onClick={() => toggleSectionExpansion('penalty')}
                 style={{
@@ -2046,7 +2046,7 @@ export default function StudentActionPanel({
                   background: '#dc2626',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
-                  marginBottom: '0.5rem'
+                  marginBottom: '0.2rem'
                 }}
               >
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
