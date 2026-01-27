@@ -934,7 +934,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'} style={{
+    < dir {isRTL ? 'rtl' : 'ltr'} style={{
       background: 'var(--panel, white)',
       borderRadius: '0.75rem',
       border: '1px solid var(--border, #e5e7eb)',
@@ -2623,5 +2623,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       `}</style>
     </div>
-  );
+  </div>
+      )}
+    </>
 }
