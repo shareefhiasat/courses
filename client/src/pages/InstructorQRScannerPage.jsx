@@ -500,11 +500,19 @@ const InstructorQRScannerPage = () => {
   }, []);
 
   const handleScan = useCallback((studentId) => {
-    const student = students.find(s => s.studentId === studentId || s.id === studentId);
+    // studentId here is the reference ID (like STU-JLHXQ2)
+    const student = students.find(s => s.studentId === studentId || s.id === studentId || `STU-${s.studentNumber}` === studentId);
     if (student) {
       setSelectedStudent(student);
-      // Auto-mark as present
+      // Always use the user ID (student.id) for attendance marking, not reference ID
+      logger.debug('handleScan: Found student', {
+        referenceId: studentId,
+        userId: student.id,
+        studentName: student.displayName || student.name
+      });
       handleMarkAttendance(student.id, 'present');
+    } else {
+      logger.error('handleScan: Student not found', { studentId });
     }
   }, [students]);
 
@@ -547,8 +555,13 @@ const InstructorQRScannerPage = () => {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // Emit real-time event for activity updates
+      // Use user ID as primary, but include reference ID for QR scanner compatibility
+      const student = students.find(s => s.id === studentId);
+      const referenceId = student ? `STU-${student.studentNumber}` : studentId;
+      
       eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
-        studentId,
+        studentId, // Primary: user ID for data consistency
+        referenceId, // Secondary: reference ID for QR scanner
         classId: selectedClassId,
         status,
         performedBy: user,
@@ -1286,6 +1299,36 @@ const InstructorQRScannerPage = () => {
               selectedProgramId={selectedProgramId}
               selectedSubjectId={selectedSubjectId}
               selectedClassId={selectedClassId}
+              selectedProgramName={(() => {
+                const program = programs.find(p => p.id === selectedProgramId);
+                logger.debug('Program lookup:', {
+                  selectedProgramId,
+                  totalPrograms: programs.length,
+                  found: !!program,
+                  programName: program?.name || 'NOT_FOUND'
+                });
+                return program?.name || '';
+              })()}
+              selectedSubjectName={(() => {
+                const subject = subjects.find(s => s.id === selectedSubjectId);
+                logger.debug('Subject lookup:', {
+                  selectedSubjectId,
+                  totalSubjects: subjects.length,
+                  found: !!subject,
+                  subjectName: subject?.name || 'NOT_FOUND'
+                });
+                return subject?.name || '';
+              })()}
+              selectedClassName={(() => {
+                const cls = classes.find(c => c.id === selectedClassId);
+                logger.debug('Class lookup:', {
+                  selectedClassId,
+                  totalClasses: classes.length,
+                  found: !!cls,
+                  className: cls?.name || 'NOT_FOUND'
+                });
+                return cls?.name || '';
+              })()}
               loading={false}
               students={students}
             />

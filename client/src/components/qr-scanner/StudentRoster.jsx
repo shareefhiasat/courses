@@ -387,20 +387,74 @@ const StudentRoster = React.memo(function StudentRoster({
     });
 
     const unsubscribeAttendance = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
-      // console.log('StudentRoster: Attendance marked for', data.studentId);
-      // Always refresh history if row is expanded
-      if (expandedRows.has(data.studentId)) {
-        fetchStudentHistory(data.studentId);
+      logger.debug('=== STUDENT ROSTER ATTENDANCE MARKED EVENT ===');
+      logger.debug('Attendance marked event received:', {
+        studentId: data.studentId,
+        referenceId: data.referenceId,
+        status: data.status,
+        classId: data.classId,
+        performedBy: data.performedBy,
+        timestamp: data.timestamp,
+        isRowExpanded: expandedRows.has(data.studentId),
+        hasOnRefresh: !!onRefresh
+      });
+      
+      // Always refresh history for this student when attendance is marked
+      // This ensures today's attendance appears in history immediately
+      
+      // Primary: Use user ID (data.studentId) for data consistency
+      // Fallback: Use reference ID if user ID not found
+      let studentIdToFetch = data.studentId;
+      
+      // Try to find the student in our students array to get the correct ID
+      const student = students.find(s => 
+        s.id === data.studentId || // Primary match: user ID
+        s.id === data.referenceId || // Fallback: reference ID matches user ID
+        s.studentId === data.referenceId || // Fallback: studentId field matches reference ID
+        `STU-${s.studentNumber}` === data.referenceId // Fallback: generated reference ID
+      );
+      
+      if (student) {
+        studentIdToFetch = student.id; // Always use the user ID from student object
+      }
+      
+      logger.debug('Student lookup result:', {
+        found: !!student,
+        originalStudentId: data.studentId,
+        referenceId: data.referenceId,
+        studentIdToFetch,
+        studentData: student ? {
+          id: student.id,
+          studentId: student.studentId,
+          referenceId: student.referenceId,
+          studentNumber: student.studentNumber
+        } : null
+      });
+      
+      fetchStudentHistory(studentIdToFetch);
+      
+      // Also refresh history if row is expanded (this handles the expanded case)
+      if (expandedRows.has(studentIdToFetch)) {
+        logger.debug('Refreshing student history for expanded row:', studentIdToFetch);
+        fetchStudentHistory(studentIdToFetch);
       }
       
       // Update the student's attendance status in real-time
       // This ensures the main roster display reflects the new attendance
       if (data.status && onRefresh) {
+        logger.debug('Triggering onRefresh to update attendance status');
         // Trigger a refresh of the students data to update attendance status
         setTimeout(() => {
           onRefresh();
         }, 100); // Small delay to ensure Firebase has processed the update
+      } else {
+        logger.debug('Not triggering onRefresh - missing status or onRefresh', {
+          hasStatus: !!data.status,
+          hasOnRefresh: !!onRefresh
+        });
       }
+      
+      logger.debug('=== END STUDENT ROSTER ATTENDANCE MARKED EVENT ===');
     });
 
     const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, (data) => {

@@ -36,7 +36,7 @@ const AttendanceIcon = ({ style }) => (
   </svg>
 );
 
-export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, loading = false, students = [] }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [] }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { addToast } = useToast();
@@ -377,7 +377,66 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
     
     const studentInfo = { referenceId: manualStudentId.trim() };
-    setLastScannedStudent(studentInfo);
+    
+    // Try to find the full student object using the reference ID
+    logger.debug('Manual student input lookup:', {
+      referenceId: manualStudentId.trim(),
+      totalStudents: students.length,
+      studentsSample: students.slice(0, 3).map(s => ({
+        id: s.id,
+        studentId: s.studentId,
+        referenceId: s.referenceId,
+        studentNumber: s.studentNumber,
+        displayName: s.displayName,
+        name: s.name
+      }))
+    });
+    
+    const fullStudent = students.find(s => {
+      const generatedReferenceId = generateReferenceId(s.id);
+      const matches = [
+        s.referenceId === manualStudentId.trim(),
+        s.studentId === manualStudentId.trim(),
+        `STU-${s.studentNumber}` === manualStudentId.trim(),
+        generatedReferenceId === manualStudentId.trim() // NEW: Match generated reference ID
+      ];
+      
+      if (matches.some(Boolean)) {
+        logger.debug('Manual student match found:', {
+          searchingFor: manualStudentId.trim(),
+          generatedReferenceId: generatedReferenceId,
+          found: {
+            id: s.id,
+            studentId: s.studentId,
+            referenceId: s.referenceId,
+            studentNumber: s.studentNumber,
+            matches: matches
+          }
+        });
+      }
+      
+      return matches.some(Boolean);
+    });
+    
+    if (fullStudent) {
+      logger.debug('Found full student object for manual input:', {
+        referenceId: manualStudentId.trim(),
+        fullStudent: {
+          id: fullStudent.id,
+          referenceId: fullStudent.referenceId,
+          displayName: fullStudent.displayName,
+          name: fullStudent.name
+        }
+      });
+      setLastScannedStudent(fullStudent);
+    } else {
+      logger.debug('Student not found, using reference ID only:', {
+        referenceId: manualStudentId.trim(),
+        totalStudents: students.length
+      });
+      setLastScannedStudent(studentInfo);
+    }
+    
     setShowScanDialog(true);
     setShowManualInput(false);
     setManualStudentId('');
@@ -587,9 +646,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             method: record.method || 'QR Scan',
             performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
             scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor'),
-            subject: selectedSubjectId,
-            program: selectedProgramId,
-            class: selectedClassId
+            subject: selectedSubjectName,
+            program: selectedProgramName,
+            class: selectedClassName
           };
         }),
         ...todayPenalties.map(record => ({
@@ -603,9 +662,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           points: record.points,
           performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
           scanMethod: 'manual_instructor',
-          subject: selectedSubjectId,
-          program: selectedProgramId,
-          class: selectedClassId
+          subject: selectedSubjectName,
+          program: selectedProgramName,
+          class: selectedClassName
         }))
       ].sort((a, b) => {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
@@ -672,7 +731,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } finally {
       setActivityLoading(false);
     }
-  }, [classId, user, selectedProgramId, selectedSubjectId, selectedClassId]);
+  }, [classId, user, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName]);
 
   // Memoized helper functions for activity display - defined outside map for performance
   const getScanMethodDisplay = useCallback((scanMethod) => {
@@ -1417,11 +1476,110 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   console.log('✅ Mark as present');
                   addDebugLog('✅ Marking student as present', 'success');
                   
+                  // Debug: Check what's in lastScannedStudent
+                  logger.debug('lastScannedStudent structure:', {
+                    lastScannedStudent,
+                    id: lastScannedStudent?.id,
+                    referenceId: lastScannedStudent?.referenceId,
+                    userId: lastScannedStudent?.userId,
+                    studentId: lastScannedStudent?.studentId,
+                    displayName: lastScannedStudent?.displayName,
+                    name: lastScannedStudent?.name
+                  });
+                  
                   setActionLoading(true);
                   setCurrentAction('present');
                   
                   try {
                     const today = new Date().toISOString().split('T')[0];
+                    
+                    // Get the correct student ID - try multiple possible fields
+                    let studentId = lastScannedStudent?.id || 
+                                   lastScannedStudent?.userId || 
+                                   lastScannedStudent?.studentId ||
+                                   lastScannedStudent?.docId;
+                    
+                    // If still no student ID, try to find it in the students array
+                    if (!studentId && lastScannedStudent?.referenceId) {
+                      logger.debug('Searching for student in students array:', {
+                        referenceId: lastScannedStudent.referenceId,
+                        totalStudents: students.length,
+                        studentsSample: students.slice(0, 3).map(s => ({
+                          id: s.id,
+                          studentId: s.studentId,
+                          referenceId: s.referenceId,
+                          studentNumber: s.studentNumber,
+                          displayName: s.displayName,
+                          name: s.name,
+                          email: s.email,
+                          // Show all available fields
+                          allFields: Object.keys(s)
+                        })),
+                        fullStudentObject: students[0] // Show the complete first student object
+                      });
+                      
+                      const foundStudent = students.find(s => {
+                        const generatedReferenceId = generateReferenceId(s.id);
+                        const matches = [
+                          s.referenceId === lastScannedStudent.referenceId,
+                          s.studentId === lastScannedStudent.referenceId,
+                          `STU-${s.studentNumber}` === lastScannedStudent.referenceId,
+                          generatedReferenceId === lastScannedStudent.referenceId // NEW: Match generated reference ID
+                        ];
+                        
+                        logger.debug('Checking student:', {
+                          student: s,
+                          searchingFor: lastScannedStudent.referenceId,
+                          generatedReferenceId: generatedReferenceId,
+                          allStudentFields: Object.keys(s),
+                          allStudentValues: Object.entries(s).reduce((acc, [key, value]) => {
+                            acc[key] = value;
+                            return acc;
+                          }, {}),
+                          checks: {
+                            referenceId: {
+                              student: s.referenceId,
+                              matches: s.referenceId === lastScannedStudent.referenceId
+                            },
+                            studentId: {
+                              student: s.studentId,
+                              matches: s.studentId === lastScannedStudent.referenceId
+                            },
+                            studentNumber: {
+                              student: s.studentNumber,
+                              generated: `STU-${s.studentNumber}`,
+                              matches: `STU-${s.studentNumber}` === lastScannedStudent.referenceId
+                            },
+                            generatedReferenceId: {
+                              studentId: s.id,
+                              generated: generatedReferenceId,
+                              matches: generatedReferenceId === lastScannedStudent.referenceId
+                            }
+                          },
+                          anyMatch: matches.some(Boolean)
+                        });
+                        
+                        return matches.some(Boolean);
+                      });
+                      
+                      studentId = foundStudent?.id;
+                      logger.debug('Found student ID from students array:', {
+                        referenceId: lastScannedStudent.referenceId,
+                        foundStudentId: studentId,
+                        foundStudent: foundStudent ? {
+                          id: foundStudent.id,
+                          studentId: foundStudent.studentId,
+                          referenceId: foundStudent.referenceId,
+                          studentNumber: foundStudent.studentNumber
+                        } : null
+                      });
+                    }
+                    
+                    if (!studentId) {
+                      throw new Error(`Student ID not found. Reference ID: ${lastScannedStudent?.referenceId}`);
+                    }
+                    
+                    logger.debug('Using studentId:', studentId);
                     
                     // Check if already marked present today
                     const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
@@ -1430,9 +1588,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       return;
                     }
                     
+                    // Use user ID for consistency, not reference ID
                     const result = await markAttendance({
                       classId,
-                      studentId: lastScannedStudent.referenceId,
+                      studentId: studentId, // Use the resolved student ID
                       date: today,
                       status: 'present',
                       markedBy: user.uid,
@@ -1443,6 +1602,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     if (result.success) {
                       setShowScanDialog(false);
                       showResult('success', 'Student marked as present successfully!');
+                      
+                      // Emit proper attendance event with both IDs
+                      eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+                        studentId: studentId, // Primary: user ID
+                        referenceId: lastScannedStudent.referenceId, // Secondary: reference ID
+                        classId,
+                        status: 'present',
+                        performedBy: user,
+                        timestamp: new Date()
+                      });
                       
                       // Trigger activity update
                       if (onActivityUpdate) {
@@ -1638,10 +1807,47 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   console.log('⏰ Mark as late');
                   addDebugLog('⏰ Marking student as late', 'info');
                   
+                  // Debug: Check what's in lastScannedStudent
+                  logger.debug('lastScannedStudent structure (late):', {
+                    lastScannedStudent,
+                    id: lastScannedStudent?.id,
+                    referenceId: lastScannedStudent?.referenceId,
+                    userId: lastScannedStudent?.userId,
+                    studentId: lastScannedStudent?.studentId,
+                    displayName: lastScannedStudent?.displayName,
+                    name: lastScannedStudent?.name
+                  });
+                  
                   setActionLoading(true);
                   setCurrentAction('late');
                   try {
                     const today = new Date().toISOString().split('T')[0];
+                    
+                    // Get the correct student ID - try multiple possible fields
+                    let studentId = lastScannedStudent?.id || 
+                                   lastScannedStudent?.userId || 
+                                   lastScannedStudent?.studentId ||
+                                   lastScannedStudent?.docId;
+                    
+                    // If still no student ID, try to find it in the students array
+                    if (!studentId && lastScannedStudent?.referenceId) {
+                      const foundStudent = students.find(s => 
+                        s.referenceId === lastScannedStudent.referenceId ||
+                        s.studentId === lastScannedStudent.referenceId ||
+                        `STU-${s.studentNumber}` === lastScannedStudent.referenceId
+                      );
+                      studentId = foundStudent?.id;
+                      logger.debug('Found student ID from students array (late):', {
+                        referenceId: lastScannedStudent.referenceId,
+                        foundStudentId: studentId
+                      });
+                    }
+                    
+                    if (!studentId) {
+                      throw new Error(`Student ID not found. Reference ID: ${lastScannedStudent?.referenceId}`);
+                    }
+                    
+                    logger.debug('Using studentId (late):', studentId);
                     
                     // Check if already marked present or late today
                     const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
@@ -1652,7 +1858,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     
                     const result = await markAttendance({
                       classId,
-                      studentId: lastScannedStudent.referenceId,
+                      studentId: studentId, // Use user ID, not reference ID
                       date: today,
                       status: 'late',
                       markedBy: user.uid,
@@ -1663,6 +1869,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     if (result.success) {
                       setShowScanDialog(false);
                       showResult('late', 'Student marked as late successfully!');
+                      
+                      // Emit proper attendance event with both IDs
+                      eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+                        studentId: studentId, // Primary: user ID
+                        referenceId: lastScannedStudent.referenceId, // Secondary: reference ID
+                        classId,
+                        status: 'late',
+                        performedBy: user,
+                        timestamp: new Date()
+                      });
                       
                       // Trigger activity update
                       if (onActivityUpdate) {
