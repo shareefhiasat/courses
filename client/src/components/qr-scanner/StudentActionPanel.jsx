@@ -465,7 +465,7 @@ const HistoricalLogsList = React.memo(({
 
 HistoricalLogsList.displayName = 'HistoricalLogsList';
 
-const StudentActionPanel = React.memo(function StudentActionPanel({
+export default function StudentActionPanel({
   student,
   onClose,
   onBehaviorSubmit,
@@ -2737,8 +2737,7 @@ const StudentActionPanel = React.memo(function StudentActionPanel({
         message={t('delete_activity_msg', { studentName: student.displayName || student.name || t('this_student') })}
         loading={deleteLoading}
       />
+    </div>
     </>
   );
-});
-
-export default StudentActionPanel;
+}
