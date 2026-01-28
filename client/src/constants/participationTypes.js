@@ -113,3 +113,13 @@ export const getParticipationLabel = (id, lang = 'en') => {
   const type = getParticipationTypeById(id);
   return type ? (lang === 'ar' ? type.label_ar : type.label_en) : id;
 };
+
+export const getParticipationIcon = (id) => {
+  const type = getParticipationTypeById(id);
+  return type ? type.icon : 'Star';
+};
+
+export const getParticipationColor = (id) => {
+  const type = getParticipationTypeById(id);
+  return type ? type.color : '#3b82f6';
+};

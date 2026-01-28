@@ -6,8 +6,8 @@ import { XIcon, StarIcon, ChevronDownIcon, ChevronRightIcon, Star, Mail, Chevron
 import { useAuth } from '../../contexts/AuthContext';
 import { markAttendance } from '../../firebase/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
-import { BEHAVIOR_TYPES } from '../../constants/behaviorTypes';
-import { PARTICIPATION_TYPES } from '../../constants/participationTypes';
+import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '../../constants/behaviorTypes';
+import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '../../constants/participationTypes';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '../../firebase/userPreferences';
 import { useLang } from '../../contexts/LangContext';
 import { useToast } from '../ui';
@@ -97,9 +97,29 @@ export default function StudentActionPanelNew({
   }, []);
 
   const renderIcon = (iconName, style = {}) => {
+    // Try to get icon from behavior types first
+    const behaviorIcon = getBehaviorIcon(iconName);
+    const behaviorColor = getBehaviorColor(iconName);
+    
+    // Try to get icon from participation types
+    const participationIcon = getParticipationIcon(iconName);
+    const participationColor = getParticipationColor(iconName);
+    
+    // Determine which type and color to use
+    let finalIconName = iconName;
+    let finalColor = style.color || '#374151';
+    
+    if (BEHAVIOR_TYPES.find(bt => bt.id === iconName)) {
+      finalIconName = behaviorIcon;
+      finalColor = behaviorColor;
+    } else if (PARTICIPATION_TYPES.find(pt => pt.id === iconName)) {
+      finalIconName = participationIcon;
+      finalColor = participationColor;
+    }
+    
     const icons = {
       MessageSquare: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke={finalColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
       ),
@@ -202,7 +222,7 @@ export default function StudentActionPanelNew({
         </svg>
       )
     };
-    return icons[iconName] || icons.MessageSquare;
+    return icons[finalIconName] || icons.MessageSquare;
   };
 
   const toggleAction = useCallback((option) => {

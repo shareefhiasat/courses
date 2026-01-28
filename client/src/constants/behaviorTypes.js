@@ -105,3 +105,13 @@ export const getBehaviorLabel = (id, lang = 'en') => {
   const type = getBehaviorTypeById(id);
   return type ? (lang === 'ar' ? type.label_ar : type.label_en) : id;
 };
+
+export const getBehaviorIcon = (id) => {
+  const type = getBehaviorTypeById(id);
+  return type ? type.icon : 'AlertTriangle';
+};
+
+export const getBehaviorColor = (id) => {
+  const type = getBehaviorTypeById(id);
+  return type ? type.color : '#ef4444';
+};

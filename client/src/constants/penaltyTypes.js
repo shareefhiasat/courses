@@ -88,3 +88,13 @@ export const getPenaltyDescription = (id, lang = 'en') => {
   const type = getPenaltyTypeById(id);
   return type ? (lang === 'ar' ? type.description_ar : type.description_en) : '';
 };
+
+export const getPenaltyIcon = (id) => {
+  const type = getPenaltyTypeById(id);
+  return type ? type.icon : 'AlertTriangle';
+};
+
+export const getPenaltyColor = (id) => {
+  const type = getPenaltyTypeById(id);
+  return type ? type.color : '#dc2626';
+};
