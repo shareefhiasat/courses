@@ -33,7 +33,7 @@ import EmailManager from '../components/EmailManager';
 import EmailComposer from '../components/EmailComposer';
 import SmartEmailComposer from '../components/SmartEmailComposer';
 import UserDeletionModal from '../components/UserDeletionModal';
-import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import { DeleteConfirmationModal } from '../components/shared';
 import EmailSettings from '../components/EmailSettings';
 import EmailTemplates from '../components/EmailTemplates';
 import EmailLogs from '../components/EmailLogs';

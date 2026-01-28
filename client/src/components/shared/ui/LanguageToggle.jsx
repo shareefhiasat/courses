@@ -1,6 +1,6 @@
 import React from 'react';
 import { Languages } from 'lucide-react';
-import { Badge } from './ui';
+import { Badge } from '../../ui';
 
 export default function LanguageToggle({ value = 'en', onChange, style, className }) {
   const current = value === 'ar' ? 'ar' : 'en';

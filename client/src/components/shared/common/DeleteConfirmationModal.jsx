@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button } from './ui';
-import { useAuth } from '../contexts/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { normalizeHexColor } from '../utils/color';
-import { DEFAULT_ACCENT } from '../utils/color';
+import { Modal, Button } from '../../ui';
+import { useAuth } from '../../../contexts/AuthContext';
+import { doc, getDoc } from '../../../firebase/firestore';
+import { db } from '../../../firebase/config';
+import { normalizeHexColor } from '../../../utils/color';
+import { DEFAULT_ACCENT } from '../../../utils/color';
 
 const DeleteConfirmationModal = ({
   open,

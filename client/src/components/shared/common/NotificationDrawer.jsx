@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useAuth } from '../contexts/AuthContext';
+import { db } from '../../../firebase/config';
+import { useAuth } from '../../../contexts/AuthContext';
 import { 
   getNotifications, 
   markNotificationRead, 
@@ -10,20 +10,20 @@ import {
   archiveNotification,
   markNotificationUnread,
   deleteNotification
-} from '../firebase/notifications';
-import { useLang } from '../contexts/LangContext';
+} from '../../../firebase/notifications';
+import { useLang } from '../../../contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../contexts/ThemeContext';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { getClasses } from '../firebase/firestore';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getPrograms, getSubjects } from '../../../firebase/programs';
+import { getClasses } from '../../../firebase/firestore';
 import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Filter, MoreVertical, Trash2, Eye, EyeOff, MessageCircle, Mail, UserCheck, ExternalLink, Volume2, Vibrate, TestTube } from 'lucide-react';
-import { formatDateTime } from '../utils/date';
-import { Button, Input, Select, Badge } from './ui';
-import ToggleSwitch from './ToggleSwitch';
-import { PENALTY_TYPES } from '../constants/penaltyTypes';
-import { ABSENCE_TYPES } from '../constants/absenceTypes';
-import { ATTENDANCE_STATUS } from '../firebase/attendance';
-import useNotifications from '../hooks/useNotifications';
+import { formatDateTime } from '../../../utils/date';
+import { Button, Input, Select, Badge } from '../../ui';
+import ToggleSwitch from '../ui/ToggleSwitch';
+import { PENALTY_TYPES } from '../../../constants/penaltyTypes';
+import { ABSENCE_TYPES } from '../../../constants/absenceTypes';
+import { ATTENDANCE_STATUS } from '../../../firebase/attendance';
+import useNotifications from '../../../hooks/useNotifications';
 
 const NotificationDrawer = ({ isOpen, onClose }) => {
   const { user } = useAuth();

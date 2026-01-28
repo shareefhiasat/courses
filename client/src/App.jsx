@@ -3,14 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider } from './contexts/AuthContext';
 import { LangProvider } from './contexts/LangContext';
 import Navbar from './components/Navbar';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary, HelpDrawer } from './components/shared';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ColorThemeProvider } from './contexts/ColorThemeContext';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import { HelpProvider } from './contexts/HelpContext';
-import HelpDrawer from './components/HelpDrawer';
 import ActivityDetailPage from './pages/ActivityDetailPage';
 import EnrollmentsPage from './pages/EnrollmentsPage';
 import NotificationsPage from './pages/NotificationsPage';

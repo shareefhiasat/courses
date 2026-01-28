@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from './Modal';
-import { Button } from '../ui/Button/Button';
+import { Button } from '../../ui/Button/Button';
 
 export default {
   title: 'Shared/Common/Modal',

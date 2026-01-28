@@ -1205,3 +1205,23 @@ export const getEmailTemplates = async () => {
     return { success: false, error: error.message };
   }
 };
+
+// Re-export Firebase Firestore utilities
+export {
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  setDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  Timestamp,
+  arrayUnion,
+  arrayRemove,
+  increment,
+  serverTimestamp
+};

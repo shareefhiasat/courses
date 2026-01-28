@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import { Button } from '../ui/Button/Button';
+import { Button } from '../../ui/Button/Button';
 
 export default {
   title: 'Shared/Common/DeleteConfirmationModal',

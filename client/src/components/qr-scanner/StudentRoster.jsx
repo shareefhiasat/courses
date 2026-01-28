@@ -10,7 +10,7 @@ import { useLang } from '../../contexts/LangContext';
 import { Mail, ChevronDown, QrCode, User, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '../../utils/qrCode';
-import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
+import { DeleteConfirmationModal } from '../../components/shared';
 
 const SearchIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

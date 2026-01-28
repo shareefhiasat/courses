@@ -18,7 +18,7 @@ import eventBus, { EVENTS } from '../../utils/eventBus';
 import { FancyLoading } from '../ui/FancyLoading/FancyLoading';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLang } from '../../contexts/LangContext';
-import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
+import { DeleteConfirmationModal } from '../../components/shared';
 
 const renderIcon = (iconName, style) => {
   // Use auto-detecting helpers for cleaner code

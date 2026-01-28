@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useHelp } from '../../contexts/HelpContext';
-import { useLang } from '../../contexts/LangContext';
+import { useHelp } from '../../../contexts/HelpContext';
+import { useLang } from '../../../contexts/LangContext';
 import { X, Search, ChevronDown, ChevronUp, ChevronsUpDown, ChevronsUp } from 'lucide-react';
 
 const HelpDrawer = () => {

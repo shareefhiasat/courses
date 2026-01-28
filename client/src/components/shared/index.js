@@ -23,14 +23,5 @@ export { default as FilterChips } from './ui/FilterChips';
 export * from './Icons';
 
 // Utilities
-export * from '../utils/typeHelpers';
-export * from '../utils/avatarUtils';
-
-// CSS Files (for direct import if needed)
-export { default as LoadingCSS } from './css/Loading.css';
-export { default as ModalCSS } from './css/Modal.css';
-export { default as NavbarCSS } from './css/Navbar.css';
-export { default as ToastProviderCSS } from './css/ToastProvider.css';
-export { default as SmartGridCSS } from './css/SmartGrid.css';
-export { default as DraggableClockCSS } from './css/DraggableClock.css';
-export { default as EmailManagerCSS } from './css/EmailManager.css';
+export * from '../../utils/typeHelpers';
+export * from '../../utils/avatarUtils';

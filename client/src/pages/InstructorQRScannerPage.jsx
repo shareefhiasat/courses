@@ -24,7 +24,7 @@ import StudentActionPanelNew from '../components/qr-scanner/StudentActionPanelNe
 import '../components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
 import eventBus, { EVENTS } from '../utils/eventBus';
-import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import { DeleteConfirmationModal } from '../components/shared';
 
 const InstructorQRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
