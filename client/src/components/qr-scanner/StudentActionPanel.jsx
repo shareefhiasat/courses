@@ -12,8 +12,8 @@ import { deletePenalty } from '../../firebase/penalties';
 import { getFunctions } from '../../firebase/config';
 import { generateReferenceId, generateStudentQRCode } from '../../utils/qrCode';
 import { XIcon, HistoryIcon, TypeIcon } from '../../components/shared/Icons';
-import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '../../constants/behaviorTypes';
-import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '../../constants/participationTypes';
+import { getAvatarColor, getAvatarInitials } from '../../utils/avatarUtils';
+import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor, getAutoTypeLabel, getAutoTypeIcon, getAutoTypeColor } from '../../utils/typeHelpers';
 import eventBus, { EVENTS } from '../../utils/eventBus';
 import { FancyLoading } from '../ui/FancyLoading/FancyLoading';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,31 +21,11 @@ import { useLang } from '../../contexts/LangContext';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 
 const renderIcon = (iconName, style) => {
-  // Determine which type to use for color
-  if (BEHAVIOR_TYPES.find(bt => bt.id === iconName)) {
-    return (
-      <TypeIcon 
-        iconName={iconName} 
-        style={style} 
-        fromConstants={{
-          getColor: getBehaviorColor
-        }}
-      />
-    );
-  } else if (PARTICIPATION_TYPES.find(pt => pt.id === iconName)) {
-    return (
-      <TypeIcon 
-        iconName={iconName} 
-        style={style} 
-        fromConstants={{
-          getColor: getParticipationColor
-        }}
-      />
-    );
-  }
+  // Use auto-detecting helpers for cleaner code
+  const icon = getAutoTypeIcon(iconName);
+  const color = getAutoTypeColor(iconName);
   
-  // Fallback for other icons
-  return <TypeIcon iconName={iconName} style={style} />;
+  return <TypeIcon iconName={icon} style={style} color={color} />;
 };
 
 // Separate component for historical logs to avoid hooks order issues

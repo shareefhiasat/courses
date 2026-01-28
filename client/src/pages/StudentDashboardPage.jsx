@@ -37,11 +37,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
 
-// Participation and Behavior Types
-import { BEHAVIOR_TYPES, getBehaviorLabel } from '../constants/behaviorTypes';
-import { PARTICIPATION_TYPES, getParticipationLabel } from '../constants/participationTypes';
-import { ABSENCE_TYPES, getAbsenceLabel } from '../constants/absenceTypes';
-import { PENALTY_TYPES, getPenaltyLabel } from '../constants/penaltyTypes';
+// Unified Type Helpers
+import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor } from '../utils/typeHelpers';
 
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();
@@ -1407,7 +1404,7 @@ export default function StudentDashboardPage() {
                               return true;
                             })
                             .map(p => ({
-                            Type: getPenaltyLabel(p.type, lang) || p.type,
+                            Type: getTypeLabel(TYPE_CATEGORIES.PENALTY, p.type, lang) || p.type,
                             Subject: subjects.find(s => (s.docId || s.id) === p.subjectId)?.[`name_${lang}`] || '',
                             Description: p.description || '',
                             Date: p.createdAt?.toDate ? p.createdAt.toDate().toLocaleString() : ''
@@ -1426,7 +1423,7 @@ export default function StudentDashboardPage() {
                               return true;
                             })
                             .map(p => ({
-                            Type: getParticipationLabel(p.type, lang) || p.type,
+                            Type: getTypeLabel(TYPE_CATEGORIES.PARTICIPATION, p.type, lang) || p.type,
                             Subject: subjects.find(s => (s.docId || s.id) === p.subjectId)?.[`name_${lang}`] || '',
                             Comment: p.comment || '',
                             Date: p.createdAt?.toDate ? p.createdAt.toDate().toLocaleString() : ''
@@ -1445,7 +1442,7 @@ export default function StudentDashboardPage() {
                               return true;
                             })
                             .map(b => ({
-                            Type: getBehaviorLabel(b.type, lang) || b.type,
+                            Type: getTypeLabel(TYPE_CATEGORIES.BEHAVIOR, b.type, lang) || b.type,
                             Subject: subjects.find(s => (s.docId || s.id) === b.subjectId)?.[`name_${lang}`] || '',
                             Comment: b.comment || '',
                             Date: b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''
@@ -1464,7 +1461,7 @@ export default function StudentDashboardPage() {
                               return true;
                             })
                             .map(a => ({
-                            Type: getAbsenceLabel(a.type, lang) || a.type,
+                            Type: getTypeLabel(TYPE_CATEGORIES.ABSENCE, a.type, lang) || a.type,
                             Subject: subjects.find(s => (s.docId || s.id) === a.subjectId)?.[`name_${lang}`] || '',
                             Date: a.date || a.createdAt?.toDate ? a.createdAt.toDate().toLocaleString() : ''
                           }));
@@ -1518,8 +1515,8 @@ export default function StudentDashboardPage() {
                           })
                           .map((penalty, idx) => {
                             const penaltyType = { 
-                              label_en: getPenaltyLabel(penalty.type, 'en') || penalty.type,
-                              label_ar: getPenaltyLabel(penalty.type, 'ar') || penalty.type
+                              label_en: getTypeLabel(TYPE_CATEGORIES.PENALTY, penalty.type, 'en') || penalty.type,
+                              label_ar: getTypeLabel(TYPE_CATEGORIES.PENALTY, penalty.type, 'ar') || penalty.type
                             };
                             const subject = subjects.find(s => (s.docId || s.id) === penalty.subjectId);
                             const createdAt = penalty.createdAt?.toDate ? penalty.createdAt.toDate() : new Date(penalty.createdAt || 0);
@@ -1578,8 +1575,8 @@ export default function StudentDashboardPage() {
                           })
                           .map((participation, idx) => {
                             const participationType = { 
-                              label_en: getParticipationLabel(participation.type, 'en') || participation.type,
-                              label_ar: getParticipationLabel(participation.type, 'ar') || participation.type
+                              label_en: getTypeLabel(TYPE_CATEGORIES.PARTICIPATION, participation.type, 'en') || participation.type,
+                              label_ar: getTypeLabel(TYPE_CATEGORIES.PARTICIPATION, participation.type, 'ar') || participation.type
                             };
                             const subject = subjects.find(s => (s.docId || s.id) === participation.subjectId);
                             const createdAt = participation.createdAt?.toDate ? participation.createdAt.toDate() : new Date(participation.createdAt || 0);
@@ -1638,8 +1635,8 @@ export default function StudentDashboardPage() {
                           })
                           .map((behavior, idx) => {
                             const behaviorType = { 
-                              label_en: getBehaviorLabel(behavior.type, 'en') || behavior.type,
-                              label_ar: getBehaviorLabel(behavior.type, 'ar') || behavior.type
+                              label_en: getTypeLabel(TYPE_CATEGORIES.BEHAVIOR, behavior.type, 'en') || behavior.type,
+                              label_ar: getTypeLabel(TYPE_CATEGORIES.BEHAVIOR, behavior.type, 'ar') || behavior.type
                             };
                             const subject = subjects.find(s => (s.docId || s.id) === behavior.subjectId);
                             const createdAt = behavior.createdAt?.toDate ? behavior.createdAt.toDate() : new Date(behavior.createdAt || 0);
@@ -1698,8 +1695,8 @@ export default function StudentDashboardPage() {
                           })
                           .map((absence, idx) => {
                             const absenceType = { 
-                              label_en: getAbsenceLabel(absence.type, 'en') || absence.type,
-                              label_ar: getAbsenceLabel(absence.type, 'ar') || absence.type
+                              label_en: getTypeLabel(TYPE_CATEGORIES.ABSENCE, absence.type, 'en') || absence.type,
+                              label_ar: getTypeLabel(TYPE_CATEGORIES.ABSENCE, absence.type, 'ar') || absence.type
                             };
                             const subject = subjects.find(s => (s.docId || s.id) === absence.subjectId);
                             const date = absence.date ? new Date(absence.date) : (absence.createdAt?.toDate ? absence.createdAt.toDate() : new Date());

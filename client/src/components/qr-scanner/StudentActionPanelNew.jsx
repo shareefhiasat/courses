@@ -8,8 +8,7 @@ import { markAttendance } from '../../firebase/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
 import { XIcon, HistoryIcon, TypeIcon } from '../../components/shared/Icons';
 import { getAvatarColor, getAvatarInitials } from '../../utils/avatarUtils';
-import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '../../constants/behaviorTypes';
-import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '../../constants/participationTypes';
+import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor, getAutoTypeLabel, getAutoTypeIcon, getAutoTypeColor } from '../../utils/typeHelpers';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '../../firebase/userPreferences';
 import { useLang } from '../../contexts/LangContext';
 import { useToast } from '../ui';
@@ -84,31 +83,11 @@ export default function StudentActionPanelNew({
   }, []);
 
   const renderIcon = (iconName, style = {}) => {
-    // Determine which type to use for color
-    if (BEHAVIOR_TYPES.find(bt => bt.id === iconName)) {
-      return (
-        <TypeIcon 
-          iconName={iconName} 
-          style={style} 
-          fromConstants={{
-            getColor: getBehaviorColor
-          }}
-        />
-      );
-    } else if (PARTICIPATION_TYPES.find(pt => pt.id === iconName)) {
-      return (
-        <TypeIcon 
-          iconName={iconName} 
-          style={style} 
-          fromConstants={{
-            getColor: getParticipationColor
-          }}
-        />
-      );
-    }
+    // Use auto-detecting helpers for cleaner code
+    const icon = getAutoTypeIcon(iconName);
+    const color = getAutoTypeColor(iconName);
     
-    // Use the icon directly - no fallback needed since all icons are in shared component
-    return <TypeIcon iconName={iconName} style={style} />;
+    return <TypeIcon iconName={icon} style={style} color={color} />;
   };
 
   const toggleAction = useCallback((option) => {
