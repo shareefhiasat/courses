@@ -13,8 +13,6 @@ export const FancyLoading = ({
 }) => {
   const [brandLoadFailed, setBrandLoadFailed] = useState(false);
   
-  console.log('🔍 FancyLoading: Rendering with props:', { fullscreen, standalone });
-  
   const containerClass = fullscreen ? styles.fullscreen : (standalone ? styles.standalone : styles.container);
 
   // Inline styles as backup for rotation animation
@@ -38,11 +36,10 @@ export const FancyLoading = ({
             className={styles.brandLogo}
             style={rotatingStyle}
             onError={(e) => {
-              console.log('🔍 FancyLoading: Logo failed to load', e);
               setBrandLoadFailed(true);
             }}
             onLoad={() => {
-              console.log('🔍 FancyLoading: Logo loaded successfully');
+              // Logo loaded successfully
             }}
           />
         ) : (
@@ -62,11 +59,10 @@ export const FancyLoading = ({
             className={styles.brandLogo}
             style={rotatingStyle}
             onError={(e) => {
-              console.log('🔍 FancyLoading: Logo failed to load', e);
               setBrandLoadFailed(true);
             }}
             onLoad={() => {
-              console.log('🔍 FancyLoading: Logo loaded successfully');
+              // Logo loaded successfully
             }}
           />
         ) : (

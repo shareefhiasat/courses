@@ -12,6 +12,13 @@ import * as Sentry from '@sentry/react';
 export const initSentry = () => {
   const dsn = import.meta.env.VITE_SENTRY_DSN || 'https://226bc4d018e5d5b73f2dfd03014bb4c9@o570111.ingest.us.sentry.io/4510386883067904';
   const environment = import.meta.env.VITE_SENTRY_ENVIRONMENT || 'development';
+  const enabled = import.meta.env.VITE_SENTRY_ENABLED !== 'false'; // Default to enabled unless explicitly disabled
+  
+  // Check if Sentry is explicitly disabled
+  if (!enabled) {
+    console.log('🔧 Sentry disabled via VITE_SENTRY_ENABLED=false');
+    return;
+  }
   
   // Only initialize if DSN is provided
   if (!dsn) {

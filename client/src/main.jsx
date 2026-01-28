@@ -13,6 +13,7 @@ import { initSentry } from './config/sentry.js';
 initSentry();
 
 // PostHog configuration with toolbar enabled
+const posthogEnabled = import.meta.env.VITE_POSTHOG_ENABLED !== 'false'; // Default to enabled unless explicitly disabled
 const posthogOptions = {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
   person_profiles: 'identified_only',
@@ -23,7 +24,7 @@ const posthogOptions = {
     recordCrossOriginIframes: true,
   },
   // Enable toolbar for development
-  debug: true,
+  debug: import.meta.env.VITE_POSTHOG_DEBUG === 'true',
   // Enable toolbar
   toolbar: {
     instrument: true,
@@ -34,15 +35,26 @@ const posthogOptions = {
   },
 };
 
+// Log PostHog status
+if (!posthogEnabled) {
+  console.log('🔧 PostHog disabled via VITE_POSTHOG_ENABLED=false');
+}
+
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <PostHogProvider
-      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY || 'phc_2koOFuF9DP6RWeK9hyFo092OIPRaO3XSECil77mzeFp'}
-      options={posthogOptions}
-    >
+    {posthogEnabled ? (
+      <PostHogProvider
+        apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY || 'phc_2koOFuF9DP6RWeK9hyFo092OIPRaO3XSECil77mzeFp'}
+        options={posthogOptions}
+      >
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </PostHogProvider>
+    ) : (
       <ToastProvider>
         <App />
       </ToastProvider>
-    </PostHogProvider>
+    )}
   </React.StrictMode>
 );

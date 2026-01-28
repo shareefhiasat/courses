@@ -16,8 +16,8 @@ class Logger {
       log: 4
     };
     
-    // Set log level based on environment
-    this.currentLevel = isDevelopment ? 4 : 1; // Only error and warn in production
+    // Set log level based on environment - REDUCED DEBUG
+    this.currentLevel = isDevelopment ? 2 : 1; // Only error, warn, and info in dev (no debug)
     
     // Loggly configuration
     this.logglyConfig = null;

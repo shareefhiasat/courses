@@ -110,7 +110,6 @@ const LoginPage = () => {
   }, []);
 
   if (loading) {
-    console.log('🔍 LoginPage: Loading state detected, showing FancyLoading');
     return <FancyLoading fullscreen={true} />;
   }
 
