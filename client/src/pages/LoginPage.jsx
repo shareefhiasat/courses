@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useLang } from '../contexts/LangContext';
 import AuthForm from '../components/AuthForm';
 import { Container, Spinner } from '../components/ui';
+import FancyLoading from '../components/ui/FancyLoading/FancyLoading';
 import styles from './LoginPage.module.css';
 
 const LoginPage = () => {
@@ -109,11 +110,8 @@ const LoginPage = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className={styles.loadingWrapper}>
-        <Spinner size="lg" />
-      </div>
-    );
+    console.log('🔍 LoginPage: Loading state detected, showing FancyLoading');
+    return <FancyLoading fullscreen={true} />;
   }
 
   if (user) {

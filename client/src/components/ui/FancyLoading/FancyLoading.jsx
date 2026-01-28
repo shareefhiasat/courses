@@ -13,6 +13,8 @@ export const FancyLoading = ({
 }) => {
   const [brandLoadFailed, setBrandLoadFailed] = useState(false);
   
+  console.log('🔍 FancyLoading: Rendering with props:', { fullscreen, standalone });
+  
   const containerClass = fullscreen ? styles.fullscreen : (standalone ? styles.standalone : styles.container);
 
   // Inline styles as backup for rotation animation
@@ -35,7 +37,13 @@ export const FancyLoading = ({
             alt="Qatar Armed Forces Seal"
             className={styles.brandLogo}
             style={rotatingStyle}
-            onError={() => setBrandLoadFailed(true)}
+            onError={(e) => {
+              console.log('🔍 FancyLoading: Logo failed to load', e);
+              setBrandLoadFailed(true);
+            }}
+            onLoad={() => {
+              console.log('🔍 FancyLoading: Logo loaded successfully');
+            }}
           />
         ) : (
           <div className={styles.brandLogoFallback}>QAF</div>
@@ -53,7 +61,13 @@ export const FancyLoading = ({
             alt="Qatar Armed Forces Seal"
             className={styles.brandLogo}
             style={rotatingStyle}
-            onError={() => setBrandLoadFailed(true)}
+            onError={(e) => {
+              console.log('🔍 FancyLoading: Logo failed to load', e);
+              setBrandLoadFailed(true);
+            }}
+            onLoad={() => {
+              console.log('🔍 FancyLoading: Logo loaded successfully');
+            }}
           />
         ) : (
           <div className={styles.brandLogoFallback}>QAF</div>

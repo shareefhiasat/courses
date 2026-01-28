@@ -65,6 +65,25 @@
   -moz-transform-origin: center center;
 }
 
+.brandLogoFallback {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #800020 0%, #b91c1c 100%);
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  border-radius: 50%;
+  -webkit-animation: rotate 4s linear infinite !important;
+  -moz-animation: rotate 4s linear infinite !important;
+  animation: rotate 4s linear infinite !important;
+  transform-origin: center center;
+  -webkit-transform-origin: center center;
+  -moz-transform-origin: center center;
+}
+
 @keyframes shine {
   0% {
     filter: drop-shadow(0 0 6px rgba(0,0,0,0.15)) brightness(1);
