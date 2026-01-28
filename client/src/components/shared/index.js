@@ -22,12 +22,15 @@ export { default as RankHistory } from './common/RankHistory';
 export { default as RankUpgradeModal } from './common/RankUpgradeModal';
 export { default as RecentMedals } from './common/RecentMedals';
 export { default as VariableHelper } from './common/VariableHelper';
+export { default as InstructorActivityForm } from './common/InstructorActivityForm';
+export { default as QuizCard } from './common/QuizCard';
 
 // UI Components
 export { default as ToggleSwitch } from './ui/ToggleSwitch';
 export { default as LanguageToggle } from './ui/LanguageToggle';
 export { default as FilterChips } from './ui/FilterChips';
 export { default as WindowControls } from './ui/WindowControls';
+export { default as AttendanceFilters } from './ui/AttendanceFilters';
 
 // Icons (already exported from Icons.jsx)
 export * from './Icons';

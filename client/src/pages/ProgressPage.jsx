@@ -7,9 +7,7 @@ import { db } from '../firebase/config';
 import { getSubmissions, getResources, getActivities } from '../firebase/firestore';
 import { Container, Card, CardBody, Spinner, Badge, Grid, ProgressBar, EmptyState } from '../components/ui';
 import { useLang } from '../contexts/LangContext';
-import RankDisplay from '../components/RankDisplay';
-import RankHistory from '../components/RankHistory';
-import RecentMedals from '../components/RecentMedals';
+import { RankDisplay, RankHistory, RecentMedals } from '../components/shared';
 import { Trophy, Target, BookOpen, Award } from 'lucide-react';
 import styles from './ProgressPage.module.css';
 

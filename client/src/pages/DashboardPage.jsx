@@ -28,7 +28,7 @@ import { Loading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, Url
 import InfoTooltip from '../components/ui/InfoTooltip/InfoTooltip';
 import { getCardConfig, getShapeRadius } from '../utils/cardColors';
 import RibbonTabs from '../components/RibbonTabs';
-import DragGrid from '../components/DragGrid';
+import { DragGrid } from '../components/shared';
 import EmailManager from '../components/EmailManager';
 import EmailComposer from '../components/EmailComposer';
 import SmartEmailComposer from '../components/SmartEmailComposer';

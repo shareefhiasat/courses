@@ -4,7 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useLang } from '../contexts/LangContext';
 import { Container, Card, CardBody, Button, Badge, Spinner, Modal } from '../components/ui';
-import QRCodeGenerator from '../components/QRCodeGenerator';
+import { QRCodeGenerator } from '../components/shared';
 import { CalendarDays, Repeat, Play, ExternalLink, QrCode } from 'lucide-react';
 import { formatDateTime } from '../utils/date';
 import styles from './ActivityDetailPage.module.css';

@@ -22,7 +22,6 @@ import InstructorParticipationPage from './pages/InstructorParticipationPage';
 import InstructorBehaviorPage from './pages/InstructorBehaviorPage';
 import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
-import MigrationPage from './pages/MigrationPage';
 import ManageEnrollmentsPage from './pages/ManageEnrollmentsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import analytics from './utils/analytics.js';
@@ -36,7 +35,6 @@ import MyEnrollmentsPage from './pages/MyEnrollmentsPage';
 import StudentQuizPage from './pages/StudentQuizPage';
 import QuestionBankPage from './pages/QuestionBankPage';
 import QuizResultsPage from './pages/QuizResultsPage';
-import PostHogTestPage from './pages/PostHogTestPage';
 import ReviewResultsPage from './pages/ReviewResultsPage';
 import ProgramsManagementPage from './pages/ProgramsManagementPage';
 import SubjectsManagementPage from './pages/SubjectsManagementPage';
@@ -113,7 +111,6 @@ const AppContent = () => {
           <Route path="/instructor-behavior" element={<InstructorBehaviorPage />} />
           <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />
-          <Route path="/migration" element={<MigrationPage />} />
           <Route path="/manage-enrollments" element={<ManageEnrollmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
@@ -129,8 +126,6 @@ const AppContent = () => {
           <Route path="/quiz-preview/:quizId" element={<QuizPreviewPage />} />
           <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
           {/* QuizResultsPage route removed - unified in HomePage with ?mode=quizzes */}
-          {/* PostHog Test Page */}
-          <Route path="/posthog-test" element={<PostHogTestPage />} />
           {/* Programs & Subjects Management */}
           <Route path="/programs" element={<ProgramsManagementPage />} />
           <Route path="/subjects" element={<SubjectsManagementPage />} />

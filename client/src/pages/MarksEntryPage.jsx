@@ -10,7 +10,7 @@ import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { MARK_TYPES } from '../constants/activityTypes';
 import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '../components/ui';
 import { FileSpreadsheet, Save, Edit, Award, Eye, AlertCircle, Award as ParticipationIcon, Calendar, Info, Filter, GraduationCap, BookOpen, Users } from 'lucide-react';
-import CollapsibleSideWindow from '../components/CollapsibleSideWindow';
+import { CollapsibleSideWindow } from '../components/shared';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import InstructorParticipationPage from './InstructorParticipationPage';
 import HRPenaltiesPage from './HRPenaltiesPage';
