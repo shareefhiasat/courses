@@ -57,7 +57,7 @@ import { formatQatarDate, formatQatarDateOnly } from '../utils/timezone';
 // DateTimePicker and ToggleSwitch replaced with UI library DatePicker and checkbox
 // import DateTimePicker from '../components/DateTimePicker';
 // import ToggleSwitch from '../components/ToggleSwitch';
-import ToggleSwitch from '../components/ToggleSwitch';
+import { ToggleSwitch } from '../components/shared';
 
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();

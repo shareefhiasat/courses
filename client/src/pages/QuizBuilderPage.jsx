@@ -13,8 +13,8 @@ import { getQuiz, createQuiz, updateQuiz } from '../firebase/quizzes';
 import { notifyQuizAvailable } from '../firebase/quizNotifications';
 import { getEnrollments, getUsers } from '../firebase/firestore';
 import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading } from '../components/ui';
-import ToggleSwitch from '../components/ToggleSwitch';
-import LanguageToggle from '../components/LanguageToggle';
+import { ToggleSwitch } from '../components/shared';
+import { LanguageToggle } from '../components/shared';
 import styles from './QuizBuilderPage.module.css';
 
 // Simplified question types

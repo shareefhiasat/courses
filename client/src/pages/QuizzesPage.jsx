@@ -15,9 +15,9 @@ import { getEnrollments, getUsers, getUser } from '../firebase/firestore';
 import { getAllQuizzes, getQuizzesByCreator, deleteQuiz, getQuiz, createQuiz, updateQuiz } from '../firebase/quizzes';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading, Badge } from '../components/ui';
-import ToggleSwitch from '../components/ToggleSwitch';
-import LanguageToggle from '../components/LanguageToggle';
-import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import { ToggleSwitch } from '../components/shared';
+import { LanguageToggle } from '../components/shared';
+import { DeleteConfirmationModal } from '../components/shared';
 import QuizBuilderPageStyles from './QuizBuilderPage.module.css';
 import QuizManagementPageStyles from './QuizManagementPage.module.css';
 

@@ -12,7 +12,7 @@ import {
 import { getEmailTemplates } from '../firebase/firestore';
 import { Loading, Button, Input, Select, Textarea, useToast, Card, CardBody } from '../components/ui';
 import { Container } from '../components/ui';
-import ToggleSwitch from '../components/ToggleSwitch';
+import { ToggleSwitch } from '../components/shared';
 import RibbonTabs from '../components/RibbonTabs';
 import { Plus, Edit, Trash2, Calendar, Mail, FileText, X, FileDown, Search, BarChart3, Users } from 'lucide-react';
 import { formatDateTime } from '../utils/date';

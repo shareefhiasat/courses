@@ -7,7 +7,7 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown, Globe, Volume2, Vibrate, Smartphone, Bell, TestTube, Monitor, Users, BookOpen } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast, Loading } from '../components/ui';
-import ToggleSwitch from '../components/ToggleSwitch';
+import { ToggleSwitch } from '../components/shared';
 import styles from './ProfileSettingsPage.module.css';
 import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '../utils/color';
 import { applyAccentColorGlobally } from '../utils/theme';

@@ -13,7 +13,7 @@ import { getUser } from '../firebase/firestore';
 import { db } from '../firebase/config';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
-import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import { DeleteConfirmationModal } from '../components/shared';
 import styles from './QuizManagementPage.module.css';
 
 export default function QuizManagementPage() {

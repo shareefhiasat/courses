@@ -6,7 +6,7 @@ import { db } from '../firebase/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Edit, Trash, MessageSquare, Award, FileText, Users, HelpCircle, Star, User, AlertCircle, Crown, Shield, BookOpen, GraduationCap, ThumbsUp, Minus, X, TrendingUp, TrendingDown, CheckCircle, Target, Zap, UserCheck, UserX, UserMinus, AlertTriangle, Info } from 'lucide-react';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '../components/ui';
-import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import { DeleteConfirmationModal } from '../components/shared';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import { getClasses, getEnrollments } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';

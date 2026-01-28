@@ -19,7 +19,7 @@ import Calculator from '../components/quiz/Calculator';
 import ScratchPad from '../components/quiz/ScratchPad';
 import FormulaSheet from '../components/quiz/FormulaSheet';
 import DetailedResults from '../components/quiz/DetailedResults';
-import LanguageToggle from '../components/LanguageToggle';
+import { LanguageToggle } from '../components/shared';
 import styles from './StudentQuizPage.module.css';
 
 // Simplified question types matching the builder
