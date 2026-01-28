@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useLang } from './LangContext';
-import { ABSENCE_TYPES, PENALTY_TYPES } from '../firebase/penalties';
+import { ABSENCE_TYPES } from '../constants/absenceTypes';
+import { PENALTY_TYPES } from '../constants/penaltyTypes';
 
 // Participation types with points
 const PARTICIPATION_TYPES = [

@@ -30,7 +30,8 @@ import {
 import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { getAttendanceByStudent, getAttendanceStats } from '../firebase/attendance';
-import { getPenalties, getAbsences, PENALTY_TYPES } from '../firebase/penalties';
+import { getPenalties, getAbsences } from '../firebase/penalties';
+import { PENALTY_TYPES } from '../constants/penaltyTypes';
 import { getStudentMarks } from '../firebase/grading';
 import { getSubjects, getPrograms } from '../firebase/programs';
 import html2canvas from 'html2canvas';

@@ -20,7 +20,8 @@ import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarCha
 import { formatDateTime } from '../utils/date';
 import { Button, Input, Select, Badge } from './ui';
 import ToggleSwitch from './ToggleSwitch';
-import { PENALTY_TYPES, ABSENCE_TYPES } from '../firebase/penalties';
+import { PENALTY_TYPES } from '../constants/penaltyTypes';
+import { ABSENCE_TYPES } from '../constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '../firebase/attendance';
 import useNotifications from '../hooks/useNotifications';
 

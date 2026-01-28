@@ -16,6 +16,7 @@ import { db } from "./config";
 import { addNotification } from "./notifications";
 import { sendEmail } from "./firestore";
 import { ABSENCE_TYPES, calculateAbsenceStats } from '../constants/absenceTypes';
+import { PENALTY_TYPES } from '../constants/penaltyTypes';
 
 /**
  * Penalties Collection
@@ -193,78 +194,6 @@ export const deletePenalty = async (penaltyId) => {
 };
 
 /**
- * Penalty Types based on Arabic regulations:
- * 1. Cheating (with material evidence)
- * 2. Attempting to cheat or assisting in cheating
- * 3. Impersonation
- * 4. Disrupting exam system
- * 5. Forgery in school documents
- * 6. Other violations disrupting public order
- */
-export const PENALTY_TYPES = [
-  { 
-    id: "cheating", 
-    label_ar: "الغش", 
-    label_en: "Cheating",
-    points: 10,
-    icon: "AlertTriangle",
-    color: "#dc2626",
-    description_ar: "الغش في الاختبارات أو الواجبات باستخدام مواد غير مسموح بها",
-    description_en: "Using unauthorized materials or methods during exams or assignments"
-  },
-  {
-    id: "attempted_cheating",
-    label_ar: "محاولة الغش أو مساعدة في الغش",
-    label_en: "Attempted Cheating or Assisting in Cheating",
-    points: 5,
-    icon: "AlertTriangle",
-    color: "#ea580c",
-    description_ar: "محاولة الغش أو مساعدة الآخرين على الغش في الاختبارات",
-    description_en: "Attempting to cheat or assisting others in cheating during exams"
-  },
-  { 
-    id: "impersonation", 
-    label_ar: "الانتحال", 
-    label_en: "Impersonation",
-    points: 15,
-    icon: "Users",
-    color: "#991b1b",
-    description_ar: "انتحال شخصية طالب آخر أو السماح لشخص آخر بانتحال شخصيتك",
-    description_en: "Pretending to be another student or allowing someone to take your place"
-  },
-  {
-    id: "exam_disruption",
-    label_ar: "تعطيل نظام الاختبار",
-    label_en: "Exam System Disruption",
-    points: 8,
-    icon: "XCircle",
-    color: "#dc2626",
-    description_ar: "إثارة الفوضى أو تعطيل سير الاختبار بشكل متعمد",
-    description_en: "Causing disruption or intentionally interfering with exam proceedings"
-  },
-  {
-    id: "forgery",
-    label_ar: "التزوير في وثائق المدرسة",
-    label_en: "Forgery in School Documents",
-    points: 20,
-    icon: "FileX",
-    color: "#7f1d1d",
-    description_ar: "تزوير التوقيعات أو الوثائق المدرسية الرسمية",
-    description_en: "Forging signatures or official school documents"
-  },
-  {
-    id: "other",
-    label_ar: "مخالفات أخرى تعطل النظام العام",
-    label_en: "Other Violations Disrupting Public Order",
-    points: 5,
-    icon: "HelpCircle",
-    color: "#ea580c",
-    description_ar: "أي مخالفات أخرى تؤثر على النظام العام للمدرسة",
-    description_en: "Any other violations that disrupt the school's public order"
-  },
-];
-
-/**
  * Absences Tracking
  * Track student absences with types and penalties
  */
@@ -343,5 +272,5 @@ export const deleteAbsence = async (absenceId) => {
 };
 
 // Re-export for backward compatibility
-export { ABSENCE_TYPES, calculateAbsenceStats };
+export { ABSENCE_TYPES, calculateAbsenceStats, PENALTY_TYPES };
 

@@ -7,7 +7,9 @@ import { collection, getDocs, doc, query, where, orderBy, getDoc } from 'firebas
 import { Edit, Trash, AlertTriangle, XCircle, Clock, MessageSquare, Phone, Coffee, Users, Shield, Zap, User, TrendingDown, TrendingUp, Target, AlertCircle, UserCheck, UserX, UserMinus, Info } from 'lucide-react';
 import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody } from '../components/ui';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
-import { PENALTY_TYPES, ABSENCE_TYPES, createPenalty, updatePenalty, deletePenalty, getPenalties } from '../firebase/penalties';
+import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '../firebase/penalties';
+import { PENALTY_TYPES } from '../constants/penaltyTypes';
+import { ABSENCE_TYPES } from '../constants/absenceTypes';
 import { getPrograms, getSubjects } from '../firebase/programs';
 import { getClasses, getEnrollments } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
