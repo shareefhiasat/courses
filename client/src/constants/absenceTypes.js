@@ -14,24 +14,32 @@ export const ABSENCE_TYPES = [
     label_ar: "بعذر رسمي",
     label_en: "With Official Excuse",
     deduction: 0.25,
+    icon: "FileSignature",
+    color: "#3b82f6",
   },
   {
     id: "without_excuse",
     label_ar: "بدون عذر",
     label_en: "Without Excuse",
     deduction: 0.5,
+    icon: "XCircle",
+    color: "#ef4444",
   },
   {
     id: "bereavement",
     label_ar: "وفاة قريب",
     label_en: "Bereavement",
     deduction: 0,
+    icon: "Users",
+    color: "#6b7280",
   },
   {
     id: "beyond_control",
     label_ar: "أسباب خارجة عن السيطرة",
     label_en: "Beyond Control (accident, weather, hospitalization)",
     deduction: 0.25,
+    icon: "AlertTriangle",
+    color: "#f59e0b",
   },
 ];
 
@@ -43,6 +51,16 @@ export const getAbsenceTypeById = (id) => {
 export const getAbsenceLabel = (id, lang = 'en') => {
   const type = getAbsenceTypeById(id);
   return type ? (lang === 'ar' ? type.label_ar : type.label_en) : id;
+};
+
+export const getAbsenceIcon = (id) => {
+  const type = getAbsenceTypeById(id);
+  return type ? type.icon : 'Clock';
+};
+
+export const getAbsenceColor = (id) => {
+  const type = getAbsenceTypeById(id);
+  return type ? type.color : '#6b7280';
 };
 
 /**

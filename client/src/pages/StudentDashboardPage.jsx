@@ -31,7 +31,6 @@ import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebas
 import { db } from '../firebase/config';
 import { getAttendanceByStudent, getAttendanceStats } from '../firebase/attendance';
 import { getPenalties, getAbsences } from '../firebase/penalties';
-import { PENALTY_TYPES } from '../constants/penaltyTypes';
 import { getStudentMarks } from '../firebase/grading';
 import { getSubjects, getPrograms } from '../firebase/programs';
 import html2canvas from 'html2canvas';
@@ -39,8 +38,10 @@ import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
 
 // Participation and Behavior Types
-import { BEHAVIOR_TYPES } from '../constants/behaviorTypes';
-import { PARTICIPATION_TYPES } from '../constants/participationTypes';
+import { BEHAVIOR_TYPES, getBehaviorLabel } from '../constants/behaviorTypes';
+import { PARTICIPATION_TYPES, getParticipationLabel } from '../constants/participationTypes';
+import { ABSENCE_TYPES, getAbsenceLabel } from '../constants/absenceTypes';
+import { PENALTY_TYPES, getPenaltyLabel } from '../constants/penaltyTypes';
 
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();
@@ -929,7 +930,8 @@ export default function StudentDashboardPage() {
               { value: 'marks', label: t('marks') || 'Marks', icon: <Award size={16} /> },
               { value: 'penalties', label: t('penalties') || 'Penalties', icon: <AlertTriangle size={16} /> },
               { value: 'participations', label: t('participations') || 'Participations', icon: <PlusIcon size={16} /> },
-              { value: 'behaviors', label: t('behaviors') || 'Behaviors', icon: <XCircle size={16} /> }
+              { value: 'behaviors', label: t('behaviors') || 'Behaviors', icon: <XCircle size={16} /> },
+              { value: 'absences', label: t('absences') || 'Absences', icon: <Clock size={16} /> }
             ]}
             size="lg"
           />
@@ -1368,7 +1370,7 @@ export default function StudentDashboardPage() {
           </div>
         )}
 
-        {(viewMode === 'penalties' || viewMode === 'participations' || viewMode === 'behaviors') && (
+        {(viewMode === 'penalties' || viewMode === 'participations' || viewMode === 'behaviors' || viewMode === 'absences') && (
           <div className={isCompactView ? styles.compactView : styles.fullView}>
             <Card>
               <CardBody>
@@ -1379,7 +1381,8 @@ export default function StudentDashboardPage() {
                     tabs={[
                       { value: 'penalties', label: t('penalties') || 'Penalties', icon: <AlertTriangle size={16} /> },
                       { value: 'participations', label: t('participations') || 'Participations', icon: <PlusIcon size={16} /> },
-                      { value: 'behaviors', label: t('behaviors') || 'Behaviors', icon: <XCircle size={16} /> }
+                      { value: 'behaviors', label: t('behaviors') || 'Behaviors', icon: <XCircle size={16} /> },
+                      { value: 'absences', label: t('absences') || 'Absences', icon: <Clock size={16} /> }
                     ]}
                     size="lg"
                   />
@@ -1404,7 +1407,7 @@ export default function StudentDashboardPage() {
                               return true;
                             })
                             .map(p => ({
-                            Type: PENALTY_TYPES.find(pt => pt.id === p.type)?.[`label_${lang}`] || p.type,
+                            Type: getPenaltyLabel(p.type, lang) || p.type,
                             Subject: subjects.find(s => (s.docId || s.id) === p.subjectId)?.[`name_${lang}`] || '',
                             Description: p.description || '',
                             Date: p.createdAt?.toDate ? p.createdAt.toDate().toLocaleString() : ''
@@ -1423,7 +1426,7 @@ export default function StudentDashboardPage() {
                               return true;
                             })
                             .map(p => ({
-                            Type: PARTICIPATION_TYPES.find(pt => pt.id === p.type)?.[`label_${lang}`] || p.type,
+                            Type: getParticipationLabel(p.type, lang) || p.type,
                             Subject: subjects.find(s => (s.docId || s.id) === p.subjectId)?.[`name_${lang}`] || '',
                             Comment: p.comment || '',
                             Date: p.createdAt?.toDate ? p.createdAt.toDate().toLocaleString() : ''
@@ -1442,12 +1445,30 @@ export default function StudentDashboardPage() {
                               return true;
                             })
                             .map(b => ({
-                            Type: BEHAVIOR_TYPES.find(bt => bt.id === b.type)?.[`label_${lang}`] || b.type,
+                            Type: getBehaviorLabel(b.type, lang) || b.type,
                             Subject: subjects.find(s => (s.docId || s.id) === b.subjectId)?.[`name_${lang}`] || '',
                             Comment: b.comment || '',
                             Date: b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : ''
                           }));
                           filename = 'behaviors.csv';
+                        } else if (viewMode === 'absences') {
+                          data = absences
+                            .filter(a => {
+                              if (selectedProgram !== 'all') {
+                                const subject = subjects.find(s => (s.docId || s.id) === a.subjectId);
+                                if (subject?.programId !== selectedProgram) return false;
+                              }
+                              if (selectedSubject !== 'all') {
+                                if (a.subjectId !== selectedSubject) return false;
+                              }
+                              return true;
+                            })
+                            .map(a => ({
+                            Type: getAbsenceLabel(a.type, lang) || a.type,
+                            Subject: subjects.find(s => (s.docId || s.id) === a.subjectId)?.[`name_${lang}`] || '',
+                            Date: a.date || a.createdAt?.toDate ? a.createdAt.toDate().toLocaleString() : ''
+                          }));
+                          filename = 'absences.csv';
                         }
                         
                         if (data.length === 0) {
@@ -1496,7 +1517,10 @@ export default function StudentDashboardPage() {
                             return true;
                           })
                           .map((penalty, idx) => {
-                            const penaltyType = PENALTY_TYPES.find(pt => pt.id === penalty.type) || { label_en: penalty.type };
+                            const penaltyType = { 
+                              label_en: getPenaltyLabel(penalty.type, 'en') || penalty.type,
+                              label_ar: getPenaltyLabel(penalty.type, 'ar') || penalty.type
+                            };
                             const subject = subjects.find(s => (s.docId || s.id) === penalty.subjectId);
                             const createdAt = penalty.createdAt?.toDate ? penalty.createdAt.toDate() : new Date(penalty.createdAt || 0);
                             return (
@@ -1553,7 +1577,10 @@ export default function StudentDashboardPage() {
                             return true;
                           })
                           .map((participation, idx) => {
-                            const participationType = PARTICIPATION_TYPES.find(pt => pt.id === participation.type) || { label_en: participation.type };
+                            const participationType = { 
+                              label_en: getParticipationLabel(participation.type, 'en') || participation.type,
+                              label_ar: getParticipationLabel(participation.type, 'ar') || participation.type
+                            };
                             const subject = subjects.find(s => (s.docId || s.id) === participation.subjectId);
                             const createdAt = participation.createdAt?.toDate ? participation.createdAt.toDate() : new Date(participation.createdAt || 0);
                             return (
@@ -1610,7 +1637,10 @@ export default function StudentDashboardPage() {
                             return true;
                           })
                           .map((behavior, idx) => {
-                            const behaviorType = BEHAVIOR_TYPES.find(bt => bt.id === behavior.type) || { label_en: behavior.type };
+                            const behaviorType = { 
+                              label_en: getBehaviorLabel(behavior.type, 'en') || behavior.type,
+                              label_ar: getBehaviorLabel(behavior.type, 'ar') || behavior.type
+                            };
                             const subject = subjects.find(s => (s.docId || s.id) === behavior.subjectId);
                             const createdAt = behavior.createdAt?.toDate ? behavior.createdAt.toDate() : new Date(behavior.createdAt || 0);
                             return (
@@ -1633,6 +1663,63 @@ export default function StudentDashboardPage() {
                                       )}
                                       <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                                         {createdAt.toLocaleDateString()} {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardBody>
+                              </Card>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {viewMode === 'absences' && (
+                  <div>
+                    {absences.length === 0 ? (
+                      <EmptyState
+                        title={t('no_absences') || 'No Absences'}
+                        description={t('no_absences_description') || 'You have no recorded absences.'}
+                        icon={<CalendarCheck size={48} />}
+                      />
+                    ) : (
+                      <div style={{ display: 'grid', gap: '1rem' }}>
+                        {absences
+                          .filter(a => {
+                            if (selectedProgram !== 'all') {
+                              const subject = subjects.find(s => (s.docId || s.id) === a.subjectId);
+                              if (subject?.programId !== selectedProgram) return false;
+                            }
+                            if (selectedSubject !== 'all') {
+                              if (a.subjectId !== selectedSubject) return false;
+                            }
+                            return true;
+                          })
+                          .map((absence, idx) => {
+                            const absenceType = { 
+                              label_en: getAbsenceLabel(absence.type, 'en') || absence.type,
+                              label_ar: getAbsenceLabel(absence.type, 'ar') || absence.type
+                            };
+                            const subject = subjects.find(s => (s.docId || s.id) === absence.subjectId);
+                            const date = absence.date ? new Date(absence.date) : (absence.createdAt?.toDate ? absence.createdAt.toDate() : new Date());
+                            return (
+                              <Card key={idx} style={{ borderLeft: '4px solid #6b7280' }}>
+                                <CardBody>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '1rem' }}>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                                        <Badge variant="secondary">
+                                          {lang === 'ar' ? absenceType.label_ar : absenceType.label_en}
+                                        </Badge>
+                                        {subject && (
+                                          <Badge variant="outline">
+                                            {lang === 'ar' ? subject.name_ar : subject.name_en}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                                        {date.toLocaleDateString()} {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                                       </div>
                                     </div>
                                   </div>
