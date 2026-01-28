@@ -65,7 +65,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [todayAttendanceStatus, setTodayAttendanceStatus] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState(null);
-  const [showManualInput, setShowManualInput] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(true); // Always true for testing
   const [manualStudentId, setManualStudentId] = useState('');
   
   const videoRef = useRef(null);
@@ -2319,7 +2319,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 )}
               </button>
             </div>
-      
+          </div>
+        </div>
+      )}
+
       {/* Debug Log Box */}
       {showDebugBox && (
         <div style={{
@@ -2622,8 +2625,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           to { transform: rotate(360deg); }
         }
       `}</style>
-      </div>
     </div>
-      )}
-    </div>
-  )};
+  );
+}
