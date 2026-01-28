@@ -12,7 +12,7 @@ import { getClasses, getEnrollments } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { formatQatarDateOnly } from '../utils/timezone';
-import { BEHAVIOR_TYPES, getBehaviorLabel } from '../constants/behaviorTypes';
+import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '../constants/behaviorTypes';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '../utils/userStatus';
 import styles from './ProgramsManagementPage.module.css';
 
@@ -320,7 +320,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         } catch (e) { }
         
         // Send notification to student
-        const behaviorType = BEHAVIOR_TYPES.find(bt => bt.id === formData.type) || { label_en: formData.type };
+        const behaviorType = { label_en: getBehaviorLabel(formData.type, 'en') || formData.type };
         await addNotification({
           userId: formData.studentId,
           title: '⚠️ Behavior Recorded',
@@ -559,7 +559,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       headerName: 'Type',
       width: 180,
       renderCell: (params) => {
-        const behaviorType = BEHAVIOR_TYPES.find(bt => bt.id === params.value);
+        const behaviorType = getBehaviorTypeById(params.value);
         return behaviorType ? (lang === 'ar' ? behaviorType.label_ar : behaviorType.label_en) : params.value;
       }
     },
@@ -704,7 +704,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> Editing Behavior: {BEHAVIOR_TYPES.find(bt => bt.id === editingBehavior.type)?.label_en || editingBehavior.type}
+          <Edit size={16} /> Editing Behavior: {getBehaviorLabel(editingBehavior.type, lang) || editingBehavior.type}
         </div>
       )}
 
@@ -828,7 +828,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                   default:
                     icon = <AlertTriangle size={16} color="#374151" />;
                 }
-                return { value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en, icon };
+                return { value: bt.id, label: getBehaviorLabel(bt.id, lang), icon };
               })
             ]}
             placeholder={t('select_behavior_type')}
@@ -968,7 +968,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                   default:
                     icon = <AlertTriangle size={16} color="#374151" />;
                 }
-                return { value: bt.id, label: lang === 'ar' ? bt.label_ar : bt.label_en, icon };
+                return { value: bt.id, label: getBehaviorLabel(bt.id, lang), icon };
               })
             ]}
             placeholder="Type"

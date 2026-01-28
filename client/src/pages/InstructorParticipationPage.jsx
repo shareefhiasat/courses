@@ -12,7 +12,7 @@ import { getClasses, getEnrollments } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { formatQatarDateOnly } from '../utils/timezone';
-import { PARTICIPATION_TYPES, getParticipationLabel } from '../constants/participationTypes';
+import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationTypeById } from '../constants/participationTypes';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '../utils/userStatus';
 import styles from './ProgramsManagementPage.module.css';
 
@@ -330,7 +330,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         
         // Send notification to student (with error handling)
         try {
-          const participationType = PARTICIPATION_TYPES.find(pt => pt.id === formData.type) || { label_en: formData.type };
+          const participationType = { label_en: getParticipationLabel(formData.type, 'en') || formData.type };
           await addNotification({
             userId: formData.studentId,
             title: '✅ Participation Recorded',
@@ -576,7 +576,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       headerName: 'Type',
       width: 180,
       renderCell: (params) => {
-        const participationType = PARTICIPATION_TYPES.find(pt => pt.id === params.value);
+        const participationType = getParticipationTypeById(params.value);
         return participationType ? (lang === 'ar' ? participationType.label_ar : participationType.label_en) : params.value;
       }
     },
@@ -749,7 +749,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> Editing Participation: {PARTICIPATION_TYPES.find(pt => pt.id === editingParticipation.type)?.label_en || editingParticipation.type}
+          <Edit size={16} /> Editing Participation: {getParticipationLabel(editingParticipation.type, lang) || editingParticipation.type}
         </div>
       )}
 
@@ -876,7 +876,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                   default:
                     icon = <Star size={16} color="#374151" />;
                 }
-                return { value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon };
+                return { value: pt.id, label: getParticipationLabel(pt.id, lang), icon };
               })
             ]}
             placeholder={t('select_participation_type')}
@@ -1018,7 +1018,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                   default:
                     icon = <Star size={16} color="#374151" />;
                 }
-                return { value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon };
+                return { value: pt.id, label: getParticipationLabel(pt.id, lang), icon };
               })
             ]}
             placeholder="Type"
