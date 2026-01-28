@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useToast } from './ToastProvider';
-import Modal from './Modal';
-import { useLang } from '../contexts/LangContext';
+import { useToast } from '../../ToastProvider';
+import Modal from '../common/Modal';
+import { useLang } from '../../../contexts/LangContext';
 import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '../../../firebase/config';
 import { Mail, Megaphone, FileText, CheckCircle2, XCircle, GraduationCap, BookOpen, MessageSquareText, Mailbox, Eye, Clock, Send, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter } from 'lucide-react';
-import { formatDateTime } from '../utils/date';
-import { AdvancedDataGrid, Loading, Select, Input, Badge } from './ui';
+import { formatDateTime } from '../../../utils/date';
+import { AdvancedDataGrid, Loading, Select, Input, Badge } from '../../ui';
 
 const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const toast = useToast();

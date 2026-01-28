@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getUsers, getClasses, getEnrollments } from '../firebase/firestore';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { useLang } from '../contexts/LangContext';
-import Modal from './Modal';
-import { useToast } from './ToastProvider';
-import { Input, Textarea, Button, Select } from './ui';
+import { getUsers, getClasses, getEnrollments } from '../../../firebase/firestore';
+import { getPrograms, getSubjects } from '../../../firebase/programs';
+import { useLang } from '../../../contexts/LangContext';
+import Modal from '../common/Modal';
+import { useToast } from '../../ToastProvider';
+import { Input, Textarea, Button, Select } from '../../ui';
 
 const SmartEmailComposer = ({ open, onClose, onSend }) => {
   const { t, lang } = useLang();

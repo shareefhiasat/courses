@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Select } from './ui';
-import { useToast } from './ToastProvider';
-import { useLang } from '../contexts/LangContext';
+import { Select } from '../../ui';
+import { useToast } from '../../ToastProvider';
+import { useLang } from '../../../contexts/LangContext';
 import VariableHelper from './VariableHelper';
-import Modal from './ui/Modal/Modal';
+import { Modal } from '../../ui';
 import { Eye, Info, Copy } from 'lucide-react';
-import { formatDateTime } from '../utils/date';
+import { formatDateTime } from '../../../utils/date';
 import { collection, doc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '../../../firebase/config';
 
 const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   const toast = useToast();

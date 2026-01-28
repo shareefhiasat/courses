@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { getUsers } from '../firebase/firestore';
-import { useLang } from '../contexts/LangContext';
-import { Select } from './ui';
-import Modal from './Modal';
-import { useToast } from './ToastProvider';
-import './EmailComposer.css';
+import { getUsers } from '../../../firebase/firestore';
+import { useLang } from '../../../contexts/LangContext';
+import { Select } from '../../ui';
+import Modal from '../common/Modal';
+import { useToast } from '../../ToastProvider';
+import '../css/EmailComposer.css';
 
 const EmailComposer = ({ open, onClose, onSend }) => {
   const { t, lang } = useLang();

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import Modal from './Modal';
-import { useToast } from './ToastProvider';
-import { useLang } from '../contexts/LangContext';
-import InfoTooltip from './ui/InfoTooltip/InfoTooltip';
+import Modal from '../common/Modal';
+import { useToast } from '../../ToastProvider';
+import { useLang } from '../../../contexts/LangContext';
+import InfoTooltip from '../../ui/InfoTooltip/InfoTooltip';
 
 const UserDeletionModal = ({ 
   open, 

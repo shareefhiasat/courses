@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from './ToastProvider';
+import { useToast } from '../../ToastProvider';
 import { getDoc, doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import ToggleSwitch from './ToggleSwitch';
+import { db } from '../../../firebase/config';
+import { ToggleSwitch } from '../index';
 
 const EmailSettings = ({ onEditTemplate }) => {
   const navigate = useNavigate();
@@ -223,8 +223,8 @@ const EmailSettings = ({ onEditTemplate }) => {
                           setTestingEmail(config.key);
                           try {
                             const { httpsCallable } = await import('firebase/functions');
-                            const { functions } = await import('../firebase/config');
-                            const { auth } = await import('../firebase/config');
+                            const { functions } = await import('../../../firebase/config');
+                            const { auth } = await import('../../../firebase/config');
                             
                             const testSMTP = httpsCallable(functions, 'testSMTP');
                             const result = await testSMTP({

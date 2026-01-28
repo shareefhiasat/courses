@@ -24,6 +24,17 @@ export { default as RecentMedals } from './common/RecentMedals';
 export { default as VariableHelper } from './common/VariableHelper';
 export { default as InstructorActivityForm } from './common/InstructorActivityForm';
 export { default as QuizCard } from './common/QuizCard';
+export { default as GenericForm } from './common/GenericForm';
+export { default as UnifiedCard } from './common/UnifiedCard';
+export { default as EmailManager } from './common/EmailManager';
+export { default as EmailComposer } from './common/EmailComposer';
+export { default as EmailSettings } from './common/EmailSettings';
+export { default as EmailTemplates } from './common/EmailTemplates';
+export { default as EmailTemplateEditor } from './common/EmailTemplateEditor';
+export { default as EmailTemplateList } from './common/EmailTemplateList';
+export { default as EmailLogs } from './common/EmailLogs';
+export { default as SmartEmailComposer } from './common/SmartEmailComposer';
+export { default as UserDeletionModal } from './common/UserDeletionModal';
 
 // UI Components
 export { default as ToggleSwitch } from './ui/ToggleSwitch';
@@ -31,6 +42,12 @@ export { default as LanguageToggle } from './ui/LanguageToggle';
 export { default as FilterChips } from './ui/FilterChips';
 export { default as WindowControls } from './ui/WindowControls';
 export { default as AttendanceFilters } from './ui/AttendanceFilters';
+export { default as GenericFilters } from './ui/GenericFilters';
+export { default as StatusBadge } from './ui/StatusBadge';
+export { default as ClassSelector } from './ui/ClassSelector';
+export { default as DateTimePicker } from './ui/DateTimePicker';
+export { default as SeedDefaultTemplates } from './ui/SeedDefaultTemplates';
+export { default as RibbonTabs } from './ui/RibbonTabs';
 
 // Icons (already exported from Icons.jsx)
 export * from './Icons';

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { useToast } from './ToastProvider';
-import { useLang } from '../contexts/LangContext';
-import ToggleSwitch from './ToggleSwitch';
-import { formatDateTime } from '../utils/date';
+import { useToast } from '../../ToastProvider';
+import { useLang } from '../../../contexts/LangContext';
+import { ToggleSwitch } from '../index';
+import { formatDateTime } from '../../../utils/date';
 import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '../../../firebase/config';
 import { Megaphone, FileText, CheckCircle2, GraduationCap, BookOpen, MessageSquareText, Key, PartyPopper, Mail, Plus, Pencil, Send, Copy, Trash2, QrCode, BarChart3 } from 'lucide-react';
-import { Loading } from './ui';
+import { Loading } from '../../ui';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();
@@ -91,7 +91,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const saveSetting = async (typeKey, enabled, templateId) => {
     try {
       const { setDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
+      const { db } = await import('../../../firebase/config');
       const ref = doc(db, 'config', 'emailSettings');
       
       // Map template type to trigger type
@@ -362,7 +362,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           setTestingEmail(template.id);
                           try {
                             const { httpsCallable } = await import('firebase/functions');
-                            const { functions } = await import('../firebase/config');
+                            const { functions } = await import('../../../firebase/config');
                             const sendTest = httpsCallable(functions, 'sendTestEmailTemplate');
                             const vars = generateSampleVariables(template);
                             const res = await sendTest({ templateId: template.id, variables: vars });

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import EmailTemplateList from './EmailTemplateList';
 import EmailTemplateEditor from './EmailTemplateEditor';
-import SeedDefaultTemplates from './SeedDefaultTemplates';
-import { Loading } from './ui';
-import { useLang } from '../contexts/LangContext';
+import SeedDefaultTemplates from '../ui/SeedDefaultTemplates';
+import { Loading } from '../../ui';
+import { useLang } from '../../../contexts/LangContext';
 import { collection, getDocs, query, limit } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '../../../firebase/config';
 
 const EmailTemplates = () => {
   const { t } = useLang();

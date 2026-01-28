@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import './EmailManager.css';
-import Modal from './Modal';
-import { useToast } from './ToastProvider';
-import { useLang } from '../contexts/LangContext';
+import '../css/EmailManager.css';
+import Modal from '../common/Modal';
+import { useToast } from '../../ToastProvider';
+import { useLang } from '../../../contexts/LangContext';
 
 const EmailManager = ({ 
   emails = [], 

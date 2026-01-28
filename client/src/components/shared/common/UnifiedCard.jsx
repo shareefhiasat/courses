@@ -1,8 +1,8 @@
 import React, { memo } from 'react';
-import { Button } from './ui';
+import { Button } from '../../ui';
 import { Play, Info, BookOpen, ClipboardList, HelpCircle, Award, Clock, Repeat, CheckCircle, Star, StarOff, Check, AlertCircle, Link2, Video, FileText, Plus, Pin, Calendar } from 'lucide-react';
-import { formatDateTime } from '../utils/date';
-import { useTheme } from '../contexts/ThemeContext';
+import { formatDateTime } from '../../../utils/date';
+import { useTheme } from '../../../contexts/ThemeContext';
 
 /**
  * Unified card component for activities, quizzes, resources, and home page items

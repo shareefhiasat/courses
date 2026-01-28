@@ -13,7 +13,7 @@ import { db } from '../firebase/config';
 import { useLang } from '../contexts/LangContext';
 import { formatDateTime } from '../utils/date';
 import { Loading } from '../components/ui';
-import UnifiedCard from '../components/UnifiedCard';
+import { UnifiedCard } from '../components/shared';
 import AuthForm from '../components/AuthForm';
 import logger from '../utils/logger';
 import './HomePage.css';

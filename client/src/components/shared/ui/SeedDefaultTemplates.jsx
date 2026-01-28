@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useToast } from './ToastProvider';
-import { useLang } from '../contexts/LangContext';
-import { defaultTemplates } from '../utils/defaultEmailTemplates';
+import { useToast } from '../../ToastProvider';
+import { useLang } from '../../../contexts/LangContext';
+import { defaultTemplates } from '../../../utils/defaultEmailTemplates';
 
 const SeedDefaultTemplates = ({ onComplete }) => {
   const toast = useToast();
@@ -15,7 +15,7 @@ const SeedDefaultTemplates = ({ onComplete }) => {
 
     try {
       const { collection, doc, setDoc, Timestamp } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
+      const { db } = await import('../../../firebase/config');
 
       for (let i = 0; i < defaultTemplates.length; i++) {
         const template = defaultTemplates[i];
