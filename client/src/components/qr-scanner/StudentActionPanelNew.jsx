@@ -6,7 +6,8 @@ import { XIcon, StarIcon, ChevronDownIcon, ChevronRightIcon, Star, Mail, Chevron
 import { useAuth } from '../../contexts/AuthContext';
 import { markAttendance } from '../../firebase/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
-import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../../constants/behaviorParticipation';
+import { BEHAVIOR_TYPES } from '../../constants/behaviorTypes';
+import { PARTICIPATION_TYPES } from '../../constants/participationTypes';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '../../firebase/userPreferences';
 import { useLang } from '../../contexts/LangContext';
 import { useToast } from '../ui';

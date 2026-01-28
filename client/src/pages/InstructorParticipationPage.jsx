@@ -12,7 +12,7 @@ import { getClasses, getEnrollments } from '../firebase/firestore';
 import { addNotification } from '../firebase/notifications';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { formatQatarDateOnly } from '../utils/timezone';
-import { PARTICIPATION_TYPES, getParticipationLabel } from '../constants/behaviorParticipation';
+import { PARTICIPATION_TYPES, getParticipationLabel } from '../constants/participationTypes';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '../utils/userStatus';
 import styles from './ProgramsManagementPage.module.css';
 

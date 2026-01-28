@@ -977,7 +977,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         overflow: 'hidden',
         width: '100%',
         maxWidth: isMobile ? '100%' : '600px',
-        margin: isMobile ? '0 auto 1rem auto' : '0 0 1rem 0'
+        margin: isMobile ? '0 auto 1rem auto' : '0 auto 1rem auto'
       }}>
         {loading ? (
           <div style={{ textAlign: 'center', zIndex: 10, position: 'relative', background: 'white', padding: '2rem' }}>
@@ -1118,15 +1118,22 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       <div>
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
           marginBottom: '1rem',
           padding: '0.75rem',
           background: 'var(--background-secondary, #f9fafb)',
           borderRadius: '0.5rem',
-          border: '1px solid var(--border, #e5e7eb)'
+          border: '1px solid var(--border, #e5e7eb)',
+          justifyContent: isMobile ? 'center' : 'space-between'
         }}>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ 
+            display: 'flex', 
+            gap: '0.5rem',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            width: '100%'
+          }}>
             <button
               onClick={() => setVibrationEnabled(!vibrationEnabled)}
               style={{
@@ -1465,8 +1472,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             background: 'white',
             borderRadius: '0.5rem',
             padding: '1.5rem',
+            width: isMobile ? '90vw' : '400px',
             maxWidth: '400px',
-            width: '90%',
+            minWidth: isMobile ? '280px' : '350px',
             maxHeight: '80vh',
             overflow: 'auto'
           }}>
@@ -1494,7 +1502,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
               gap: '0.75rem'
             }}>
               {/* First Row: Primary Actions */}
@@ -2049,9 +2057,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               </button>
             </div>
             
-            {/* Third Row: Student Details (Far Right) and Cancel */}
+            {/* Third Row: Student Details and Cancel */}
             <div style={{
               display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
               gap: '0.75rem',
               marginTop: '0.5rem'
             }}>
@@ -2123,7 +2132,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 }}
                 disabled={actionLoading}
                 style={{
-                  flex: 2,
+                  flex: isMobile ? 1 : 2,
                   padding: '0.875rem',
                   border: 'none',
                   background: actionLoading && currentAction === 'details' ? '#94a3b8' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
@@ -2139,7 +2148,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   gap: '0.625rem',
                   opacity: actionLoading ? 0.7 : 1,
                   transition: 'all 0.2s ease',
-                  boxShadow: '0 4px 6px rgba(139, 92, 246, 0.3)'
+                  boxShadow: '0 4px 6px rgba(139, 92, 246, 0.3)',
+                  order: isMobile ? -1 : 1
                 }}
                 onMouseEnter={(e) => {
                   if (!actionLoading) {
@@ -2338,7 +2348,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'monospace',
-          fontSize: '0.75rem'
+          fontSize: '0.75rem',
+          maxWidth: '90vw'
         }}>
           <div style={{
             display: 'flex',
@@ -2405,8 +2416,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           padding: '1.5rem',
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
           zIndex: 1003,
-          minWidth: '350px',
-          maxWidth: '90%'
+          width: isMobile ? '90vw' : '400px',
+          maxWidth: '400px',
+          minWidth: isMobile ? '280px' : '350px'
         }}>
           <h3 style={{
             margin: '0 0 1rem 0',
@@ -2499,8 +2511,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             background: 'white',
             borderRadius: '0.5rem',
             padding: '2rem',
+            width: isMobile ? '90vw' : '400px',
             maxWidth: '400px',
-            width: '90%',
+            minWidth: isMobile ? '280px' : '350px',
             textAlign: 'center'
           }}>
             <div style={{

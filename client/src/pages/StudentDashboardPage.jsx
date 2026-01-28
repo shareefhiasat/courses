@@ -38,7 +38,8 @@ import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
 
 // Participation and Behavior Types
-import { BEHAVIOR_TYPES, PARTICIPATION_TYPES } from '../constants/behaviorParticipation';
+import { BEHAVIOR_TYPES } from '../constants/behaviorTypes';
+import { PARTICIPATION_TYPES } from '../constants/participationTypes';
 
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();
