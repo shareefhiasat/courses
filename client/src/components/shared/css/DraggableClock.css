@@ -1,0 +1,193 @@
+.draggable-clock {
+  background: var(--panel, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  cursor: move;
+  user-select: none;
+  transition: box-shadow 0.2s ease;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  min-width: 150px;
+}
+
+.draggable-clock:hover {
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+}
+
+.draggable-clock.minimized {
+  min-width: auto;
+  width: auto;
+}
+
+.draggable-clock.expanded {
+  min-width: 280px;
+  max-width: 400px;
+}
+
+.clock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--background, #f9fafb);
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px 12px 0 0;
+  gap: 0.5rem;
+}
+
+.clock-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text, #374151);
+  flex: 1;
+}
+
+.clock-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary, #6b7280);
+}
+
+.control-btn:hover {
+  background: var(--hover, #f3f4f6);
+  color: var(--text, #374151);
+}
+
+.control-btn.close-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.clock-content {
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.time-display {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text, #374151);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.date-display {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6b7280);
+  margin-top: 0.25rem;
+  white-space: nowrap;
+}
+
+/* Size variations */
+.draggable-clock.minimized .time-display {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.draggable-clock.expanded .time-display {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.draggable-clock.expanded .date-display {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* Dark mode */
+.dark .draggable-clock {
+  background: var(--panel-dark, #1f2937);
+  border-color: var(--border-dark, #374151);
+}
+
+.dark .clock-header {
+  background: var(--background-dark, #111827);
+  border-color: var(--border-dark, #374151);
+}
+
+.dark .clock-title {
+  color: var(--text-dark, #f9fafb);
+}
+
+.dark .control-btn {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+.dark .control-btn:hover {
+  background: var(--hover-dark, #374151);
+  color: var(--text-dark, #f9fafb);
+}
+
+.dark .time-display {
+  color: var(--text-dark, #f9fafb);
+}
+
+.dark .date-display {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+/* RTL support */
+[dir="rtl"] .clock-header {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .clock-controls {
+  flex-direction: row-reverse;
+}
+
+/* Animation */
+.draggable-clock {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .draggable-clock {
+    min-width: 120px;
+  }
+  
+  .draggable-clock.expanded {
+    min-width: 240px;
+    max-width: 320px;
+  }
+  
+  .clock-header {
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .clock-content {
+    padding: 0.6rem;
+  }
+  
+  .time-display {
+    font-size: 1.1rem;
+  }
+  
+  .draggable-clock.expanded .time-display {
+    font-size: 1.3rem;
+  }
+}
