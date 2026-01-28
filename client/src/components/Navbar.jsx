@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { signOutUser } from '../firebase/auth';
-import NotificationBell from './NotificationBell';
+import { NotificationBell } from '../components/shared';
 import SideDrawer from './SideDrawer';
 import { useLang } from '../contexts/LangContext';
 import { getUsers, updateUser } from '../firebase/firestore';

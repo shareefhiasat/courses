@@ -791,7 +791,7 @@ export default function QuizBuilderPage() {
           {/* Questions Sidebar */}
           <div className={styles.questionsSidebar}>
             <div className={styles.sidebarHeader}>
-              <h3>{t(" questions\) || \Questions\}</h3>
+              <h3>{t('questions') || 'Questions'}</h3>
               <Button
                 variant="outline"
                 size="sm"
@@ -897,7 +897,7 @@ export default function QuizBuilderPage() {
                 <div className={styles.emptyQuestions}>
                   <p>No questions yet</p>
                   <Button variant="outline" size="sm" onClick={addQuestion}>
-                    {t(" add_first_question\) || \Add your first question\}
+                    {t('add_first_question') || 'Add your first question'}
                   </Button>
                 </div>
               )}
@@ -1140,7 +1140,7 @@ export default function QuizBuilderPage() {
                 <CardBody className={styles.emptyEditor}>
                   <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
                   <h3>No Questions Yet</h3>
-                  <p>{t(" add_first_question\) || \Add your first question\} to get started</p>
+                  <p>{t('add_first_question') || 'Add your first question'} to get started</p>
                   <Button variant="primary" onClick={addQuestion}>
                     <Plus size={16} style={{ marginRight: 6 }} />
                     Add Question

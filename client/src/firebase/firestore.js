@@ -1210,6 +1210,7 @@ export const getEmailTemplates = async () => {
 export {
   doc,
   getDoc,
+  getDocs,
   addDoc,
   updateDoc,
   deleteDoc,
