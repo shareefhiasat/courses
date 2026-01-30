@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
-import { X, Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink, Trophy, Grid, List } from 'lucide-react';
+import { X, Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink, Trophy, Grid, List, Trash2 } from 'lucide-react';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
@@ -251,7 +251,9 @@ const HistoricalLogsList = React.memo(({
                         borderRadius: '0.25rem',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        visibility: 'visible',
+                        opacity: 1
                       }}
                       title={t('delete_attendance_record')}
                     >
@@ -322,9 +324,11 @@ const HistoricalLogsList = React.memo(({
                         borderRadius: '0.25rem',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        visibility: 'visible',
+                        opacity: 1
                       }}
-                      title={t('delete_attendance_record')}
+                      title={t('delete_participation_record')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M3 6h18"/>
@@ -388,9 +392,11 @@ const HistoricalLogsList = React.memo(({
                         borderRadius: '0.25rem',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        visibility: 'visible',
+                        opacity: 1
                       }}
-                      title={t('delete_attendance_record')}
+                      title={t('delete_behavior_record')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M3 6h18"/>
@@ -440,7 +446,9 @@ const HistoricalLogsList = React.memo(({
                         borderRadius: '0.25rem',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        visibility: 'visible',
+                        opacity: 1
                       }}
                       title={t('delete_penalty_record')}
                     >
@@ -1083,15 +1091,37 @@ export default function StudentActionPanel({
   // Memoized computed values for performance
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name, getAvatarColor]);
   const attendanceStatus = useMemo(() => {
-    if (!student?.attendance) {
+    // Check if there are actual attendance records for today (not participation/behavior/penalty)
+    const hasTodayAttendance = todayLogs.some(log => 
+      log.type === 'attendance' && 
+      log.data?.status && 
+      ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(log.data.status)
+    );
+    
+    // If no actual attendance records for today, show NOTHING YET
+    if (!hasTodayAttendance) {
       return {
         en: t('nothing_yet') || 'NOTHING YET',
         ar: t('nothing_yet') || 'لا شيء بعد',
         color: '#fbbf24'
       };
     }
-    return ATTENDANCE_STATUS_LABELS[student?.attendance] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
-  }, [student?.attendance, t]);
+    
+    // If there's a specific attendance status, use it
+    if (student?.attendance) {
+      const statusInfo = ATTENDANCE_STATUS_LABELS[student?.attendance];
+      if (statusInfo) {
+        return statusInfo;
+      }
+    }
+    
+    // Fallback to NOTHING YET if no valid status found
+    return {
+      en: t('nothing_yet') || 'NOTHING YET',
+      ar: t('nothing_yet') || 'لا شيء بعد',
+      color: '#fbbf24'
+    };
+  }, [student?.attendance, todayLogs, t]);
 
   // Memoized attendance statistics calculation (TODAY ONLY)
   const attendanceStats = useMemo(() => {
@@ -1783,6 +1813,132 @@ export default function StudentActionPanel({
               border: '1px solid var(--border-light, #e2e8f0)',
               marginBottom: '0.5rem'
             }}>
+              {/* Participation Section */}
+              <div style={{ marginBottom: '0.15rem' }}>
+              <div
+                onClick={() => toggleSectionExpansion('participation')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem',
+                  background: '#3b82f6',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  marginBottom: '0.15rem'
+                }}
+              >
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+                  {t('participation_details')} ({student.participation || 0} {t('points')}, {(() => {
+                    const stats = getDetailedStats();
+                    return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
+                  })()} {t('entries')})
+                </span>
+                <ChevronDown
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    transform: expandedSections.participation ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s'
+                  }}
+                />
+              </div>
+
+              {expandedSections.participation && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem'
+                }}>
+                  {(() => {
+                    const stats = getDetailedStats();
+                    return PARTICIPATION_TYPES.map(type => {
+                      const stat = stats.participation[type.id];
+                      return (
+                        <div key={type.id} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.5rem',
+                          background: '#dbeafe', // Light blue background
+                          borderRadius: '0.375rem',
+                          border: '1px solid #3b82f6', // Blue border
+                          opacity: stat.count > 0 ? 1 : 0.8
+                        }}>
+                          <div style={{
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: '#1e3a8a', // Dark blue text
+                            flex: 1
+                          }}>
+                            {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
+                          </div>
+                          <div style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            color: '#1e3a8a', // Dark blue text
+                            minWidth: '3rem',
+                            textAlign: 'center'
+                          }}>
+                            Total: {stat.totalPoints}
+                          </div>
+                          <div style={{
+                            fontSize: '0.75rem',
+                            color: '#1e3a8a', // Dark blue text
+                            minWidth: '3rem',
+                            textAlign: 'right'
+                          }}>
+                            Count: ({stat.count})
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+
+                  {/* Total Participation Row */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.5rem',
+                    background: '#3b82f6',
+                    borderRadius: '0.375rem',
+                    marginTop: '0.25rem',
+                    border: '2px solid white'
+                  }}>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: 'white',
+                      flex: 1
+                    }}>
+                      Participation
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      color: 'white',
+                      minWidth: '3rem',
+                      textAlign: 'center'
+                    }}>
+                      Total: {student.participation || 0}
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: 'white',
+                      minWidth: '3rem',
+                      textAlign: isRTL ? 'left' : 'right'
+                    }}>
+                      {t('count')}: ({(() => {
+                        const stats = getDetailedStats();
+                        return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
+                      })()})
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
               {/* Behavior Section */}
               <div style={{ marginBottom: '0.15rem' }}>
               <div
@@ -1830,14 +1986,15 @@ export default function StudentActionPanel({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '0.5rem',
-                          background: type.color,
+                          background: '#fed7aa', // Light orange background
                           borderRadius: '0.375rem',
+                          border: '1px solid #f97316', // Orange border
                           opacity: stat.count > 0 ? 1 : 0.8
                         }}>
                           <div style={{
                             fontSize: '0.875rem',
                             fontWeight: 500,
-                            color: 'white',
+                            color: '#9a3412', // Dark orange text
                             flex: 1
                           }}>
                             {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
@@ -1845,7 +2002,7 @@ export default function StudentActionPanel({
                           <div style={{
                             fontSize: '0.75rem',
                             fontWeight: 500,
-                            color: 'white',
+                            color: '#9a3412', // Dark orange text
                             minWidth: '3rem',
                             textAlign: 'center'
                           }}>
@@ -1853,7 +2010,7 @@ export default function StudentActionPanel({
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
-                            color: 'white',
+                            color: '#9a3412', // Dark orange text
                             minWidth: '3rem',
                             textAlign: isRTL ? 'left' : 'right'
                           }}>
@@ -1900,131 +2057,6 @@ export default function StudentActionPanel({
                       {t('count')}: ({(() => {
                         const stats = getDetailedStats();
                         return BEHAVIOR_TYPES.reduce((sum, type) => sum + (stats.behavior[type.id]?.count || 0), 0);
-                      })()})
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Participation Section */}
-            <div style={{ marginBottom: '0.15rem' }}>
-              <div
-                onClick={() => toggleSectionExpansion('participation')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.5rem',
-                  background: '#3b82f6',
-                  borderRadius: '0.5rem',
-                  cursor: 'pointer',
-                  marginBottom: '0.15rem'
-                }}
-              >
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
-                  {t('participation_details')} ({student.participation || 0} {t('points')}, {(() => {
-                    const stats = getDetailedStats();
-                    return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
-                  })()} {t('entries')})
-                </span>
-                <ChevronDown
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    transform: expandedSections.participation ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s'
-                  }}
-                />
-              </div>
-
-              {expandedSections.participation && (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.25rem'
-                }}>
-                  {(() => {
-                    const stats = getDetailedStats();
-                    return PARTICIPATION_TYPES.map(type => {
-                      const stat = stats.participation[type.id];
-                      return (
-                        <div key={type.id} style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.5rem',
-                          background: '#3b82f6',
-                          borderRadius: '0.375rem',
-                          opacity: stat.count > 0 ? 1 : 0.8
-                        }}>
-                          <div style={{
-                            fontSize: '0.875rem',
-                            fontWeight: 500,
-                            color: 'white',
-                            flex: 1
-                          }}>
-                            {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
-                          </div>
-                          <div style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 500,
-                            color: 'white',
-                            minWidth: '3rem',
-                            textAlign: 'center'
-                          }}>
-                            {t('total')}: +{stat.totalPoints}
-                          </div>
-                          <div style={{
-                            fontSize: '0.75rem',
-                            color: 'white',
-                            minWidth: '3rem',
-                            textAlign: isRTL ? 'left' : 'right'
-                          }}>
-                            {t('count')}: ({stat.count})
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-
-                  {/* Total Participation Row */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.5rem',
-                    background: '#3b82f6',
-                    borderRadius: '0.375rem',
-                    marginTop: '0.25rem',
-                    border: '2px solid white'
-                  }}>
-                    <div style={{
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      color: 'white',
-                      flex: 1
-                    }}>
-                      Participation
-                    </div>
-                    <div style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      color: 'white',
-                      minWidth: '3rem',
-                      textAlign: 'center'
-                    }}>
-                      Total: {student.participation || 0}
-                    </div>
-                    <div style={{
-                      fontSize: '0.75rem',
-                      color: 'white',
-                      minWidth: '3rem',
-                      textAlign: isRTL ? 'left' : 'right'
-                    }}>
-                      {t('count')}: ({(() => {
-                        const stats = getDetailedStats();
-                        return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
                       })()})
                     </div>
                   </div>
@@ -2110,6 +2142,53 @@ export default function StudentActionPanel({
                           }}>
                             Count: ({stat.count})
                           </div>
+                          {stat.count > 0 && (
+                            <button
+                              onClick={async () => {
+                                if (window.confirm(`Delete all ${type.label_en} entries for ${student?.name || 'this student'}?`)) {
+                                  try {
+                                    // Get all penalty logs for this type
+                                    const penaltyLogs = todayLogs.filter(log => 
+                                      log.type === 'penalty' && log.data?.penaltyType === type.id
+                                    );
+                                    
+                                    // Delete each penalty
+                                    for (const log of penaltyLogs) {
+                                      await deletePenalty(log.id);
+                                    }
+                                    
+                                    // Refresh data
+                                    eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+                                    eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+                                  } catch (error) {
+                                    logger.error('Failed to delete penalty entries:', error);
+                                    alert('Failed to delete penalty entries');
+                                  }
+                                }
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.25rem',
+                                borderRadius: '0.25rem',
+                                color: '#dc2626',
+                                marginLeft: '0.5rem',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.background = '#dc2626';
+                                e.target.style.color = 'white';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.background = 'none';
+                                e.target.style.color = '#dc2626';
+                              }}
+                              title={`Delete all ${type.label_en} entries`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       );
                     });

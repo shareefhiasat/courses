@@ -631,10 +631,8 @@ const StudentRoster = React.memo(function StudentRoster({
 
   // Memoized badge component for performance
   const getAttendanceBadge = useCallback((status) => {
-    // If no status or status is 'absent' but no actual attendance record, show "NOTHING YET"
-    if (!status || status === 'absent_no_excuse' || status === 'absent') {
-      // Check if this is a default absent status or actual attendance record
-      // For today's attendance, if there's no actual scan, show NOTHING YET
+    // If no status, show "NOTHING YET"
+    if (!status) {
       return (
         <span style={{
           padding: '0.25rem 0.75rem',
@@ -650,7 +648,24 @@ const StudentRoster = React.memo(function StudentRoster({
       );
     }
     
-    const statusInfo = ATTENDANCE_STATUS_LABELS[status] || ATTENDANCE_STATUS_LABELS.absent_no_excuse;
+    // Use the proper attendance status labels from lookup
+    const statusInfo = ATTENDANCE_STATUS_LABELS[status];
+    if (!statusInfo) {
+      // If status is not found in lookup, show NOTHING YET
+      return (
+        <span style={{
+          padding: '0.25rem 0.75rem',
+          borderRadius: '0.375rem',
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          background: '#fef3c7',
+          color: '#92400e',
+          border: '1px solid #fbbf24'
+        }}>
+          {t('nothing_yet') || 'NOTHING YET'}
+        </span>
+      );
+    }
     
     // Special handling for Present status with green checkmark
     if (status === 'present') {
