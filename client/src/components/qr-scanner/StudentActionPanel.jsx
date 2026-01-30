@@ -358,9 +358,6 @@ export default function StudentActionPanel({
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       const studentPenalties = allPenalties.filter(p => p.studentId === student.id);
-      
-      console.log('All penalties:', allPenalties); // Debug
-      console.log('Student penalties:', studentPenalties); // Debug
 
       // Combine and format logs with date information
       const logs = [
@@ -398,7 +395,7 @@ export default function StudentActionPanel({
             label: penaltyType 
               ? (penaltyType.label_en || penaltyType.label_ar) 
               : (penalty.reason || penalty.description || penaltyTypeId || 'Penalty'),
-            points: penalty.points !== undefined ? penalty.points : (penaltyType ? penaltyType.points : 0),
+            points: penalty.points !== undefined ? -Math.abs(penalty.points) : (penaltyType ? -Math.abs(penaltyType.points) : -1), // Always negative for penalties
             comment: penalty.comment || penalty.description || penalty.reason || '',
             severity: penalty.severity || 'medium',
             color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'

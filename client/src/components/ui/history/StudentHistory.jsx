@@ -85,7 +85,7 @@ const StudentHistory = React.memo(({
               icon={<BehaviorIcon />}
               iconColor="#f97316"
               activeFilters={activeFilters}
-              onDelete={null} // Behavior doesn't have delete in original
+              onDelete={(logId) => handleDeleteParticipation(studentId, logId)} // Use participation delete for behavior (stored in attendance collection)
               t={t}
               isRTL={isRTL}
               borderColor="#fed7aa"

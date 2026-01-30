@@ -905,7 +905,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
-          <path d="m21 16-8-5-5-5 5"/>
+          <path d="M21 16l-8-5-5 5"/>
         </svg>
       );
     }

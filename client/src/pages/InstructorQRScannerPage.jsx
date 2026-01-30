@@ -375,13 +375,6 @@ const InstructorQRScannerPage = () => {
       const allUsers = usersResponse.success ? usersResponse.data : [];
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       
-      console.log('🔧 loadStudents - penalties data:', {
-        success: penaltiesResponse.success,
-        totalPenalties: allPenalties.length,
-        penaltiesForClass: allPenalties.filter(p => p.classId === classId).length,
-        penaltiesForStudent: allPenalties.filter(p => p.studentId === 'Ya9F0HpzMHZWQ1IBoWkTb1jLhxq2').length
-      }); // Debug
-      
       // Create Set for O(1) lookup performance
       const classEnrollments = allEnrollments.filter(e => e.classId === classId);
       const studentIdSet = new Set(classEnrollments.map(e => e.userId));
@@ -626,7 +619,6 @@ const InstructorQRScannerPage = () => {
   }, [selectedClassId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note, pointsOverride = {}) => {
-    console.log('🔧 handleBehaviorSubmit called:', { studentId, actions, note, pointsOverride }); // Debug
     try {
       // Handle participation
       const participationActions = actions.filter(a =>
@@ -640,24 +632,15 @@ const InstructorQRScannerPage = () => {
 
       // Handle penalties
       const penaltyActions = actions.filter(a => a.points < 0);
-      
-      console.log('🔧 Action categories:', { 
-        participationActions: participationActions.length, 
-        behaviorActions: behaviorActions.length, 
-        penaltyActions: penaltyActions.length 
-      }); // Debug
 
       // Save to Firebase
       for (const action of actions) {
         const points = pointsOverride[action.type] !== undefined
           ? pointsOverride[action.type]
           : action.points;
-          
-        console.log('🔧 Processing action:', { action, points, category: action.category }); // Debug
 
         if (action.category === 'penalty') {
           // Add penalty (only for actions with category 'penalty')
-          console.log('🔧 Creating penalty for:', { studentId, action, points }); // Debug
           const penaltyResult = await createPenalty({
             studentId,
             classId: selectedClassId,
@@ -667,20 +650,9 @@ const InstructorQRScannerPage = () => {
             reason: note,
             createdBy: user.uid
           });
-          console.log('🔧 createPenalty result:', penaltyResult); // Debug
-          console.log('✅ Penalty created successfully'); // Debug
-          console.log('🔄 Triggering student and activity refresh after penalty'); // Debug
         } else if (action.category === 'behavior' || action.category === 'participation') {
           // Add behavior/participation using markAttendance with delta
-          console.log('🔧 Creating behavior/participation for:', { studentId, action, points }); // Debug
-          // Add participation/behavior using markAttendance with delta
           // Get student information for proper naming
-          console.log('🔧 Looking for student in students array:', { 
-            studentId, 
-            totalStudents: students.length, 
-            studentIds: students.map(s => s.id).slice(0, 3) // Show first 3 IDs
-          }); // Debug
-          
           const studentData = students.find(s => s.id === studentId);
           const studentInfo = studentData ? {
             name: studentData.name || studentData.displayName || 'Unknown',
@@ -688,22 +660,6 @@ const InstructorQRScannerPage = () => {
             studentId: studentData.studentId,
             referenceId: studentData.referenceId
           } : null;
-          
-          console.log('🔧 Student info found:', { studentData, studentInfo }); // Debug
-          
-          console.log('🔧 Calling markAttendance with:', {
-            classId: selectedClassId,
-            studentId,
-            date: selectedDate,
-            status: null,
-            markedBy: user.uid,
-            method: 'manual',
-            notes: `${action.label_en || action.type}: ${note}`,
-            delta: points,
-            category: action.category,
-            studentInfo,
-            className: classes.find(c => c.id === selectedClassId)?.name || ''
-          }); // Debug
           
           await markAttendance({
             classId: selectedClassId,
@@ -718,8 +674,6 @@ const InstructorQRScannerPage = () => {
             studentInfo, // Pass student information
             className: classes.find(c => c.id === selectedClassId)?.name || ''
           });
-          
-          console.log('✅ markAttendance completed successfully'); // Debug
 
           // ALSO add to dedicated collections for Dashboard compatibility
           try {
@@ -752,30 +706,23 @@ const InstructorQRScannerPage = () => {
             logger.error(`Error saving to ${action.category} collection:`, e);
           }
         } else {
-          console.log('🔧 Unknown action category:', action.category); // Debug
+          // Unknown action category
         }
       }
 
       // Reload students with a small delay to allow Firestore to propagate
-      console.log('🔄 Starting reload of students and activity refresh'); // Debug
       setTimeout(async () => {
-        console.log('🔄 Executing loadStudents with:', { selectedClassId, selectedDate }); // Debug
         await loadStudents(selectedClassId, selectedDate);
-        console.log('✅ loadStudents completed'); // Debug
         
         // Trigger activity refresh to update recent activity
-        console.log('🔄 Triggering activity refresh'); // Debug
         triggerActivityRefresh();
-        console.log('✅ Activity refresh triggered'); // Debug
         
         // Second refresh after 1 more second to ensure Firebase propagation
         setTimeout(async () => {
-          console.log('🔄 Second refresh to ensure Firebase propagation'); // Debug
           await loadStudents(selectedClassId, selectedDate);
           triggerActivityRefresh();
-          console.log('✅ Second refresh completed'); // Debug
         }, 1000);
-      }, 1000); // Increased from 500ms to 1000ms
+      }, 1000);
 
       // Emit events for each action type
       participationActions.forEach(action => {
