@@ -1,0 +1,114 @@
+import React from 'react';
+import { HistoryDayHeader } from './HistoryDayHeader';
+import { HistorySection } from './HistorySection';
+import { AttendanceIcon, ParticipationIcon, BehaviorIcon, PenaltyIcon } from './HistoryIcons';
+
+const StudentHistory = React.memo(({ 
+  groupedLogs, 
+  expandedDays, 
+  activeFilters, 
+  toggleDayExpansion, 
+  handleDeleteAttendance, 
+  handleDeletePenalty, 
+  t, 
+  isRTL,
+  studentId 
+}) => {
+  return groupedLogs.map((dayGroup, dayIndex) => {
+    const dateObj = new Date(dayGroup.date);
+    const dateStr = dateObj.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+    
+    const isDayExpanded = expandedDays.has(dayGroup.date);
+    const filteredCounts = {
+      attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,
+      participation: activeFilters.participation ? dayGroup.participation.length : 0,
+      behavior: activeFilters.behavior ? (dayGroup.behavior ? dayGroup.behavior.length : 0) : 0,
+      penalties: activeFilters.penalties ? dayGroup.penalties.length : 0
+    };
+    const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.behavior + filteredCounts.penalties > 0;
+    
+    if (!hasVisibleItems) return null;
+    
+    return (
+      <div key={dayIndex} style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: '0.375rem',
+        overflow: 'hidden',
+        marginBottom: '0.5rem'
+      }}>
+        <HistoryDayHeader
+          dateStr={dateStr}
+          filteredCounts={filteredCounts}
+          isDayExpanded={isDayExpanded}
+          onToggle={() => toggleDayExpansion(dayGroup.date)}
+          t={t}
+          isRTL={isRTL}
+        />
+        
+        {isDayExpanded && (
+          <div style={{ padding: '0.5rem 0.75rem' }}>
+            <HistorySection
+              title="Attendance"
+              logs={dayGroup.attendance}
+              type="attendance"
+              icon={<AttendanceIcon />}
+              iconColor="#10b981"
+              activeFilters={activeFilters}
+              onDelete={(logId) => handleDeleteAttendance(studentId, logId)}
+              t={t}
+              isRTL={isRTL}
+              borderColor="#f1f5f9"
+            />
+            
+            <HistorySection
+              title="Participation"
+              logs={dayGroup.participation}
+              type="participation"
+              icon={<ParticipationIcon />}
+              iconColor="#3b82f6"
+              activeFilters={activeFilters}
+              onDelete={null} // Participation doesn't have delete in original
+              t={t}
+              isRTL={isRTL}
+              borderColor="#e5e7eb"
+            />
+            
+            <HistorySection
+              title="Behavior"
+              logs={dayGroup.behavior || []}
+              type="behavior"
+              icon={<BehaviorIcon />}
+              iconColor="#f97316"
+              activeFilters={activeFilters}
+              onDelete={null} // Behavior doesn't have delete in original
+              t={t}
+              isRTL={isRTL}
+              borderColor="#fed7aa"
+            />
+            
+            <HistorySection
+              title="Penalties"
+              logs={dayGroup.penalties}
+              type="penalty"
+              icon={<PenaltyIcon />}
+              iconColor="#ef4444"
+              activeFilters={activeFilters}
+              onDelete={(logId) => handleDeletePenalty(studentId, logId)}
+              t={t}
+              isRTL={isRTL}
+              borderColor="#fecaca"
+            />
+          </div>
+        )}
+      </div>
+    );
+  });
+});
+
+StudentHistory.displayName = 'StudentHistory';
+
+export default StudentHistory;

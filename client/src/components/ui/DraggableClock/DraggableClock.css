@@ -148,6 +148,59 @@
   flex-direction: row-reverse;
 }
 
+/* Pinned state styles */
+.draggable-clock.pinned {
+  position: static;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+  min-width: auto;
+  width: auto;
+}
+
+.draggable-clock.pinned .clock-header {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.draggable-clock.pinned .clock-time {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white !important;
+}
+
+.draggable-clock.pinned .clock-content {
+  padding: 0;
+  text-align: left;
+}
+
+.draggable-clock.pinned .clock-date {
+  font-size: 0.75rem;
+  margin-top: 0;
+  color: white !important;
+}
+
+.draggable-clock.pinned .control-btn {
+  opacity: 0.7;
+  color: white !important;
+}
+
+.draggable-clock.pinned:hover .control-btn {
+  opacity: 1;
+  color: white !important;
+}
+
+/* Dark mode for pinned state */
+.dark .draggable-clock.pinned {
+  background: transparent;
+}
+
+.dark .draggable-clock.pinned .clock-header {
+  background: transparent;
+}
+
 /* Animation */
 .draggable-clock {
   animation: slideIn 0.3s ease-out;

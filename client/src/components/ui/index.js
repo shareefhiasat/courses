@@ -18,6 +18,9 @@ export { default as Avatar } from './Avatar';
 export { default as Tooltip } from './Tooltip';
 export { default as ProgressBar } from './ProgressBar';
 export { default as Accordion } from './Accordion';
+
+// History Components
+export { StudentHistory } from './history';
 export { default as Breadcrumb } from './Breadcrumb';
 export { default as Chart } from './Chart';
 export { default as InfoTooltip } from './InfoTooltip/InfoTooltip';

@@ -1,19 +1,40 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Minus, Maximize2 } from 'lucide-react';
+import { Minus, Maximize2, Pin, PinOff } from 'lucide-react';
 import './DraggableClock.css';
 
 const DraggableClock = ({ 
   initialPosition = { x: 100, y: 100 },
   showSeconds = true,
   onTimeUpdate = null,
-  className = ''
+  className = '',
+  defaultPinned = undefined // undefined to check localStorage first
 }) => {
+  // Check localStorage for pinned preference, default to true for new users
+  const getStoredPinnedPreference = () => {
+    try {
+      const stored = localStorage.getItem('draggableClock_pinned');
+      return stored !== null ? JSON.parse(stored) : true; // Default to pinned for new users
+    } catch {
+      return true;
+    }
+  };
+
   const [position, setPosition] = useState(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isPinned, setIsPinned] = useState(defaultPinned !== undefined ? defaultPinned : getStoredPinnedPreference());
   const dragRef = useRef(null);
   const startPos = useRef({ x: 0, y: 0 });
+
+  // Store pinned preference in localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('draggableClock_pinned', JSON.stringify(isPinned));
+    } catch {
+      // Silently fail if localStorage is not available
+    }
+  }, [isPinned]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -28,6 +49,7 @@ const DraggableClock = ({
   }, [onTimeUpdate]);
 
   const handleMouseDown = (e) => {
+    if (isPinned) return; // Don't allow dragging when pinned
     setIsDragging(true);
     startPos.current = {
       x: e.clientX - position.x,
@@ -83,21 +105,30 @@ const DraggableClock = ({
   return (
     <div
       ref={dragRef}
-      className={`draggable-clock ${isMinimized ? 'minimized' : ''} ${className}`}
+      className={`draggable-clock ${isMinimized ? 'minimized' : ''} ${isPinned ? 'pinned' : ''} ${className}`}
       style={{
-        position: 'fixed',
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        cursor: isDragging ? 'grabbing' : 'grab'
+        position: isPinned ? 'static' : 'fixed',
+        left: isPinned ? 'auto' : `${position.x}px`,
+        top: isPinned ? 'auto' : `${position.y}px`,
+        cursor: isPinned ? 'default' : (isDragging ? 'grabbing' : 'grab')
       }}
       onMouseDown={handleMouseDown}
     >
       <div className="clock-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Clock size={16} />
           <span className="clock-time">{formatTime(currentTime)}</span>
         </div>
         <div className="clock-controls">
+          <button
+            className="control-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPinned(!isPinned);
+            }}
+            title={isPinned ? 'Unpin from navbar' : 'Pin to navbar'}
+          >
+            {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
+          </button>
           <button
             className="control-btn"
             onClick={(e) => {
