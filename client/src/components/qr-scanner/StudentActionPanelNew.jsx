@@ -696,7 +696,22 @@ export default function StudentActionPanelNew({
                   points: actionPoints[action.id] || action.points || 0
                 }));
                 
-                await onBehaviorSubmit(student.id, actionsWithPoints, internalNote, actionPoints);
+                // Group actions by category and call appropriate handlers
+                const behaviorActions = actionsWithPoints.filter(action => action.category === 'behavior');
+                const participationActions = actionsWithPoints.filter(action => action.category === 'participation');
+                const penaltyActions = actionsWithPoints.filter(action => action.category === 'penalty');
+                
+                // Call appropriate handlers
+                if (behaviorActions.length > 0) {
+                  await onBehaviorSubmit(student.id, behaviorActions, internalNote, actionPoints);
+                }
+                if (participationActions.length > 0) {
+                  await onParticipationSubmit(student.id, participationActions, internalNote, actionPoints);
+                }
+                if (penaltyActions.length > 0) {
+                  await onPenaltySubmit(student.id, penaltyActions, internalNote, actionPoints);
+                }
+                
                 setSelectedActions([]);
                 setInternalNote('');
                 setActionPoints({});
@@ -706,7 +721,7 @@ export default function StudentActionPanelNew({
                 logger.error('Error saving actions:', error);
                 showError(t('failed_to_save_actions'));
               }
-            }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onClose, t, showSuccess, showError])}
+            }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError])}
             disabled={selectedActions.length === 0}
             style={{ flex: 1, fontSize: '0.875rem' }}
           >

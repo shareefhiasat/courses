@@ -769,8 +769,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             studentId: record.studentId,
             studentName,
             status: 'penalty',
-            label: record.reason || record.type || 'Penalty',
-            points: record.points,
+            label: record.type || record.reason || 'Penalty', // Show type first (e.g., 'cheating')
+            points: -Math.abs(record.points || 0), // Always negative for penalties
             performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
             scanMethod: 'manual_instructor',
             subject: selectedSubjectName,

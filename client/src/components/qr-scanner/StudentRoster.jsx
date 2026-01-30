@@ -87,61 +87,18 @@ const StudentRoster = React.memo(function StudentRoster({
 
   // Memoized fetchStudentHistory to prevent unnecessary re-renders
   const fetchStudentHistory = useCallback(async (studentId) => {
-    logger.debug('=== FETCH STUDENT HISTORY DEBUG ===');
-    logger.debug('Fetching history for studentId:', studentId);
-
     try {
       // Get all attendance records for this student
-      logger.debug('Calling getAttendanceByStudent for studentId:', studentId);
       const attendanceResponse = await getAttendanceByStudent(studentId);
       const attendanceRecords = attendanceResponse.success
           ? attendanceResponse.data : [];
 
-      logger.debug('Attendance response:', {
-        success: attendanceResponse.success,
-        totalRecords: attendanceRecords.length,
-        records: attendanceRecords.map(record => ({
-          id: record.id,
-          status: record.status,
-          date: record.date,
-          timestamp: record.timestamp,
-          category: record.category,
-          delta: record.delta,
-          reason: record.reason,
-          notes: record.notes
-        }))
-      });
-
-      // Check specifically for absent records
-      const absentRecords = attendanceRecords.filter(record =>
-          record.status === 'absent_no_excuse' ||
-          record.status === 'absent_with_excuse' ||
-          record.status === 'absent'
-      );
-
-      logger.debug('Absent records found:', {
-        count: absentRecords.length,
-        records: absentRecords.map(record => ({
-          id: record.id,
-          status: record.status,
-          date: record.date,
-          timestamp: record.timestamp
-        }))
-      });
-
       // Get all penalties for this student
-      logger.debug('Fetching penalties for studentId:', studentId);
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data
           : [];
       const studentPenalties = allPenalties.filter(
           p => p.studentId === studentId);
-
-      logger.debug('Penalties response:', {
-        success: penaltiesResponse.success,
-        totalPenalties: allPenalties.length,
-        studentPenalties: studentPenalties.length
-      });
 
       // Combine and format logs
       const logs = [
@@ -201,31 +158,12 @@ const StudentRoster = React.memo(function StudentRoster({
         return dateB - dateA;
       });
 
-      logger.debug('Final combined logs:', {
-        totalLogs: logs.length,
-        attendanceLogs: logs.filter(log => log.type === 'attendance').length,
-        participationLogs: logs.filter(
-            log => log.type === 'participation').length,
-        behaviorLogs: logs.filter(log => log.type === 'behavior').length,
-        penaltyLogs: logs.filter(log => log.type === 'penalty').length,
-        logs: logs.map(log => ({
-          id: log.id,
-          type: log.type,
-          label: log.label,
-          date: log.date,
-          originalStatus: log.originalStatus
-        }))
-      });
-
       setStudentHistory(prev => ({
         ...prev,
         [studentId]: logs
       }));
-
-      logger.debug('=== END FETCH STUDENT HISTORY DEBUG ===');
     } catch (error) {
       logger.error('Error fetching student history:', error);
-      logger.debug('=== FETCH STUDENT HISTORY ERROR ===');
     }
   }, []);
 
