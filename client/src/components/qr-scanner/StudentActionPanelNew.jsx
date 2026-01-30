@@ -67,10 +67,35 @@ export default function StudentActionPanelNew({
   }, [user]);
 
   // Get current attendance status
-  const attendanceStatus = useMemo(() => 
-    ATTENDANCE_STATUS_LABELS[student?.attendance] || ATTENDANCE_STATUS_LABELS.present,
-    [student?.attendance]
-  );
+  const attendanceStatus = useMemo(() => {
+    // Check if student has attendance data for today
+    const hasTodayAttendance = student?.attendance && 
+      ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(student.attendance);
+    
+    // If no attendance data for today, show NOTHING YET
+    if (!hasTodayAttendance) {
+      return {
+        en: t('nothing_yet') || 'NOTHING YET',
+        ar: t('nothing_yet') || 'لا شيء بعد',
+        color: '#fbbf24'
+      };
+    }
+    
+    // If there's a specific attendance status, use it
+    if (student?.attendance) {
+      const statusInfo = ATTENDANCE_STATUS_LABELS[student?.attendance];
+      if (statusInfo) {
+        return statusInfo;
+      }
+    }
+    
+    // Fallback to NOTHING YET if no valid status found
+    return {
+      en: t('nothing_yet') || 'NOTHING YET',
+      ar: t('nothing_yet') || 'لا شيء بعد',
+      color: '#fbbf24'
+    };
+  }, [student?.attendance, t]);
 
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name]);
 
@@ -546,13 +571,13 @@ export default function StudentActionPanelNew({
                       fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
                       fontWeight: 600,
                       color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      marginLeft: '0.25rem'
                     }}>
                       {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
                     </div>
                   </div>
                   
-                  {/* Favorite Toggle */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -674,7 +699,12 @@ export default function StudentActionPanelNew({
             placeholder={t('add_details')}
             value={internalNote}
             onChange={(e) => setInternalNote(e.target.value)}
-            style={{ minHeight: '6rem', resize: 'none', fontSize: '0.875rem' }}
+            style={{ 
+              minHeight: '6rem', 
+              resize: 'none', 
+              fontSize: '0.875rem',
+              width: '100%'
+            }}
           />
         </div>
       </div>

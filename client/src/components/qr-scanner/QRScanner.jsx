@@ -640,16 +640,30 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       
-      // Create a map of referenceId to student name from passed students
+      // Create a map of studentId to student name from passed students
       const studentMap = {};
       logger.debug('[QR Scanner] Creating student map from', students.length, 'students');
       students.forEach(student => {
         const studentId = student.id || student.docId;
         const referenceId = student.studentNumber ? `STU-${student.studentNumber}` : (student.referenceId || generateReferenceId(studentId));
         const name = student.displayName || student.realName || student.name || (student.email ? student.email.split('@')[0] : 'Unknown');
+        
+        // Map both the Firebase ID and the reference ID to the name
+        studentMap[studentId] = name;
         studentMap[referenceId] = name;
-        logger.debug('[QR Scanner] Student map entry:', referenceId, '->', name, '(from studentId:', studentId, ')');
+        
+        logger.debug('[QR Scanner] Student map entry:', {
+          firebaseId: studentId,
+          referenceId: referenceId,
+          name: name
+        });
       });
+      
+      console.log('🔧 QRScanner student map created:', {
+        totalStudents: students.length,
+        studentMapEntries: Object.entries(studentMap).map(([key, value]) => ({ key, value })),
+        availableStudentIds: students.map(s => s.id)
+      }); // Debug
       
       // Fallback: Get all users if no students provided or to find missing students
       if (students.length === 0) {
@@ -1357,7 +1371,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           <Button
             variant="ghost"
             size="icon"
-            onClick={fetchRecentActivity}
+            onClick={() => {
+              console.log('🔧 Refresh button clicked - fetching recent activity'); // Debug
+              fetchRecentActivity();
+            }}
             title="Refresh activity"
             style={{ padding: '0.25rem' }}
           >

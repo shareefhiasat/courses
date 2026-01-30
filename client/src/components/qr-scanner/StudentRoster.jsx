@@ -839,9 +839,9 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  width: '50px'
+                  width: '80px'
                 }}>
-                  P
+                  Present
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -851,9 +851,9 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  width: '50px'
+                  width: '80px'
                 }}>
-                  L
+                  Late
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -863,9 +863,9 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  width: '50px'
+                  width: '80px'
                 }}>
-                  A
+                  Absent
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -875,9 +875,9 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  width: '50px'
+                  width: '80px'
                 }}>
-                  AE
+                  Absent Excused
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -887,9 +887,9 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  width: '50px'
+                  width: '80px'
                 }}>
-                  EL
+                  Excused Leave
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -899,28 +899,10 @@ const StudentRoster = React.memo(function StudentRoster({
                   color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  width: '50px'
+                  width: '80px'
                 }}>
-                  HC
+                  Humanitarian
                 </th>
-                {showTotalAttendance && (
-                  <th 
-                    onClick={() => onSort('totalAttendance')}
-                    style={{
-                      textAlign: 'center',
-                      padding: '0.75rem 1rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      color: 'var(--text-muted, #6b7280)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      cursor: 'pointer',
-                      userSelect: 'none'
-                    }}
-                  >
-                    {t('stats')} {getSortIcon('totalAttendance')}
-                  </th>
-                )}
                 <th style={{
                   textAlign: 'center',
                   padding: '0.75rem 1rem',

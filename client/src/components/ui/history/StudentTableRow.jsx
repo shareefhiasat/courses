@@ -256,24 +256,6 @@ const StudentTableRow = ({
             {student.attendanceStats?.humanitarianCase || 0}
           </span>
         </td>
-        {showTotalAttendance && (
-          <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '2.5rem',
-              height: '2.5rem',
-              borderRadius: '0.5rem',
-              fontWeight: 600,
-              background: '#065f46',
-              color: 'white',
-              fontSize: '0.875rem'
-            }}>
-              {student.totalAttendance || 0}
-            </span>
-          </td>
-        )}
         <td style={{ padding: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             <Button 
@@ -370,7 +352,7 @@ const StudentTableRow = ({
       {/* Expanded History Row */}
       {isExpanded && (
         <tr style={{ background: 'var(--background-secondary, #f9fafb)', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
-          <td colSpan={showTotalAttendance ? "8" : "7"} style={{ padding: '0.5rem 1rem' }}>
+          <td colSpan="7" style={{ padding: '0.5rem 1rem' }}>
             <StudentRosterHistory 
               student={student}
               studentHistory={studentHistory}

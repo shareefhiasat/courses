@@ -191,12 +191,12 @@ const StudentCard = ({
       {/* Attendance Statistics */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>P:</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Present:</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '1.5rem',
+            minWidth: '2rem',
             height: '1.5rem',
             borderRadius: '0.25rem',
             fontWeight: 500,
@@ -209,12 +209,12 @@ const StudentCard = ({
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>L:</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Late:</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '1.5rem',
+            minWidth: '2rem',
             height: '1.5rem',
             borderRadius: '0.25rem',
             fontWeight: 500,
@@ -227,12 +227,12 @@ const StudentCard = ({
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>A:</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Absent:</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '1.5rem',
+            minWidth: '2rem',
             height: '1.5rem',
             borderRadius: '0.25rem',
             fontWeight: 500,
@@ -245,12 +245,12 @@ const StudentCard = ({
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>AE:</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Absent Excused:</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '1.5rem',
+            minWidth: '2rem',
             height: '1.5rem',
             borderRadius: '0.25rem',
             fontWeight: 500,
@@ -263,12 +263,12 @@ const StudentCard = ({
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>EL:</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Excused Leave:</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '1.5rem',
+            minWidth: '2rem',
             height: '1.5rem',
             borderRadius: '0.25rem',
             fontWeight: 500,
@@ -281,12 +281,12 @@ const StudentCard = ({
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>HC:</span>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Humanitarian:</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '1.5rem',
+            minWidth: '2rem',
             height: '1.5rem',
             borderRadius: '0.25rem',
             fontWeight: 500,

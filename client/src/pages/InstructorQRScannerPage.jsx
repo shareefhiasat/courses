@@ -480,7 +480,7 @@ const InstructorQRScannerPage = () => {
             humanitarianCase: 0
           };
           
-          attendanceRecords.forEach(record => {
+          studentAttendanceRecords.forEach(record => {
             switch (record.status) {
               case 'present':
                 attendanceStats.present++;
