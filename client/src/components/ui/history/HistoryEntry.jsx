@@ -18,10 +18,10 @@ export const HistoryEntry = ({
       display: 'flex', 
       alignItems: 'center', 
       gap: '0.5rem', 
-      padding: '0.375rem 0',
+      padding: '0.25rem 0',
       fontSize: '0.8125rem',
       borderBottom: 'none',
-      marginBottom: '0.25rem'
+      marginBottom: '0.125rem'
     }}>
       <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
         {log.time?.toDate 

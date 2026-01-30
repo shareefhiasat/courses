@@ -504,7 +504,7 @@ const InstructorQRScannerPage = () => {
     // studentId here is the reference ID (like STU-JLHXQ2)
     const student = students.find(s => s.studentId === studentId || s.id === studentId || `STU-${s.studentNumber}` === studentId);
     if (student) {
-      setSelectedStudent(student);
+      setSelectedStudentForAction(student); // Use new panel instead of old
       // Always use the user ID (student.id) for attendance marking, not reference ID
       logger.debug('handleScan: Found student', {
         referenceId: studentId,
@@ -518,7 +518,7 @@ const InstructorQRScannerPage = () => {
   }, [students]);
 
   const handleStudentSelect = useCallback((student) => {
-    setSelectedStudent(student);
+    setSelectedStudentForAction(student); // Use new panel instead of old
   }, []);
 
   // Listen for attendance updates to refresh students
@@ -619,6 +619,7 @@ const InstructorQRScannerPage = () => {
   }, [selectedClassId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note, pointsOverride = {}) => {
+    console.log('🔧 handleBehaviorSubmit called:', { studentId, actions, note, pointsOverride }); // Debug
     try {
       // Handle participation
       const participationActions = actions.filter(a =>
@@ -632,15 +633,24 @@ const InstructorQRScannerPage = () => {
 
       // Handle penalties
       const penaltyActions = actions.filter(a => a.points < 0);
+      
+      console.log('🔧 Action categories:', { 
+        participationActions: participationActions.length, 
+        behaviorActions: behaviorActions.length, 
+        penaltyActions: penaltyActions.length 
+      }); // Debug
 
       // Save to Firebase
       for (const action of actions) {
         const points = pointsOverride[action.type] !== undefined
           ? pointsOverride[action.type]
           : action.points;
+          
+        console.log('🔧 Processing action:', { action, points, category: action.category }); // Debug
 
-        if (points < 0) {
-          // Add penalty
+        if (action.category === 'penalty') {
+          // Add penalty (only for actions with category 'penalty')
+          console.log('🔧 Creating penalty for:', { studentId, action, points }); // Debug
           await createPenalty({
             studentId,
             classId: selectedClassId,
@@ -650,19 +660,58 @@ const InstructorQRScannerPage = () => {
             reason: note,
             createdBy: user.uid
           });
-        } else if (points > 0) {
+          console.log('✅ Penalty created successfully'); // Debug
+          console.log('🔄 Triggering student and activity refresh after penalty'); // Debug
+        } else if (action.category === 'behavior' || action.category === 'participation') {
+          // Add behavior/participation using markAttendance with delta
+          console.log('🔧 Creating behavior/participation for:', { studentId, action, points }); // Debug
           // Add participation/behavior using markAttendance with delta
-          await markAttendance({
+          // Get student information for proper naming
+          console.log('🔧 Looking for student in students array:', { 
+            studentId, 
+            totalStudents: students.length, 
+            studentIds: students.map(s => s.id).slice(0, 3) // Show first 3 IDs
+          }); // Debug
+          
+          const studentData = students.find(s => s.id === studentId);
+          const studentInfo = studentData ? {
+            name: studentData.name || studentData.displayName || 'Unknown',
+            email: studentData.email,
+            studentId: studentData.studentId,
+            referenceId: studentData.referenceId
+          } : null;
+          
+          console.log('🔧 Student info found:', { studentData, studentInfo }); // Debug
+          
+          console.log('🔧 Calling markAttendance with:', {
             classId: selectedClassId,
             studentId,
             date: selectedDate,
-            status: 'present', // Keep as present but add delta
+            status: null,
             markedBy: user.uid,
             method: 'manual',
             notes: `${action.label_en || action.type}: ${note}`,
             delta: points,
-            category: action.category
+            category: action.category,
+            studentInfo,
+            className: classes.find(c => c.id === selectedClassId)?.name || ''
+          }); // Debug
+          
+          await markAttendance({
+            classId: selectedClassId,
+            studentId,
+            date: selectedDate,
+            status: null, // No status for delta records
+            markedBy: user.uid,
+            method: 'manual',
+            notes: `${action.label_en || action.type}: ${note}`,
+            delta: points,
+            category: action.category,
+            studentInfo, // Pass student information
+            className: classes.find(c => c.id === selectedClassId)?.name || ''
           });
+          
+          console.log('✅ markAttendance completed successfully'); // Debug
 
           // ALSO add to dedicated collections for Dashboard compatibility
           try {
@@ -671,7 +720,7 @@ const InstructorQRScannerPage = () => {
                 studentId,
                 classId: selectedClassId,
                 subjectId: selectedSubjectId,
-                type: action.type,
+                type: action.type || 'unknown',
                 points: points,
                 description: note,
                 createdBy: user.uid,
@@ -683,7 +732,7 @@ const InstructorQRScannerPage = () => {
                 studentId,
                 classId: selectedClassId,
                 subjectId: selectedSubjectId,
-                type: action.type,
+                type: action.type || 'participation',
                 points: points,
                 description: note,
                 createdBy: user.uid,
@@ -694,6 +743,8 @@ const InstructorQRScannerPage = () => {
           } catch (e) {
             logger.error(`Error saving to ${action.category} collection:`, e);
           }
+        } else {
+          console.log('🔧 Unknown action category:', action.category); // Debug
         }
       }
 
@@ -739,7 +790,7 @@ const InstructorQRScannerPage = () => {
 
       // Update selected student
       const updatedStudent = students.find(s => s.id === studentId);
-      setSelectedStudent(updatedStudent);
+      setSelectedStudentForAction(updatedStudent); // Use new panel instead of old
 
       // Send notifications if enabled
       if (sendNotifications) {
@@ -1499,7 +1550,6 @@ const InstructorQRScannerPage = () => {
         {/* Student Action Panel New */}
         {selectedStudentForAction && (
           <>
-            {console.log('Rendering StudentActionPanelNew for:', selectedStudentForAction)}
             <StudentActionPanelNew
               student={selectedStudentForAction}
               onClose={handleCloseActionPanel}

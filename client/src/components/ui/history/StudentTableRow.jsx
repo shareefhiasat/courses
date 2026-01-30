@@ -18,6 +18,7 @@ const StudentTableRow = ({
   activeFilters, 
   toggleDayExpansion, 
   handleDeleteAttendance, 
+  handleDeleteParticipation,
   handleDeletePenalty, 
   getAttendanceBadge, 
   showTotalAttendance, 
@@ -300,6 +301,7 @@ const StudentTableRow = ({
               activeFilters={activeFilters}
               toggleDayExpansion={toggleDayExpansion}
               handleDeleteAttendance={handleDeleteAttendance}
+              handleDeleteParticipation={handleDeleteParticipation}
               handleDeletePenalty={handleDeletePenalty}
               t={t}
               isRTL={isRTL}

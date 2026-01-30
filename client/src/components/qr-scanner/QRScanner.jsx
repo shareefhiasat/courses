@@ -5,6 +5,7 @@ import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
 import { markAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
+import { deleteParticipation } from '@firebaseServices/participations';
 import { getUsers } from '@firebaseServices/firestore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -485,6 +486,94 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       return null;
     }
   }, [findStudentData, checkTodayAttendanceStatus, addDebugLog]);
+
+  // Handle behavior/participation submission
+  const handleBehaviorSubmit = useCallback(async (studentId, actions, note) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get student information for proper naming
+      const studentData = await findStudentData(studentId);
+      const studentInfo = studentData ? {
+        name: studentData.name || studentData.displayName || 'Unknown',
+        email: studentData.email,
+        studentId: studentData.studentId,
+        referenceId: studentData.referenceId
+      } : null;
+      
+      for (const action of actions) {
+        await markAttendance({
+          classId: selectedClassId,
+          studentId,
+          date: today,
+          status: null, // No status for delta records
+          markedBy: user.uid,
+          method: 'manual',
+          notes: note || '',
+          delta: action.points,
+          category: action.category, // 'participation' or 'behavior'
+          studentInfo, // Pass student information
+          className: selectedClassName || ''
+        });
+      }
+      
+      // Emit events for real-time updates
+      actions.forEach(action => {
+        if (action.category === 'participation') {
+          eventBus.emit(EVENTS.PARTICIPATION_ADDED, {
+            studentId,
+            classId: selectedClassId,
+            status: 'added',
+            performedBy: user,
+            timestamp: new Date()
+          });
+        } else if (action.category === 'behavior') {
+          eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {
+            studentId,
+            classId: selectedClassId,
+            status: 'logged',
+            performedBy: user,
+            timestamp: new Date()
+          });
+        }
+      });
+      
+      addToast('Success', 'Actions recorded successfully', 'success');
+    } catch (error) {
+      console.error('Error submitting behavior/participation:', error);
+      addToast('Error', 'Failed to record actions', 'error');
+    }
+  }, [selectedClassId, user, addToast]);
+
+  // Handle attendance marking
+  const handleMarkAttendance = useCallback(async (studentId, status) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      await markAttendance({
+        classId: selectedClassId,
+        studentId,
+        date: today,
+        status,
+        markedBy: user.uid,
+        method: 'manual'
+      });
+      
+      // Emit event for real-time updates
+      eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+        studentId,
+        classId: selectedClassId,
+        status,
+        performedBy: user,
+        timestamp: new Date()
+      });
+      
+      addToast('Success', 'Attendance marked successfully', 'success');
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      addToast('Error', 'Failed to mark attendance', 'error');
+    }
+  }, [selectedClassId, user, addToast]);
 
   const switchCameraMode = () => {
     const newMode = cameraMode === 'environment' ? 'user' : 'environment';
@@ -2592,6 +2681,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             setShowStudentActionPanel(false);
             setStudentForAction(null);
           }}
+          onBehaviorSubmit={handleBehaviorSubmit}
+          onMarkAttendance={handleMarkAttendance}
           onUpdate={() => {
             if (onActivityUpdate) {
               onActivityUpdate(() => {
@@ -2611,6 +2702,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             setShowStudentActionPanelNew(false);
             setStudentForAction(null);
           }}
+          onBehaviorSubmit={handleBehaviorSubmit}
+          onMarkAttendance={handleMarkAttendance}
           onUpdate={() => {
             if (onActivityUpdate) {
               onActivityUpdate(() => {

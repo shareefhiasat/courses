@@ -8,6 +8,7 @@ const StudentRosterHistory = ({
   activeFilters, 
   toggleDayExpansion, 
   handleDeleteAttendance, 
+  handleDeleteParticipation,
   handleDeletePenalty, 
   t, 
   isRTL,
@@ -153,6 +154,7 @@ const StudentRosterHistory = ({
         activeFilters={activeFilters}
         toggleDayExpansion={toggleDayExpansion}
         handleDeleteAttendance={handleDeleteAttendance}
+        handleDeleteParticipation={handleDeleteParticipation}
         handleDeletePenalty={handleDeletePenalty}
         t={t}
         isRTL={isRTL}

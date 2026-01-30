@@ -18,6 +18,7 @@ const StudentCard = ({
   activeFilters, 
   toggleDayExpansion, 
   handleDeleteAttendance, 
+  handleDeleteParticipation,
   handleDeletePenalty, 
   getAttendanceBadge, 
   t, 
@@ -225,6 +226,7 @@ const StudentCard = ({
             activeFilters={activeFilters}
             toggleDayExpansion={toggleDayExpansion}
             handleDeleteAttendance={handleDeleteAttendance}
+            handleDeleteParticipation={handleDeleteParticipation}
             handleDeletePenalty={handleDeletePenalty}
             t={t}
             isRTL={isRTL}

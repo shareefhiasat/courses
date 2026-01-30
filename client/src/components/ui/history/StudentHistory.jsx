@@ -15,9 +15,6 @@ const StudentHistory = React.memo(({
   isRTL,
   studentId 
 }) => {
-  console.log('StudentHistory - groupedLogs:', groupedLogs); // Debug
-  console.log('StudentHistory - activeFilters:', activeFilters); // Debug
-  console.log('StudentHistory - expandedDays:', expandedDays); // Debug
   return groupedLogs.map((dayGroup, dayIndex) => {
     const dateObj = new Date(dayGroup.date);
     const dateStr = dateObj.toLocaleDateString('en-US', { 

@@ -17,15 +17,7 @@ export const HistorySection = ({
   const filterKey = type === 'penalty' ? 'penalties' : type;
   const isActive = activeFilters[filterKey];
   
-  console.log(`HistorySection - ${title}:`, { type, filterKey, logs, activeFilter: isActive }); // Debug
-  
   if (!isActive || logs.length === 0) {
-    console.log(`HistorySection - ${title} returning null:`, { 
-      filterActive: isActive, 
-      logsLength: logs.length,
-      type,
-      filterKey
-    }); // Debug
     return null;
   }
 

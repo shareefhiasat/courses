@@ -3,6 +3,7 @@ import { db } from './config';
 
 /**
  * Delete a participation record
+ * Note: Participation records are stored in the attendance collection as delta records
  */
 export async function deleteParticipation(participationId) {
   try {
@@ -10,8 +11,9 @@ export async function deleteParticipation(participationId) {
       return { success: false, error: 'Participation ID is required' };
     }
     
-    await deleteDoc(doc(db, 'participations', participationId));
-    console.log('[Participation] Deleted participation record:', participationId);
+    // Participation records are stored in the attendance collection
+    await deleteDoc(doc(db, 'attendance', participationId));
+    console.log('[Participation] Deleted participation record from attendance collection:', participationId);
     
     return { success: true };
   } catch (error) {

@@ -370,19 +370,24 @@ export default function StudentActionPanel({
           date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
           data: record,
-          label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
+          label: record.category === 'participation' 
+            ? 'Participation' 
+            : (record.category === 'behavior' 
+              ? 'Behavior' 
+              : (ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown')),
           points: record.delta || 0,
           comment: record.reason || record.notes || '',
           severity: 'low',
-          color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
+          color: record.category === 'participation' 
+            ? '#3b82f6' 
+            : (record.category === 'behavior' 
+              ? '#f97316' 
+              : (ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'))
         })),
         ...studentPenalties.map(penalty => {
-          console.log('Processing penalty:', penalty); // Debug
           // Try multiple possible fields for the penalty type
           const penaltyTypeId = penalty.type || penalty.penaltyType || penalty.category;
-          console.log('Penalty type ID:', penaltyTypeId); // Debug
           const penaltyType = penaltyTypeId ? PENALTY_TYPES.find(pt => pt.id === penaltyTypeId) : null;
-          console.log('Found penalty type:', penaltyType); // Debug
           
           const mappedPenalty = {
             id: penalty.id || penalty.docId,
@@ -398,7 +403,6 @@ export default function StudentActionPanel({
             severity: penalty.severity || 'medium',
             color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
           };
-          console.log('Mapped penalty:', mappedPenalty); // Debug
           return mappedPenalty;
         })
       ].sort((a, b) => {
@@ -407,9 +411,6 @@ export default function StudentActionPanel({
         return dateB - dateA; // Most recent first
       });
       
-      console.log('Final logs array:', logs); // Debug
-      console.log('Penalty logs in final array:', logs.filter(l => l.type === 'penalty')); // Debug
-
       setHistoricalLogs(logs);
       setLogsError('');
     } catch (error) {
@@ -486,7 +487,7 @@ export default function StudentActionPanel({
   }, []);
 
   // Delete participation log
-  const handleDeleteParticipation = useCallback((logId) => {
+  const handleDeleteParticipation = useCallback((studentId, logId) => {
     setDeleteType('participation');
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
@@ -575,7 +576,6 @@ export default function StudentActionPanel({
 
   // Memoized group logs by day for performance
   const groupLogsByDay = useCallback((logs) => {
-    console.log('Grouping logs:', logs); // Debug
     const grouped = {};
 
     logs.forEach(log => {
@@ -594,7 +594,6 @@ export default function StudentActionPanel({
         grouped[date].attendance.push(log);
       } else if (log.type === 'penalty') {
         grouped[date].penalties.push(log);
-        console.log(`Added penalty to ${date}:`, log); // Debug
       } else if (log.type === 'participation') {
         grouped[date].participation.push(log);
       } else if (log.type === 'behavior') {
@@ -608,9 +607,7 @@ export default function StudentActionPanel({
       }
     });
 
-    const result = Object.values(grouped);
-    console.log('Grouped result:', result); // Debug
-    return result;
+    return Object.values(grouped);
   }, []);
 
   // Memoized grouped logs for display
@@ -2008,7 +2005,7 @@ export default function StudentActionPanel({
                   activeFilters={activeFilters}
                   toggleDayExpansion={toggleDayExpansion}
                   handleDeleteAttendance={(studentId, logId) => handleDeleteAttendance(logId)}
-                  handleDeleteParticipation={(studentId, logId) => handleDeleteParticipation(logId)}
+                  handleDeleteParticipation={handleDeleteParticipation}
                   handleDeletePenalty={(studentId, logId) => handleDeletePenalty(logId)}
                   t={t}
                   isRTL={isRTL}

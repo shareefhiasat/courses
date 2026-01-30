@@ -5,6 +5,7 @@ import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
+import { deleteParticipation } from '@firebaseServices/participations';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@firebaseServices/userPreferences';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -153,11 +154,19 @@ const StudentRoster = React.memo(function StudentRoster({
                 ? record.timestamp.toDate().toISOString().split('T')[0]
                 : new Date(record.timestamp).toISOString().split('T')[0]),
             time: record.timestamp || record.date,
-            label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status,
+            label: record.category === 'participation' 
+              ? 'Participation' 
+              : (record.category === 'behavior' 
+                ? 'Behavior' 
+                : (ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown')),
             points: record.delta || 0,
             comment: record.reason || record.notes || '',
             severity: 'low',
-            color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
+            color: record.category === 'participation' 
+              ? '#3b82f6' 
+              : (record.category === 'behavior' 
+                ? '#f97316' 
+                : (ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280')),
             originalStatus: record.status,
             originalCategory: record.category
           };
@@ -232,6 +241,12 @@ const StudentRoster = React.memo(function StudentRoster({
     setDeleteModalOpen(true);
   };
 
+  const handleDeleteParticipation = async (studentId, logId) => {
+    setDeleteType('participation');
+    setDeleteLogId(logId);
+    setDeleteModalOpen(true);
+  };
+
   // Handle actual deletion after confirmation
   const handleConfirmDelete = async () => {
     setDeleteLoading(true);
@@ -258,6 +273,16 @@ const StudentRoster = React.memo(function StudentRoster({
           });
           eventBus.emit(EVENTS.PENALTY_ASSIGNED,
               {studentId: deleteLogId.split('_')[1]});
+        }
+      } else if (deleteType === 'participation') {
+        result = await deleteParticipation(deleteLogId);
+        if (result.success) {
+          // Find the student ID from the log or refresh all
+          students.forEach(student => {
+            fetchStudentHistory(student.id);
+          });
+          eventBus.emit(EVENTS.PARTICIPATION_ADDED,
+              {studentId: deleteLogId.split('_')[1], status: 'deleted'});
         }
       }
     } catch (error) {
@@ -751,6 +776,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   activeFilters={activeFilters}
                   toggleDayExpansion={toggleDayExpansion}
                   handleDeleteAttendance={handleDeleteAttendance}
+                  handleDeleteParticipation={handleDeleteParticipation}
                   handleDeletePenalty={handleDeletePenalty}
                   getAttendanceBadge={getAttendanceBadge}
                   t={t}
@@ -898,6 +924,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     activeFilters={activeFilters}
                     toggleDayExpansion={toggleDayExpansion}
                     handleDeleteAttendance={handleDeleteAttendance}
+                    handleDeleteParticipation={handleDeleteParticipation}
                     handleDeletePenalty={handleDeletePenalty}
                     getAttendanceBadge={getAttendanceBadge}
                     showTotalAttendance={showTotalAttendance}
