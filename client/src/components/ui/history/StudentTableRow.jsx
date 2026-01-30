@@ -179,6 +179,97 @@ const StudentTableRow = ({
             {student.penalty}
           </span>
         </td>
+        {/* Attendance Statistics Columns */}
+        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: '0.5rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.present > 0 ? '#dcfce7' : '#f3f4f6',
+            color: student.attendanceStats?.present > 0 ? '#166534' : '#374151'
+          }}>
+            {student.attendanceStats?.present || 0}
+          </span>
+        </td>
+        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: '0.5rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.late > 0 ? '#fef3c7' : '#f3f4f6',
+            color: student.attendanceStats?.late > 0 ? '#92400e' : '#374151'
+          }}>
+            {student.attendanceStats?.late || 0}
+          </span>
+        </td>
+        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: '0.5rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.absent > 0 ? '#fee2e2' : '#f3f4f6',
+            color: student.attendanceStats?.absent > 0 ? '#991b1b' : '#374151'
+          }}>
+            {student.attendanceStats?.absent || 0}
+          </span>
+        </td>
+        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: '0.5rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.absentWithExcuse > 0 ? '#dbeafe' : '#f3f4f6',
+            color: student.attendanceStats?.absentWithExcuse > 0 ? '#1e40af' : '#374151'
+          }}>
+            {student.attendanceStats?.absentWithExcuse || 0}
+          </span>
+        </td>
+        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: '0.5rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.excusedLeave > 0 ? '#f3e8ff' : '#f3f4f6',
+            color: student.attendanceStats?.excusedLeave > 0 ? '#6b21a8' : '#374151'
+          }}>
+            {student.attendanceStats?.excusedLeave || 0}
+          </span>
+        </td>
+        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: '0.5rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.humanitarianCase > 0 ? '#fef2f2' : '#f3f4f6',
+            color: student.attendanceStats?.humanitarianCase > 0 ? '#b91c1c' : '#374151'
+          }}>
+            {student.attendanceStats?.humanitarianCase || 0}
+          </span>
+        </td>
         {showTotalAttendance && (
           <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
             <span style={{

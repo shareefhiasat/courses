@@ -139,19 +139,21 @@ const StudentRoster = React.memo(function StudentRoster({
 
           return logEntry;
         }),
-        ...studentPenalties.map(penalty => ({
-          id: penalty.docId || penalty.id,
-          type: 'penalty',
-          date: penalty.date || (penalty.createdAt?.toDate
-              ? penalty.createdAt.toDate().toISOString().split('T')[0]
-              : new Date(penalty.createdAt).toISOString().split('T')[0]),
-          time: penalty.createdAt,
-          label: penalty.type || penalty.reason || 'Penalty',
-          points: -Math.abs(penalty.points || 0), // Always negative for penalties
-          comment: penalty.comment || '',
-          severity: penalty.severity || 'medium',
-          color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
-        }))
+        ...studentPenalties.map(penalty => {
+          return {
+            id: penalty.docId || penalty.id,
+            type: 'penalty',
+            date: penalty.date || (penalty.createdAt?.toDate
+                ? penalty.createdAt.toDate().toISOString().split('T')[0]
+                : new Date(penalty.createdAt).toISOString().split('T')[0]),
+            time: penalty.createdAt,
+            label: penalty.type || penalty.reason || 'Penalty',
+            points: -Math.abs(penalty.points || 0), // Always negative for penalties
+            comment: penalty.comment || '',
+            severity: penalty.severity || 'medium',
+            color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
+          };
+        })
       ].sort((a, b) => {
         const dateA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const dateB = b.time?.toDate ? b.time.toDate() : new Date(b.time);

@@ -188,6 +188,118 @@ const StudentCard = ({
         </div>
       </div>
       
+      {/* Attendance Statistics */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>P:</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '1.5rem',
+            height: '1.5rem',
+            borderRadius: '0.25rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.present > 0 ? '#dcfce7' : '#f3f4f6',
+            color: student.attendanceStats?.present > 0 ? '#166534' : '#374151',
+            fontSize: '0.7rem',
+            padding: '0 0.25rem'
+          }}>
+            {student.attendanceStats?.present || 0}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>L:</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '1.5rem',
+            height: '1.5rem',
+            borderRadius: '0.25rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.late > 0 ? '#fef3c7' : '#f3f4f6',
+            color: student.attendanceStats?.late > 0 ? '#92400e' : '#374151',
+            fontSize: '0.7rem',
+            padding: '0 0.25rem'
+          }}>
+            {student.attendanceStats?.late || 0}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>A:</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '1.5rem',
+            height: '1.5rem',
+            borderRadius: '0.25rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.absent > 0 ? '#fee2e2' : '#f3f4f6',
+            color: student.attendanceStats?.absent > 0 ? '#991b1b' : '#374151',
+            fontSize: '0.7rem',
+            padding: '0 0.25rem'
+          }}>
+            {student.attendanceStats?.absent || 0}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>AE:</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '1.5rem',
+            height: '1.5rem',
+            borderRadius: '0.25rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.absentWithExcuse > 0 ? '#dbeafe' : '#f3f4f6',
+            color: student.attendanceStats?.absentWithExcuse > 0 ? '#1e40af' : '#374151',
+            fontSize: '0.7rem',
+            padding: '0 0.25rem'
+          }}>
+            {student.attendanceStats?.absentWithExcuse || 0}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>EL:</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '1.5rem',
+            height: '1.5rem',
+            borderRadius: '0.25rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.excusedLeave > 0 ? '#f3e8ff' : '#f3f4f6',
+            color: student.attendanceStats?.excusedLeave > 0 ? '#6b21a8' : '#374151',
+            fontSize: '0.7rem',
+            padding: '0 0.25rem'
+          }}>
+            {student.attendanceStats?.excusedLeave || 0}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>HC:</span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '1.5rem',
+            height: '1.5rem',
+            borderRadius: '0.25rem',
+            fontWeight: 500,
+            background: student.attendanceStats?.humanitarianCase > 0 ? '#fef2f2' : '#f3f4f6',
+            color: student.attendanceStats?.humanitarianCase > 0 ? '#b91c1c' : '#374151',
+            fontSize: '0.7rem',
+            padding: '0 0.25rem'
+          }}>
+            {student.attendanceStats?.humanitarianCase || 0}
+          </span>
+        </div>
+      </div>
+      
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
         <Button 
           variant="ghost" 

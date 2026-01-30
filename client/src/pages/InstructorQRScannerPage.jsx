@@ -460,13 +460,48 @@ const InstructorQRScannerPage = () => {
 
           // Get penalties from map
           const penalties = penaltyMap.get(studentId) || [];
+          
           const penaltyTotal = penalties.reduce((sum, p) => {
             const pPoints = p.points;
             if (pPoints !== null && pPoints !== undefined && pPoints !== '' && !isNaN(pPoints)) {
-              return sum + Number(pPoints);
+              const negativePoints = -Math.abs(Number(pPoints)); // Convert to negative
+              return sum + negativePoints;
             }
             return sum;
           }, 0);
+
+          // Calculate attendance statistics
+          const attendanceStats = {
+            present: 0,
+            late: 0,
+            absent: 0,
+            absentWithExcuse: 0,
+            excusedLeave: 0,
+            humanitarianCase: 0
+          };
+          
+          attendanceRecords.forEach(record => {
+            switch (record.status) {
+              case 'present':
+                attendanceStats.present++;
+                break;
+              case 'late':
+                attendanceStats.late++;
+                break;
+              case 'absent_no_excuse':
+                attendanceStats.absent++;
+                break;
+              case 'absent_with_excuse':
+                attendanceStats.absentWithExcuse++;
+                break;
+              case 'excused_leave':
+                attendanceStats.excusedLeave++;
+                break;
+              case 'humanitarian_case':
+                attendanceStats.humanitarianCase++;
+                break;
+            }
+          });
 
           return {
             id: studentId,
@@ -480,6 +515,7 @@ const InstructorQRScannerPage = () => {
             behavior: behaviorTotal,
             penalty: penaltyTotal,
             totalAttendance: totalAttendanceCount,
+            attendanceStats, // Add detailed attendance statistics
             isPinned: student.isPinned || false,
             behaviorHistory: studentBehaviorHistory,
             participationHistory: studentParticipationHistory,
