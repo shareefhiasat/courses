@@ -5,6 +5,7 @@ import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
+import { deleteParticipation } from '@firebaseServices/participations';
 import { getFunctions } from '@firebaseServices/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { FancyLoading } from '@ui';
@@ -357,6 +358,9 @@ export default function StudentActionPanel({
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       const studentPenalties = allPenalties.filter(p => p.studentId === student.id);
+      
+      console.log('All penalties:', allPenalties); // Debug
+      console.log('Student penalties:', studentPenalties); // Debug
 
       // Combine and format logs with date information
       const logs = [
@@ -372,23 +376,39 @@ export default function StudentActionPanel({
           severity: 'low',
           color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'
         })),
-        ...studentPenalties.map(penalty => ({
-          id: penalty.id || penalty.docId,
-          type: 'penalty',
-          date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
-          time: penalty.createdAt,
-          data: penalty,
-          label: penalty.reason || 'Penalty',
-          points: penalty.points || 0,
-          comment: penalty.comment || '',
-          severity: penalty.severity || 'medium',
-          color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
-        }))
+        ...studentPenalties.map(penalty => {
+          console.log('Processing penalty:', penalty); // Debug
+          // Try multiple possible fields for the penalty type
+          const penaltyTypeId = penalty.type || penalty.penaltyType || penalty.category;
+          console.log('Penalty type ID:', penaltyTypeId); // Debug
+          const penaltyType = penaltyTypeId ? PENALTY_TYPES.find(pt => pt.id === penaltyTypeId) : null;
+          console.log('Found penalty type:', penaltyType); // Debug
+          
+          const mappedPenalty = {
+            id: penalty.id || penalty.docId,
+            type: 'penalty',
+            date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
+            time: penalty.createdAt,
+            data: penalty,
+            label: penaltyType 
+              ? (penaltyType.label_en || penaltyType.label_ar) 
+              : (penalty.reason || penalty.description || penaltyTypeId || 'Penalty'),
+            points: penalty.points !== undefined ? penalty.points : (penaltyType ? penaltyType.points : 0),
+            comment: penalty.comment || penalty.description || penalty.reason || '',
+            severity: penalty.severity || 'medium',
+            color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
+          };
+          console.log('Mapped penalty:', mappedPenalty); // Debug
+          return mappedPenalty;
+        })
       ].sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
         return dateB - dateA; // Most recent first
       });
+      
+      console.log('Final logs array:', logs); // Debug
+      console.log('Penalty logs in final array:', logs.filter(l => l.type === 'penalty')); // Debug
 
       setHistoricalLogs(logs);
       setLogsError('');
@@ -465,6 +485,13 @@ export default function StudentActionPanel({
     setDeleteModalOpen(true);
   }, []);
 
+  // Delete participation log
+  const handleDeleteParticipation = useCallback((logId) => {
+    setDeleteType('participation');
+    setDeleteLogId(logId);
+    setDeleteModalOpen(true);
+  }, []);
+
   // Delete penalty log
   const handleDeletePenalty = useCallback((logId) => {
     setDeleteType('penalty');
@@ -495,6 +522,25 @@ export default function StudentActionPanel({
         } else {
           console.error('Failed to delete attendance record:', result.error);
           alert('Failed to delete attendance record: ' + result.error);
+        }
+      } else if (deleteType === 'participation') {
+        result = await deleteParticipation(deleteLogId);
+        if (result.success) {
+          // Refresh the history
+          setHistoryRefreshKey(prev => prev + 1);
+          await fetchHistoricalLogs();
+          
+          // Emit event for real-time updates
+          eventBus.emit(EVENTS.PARTICIPATION_ADDED, {
+            studentId: student.id,
+            classId: student.classId,
+            status: 'deleted',
+            performedBy: user,
+            timestamp: new Date()
+          });
+        } else {
+          logger.error('Failed to delete participation record:', result.error);
+          alert('Failed to delete participation record: ' + result.error);
         }
       } else if (deleteType === 'penalty') {
         result = await deletePenalty(deleteLogId);
@@ -529,6 +575,7 @@ export default function StudentActionPanel({
 
   // Memoized group logs by day for performance
   const groupLogsByDay = useCallback((logs) => {
+    console.log('Grouping logs:', logs); // Debug
     const grouped = {};
 
     logs.forEach(log => {
@@ -547,6 +594,7 @@ export default function StudentActionPanel({
         grouped[date].attendance.push(log);
       } else if (log.type === 'penalty') {
         grouped[date].penalties.push(log);
+        console.log(`Added penalty to ${date}:`, log); // Debug
       } else if (log.type === 'participation') {
         grouped[date].participation.push(log);
       } else if (log.type === 'behavior') {
@@ -560,7 +608,9 @@ export default function StudentActionPanel({
       }
     });
 
-    return Object.values(grouped);
+    const result = Object.values(grouped);
+    console.log('Grouped result:', result); // Debug
+    return result;
   }, []);
 
   // Memoized grouped logs for display
@@ -1958,6 +2008,7 @@ export default function StudentActionPanel({
                   activeFilters={activeFilters}
                   toggleDayExpansion={toggleDayExpansion}
                   handleDeleteAttendance={(studentId, logId) => handleDeleteAttendance(logId)}
+                  handleDeleteParticipation={(studentId, logId) => handleDeleteParticipation(logId)}
                   handleDeletePenalty={(studentId, logId) => handleDeletePenalty(logId)}
                   t={t}
                   isRTL={isRTL}

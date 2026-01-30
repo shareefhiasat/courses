@@ -9,11 +9,15 @@ const StudentHistory = React.memo(({
   activeFilters, 
   toggleDayExpansion, 
   handleDeleteAttendance, 
+  handleDeleteParticipation,
   handleDeletePenalty, 
   t, 
   isRTL,
   studentId 
 }) => {
+  console.log('StudentHistory - groupedLogs:', groupedLogs); // Debug
+  console.log('StudentHistory - activeFilters:', activeFilters); // Debug
+  console.log('StudentHistory - expandedDays:', expandedDays); // Debug
   return groupedLogs.map((dayGroup, dayIndex) => {
     const dateObj = new Date(dayGroup.date);
     const dateStr = dateObj.toLocaleDateString('en-US', { 
@@ -71,7 +75,7 @@ const StudentHistory = React.memo(({
               icon={<ParticipationIcon />}
               iconColor="#3b82f6"
               activeFilters={activeFilters}
-              onDelete={null} // Participation doesn't have delete in original
+              onDelete={(logId) => handleDeleteParticipation(studentId, logId)}
               t={t}
               isRTL={isRTL}
               borderColor="#e5e7eb"

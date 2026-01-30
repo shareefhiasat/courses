@@ -89,12 +89,6 @@ export const HistoryDayHeader = ({
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-          {isDayExpanded 
-            ? (isRTL ? 'إخفاء التفاصيل' : 'Hide details') 
-            : (isRTL ? 'إظهار التفاصيل' : 'Show details')
-          }
-        </span>
         <svg 
           style={{ 
             width: '16px', 

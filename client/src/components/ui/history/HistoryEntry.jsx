@@ -53,7 +53,7 @@ export const HistoryEntry = ({
         </span>
       )}
       
-      {log.points !== undefined && (
+      {log.points !== undefined && type !== 'attendance' && (
         <span style={{ 
           padding: '0.125rem 0.375rem',
           background: log.points > 0 ? '#eff6ff' : '#fff7ed',
