@@ -375,6 +375,13 @@ const InstructorQRScannerPage = () => {
       const allUsers = usersResponse.success ? usersResponse.data : [];
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       
+      console.log('🔧 loadStudents - penalties data:', {
+        success: penaltiesResponse.success,
+        totalPenalties: allPenalties.length,
+        penaltiesForClass: allPenalties.filter(p => p.classId === classId).length,
+        penaltiesForStudent: allPenalties.filter(p => p.studentId === 'Ya9F0HpzMHZWQ1IBoWkTb1jLhxq2').length
+      }); // Debug
+      
       // Create Set for O(1) lookup performance
       const classEnrollments = allEnrollments.filter(e => e.classId === classId);
       const studentIdSet = new Set(classEnrollments.map(e => e.userId));
@@ -518,7 +525,7 @@ const InstructorQRScannerPage = () => {
   }, [students]);
 
   const handleStudentSelect = useCallback((student) => {
-    setSelectedStudentForAction(student); // Use new panel instead of old
+    setSelectedStudent(student); // Use old panel for viewing student details
   }, []);
 
   // Listen for attendance updates to refresh students
@@ -651,7 +658,7 @@ const InstructorQRScannerPage = () => {
         if (action.category === 'penalty') {
           // Add penalty (only for actions with category 'penalty')
           console.log('🔧 Creating penalty for:', { studentId, action, points }); // Debug
-          await createPenalty({
+          const penaltyResult = await createPenalty({
             studentId,
             classId: selectedClassId,
             subjectId: selectedSubjectId,
@@ -660,6 +667,7 @@ const InstructorQRScannerPage = () => {
             reason: note,
             createdBy: user.uid
           });
+          console.log('🔧 createPenalty result:', penaltyResult); // Debug
           console.log('✅ Penalty created successfully'); // Debug
           console.log('🔄 Triggering student and activity refresh after penalty'); // Debug
         } else if (action.category === 'behavior' || action.category === 'participation') {
@@ -749,12 +757,25 @@ const InstructorQRScannerPage = () => {
       }
 
       // Reload students with a small delay to allow Firestore to propagate
+      console.log('🔄 Starting reload of students and activity refresh'); // Debug
       setTimeout(async () => {
+        console.log('🔄 Executing loadStudents with:', { selectedClassId, selectedDate }); // Debug
         await loadStudents(selectedClassId, selectedDate);
+        console.log('✅ loadStudents completed'); // Debug
         
         // Trigger activity refresh to update recent activity
+        console.log('🔄 Triggering activity refresh'); // Debug
         triggerActivityRefresh();
-      }, 500);
+        console.log('✅ Activity refresh triggered'); // Debug
+        
+        // Second refresh after 1 more second to ensure Firebase propagation
+        setTimeout(async () => {
+          console.log('🔄 Second refresh to ensure Firebase propagation'); // Debug
+          await loadStudents(selectedClassId, selectedDate);
+          triggerActivityRefresh();
+          console.log('✅ Second refresh completed'); // Debug
+        }, 1000);
+      }, 1000); // Increased from 500ms to 1000ms
 
       // Emit events for each action type
       participationActions.forEach(action => {
