@@ -9,43 +9,32 @@ const DraggableClock = ({
   className = '',
   defaultPinned = undefined // undefined to check localStorage first
 }) => {
-  // Check localStorage for preferences, default to true for new users
-  const getStoredPreferences = () => {
+  // Check localStorage for pinned preference, default to true for new users
+  const getStoredPinnedPreference = () => {
     try {
-      const stored = localStorage.getItem('draggableClock_preferences');
-      if (stored) {
-        const prefs = JSON.parse(stored);
-        return {
-          pinned: prefs.pinned !== undefined ? prefs.pinned : true,
-          minimized: prefs.minimized !== undefined ? prefs.minimized : false
-        };
-      }
-      return { pinned: true, minimized: false }; // Default to pinned for new users
+      const stored = localStorage.getItem('draggableClock_pinned');
+      return stored !== null ? JSON.parse(stored) : true; // Default to pinned for new users
     } catch {
-      return { pinned: true, minimized: false };
+      return true;
     }
   };
 
   const [position, setPosition] = useState(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isMinimized, setIsMinimized] = useState(defaultPinned !== undefined ? defaultPinned : getStoredPreferences().minimized);
-  const [isPinned, setIsPinned] = useState(defaultPinned !== undefined ? defaultPinned : getStoredPreferences().pinned);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isPinned, setIsPinned] = useState(defaultPinned !== undefined ? defaultPinned : getStoredPinnedPreference());
   const dragRef = useRef(null);
   const startPos = useRef({ x: 0, y: 0 });
 
-  // Store preferences in localStorage
+  // Store pinned preference in localStorage
   useEffect(() => {
     try {
-      const preferences = {
-        pinned: isPinned,
-        minimized: isMinimized
-      };
-      localStorage.setItem('draggableClock_preferences', JSON.stringify(preferences));
+      localStorage.setItem('draggableClock_pinned', JSON.stringify(isPinned));
     } catch {
       // Silently fail if localStorage is not available
     }
-  }, [isPinned, isMinimized]);
+  }, [isPinned]);
 
   useEffect(() => {
     const timer = setInterval(() => {

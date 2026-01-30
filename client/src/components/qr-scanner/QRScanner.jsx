@@ -749,6 +749,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           };
         }),
         ...todayPenalties.map(record => {
+          console.log('🔧 QRScanner processing penalty:', {
+            penaltyId: record.id || record.docId,
+            penaltyStudentId: record.studentId,
+            penaltyType: record.type,
+            availableStudentIds: Object.keys(studentMap),
+            availableStudents: students.map(s => ({ id: s.id, displayName: s.displayName, name: s.name }))
+          }); // Debug
+          
           let studentName = studentMap[record.studentId] || 'Unknown Student';
           
           // If not found in map, try to find the student by generating reference ID from user IDs
@@ -759,8 +767,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             });
             if (foundStudent) {
               studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
+              console.log('🔧 Found student by ID:', { foundStudent, studentName }); // Debug
             }
           }
+          
+          console.log('🔧 Final student name for penalty:', studentName); // Debug
           
           return {
             id: record.id || record.docId || `penalty-${Math.random()}`,

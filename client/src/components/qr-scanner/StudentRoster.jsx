@@ -97,8 +97,23 @@ const StudentRoster = React.memo(function StudentRoster({
       const penaltiesResponse = await getPenalties();
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data
           : [];
-      const studentPenalties = allPenalties.filter(
-          p => p.studentId === studentId);
+      
+      // Filter penalties for today only
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      const studentPenalties = allPenalties.filter(p => {
+        if (p.studentId !== studentId) return false;
+        
+        // Check if penalty is from today
+        const timestamp = p.createdAt || p.timestamp;
+        if (!timestamp) return false;
+        
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        
+        return dateStr === todayStr;
+      });
 
       // Combine and format logs
       const logs = [
@@ -814,6 +829,79 @@ const StudentRoster = React.memo(function StudentRoster({
                   }}
                 >
                   {t('penalties')} {getSortIcon('penalty')}
+                </th>
+                {/* Attendance Statistics Headers */}
+                <th style={{
+                  textAlign: 'center',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'var(--text-muted, #6b7280)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  width: '50px'
+                }}>
+                  P
+                </th>
+                <th style={{
+                  textAlign: 'center',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'var(--text-muted, #6b7280)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  width: '50px'
+                }}>
+                  L
+                </th>
+                <th style={{
+                  textAlign: 'center',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'var(--text-muted, #6b7280)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  width: '50px'
+                }}>
+                  A
+                </th>
+                <th style={{
+                  textAlign: 'center',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'var(--text-muted, #6b7280)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  width: '50px'
+                }}>
+                  AE
+                </th>
+                <th style={{
+                  textAlign: 'center',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'var(--text-muted, #6b7280)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  width: '50px'
+                }}>
+                  EL
+                </th>
+                <th style={{
+                  textAlign: 'center',
+                  padding: '0.75rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'var(--text-muted, #6b7280)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  width: '50px'
+                }}>
+                  HC
                 </th>
                 {showTotalAttendance && (
                   <th 

@@ -105,20 +105,6 @@ const StudentTableRow = ({
                 }} 
               />
             </button>
-            <div style={{
-              width: '2.5rem',
-              height: '2.5rem',
-              borderRadius: '9999px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              background: avatarColor.bg,
-              color: avatarColor.color
-            }}>
-              {getAvatarInitials(student.displayName || student.realName || student.name || '')}
-            </div>
             <div>
               <div style={{ fontWeight: 500, color: 'var(--text, #111827)' }}>
                 {student.displayName || student.realName || student.name || student.email}
