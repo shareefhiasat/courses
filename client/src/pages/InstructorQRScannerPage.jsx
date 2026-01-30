@@ -662,7 +662,7 @@ const InstructorQRScannerPage = () => {
             studentId,
             classId: selectedClassId,
             subjectId: selectedSubjectId,
-            type: action.type,
+            type: action.type || 'penalty', // Add fallback for undefined type
             points: Math.abs(points),
             reason: note,
             createdBy: user.uid
