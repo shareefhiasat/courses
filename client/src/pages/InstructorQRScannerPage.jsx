@@ -646,7 +646,7 @@ const InstructorQRScannerPage = () => {
             classId: selectedClassId,
             subjectId: selectedSubjectId,
             type: action.type || 'penalty', // Add fallback for undefined type
-            points: Math.abs(points),
+            points: Math.abs(points), // Store as positive in Firebase
             reason: note,
             createdBy: user.uid
           });
@@ -716,12 +716,6 @@ const InstructorQRScannerPage = () => {
         
         // Trigger activity refresh to update recent activity
         triggerActivityRefresh();
-        
-        // Second refresh after 1 more second to ensure Firebase propagation
-        setTimeout(async () => {
-          await loadStudents(selectedClassId, selectedDate);
-          triggerActivityRefresh();
-        }, 1000);
       }, 1000);
 
       // Emit events for each action type

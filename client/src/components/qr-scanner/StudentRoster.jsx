@@ -189,8 +189,8 @@ const StudentRoster = React.memo(function StudentRoster({
               ? penalty.createdAt.toDate().toISOString().split('T')[0]
               : new Date(penalty.createdAt).toISOString().split('T')[0]),
           time: penalty.createdAt,
-          label: penalty.reason || 'Penalty',
-          points: penalty.points || 0,
+          label: penalty.type || penalty.reason || 'Penalty',
+          points: -Math.abs(penalty.points || 0), // Always negative for penalties
           comment: penalty.comment || '',
           severity: penalty.severity || 'medium',
           color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
