@@ -18,7 +18,7 @@ import DraggableClock from '../DraggableClock/DraggableClock';
 
 const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
-const Navbar = ({ onToggleSidebar }) => {
+const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   let authContext;
   try {
     authContext = useAuth();
@@ -152,27 +152,29 @@ const Navbar = ({ onToggleSidebar }) => {
       <nav className="navbar" style={{ padding: '0.35rem 0' }}>
         <div className="navbar-container">
           {/* Hamburger Menu */}
-          <button
-            onClick={onToggleSidebar}
-            className="navbar-hamburger"
-              style={{
-                background: 'transparent',
-                border: '2px solid #D4AF37',
-                color: '#D4AF37',
-                fontSize: '1.1rem',
-                cursor: 'pointer',
-                padding: '0.35rem 0.6rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 10,
-                marginRight: lang === 'ar' ? 0 : '0.75rem',
-                marginLeft: lang === 'ar' ? '0.75rem' : 0
-              }}
-              aria-label="Menu"
-            >
-              <Menu size={18} />
-            </button>
+          {!hideHamburger && (
+            <button
+              onClick={onToggleSidebar}
+              className="navbar-hamburger"
+                style={{
+                  background: 'transparent',
+                  border: '2px solid #D4AF37',
+                  color: '#D4AF37',
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  padding: '0.35rem 0.6rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 10,
+                  marginRight: lang === 'ar' ? 0 : '0.75rem',
+                  marginLeft: lang === 'ar' ? '0.75rem' : 0
+                }}
+                aria-label="Menu"
+              >
+                <Menu size={18} />
+              </button>
+            )}
 
           {/* Brand */}
           <div className="navbar-brand" style={{ 

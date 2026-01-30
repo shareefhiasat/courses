@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Minus, Maximize2 } from 'lucide-react';
 import './DraggableClock.css';
 
 const DraggableClock = ({ 
@@ -11,6 +11,7 @@ const DraggableClock = ({
   const [position, setPosition] = useState(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isMinimized, setIsMinimized] = useState(false);
   const dragRef = useRef(null);
   const startPos = useRef({ x: 0, y: 0 });
 
@@ -82,7 +83,7 @@ const DraggableClock = ({
   return (
     <div
       ref={dragRef}
-      className={`draggable-clock ${className}`}
+      className={`draggable-clock ${isMinimized ? 'minimized' : ''} ${className}`}
       style={{
         position: 'fixed',
         left: `${position.x}px`,
@@ -92,10 +93,28 @@ const DraggableClock = ({
       onMouseDown={handleMouseDown}
     >
       <div className="clock-header">
-        <Clock size={16} />
-        <span className="clock-time">{formatTime(currentTime)}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Clock size={16} />
+          <span className="clock-time">{formatTime(currentTime)}</span>
+        </div>
+        <div className="clock-controls">
+          <button
+            className="control-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMinimized(!isMinimized);
+            }}
+            title={isMinimized ? 'Maximize' : 'Minimize'}
+          >
+            {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}
+          </button>
+        </div>
       </div>
-      <div className="clock-date">{formatDate(currentTime)}</div>
+      {!isMinimized && (
+        <div className="clock-content">
+          <div className="clock-date">{formatDate(currentTime)}</div>
+        </div>
+      )}
     </div>
   );
 };

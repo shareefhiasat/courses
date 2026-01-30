@@ -631,8 +631,10 @@ const StudentRoster = React.memo(function StudentRoster({
 
   // Memoized badge component for performance
   const getAttendanceBadge = useCallback((status) => {
-    // If no status, show "NOTHING YET" with indication color
-    if (!status) {
+    // If no status or status is 'absent' but no actual attendance record, show "NOTHING YET"
+    if (!status || status === 'absent_no_excuse' || status === 'absent') {
+      // Check if this is a default absent status or actual attendance record
+      // For today's attendance, if there's no actual scan, show NOTHING YET
       return (
         <span style={{
           padding: '0.25rem 0.75rem',
@@ -848,7 +850,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onTogglePin(student.id);
+                          toggleFavorite(student.id);
                         }}
                         style={{
                           background: 'none',
@@ -914,10 +916,12 @@ const StudentRoster = React.memo(function StudentRoster({
                   </div>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('todays_attendance') || "Today's Attendance"}:</span>
-                      {getAttendanceBadge(student.attendance)}
-                    </div>
+                    {student.attendance && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('todays_attendance') || "Today's Attendance"}:</span>
+                        {getAttendanceBadge(student.attendance)}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>{t('part')}:</span>
                       <span style={{
@@ -1526,7 +1530,7 @@ const StudentRoster = React.memo(function StudentRoster({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onTogglePin(student.id);
+                            toggleFavorite(student.id);
                           }}
                           style={{
                             background: 'none',
@@ -2291,11 +2295,11 @@ const StudentRoster = React.memo(function StudentRoster({
               <h3>{t('delete_activity_title', { type: deleteType === 'attendance' ? t('attendance') : t('penalty') })}</h3>
               <p>{t('delete_activity_msg', { studentName: students.find(s => s.id === deleteLogId?.split('_')[1])?.name || t('this_student') })}</p>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
-                  {t('cancel') || 'Cancel'}
-                </Button>
                 <Button variant="primary" onClick={handleConfirmDelete} loading={deleteLoading} style={{ backgroundColor: '#dc2626' }}>
                   {t('delete') || 'Delete'}
+                </Button>
+                <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+                  {t('cancel') || 'Cancel'}
                 </Button>
               </div>
             </CardBody>

@@ -120,8 +120,8 @@ const LoginPage = () => {
 
   return (
     <div className={pageClass}>
-      {/* Add Navbar without SideDrawer */}
-      <Navbar />
+      {/* Add Navbar without SideDrawer and hamburger menu */}
+      <Navbar hideHamburger={true} />
       
       <Container maxWidth="sm" className={styles.formContainer}>
         <AuthForm />
