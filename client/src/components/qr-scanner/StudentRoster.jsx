@@ -648,6 +648,23 @@ const StudentRoster = React.memo(function StudentRoster({
       );
     }
     
+    // If status is a default absent status (likely set when no actual attendance exists), show NOTHING YET
+    if (status === 'absent_no_excuse' || status === 'absent') {
+      return (
+        <span style={{
+          padding: '0.25rem 0.75rem',
+          borderRadius: '0.375rem',
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          background: '#fef3c7',
+          color: '#92400e',
+          border: '1px solid #fbbf24'
+        }}>
+          {t('nothing_yet') || 'NOTHING YET'}
+        </span>
+      );
+    }
+    
     // Use the proper attendance status labels from lookup
     const statusInfo = ATTENDANCE_STATUS_LABELS[status];
     if (!statusInfo) {

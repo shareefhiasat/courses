@@ -2064,6 +2064,132 @@ export default function StudentActionPanel({
               )}
             </div>
 
+            {/* Participation Section */}
+            <div style={{ marginBottom: '0.15rem' }}>
+              <div
+                onClick={() => toggleSectionExpansion('participation')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem',
+                  background: '#3b82f6',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  marginBottom: '0.15rem'
+                }}
+              >
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+                  {t('participation_details')} ({student.participation || 0} {t('points')}, {(() => {
+                    const stats = getDetailedStats();
+                    return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
+                  })()} {t('entries')})
+                </span>
+                <ChevronDown
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    transform: expandedSections.participation ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s'
+                  }}
+                />
+              </div>
+
+              {expandedSections.participation && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem'
+                }}>
+                  {(() => {
+                    const stats = getDetailedStats();
+                    return PARTICIPATION_TYPES.map(type => {
+                      const stat = stats.participation[type.id];
+                      return (
+                        <div key={type.id} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.5rem',
+                          background: '#dbeafe', // Light blue background
+                          borderRadius: '0.375rem',
+                          border: '1px solid #3b82f6', // Blue border
+                          opacity: stat.count > 0 ? 1 : 0.8
+                        }}>
+                          <div style={{
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: '#1e3a8a', // Dark blue text
+                            flex: 1
+                          }}>
+                            {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
+                          </div>
+                          <div style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            color: '#1e3a8a', // Dark blue text
+                            minWidth: '3rem',
+                            textAlign: 'center'
+                          }}>
+                            Total: {stat.totalPoints}
+                          </div>
+                          <div style={{
+                            fontSize: '0.75rem',
+                            color: '#1e3a8a', // Dark blue text
+                            minWidth: '3rem',
+                            textAlign: 'right'
+                          }}>
+                            Count: ({stat.count})
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+
+                  {/* Total Participation Row */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.5rem',
+                    background: '#3b82f6',
+                    borderRadius: '0.375rem',
+                    marginTop: '0.25rem',
+                    border: '2px solid white'
+                  }}>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: 'white',
+                      flex: 1
+                    }}>
+                      Participation
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      color: 'white',
+                      minWidth: '3rem',
+                      textAlign: 'center'
+                    }}>
+                      Total: {student.participation || 0}
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: 'white',
+                      minWidth: '3rem',
+                      textAlign: isRTL ? 'left' : 'right'
+                    }}>
+                      {t('count')}: ({(() => {
+                        const stats = getDetailedStats();
+                        return PARTICIPATION_TYPES.reduce((sum, type) => sum + (stats.participation[type.id]?.count || 0), 0);
+                      })()})
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Penalty Section */}
             <div style={{ marginBottom: '0.0rem' }}>
               <div
