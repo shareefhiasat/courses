@@ -1,7 +1,7 @@
 import React from 'react';
 import { FancyLoading } from '../FancyLoading';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useLang } from '../../../contexts/LangContext';
+import { useLang } from '@contexts/LangContext';
 import { Lock } from 'lucide-react';
 import styles from './PermissionAwareLoading.module.css';
 

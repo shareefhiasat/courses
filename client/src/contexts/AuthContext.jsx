@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { onAuthChange } from '../firebase/auth';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '@firebaseServices/config';
 import { getAllowlist, ensureUserDoc, addLoginLog } from '../firebase/firestore';
 import { signOutUser } from '../firebase/auth';
 import { ActivityLogger } from '../firebase/activityLogger';

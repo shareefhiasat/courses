@@ -1,23 +1,21 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useLang } from '../contexts/LangContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 import {
   Plus, Save, Eye, Trash2, GripVertical, Clock, Copy, Play,
   CheckCircle, XCircle, HelpCircle, ListChecks, Repeat, Award,
   Edit, Users, AlertCircle, ArrowLeft, Shuffle, Languages
 } from 'lucide-react';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { notifyQuizAvailable } from '../firebase/quizNotifications';
-import { getEnrollments, getUsers, getUser } from '../firebase/firestore';
-import { getAllQuizzes, getQuizzesByCreator, deleteQuiz, getQuiz, createQuiz, updateQuiz } from '../firebase/quizzes';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
-import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading, Badge } from '../components/ui';
-import { ToggleSwitch } from '../components/shared';
-import { LanguageToggle } from '../components/shared';
-import { DeleteConfirmationModal } from '../components/shared';
+import { db } from '@firebaseServices/config';
+import { notifyQuizAvailable } from '@firebaseServices/quizNotifications';
+import { getEnrollments, getUsers, getUser } from '@firebaseServices/firestore';
+import { getAllQuizzes, getQuizzesByCreator, deleteQuiz, getQuiz, createQuiz, updateQuiz } from '@firebaseServices/quizzes';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading, Badge } from '@ui';
+import { ToggleSwitch, LanguageToggle } from '@ui';
 import QuizBuilderPageStyles from './QuizBuilderPage.module.css';
 import QuizManagementPageStyles from './QuizManagementPage.module.css';
 
@@ -1251,17 +1249,38 @@ export default function QuizzesPage() {
           </div>
         </Container>
 
-        <DeleteConfirmationModal
-          open={deleteModal.open}
-          onClose={() => setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null })}
-          onConfirm={deleteModal.onConfirm || (() => {})}
-          title="Delete Quiz"
-          message="Are you sure you want to delete this quiz? This action cannot be undone."
-          itemName={deleteModal.item?._displayName || deleteModal.item?.title || deleteModal.item?.name || deleteModal.item?.id}
-          relatedData={deleteModal.relatedData}
-          warningMessage={deleteModal.warningMessage}
-          loading={deleting !== null}
-        />
+        {deleteModal.open && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+              <CardBody>
+                <h3>Delete Quiz</h3>
+                <p>Are you sure you want to delete this quiz? This action cannot be undone.</p>
+                {deleteModal.warningMessage && (
+                  <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{deleteModal.warningMessage}</p>
+                )}
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                  <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null })}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" onClick={deleteModal.onConfirm || (() => {})} loading={deleting !== null} style={{ backgroundColor: '#dc2626' }}>
+                    Delete
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        )}
       </div>
     );
   }

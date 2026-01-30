@@ -1,9 +1,9 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LangProvider } from './contexts/LangContext';
-import Navbar from './components/Navbar';
-import { ErrorBoundary, HelpDrawer } from './components/shared';
+import Navbar from './components/ui/Navbar/Navbar';
+import { ErrorBoundary, HelpDrawer, CollapsibleSideWindow, NotificationDrawer, RankDisplay, RankHistory, RankUpgradeModal, RecentMedals, VariableHelper, StudentQRCodeDisplay, StudentQuickActionModal, ToastProvider, useToast, SideDrawer } from '@ui';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ColorThemeProvider } from './contexts/ColorThemeContext';
 import HomePage from './pages/HomePage';
@@ -77,13 +77,45 @@ function PageTracker() {
 }
 
 const AppContent = () => {
+  const { user } = useAuth();
+  const [isSideDrawerOpen, setIsSideDrawerOpen] = useState(false);
+  const [isSideDrawerCollapsed, setIsSideDrawerCollapsed] = useState(false);
+  
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
+  
+  const toggleSideDrawer = () => {
+    if (isSideDrawerCollapsed) {
+      setIsSideDrawerCollapsed(false);
+    } else {
+      setIsSideDrawerOpen(!isSideDrawerOpen);
+    }
+  };
+  
+  const closeSideDrawer = () => {
+    setIsSideDrawerOpen(false);
+  };
+  
+  const toggleSideDrawerCollapse = () => {
+    setIsSideDrawerCollapsed(!isSideDrawerCollapsed);
+  };
   
   return (
     <div className="app">
       <PageTracker />
       <HelpProvider>
-        <Navbar />
+        {user && (
+          <>
+            <Navbar 
+              onToggleSidebar={toggleSideDrawer}
+            />
+            <SideDrawer
+              isOpen={isSideDrawerOpen}
+              onClose={closeSideDrawer}
+              isCollapsed={isSideDrawerCollapsed}
+              onToggleCollapse={toggleSideDrawerCollapse}
+            />
+          </>
+        )}
         <HelpDrawer />
         <main className="main-content">
         <Suspense fallback={<FancyLoading fullscreen={true} />}>

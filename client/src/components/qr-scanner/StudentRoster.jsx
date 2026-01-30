@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '../../utils/logger';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '../../firebase/attendance';
-import { getPenalties, deletePenalty } from '../../firebase/penalties';
-import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '../../firebase/userPreferences';
-import { useAuth } from '../../contexts/AuthContext';
-import { useLang } from '../../contexts/LangContext';
+import logger from '@utils/logger';
+import { Input } from '@ui';
+import { Button } from '@ui';
+import { Card, CardBody } from '@ui';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
+import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
+import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@firebaseServices/userPreferences';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { Mail, ChevronDown, QrCode, User, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
-import eventBus, { EVENTS } from '../../utils/eventBus';
-import { generateReferenceId, generateStudentQRCode } from '../../utils/qrCode';
-import { DeleteConfirmationModal } from '../../components/shared';
+import eventBus, { EVENTS } from '@utils/eventBus';
+import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
 
 const SearchIcon = ({ style }) => (
   <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2273,14 +2273,35 @@ const StudentRoster = React.memo(function StudentRoster({
       </div>
       
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-        title={t('delete_activity_title', { type: deleteType === 'attendance' ? t('attendance') : t('penalty') })}
-        message={t('delete_activity_msg', { studentName: students.find(s => s.id === deleteLogId?.split('_')[1])?.name || t('this_student') })}
-        loading={deleteLoading}
-      />
+      {deleteModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+            <CardBody>
+              <h3>{t('delete_activity_title', { type: deleteType === 'attendance' ? t('attendance') : t('penalty') })}</h3>
+              <p>{t('delete_activity_msg', { studentName: students.find(s => s.id === deleteLogId?.split('_')[1])?.name || t('this_student') })}</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+                  {t('cancel') || 'Cancel'}
+                </Button>
+                <Button variant="primary" onClick={handleConfirmDelete} loading={deleteLoading} style={{ backgroundColor: '#dc2626' }}>
+                  {t('delete') || 'Delete'}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </div>
   );
 });

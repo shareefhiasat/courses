@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { Container, Card, CardBody, Button, Badge, Spinner } from '../components/ui';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { Container, Card, CardBody, Button, Badge, Spinner } from '@ui';
 import {
   BookOpen, Clock, Users, Calendar, TrendingUp, Award,
   ChevronRight, Play, CheckCircle, AlertCircle

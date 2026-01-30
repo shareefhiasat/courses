@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { db } from '../firebase/config';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { db } from '@firebaseServices/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Shield, Settings2, Save, Search, ChevronDown, ChevronRight } from 'lucide-react';
-import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '../components/ui';
+import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '@ui';
 import styles from './RoleAccessPro.module.css';
 
 export default function RoleAccessPro() {
@@ -29,7 +29,6 @@ export default function RoleAccessPro() {
     { id: 'studentDashboard', name: 'Student Dashboard', group: 'MAIN', description: 'Student dashboard with progress and stats' },
     { id: 'studentProfile', name: 'Student Profile', group: 'MAIN', description: 'View and manage student profiles' },
     { id: 'activities', name: 'Activities', group: 'MAIN', description: 'Browse and complete learning activities' },
-    { id: 'progress', name: 'Progress', group: 'MAIN', description: 'Track your learning progress' },
     { id: 'resources', name: 'Resources', group: 'MAIN', description: 'Access learning resources and materials' },
     // QUIZ
     { id: 'quizzes', name: 'Quizzes', group: 'QUIZ', description: 'Manage and take quizzes' },
@@ -71,7 +70,7 @@ export default function RoleAccessPro() {
 
   const defaultRoleScreens = {
     admin: { 
-      home: true, dashboard: true, studentDashboard: true, studentProfile: true, activities: true, progress: true, resources: true,
+      home: true, dashboard: true, studentDashboard: true, studentProfile: true, activities: true, resources: true,
       quizzes: true, quizManagement: true, quizBuilder: true, quizResults: true, reviewResults: true,
       classSchedules: true, manageEnrollments: true, myEnrollments: true, enrollments: true,
       programs: true, subjects: true, classes: true, marksEntry: true, courseProgress: true,
@@ -82,7 +81,7 @@ export default function RoleAccessPro() {
       profile: true, roleAccess: true
     },
     instructor: { 
-      home: true, dashboard: false, studentDashboard: false, studentProfile: true, activities: true, progress: false, resources: true,
+      home: true, dashboard: false, studentDashboard: false, studentProfile: true, activities: true, resources: true,
       quizzes: true, quizManagement: true, quizBuilder: true, quizResults: true, reviewResults: false,
       classSchedules: true, manageEnrollments: true, myEnrollments: false, enrollments: false,
       programs: false, subjects: false, classes: false, marksEntry: true, courseProgress: false,
@@ -93,7 +92,7 @@ export default function RoleAccessPro() {
       profile: true, roleAccess: false
     },
     hr: { 
-      home: true, dashboard: false, studentDashboard: false, studentProfile: true, activities: false, progress: false, resources: false,
+      home: true, dashboard: false, studentDashboard: false, studentProfile: true, activities: false, resources: false,
       quizzes: false, quizManagement: false, quizBuilder: false, quizResults: false, reviewResults: false,
       classSchedules: false, manageEnrollments: false, myEnrollments: false, enrollments: false,
       programs: false, subjects: false, classes: false, marksEntry: false, courseProgress: false,
@@ -104,7 +103,7 @@ export default function RoleAccessPro() {
       profile: true, roleAccess: false
     },
     student: { 
-      home: true, dashboard: false, studentDashboard: true, studentProfile: false, activities: true, progress: true, resources: true,
+      home: true, dashboard: false, studentDashboard: true, studentProfile: false, activities: true, resources: true,
       quizzes: true, quizManagement: false, quizBuilder: false, quizResults: true, reviewResults: false,
       classSchedules: false, manageEnrollments: false, myEnrollments: true, enrollments: false,
       programs: false, subjects: false, classes: false, marksEntry: false, courseProgress: true,

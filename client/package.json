@@ -43,6 +43,7 @@
     "react-dom": "^19.2.3",
     "react-grid-layout": "^1.5.2",
     "react-joyride": "^2.7.0",
+    "react-qr-code": "^2.0.18",
     "react-router-dom": "^7.9.3",
     "recharts": "^3.3.0"
   },

@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { db } from '../firebase/config';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { db } from '@firebaseServices/config';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
 import { User, Users, Calendar, TrendingUp, Award, FileText, Clock, Search, Trophy, Flame, Target, X, BookOpen, Filter } from 'lucide-react';
-import { getUserBadges, getUserStats, getBadgeDefinitions } from '../firebase/badges';
+import { getUserBadges, getUserStats, getBadgeDefinitions } from '@firebaseServices/badges';
 import { useSearchParams } from 'react-router-dom';
-import { Container, Loading, Select } from '../components/ui';
-import StudentQRCodeDisplay from '../components/StudentQRCodeDisplay';
+import { Container, Loading, Select } from '@ui';
+import { StudentQRCodeDisplay } from '@ui';
 import styles from './StudentProfilePage.module.css';
 
 const StudentProfilePage = () => {

@@ -1,30 +1,29 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
-import { getUsers, getClasses, getEnrollments } from '../firebase/firestore';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '../firebase/attendance';
-import { createPenalty, getPenalties, deletePenalty } from '../firebase/penalties';
-import { PENALTY_TYPES } from '../constants/penaltyTypes';
-import { db } from '../firebase/config';
+import { getUsers, getClasses, getEnrollments } from '@firebaseServices/firestore';
+import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
+import { createPenalty, getPenalties, deletePenalty } from '@firebaseServices/penalties';
+import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { db } from '@firebaseServices/config';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
-import { addNotification } from '../firebase/notifications';
-import { sendStudentNotification } from '../utils/notificationService';
-import { BEHAVIOR_TYPES } from '../constants/behaviorTypes';
-import { PARTICIPATION_TYPES } from '../constants/participationTypes';
-import { Select, DatePicker, Button, Loading } from '../components/ui';
-import { FancyLoading } from '../components/ui/FancyLoading/FancyLoading';
+import { addNotification } from '@firebaseServices/notifications';
+import { sendStudentNotification } from '@utils/notificationService';
+import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
+import { PARTICIPATION_TYPES } from '@constants/participationTypes';
+import { Select, DatePicker, Button, Loading, Card, CardBody } from '@ui';
+import { FancyLoading } from '@ui';
 import { BookOpen, FileText, Users, Filter, Star } from 'lucide-react';
-import QRScanner from '../components/qr-scanner/QRScanner';
-import StudentRoster from '../components/qr-scanner/StudentRoster';
-import StudentActionPanel from '../components/qr-scanner/StudentActionPanel';
-import StudentActionPanelNew from '../components/qr-scanner/StudentActionPanelNew';
-import '../components/qr-scanner/ui/qr-scanner-ui.css';
+import QRScanner from '@/components/qr-scanner/QRScanner';
+import StudentRoster from '@/components/qr-scanner/StudentRoster';
+import StudentActionPanel from '@/components/qr-scanner/StudentActionPanel';
+import StudentActionPanelNew from '@/components/qr-scanner/StudentActionPanelNew';
+import '@/components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
-import eventBus, { EVENTS } from '../utils/eventBus';
-import { DeleteConfirmationModal } from '../components/shared';
+import eventBus, { EVENTS } from '@utils/eventBus';
 
 const InstructorQRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -1703,14 +1702,35 @@ const InstructorQRScannerPage = () => {
         )}
 
         {/* Delete Activity Confirmation Modal */}
-        <DeleteConfirmationModal
-          open={deleteActivityModalOpen}
-          onClose={() => setDeleteActivityModalOpen(false)}
-          onConfirm={confirmDeleteActivity}
-          title={t('delete_activity_title', { type: activityToDelete?.type === 'attendance' ? t('attendance') : t('penalties') })}
-          message={t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}
-          loading={deleteActivityLoading}
-        />
+        {deleteActivityModalOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+              <CardBody>
+                <h3>{t('delete_activity_title', { type: activityToDelete?.type === 'attendance' ? t('attendance') : t('penalties') })}</h3>
+                <p>{t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}</p>
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                  <Button variant="outline" onClick={() => setDeleteActivityModalOpen(false)}>
+                    {t('cancel') || 'Cancel'}
+                  </Button>
+                  <Button variant="primary" onClick={confirmDeleteActivity} loading={deleteActivityLoading} style={{ backgroundColor: '#dc2626' }}>
+                    {t('delete') || 'Delete'}
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

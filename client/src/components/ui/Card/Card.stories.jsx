@@ -1,6 +1,5 @@
 import React from 'react';
-import Card, { CardHeader, CardBody, CardFooter } from './Card';
-import Button from '../Button';
+import { Card, CardHeader, CardBody, CardFooter, Button } from '@ui';
 import { Settings, MoreVertical } from 'lucide-react';
 
 export default {

@@ -1,31 +1,49 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '../../utils/logger';
-import { Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink, Trophy, Grid, List } from 'lucide-react';
-import { Button } from './ui/button';
-import { Textarea } from './ui/textarea';
-import { Input } from './ui/input';
-import { ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
-import { getAttendanceByStudent } from '../../firebase/attendance';
-import { deleteAttendance } from '../../firebase/attendance';
-import { getPenalties } from '../../firebase/penalties';
-import { deletePenalty } from '../../firebase/penalties';
-import { getFunctions } from '../../firebase/config';
-import { generateReferenceId, generateStudentQRCode } from '../../utils/qrCode';
-import { XIcon, HistoryIcon, TypeIcon } from '../../components/shared/Icons';
-import { getAvatarColor, getAvatarInitials } from '../../utils/avatarUtils';
-import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor, getAutoTypeLabel, getAutoTypeIcon, getAutoTypeColor } from '../../utils/typeHelpers';
-import eventBus, { EVENTS } from '../../utils/eventBus';
-import { FancyLoading } from '../ui/FancyLoading/FancyLoading';
-import { useAuth } from '../../contexts/AuthContext';
-import { useLang } from '../../contexts/LangContext';
-import { DeleteConfirmationModal } from '../../components/shared';
+import logger from '@utils/logger';
+import { X, Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink, Trophy, Grid, List } from 'lucide-react';
+import { Button } from '@ui';
+import { Card, CardBody } from '@ui';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
+import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
+import { getFunctions } from '@firebaseServices/config';
+import eventBus, { EVENTS } from '@utils/eventBus';
+import { FancyLoading } from '@ui';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { Type } from 'lucide-react';
+import { BEHAVIOR_TYPES, getBehaviorTypeById, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
+import { PARTICIPATION_TYPES, getParticipationTypeById, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
+import { PENALTY_TYPES, getPenaltyTypeById, getPenaltyLabel, getPenaltyDescription, getPenaltyIcon, getPenaltyColor } from '@constants/penaltyTypes';
 
-const renderIcon = (iconName, style) => {
-  // Use auto-detecting helpers for cleaner code
-  const icon = getAutoTypeIcon(iconName);
-  const color = getAutoTypeColor(iconName);
+const renderIcon = (iconName, style = {}) => {
+  // Try to get icon from behavior types first
+  const behaviorIcon = getBehaviorIcon(iconName);
+  const behaviorColor = getBehaviorColor(iconName);
   
-  return <TypeIcon iconName={icon} style={style} color={color} />;
+  // Try to get icon from participation types
+  const participationIcon = getParticipationIcon(iconName);
+  const participationColor = getParticipationColor(iconName);
+  
+  // Try to get icon from penalty types
+  const penaltyIcon = getPenaltyIcon(iconName);
+  const penaltyColor = getPenaltyColor(iconName);
+  
+  // Determine which type and color to use
+  let finalIconName = iconName;
+  let finalColor = style.color || '#374151';
+  
+  if (BEHAVIOR_TYPES.find(bt => bt.id === iconName)) {
+    finalIconName = behaviorIcon;
+    finalColor = behaviorColor;
+  } else if (PARTICIPATION_TYPES.find(pt => pt.id === iconName)) {
+    finalIconName = participationIcon;
+    finalColor = participationColor;
+  } else if (PENALTY_TYPES.find(pt => pt.id === iconName)) {
+    finalIconName = penaltyIcon;
+    finalColor = penaltyColor;
+  }
+  
+  return <Type iconName={finalIconName} style={style} color={finalColor} />;
 };
 
 // Separate component for historical logs to avoid hooks order issues
@@ -692,12 +710,12 @@ export default function StudentActionPanel({
       };
     });
 
-    // Calculate penalty stats (same as behavior but for negative points)
-    BEHAVIOR_TYPES.filter(bt => bt.points < 0).forEach(type => {
+    // Calculate penalty stats using dedicated PENALTY_TYPES
+    PENALTY_TYPES.forEach(type => {
       stats.penalty[type.id] = {
         count: 0,
         totalPoints: 0,
-        label: type.label_en,
+        label: lang === 'ar' ? type.label_ar : type.label_en,
         color: type.color,
         icon: type.icon
       };
@@ -1260,7 +1278,7 @@ export default function StudentActionPanel({
                 </span>
               </div>
               <Button variant="ghost" size="icon" onClick={onClose} title={t('close')}>
-                <XIcon style={{ width: '1.25rem', height: '1.25rem' }} />
+                <X style={{ width: '1.25rem', height: '1.25rem' }} />
               </Button>
               {/* <Button 
                 variant="ghost" 
@@ -2032,8 +2050,7 @@ export default function StudentActionPanel({
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
                   {t('penalty_details')} ({student.penalty || 0} {t('points')}, {(() => {
                     const stats = getDetailedStats();
-                    const penaltyTypes = BEHAVIOR_TYPES.filter(bt => bt.points < 0);
-                    return penaltyTypes.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
+                    return PENALTY_TYPES.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
                   })()} {t('entries')})
                 </span>
                 <ChevronDown
@@ -2054,9 +2071,8 @@ export default function StudentActionPanel({
                 }}>
                   {(() => {
                     const stats = getDetailedStats();
-                    const penaltyTypes = BEHAVIOR_TYPES.filter(bt => bt.points < 0);
 
-                    return penaltyTypes.map(type => {
+                    return PENALTY_TYPES.map(type => {
                       const stat = stats.penalty[type.id];
                       return (
                         <div key={type.id} style={{
@@ -2134,8 +2150,7 @@ export default function StudentActionPanel({
                     }}>
                       {t('count')}: ({(() => {
                         const stats = getDetailedStats();
-                        const penaltyTypes = BEHAVIOR_TYPES.filter(bt => bt.points < 0);
-                        return penaltyTypes.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
+                        return PENALTY_TYPES.reduce((sum, type) => sum + (stats.penalty[type.id]?.count || 0), 0);
                       })()})
                     </div>
                   </div>
@@ -2297,14 +2312,35 @@ export default function StudentActionPanel({
       </div>
       
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-        title={t('delete_activity_title', { type: deleteType === 'attendance' ? t('attendance') : t('penalty') })}
-        message={t('delete_activity_msg', { studentName: student.displayName || student.name || t('this_student') })}
-        loading={deleteLoading}
-      />
+      {deleteModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+            <CardBody>
+              <h3>{t('delete_activity_title', { type: deleteType === 'attendance' ? t('attendance') : t('penalty') })}</h3>
+              <p>{t('delete_activity_msg', { studentName: student.displayName || student.name || t('this_student') })}</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+                  {t('cancel') || 'Cancel'}
+                </Button>
+                <Button variant="primary" onClick={handleConfirmDelete} loading={deleteLoading} style={{ backgroundColor: '#dc2626' }}>
+                  {t('delete') || 'Delete'}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </div>
     </>
   );

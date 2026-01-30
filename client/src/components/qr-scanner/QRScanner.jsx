@@ -2,21 +2,20 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import logger from '../../utils/logger';
 import { Button } from './ui/button';
 import jsQR from 'jsqr';
-import { getAttendanceByClass } from '../../firebase/attendance';
-import { markAttendance } from '../../firebase/attendance';
-import { getPenalties } from '../../firebase/penalties';
-import { createPenalty } from '../../firebase/penalties';
-import { getUsers } from '../../firebase/firestore';
+import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
+import { markAttendance } from '@firebaseServices/attendance';
+import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
+import { getUsers } from '@firebaseServices/firestore';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import eventBus, { EVENTS } from '../../utils/eventBus';
-import { useAuth } from '../../contexts/AuthContext';
-import { useLang } from '../../contexts/LangContext';
+import { db } from '@firebaseServices/config';
+import eventBus, { EVENTS } from '@utils/eventBus';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { useToast } from '../ui/Toast';
 import { RefreshCw } from 'lucide-react';
 import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';
-import { generateReferenceId } from '../../utils/qrCode';
+import { generateReferenceId } from '@utils/qrCode';
 
 const QrCodeIcon = ({ className }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -65,8 +64,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [todayAttendanceStatus, setTodayAttendanceStatus] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState(null);
-  const [showManualInput, setShowManualInput] = useState(true); // Always true for testing
+  const [showManualInput, setShowManualInput] = useState(false); // Start with false
   const [manualStudentId, setManualStudentId] = useState('');
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -222,8 +222,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   // Show result modal function
-  const showResult = useCallback((type, message) => {
-    setResultModalData({ type, message });
+  const showResult = useCallback((type, message, isSummary = false) => {
+    setResultModalData({ type, message, isSummary });
     setShowResultModal(true);
     addDebugLog(`📢 Showing result modal: ${type} - ${message}`, 'info');
   }, [addDebugLog]);
@@ -429,21 +429,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       });
       setLastScannedStudent(fullStudent);
+      setShowScanDialog(true);
+      setShowManualInput(false);
+      setManualStudentId('');
+      addDebugLog(`📝 Manual student ID entered: ${manualStudentId.trim()}`, 'info');
+      playFeedbackSound('success');
     } else {
-      logger.debug('Student not found, using reference ID only:', {
-        referenceId: manualStudentId.trim(),
-        totalStudents: students.length
-      });
-      setLastScannedStudent(studentInfo);
+      // Student not found - show error message
+      showResult('error', t('student_not_found') || 'Student not found. Please check the student ID and try again.');
+      addDebugLog(`❌ Student not found: ${manualStudentId.trim()}`, 'error');
+      playFeedbackSound('error');
     }
-    
-    setShowScanDialog(true);
-    setShowManualInput(false);
-    setManualStudentId('');
-    
-    addDebugLog(`📝 Manual student ID entered: ${manualStudentId.trim()}`, 'info');
-    playFeedbackSound('success');
-  }, [manualStudentId, selectedProgramId, selectedSubjectId, selectedClassId, t, addDebugLog, playFeedbackSound]);
+  }, [manualStudentId, selectedProgramId, selectedSubjectId, selectedClassId, t, addDebugLog, playFeedbackSound, students, showResult]);
 
   const findStudentData = useCallback(async (referenceId) => {
     try {
@@ -2198,75 +2195,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               marginTop: '0.25rem'
             }}>
               <button
-                onClick={async () => {
+                onClick={() => {
                   console.log('🗑️ Clear today\'s scans');
                   addDebugLog('🗑️ Clearing all scans for today', 'warning');
-                  
-                  if (window.confirm('Are you sure you want to clear all scans for today? This will permanently delete all attendance, penalties, and participation records for today\'s date.')) {
-                    setActionLoading(true);
-                    setCurrentAction('clear');
-                    
-                    try {
-                      const today = new Date().toISOString().split('T')[0];
-                      logger.debug('Clearing all records for date:', today);
-                      
-                      // Get all attendance records for today
-                      const attendanceResponse = await getAttendanceByClass(classId, today);
-                      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
-                      
-                      // Get all penalties for today
-                      const penaltiesResponse = await getPenalties();
-                      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-                      const todayPenalties = allPenalties.filter(p => {
-                        const timestamp = p.createdAt || p.timestamp;
-                        if (!timestamp) return false;
-                        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-                        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                        return dateStr === today;
-                      });
-                      
-                      logger.debug('Records to delete:', {
-                        attendanceCount: attendanceRecords.length,
-                        penaltyCount: todayPenalties.length,
-                        attendanceIds: attendanceRecords.map(r => r.id),
-                        penaltyIds: todayPenalties.map(p => p.id || p.docId)
-                      });
-                      
-                      // Delete all attendance records for today
-                      for (const record of attendanceRecords) {
-                        try {
-                          await deleteAttendance(record.id);
-                          logger.debug('Deleted attendance record:', record.id);
-                        } catch (error) {
-                          logger.error('Failed to delete attendance record:', record.id, error);
-                        }
-                      }
-                      
-                      // Delete all penalty records for today
-                      for (const penalty of todayPenalties) {
-                        try {
-                          await deletePenalty(penalty.id || penalty.docId);
-                          logger.debug('Deleted penalty record:', penalty.id || penalty.docId);
-                        } catch (error) {
-                          logger.error('Failed to delete penalty record:', penalty.id || penalty.docId, error);
-                        }
-                      }
-                      
-                      // Refresh the activity display
-                      fetchRecentActivity();
-                      
-                      showResult('success', `Successfully cleared ${attendanceRecords.length} attendance records and ${todayPenalties.length} penalties for today.`);
-                      addDebugLog(`✅ Cleared ${attendanceRecords.length} attendance and ${todayPenalties.length} penalty records for today`, 'success');
-                      
-                      setShowScanDialog(false);
-                    } catch (error) {
-                      addDebugLog(`❌ Error clearing today's scans: ${error.message}`, 'error');
-                      showResult('error', `Failed to clear today's scans: ${error.message}`);
-                    } finally {
-                      setActionLoading(false);
-                      setCurrentAction(null);
-                    }
-                  }
+                  setShowClearConfirmModal(true);
                 }}
                 disabled={actionLoading}
                 style={{
@@ -2453,41 +2385,48 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           
           <div style={{
             display: 'flex',
+            flexDirection: 'column',
             gap: '0.75rem',
-            justifyContent: 'flex-end'
+            marginTop: '1rem'
           }}>
+            <button
+              onClick={handleManualSubmit}
+              disabled={!manualStudentId.trim()}
+              style={{
+                padding: '0.75rem 1rem',
+                border: 'none',
+                background: manualStudentId.trim() ? '#3b82f6' : '#9ca3af',
+                color: 'white',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                cursor: manualStudentId.trim() ? 'pointer' : 'not-allowed',
+                width: '100%',
+                fontWeight: 500,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {t('simulate_scan') || 'Simulate Scan'}
+            </button>
+            
             <button
               onClick={() => {
                 setShowManualInput(false);
                 setManualStudentId('');
               }}
               style={{
-                padding: '0.5rem 1rem',
+                padding: '0.75rem 1rem',
                 border: '1px solid #d1d5db',
                 background: 'white',
                 color: '#6b7280',
                 borderRadius: '0.375rem',
                 fontSize: '0.875rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                width: '100%',
+                fontWeight: 500,
+                transition: 'all 0.2s ease'
               }}
             >
               {t('cancel') || 'Cancel'}
-            </button>
-            
-            <button
-              onClick={handleManualSubmit}
-              disabled={!manualStudentId.trim()}
-              style={{
-                padding: '0.5rem 1rem',
-                border: 'none',
-                background: manualStudentId.trim() ? '#3b82f6' : '#9ca3af',
-                color: 'white',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                cursor: manualStudentId.trim() ? 'pointer' : 'not-allowed'
-              }}
-            >
-              {t('simulate_scan') || 'Simulate Scan'}
             </button>
           </div>
         </div>
@@ -2505,7 +2444,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1002
+          zIndex: 1005
         }}>
           <div style={{
             background: 'white',
@@ -2567,7 +2506,59 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               margin: '0 0 1.5rem 0',
               lineHeight: '1.5'
             }}>
-              {resultModalData.message}
+              {resultModalData.isSummary ? (
+                <div style={{ textAlign: 'left' }}>
+                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#059669' }}>
+                    {t('clear_success') || 'Successfully Cleared Today\'s Records'}
+                  </h4>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', fontWeight: '600' }}>
+                          {t('attendance') || 'Attendance'}:
+                        </td>
+                        <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
+                          {resultModalData.message.attendance}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', fontWeight: '600' }}>
+                          {t('behavior') || 'Behavior'}:
+                        </td>
+                        <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
+                          {resultModalData.message.behavior}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', fontWeight: '600' }}>
+                          {t('participation') || 'Participation'}:
+                        </td>
+                        <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
+                          {resultModalData.message.participation}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', fontWeight: '600' }}>
+                          {t('penalties') || 'Penalties'}:
+                        </td>
+                        <td style={{ padding: '0.25rem', borderBottom: '1px solid #e5e7eb', textAlign: 'right' }}>
+                          {resultModalData.message.penalties}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '0.25rem', fontWeight: '600', color: '#059669' }}>
+                          {t('total') || 'Total'}:
+                        </td>
+                        <td style={{ padding: '0.25rem', textAlign: 'right', fontWeight: '600', color: '#059669' }}>
+                          {resultModalData.message.total}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                resultModalData.message
+              )}
             </p>
             
             <button
@@ -2627,6 +2618,170 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             }
           }}
         />
+      )}
+
+      {/* Clear Confirmation Modal */}
+      {showClearConfirmModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1004
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '0.5rem',
+            padding: '1.5rem',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+          }}>
+            <h3 style={{
+              margin: '0 0 1rem 0',
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: '#111827'
+            }}>
+              {t('confirm_clear_today') || 'Clear Today\'s Scans'}
+            </h3>
+            <p style={{
+              margin: '0 0 1.5rem 0',
+              fontSize: '0.875rem',
+              color: '#6b7280',
+              lineHeight: '1.5'
+            }}>
+              {t('confirm_clear_message') || 'Are you sure you want to clear all scans for today? This will permanently delete all attendance, penalties, and participation records for today\'s date.'}
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => setShowClearConfirmModal(false)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: '1px solid #d1d5db',
+                  background: 'white',
+                  color: '#6b7280',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {t('cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={async () => {
+                  setShowClearConfirmModal(false);
+                  setActionLoading(true);
+                  setCurrentAction('clear');
+                  
+                  try {
+                    const today = new Date().toISOString().split('T')[0];
+                    logger.debug('Clearing all records for date:', today);
+                    
+                    // Get all attendance records for today
+                    const attendanceResponse = await getAttendanceByClass(classId, today);
+                    const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+                    
+                    // Get all penalties for today
+                    const penaltiesResponse = await getPenalties();
+                    const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+                    const todayPenalties = allPenalties.filter(p => {
+                      const timestamp = p.createdAt || p.timestamp;
+                      if (!timestamp) return false;
+                      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                      return dateStr === today;
+                    });
+                    
+                    // Count different record types from attendance
+                    const behaviorRecords = attendanceRecords.filter(r => r.category === 'behavior');
+                    const participationRecords = attendanceRecords.filter(r => r.category === 'participation');
+                    const attendanceOnlyRecords = attendanceRecords.filter(r => r.category === 'attendance' || r.category === 'late' || r.category === 'present');
+                    const lateRecords = attendanceRecords.filter(r => r.category === 'late');
+                    
+                    logger.debug('Records to delete:', {
+                      totalAttendanceRecords: attendanceRecords.length,
+                      attendanceOnlyRecords: attendanceOnlyRecords.length,
+                      lateRecords: lateRecords.length,
+                      behaviorRecords: behaviorRecords.length,
+                      participationRecords: participationRecords.length,
+                      penaltyCount: todayPenalties.length,
+                      total: attendanceRecords.length + todayPenalties.length
+                    });
+                    
+                    // Delete all attendance records for today (including late entries)
+                    let deletedAttendanceCount = 0;
+                    for (const record of attendanceRecords) {
+                      try {
+                        await deleteAttendance(record.id);
+                        logger.debug('Deleted attendance record:', record.id, 'Category:', record.category);
+                        deletedAttendanceCount++;
+                      } catch (error) {
+                        logger.error('Failed to delete attendance record:', record.id, error);
+                      }
+                    }
+                    
+                    // Delete all penalty records for today
+                    let deletedPenaltyCount = 0;
+                    for (const penalty of todayPenalties) {
+                      try {
+                        await deletePenalty(penalty.id || penalty.docId);
+                        logger.debug('Deleted penalty record:', penalty.id || penalty.docId);
+                        deletedPenaltyCount++;
+                      } catch (error) {
+                        logger.error('Failed to delete penalty record:', penalty.id || penalty.docId, error);
+                      }
+                    }
+                    
+                    // Refresh the activity display
+                    fetchRecentActivity();
+                    
+                    // Show detailed summary with actual deleted counts
+                    const summaryData = {
+                      attendance: deletedAttendanceCount,
+                      behavior: behaviorRecords.length,
+                      participation: participationRecords.length,
+                      penalties: deletedPenaltyCount,
+                      total: deletedAttendanceCount + deletedPenaltyCount
+                    };
+                    
+                    showResult('success', summaryData, true); // Pass true to indicate this is a summary
+                    addDebugLog(`✅ Cleared ${deletedAttendanceCount} attendance and ${deletedPenaltyCount} penalty records for today`, 'success');
+                    
+                    setShowScanDialog(false);
+                  } catch (error) {
+                    addDebugLog(`❌ Error clearing today's scans: ${error.message}`, 'error');
+                    showResult('error', `${t('clear_error') || 'Failed to clear today\'s scans'}: ${error.message}`);
+                  } finally {
+                    setActionLoading(false);
+                    setCurrentAction(null);
+                  }
+                }}
+                disabled={actionLoading}
+                style={{
+                  padding: '0.5rem 1rem',
+                  border: 'none',
+                  background: actionLoading ? '#94a3b8' : '#dc2626',
+                  color: 'white',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  cursor: actionLoading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {actionLoading ? (t('clearing') || 'Clearing...') : (t('confirm_clear') || 'Confirm Clear')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style jsx>{`

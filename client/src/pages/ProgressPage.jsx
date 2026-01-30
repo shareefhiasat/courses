@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { getSubmissions, getResources, getActivities } from '../firebase/firestore';
-import { Container, Card, CardBody, Spinner, Badge, Grid, ProgressBar, EmptyState } from '../components/ui';
-import { useLang } from '../contexts/LangContext';
-import { RankDisplay, RankHistory, RecentMedals } from '../components/shared';
+import { db } from '@firebaseServices/config';
+import { getSubmissions, getResources, getActivities } from '@firebaseServices/firestore';
+import { Container, Card, CardBody, Spinner, Badge, Grid, ProgressBar, EmptyState } from '@ui';
+import { useLang } from '@contexts/LangContext';
+import { RankDisplay, RankHistory } from '@ui';
 import { Trophy, Target, BookOpen, Award } from 'lucide-react';
 import styles from './ProgressPage.module.css';
 
@@ -244,9 +244,6 @@ const ProgressPage = () => {
 
       {/* Military Theme Sections */}
       <div className={styles.militaryGrid}>
-        <div>
-          <RecentMedals studentId={user.uid} limit={10} />
-        </div>
         <Card>
           <CardBody>
             <RankHistory studentId={user.uid} />

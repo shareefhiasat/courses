@@ -38,13 +38,71 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
+  // Skip cross-origin requests and chrome-extension requests
+  if (event.request.url.startsWith('chrome-extension://') || 
+      event.request.url.startsWith('chrome-error://') ||
+      !event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
         // Return cached version or fetch from network
-        return response || fetch(event.request);
-      }
-    )
+        if (response) {
+          return response;
+        }
+        
+        // For network requests, add proper error handling
+        return fetch(event.request)
+          .catch((error) => {
+            console.log('Network request failed:', error);
+            // Return a basic offline response for HTML requests
+            if (event.request.headers.get('accept')?.includes('text/html')) {
+              return new Response(`
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <title>Offline - Courses App</title>
+                    <style>
+                      body { 
+                        font-family: Arial, sans-serif; 
+                        text-align: center; 
+                        padding: 50px;
+                        background: #f5f5f5;
+                      }
+                      .offline-message {
+                        background: white;
+                        padding: 30px;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        max-width: 400px;
+                        margin: 0 auto;
+                      }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="offline-message">
+                      <h2>🔴 You're Offline</h2>
+                      <p>Please check your internet connection and try again.</p>
+                      <button onclick="window.location.reload()">Retry</button>
+                    </div>
+                  </body>
+                </html>
+              `, {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: { 'Content-Type': 'text/html' }
+              });
+            }
+            
+            // For other requests, return a basic error response
+            return new Response('Offline', {
+              status: 503,
+              statusText: 'Service Unavailable'
+            });
+          });
+      })
   );
 });
 

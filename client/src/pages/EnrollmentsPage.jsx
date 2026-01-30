@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { getClasses, getEnrollments, getUsers } from '../firebase/firestore';
-import { Container, Grid, Card, CardBody, Button, Spinner, EmptyState } from '../components/ui';
+import { getClasses, getEnrollments, getUsers } from '@firebaseServices/firestore';
+import { Container, Grid, Card, CardBody, Button, Spinner, EmptyState } from '@ui';
 import { MessageCircle, BookOpen } from 'lucide-react';
 import styles from './EnrollmentsPage.module.css';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLang } from '../../../contexts/LangContext';
+import { useLang } from '@contexts/LangContext';
 import styles from './LanguageSwitcher.module.css';
 
 export default function LanguageSwitcher({ compact = true }) {

@@ -1210,8 +1210,8 @@ const DICT = {
     update_subject: 'Update Subject',
     program_filter: 'Program Filter',
     filter_by_program: 'Filter by Program:',
-    signup_success: '✅ Account created successfully! Redirecting...',
-    login_success: '✅ Login successful! Redirecting...',
+    signup_success: 'Account created successfully! Redirecting...',
+    login_success: 'Login successful! Redirecting...',
     registration_restricted: 'Registration is restricted. Your email is not on the allowlist. Please contact an administrator.',
     allowlist_error: 'Unable to verify registration permissions. Please try again later.',
     

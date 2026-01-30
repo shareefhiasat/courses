@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { getQuiz } from '../firebase/quizzes';
-import { getUser } from '../firebase/firestore';
-import { Container, Card, CardBody, Button, Spinner, Badge, Loading, useToast } from '../components/ui';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { getQuiz } from '@firebaseServices/quizzes';
+import { getUser } from '@firebaseServices/firestore';
+import { Container, Card, CardBody, Button, Spinner, Badge, Loading, useToast } from '@ui';
 import {
   Clock, CheckCircle, HelpCircle, ListChecks, Play, Edit, Circle, Shuffle, Repeat, Award, ArrowLeft
 } from 'lucide-react';

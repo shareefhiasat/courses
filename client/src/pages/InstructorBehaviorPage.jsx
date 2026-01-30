@@ -1,19 +1,18 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { db } from '../firebase/config';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Edit, Trash, MessageSquare, Bed, Users, Smartphone, AlertTriangle, Clock, XCircle, HelpCircle, User, AlertCircle, Crown, Shield, BookOpen, CheckCircle, TrendingUp, TrendingDown, Target, Zap, UserCheck, UserX, UserMinus, Info } from 'lucide-react';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '../components/ui';
-import { DeleteConfirmationModal } from '../components/shared';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { getClasses, getEnrollments } from '../firebase/firestore';
-import { addNotification } from '../firebase/notifications';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
-import { formatQatarDateOnly } from '../utils/timezone';
-import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '../constants/behaviorTypes';
-import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '../utils/userStatus';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
+import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { getClasses, getEnrollments } from '@firebaseServices/firestore';
+import { addNotification } from '@firebaseServices/notifications';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { formatQatarDateOnly } from '@utils/timezone';
+import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes';
+import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import styles from './ProgramsManagementPage.module.css';
 
 const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
@@ -426,13 +425,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         const row = params?.row || {};
         const rowId = row.id || row.docId || params?.id;
         
-        // Debug logging for user investigation
-        logger.debug('=== BEHAVIOR USER DEBUG ===');
-        logger.debug('Behavior User Debug - Row data:', row);
-        logger.debug('Behavior User Debug - studentName from row:', row.studentName);
-        logger.debug('Behavior User Debug - studentEmail from row:', row.studentEmail);
-        logger.debug('Behavior User Debug - studentId from row:', row.studentId);
-        
+                
         // Get studentName and studentEmail from row first
         let studentName = row.studentName || params?.value;
         let studentEmail = row.studentEmail;
@@ -444,25 +437,20 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
           if (user?.realName) {
             studentName = user.realName;
-            logger.debug('Behavior User Debug - Found realName from students array:', user.realName);
-          } else if (user?.displayName) {
+                      } else if (user?.displayName) {
             studentName = user.displayName;
-            logger.debug('Behavior User Debug - Found displayName from students array:', user.displayName);
-          } else if (studentId && userCache[studentId]) {
+                      } else if (studentId && userCache[studentId]) {
             // Try cached user data
             const cachedUser = userCache[studentId];
             if (cachedUser?.realName) {
               studentName = cachedUser.realName;
-              logger.debug('Behavior User Debug - Found realName from cache:', cachedUser.realName);
-            } else if (cachedUser?.displayName) {
+                          } else if (cachedUser?.displayName) {
               studentName = cachedUser.displayName;
-              logger.debug('Behavior User Debug - Found displayName from cache:', cachedUser.displayName);
-            }
+                          }
           } else if (studentId) {
             // Fetch user data asynchronously (non-blocking)
             fetchUser(studentId);
-            console.log('Behavior User Debug - Triggered async fetch for studentId:', studentId);
-          }
+                      }
         }
         
         // If not available, try to get from behaviors state
@@ -471,40 +459,40 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           studentName = foundRow?.studentName;
           studentEmail = foundRow?.studentEmail;
           studentId = foundRow?.studentId;
-          console.log('Behavior User Debug - Found from behaviors state:', { studentName, studentEmail, studentId });
+          ('Behavior User Debug - Found from behaviors state:', { studentName, studentEmail, studentId });
           
           // Try to get realName from user data
           if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
             const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
             if (user?.realName) {
               studentName = user.realName;
-              console.log('Behavior User Debug - Found realName from students array (fallback):', user.realName);
+              ('Behavior User Debug - Found realName from students array (fallback):', user.realName);
             } else if (user?.displayName) {
               studentName = user.displayName;
-              console.log('Behavior User Debug - Found displayName from students array (fallback):', user.displayName);
+              ('Behavior User Debug - Found displayName from students array (fallback):', user.displayName);
             } else if (studentId && userCache[studentId]) {
               // Try cached user data
               const cachedUser = userCache[studentId];
               if (cachedUser?.realName) {
                 studentName = cachedUser.realName;
-                console.log('Behavior User Debug - Found realName from cache (fallback):', cachedUser.realName);
+                ('Behavior User Debug - Found realName from cache (fallback):', cachedUser.realName);
               } else if (cachedUser?.displayName) {
                 studentName = cachedUser.displayName;
-                console.log('Behavior User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
+                ('Behavior User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
               }
             } else if (studentId) {
               // Fetch user data asynchronously (non-blocking)
               fetchUser(studentId);
-              console.log('Behavior User Debug - Triggered async fetch for studentId (fallback):', studentId);
+              ('Behavior User Debug - Triggered async fetch for studentId (fallback):', studentId);
             }
           }
         }
         
         const displayName = studentName && studentName !== 'N/A' ? studentName : (studentEmail || 'N/A');
         
-        console.log('Behavior User Debug - Final displayName:', displayName);
-        console.log('Behavior User Debug - Final studentEmail:', studentEmail);
-        console.log('=== BEHAVIOR USER DEBUG END ===');
+        ('Behavior User Debug - Final displayName:', displayName);
+        ('Behavior User Debug - Final studentEmail:', studentEmail);
+        ('=== BEHAVIOR USER DEBUG END ===');
         
         // Format as "Name (email)" like enrollments, but only if we have both and they're different
         if (studentEmail && studentEmail !== displayName && !displayName.includes('@')) {
@@ -568,8 +556,8 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       headerName: 'Points',
       width: 100,
       valueGetter: (params) => {
-        console.log('InstructorBehaviorPage: Full params object:', params);
-        console.log('InstructorBehaviorPage: Using params.value directly:', params.value, 'type:', typeof params.value);
+        ('InstructorBehaviorPage: Full params object:', params);
+        ('InstructorBehaviorPage: Using params.value directly:', params.value, 'type:', typeof params.value);
         return Number(params.value) || 0;
       },
       renderCell: (params) => {
@@ -603,33 +591,33 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       width: 150,
       valueGetter: (params) => {
         // Debug logging for date investigation
-        console.log('=== BEHAVIOR DATE DEBUG ===');
-        console.log('Behavior Date Debug - params:', params);
-        console.log('Behavior Date Debug - params.value:', params.value);
-        console.log('Behavior Date Debug - params.row:', params.row);
+        ('=== BEHAVIOR DATE DEBUG ===');
+        ('Behavior Date Debug - params:', params);
+        ('Behavior Date Debug - params.value:', params.value);
+        ('Behavior Date Debug - params.row:', params.row);
         
         // Check if params directly contains the timestamp
         if (params && typeof params === 'object' && params.seconds) {
           const date = new Date(params.seconds * 1000);
-          console.log('Behavior Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
-          console.log('Behavior Date Debug - Formatted date:', formatQatarDateOnly(date));
-          console.log('=== BEHAVIOR DATE DEBUG END ===');
+          ('Behavior Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
+          ('Behavior Date Debug - Formatted date:', formatQatarDateOnly(date));
+          ('=== BEHAVIOR DATE DEBUG END ===');
           return formatQatarDateOnly(date);
         }
         
         // Check if params.value directly contains the timestamp
         if (params.value && typeof params.value === 'object' && params.value.seconds) {
           const date = new Date(params.value.seconds * 1000);
-          console.log('Behavior Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
-          console.log('Behavior Date Debug - Formatted date:', formatQatarDateOnly(date));
-          console.log('=== BEHAVIOR DATE DEBUG END ===');
+          ('Behavior Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
+          ('Behavior Date Debug - Formatted date:', formatQatarDateOnly(date));
+          ('=== BEHAVIOR DATE DEBUG END ===');
           return formatQatarDateOnly(date);
         }
         
         // Fallback to original logic
         if (!params.row.createdAt) {
-          console.log('Behavior Date Debug - No createdAt found, returning "No Date"');
-          console.log('=== BEHAVIOR DATE DEBUG END ===');
+          ('Behavior Date Debug - No createdAt found, returning "No Date"');
+          ('=== BEHAVIOR DATE DEBUG END ===');
           return 'No Date';
         }
         // Handle Firebase Timestamp properly
@@ -642,13 +630,13 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           date = new Date(params.row.createdAt);
         }
         if (isNaN(date.getTime())) {
-          console.log('Behavior Date Debug - Invalid date, returning "Invalid Date"');
-          console.log('=== BEHAVIOR DATE DEBUG END ===');
+          ('Behavior Date Debug - Invalid date, returning "Invalid Date"');
+          ('=== BEHAVIOR DATE DEBUG END ===');
           return 'Invalid Date';
         }
         const formattedDate = formatQatarDateOnly(date);
-        console.log('Behavior Date Debug - Formatted date (fallback):', formattedDate);
-        console.log('=== BEHAVIOR DATE DEBUG END ===');
+        ('Behavior Date Debug - Formatted date (fallback):', formattedDate);
+        ('=== BEHAVIOR DATE DEBUG END ===');
         return formattedDate;
       }
     },
@@ -1056,13 +1044,35 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         />
       </div>
 
-      <DeleteConfirmationModal
-        open={deleteModal.open}
-        onClose={() => setDeleteModal({ open: false, item: null })}
-        onConfirm={confirmDelete}
-        title="Delete Behavior"
-        message="Are you sure you want to delete this behavior record?"
-      />
+      {deleteModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+            <CardBody>
+              <h3>Delete Behavior</h3>
+              <p>Are you sure you want to delete this behavior record?</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
+                  Delete
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

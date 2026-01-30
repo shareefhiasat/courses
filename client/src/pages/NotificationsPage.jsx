@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useAuth } from '../contexts/AuthContext';
+import { db } from '@firebaseServices/config';
+import { useAuth } from '@contexts/AuthContext';
 import { 
   subscribeToNotifications,
   archiveNotification,
@@ -10,20 +10,20 @@ import {
   deleteNotification,
   markNotificationRead,
   markAllNotificationsRead
-} from '../firebase/notifications';
-import { useLang } from '../contexts/LangContext';
+} from '@firebaseServices/notifications';
+import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Trash2, Eye, EyeOff, MessageCircle, Mail, Clock, UserCheck, Volume2, Vibrate, TestTube } from 'lucide-react';
-import { formatDateTime } from '../utils/date';
-import { Button, Input, Select, Badge, Container, Loading } from '../components/ui';
-import { ToggleSwitch } from '../components/shared';
-import useNotifications from '../hooks/useNotifications';
-import { PENALTY_TYPES } from '../constants/penaltyTypes';
-import { ABSENCE_TYPES } from '../constants/absenceTypes';
-import { ATTENDANCE_STATUS } from '../firebase/attendance';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { getClasses } from '../firebase/firestore';
+import { formatDateTime } from '@utils/date';
+import { Button, Input, Select, Badge, Container, Loading } from '@ui';
+import { ToggleSwitch } from '@ui';
+import useNotifications from '@hooks/useNotifications';
+import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { ABSENCE_TYPES } from '@constants/absenceTypes';
+import { ATTENDANCE_STATUS } from '@firebaseServices/attendance';
+import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { getClasses } from '@firebaseServices/firestore';
 
 const NotificationsPage = () => {
   const { user } = useAuth();

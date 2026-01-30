@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { Container, Card, CardBody, Button, Badge, Tabs } from '../components/ui';
-import StatCard from '../components/ui/StatCard/StatCard';
-import ProgressWidget from '../components/ui/ProgressWidget/ProgressWidget';
-import Leaderboard from '../components/ui/Leaderboard/Leaderboard';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { Container, Card, CardBody, Button, Badge, Tabs } from '@ui';
+import StatCard from '@ui/StatCard/StatCard';
+import ProgressWidget from '@ui/ProgressWidget/ProgressWidget';
+import Leaderboard from '@ui/Leaderboard/Leaderboard';
 import {
   BookOpen, Clock, Trophy, Target, Calendar, Users, Play,
   CheckCircle, Lock, ChevronDown, ChevronUp, User, Award

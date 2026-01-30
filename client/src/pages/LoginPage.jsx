@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { useLang } from '../contexts/LangContext';
-import AuthForm from '../components/AuthForm';
-import { Container, Spinner } from '../components/ui';
-import FancyLoading from '../components/ui/FancyLoading/FancyLoading';
+import { useAuth } from '@contexts/AuthContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
+import AuthForm from '@/components/AuthForm';
+import { Container, Spinner } from '@ui';
+import { FancyLoading } from '@ui';
+import { Navbar } from '@ui';
 import styles from './LoginPage.module.css';
 
 const LoginPage = () => {
@@ -119,6 +120,9 @@ const LoginPage = () => {
 
   return (
     <div className={pageClass}>
+      {/* Add Navbar without SideDrawer */}
+      <Navbar />
+      
       <Container maxWidth="sm" className={styles.formContainer}>
         <AuthForm />
         

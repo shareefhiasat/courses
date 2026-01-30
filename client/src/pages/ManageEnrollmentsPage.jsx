@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { db } from '../firebase/config';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, where } from 'firebase/firestore';
-import { getEnrollments } from '../firebase/firestore';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '../components/ui';
-import { FancyLoading } from '../components/ui/FancyLoading/FancyLoading';
+import { getEnrollments } from '@firebaseServices/firestore';
+import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '@ui';
+import { FancyLoading } from '@ui';
 import { UserX, UserCheck, Search, Shield, AlertCircle, Info } from 'lucide-react';
 import styles from './ManageEnrollmentsPage.module.css';
 
@@ -115,10 +115,7 @@ const ManageEnrollmentsPage = () => {
     return result;
   }, [classes, programs, subjects, programFilter, subjectFilter, classFilter, yearFilter, termFilter]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
+  
   const loadData = async () => {
     try {
       const [classesSnap, programsRes, subjectsRes] = await Promise.all([
@@ -142,6 +139,10 @@ const ManageEnrollmentsPage = () => {
       setInitialLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const loadStudents = async (classId) => {
     setLoading(true);

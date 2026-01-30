@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, CollapsibleDashboardSection, Tabs } from '../components/ui';
-import InfoTooltip from '../components/ui/InfoTooltip/InfoTooltip';
+import { db } from '@firebaseServices/config';
+import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, CollapsibleDashboardSection, Tabs } from '@ui';
+import { InfoTooltip } from '@ui';
 import { Info, FileText, BookOpen, Zap, Wrench, Filter, BarChart3 } from 'lucide-react';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { getClasses, getActivities } from '../firebase/firestore';
-import { getCardConfig, getShapeRadius } from '../utils/cardColors';
+import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { getClasses, getActivities } from '@firebaseServices/firestore';
+import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import styles from './QuizResultsPage.module.css';
 
 const ReviewResultsPage = () => {

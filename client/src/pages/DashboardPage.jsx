@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
  // import Joyride from 'react-joyride';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import {
@@ -19,15 +19,15 @@ import {
   getSMTPConfig,
   updateSMTPConfig,
   deleteEmailLog
-} from '../firebase/firestore';
+} from '@firebaseServices/firestore';
 import { getDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { getLoginLogs, getCourses, setCourse, deleteCourse, getAllowlist, updateAllowlist } from '../firebase/firestore';
-import { notifyAllUsers, notifyUsersByClass } from '../firebase/notifications';
-import { Loading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection } from '../components/ui';
-import InfoTooltip from '../components/ui/InfoTooltip/InfoTooltip';
-import { getCardConfig, getShapeRadius } from '../utils/cardColors';
-import { RibbonTabs, DragGrid, EmailManager, EmailComposer, SmartEmailComposer, UserDeletionModal, DeleteConfirmationModal, EmailSettings, EmailTemplates, EmailLogs } from '../components/shared';
+import { db } from '@firebaseServices/config';
+import { getLoginLogs, getCourses, setCourse, deleteCourse, getAllowlist, updateAllowlist } from '@firebaseServices/firestore';
+import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notifications';
+import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection } from '@ui';
+import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
+import { getCardConfig, getShapeRadius } from '@utils/cardColors';
+import { RibbonTabs, DragGrid, EmailManager, SmartEmailComposer, UserDeletionModal, EmailTemplates, EmailLogs } from '@ui';
 import ProgramsManagementPage from './ProgramsManagementPage';
 import SubjectsManagementPage from './SubjectsManagementPage';
 import MarksEntryPage from './MarksEntryPage';
@@ -37,18 +37,19 @@ import HRPenaltiesPage from './HRPenaltiesPage';
 import InstructorParticipationPage from './InstructorParticipationPage';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import ScheduledReportsPage from './ScheduledReportsPage';
-import { getSubjects, getPrograms } from '../firebase/programs';
-import { getAllQuizzes } from '../firebase/quizzes';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
-import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '../utils/userStatus';
+import { getSubjects, getPrograms } from '@firebaseServices/programs';
+import { getAllQuizzes } from '@firebaseServices/quizzes';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';
-import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe } from 'lucide-react';
-import { formatDateTime } from '../utils/date';
-import { formatQatarDate, formatQatarDateOnly } from '../utils/timezone';
+import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe, Tag, QrCode, KeyRound } from 'lucide-react';
+import { formatDateTime } from '@utils/date';
+import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
 // DateTimePicker and ToggleSwitch replaced with UI library DatePicker and checkbox
 // import DateTimePicker from '../components/DateTimePicker';
 // import ToggleSwitch from '../components/ToggleSwitch';
-import { ToggleSwitch } from '../components/shared';
+import { ToggleSwitch } from '@ui';
 
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();
@@ -181,6 +182,10 @@ const DashboardPage = () => {
   const [resourceProgramFilter, setResourceProgramFilter] = useState('all');
   const [resourceSubjectFilter, setResourceSubjectFilter] = useState('all');
   const [resourceClassFilter, setResourceClassFilter] = useState('all');
+  const [resourceCategoryFilter, setResourceCategoryFilter] = useState('all');
+  const [classProgramFilter, setClassProgramFilter] = useState('all');
+  const [classSubjectFilter, setClassSubjectFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('all');
   const [emailComposerOpen, setEmailComposerOpen] = useState(false);
   const [userQuickFilter, setUserQuickFilter] = useState('all');
   const [activityAutoRefreshMs, setActivityAutoRefreshMs] = useState(0);
@@ -386,16 +391,7 @@ const DashboardPage = () => {
   }, []);
 
 
-  // Auto-refresh for Activity tab
-  useEffect(() => {
-    if (!activityAutoRefreshMs || activeTab !== 'login') return;
-    const id = setInterval(() => {
-      loadData();
-      setActivityLastUpdatedAt(Date.now());
-    }, activityAutoRefreshMs);
-    return () => clearInterval(id);
-  }, [activityAutoRefreshMs, activeTab]);
-
+  
   // Progress ticker for Activity auto refresh bar
   useEffect(() => {
     if (!activityAutoRefreshMs || activeTab !== 'login') return;
@@ -452,6 +448,39 @@ const DashboardPage = () => {
     });
     setFormErrors({});
   }, []);
+
+  // QR Code generation function for users
+  const openQRCodeInNewTab = async (user) => {
+    try {
+      const referenceId = user.studentNumber ? `STU-${user.studentNumber}` : generateReferenceId(user.docId || user.id);
+      const qrDataUrl = await generateStudentQRCode(referenceId, { width: 512, margin: 4 });
+      
+      const newTab = window.open();
+      newTab.document.write(`
+        <html>
+          <head>
+            <title>QR Code - ${user.displayName || user.name}</title>
+            <style>
+              body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; background: #f3f4f6; }
+              .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); text-align: center; }
+              .ref { color: #6b7280; font-size: 0.875rem; margin-top: 0.5rem; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <img src="${qrDataUrl}" alt="QR Code" />
+              <h1>${user.displayName || user.name}</h1>
+              <p>${user.email || ''}</p>
+              <div class="ref">${referenceId}</div>
+            </div>
+          </body>
+        </html>
+      `);
+    } catch (error) {
+      logger.error('Failed to open QR code:', error);
+      toast?.showError('Failed to generate QR code');
+    }
+  };
 
   // Data states
   const [activities, setActivities] = useState([]);
@@ -668,7 +697,7 @@ const DashboardPage = () => {
   const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('all');
   const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('all');
   const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
-  const [userForm, setUserForm] = useState({ email: '', displayName: '', role: 'student' });
+  const [userForm, setUserForm] = useState({ email: '', displayName: '', role: 'student', referenceId: '' });
   const [activeUserFormTab, setActiveUserFormTab] = useState('basic');
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
@@ -690,7 +719,8 @@ const DashboardPage = () => {
     featured: false,
     programId: '',
     subjectId: '',
-    classId: ''
+    classId: '',
+    courseId: ''
   });
 
   // ========== MEMOIZED DROPDOWN OPTIONS ==========
@@ -1145,6 +1175,16 @@ const DashboardPage = () => {
       setLoading(false);
     }
   };
+
+  // Auto-refresh for Activity tab
+  useEffect(() => {
+    if (!activityAutoRefreshMs || activeTab !== 'login') return;
+    const id = setInterval(() => {
+      loadData();
+      setActivityLastUpdatedAt(Date.now());
+    }, activityAutoRefreshMs);
+    return () => clearInterval(id);
+  }, [activityAutoRefreshMs, activeTab]);
 
   // Validation functions for deletion
   const validateUserDeletion = async (user) => {
@@ -2106,6 +2146,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           }}
                           options={activityProgramOptions}
                           style={{ width: '100%' }}
+                          icon={<Filter size={16} />}
                         />
                       </div>
                       <Select
@@ -2120,6 +2161,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         options={activitySubjectOptions}
                         style={{ width: '100%' }}
                         disabled={!activityForm.programId}
+                        icon={<Filter size={16} />}
                       />
                       <Select
                         searchable
@@ -2139,6 +2181,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       }).filter(o => !activityForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === activityForm.subjectId)}
                         style={{ width: '100%' }}
                         disabled={!activityForm.subjectId}
+                        icon={<Filter size={16} />}
                       />
                     </div>
                     <div className="form-row">
@@ -2148,7 +2191,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           placeholder={t('activity_id') || 'Activity ID'}
                           value={activityForm.id}
                           onChange={(e) => setActivityForm({ ...activityForm, id: e.target.value })}
-                          disabled={editingActivity}
                           required
                           error={formErrors.id}
                         />
@@ -2158,15 +2200,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         placeholder={t('course') || 'Course'}
                         value={activityForm.course}
                         onChange={(e) => setActivityForm({ ...activityForm, course: e.target.value })}
-                        options={(courses && courses.length > 0 ? courses : [
-                          { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
-                          { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
-                          { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
-                          { docId: 'general', name_en: 'General', name_ar: 'عام' },
-                        ]).map(c => ({
-                          value: c.docId,
-                          label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)
-                        }))}
+                        options={[
+                          { value: '', label: lang === 'ar' ? 'لا يوجد فئة' : 'No Category' },
+                          ...(courses && courses.length > 0 ? courses : [
+                            { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
+                            { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
+                            { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
+                            { docId: 'general', name_en: 'General', name_ar: 'عام' },
+                          ]).map(c => ({
+                            value: c.docId,
+                            label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)
+                          }))
+                        ]}
                         style={{ width: '100%' }}
                       />
                       <Select
@@ -2514,7 +2559,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           ← Previous
                         </Button>
                       )}
-                      {activeActivityFormTab !== 'settings' ? (
+                      {activeActivityFormTab !== 'settings' && (
                         <Button 
                           type="button" 
                           variant="secondary"
@@ -2528,7 +2573,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         >
                           Next →
                         </Button>
-                      ) : (
+                      )}
+                      {activeActivityFormTab === 'settings' && (
                         <Button type="submit" variant="primary" loading={loading}>
                           {(editingActivity ? (t('update') || 'Update') : (t('save') || 'Save'))}
                         </Button>
@@ -2551,11 +2597,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       >
                         {t('cancel') || 'Cancel'}
                       </Button>
-                      {editingActivity && (
-                        <Button type="button" variant="outline" onClick={handleCancelEdit}>
-                          {t('cancel_edit') || 'Cancel Edit'}
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -2978,25 +3019,64 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                 {/* Form Actions - Show on all tabs */}
                 <div className="form-row flex-row">
-                  <div className="form-actions" style={{ flex: 1, justifyContent: 'flex-end', gap: '0.75rem' }}>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => setSmartComposerOpen(true)}
-                    >
-                      {t('compose_email') || 'Compose Email'}
-                    </Button>
-                    <Button type="submit" variant="primary" loading={loading}>
-                      {(editingAnnouncement ? (t('update') || 'Update') : (t('save') || 'Save'))}
-                    </Button>
-                    {editingAnnouncement && (
-                      <Button type="button" variant="outline" onClick={() => {
-                        setEditingAnnouncement(null);
-                        setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
-                      }}>
-                        {t('cancel_edit') || 'Cancel Edit'}
+                  <div className="form-actions" style={{ flex: 1, justifyContent: 'space-between', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      {activeAnnouncementFormTab !== 'basic' && (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => {
+                            if (activeAnnouncementFormTab === 'email') {
+                              setActiveAnnouncementFormTab('content');
+                            } else if (activeAnnouncementFormTab === 'content') {
+                              setActiveAnnouncementFormTab('basic');
+                            }
+                          }}
+                        >
+                          ← Previous
+                        </Button>
+                      )}
+                      {activeAnnouncementFormTab !== 'email' && (
+                        <Button 
+                          type="button" 
+                          variant="secondary"
+                          onClick={() => {
+                            if (activeAnnouncementFormTab === 'basic') {
+                              setActiveAnnouncementFormTab('content');
+                            } else if (activeAnnouncementFormTab === 'content') {
+                              setActiveAnnouncementFormTab('email');
+                            }
+                          }}
+                        >
+                          Next →
+                        </Button>
+                      )}
+                      {activeAnnouncementFormTab === 'email' && (
+                        <Button type="submit" variant="primary" loading={loading}>
+                          {(editingAnnouncement ? (t('update') || 'Update') : (t('save') || 'Save'))}
+                        </Button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setSmartComposerOpen(true)}
+                      >
+                        {t('compose_email') || 'Compose Email'}
                       </Button>
-                    )}
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setEditingAnnouncement(null);
+                          setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
+                          setActiveAnnouncementFormTab('basic');
+                        }}
+                      >
+                        {t('cancel') || 'Cancel'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </form>
@@ -3654,23 +3734,115 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                 {/* Form Actions - Show on all tabs */}
                 <div className="form-actions">
-                  <Button type="submit" variant="primary" loading={loading}>
-                    {(editingClass ? t('update') : t('save'))}
-                  </Button>
-                  {editingClass && (
-                    <Button type="button" variant="outline" onClick={() => {
-                      setEditingClass(null);
-                      setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
-                    }}>
-                      {t('cancel_edit') || 'Cancel Edit'}
-                    </Button>
-                  )}
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      {activeClassFormTab !== 'basic' && (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => {
+                            if (activeClassFormTab === 'settings') {
+                              setActiveClassFormTab('academic');
+                            } else if (activeClassFormTab === 'academic') {
+                              setActiveClassFormTab('basic');
+                            }
+                          }}
+                        >
+                          ← Previous
+                        </Button>
+                      )}
+                      {activeClassFormTab !== 'settings' && (
+                        <Button 
+                          type="button" 
+                          variant="secondary"
+                          onClick={() => {
+                            if (activeClassFormTab === 'basic') {
+                              setActiveClassFormTab('academic');
+                            } else if (activeClassFormTab === 'academic') {
+                              setActiveClassFormTab('settings');
+                            }
+                          }}
+                        >
+                          Next →
+                        </Button>
+                      )}
+                      {activeClassFormTab === 'settings' && (
+                        <Button type="submit" variant="primary" loading={loading}>
+                          {(editingClass ? t('update') : t('save'))}
+                        </Button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setEditingClass(null);
+                          setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
+                          setActiveClassFormTab('basic');
+                        }}
+                      >
+                        {t('cancel') || 'Cancel'}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </form>
 
+              {/* Filters for Classes */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+                <Select
+                  value={classProgramFilter || ''}
+                  onChange={(e) => setClassProgramFilter(e.target.value)}
+                  options={[
+                    { value: '', label: t('all_programs') || 'All Programs' },
+                    ...(programs || []).map(p => ({
+                      value: p.docId,
+                      label: lang === 'ar' ? (p.name_ar || p.name_en) : (p.name_en || p.docId)
+                    }))
+                  ]}
+                  placeholder={t('all_programs') || 'All Programs'}
+                  searchable
+                  icon={<Filter size={16} />}
+                />
+                <Select
+                  value={classSubjectFilter || ''}
+                  onChange={(e) => setClassSubjectFilter(e.target.value)}
+                  options={[
+                    { value: '', label: t('all_subjects') || 'All Subjects' },
+                    ...(subjects || []).map(s => ({
+                      value: s.docId,
+                      label: lang === 'ar' ? (s.name_ar || s.name_en) : (s.name_en || s.docId)
+                    }))
+                  ]}
+                  placeholder={t('all_subjects') || 'All Subjects'}
+                  searchable
+                  icon={<Filter size={16} />}
+                />
+                <Select
+                  value={classFilter || ''}
+                  onChange={(e) => setClassFilter(e.target.value)}
+                  options={[
+                    { value: '', label: t('all_classes') || 'All Classes' },
+                    ...(classes || []).map(c => ({
+                      value: c.docId,
+                      label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}`
+                    }))
+                  ]}
+                  placeholder={t('all_classes') || 'All Classes'}
+                  searchable
+                  icon={<Filter size={16} />}
+                />
+              </div>
+
               <div style={{ marginTop: '1rem' }}>
                 <AdvancedDataGrid
-                  rows={classes}
+                  rows={classes.filter(classItem => {
+                    if (classProgramFilter && classItem.programId !== classProgramFilter) return false;
+                    if (classSubjectFilter && classItem.subjectId !== classSubjectFilter) return false;
+                    if (classFilter && classItem.docId !== classFilter) return false;
+                    return true;
+                  })}
                 getRowId={(row) => row.docId || row.id}
                 columns={[
                   { field: 'name', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
@@ -4707,7 +4879,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                 await loadData();
                 setEditingUser(null);
-                setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', role: 'student' });
+                setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', role: 'student', referenceId: '' });
               } catch (error) {
                 toast?.showError('Error: ' + error.message);
               } finally {
@@ -4746,6 +4918,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     value={userForm.studentNumber || ''}
                     onChange={(e) => setUserForm({ ...userForm, studentNumber: e.target.value })}
                   />
+                  <Input
+                    type="text"
+                    placeholder={t('reference_id_placeholder') || 'Custom Reference ID (QR Code)'}
+                    value={userForm.referenceId || ''}
+                    onChange={(e) => setUserForm({ ...userForm, referenceId: e.target.value })}
+                    description={t('reference_id_description') || 'Leave empty to auto-generate, or enter custom ID for QR code'}
+                  />
+                  <div /> {/* Empty div to maintain grid layout */}
                 </div>
               )}
 
@@ -4804,17 +4984,58 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               )}
 
               <div className="form-actions">
-                <Button type="submit" variant="primary" loading={loading}>
-                  {(editingUser ? t('update') : t('save'))}
-                </Button>
-                {editingUser && (
-                  <Button type="button" variant="outline" onClick={() => {
-                    setEditingUser(null);
-                    setUserForm({ email: '', displayName: '', role: 'student' });
-                  }}>
-                    {t('cancel_edit') || 'Cancel Edit'}
-                  </Button>
-                )}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    {activeUserFormTab !== 'basic' && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          if (activeUserFormTab === 'role') {
+                            setActiveUserFormTab('academic');
+                          } else if (activeUserFormTab === 'academic') {
+                            setActiveUserFormTab('basic');
+                          }
+                        }}
+                      >
+                        ← Previous
+                      </Button>
+                    )}
+                    {activeUserFormTab !== 'role' && (
+                      <Button 
+                        type="button" 
+                        variant="secondary"
+                        onClick={() => {
+                          if (activeUserFormTab === 'basic') {
+                            setActiveUserFormTab('academic');
+                          } else if (activeUserFormTab === 'academic') {
+                            setActiveUserFormTab('role');
+                          }
+                        }}
+                      >
+                        Next →
+                      </Button>
+                    )}
+                    {activeUserFormTab === 'role' && (
+                      <Button type="submit" variant="primary" loading={loading}>
+                        {(editingUser ? t('update') : t('save'))}
+                      </Button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditingUser(null);
+                        setUserForm({ email: '', displayName: '', role: 'student', referenceId: '' });
+                        setActiveUserFormTab('basic');
+                      }}
+                    >
+                      {t('cancel') || 'Cancel'}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </form>
 
@@ -4939,7 +5160,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           displayName: params.row.displayName || '',
                           realName: params.row.realName || '',
                           studentNumber: params.row.studentNumber || '',
-                          role: params.row.role || 'student'
+                          role: params.row.role || 'student',
+                          referenceId: params.row.referenceId || ''
                         });
                       }}>
                         {t('edit') || 'Edit'}
@@ -4959,7 +5181,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           }} 
                           title={t('impersonate_student') || 'View as Student'}
                         >
-                          🎭
+                          <Eye size={16} />
                         </Button>
                       )}
                       {(params.row.role || 'student') === 'student' && (
@@ -4967,12 +5189,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           size="sm" 
                           variant="outline" 
                           onClick={() => {
-                            // Navigate to student profile with QR tab
-                            window.open(`/student-profile?uid=${params.row.docId || params.row.id}`, '_blank');
+                            openQRCodeInNewTab(params.row);
                           }}
                           title={t('view_qr_code') || 'View QR Code'}
                         >
-                          📱
+                          <QrCode size={16} />
                         </Button>
                       )}
                       <Button 
@@ -4991,7 +5212,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         }}
                         title={t('reset_password') || 'Reset Password'}
                       >
-                        {t('reset_password') || 'Reset Password'}
+                        <KeyRound size={16} />
                       </Button>
                       <Button 
                         size="sm" 
@@ -5103,7 +5324,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   ...resourceForm,
                   programId: resourceForm.programId || null,
                   subjectId: resourceForm.subjectId || null,
-                  classId: resourceForm.classId || null
+                  classId: resourceForm.classId || null,
+                  courseId: resourceForm.courseId || null
                 };
                 
                 const result = editingResource ?
@@ -5226,7 +5448,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   }
 
                   await loadData();
-                  setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '' });
+                  setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '' });
                   setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
                   setEditingResource(null);
                   toast?.showSuccess(editingResource ? 'Resource updated successfully!' : 'Resource created successfully!');
@@ -5272,6 +5494,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         };
                       })}
                       disabled={!resourceForm.subjectId}
+                    />
+                    <Select
+                      searchable
+                      placeholder={t('category') || 'Category (Optional)'}
+                      value={resourceForm.courseId || ''}
+                      onChange={(e) => setResourceForm({ ...resourceForm, courseId: e.target.value })}
+                      options={[
+                        { value: '', label: t('no_category') || 'No Category' },
+                        ...courses.map(course => ({
+                          value: course.docId,
+                          label: lang === 'ar' ? (course.name_ar || course.name_en) : (course.name_en || course.name_ar)
+                        })).sort((a, b) => a.label.localeCompare(b.label))
+                      ]}
                     />
                   </div>
 
@@ -5373,39 +5608,155 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
               {/* Form Actions - Show on all tabs */}
               <div className="form-row flex-row">
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
-                  <Button type="submit" variant="primary" loading={loading}>
-                    {(editingResource ? t('update') : t('save'))}
-                  </Button>
-                  {editingResource && (
-                    <Button type="button" variant="outline" onClick={() => {
-                      setEditingResource(null);
-                      setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '' });
-                      setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
-                    }}>
-                      {t('cancel_edit') || 'Cancel Edit'}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    {activeResourceFormTab !== 'basic' && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          if (activeResourceFormTab === 'settings') {
+                            setActiveResourceFormTab('content');
+                          } else if (activeResourceFormTab === 'content') {
+                            setActiveResourceFormTab('basic');
+                          }
+                        }}
+                      >
+                        ← Previous
+                      </Button>
+                    )}
+                    {activeResourceFormTab !== 'settings' && (
+                      <Button 
+                        type="button" 
+                        variant="secondary"
+                        onClick={() => {
+                          if (activeResourceFormTab === 'basic') {
+                            setActiveResourceFormTab('content');
+                          } else if (activeResourceFormTab === 'content') {
+                            setActiveResourceFormTab('settings');
+                          }
+                        }}
+                      >
+                        Next →
+                      </Button>
+                    )}
+                    {activeResourceFormTab === 'settings' && (
+                      <Button type="submit" variant="primary" loading={loading}>
+                        {(editingResource ? t('update') : t('save'))}
+                      </Button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditingResource(null);
+                        setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '' });
+                        setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
+                        setActiveResourceFormTab('basic');
+                      }}
+                    >
+                      {t('cancel') || 'Cancel'}
                     </Button>
-                  )}
+                  </div>
                 </div>
               </div>
             </form>
+
+            {/* Resource Filters */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '1rem', 
+              marginBottom: '1rem',
+              padding: '1rem',
+              background: 'var(--surface-secondary, #f8fafc)',
+              borderRadius: '8px',
+              flexWrap: 'wrap'
+            }}>
+              <Select
+                searchable
+                placeholder={t('filter_by_program') || 'Filter by Program'}
+                value={resourceProgramFilter}
+                onChange={(e) => setResourceProgramFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_programs') || 'All Programs' },
+                  ...activityProgramOptions
+                ]}
+                style={{ minWidth: '200px' }}
+              />
+              <Select
+                searchable
+                placeholder={t('filter_by_subject') || 'Filter by Subject'}
+                value={resourceSubjectFilter}
+                onChange={(e) => setResourceSubjectFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_subjects') || 'All Subjects' },
+                  ...activitySubjectOptions.filter(o => !resourceProgramFilter || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceProgramFilter)
+                ]}
+                disabled={!resourceProgramFilter}
+                style={{ minWidth: '200px' }}
+              />
+              <Select
+                searchable
+                placeholder={t('filter_by_class') || 'Filter by Class'}
+                value={resourceClassFilter}
+                onChange={(e) => setResourceClassFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_classes') || 'All Classes' },
+                  ...activityClassOptions
+                ]}
+                disabled={!resourceSubjectFilter}
+                style={{ minWidth: '200px' }}
+              />
+              <Select
+                searchable
+                placeholder={t('filter_by_category') || 'Filter by Category'}
+                value={resourceCategoryFilter}
+                onChange={(e) => setResourceCategoryFilter(e.target.value)}
+                options={[
+                  { value: 'all', label: t('all_categories') || 'All Categories' },
+                  ...courses.map(course => ({
+                    value: course.docId,
+                    label: lang === 'ar' ? (course.name_ar || course.name_en) : (course.name_en || course.name_ar)
+                  })).sort((a, b) => a.label.localeCompare(b.label))
+                ]}
+                style={{ minWidth: '200px' }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setResourceProgramFilter('all');
+                  setResourceSubjectFilter('all');
+                  setResourceClassFilter('all');
+                  setResourceCategoryFilter('all');
+                }}
+                style={{ minWidth: '120px' }}
+              >
+                {t('clear_filters') || 'Clear Filters'}
+              </Button>
+            </div>
 
             <div style={{ marginTop: '1rem' }}>
               <AdvancedDataGrid
                 rows={resources.filter(r => {
                   // If resource has no program/subject/class, it's public and should be included
-                  if (!r.programId && !r.subjectId && !r.classId) {
+                  if (!r.programId && !r.subjectId && !r.classId && !r.courseId) {
                     return true;
                   }
                   
-                  if (enrollmentClassFilter !== 'all') {
-                    return r.classId === enrollmentClassFilter;
+                  if (resourceClassFilter !== 'all') {
+                    return r.classId === resourceClassFilter;
                   }
-                  if (enrollmentSubjectFilter !== 'all') {
-                    return r.subjectId === enrollmentSubjectFilter;
+                  if (resourceSubjectFilter !== 'all') {
+                    return r.subjectId === resourceSubjectFilter;
                   }
-                  if (enrollmentProgramFilter !== 'all') {
-                    return r.programId === enrollmentProgramFilter;
+                  if (resourceProgramFilter !== 'all') {
+                    return r.programId === resourceProgramFilter;
+                  }
+                  if (resourceCategoryFilter !== 'all') {
+                    return r.courseId === resourceCategoryFilter;
                   }
                   return true;
                 })}
@@ -5424,6 +5775,29 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         {typeConfig.icon} {typeConfig.text}
+                      </span>
+                    );
+                  }
+                },
+                {
+                  field: 'courseId', headerName: t('category') || 'Category', width: 150,
+                  valueGetter: (params) => {
+                    const row = params?.row || {};
+                    return row.courseId || params?.value || null;
+                  },
+                  renderCell: (params) => {
+                    const courseId = params.value || params.row?.courseId;
+                    if (!courseId) return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+                        <Tag size={16} color="var(--text-muted, #6b7280)" /> —
+                      </span>
+                    );
+                    const course = courses.find(c => (c.docId || c.id) === courseId);
+                    if (!course) return '—';
+                    const courseName = lang === 'ar' ? (course.name_ar || course.name_en) : (course.name_en || course.name_ar);
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Tag size={16} color="var(--color-secondary, #8b5cf6)" /> {courseName}
                       </span>
                     );
                   }
@@ -5549,7 +5923,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             featured: params.row.featured || false,
                             programId: params.row.programId || '',
                             subjectId: params.row.subjectId || '',
-                            classId: params.row.classId || ''
+                            classId: params.row.classId || '',
+                            courseId: params.row.courseId || ''
                           });
                         }}>
                           Edit
@@ -5904,6 +6279,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
         {activeTab === 'emailTemplates' && (
           <div className="email-templates-tab">
+            <FancyLoading />
             <EmailTemplates />
           </div>
         )}
@@ -6141,28 +6517,49 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       />
 
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        open={deleteModal.open}
-        onClose={() => setDeleteModal({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null })}
-        onConfirm={deleteModal.onConfirm || (() => {})}
-        title={deleteModal.type === 'activity' ? 'Delete Activity' :
-               deleteModal.type === 'announcement' ? 'Delete Announcement' :
-               deleteModal.type === 'class' ? 'Delete Class' :
-               deleteModal.type === 'resource' ? 'Delete Resource' :
-               deleteModal.type === 'enrollment' ? 'Delete Enrollment' :
-               deleteModal.type === 'category' ? 'Delete Category' : 'Confirm Deletion'}
-        message={deleteModal.type === 'activity' ? 'Are you sure you want to delete this activity? This will also delete all related submissions.' :
-                 deleteModal.type === 'announcement' ? 'Are you sure you want to delete this announcement?' :
-                 deleteModal.type === 'class' ? 'Are you sure you want to delete this class? This will also delete all enrollments and related activities.' :
-                 deleteModal.type === 'resource' ? 'Are you sure you want to delete this resource?' :
-                 deleteModal.type === 'enrollment' ? 'Are you sure you want to delete this enrollment?' :
-                 deleteModal.type === 'category' ? 'Are you sure you want to delete this category? Activities with this category will fallback to "General".' :
-                 'Are you sure you want to delete this item? This action cannot be undone.'}
-        itemName={deleteModal.item?._displayName || deleteModal.item?.title_en || deleteModal.item?.title || deleteModal.item?.name || deleteModal.item?.name_en || deleteModal.item?.code || deleteModal.item?.id}
-        relatedData={deleteModal.relatedData}
-        warningMessage={deleteModal.warningMessage}
-        loading={loading}
-      />
+      {deleteModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+            <CardBody>
+              <h3>{deleteModal.type === 'activity' ? 'Delete Activity' :
+                     deleteModal.type === 'announcement' ? 'Delete Announcement' :
+                     deleteModal.type === 'class' ? 'Delete Class' :
+                     deleteModal.type === 'resource' ? 'Delete Resource' :
+                     deleteModal.type === 'enrollment' ? 'Delete Enrollment' :
+                     deleteModal.type === 'category' ? 'Delete Category' : 'Confirm Deletion'}</h3>
+              <p>{deleteModal.type === 'activity' ? 'Are you sure you want to delete this activity? This will also delete all related submissions.' :
+                   deleteModal.type === 'announcement' ? 'Are you sure you want to delete this announcement?' :
+                   deleteModal.type === 'class' ? 'Are you sure you want to delete this class? This will also delete all enrollments and related activities.' :
+                   deleteModal.type === 'resource' ? 'Are you sure you want to delete this resource?' :
+                   deleteModal.type === 'enrollment' ? 'Are you sure you want to delete this enrollment?' :
+                   deleteModal.type === 'category' ? 'Are you sure you want to delete this category? Activities with this category will fallback to "General".' :
+                   'Are you sure you want to delete this item? This action cannot be undone.'}</p>
+              {deleteModal.warningMessage && (
+                <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{deleteModal.warningMessage}</p>
+              )}
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null })}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={deleteModal.onConfirm || (() => {})} loading={loading} style={{ backgroundColor: '#dc2626' }}>
+                  Delete
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
 
       {/* Test Email Dialog */}
       <Modal

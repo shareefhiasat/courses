@@ -2,20 +2,20 @@ import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from '
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import { Globe2, Code2, Monitor, Sigma, BookOpen, Award, HelpCircle, ClipboardList, Play, StarOff, Hourglass, Repeat, CheckCircle, Star, Pin, Clock, AlertCircle, FileText, Link2, Video, LayoutGrid, Plus } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
-import Tabs from '../components/ui/Tabs';
-import { getActivities, getAnnouncements, getCourses, getResources } from '../firebase/firestore';
-import { getAllQuizzes } from '../firebase/quizzes';
-import { getUserSubmissions } from '../firebase/submissions';
-import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { Tabs } from '@ui';
+import { getActivities, getAnnouncements, getCourses, getResources } from '@firebaseServices/firestore';
+import { getAllQuizzes } from '@firebaseServices/quizzes';
+import { getUserSubmissions } from '@firebaseServices/submissions';
+import { useAuth } from '@contexts/AuthContext';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useLang } from '../contexts/LangContext';
-import { formatDateTime } from '../utils/date';
-import { Loading } from '../components/ui';
-import { UnifiedCard } from '../components/shared';
-import AuthForm from '../components/AuthForm';
-import logger from '../utils/logger';
+import { db } from '@firebaseServices/config';
+import { useLang } from '@contexts/LangContext';
+import { formatDateTime } from '@utils/date';
+import { Loading, Card, CardBody } from '@ui';
+import UnifiedCard from '@/components/UnifiedCard';
+import AuthForm from '@/components/AuthForm';
+import logger from '@utils/logger';
 import './HomePage.css';
 
 const HomePage = memo(() => {
@@ -28,8 +28,14 @@ const HomePage = memo(() => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Mode: 'activities' | 'resources' | 'quizzes'
+  // Mode: 'activities' | 'resources'
   const mode = searchParams.get('mode') || 'activities';
+  
+  // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'lab' | 'project' (only used when mode === 'activities')
+  const [activityType, setActivityType] = useState('all');
+  
+  // Category filter for activities: '' | 'programming' | 'computing' | 'algorithm' | 'general'
+  const [category, setCategory] = useState('');
   
   // Auto-search from URL params (from notifications)
   const urlSearchTerm = searchParams.get('search') || '';
@@ -47,7 +53,7 @@ const HomePage = memo(() => {
   const [runTour, setRunTour] = useState(false);
   const filtersRef = useRef(null);
   const gridRef = useRef(null);
-  const tourSeenKey = `homePageHelpSeen_${mode}`;
+  const tourSeenKey = `homePageHelpSeen_${mode}_${activityType}_${category}`;
   
   // Data states
   const [activities, setActivities] = useState([]);
@@ -130,8 +136,13 @@ const HomePage = memo(() => {
   // Initialize mode from URL
   useEffect(() => {
     const urlMode = searchParams.get('mode');
-    if (urlMode && ['activities', 'resources', 'quizzes'].includes(urlMode)) {
+    if (urlMode && ['activities', 'resources'].includes(urlMode)) {
       // Mode is already set via searchParams
+      // Reset activity type and category when switching to activities
+      if (urlMode === 'activities') {
+        setActivityType('all');
+        setCategory('');
+      }
     }
   }, [searchParams]);
 
@@ -208,19 +219,36 @@ const HomePage = memo(() => {
     }
   };
 
-  // Get current items based on mode and course tab
+  // Get current items based on mode and activity type
   const getCurrentItems = () => {
     if (mode === 'resources') return resources;
-    if (mode === 'quizzes') return quizzes;
-    // Filter activities by course tab
-    if (activeTab === '') {
-      return activities.filter(a => a.show !== false && (!a.classId || enrolledClasses.includes(a.classId)));
+    
+    // Handle activities mode with activity type filtering
+    if (mode === 'activities') {
+      if (activityType === 'quiz') {
+        // Show quizzes when activity type is quiz, filtered by category
+        return quizzes.filter(q => 
+          (category === '' || (q.course || 'general') === category)
+        );
+      } else if (activityType === 'all') {
+        // Show all activities when activity type is all, filtered by category
+        return activities.filter(a => 
+          a.show !== false && 
+          (!a.classId || enrolledClasses.includes(a.classId)) &&
+          (category === '' || (a.course || 'general') === category)
+        );
+      } else {
+        // Show filtered activities by type (homework, training, lab, project), also filtered by category
+        return activities.filter(a => 
+          a.type === activityType && 
+          a.show !== false && 
+          (!a.classId || enrolledClasses.includes(a.classId)) &&
+          (category === '' || (a.course || 'general') === category)
+        );
+      }
     }
-    return activities.filter(a => 
-      (a.course || 'general') === activeTab && 
-      a.show !== false && 
-      (!a.classId || enrolledClasses.includes(a.classId))
-    );
+    
+    return [];
   };
 
   // Filter items based on mode and filters
@@ -232,7 +260,8 @@ const HomePage = memo(() => {
     if (searchTerm.trim()) {
       const q = searchTerm.trim().toLowerCase();
       filtered = filtered.filter(item => {
-        if (mode === 'quizzes') {
+        // Handle quizzes in activities mode
+        if (mode === 'activities' && activityType === 'quiz') {
           const titleEn = (item.title_en || item.title || '').toLowerCase();
           const titleAr = (item.title_ar || '').toLowerCase();
           const descEn = (item.description_en || item.description || '').toLowerCase();
@@ -259,6 +288,10 @@ const HomePage = memo(() => {
     if (bookmarkFilter) {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
+        // Handle quizzes in activities mode
+        if (mode === 'activities' && activityType === 'quiz') {
+          return !!bookmarks.quizzes[id];
+        }
         return !!bookmarks[mode]?.[id];
       });
     }
@@ -279,10 +312,15 @@ const HomePage = memo(() => {
           return userProgress[id]?.completed;
         }
         if (mode === 'activities') {
-          return submissions[id]?.status === 'graded';
+          if (activityType === 'quiz') {
+            // Quizzes - check submissions (TODO: implement quiz completion check)
+            return false;
+          } else {
+            // Activities
+            return submissions[id]?.status === 'graded';
+          }
         }
-        // Quizzes - check submissions
-        return false; // TODO: implement quiz completion check
+        return false;
       });
     }
 
@@ -303,9 +341,20 @@ const HomePage = memo(() => {
         const dueDate = item.dueDate?.seconds ? new Date(item.dueDate.seconds * 1000) : new Date(item.dueDate);
         const now = new Date();
         const id = item.docId || item.id;
-        const isCompleted = mode === 'resources' 
-          ? userProgress[id]?.completed 
-          : (mode === 'activities' ? submissions[id]?.status === 'graded' : false);
+        let isCompleted = false;
+        
+        if (mode === 'resources') {
+          isCompleted = userProgress[id]?.completed;
+        } else if (mode === 'activities') {
+          if (activityType === 'quiz') {
+            // Quizzes - TODO: implement quiz completion check
+            isCompleted = false;
+          } else {
+            // Activities
+            isCompleted = submissions[id]?.status === 'graded';
+          }
+        }
+        
         return dueDate < now && !isCompleted;
       });
     }
@@ -318,9 +367,15 @@ const HomePage = memo(() => {
           return !userProgress[id]?.completed;
         }
         if (mode === 'activities') {
-          return !submissions[id] || submissions[id]?.status !== 'graded';
+          if (activityType === 'quiz') {
+            // Quizzes are always pending until taken
+            return true;
+          } else {
+            // Activities
+            return !submissions[id] || submissions[id]?.status !== 'graded';
+          }
         }
-        return true; // Quizzes are always pending until taken
+        return true;
       });
     }
 
@@ -347,16 +402,12 @@ const HomePage = memo(() => {
       });
     }
 
-    // Mode-specific filters
-    if (mode === 'activities' && activityTypeFilter !== 'all') {
-      filtered = filtered.filter(item => item.type === activityTypeFilter);
-    }
-
+    // Mode-specific filters (remove activity type filter since it's now handled by tabs)
     if (mode === 'resources' && resourceTypeFilter !== 'all') {
       filtered = filtered.filter(item => item.type === resourceTypeFilter);
     }
 
-    if (mode === 'quizzes' && classFilter !== 'all') {
+    if (mode === 'activities' && activityType === 'quiz' && classFilter !== 'all') {
       filtered = filtered.filter(item => 
         item.classId === classFilter || item.className === classFilter
       );
@@ -371,22 +422,22 @@ const HomePage = memo(() => {
 
     return filtered;
   }, [
-    mode, activities, resources, quizzes, searchTerm, bookmarkFilter, difficultyFilter,
+    mode, activityType, category, activities, resources, quizzes, searchTerm, bookmarkFilter, difficultyFilter,
     completedFilter, requiredFilter, optionalFilter, overdueFilter, pendingFilter,
-    retakableFilter, featuredFilter, gradedFilter, activityTypeFilter, resourceTypeFilter,
-    classFilter, bookmarks, userProgress, submissions, enrolledClasses, activeTab
+    retakableFilter, featuredFilter, gradedFilter, resourceTypeFilter,
+    classFilter, bookmarks, userProgress, submissions, enrolledClasses
   ]);
 
   // Get available classes for quiz filter
   const availableClasses = useMemo(() => {
-    if (mode !== 'quizzes') return [];
+    if (!(mode === 'activities' && activityType === 'quiz')) return [];
     const classes = new Set();
     quizzes.forEach(q => {
       if (q.classId) classes.add(q.classId);
       if (q.className) classes.add(q.className);
     });
     return Array.from(classes);
-  }, [mode, quizzes]);
+  }, [mode, activityType, quizzes]);
 
   // Calculate comprehensive stats for all modes
   const stats = useMemo(() => {
@@ -422,44 +473,48 @@ const HomePage = memo(() => {
         featured: featuredCount
       };
     } else if (mode === 'activities') {
-      const completedCount = items.filter(a => {
-        const aid = a.docId || a.id;
-        return submissions[aid]?.status === 'graded';
-      }).length;
-      const pendingCount = items.filter(a => {
-        const aid = a.docId || a.id;
-        return !submissions[aid] || submissions[aid]?.status !== 'graded';
-      }).length;
-      const overdueCount = items.filter(a => {
-        if (!a.dueDate) return false;
-        const dueDate = a.dueDate?.seconds ? new Date(a.dueDate.seconds * 1000) : new Date(a.dueDate);
-        const aid = a.docId || a.id;
-        return dueDate < now && submissions[aid]?.status !== 'graded';
-      }).length;
-      const optionalCount = items.filter(a => a.optional).length;
-      const requiredCount = items.filter(a => !a.optional).length;
-      const featuredCount = items.filter(a => a.featured).length;
-      return {
-        completed: completedCount,
-        pending: pendingCount,
-        overdue: overdueCount,
-        optional: optionalCount,
-        required: requiredCount,
-        featured: featuredCount
-      };
-    } else if (mode === 'quizzes') {
-      const totalCount = items.length;
-      const featuredCount = items.filter(q => q.featured).length;
-      const retakableCount = items.filter(q => !!(q.allowRetake || q.retakeAllowed)).length;
-      // For quizzes, we can't easily determine completion without quiz submissions
-      return {
-        total: totalCount,
-        featured: featuredCount,
-        retakable: retakableCount
-      };
+      if (activityType === 'quiz') {
+        // Quiz stats
+        const totalCount = items.length;
+        const featuredCount = items.filter(q => q.featured).length;
+        const retakableCount = items.filter(q => !!(q.allowRetake || q.retakeAllowed)).length;
+        // For quizzes, we can't easily determine completion without quiz submissions
+        return {
+          total: totalCount,
+          featured: featuredCount,
+          retakable: retakableCount
+        };
+      } else {
+        // Activities stats
+        const completedCount = items.filter(a => {
+          const aid = a.docId || a.id;
+          return submissions[aid]?.status === 'graded';
+        }).length;
+        const pendingCount = items.filter(a => {
+          const aid = a.docId || a.id;
+          return !submissions[aid] || submissions[aid]?.status !== 'graded';
+        }).length;
+        const overdueCount = items.filter(a => {
+          if (!a.dueDate) return false;
+          const dueDate = a.dueDate?.seconds ? new Date(a.dueDate.seconds * 1000) : new Date(a.dueDate);
+          const aid = a.docId || a.id;
+          return dueDate < now && submissions[aid]?.status !== 'graded';
+        }).length;
+        const optionalCount = items.filter(a => a.optional).length;
+        const requiredCount = items.filter(a => !a.optional).length;
+        const featuredCount = items.filter(a => a.featured).length;
+        return {
+          completed: completedCount,
+          pending: pendingCount,
+          overdue: overdueCount,
+          optional: optionalCount,
+          required: requiredCount,
+          featured: featuredCount
+        };
+      }
     }
     return null;
-  }, [mode, activities, resources, quizzes, userProgress, submissions, enrolledClasses, activeTab]);
+  }, [mode, activityType, category, activities, resources, quizzes, userProgress, submissions, enrolledClasses]);
 
   const handleModeChange = (newMode) => {
     setSearchParams({ mode: newMode });
@@ -533,11 +588,11 @@ const HomePage = memo(() => {
   const isMinified = filterViewMode === 'minified';
 
   return (
-    <div className="home-page" data-theme={theme} style={{ padding: '1rem 0', position: 'relative' }}>
+    <div className="home-page" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>
       {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />}
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Mode Switcher - Using Tabs component */}
-        <div data-tour="mode-switcher" style={{ marginBottom: '1.5rem' }}>
+        <div data-tour="mode-switcher" style={{ marginBottom: '0.15rem' }}>
           <Tabs
             tabs={[
               {
@@ -551,12 +606,6 @@ const HomePage = memo(() => {
                 label: t('resources') || 'Resources',
                 icon: <BookOpen size={16} />,
                 badge: mode === 'resources' ? filteredItems.length : undefined
-              },
-              {
-                value: 'quizzes',
-                label: t('quizzes') || 'Quizzes',
-                icon: <HelpCircle size={16} />,
-                badge: mode === 'quizzes' ? filteredItems.length : undefined
               }
             ]}
             activeTab={mode}
@@ -565,41 +614,90 @@ const HomePage = memo(() => {
           />
         </div>
 
-        {/* Course Tabs (only for activities) - At top, below mode switcher */}
+        {/* Activity Type Tabs (only for activities mode) - Second row */}
         {mode === 'activities' && (
-          <div style={{ marginBottom: '1.5rem' }}>
-        <Tabs
-          tabs={[
-            {
-              value: '',
+          <div data-tour="activity-type-tabs" style={{ marginBottom: '0.15rem' }}>
+            <Tabs
+              tabs={[
+                {
+                  value: 'all',
                   label: lang === 'en' ? 'All' : 'الكل',
-              icon: <Globe2 size={16} />,
-                  badge: filteredItems.length
-            },
-            ...(courses.length ? courses : [
-              { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
-              { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
-              { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
-              { docId: 'general', name_en: 'General', name_ar: 'عام' }
-            ]).map(c => {
+                  icon: <Globe2 size={16} />,
+                  badge: activityType === 'all' ? filteredItems.length : undefined
+                },
+                {
+                  value: 'quiz',
+                  label: lang === 'en' ? 'Quiz' : 'اختبار',
+                  icon: <HelpCircle size={16} />,
+                  badge: activityType === 'quiz' ? filteredItems.length : undefined
+                },
+                {
+                  value: 'homework',
+                  label: lang === 'en' ? 'Homework' : 'واجب',
+                  icon: <ClipboardList size={16} />,
+                  badge: activityType === 'homework' ? filteredItems.length : undefined
+                },
+                {
+                  value: 'training',
+                  label: lang === 'en' ? 'Training' : 'تدريب',
+                  icon: <BookOpen size={16} />,
+                  badge: activityType === 'training' ? filteredItems.length : undefined
+                },
+                {
+                  value: 'lab',
+                  label: lang === 'en' ? 'Lab' : 'معمل',
+                  icon: <Monitor size={16} />,
+                  badge: activityType === 'lab' ? filteredItems.length : undefined
+                },
+                {
+                  value: 'project',
+                  label: lang === 'en' ? 'Project' : 'مشروع',
+                  icon: <Code2 size={16} />,
+                  badge: activityType === 'project' ? filteredItems.length : undefined
+                }
+              ]}
+              activeTab={activityType}
+              onTabChange={setActivityType}
+              variant="default"
+            />
+          </div>
+        )}
+
+        {/* Category Tabs (only for activities mode) - Third row */}
+        {mode === 'activities' && (
+          <div data-tour="category-tabs" style={{ marginBottom: '0.15rem' }}>
+            <Tabs
+              tabs={[
+                {
+                  value: '',
+                  label: lang === 'en' ? 'All' : 'الكل',
+                  icon: <Globe2 size={16} />,
+                  badge: category === '' ? filteredItems.length : undefined
+                },
+                ...(courses.length ? courses : [
+                  { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
+                  { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
+                  { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
+                  { docId: 'general', name_en: 'General', name_ar: 'عام' }
+                ]).map(c => {
                   // Count activities that match current filters (not all activities)
-                  const categoryActivities = filteredItems.filter(a => a.course === c.docId);
-              const Icon = c.docId === 'programming' ? Code2
-                : c.docId === 'computing' ? Monitor
-                : c.docId === 'algorithm' ? Sigma
-                : BookOpen;
-              return {
-                value: c.docId,
+                  const categoryActivities = filteredItems.filter(a => (a.course || 'general') === c.docId);
+                  const Icon = c.docId === 'programming' ? Code2
+                    : c.docId === 'computing' ? Monitor
+                    : c.docId === 'algorithm' ? Sigma
+                    : BookOpen;
+                  return {
+                    value: c.docId,
                     label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId),
-                icon: <Icon size={16} />,
-                badge: categoryActivities.length
-              };
-            })
-          ]}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          variant="default"
-        />
+                    icon: <Icon size={16} />,
+                    badge: categoryActivities.length
+                  };
+                })
+              ]}
+              activeTab={category}
+              onTabChange={setCategory}
+              variant="default"
+            />
           </div>
         )}
 
@@ -611,7 +709,7 @@ const HomePage = memo(() => {
           style={{
             background: isDark ? '#1a1a1a' : 'white',
             padding: '0.75rem 1rem',
-                borderRadius: '12px',
+            borderRadius: '12px',
             marginBottom: '1.5rem',
             boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
             position: 'relative',
@@ -697,7 +795,7 @@ const HomePage = memo(() => {
                       type="search"
                 placeholder={
                   mode === 'resources' ? (t('search_resources') || 'Search resources...') :
-                  mode === 'quizzes' ? (t('search_quizzes') || 'Search quizzes...') :
+                  (mode === 'activities' && activityType === 'quiz') ? (t('search_quizzes') || 'Search quizzes...') :
                   (t('search_activities') || 'Search activities...')
                 }
                       value={searchTerm}
@@ -992,85 +1090,7 @@ const HomePage = memo(() => {
                   })}
                 </div>
 
-            {/* Mode-specific type filters */}
-            {mode === 'activities' && (
-              <div data-tour="activity-type-filters" style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setActivityTypeFilter('all')}
-                  title={t('all_types') || 'All Types'}
-                  style={{
-                    padding: isMinified ? '4px 8px' : '4px 10px',
-                    borderRadius: 999,
-                    border: '1px solid rgba(0,0,0,0.06)',
-                    background: activityTypeFilter === 'all' ? primaryColor : '#fff',
-                    color: activityTypeFilter === 'all' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMinified ? 0 : 4
-                  }}
-                >
-                  <Globe2 size={12} />
-                  {!isMinified && <span>{t('all_types') || 'All Types'}</span>}
-                </button>
-                <button
-                  onClick={() => setActivityTypeFilter('training')}
-                  style={{
-                    padding: isMinified ? '4px 8px' : '4px 10px',
-                    borderRadius: 999,
-                    border: `1px solid ${primaryColor}40`,
-                    background: activityTypeFilter === 'training' ? primaryColor : `${primaryColor}15`,
-                    color: activityTypeFilter === 'training' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMinified ? 0 : 4
-                  }}
-                  title={t('training') || 'Training'}
-                >
-                  <BookOpen size={12} />
-                  {!isMinified && <span>{t('training') || 'Training'}</span>}
-                </button>
-                <button
-                  onClick={() => setActivityTypeFilter('homework')}
-                  style={{
-                    padding: isMinified ? '4px 8px' : '4px 10px',
-                    borderRadius: 999,
-                    border: `1px solid ${primaryColor}40`,
-                    background: activityTypeFilter === 'homework' ? primaryColor : `${primaryColor}15`,
-                    color: activityTypeFilter === 'homework' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMinified ? 0 : 4
-                  }}
-                  title={t('homework') || 'Homework'}
-                >
-                  <ClipboardList size={12} />
-                  {!isMinified && <span>{t('homework') || 'Homework'}</span>}
-                </button>
-                <button
-                  onClick={() => setActivityTypeFilter('quiz')}
-                  style={{
-                    padding: isMinified ? '4px 8px' : '4px 10px',
-                    borderRadius: 999,
-                    border: `1px solid ${primaryColor}40`,
-                    background: activityTypeFilter === 'quiz' ? primaryColor : `${primaryColor}15`,
-                    color: activityTypeFilter === 'quiz' ? '#fff' : primaryColor,
-                    fontSize: '0.75rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMinified ? 0 : 4
-                  }}
-                  title={t('quiz') || 'Quiz'}
-                >
-                  <HelpCircle size={12} />
-                  {!isMinified && <span>{t('quiz') || 'Quiz'}</span>}
-                  </button>
-                </div>
-            )}
-
+            {/* Mode-specific type filters (only for resources now) */}
             {mode === 'resources' && (
               <div data-tour="resource-type-filters" style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
@@ -1150,7 +1170,7 @@ const HomePage = memo(() => {
             )}
 
             {/* Class filter for quizzes */}
-            {mode === 'quizzes' && availableClasses.length > 0 && (
+            {mode === 'activities' && activityType === 'quiz' && availableClasses.length > 0 && (
               <div data-tour="class-filter" style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setClassFilter('all')}
@@ -1385,48 +1405,59 @@ const HomePage = memo(() => {
                   isBookmarked = !!bookmarks.resources[itemId];
                   dueDate = item.dueDate;
                 } else if (mode === 'activities') {
-                  const submission = submissions[itemId];
-                  isCompleted = submission?.status === 'graded';
-                  completedAt = submission?.completedAt || submission?.submittedAt;
-                  isBookmarked = !!bookmarks.activities[itemId];
-                  dueDate = item.dueDate;
-                } else if (mode === 'quizzes') {
-                  isBookmarked = !!bookmarks.quizzes[itemId];
-                  // TODO: Add quiz completion logic
+                  if (activityType === 'quiz') {
+                    isBookmarked = !!bookmarks.quizzes[itemId];
+                    // TODO: Add quiz completion logic
+                  } else {
+                    const submission = submissions[itemId];
+                    isCompleted = submission?.status === 'graded';
+                    completedAt = submission?.completedAt || submission?.submittedAt;
+                    isBookmarked = !!bookmarks.activities[itemId];
+                    dueDate = item.dueDate;
+                  }
                 }
 
                     return (
                       <UnifiedCard
                         key={itemId}
-                        flavor={mode === 'quizzes' ? 'quiz' : mode === 'resources' ? 'resource' : 'activity'}
+                        flavor={mode === 'activities' && activityType === 'quiz' ? 'quizzes' : mode}
                         item={item}
-                        lang={lang}
-                        t={t}
                         isCompleted={isCompleted}
                         completedAt={completedAt}
                         isBookmarked={isBookmarked}
                         dueDate={dueDate}
-                        isMinified={isMinified}
+                        lang={lang}
+                        t={t}
                         primaryColor={primaryColor}
-                        onStart={() => {
-                          if (mode === 'quizzes') {
-                            window.location.href = `/student-quiz/${itemId}`;
+                        onStart={(item) => {
+                          if ((mode === 'activities' && activityType === 'quiz')) {
+                            window.location.href = `/quiz/${itemId}`;
+                          } else if (mode === 'activities') {
+                            window.open(`/activity/${itemId}`, '_blank');
                           } else if (mode === 'resources') {
-                            if (item.url) {
+                            // Handle resource start
+                            if (item.type === 'link' && item.url) {
                               window.open(item.url, '_blank');
-                            }
-                          } else {
-                            // Activities
-                            const isQuiz = item.type === 'quiz' || !!item.internalQuizId;
-                          if (isQuiz) {
-                              window.location.href = `/student-quiz/${item.internalQuizId || itemId}`;
-                          } else {
+                            } else if (item.type === 'video' && item.url) {
                               window.open(item.url, '_blank');
+                            } else {
+                              // Handle other resource types
+                              console.log('Start resource:', item);
                             }
                           }
                         }}
-                        onComplete={mode === 'resources' ? () => handleResourceComplete(itemId) : undefined}
-                        onBookmark={() => handleBookmark(itemId, mode)}
+                        onDetails={(item) => {
+                          // Handle details view
+                          console.log('Show details for:', item);
+                        }}
+                        onComplete={(item) => {
+                          // Handle resource completion
+                          handleResourceComplete(itemId);
+                        }}
+                        onBookmark={() => {
+                          const bookmarkMode = (mode === 'activities' && activityType === 'quiz') ? 'quizzes' : mode;
+                          handleBookmark(itemId, bookmarkMode);
+                        }}
                       />
                     );
               })
@@ -1493,24 +1524,28 @@ const HomePage = memo(() => {
             placement: 'top'
           },
           ...(mode === 'activities' ? [{
-            target: '[data-tour="activity-type-filters"]',
+            target: '[data-tour="mode-switcher"]',
             content: lang === 'ar'
-              ? 'اختر نوع النشاط: تدريب، واجب منزلي، أو اختبار'
-              : 'Select activity type: Training, Homework, or Quiz',
+              ? 'استخدم هذه التبويبات للتبديل بين الأنشطة والموارد'
+              : 'Use these tabs to switch between Activities and Resources',
             disableBeacon: true,
-            placement: 'top',
-            disableScrolling: false
-          }] : []),
-          ...(mode === 'resources' ? [{
-            target: '[data-tour="resource-type-filters"]',
+            placement: 'bottom'
+          }, {
+            target: '[data-tour="activity-type-tabs"]',
             content: lang === 'ar'
-              ? 'اختر نوع المورد: فيديو، رابط، أو مستند'
-              : 'Select resource type: Video, Link, or Document',
+              ? 'اختر نوع النشاط: الكل، اختبار، واجب، تدريب، معمل، أو مشروع'
+              : 'Select activity type: All, Quiz, Homework, Training, Lab, or Project',
             disableBeacon: true,
-            placement: 'top',
-            disableScrolling: false
+            placement: 'bottom'
+          }, {
+            target: '[data-tour="category-tabs"]',
+            content: lang === 'ar'
+              ? 'اختر الفئة: الكل، برمجة، حوسبة، خوارزميات، أو عام'
+              : 'Select category: All, Programming, Computing, Algorithm, or General',
+            disableBeacon: true,
+            placement: 'bottom'
           }] : []),
-          ...(mode === 'quizzes' ? [{
+          ...(mode === 'activities' && activityType === 'quiz' ? [{
             target: '[data-tour="class-filter"]',
             content: lang === 'ar'
               ? 'اختر الفصل لعرض الاختبارات المرتبطة به'

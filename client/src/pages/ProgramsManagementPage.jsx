@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
-import { getPrograms, createProgram, updateProgram, deleteProgram } from '../firebase/programs';
-import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid } from '../components/ui';
+import { getPrograms, createProgram, updateProgram, deleteProgram } from '@firebaseServices/programs';
+import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid } from '@ui';
 import { Edit, Trash } from 'lucide-react';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import styles from './ProgramsManagementPage.module.css';
 
 const ProgramsManagementPage = () => {
@@ -28,12 +28,6 @@ const ProgramsManagementPage = () => {
     totalCreditHours: 70
   });
 
-  useEffect(() => {
-    if (!authLoading && (isAdmin || isSuperAdmin)) {
-      loadPrograms();
-    }
-  }, [authLoading, isAdmin, isSuperAdmin, loadPrograms]);
-
   const loadPrograms = useCallback(async () => {
     setLoading(true);
     try {
@@ -49,6 +43,12 @@ const ProgramsManagementPage = () => {
       setLoading(false);
     }
   }, [toast, t]);
+
+  useEffect(() => {
+    if (!authLoading && (isAdmin || isSuperAdmin)) {
+      loadPrograms();
+    }
+  }, [authLoading, isAdmin, isSuperAdmin, loadPrograms]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

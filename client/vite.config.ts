@@ -1,9 +1,23 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@ui': path.resolve(__dirname, './src/components/ui'),
+      '@common': path.resolve(__dirname, './src/components/common'),
+      '@pages': path.resolve(__dirname, './src/pages'),
+      '@contexts': path.resolve(__dirname, './src/contexts'),
+      '@utils': path.resolve(__dirname, './src/utils'),
+      '@hooks': path.resolve(__dirname, './src/hooks'),
+      '@firebaseServices': path.resolve(__dirname, './src/firebase'),
+      '@constants': path.resolve(__dirname, './src/constants'),
+    },
+  },
   server: {
     host: true, // listen on all interfaces
     port: 5174, // pick a fixed port

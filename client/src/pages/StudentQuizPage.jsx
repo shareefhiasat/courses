@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { getQuiz, submitQuiz } from '../firebase/quizzes';
-import { addActivityLog } from '../firebase/firestore';
-import { ActivityLogger } from '../firebase/activityLogger';
-import { updateProgressAfterQuiz } from '../firebase/studentProgress';
-import { useTimeTracking } from '../hooks/useTimeTracking';
-import { randomizeQuestions, randomizeOptions } from '../utils/quizRandomization';
-import { Container, Card, CardBody, Button, Badge, ProgressBar, Loading, Spinner, useToast, Tooltip, Modal } from '../components/ui';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { getQuiz, submitQuiz } from '@firebaseServices/quizzes';
+import { addActivityLog } from '@firebaseServices/firestore';
+import { ActivityLogger } from '@firebaseServices/activityLogger';
+import { updateProgressAfterQuiz } from '@firebaseServices/studentProgress';
+import { useTimeTracking } from '@hooks/useTimeTracking';
+import { randomizeQuestions, randomizeOptions } from '@utils/quizRandomization';
+import { Container, Card, CardBody, Button, Badge, ProgressBar, Loading, Spinner, useToast, Tooltip, Modal } from '@ui';
 import {
   Play, Clock, Trophy, AlertCircle, CheckCircle, XCircle,
   HelpCircle, ListChecks, ArrowLeft, ArrowRight, Flag, Save, RotateCcw, BookmarkCheck,
   Calculator as CalcIcon, Edit3, BookOpen, ChevronLeft, ChevronRight, Circle, Shuffle, Repeat, Award
 } from 'lucide-react';
-import Calculator from '../components/quiz/Calculator';
-import ScratchPad from '../components/quiz/ScratchPad';
-import FormulaSheet from '../components/quiz/FormulaSheet';
-import DetailedResults from '../components/quiz/DetailedResults';
-import { LanguageToggle } from '../components/shared';
+import Calculator from '@/components/quiz/Calculator';
+import ScratchPad from '@/components/quiz/ScratchPad';
+import FormulaSheet from '@/components/quiz/FormulaSheet';
+import DetailedResults from '@/components/quiz/DetailedResults';
+import { LanguageToggle } from '@ui';
 import styles from './StudentQuizPage.module.css';
 
 // Simplified question types matching the builder

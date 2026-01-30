@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
-import { getSubjects, getPrograms } from '../firebase/programs';
-import { getSubjectMarksDistribution, setSubjectMarksDistribution, getStudentMarks, saveStudentMarks } from '../firebase/grading';
-import { getUsers, getEnrollments, getClasses } from '../firebase/firestore';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
-import { MARK_TYPES } from '../constants/activityTypes';
-import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '../components/ui';
+import { getSubjects, getPrograms } from '@firebaseServices/programs';
+import { getSubjectMarksDistribution, setSubjectMarksDistribution, getStudentMarks, saveStudentMarks } from '@firebaseServices/grading';
+import { getUsers, getEnrollments, getClasses } from '@firebaseServices/firestore';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { MARK_TYPES } from '@constants/activityTypes';
+import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
 import { FileSpreadsheet, Save, Edit, Award, Eye, AlertCircle, Award as ParticipationIcon, Calendar, Info, Filter, GraduationCap, BookOpen, Users } from 'lucide-react';
-import { CollapsibleSideWindow } from '../components/shared';
+import { CollapsibleSideWindow } from '@ui';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import InstructorParticipationPage from './InstructorParticipationPage';
 import HRPenaltiesPage from './HRPenaltiesPage';
@@ -242,23 +242,6 @@ const MarksEntryPage = () => {
     return subjects.find(s => (s.docId || s.id) === subjectFilter);
   }, [subjectFilter, subjects]);
 
-  useEffect(() => {
-    if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
-      loadData();
-      logActivity(ACTIVITY_TYPES.MARK_ENTRY_VIEWED);
-    }
-  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
-
-  useEffect(() => {
-    if (selectedSubject && classFilter !== 'all' && enrollments.length > 0) {
-      // Small delay to ensure enrollments are fully loaded with marks
-      const timer = setTimeout(() => {
-        loadMarksData();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedSubject, classFilter, enrollments.length, loadMarksData]);
-
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -325,76 +308,39 @@ const MarksEntryPage = () => {
         };
         setMarksDistribution(defaultDist);
       }
-      
-      // Load existing marks for filtered students
+
+      // Load existing student marks
       if (classFilter !== 'all') {
-        // Get enrollments for this class to read marks directly
-        const classEnrollments = enrollments.filter(e => {
-          const eClassId = e.classId || e.classDocId;
-          return String(eClassId) === String(classFilter);
-        });
-        const marksMap = {};
-        const subjectId = selectedSubject.docId || selectedSubject.id;
-        
-        // console.log('📊 [loadMarksData] Loading marks for class:', classFilter, 'subject:', subjectId);
-        // console.log('📊 [loadMarksData] Class enrollments found:', classEnrollments.length);
-        // console.log('📊 [loadMarksData] Enrollment samples:', classEnrollments.slice(0, 2).map(e => ({
-        //   docId: e.docId,
-        //   userId: e.userId,
-        //   hasMarks: !!e.marks,
-        //   marksKeys: e.marks ? Object.keys(e.marks) : []
-        // })));
-        
-        for (const enrollment of classEnrollments) {
-          const studentId = enrollment.userId;
-          if (!studentId) {
-            // console.warn('⚠️ [loadMarksData] Enrollment missing userId:', enrollment.docId);
-            continue;
-          }
-          
-          if (enrollment.marks && enrollment.marks[subjectId]) {
-            const markData = enrollment.marks[subjectId];
-            // console.log('✅ [loadMarksData] Found marks for student:', studentId, {
-            //   totalScore: markData.totalScore,
-            //   grade: markData.grade,
-            //   marks: markData.marks
-            // });
-            marksMap[studentId] = {
-              docId: enrollment.docId,
-              studentId: studentId,
-              subjectId: markData.subjectId || subjectId,
-              semester: markData.semester || null,
-              academicYear: markData.academicYear || null,
-              marks: markData.marks || {},
-              totalScore: markData.totalScore || 0,
-              grade: markData.grade || '',
-              points: markData.points || 0,
-              isRetake: markData.isRetake || false,
-              instructorId: markData.instructorId || null,
-              createdAt: markData.createdAt || null,
-              updatedAt: markData.updatedAt || null,
-            };
-          } else {
-            // console.log('ℹ️ [loadMarksData] No marks found for student:', studentId, {
-            //   enrollmentId: enrollment.docId,
-            //   hasMarks: !!enrollment.marks,
-            //   marksKeys: enrollment.marks ? Object.keys(enrollment.marks) : [],
-            //   lookingFor: subjectId
-            // });
-          }
+        const marksResult = await getStudentMarks(selectedSubject.docId || selectedSubject.id, classFilter);
+        if (marksResult.success) {
+          setStudentMarks(marksResult.data || {});
         }
-        
-        // console.log('📊 [loadMarksData] Final marks map:', Object.keys(marksMap), 'students with marks');
-        setStudentMarks(marksMap);
       }
     } catch (error) {
-      console.error('Error loading marks data:', error);
       toast.error(error.message);
     } finally {
       setLoading(false);
     }
-  }, [selectedSubject, toast]);
+  }, [selectedSubject, classFilter, toast]);
 
+  useEffect(() => {
+    if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
+      loadData();
+      logActivity(ACTIVITY_TYPES.MARK_ENTRY_VIEWED);
+    }
+  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
+
+  useEffect(() => {
+    if (selectedSubject && classFilter !== 'all' && enrollments.length > 0) {
+      // Small delay to ensure enrollments are fully loaded with marks
+      const timer = setTimeout(() => {
+        loadMarksData();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedSubject, classFilter, enrollments.length, loadMarksData]);
+
+  
   const handleEditMarks = useCallback((student) => {
     setEditingStudent(student);
     

@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, orderBy, doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, Modal, Input, Checkbox } from '../components/ui';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { getClasses } from '../firebase/firestore';
-import { getCardConfig, getShapeRadius } from '../utils/cardColors';
-import { addNotification } from '../firebase/notifications';
-import { sendEmail } from '../firebase/firestore';
+import { db } from '@firebaseServices/config';
+import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, Modal, Input, Checkbox } from '@ui';
+import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { getClasses } from '@firebaseServices/firestore';
+import { getCardConfig, getShapeRadius } from '@utils/cardColors';
+import { addNotification } from '@firebaseServices/notifications';
+import { sendEmail } from '@firebaseServices/firestore';
 import { Edit, Check, X, Mail, Send, CheckSquare } from 'lucide-react';
 import styles from './QuizResultsPage.module.css';
 

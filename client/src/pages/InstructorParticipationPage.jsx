@@ -1,19 +1,18 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { db } from '../firebase/config';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Edit, Trash, MessageSquare, Award, FileText, Users, HelpCircle, Star, User, AlertCircle, Crown, Shield, BookOpen, GraduationCap, ThumbsUp, Minus, X, TrendingUp, TrendingDown, CheckCircle, Target, Zap, UserCheck, UserX, UserMinus, AlertTriangle, Info } from 'lucide-react';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '../components/ui';
-import { DeleteConfirmationModal } from '../components/shared';
-import { getPrograms, getSubjects } from '../firebase/programs';
-import { getClasses, getEnrollments } from '../firebase/firestore';
-import { addNotification } from '../firebase/notifications';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
-import { formatQatarDateOnly } from '../utils/timezone';
-import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationTypeById } from '../constants/participationTypes';
-import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '../utils/userStatus';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
+import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { getClasses, getEnrollments } from '@firebaseServices/firestore';
+import { addNotification } from '@firebaseServices/notifications';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { formatQatarDateOnly } from '@utils/timezone';
+import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationTypeById } from '@constants/participationTypes';
+import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import styles from './ProgramsManagementPage.module.css';
 
 const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
@@ -1108,13 +1107,35 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         />
       </div>
 
-      <DeleteConfirmationModal
-        open={deleteModal.open}
-        onClose={() => setDeleteModal({ open: false, item: null })}
-        onConfirm={confirmDelete}
-        title="Delete Participation"
-        message="Are you sure you want to delete this participation record?"
-      />
+      {deleteModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+            <CardBody>
+              <h3>Delete Participation</h3>
+              <p>Are you sure you want to delete this participation record?</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
+                  Delete
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

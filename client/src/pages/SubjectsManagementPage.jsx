@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
-import { getSubjects, createSubject, updateSubject, deleteSubject, getPrograms } from '../firebase/programs';
-import { getUsers, getClasses } from '../firebase/firestore';
-import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid } from '../components/ui';
+import { getSubjects, createSubject, updateSubject, deleteSubject, getPrograms } from '@firebaseServices/programs';
+import { getUsers, getClasses } from '@firebaseServices/firestore';
+import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid } from '@ui';
 import { Edit, Trash, Filter, BookOpen, FileText, Users } from 'lucide-react';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import styles from './SubjectsManagementPage.module.css';
 
 const SubjectsManagementPage = () => {
@@ -34,13 +34,6 @@ const SubjectsManagementPage = () => {
     requirementType: 'general_mandatory' // 'general_mandatory' | 'major_mandatory' | 'major_optional'
   });
 
-  useEffect(() => {
-    if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
-      loadData();
-      logActivity(ACTIVITY_TYPES.SUBJECT_VIEWED);
-    }
-  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
-
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -61,6 +54,13 @@ const SubjectsManagementPage = () => {
       setLoading(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
+      loadData();
+      logActivity(ACTIVITY_TYPES.SUBJECT_VIEWED);
+    }
+  }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();

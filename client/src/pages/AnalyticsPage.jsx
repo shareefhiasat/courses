@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { Container, Card, CardBody, Button, Badge, Grid, ProgressBar, Loading } from '../components/ui';
+import { db } from '@firebaseServices/config';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { Container, Card, CardBody, Button, Badge, Grid, ProgressBar, Loading } from '@ui';
 import { BarChart3, TrendingUp, Users, Calendar, Award, FileText, Download } from 'lucide-react';
 import styles from './AnalyticsPage.module.css';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import EmojiPicker from 'emoji-picker-react';
 import {
@@ -24,17 +24,17 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../firebase/config';
-import { getClasses, getEnrollments, getUsers } from '../firebase/firestore';
-import { addNotification } from '../firebase/notifications';
-import { Loading, useToast, Input } from '../components/ui';
-import logger from '../utils/logger';
+import { db, storage } from '@firebaseServices/config';
+import { getClasses, getEnrollments, getUsers } from '@firebaseServices/firestore';
+import { addNotification } from '@firebaseServices/notifications';
+import { Loading, useToast, Input } from '@ui';
+import logger from '@utils/logger';
 import './ChatPage.css';
 import './ChatPageEmojiStyles.css';
-import { formatDateTime, formatDate } from '../utils/date';
-import { DEFAULT_ACCENT, normalizeHexColor } from '../utils/color';
-import { canParticipate } from '../utils/userStatus';
-import { filterBadWords, containsBadWords } from '../utils/badWordFilter';
+import { formatDateTime, formatDate } from '@utils/date';
+import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
+import { canParticipate } from '@utils/userStatus';
+import { filterBadWords, containsBadWords } from '@utils/badWordFilter';
 import { MessageSquareText, Send, Mic, Square, Smile, Search, X, Plus, BarChart3, Book, GraduationCap, Download, Upload, Globe, Users, Paperclip, Edit, Info, Share, Copy, Trash2 } from 'lucide-react';
 
 const ChatPage = memo(() => {

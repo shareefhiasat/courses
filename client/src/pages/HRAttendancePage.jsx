@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { db } from '../firebase/config';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, query, where, orderBy, limit, getDoc } from 'firebase/firestore';
 import { FileDown, Search, Filter, Calendar, User, AlertCircle, Clock, CheckCircle, XCircle, Activity, Users, Heart } from 'lucide-react';
-import { Button, Select, Loading, DatePicker } from '../components/ui';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../firebase/attendance';
-import { getPrograms, getSubjects } from '../firebase/programs';
+import { Button, Select, Loading, DatePicker } from '@ui';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
+import { getPrograms, getSubjects } from '@firebaseServices/programs';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin, loading: authLoading } = useAuth();

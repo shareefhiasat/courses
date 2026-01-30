@@ -5,20 +5,20 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { 
   Container, Button, Select, Tabs, useToast, Loading, Card, CardBody, Badge, EmptyState
-} from '../components/ui';
-import InfoTooltip from '../components/ui/InfoTooltip/InfoTooltip';
+} from '@ui';
+import { InfoTooltip } from '@ui';
 import {
   RefreshCw, CheckCircle, Sparkles, Plus as PlusIcon, Download, FileImage, FileText, LayoutGrid, LayoutList, Clock,
   BarChart3, CalendarCheck, TrendingUp, Award, AlertTriangle, XCircle, User, UserCheck, UserX, UserMinus, Info
 } from 'lucide-react';
-import { getCardConfig, getShapeRadius } from '../utils/cardColors';
-import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from '../constants/activityTypes';
+import { getCardConfig, getShapeRadius } from '@utils/cardColors';
+import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from '@constants/activityTypes';
 import { 
   getUserStatus, 
   getUserStatusSummary, 
@@ -26,19 +26,19 @@ import {
   USER_STATUS,
   canParticipate,
   canViewDashboard
-} from '../utils/userStatus';
+} from '@utils/userStatus';
 import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { getAttendanceByStudent, getAttendanceStats } from '../firebase/attendance';
-import { getPenalties, getAbsences } from '../firebase/penalties';
-import { getStudentMarks } from '../firebase/grading';
-import { getSubjects, getPrograms } from '../firebase/programs';
+import { db } from '@firebaseServices/config';
+import { getAttendanceByStudent, getAttendanceStats } from '@firebaseServices/attendance';
+import { getPenalties, getAbsences } from '@firebaseServices/penalties';
+import { getStudentMarks } from '@firebaseServices/grading';
+import { getSubjects, getPrograms } from '@firebaseServices/programs';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
 
 // Unified Type Helpers
-import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor } from '../utils/typeHelpers';
+import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor } from '@utils/typeHelpers';
 
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();

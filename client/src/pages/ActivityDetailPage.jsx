@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useLang } from '../contexts/LangContext';
-import { Container, Card, CardBody, Button, Badge, Spinner, Modal } from '../components/ui';
-import { QRCodeGenerator } from '../components/shared';
+import { db } from '@firebaseServices/config';
+import { useLang } from '@contexts/LangContext';
+import { Container, Card, CardBody, Button, Badge, Spinner, Modal } from '@ui';
+import { QRCodeGenerator } from '@ui';
 import { CalendarDays, Repeat, Play, ExternalLink, QrCode } from 'lucide-react';
-import { formatDateTime } from '../utils/date';
+import { formatDateTime } from '@utils/date';
 import styles from './ActivityDetailPage.module.css';
 
 export default function ActivityDetailPage() {

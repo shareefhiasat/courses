@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Delete } from 'lucide-react';
-import { Button } from '../ui';
 import { ActivityLogger } from '../../firebase/activityLogger';
 import styles from './Calculator.module.css';
 

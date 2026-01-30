@@ -1,6 +1,5 @@
 import React from 'react';
-import { ToastProvider, useToast } from './Toast';
-import Button from '../Button';
+import { ToastProvider, useToast, Button } from '@ui';
 
 export default {
   title: 'UI/Toast',

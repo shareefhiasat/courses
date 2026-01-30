@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   getScheduledReports, 
   addScheduledReport, 
   updateScheduledReport, 
   deleteScheduledReport 
-} from '../firebase/firestore';
-import { getEmailTemplates } from '../firebase/firestore';
-import { Loading, Button, Input, Select, Textarea, useToast, Card, CardBody } from '../components/ui';
-import { Container } from '../components/ui';
-import { ToggleSwitch, RibbonTabs } from '../components/shared';
+} from '@firebaseServices/firestore';
+import { getEmailTemplates } from '@firebaseServices/firestore';
+import { Loading, Button, Input, Select, Textarea, useToast, Card, CardBody } from '@ui';
+import { Container } from '@ui';
+import { ToggleSwitch, RibbonTabs } from '@ui';
 import { Plus, Edit, Trash2, Calendar, Mail, FileText, X, FileDown, Search, BarChart3, Users } from 'lucide-react';
-import { formatDateTime } from '../utils/date';
+import { formatDateTime } from '@utils/date';
 import styles from './ScheduledReportsPage.module.css';
 
 const ScheduledReportsPage = () => {

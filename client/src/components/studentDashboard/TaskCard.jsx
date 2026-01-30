@@ -5,7 +5,7 @@ import {
   BookOpen, FileQuestion, FileArchive, Award,
   Eye, RefreshCw, Play
 } from 'lucide-react';
-import styles from '../../pages/StudentDashboardPage_NEW.module.css';
+import styles from '../../pages/StudentDashboardPage.module.css';
 
 export default function TaskCard({ task, navigate }) {
   const statusConfig = {
@@ -16,7 +16,7 @@ export default function TaskCard({ task, navigate }) {
   };
 
   const typeConfig = {
-    quiz: { icon: FileQuestion, label: 'Quiz', color: '#800020' },
+    quiz: { icon: FileQuestion, label: 'Quiz', color: '#667eea' },
     homework: { icon: BookOpen, label: 'Homework', color: '#f59e0b' },
     resource: { icon: FileArchive, label: 'Resource', color: '#10b981' }
   };

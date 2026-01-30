@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import logger from '@utils/logger';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '@firebaseServices/config';
 import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown, Globe, Volume2, Vibrate, Smartphone, Bell, TestTube, Monitor, Users, BookOpen } from 'lucide-react';
-import { Container, Card, CardBody, Button, Input, Spinner, useToast, Loading } from '../components/ui';
-import { ToggleSwitch } from '../components/shared';
+import { Container, Card, CardBody, Button, Input, Spinner, useToast, Loading } from '@ui';
+import { ToggleSwitch } from '@ui';
 import styles from './ProfileSettingsPage.module.css';
-import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '../utils/color';
-import { applyAccentColorGlobally } from '../utils/theme';
-import useNotifications from '../hooks/useNotifications';
-import notificationManager from '../utils/notifications';
-import { ActivityLogger } from '../firebase/activityLogger';
+import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '@utils/color';
+import { applyAccentColorGlobally } from '@utils/theme';
+import useNotifications from '@hooks/useNotifications';
+import notificationManager from '@utils/notifications';
+import { ActivityLogger } from '@firebaseServices/activityLogger';
 
 const ProfileSettingsPage = () => {
   const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
@@ -294,15 +294,8 @@ const ProfileSettingsPage = () => {
 
             <div className={styles.formSection}>
               {/* Theme Color Selection */}
-              <div className={styles.appearanceSection}>
-                <div className={styles.sectionHeader}>
-                  <h3 className={styles.sectionTitle}>
-                    <Palette size={18} style={{ marginRight: '0.5rem' }} />
-                    Theme Color
-                  </h3>
-                </div>
-                
-                <div className={styles.colorSelectionArea}>
+
+              <div className={styles.colorSelectionArea}>
                   <div className={styles.colorPicker}>
                     {colorOptions.map(color => (
                       <button
@@ -314,13 +307,9 @@ const ProfileSettingsPage = () => {
                       />
                     ))}
                   </div>
-                  
+
                   <div className={styles.customColorSection}>
                     <div className={styles.customColorHeader}>
-                      <span className={styles.customColorLabel}>
-                        <Palette size={18} style={{ marginRight: '0.5rem' }} />
-                        Custom Accent Color
-                      </span>
                       <div className={styles.customColorInputs}>
                         <div className={styles.colorPickerWrapper}>
                           <input
@@ -344,8 +333,7 @@ const ProfileSettingsPage = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-              
+
               {/* Compact Settings Row */}
               <div style={{ 
                 display: 'flex',

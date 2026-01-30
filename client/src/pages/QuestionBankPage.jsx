@@ -4,10 +4,10 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import {
   Container,
   Card,
@@ -21,7 +21,7 @@ import {
   useToast,
   EmptyState,
   Loading
-} from '../components/ui';
+} from '@ui';
 import {
   Plus,
   Search,
@@ -44,9 +44,9 @@ import {
   searchQuestions,
   getAllTags,
   bulkImportQuestions
-} from '../firebase/questionBank';
-import { QUESTION_TYPES, QUESTION_TYPE_CONFIG } from '../utils/questionTypes';
-import { exportToCSV, importFromCSV } from '../utils/quizImportExport';
+} from '@firebaseServices/questionBank';
+import { QUESTION_TYPES, QUESTION_TYPE_CONFIG } from '@utils/questionTypes';
+import { exportToCSV, importFromCSV } from '@utils/quizImportExport';
 import styles from './QuestionBankPage.module.css';
 
 export default function QuestionBankPage() {

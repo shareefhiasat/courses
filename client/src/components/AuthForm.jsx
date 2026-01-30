@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '@firebaseServices/config';
 import { signIn, signUp, resetPassword } from '../firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { getAllowlist } from '../firebase/firestore';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useColorTheme } from '../contexts/ColorThemeContext';
-import { useToast } from '../components/ToastProvider';
+import { useToast } from '@ui';
 import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
 import { Moon, Sun, Globe } from 'lucide-react';
-import ToggleSwitch from './ToggleSwitch';
+import { ToggleSwitch } from '@ui';
 import { usePostHog } from 'posthog-js/react';
 import './AuthForm.css';
 
@@ -342,9 +342,9 @@ const AuthForm = () => {
             document.cookie = `rememberMe=true; expires=${expiryDate.toUTCString()}; path=/`;
           }
           if (showSuccess) {
-            showSuccess(tr('login_success', '✅ Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
+            showSuccess(tr('login_success', 'Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
           } else {
-            setMessage(tr('login_success', '✅ Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
+            setMessage(tr('login_success', 'Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
           }
           setTimeout(() => navigate('/'), 1000);
         } else {
