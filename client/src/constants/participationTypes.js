@@ -86,14 +86,6 @@ export const PARTICIPATION_TYPES = [
     color: '#6b7280',
     points: 2
   },
-  { 
-    id: 'poor', 
-    label_ar: 'مشارجة ضعيفة', 
-    label_en: 'Poor Participation', 
-    icon: 'X',
-    color: '#ef4444',
-    points: 0
-  },
   // Positive behaviors moved from behaviorTypes.js
   { 
     id: 'positive', 

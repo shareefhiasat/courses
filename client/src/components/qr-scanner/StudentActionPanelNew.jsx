@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import logger from '@utils/logger';
-import { Button } from '@ui';
-import { Textarea } from '@ui';
+import { Button, Input } from '@ui';
 import { X, Star, Mail, ChevronDown, Users, Zap, AlertCircle, Plus, Minus, Grid, List } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
@@ -319,13 +318,13 @@ export default function StudentActionPanelNew({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{
-              width: '3rem',
-              height: '3rem',
+              width: '2.5rem',
+              height: '2.5rem',
               borderRadius: '9999px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.875rem',
+              fontSize: '0.75rem',
               fontWeight: 500,
               background: avatarColor.bg,
               color: avatarColor.color
@@ -334,7 +333,7 @@ export default function StudentActionPanelNew({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
+                <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.75rem' }}>
                   {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -615,7 +614,13 @@ export default function StudentActionPanelNew({
                         onClick={(e) => {
                           e.stopPropagation();
                           const currentValue = actionPoints[option.id] || 0;
-                          const newValue = Math.max(-10, currentValue - 1);
+                          // Allow only negative values for behavior and penalty, only positive for participation
+                          let newValue;
+                          if (option.category === 'participation') {
+                            newValue = Math.max(0, currentValue - 1); // Don't go below 0 for participation
+                          } else {
+                            newValue = Math.max(-10, currentValue - 1); // Allow negative for behavior/penalty
+                          }
                           handlePointsChange(option.id, newValue);
                         }}
                         title="Decrease points"
@@ -656,7 +661,13 @@ export default function StudentActionPanelNew({
                         onClick={(e) => {
                           e.stopPropagation();
                           const currentValue = actionPoints[option.id] || 0;
-                          const newValue = Math.min(10, currentValue + 1);
+                          // Allow only positive values for participation, only negative for behavior/penalty
+                          let newValue;
+                          if (option.category === 'participation') {
+                            newValue = Math.min(10, currentValue + 1); // Allow positive for participation
+                          } else {
+                            newValue = Math.min(0, currentValue + 1); // Don't go above 0 for behavior/penalty
+                          }
                           handlePointsChange(option.id, newValue);
                         }}
                         title="Increase points"
@@ -696,7 +707,8 @@ export default function StudentActionPanelNew({
           }}>
             {t('internal_note')}
           </h4>
-          <Textarea
+          <Input
+            type="text"
             placeholder={t('add_details')}
             value={internalNote}
             onChange={(e) => setInternalNote(e.target.value)}

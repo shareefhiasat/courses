@@ -1345,9 +1345,10 @@ const InstructorQRScannerPage = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
-          width: isMobile ? '100%' : (isScannerMinimized ? '100px' : '300px'), // Shrink when minimized
+          width: isMobile ? '100%' : (isScannerMinimized ? '0px' : '300px'), // Hide completely when minimized
           flexShrink: 0,
-          transition: 'width 0.3s ease' // Smooth transition
+          transition: 'width 0.3s ease',
+          overflow: 'hidden' // Hide content when width is 0
         }}>
           {showScanner && selectedClassId && (
             <QRScanner 
@@ -1397,7 +1398,7 @@ const InstructorQRScannerPage = () => {
 
         {/* Main Content */}
         <div style={{ 
-          width: isMobile ? '100%' : (isScannerMinimized ? 'calc(100% - 100px)' : 'calc(100% - 300px)'),
+          width: isMobile ? '100%' : (isScannerMinimized ? '100%' : 'calc(100% - 300px)'),
           transition: 'width 0.3s ease' // Smooth transition
         }}>
           {initialLoading ? (
@@ -1512,35 +1513,6 @@ const InstructorQRScannerPage = () => {
               selectedDate={selectedDate}
               autoExpand={isScannerMinimized}
             />
-            {/* Debug: Show autoExpand value */}
-            <div style={{
-              position: 'fixed',
-              top: '10px',
-              right: '10px',
-              background: 'rgba(0,0,0,0.8)',
-              color: 'white',
-              padding: '10px',
-              borderRadius: '5px',
-              fontSize: '12px',
-              zIndex: 9999
-            }}>
-              Scanner Minimized: {isScannerMinimized ? 'YES' : 'NO'}
-              <br />
-              <button
-                onClick={() => setIsScannerMinimized(!isScannerMinimized)}
-                style={{
-                  marginTop: '5px',
-                  padding: '5px 10px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer'
-                }}
-              >
-                Toggle Minimize
-              </button>
-            </div>
             </div>
           )}
         </div>
