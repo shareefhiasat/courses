@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import logger from '../../utils/logger';
 import { Button } from './ui/button';
+import { CollapsibleDashboardSection } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
 import { markAttendance } from '@firebaseServices/attendance';
@@ -13,7 +14,7 @@ import eventBus, { EVENTS } from '@utils/eventBus';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '../ui/Toast';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Activity } from 'lucide-react';
 import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';
 import { generateReferenceId } from '@utils/qrCode';
@@ -644,17 +645,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const studentMap = {};
       logger.debug('[QR Scanner] Creating student map from', students.length, 'students');
       students.forEach(student => {
-        const studentId = student.id || student.docId;
-        const referenceId = student.studentNumber ? `STU-${student.studentNumber}` : (student.referenceId || generateReferenceId(studentId));
+        const studentId = student.id || student.docId; // Firebase user ID
         const name = student.displayName || student.realName || student.name || (student.email ? student.email.split('@')[0] : 'Unknown');
         
-        // Map both the Firebase ID and the reference ID to the name
+        // Only map the Firebase user ID to the name (not reference ID)
         studentMap[studentId] = name;
-        studentMap[referenceId] = name;
         
         logger.debug('[QR Scanner] Student map entry:', {
           firebaseId: studentId,
-          referenceId: referenceId,
           name: name
         });
       });
@@ -772,18 +770,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           }); // Debug
           
           let studentName = studentMap[record.studentId] || 'Unknown Student';
-          
-          // If not found in map, try to find the student by generating reference ID from user IDs
-          if (studentName === 'Unknown Student' && students.length > 0) {
-            const foundStudent = students.find(s => {
-              const generatedRefId = generateReferenceId(s.id);
-              return generatedRefId === record.studentId || s.id === record.studentId;
-            });
-            if (foundStudent) {
-              studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
-              console.log('🔧 Found student by ID:', { foundStudent, studentName }); // Debug
-            }
-          }
           
           console.log('🔧 Final student name for penalty:', studentName); // Debug
           
@@ -1354,33 +1340,35 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           </div>
         </div>
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '1rem'
-        }}>
-          <h4 style={{
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: '#111827',
-            margin: 0
-          }}>
-            {t('todays_transactions') || 'Today\'s Transactions'}
-          </h4>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              console.log('🔧 Refresh button clicked - fetching recent activity'); // Debug
-              fetchRecentActivity();
-            }}
-            title="Refresh activity"
-            style={{ padding: '0.25rem' }}
-          >
-            <RefreshCw style={{ width: '1rem', height: '1rem' }} />
-          </Button>
-        </div>
+        <CollapsibleDashboardSection
+          sectionId="recent-activity"
+          title={t('todays_transactions') || 'Today\'s Transactions'}
+          icon={<Activity size={20} />}
+          color="#6366f1"
+          defaultMode="full"
+          compactContent={
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                {activityLoading ? 
+                  t('loading') || 'Loading...' : 
+                  `${recentActivity.length} ${t('transactions') || 'transactions'}`
+                }
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  console.log('🔧 Refresh button clicked - fetching recent activity'); // Debug
+                  fetchRecentActivity();
+                }}
+                title="Refresh activity"
+                style={{ padding: '0.25rem' }}
+              >
+                <RefreshCw style={{ width: '1rem', height: '1rem' }} />
+              </Button>
+            </div>
+          }
+        >
         {/*<div style={{*/}
         {/*  display: 'flex',*/}
         {/*  alignItems: 'center',*/}
@@ -1408,7 +1396,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           flexDirection: 'column', 
           gap: '0.75rem',
           [isRTL ? 'paddingRight' : 'paddingLeft']: '1rem',
-          [isRTL ? 'borderRight' : 'borderLeft']: '3px solid #8b5cf6'
+          [isRTL ? 'borderRight' : 'borderLeft']: '3px solid #8b5cf6',
+          maxHeight: '400px', // Limit height
+          overflowY: 'auto' // Add vertical scrollbar
         }}>
           {/* Real activity logs from Firebase */}
           {activityLoading ? (
@@ -1548,6 +1538,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             })
           )}
         </div>
+        </CollapsibleDashboardSection>
         
         {devices.length > 1 && isScanning && (
           <button
