@@ -74,22 +74,13 @@ export default function StudentActionPanelNew({
       hasTodayAttendance: student?.attendance && ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(student.attendance)
     });
     
-    // Check if student has attendance data for today
+    // Check if there are actual attendance records for today (not participation/behavior/penalty)
+    // This matches the logic from the old StudentActionPanel
     const hasTodayAttendance = student?.attendance && 
       ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(student.attendance);
     
-    // If no attendance data for today, show NOTHING YET
-    if (!hasTodayAttendance) {
-      console.log('🔧 Showing NOTHING YET for student:', student?.displayName);
-      return {
-        en: t('nothing_yet') || 'NOTHING YET',
-        ar: t('nothing_yet') || 'لا شيء بعد',
-        color: '#fbbf24'
-      };
-    }
-    
-    // If there's a specific attendance status, use it
-    if (student?.attendance) {
+    // Only show "Present" status, everything else shows NOTHING YET
+    if (student?.attendance === 'present') {
       const statusInfo = ATTENDANCE_STATUS_LABELS[student?.attendance];
       if (statusInfo) {
         console.log('🔧 Using attendance status:', student?.attendance, statusInfo);
@@ -97,8 +88,8 @@ export default function StudentActionPanelNew({
       }
     }
     
-    // Fallback to NOTHING YET if no valid status found
-    console.log('🔧 Fallback to NOTHING YET for student:', student?.displayName);
+    // If no attendance or not present, show NOTHING YET
+    console.log('🔧 Showing NOTHING YET for student:', student?.displayName || student?.name || 'No Name', '(attendance:', student?.attendance, ')');
     return {
       en: t('nothing_yet') || 'NOTHING YET',
       ar: t('nothing_yet') || 'لا شيء بعد',
