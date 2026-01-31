@@ -165,7 +165,7 @@ const StudentRoster = React.memo(function StudentRoster({
             time: penalty.createdAt,
             label: penalty.type || penalty.reason || 'Penalty',
             points: -Math.abs(penalty.points || 0), // Always negative for penalties
-            comment: penalty.comment || '',
+            comment: penalty.reason || penalty.comment || '', // Use reason first, then comment
             severity: penalty.severity || 'medium',
             color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
           };

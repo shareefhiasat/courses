@@ -784,6 +784,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             status: 'penalty',
             label: record.type && record.reason ? `${record.type}: ${record.reason}` : (record.type || record.reason || 'Penalty'), // Show type and reason
             points: -Math.abs(record.points || 0), // Always negative for penalties
+            comment: record.reason || record.comment || '', // Add comment field for history
             performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
             scanMethod: 'manual_instructor',
             subject: selectedSubjectName,
@@ -1026,30 +1027,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   }, [classId, students]);
 
-  // Detect minimization by checking DOM changes
-  useEffect(() => {
-    const checkMinimization = () => {
-      if (scannerRef.current) {
-        // Check if the compact content is visible (indicating minimized state)
-        const compactElement = scannerRef.current.querySelector('[data-compact="true"]');
-        const isCurrentlyMinimized = !!compactElement || scannerRef.current.classList.contains('compact');
-        
-        if (isCurrentlyMinimized !== isMinimized) {
-          console.log('🔧 Scanner minimization detected:', isCurrentlyMinimized); // Debug
-          setIsMinimized(isCurrentlyMinimized);
-        }
-      }
-    };
-
-    // Check immediately
-    checkMinimization();
-    
-    // Set up interval to check periodically (fallback)
-    const interval = setInterval(checkMinimization, 1000);
-    
-    return () => clearInterval(interval);
-  }, [isMinimized]);
-
   // Notify parent when minimization state changes
   useEffect(() => {
     if (onMinimizeChange) {
@@ -1068,9 +1045,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       ref={scannerRef}
       sectionId="qr-scanner"
       title={t('qr_scanner') || 'QR Scanner'}
+      titleStyle={{ fontSize: '0.75rem' }}
       icon={<QrCodeIcon />}
       color="#8b5cf6"
       defaultMode="full"
+      onModeChange={(mode) => {
+        const isMinimized = mode === 'minimize';
+        console.log('🔧 QR Scanner onModeChange triggered:', mode, 'isMinimized:', isMinimized);
+        setIsMinimized(isMinimized);
+      }}
       compactContent={
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
@@ -1408,7 +1391,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           icon={<Activity size={16} />}
           color="#6366f1"
           defaultMode="full"
-          titleStyle={{ fontSize: '0.875rem' }}
+          titleStyle={{ fontSize: '0.75rem' }}
           compactContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
