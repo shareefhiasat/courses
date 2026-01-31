@@ -640,8 +640,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       });
       
       // Get today's penalty records for students in this class
+      console.log('🔧 QRScanner fetching penalties with subjectId:', selectedSubjectId);
       const penaltiesResponse = await getPenalties(null, selectedSubjectId);
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      console.log('🔧 QRScanner penalties response:', { success: penaltiesResponse.success, count: allPenalties.length, penalties: allPenalties.map(p => ({ id: p.id, studentId: p.studentId, type: p.type, reason: p.reason })) });
       
       // Create a map of studentId to student name from passed students
       const studentMap = {};
@@ -692,8 +694,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         
-        return dateStr === todayStr;
+        const isToday = dateStr === todayStr;
+        console.log('🔧 Penalty date check:', { penaltyId: p.id, timestamp, dateStr, todayStr, isToday });
+        
+        return isToday;
       });
+      
+      console.log('🔧 Today penalties after filtering:', todayPenalties.length);
       
       logger.debug('[QR Scanner] Activity refresh found:', attendanceRecords.length, 'attendance,', todayPenalties.length, 'penalties');
       
@@ -1414,7 +1421,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         <CollapsibleSection
           sectionId="recent-activity"
-          title={t('todays_transactions') || 'Today\'s Transactions'}
+          title={t('today') || 'Today'}
           titleStyle={{ fontSize: '0.75rem' }}
           icon={<Activity size={16} />}
           color="#6366f1"
@@ -1572,7 +1579,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   
                   {expandedActivities.has(activity.id) && (
                     <div style={{ 
-                      paddingLeft: '3.5rem',
+                      paddingLeft: '0.5rem',
                       paddingTop: '0.5rem',
                       fontSize: '0.75rem',
                       color: '#6b7280',

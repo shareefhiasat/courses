@@ -68,12 +68,19 @@ export default function StudentActionPanelNew({
 
   // Get current attendance status
   const attendanceStatus = useMemo(() => {
+    console.log('🔧 StudentActionPanelNew attendanceStatus check:', { 
+      studentId: student?.id, 
+      studentAttendance: student?.attendance,
+      hasTodayAttendance: student?.attendance && ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(student.attendance)
+    });
+    
     // Check if student has attendance data for today
     const hasTodayAttendance = student?.attendance && 
       ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(student.attendance);
     
     // If no attendance data for today, show NOTHING YET
     if (!hasTodayAttendance) {
+      console.log('🔧 Showing NOTHING YET for student:', student?.displayName);
       return {
         en: t('nothing_yet') || 'NOTHING YET',
         ar: t('nothing_yet') || 'لا شيء بعد',
@@ -85,11 +92,13 @@ export default function StudentActionPanelNew({
     if (student?.attendance) {
       const statusInfo = ATTENDANCE_STATUS_LABELS[student?.attendance];
       if (statusInfo) {
+        console.log('🔧 Using attendance status:', student?.attendance, statusInfo);
         return statusInfo;
       }
     }
     
     // Fallback to NOTHING YET if no valid status found
+    console.log('🔧 Fallback to NOTHING YET for student:', student?.displayName);
     return {
       en: t('nothing_yet') || 'NOTHING YET',
       ar: t('nothing_yet') || 'لا شيء بعد',
@@ -713,8 +722,6 @@ export default function StudentActionPanelNew({
             value={internalNote}
             onChange={(e) => setInternalNote(e.target.value)}
             style={{ 
-              minHeight: '6rem', 
-              resize: 'none', 
               fontSize: '0.875rem',
               width: '100%'
             }}
