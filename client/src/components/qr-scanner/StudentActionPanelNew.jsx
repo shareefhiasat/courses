@@ -79,8 +79,8 @@ export default function StudentActionPanelNew({
     const hasTodayAttendance = student?.attendance && 
       ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(student.attendance);
     
-    // Only show "Present" status, everything else shows NOTHING YET
-    if (student?.attendance === 'present') {
+    // Show proper attendance status for any valid attendance
+    if (hasTodayAttendance) {
       const statusInfo = ATTENDANCE_STATUS_LABELS[student?.attendance];
       if (statusInfo) {
         console.log('🔧 Using attendance status:', student?.attendance, statusInfo);
@@ -88,7 +88,7 @@ export default function StudentActionPanelNew({
       }
     }
     
-    // If no attendance or not present, show NOTHING YET
+    // If no attendance, show NOTHING YET
     console.log('🔧 Showing NOTHING YET for student:', student?.displayName || student?.name || 'No Name', '(attendance:', student?.attendance, ')');
     return {
       en: t('nothing_yet') || 'NOTHING YET',
@@ -235,6 +235,13 @@ export default function StudentActionPanelNew({
     return icons[finalIconName] || icons.MessageSquare;
   };
 
+  // Clear selected actions when attendance status is NOTHING YET
+  useEffect(() => {
+    if (attendanceStatus.en === 'NOTHING YET') {
+      setSelectedActions([]);
+    }
+  }, [attendanceStatus]);
+
   const toggleAction = useCallback((option) => {
     setSelectedActions(prev => {
       const exists = prev.find(a => a.id === option.id);
@@ -343,9 +350,12 @@ export default function StudentActionPanelNew({
                     background: attendanceStatus.color,
                     borderRadius: '9999px'
                   }} />
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                    {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                  </span>
+                  {/* Only show text for attendance status if it's not 'present' */}
+                  {student?.attendance !== 'present' && (
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                      {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
+                    </span>
+                  )}
                 </div>
               </div>
               <div style={{ 
@@ -567,15 +577,18 @@ export default function StudentActionPanelNew({
                     }}>
                       {lang === 'ar' ? (option.label_ar || option.label_en) : option.label_en}
                     </span>
-                    <div style={{
-                      fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
-                      fontWeight: 600,
-                      color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626',
-                      flexShrink: 0,
-                      marginLeft: '0.25rem'
-                    }}>
-                      {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
-                    </div>
+                    {/* Only show points for behavior, participation, and penalty options, not attendance */}
+                    {option.category !== 'attendance' && (
+                      <div style={{
+                        fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
+                        fontWeight: 600,
+                        color: (actionPoints[option.id] || 0) >= 0 ? '#059669' : '#dc2626',
+                        flexShrink: 0,
+                        marginLeft: '0.25rem'
+                      }}>
+                        {(actionPoints[option.id] || 0) >= 0 ? '+' : ''}{actionPoints[option.id] || 0}
+                      </div>
+                    )}
                   </div>
                   
                   <button
