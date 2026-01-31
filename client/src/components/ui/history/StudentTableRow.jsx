@@ -4,6 +4,7 @@ import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, Ext
 import StudentRosterHistory from './StudentRosterHistory';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
 
 const StudentTableRow = ({ 
   student, 
@@ -36,78 +37,69 @@ const StudentTableRow = ({
   
   const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
 
-  // Get attendance icon and label function
+  // Get attendance icon and label function using official constants
   const getAttendanceDisplay = (status) => {
-    switch(status?.toLowerCase()) {
-      case 'present': 
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    const statusInfo = ATTENDANCE_STATUS_LABELS[status];
+    if (!statusInfo) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+          </svg>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
+        </div>
+      );
+    }
+
+    // Get icon based on status
+    const getIcon = (status) => {
+      switch(status?.toLowerCase()) {
+        case 'present': 
+          return (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>Present</span>
-          </div>
-        );
-      case 'late': 
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          );
+        case 'late': 
+          return (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 12 12"></polyline>
             </svg>
-            <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 500 }}>Late</span>
-          </div>
-        );
-      case 'absent':
-      case 'absent_no_excuse':
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          );
+        case 'absent':
+        case 'absent_no_excuse':
+        case 'absent_with_excuse':
+        case 'excused_leave':
+          return (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
-            <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 500 }}>Absent</span>
-          </div>
-        );
-      case 'absent_with_excuse':
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-            <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 500 }}>Excused</span>
-          </div>
-        );
-      case 'excused_leave':
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-            <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 500 }}>Leave</span>
-          </div>
-        );
-      case 'human_case':
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          );
+        case 'human_case':
+          return (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
-            <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: 500 }}>Human Case</span>
-          </div>
-        );
-      default: 
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          );
+        default: 
+          return (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
             </svg>
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
-          </div>
-        );
-    }
+          );
+      }
+    };
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        {getIcon(status)}
+        <span style={{ fontSize: '0.75rem', color: statusInfo.color, fontWeight: 500 }}>
+          {statusInfo.en}
+        </span>
+      </div>
+    );
   };
 
   return (
