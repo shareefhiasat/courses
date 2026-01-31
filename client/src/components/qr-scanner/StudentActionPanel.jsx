@@ -70,6 +70,7 @@ export default function StudentActionPanel({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('');
   const [deleteLogId, setDeleteLogId] = useState('');
+  const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState(student?.attendance || null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
@@ -465,6 +466,8 @@ export default function StudentActionPanel({
     setShowLoadingOverlay(true);
     try {
       await onMarkAttendance(studentId, status);
+      // Update the current attendance status immediately for UI feedback
+      setCurrentAttendanceStatus(status);
       // Force refresh the history by incrementing the key
       setHistoryRefreshKey(prev => prev + 1);
       // Refresh data after marking attendance
@@ -712,6 +715,16 @@ export default function StudentActionPanel({
   // Memoized computed values for performance
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name, getAvatarColor]);
   const attendanceStatus = useMemo(() => {
+    // First check if there's a specific attendance status (prefer current status for immediate updates)
+    const attendanceToUse = currentAttendanceStatus || student?.attendance;
+    if (attendanceToUse) {
+      const statusInfo = ATTENDANCE_STATUS_LABELS[attendanceToUse];
+      if (statusInfo) {
+        console.log('🔧 Using direct attendance status:', attendanceToUse, statusInfo);
+        return statusInfo;
+      }
+    }
+    
     // Check if there are actual attendance records for today (not participation/behavior/penalty)
     const hasTodayAttendance = todayLogs.some(log => 
       log.type === 'attendance' && 
@@ -721,19 +734,12 @@ export default function StudentActionPanel({
     
     // If no actual attendance records for today, show NOTHING YET
     if (!hasTodayAttendance) {
+      console.log('🔧 No attendance found - showing NOTHING YET');
       return {
         en: t('nothing_yet') || 'NOTHING YET',
         ar: t('nothing_yet') || 'لا شيء بعد',
         color: '#fbbf24'
       };
-    }
-    
-    // If there's a specific attendance status, use it
-    if (student?.attendance) {
-      const statusInfo = ATTENDANCE_STATUS_LABELS[student?.attendance];
-      if (statusInfo) {
-        return statusInfo;
-      }
     }
     
     // Fallback to NOTHING YET if no valid status found
@@ -865,9 +871,12 @@ export default function StudentActionPanel({
                       background: attendanceStatus.color,
                       borderRadius: '9999px'
                     }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                      {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                    </span>
+                    {/* Only show text for attendance status if it's not 'present' */}
+                    {(currentAttendanceStatus || student?.attendance) !== 'present' && (
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div style={{ 
@@ -972,8 +981,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #10b981',
-                  background: student.attendance === 'present' ? '#10b981' : 'white',
-                  color: student.attendance === 'present' ? 'white' : '#10b981',
+                  background: (currentAttendanceStatus || student.attendance) === 'present' ? '#10b981' : 'white',
+                  color: (currentAttendanceStatus || student.attendance) === 'present' ? 'white' : '#10b981',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -989,12 +998,12 @@ export default function StudentActionPanel({
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
-                  {attendanceStats.present && Number(attendanceStats.present) > 0 && (
+                  {attendanceStats.present && Number(attendanceStats.present) > 0 ? (
                     <span style={{
                       fontSize: '0.5rem',
                       fontWeight: 600,
-                      color: student.attendance === 'present' ? 'white' : '#10b981',
-                      background: student.attendance === 'present' ? '#10b981' : 'transparent',
+                      color: (currentAttendanceStatus || student.attendance) === 'present' ? 'white' : '#10b981',
+                      background: (currentAttendanceStatus || student.attendance) === 'present' ? '#10b981' : 'transparent',
                       borderRadius: '0.125rem',
                       padding: '0.125rem 0.25rem',
                       minWidth: '0.75rem',
@@ -1002,7 +1011,7 @@ export default function StudentActionPanel({
                     }}>
                       {attendanceStats.present}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <div>{t('present')}</div>
               </button>
@@ -1015,8 +1024,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #f59e0b',
-                  background: student.attendance === 'late' ? '#f59e0b' : 'white',
-                  color: student.attendance === 'late' ? 'white' : '#f59e0b',
+                  background: (currentAttendanceStatus || student.attendance) === 'late' ? '#f59e0b' : 'white',
+                  color: (currentAttendanceStatus || student.attendance) === 'late' ? 'white' : '#f59e0b',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1033,12 +1042,12 @@ export default function StudentActionPanel({
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 12 12"></polyline>
                   </svg>
-                  {attendanceStats.late && Number(attendanceStats.late) > 0 && (
+                  {attendanceStats.late && Number(attendanceStats.late) > 0 ? (
                     <span style={{
                       fontSize: '0.5rem',
                       fontWeight: 600,
-                      color: student.attendance === 'late' ? 'white' : '#f59e0b',
-                      background: student.attendance === 'late' ? '#f59e0b' : 'transparent',
+                      color: (currentAttendanceStatus || student.attendance) === 'late' ? 'white' : '#f59e0b',
+                      background: (currentAttendanceStatus || student.attendance) === 'late' ? '#f59e0b' : 'transparent',
                       borderRadius: '0.125rem',
                       padding: '0.125rem 0.25rem',
                       minWidth: '0.75rem',
@@ -1046,7 +1055,7 @@ export default function StudentActionPanel({
                     }}>
                       {attendanceStats.late}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <div>{t('late')}</div>
               </button>
@@ -1059,8 +1068,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #ef4444',
-                  background: student.attendance === 'absent_no_excuse' ? '#ef4444' : 'white',
-                  color: student.attendance === 'absent_no_excuse' ? 'white' : '#ef4444',
+                  background: (currentAttendanceStatus || student.attendance) === 'absent_no_excuse' ? '#ef4444' : 'white',
+                  color: (currentAttendanceStatus || student.attendance) === 'absent_no_excuse' ? 'white' : '#ef4444',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1077,12 +1086,12 @@ export default function StudentActionPanel({
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                   </svg>
-                  {attendanceStats.absent_no_excuse && Number(attendanceStats.absent_no_excuse) > 0 && (
+                  {attendanceStats.absent_no_excuse && Number(attendanceStats.absent_no_excuse) > 0 ? (
                     <span style={{
                       fontSize: '0.5rem',
                       fontWeight: 600,
-                      color: student.attendance === 'absent_no_excuse' ? 'white' : '#ef4444',
-                      background: student.attendance === 'absent_no_excuse' ? '#ef4444' : 'transparent',
+                      color: (currentAttendanceStatus || student.attendance) === 'absent_no_excuse' ? 'white' : '#ef4444',
+                      background: (currentAttendanceStatus || student.attendance) === 'absent_no_excuse' ? '#ef4444' : 'transparent',
                       borderRadius: '0.125rem',
                       padding: '0.125rem 0.25rem',
                       minWidth: '0.75rem',
@@ -1090,7 +1099,7 @@ export default function StudentActionPanel({
                     }}>
                       {attendanceStats.absent_no_excuse}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <div>{t('absent')}</div>
               </button>

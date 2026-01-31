@@ -1057,22 +1057,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   const getStatusLabel = useCallback((status, type, delta) => {
     // Show only icons for behavior, participation, and penalty to save space
-    // But keep attendance labels
+    // Also show only icons for all attendance types in the Today grid
     if (type === 'participation' || delta > 0) return '';
     if (type === 'behavior' || delta < 0) return '';
     if (type === 'penalty') return '';
+    
+    // Hide labels for all attendance types in Today grid - show only icons
+    if (type === 'attendance') return '';
 
-    // Show attendance labels
-    switch(status?.toLowerCase()) {
-      case 'present': return t('present');
-      case 'late': return t('late');
-      case 'absent': return t('absent');
-      case 'absent_no_excuse': return t('absent');
-      case 'absent_with_excuse': return t('absent_excused');
-      case 'excused_leave': return t('excused_leave');
-      case 'human_case': return t('human_case');
-      default: return status || t('present');
-    }
+    // Fallback for any other types
+    return '';
   }, [t]);
 
   // Listen for real-time activity updates - optimized with useCallback
@@ -1518,7 +1512,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 <polyline points="1 20 1 14 7 14"/>
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
               </svg>
-              {t('refresh_today') || 'Refresh Today'}
+              {/*{t('refresh_today') || 'Refresh Today'}*/}
             </button>
           </div>
         </div>
