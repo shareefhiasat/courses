@@ -640,7 +640,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       });
       
       // Get today's penalty records for students in this class
-      const penaltiesResponse = await getPenalties();
+      const penaltiesResponse = await getPenalties(null, selectedSubjectId);
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       
       // Create a map of studentId to student name from passed students
@@ -726,6 +726,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             });
             if (foundStudent) {
               studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
+              console.log('🔧 Found student by reference/Firebase ID:', studentId, '->', studentName);
+            } else {
+              console.log('🔧 Student not found for ID:', studentId, 'Available students:', students.map(s => ({ id: s.id, refId: generateReferenceId(s.id), name: s.displayName })));
             }
           }
           
@@ -1002,10 +1005,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   const getStatusLabel = useCallback((status, type, delta) => {
     // Show only icons for behavior, participation, and penalty to save space
+    // But keep attendance labels
     if (type === 'participation' || delta > 0) return '';
     if (type === 'behavior' || delta < 0) return '';
     if (type === 'penalty') return '';
 
+    // Show attendance labels
     switch(status?.toLowerCase()) {
       case 'present': return t('present');
       case 'late': return t('late');
@@ -1066,6 +1071,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     <CollapsibleSection
       ref={scannerRef}
       sectionId="qr-scanner"
+      title={t('qr_scanner') || 'QR Scanner'}
+      titleStyle={{ fontSize: '0.75rem' }}
+      icon={<QrCodeIcon />}
       color="#8b5cf6"
       defaultMode="full"
       onModeChange={(mode) => {
@@ -1406,6 +1414,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         <CollapsibleSection
           sectionId="recent-activity"
+          title={t('todays_transactions') || 'Today\'s Transactions'}
+          titleStyle={{ fontSize: '0.75rem' }}
+          icon={<Activity size={16} />}
           color="#6366f1"
           defaultMode="full"
           compactContent={
@@ -1590,9 +1601,19 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       <div style={{ marginBottom: '0.25rem' }}>
                         <strong>{t('method') || 'Method'}:</strong> {getScanMethodDisplay(activity.scanMethod).text}
                       </div>
-                      <div>
+                      <div style={{ marginBottom: '0.25rem' }}>
                         <strong>{t('by') || 'By'}:</strong> {activity.performedBy?.displayName || activity.performedBy?.email?.split('@')[0] || t('unknown')}
                       </div>
+                      {activity.comment && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>{t('reason') || 'Reason'}:</strong> {activity.comment}
+                        </div>
+                      )}
+                      {activity.label && activity.type === 'penalty' && (
+                        <div style={{ marginBottom: '0.25rem' }}>
+                          <strong>{t('penalty_type') || 'Penalty Type'}:</strong> {activity.label}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

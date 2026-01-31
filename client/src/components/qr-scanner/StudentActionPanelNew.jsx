@@ -770,20 +770,26 @@ export default function StudentActionPanelNew({
               }
             }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError])}
             disabled={selectedActions.length === 0 || isSubmitting}
-            style={{ flex: 1, fontSize: '0.875rem' }}
+            style={{ 
+              flex: 1, 
+              fontSize: '0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
           >
             {isSubmitting ? (
               <>
                 <div style={{
-                  width: '16px',
-                  height: '16px',
-                  border: '2px solid white',
+                  width: '14px',
+                  height: '14px',
+                  border: '2px solid currentColor',
                   borderTop: '2px solid transparent',
                   borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                  marginRight: '0.5rem'
+                  animation: 'spin 1s linear infinite'
                 }}></div>
-                {t('saving') || 'Saving...'}
+                <span>{t('saving') || 'Saving...'}</span>
               </>
             ) : (
               <>{t('save_actions')} ({selectedActions.length})</>
