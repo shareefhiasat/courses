@@ -28,6 +28,7 @@ const StudentRoster = React.memo(function StudentRoster({
   onDownload,
   onFilter,
   onRefresh,
+  autoExpand = false, // New prop for auto-expansion
   onStudentAction = () => {},
   searchQuery,
   onSearchChange,
@@ -249,6 +250,23 @@ const StudentRoster = React.memo(function StudentRoster({
       setDeleteLogId('');
     }
   };
+
+  // Auto-expand all students when autoExpand prop changes
+  useEffect(() => {
+    console.log('🔧 StudentRoster autoExpand effect triggered:', { autoExpand, studentsLength: students.length }); // Debug
+    if (autoExpand && students.length > 0) {
+      console.log('🔧 Auto-expanding all students:', students.map(s => s.id)); // Debug
+      const allStudentIds = new Set(students.map(s => s.id));
+      setExpandedRows(allStudentIds);
+      
+      // Fetch history for all students
+      students.forEach(student => {
+        if (!studentHistory[student.id]) {
+          fetchStudentHistory(student.id);
+        }
+      });
+    }
+  }, [autoExpand, students]);
 
   // Listen for real-time activity updates
   useEffect(() => {

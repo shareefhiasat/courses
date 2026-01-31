@@ -94,6 +94,31 @@ export const PARTICIPATION_TYPES = [
     color: '#ef4444',
     points: 0
   },
+  // Positive behaviors moved from behaviorTypes.js
+  { 
+    id: 'positive', 
+    label_ar: 'سلوك إيجابي', 
+    label_en: 'Positive Behavior', 
+    icon: 'CheckCircle',
+    color: '#22c55e',
+    points: 3
+  },
+  { 
+    id: 'helpful', 
+    label_ar: 'مفيد للآخرين', 
+    label_en: 'Helpful to Others', 
+    icon: 'Users',
+    color: '#22c55e',
+    points: 2
+  },
+  { 
+    id: 'participation', 
+    label_ar: 'مشاركة جيدة', 
+    label_en: 'Good Participation', 
+    icon: 'CheckCircle',
+    color: '#3b82f6',
+    points: 1
+  },
   { 
     id: 'other', 
     label_ar: 'أخرى', 

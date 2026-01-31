@@ -37,7 +37,7 @@ const AttendanceIcon = ({ style }) => (
   </svg>
 );
 
-export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [] }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { addToast } = useToast();
@@ -57,6 +57,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebugBox, setShowDebugBox] = useState(false);
   const [isScanningLocked, setIsScanningLocked] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false); // Track minimization state
+  const scannerRef = useRef(null); // Ref for the scanner section
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultModalData, setResultModalData] = useState({ type: '', message: '' });
   const [showStudentActionPanel, setShowStudentActionPanel] = useState(false);
@@ -780,7 +782,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             studentId: record.studentId,
             studentName,
             status: 'penalty',
-            label: record.type || record.reason || 'Penalty', // Show type first (e.g., 'cheating')
+            label: record.type && record.reason ? `${record.type}: ${record.reason}` : (record.type || record.reason || 'Penalty'), // Show type and reason
             points: -Math.abs(record.points || 0), // Always negative for penalties
             performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
             scanMethod: 'manual_instructor',
@@ -1024,6 +1026,37 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   }, [classId, students]);
 
+  // Detect minimization by checking DOM changes
+  useEffect(() => {
+    const checkMinimization = () => {
+      if (scannerRef.current) {
+        // Check if the compact content is visible (indicating minimized state)
+        const compactElement = scannerRef.current.querySelector('[data-compact="true"]');
+        const isCurrentlyMinimized = !!compactElement || scannerRef.current.classList.contains('compact');
+        
+        if (isCurrentlyMinimized !== isMinimized) {
+          console.log('🔧 Scanner minimization detected:', isCurrentlyMinimized); // Debug
+          setIsMinimized(isCurrentlyMinimized);
+        }
+      }
+    };
+
+    // Check immediately
+    checkMinimization();
+    
+    // Set up interval to check periodically (fallback)
+    const interval = setInterval(checkMinimization, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isMinimized]);
+
+  // Notify parent when minimization state changes
+  useEffect(() => {
+    if (onMinimizeChange) {
+      onMinimizeChange(isMinimized);
+    }
+  }, [isMinimized, onMinimizeChange]);
+
   useEffect(() => {
     return () => {
       stopCamera();
@@ -1032,19 +1065,31 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   return (
     <CollapsibleDashboardSection
+      ref={scannerRef}
       sectionId="qr-scanner"
       title={t('qr_scanner') || 'QR Scanner'}
       icon={<QrCodeIcon />}
       color="#8b5cf6"
       defaultMode="full"
       compactContent={
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
             {isScanning ? 
               t('scanning') || 'Scanning...' : 
               t('ready_to_scan') || 'Ready to scan'
             }
           </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsMinimized(!isMinimized)}
+            title="Toggle minimization"
+            style={{ padding: '0.25rem' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
+          </Button>
         </div>
       }
     >

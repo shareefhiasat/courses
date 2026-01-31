@@ -29,6 +29,7 @@ export default function StudentActionPanelNew({
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { showSuccess, showError } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -719,6 +720,8 @@ export default function StudentActionPanelNew({
                 return;
               }
               
+              setIsSubmitting(true);
+              
               try {
                 // Prepare actions with points override
                 const actionsWithPoints = selectedActions.map(action => ({
@@ -750,12 +753,29 @@ export default function StudentActionPanelNew({
               } catch (error) {
                 logger.error('Error saving actions:', error);
                 showError(t('failed_to_save_actions'));
+              } finally {
+                setIsSubmitting(false);
               }
             }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError])}
-            disabled={selectedActions.length === 0}
+            disabled={selectedActions.length === 0 || isSubmitting}
             style={{ flex: 1, fontSize: '0.875rem' }}
           >
-            {t('save_actions')} ({selectedActions.length})
+            {isSubmitting ? (
+              <>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid white',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  marginRight: '0.5rem'
+                }}></div>
+                {t('saving') || 'Saving...'}
+              </>
+            ) : (
+              <>{t('save_actions')} ({selectedActions.length})</>
+            )}
           </Button>
           <Button
             variant="ghost"

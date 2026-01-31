@@ -63,6 +63,7 @@ const InstructorQRScannerPage = () => {
   const [showScanner, setShowScanner] = useState(true);
   const [sendNotifications, setSendNotifications] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  const [isScannerMinimized, setIsScannerMinimized] = useState(false);
 
   // Debounced resize handler for performance
   useEffect(() => {
@@ -78,6 +79,12 @@ const InstructorQRScannerPage = () => {
       clearTimeout(timeoutId);
       window.removeEventListener('resize', handleResize);
     };
+  }, []);
+
+  // Handle QR scanner minimization changes
+  const handleScannerMinimizeChange = useCallback((isMinimized) => {
+    console.log('🔧 QR Scanner minimization changed:', isMinimized); // Debug
+    setIsScannerMinimized(isMinimized);
   }, []);
 
   // Redirect to login if session expired (no user)
@@ -1338,8 +1345,9 @@ const InstructorQRScannerPage = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
-          width: isMobile ? '100%' : '300px',
-          flexShrink: 0
+          width: isMobile ? '100%' : (isScannerMinimized ? '100px' : '300px'), // Shrink when minimized
+          flexShrink: 0,
+          transition: 'width 0.3s ease' // Smooth transition
         }}>
           {showScanner && selectedClassId && (
             <QRScanner 
@@ -1382,12 +1390,16 @@ const InstructorQRScannerPage = () => {
               })()}
               loading={false}
               students={students}
+              onMinimizeChange={handleScannerMinimizeChange}
             />
           )}
         </div>
 
         {/* Main Content */}
-        <div style={{ width: isMobile ? '100%' : 'calc(100% - 300px)' }}>
+        <div style={{ 
+          width: isMobile ? '100%' : (isScannerMinimized ? 'calc(100% - 100px)' : 'calc(100% - 300px)'),
+          transition: 'width 0.3s ease' // Smooth transition
+        }}>
           {initialLoading ? (
             <div style={{
               position: 'fixed',
@@ -1498,7 +1510,37 @@ const InstructorQRScannerPage = () => {
               selectedSubjectId={selectedSubjectId}
               selectedClassId={selectedClassId}
               selectedDate={selectedDate}
+              autoExpand={isScannerMinimized}
             />
+            {/* Debug: Show autoExpand value */}
+            <div style={{
+              position: 'fixed',
+              top: '10px',
+              right: '10px',
+              background: 'rgba(0,0,0,0.8)',
+              color: 'white',
+              padding: '10px',
+              borderRadius: '5px',
+              fontSize: '12px',
+              zIndex: 9999
+            }}>
+              Scanner Minimized: {isScannerMinimized ? 'YES' : 'NO'}
+              <br />
+              <button
+                onClick={() => setIsScannerMinimized(!isScannerMinimized)}
+                style={{
+                  marginTop: '5px',
+                  padding: '5px 10px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer'
+                }}
+              >
+                Toggle Minimize
+              </button>
+            </div>
             </div>
           )}
         </div>
