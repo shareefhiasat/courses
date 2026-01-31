@@ -606,6 +606,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const fetchRecentActivity = useCallback(async () => {
     if (!classId) return;
     
+    // Get the latest students state at the time of execution
+    const currentStudents = students;
+    console.log('🔧 fetchRecentActivity captured students:', currentStudents.length);
+    
+    // Early return if no students available
+    if (currentStudents.length === 0) {
+      console.log('🔧 No students available in fetchRecentActivity - returning');
+      setRecentActivity([]);
+      setActivityLoading(false);
+      return;
+    }
+    
     setActivityLoading(true);
     try {
       // Small delay to ensure Firestore has processed the update
@@ -662,21 +674,24 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         console.error('🔧 Error fetching penalties:', error);
       }
       
-      // Create a map of studentId to student name from passed students
+      // Create a map of studentId to student name from captured students
       const studentMap = {};
-      console.log('🔧 Creating student map from', students.length, 'students');
+      console.log('🔧 Creating student map from', currentStudents.length, 'students');
       
       // Only create student map if we have students
-      if (students.length === 0) {
-        console.log('🔧 No students available for mapping');
+      if (currentStudents.length === 0) {
+        console.log('🔧 No students available for mapping - returning empty activity');
         // Return early with empty activity
         setRecentActivity([]);
         setActivityLoading(false);
         return;
       }
       
-      logger.debug('[QR Scanner] Creating student map from', students.length, 'students');
-      students.forEach(student => {
+      // Add a small delay to ensure students are fully loaded
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      logger.debug('[QR Scanner] Creating student map from', currentStudents.length, 'students');
+      currentStudents.forEach(student => {
         const studentId = student.id || student.docId; // Firebase user ID
         const name = student.displayName || student.realName || student.name || (student.email ? student.email.split('@')[0] : 'Unknown');
         
@@ -692,9 +707,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       });
       
       console.log('🔧 QRScanner student map created:', {
-        totalStudents: students.length,
+        totalStudents: currentStudents.length,
         studentMapEntries: Object.entries(studentMap).map(([key, value]) => ({ key, value })),
-        availableStudentIds: students.map(s => s.id)
+        availableStudentIds: currentStudents.map(s => s.id)
       }); // Debug
       
       // Fallback: Get all users if no students provided or to find missing students
@@ -918,7 +933,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } finally {
       setActivityLoading(false);
     }
-  }, [classId, user, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName]);
+  }, [classId, students, user, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName]);
 
   // Memoized helper functions for activity display - defined outside map for performance
   const getScanMethodDisplay = useCallback((scanMethod) => {
@@ -1086,9 +1101,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Fetch activity when classId and students change
   useEffect(() => {
-    // Only fetch if we have a valid classId AND students
+    // Only fetch if we have a valid classId (not 'all') AND students
     if (classId && classId !== 'all' && students && students.length > 0) {
-      fetchRecentActivity();
+      console.log('🔧 Fetching activity - classId:', classId, 'students:', students.length);
+      // Use a timeout to ensure the latest students state is captured
+      setTimeout(() => {
+        fetchRecentActivity();
+      }, 50);
+    } else {
+      console.log('🔧 Skipping activity fetch - classId:', classId, 'students:', students?.length || 0);
+      // Clear activity when conditions aren't met
+      setRecentActivity([]);
+      setActivityLoading(false);
     }
   }, [classId, students]);
 
@@ -1457,6 +1481,44 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 <line x1="16" y1="17" x2="8" y2="17"/>
                 <polyline points="10,9 9,9 8,9"/>
               </svg>
+            </button>
+            
+            <button
+              onClick={() => {
+                console.log('🔧 Manual refresh button clicked');
+                // Force refresh with current students
+                if (students && students.length > 0) {
+                  console.log('🔧 Manual refresh - students available:', students.length);
+                  fetchRecentActivity();
+                } else {
+                  console.log('🔧 Manual refresh - no students available');
+                  showResult('error', 'No students available to refresh');
+                }
+              }}
+              disabled={!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? '#f3f4f6' : '#10b981',
+                color: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? '#9ca3af' : 'white',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                cursor: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? 0.6 : 1
+              }}
+              title="Refresh today's activity"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              {t('refresh_today') || 'Refresh Today'}
             </button>
           </div>
         </div>
