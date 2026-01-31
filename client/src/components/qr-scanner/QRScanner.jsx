@@ -1031,12 +1031,29 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'} style={{
-      background: 'var(--panel, white)',
-      borderRadius: '0.75rem',
-      border: '1px solid var(--border, #e5e7eb)',
-      padding: '1.5rem'
-    }}>
+    <CollapsibleDashboardSection
+      sectionId="qr-scanner"
+      title={t('qr_scanner') || 'QR Scanner'}
+      icon={<QrCodeIcon />}
+      color="#8b5cf6"
+      defaultMode="full"
+      compactContent={
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            {isScanning ? 
+              t('scanning') || 'Scanning...' : 
+              t('ready_to_scan') || 'Ready to scan'
+            }
+          </span>
+        </div>
+      }
+    >
+      <div dir={isRTL ? 'rtl' : 'ltr'} style={{
+        background: 'var(--panel, white)',
+        borderRadius: '0.75rem',
+        border: '1px solid var(--border, #e5e7eb)',
+        padding: '1.5rem'
+      }}>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -1343,9 +1360,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         <CollapsibleDashboardSection
           sectionId="recent-activity"
           title={t('todays_transactions') || 'Today\'s Transactions'}
-          icon={<Activity size={20} />}
+          icon={<Activity size={16} />}
           color="#6366f1"
           defaultMode="full"
+          titleStyle={{ fontSize: '0.875rem' }}
           compactContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
@@ -2907,6 +2925,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </div>
+      </div>
+    </CollapsibleDashboardSection>
   );
 }
