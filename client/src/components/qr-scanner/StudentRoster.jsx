@@ -767,12 +767,12 @@ const StudentRoster = React.memo(function StudentRoster({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border, #e5e7eb)' }}>
-                <th style={{ width: '40px', padding: '0.75rem 1rem' }}></th>
+                <th style={{ width: '30px', padding: '0.5rem 0.5rem' }}></th>
                 <th 
                   onClick={() => onSort('name')}
                   style={{
                     textAlign: isRTL ? 'right' : 'left',
-                    padding: '0.75rem 1rem',
+                    padding: '0.5rem 0.75rem',
                     fontSize: '0.75rem',
                     fontWeight: 500,
                     color: 'var(--text-muted, #6b7280)',
@@ -788,7 +788,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   onClick={() => onSort('attendance')}
                   style={{
                     textAlign: isRTL ? 'right' : 'left',
-                    padding: '0.75rem 1rem',
+                    padding: '0.5rem 0.75rem',
                     fontSize: '0.75rem',
                     fontWeight: 500,
                     color: 'var(--text-muted, #6b7280)',
@@ -804,7 +804,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   onClick={() => onSort('participation')}
                   style={{
                     textAlign: 'center',
-                    padding: '0.75rem 1rem',
+                    padding: '0.5rem 0.75rem',
                     fontSize: '0.75rem',
                     fontWeight: 500,
                     color: 'var(--text-muted, #6b7280)',
@@ -820,7 +820,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   onClick={() => onSort('behavior')}
                   style={{
                     textAlign: 'center',
-                    padding: '0.75rem 1rem',
+                    padding: '0.5rem 0.75rem',
                     fontSize: '0.75rem',
                     fontWeight: 500,
                     color: 'var(--text-muted, #6b7280)',
@@ -836,7 +836,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   onClick={() => onSort('penalty')}
                   style={{
                     textAlign: 'center',
-                    padding: '0.75rem 1rem',
+                    padding: '0.5rem 0.75rem',
                     fontSize: '0.75rem',
                     fontWeight: 500,
                     color: 'var(--text-muted, #6b7280)',
@@ -923,7 +923,7 @@ const StudentRoster = React.memo(function StudentRoster({
                 </th>
                 <th style={{
                   textAlign: 'center',
-                  padding: '0.75rem 1rem',
+                  padding: '0.5rem 0.75rem',
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   color: 'var(--text-muted, #6b7280)',

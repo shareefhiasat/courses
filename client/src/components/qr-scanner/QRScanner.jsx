@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import logger from '../../utils/logger';
 import { Button } from './ui/button';
-import { CollapsibleDashboardSection } from '@ui';
+import { CollapsibleSection } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
 import { markAttendance } from '@firebaseServices/attendance';
@@ -683,7 +683,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       
       // Filter penalties for today only
       const todayPenalties = allPenalties.filter(p => {
-        if (!p.studentId || !studentMap[p.studentId]) return false;
+        if (!p.studentId) return false;
         
         // Handle Firestore serverTimestamp field values (might be null if just created locally)
         const timestamp = p.createdAt || p.timestamp;
@@ -716,10 +716,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const activityLogs = [
         ...attendanceRecords.map((record, index) => {
           const studentId = record.studentId;
-          let studentName = studentMap[studentId] || 'Unknown Student';
+          let studentName = studentMap[studentId];
           
           // If not found in map, try to find the student by generating reference ID from user IDs
-          if (studentName === 'Unknown Student' && students.length > 0) {
+          if (!studentName && students.length > 0) {
             const foundStudent = students.find(s => {
               const generatedRefId = generateReferenceId(s.id);
               return generatedRefId === studentId || s.id === studentId;
@@ -727,6 +727,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             if (foundStudent) {
               studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
             }
+          }
+          
+          // Final fallback
+          if (!studentName) {
+            studentName = 'Unknown Student';
           }
           
           logger.debug('[QR Scanner] Processing attendance record #' + index + ':', {
@@ -771,7 +776,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             availableStudents: students.map(s => ({ id: s.id, displayName: s.displayName, name: s.name }))
           }); // Debug
           
-          let studentName = studentMap[record.studentId] || 'Unknown Student';
+          let studentName = studentMap[record.studentId];
+          
+          // If not found in map, try to find the student by generating reference ID from user IDs
+          if (!studentName && students.length > 0) {
+            const foundStudent = students.find(s => {
+              const generatedRefId = generateReferenceId(s.id);
+              return generatedRefId === record.studentId || s.id === record.studentId;
+            });
+            if (foundStudent) {
+              studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
+            }
+          }
+          
+          // Final fallback
+          if (!studentName) {
+            studentName = 'Unknown Student';
+          }
           
           console.log('🔧 Final student name for penalty:', studentName); // Debug
           
@@ -980,9 +1001,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   const getStatusLabel = useCallback((status, type, delta) => {
-    if (type === 'participation' || delta > 0) return t('participation') || 'Participation';
-    if (type === 'behavior' || delta < 0) return t('behavior') || 'Behavior';
-    if (type === 'penalty') return t('penalty') || 'Penalty';
+    // Show only icons for behavior, participation, and penalty to save space
+    if (type === 'participation' || delta > 0) return '';
+    if (type === 'behavior' || delta < 0) return '';
+    if (type === 'penalty') return '';
 
     switch(status?.toLowerCase()) {
       case 'present': return t('present');
@@ -1041,12 +1063,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   return (
-    <CollapsibleDashboardSection
+    <CollapsibleSection
       ref={scannerRef}
       sectionId="qr-scanner"
-      title={t('qr_scanner') || 'QR Scanner'}
-      titleStyle={{ fontSize: '0.75rem' }}
-      icon={<QrCodeIcon />}
       color="#8b5cf6"
       defaultMode="full"
       onModeChange={(mode) => {
@@ -1385,13 +1404,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           </div>
         </div>
 
-        <CollapsibleDashboardSection
+        <CollapsibleSection
           sectionId="recent-activity"
-          title={t('todays_transactions') || 'Today\'s Transactions'}
-          icon={<Activity size={16} />}
           color="#6366f1"
           defaultMode="full"
-          titleStyle={{ fontSize: '0.75rem' }}
           compactContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
@@ -1470,20 +1486,20 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               return (
                 <div key={activity.id} style={{
                   borderBottom: '1px solid #e5e7eb',
-                  paddingBottom: expandedActivities.has(activity.id) ? '0.75rem' : '0.25rem'
+                  paddingBottom: expandedActivities.has(activity.id) ? '0.5rem' : '0.125rem'
                 }}>
                   <div 
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.75rem',
-                      padding: '0.5rem 0',
+                      gap: '0.5rem',
+                      padding: '0.25rem 0',
                       cursor: 'pointer'
                     }}
                     onClick={() => toggleActivityExpansion(activity.id)}
                   >
                     <div style={{
-                      padding: '0.25rem 0.5rem',
+                      padding: '0.125rem 0.375rem',
                       borderRadius: '0.25rem',
                       fontSize: '0.75rem',
                       fontWeight: 600,
@@ -1491,7 +1507,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem'
+                      gap: '0.125rem'
                     }}>
                       {getStatusIcon(activity.status, activity.type, activity.delta)} {getStatusLabel(activity.status, activity.type, activity.delta)}
                     </div>
@@ -1584,7 +1600,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             })
           )}
         </div>
-        </CollapsibleDashboardSection>
+        </CollapsibleSection>
         
         {devices.length > 1 && isScanning && (
           <button
@@ -2954,6 +2970,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       `}</style>
       </div>
-    </CollapsibleDashboardSection>
+    </CollapsibleSection>
   );
 }

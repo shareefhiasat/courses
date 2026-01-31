@@ -56,6 +56,7 @@ export { default as PermissionAwareLoading } from './PermissionAwareLoading';
 export { default as AdvancedDataGrid } from './AdvancedDataGrid/AdvancedDataGrid';
 export { default as ExpandablePanel } from './ExpandablePanel/ExpandablePanel';
 export { default as CollapsibleDashboardSection } from './CollapsibleDashboardSection/CollapsibleDashboardSection';
+export { default as CollapsibleSection } from './CollapsibleDashboardSection/CollapsibleDashboardSection';
 export { default as LanguageSwitcher } from './LanguageSwitcher';
 
 // Newly Organized Components

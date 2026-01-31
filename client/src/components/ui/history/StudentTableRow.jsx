@@ -56,7 +56,7 @@ const StudentTableRow = ({
           }
         }}
       >
-        <td style={{ padding: '1rem' }}>
+        <td style={{ padding: '0.5rem 0.75rem' }}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -82,7 +82,7 @@ const StudentTableRow = ({
             )}
           </button>
         </td>
-        <td style={{ padding: '1rem' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button
               onClick={(e) => {
@@ -115,12 +115,12 @@ const StudentTableRow = ({
             </div>
           </div>
         </td>
-        <td style={{ padding: '1rem' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {getAttendanceBadge(student.attendance)}
           </div>
         </td>
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -135,7 +135,7 @@ const StudentTableRow = ({
             {student.participation}
           </span>
         </td>
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -150,7 +150,7 @@ const StudentTableRow = ({
             {student.behavior}
           </span>
         </td>
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -166,7 +166,7 @@ const StudentTableRow = ({
           </span>
         </td>
         {/* Attendance Statistics Columns */}
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -181,7 +181,7 @@ const StudentTableRow = ({
             {student.attendanceStats?.present || 0}
           </span>
         </td>
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -196,7 +196,7 @@ const StudentTableRow = ({
             {student.attendanceStats?.late || 0}
           </span>
         </td>
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -211,7 +211,7 @@ const StudentTableRow = ({
             {student.attendanceStats?.absent || 0}
           </span>
         </td>
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -226,7 +226,7 @@ const StudentTableRow = ({
             {student.attendanceStats?.absentWithExcuse || 0}
           </span>
         </td>
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -241,7 +241,7 @@ const StudentTableRow = ({
             {student.attendanceStats?.excusedLeave || 0}
           </span>
         </td>
-        <td style={{ padding: '1rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
+        <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -256,7 +256,7 @@ const StudentTableRow = ({
             {student.attendanceStats?.humanitarianCase || 0}
           </span>
         </td>
-        <td style={{ padding: '1rem' }}>
+        <td style={{ padding: '0.5rem 0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             <Button 
               variant="ghost" 

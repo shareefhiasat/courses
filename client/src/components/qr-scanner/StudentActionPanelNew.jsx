@@ -587,7 +587,7 @@ export default function StudentActionPanelNew({
                     style={{
                       position: 'absolute',
                       top: '0.25rem',
-                      right: '0.25rem',
+                      right: '0.5rem',
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
