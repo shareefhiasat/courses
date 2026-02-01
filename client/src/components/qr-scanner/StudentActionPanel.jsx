@@ -54,8 +54,8 @@ export default function StudentActionPanel({
   onClose,
   onBehaviorSubmit,
   onMarkAttendance,
-  behaviorTypes,
-  participationTypes,
+  behaviorTypes = [],
+  participationTypes = [],
   showFavoritesOnly = false,
   onToggleFavorites,
   favoriteBehaviors = [],
@@ -154,10 +154,11 @@ export default function StudentActionPanel({
     setSendingSummary(true);
     try {
       // Calculate statistics from the logs we already have
+      const allLogs = [...historicalLogs, ...todayLogs];
       const attendanceStats = {
-        present: logs.filter(log => log.type === 'attendance' && log.data.status === 'present').length,
-        late: logs.filter(log => log.type === 'attendance' && log.data.status === 'late').length,
-        absent: logs.filter(log => log.type === 'attendance' && log.data.status === 'absent').length,
+        present: allLogs.filter(log => log.type === 'attendance' && log.data.status === 'present').length,
+        late: allLogs.filter(log => log.type === 'attendance' && log.data.status === 'late').length,
+        absent: allLogs.filter(log => log.type === 'attendance' && log.data.status === 'absent').length,
         percentage: 0 // Will be calculated
       };
 
@@ -168,21 +169,21 @@ export default function StudentActionPanel({
 
       const participationStats = {
         total: student.participation || 0,
-        positive: logs.filter(log => log.type === 'participation' && log.points > 0).reduce((sum, log) => sum + log.points, 0),
-        neutral: logs.filter(log => log.type === 'participation' && log.points === 0).length
+        positive: allLogs.filter(log => log.type === 'participation' && log.points > 0).reduce((sum, log) => sum + log.points, 0),
+        neutral: allLogs.filter(log => log.type === 'participation' && log.points === 0).length
       };
 
       const behaviorStats = {
         total: student.behavior || 0,
-        positive: logs.filter(log => log.type === 'behavior' && log.points > 0).reduce((sum, log) => sum + log.points, 0),
-        negative: Math.abs(logs.filter(log => log.type === 'behavior' && log.points < 0).reduce((sum, log) => sum + log.points, 0))
+        positive: allLogs.filter(log => log.type === 'behavior' && log.points > 0).reduce((sum, log) => sum + log.points, 0),
+        negative: Math.abs(allLogs.filter(log => log.type === 'behavior' && log.points < 0).reduce((sum, log) => sum + log.points, 0))
       };
 
       const penaltyStats = {
-        total: logs.filter(log => log.type === 'penalty').length,
-        minor: logs.filter(log => log.type === 'penalty' && log.severity === 'minor').length,
-        major: logs.filter(log => log.type === 'penalty' && log.severity === 'major').length,
-        recentPenalties: logs.filter(log => log.type === 'penalty').slice(0, 3).map(log =>
+        total: allLogs.filter(log => log.type === 'penalty').length,
+        minor: allLogs.filter(log => log.type === 'penalty' && log.severity === 'minor').length,
+        major: allLogs.filter(log => log.type === 'penalty' && log.severity === 'major').length,
+        recentPenalties: allLogs.filter(log => log.type === 'penalty').slice(0, 3).map(log =>
           `${log.label} (${new Date(log.time).toLocaleDateString()})`
         ).join(', ')
       };

@@ -335,36 +335,168 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     
     addDebugLog(`👤 Student info parsed: ${JSON.stringify(studentInfo)}`, 'info');
     addDebugLog(`🔍 Available students count: ${students.length}`, 'info');
+    addDebugLog(`🔍 Selected program: ${selectedProgramId}, subject: ${selectedSubjectId}, class: ${selectedClassId}`, 'info');
     
-    // Look up full student data using multiple methods
-    let fullStudent = null;
-    
-    // Method 1: Try by studentNumber
-    fullStudent = students.find(s => s.studentNumber === studentInfo.studentNumber);
-    
-    // Method 2: Try by studentId
-    if (!fullStudent) {
-      fullStudent = students.find(s => s.studentId === studentInfo.studentNumber);
+    // If students array is empty, try to fetch from Firebase using multiple methods
+    if (students.length === 0) {
+      addDebugLog(`⚠️ Students array is empty, trying multiple Firebase lookups`, 'warning');
+      
+      // Try multiple ways to find the student
+      let foundStudent = null;
+      
+      // Method 1: Try to find by document ID (but only if it's not a simple number)
+      if (!/^\d+$/.test(studentInfo.studentNumber) || studentInfo.studentNumber.length > 4) {
+        try {
+          const studentDoc = await getDoc(doc(db, 'users', studentInfo.studentNumber));
+          if (studentDoc.exists()) {
+            const studentData = studentDoc.data();
+            // Check if this is actually a student (not admin)
+            if (studentData.role !== 'admin' && studentData.role !== 'super_admin') {
+              foundStudent = {
+                id: studentDoc.id,
+                docId: studentDoc.id,
+                studentId: studentData.studentNumber || studentDoc.id,
+                studentNumber: studentData.studentNumber || studentDoc.id,
+                name: studentData.displayName || studentData.realName || studentData.name || 'Unknown',
+                displayName: studentData.displayName,
+                realName: studentData.realName,
+                email: studentData.email,
+                attendance: 'absent_no_excuse',
+                participation: 0,
+                behavior: 0,
+                penalty: 0,
+                totalAttendance: 0,
+                attendanceStats: {
+                  present: 0,
+                  late: 0,
+                  absent: 0,
+                  absentWithExcuse: 0,
+                  excusedLeave: 0,
+                  humanitarianCase: 0
+                },
+                isPinned: false,
+                behaviorHistory: [],
+                participationHistory: [],
+                penaltyHistory: []
+              };
+              addDebugLog(`✅ Found student by document ID: ${foundStudent.name}`, 'success');
+            }
+          }
+        } catch (error) {
+          addDebugLog(`❌ Error fetching by document ID: ${error.message}`, 'error');
+        }
+      }
+      
+      // Method 2: Try to find by studentNumber field (query all users)
+      if (!foundStudent) {
+        try {
+          // Use getUsers to fetch all users and find by studentNumber
+          const result = await getUsers();
+          if (result.success) {
+            const allUsers = result.data;
+            addDebugLog(`🔍 Searching ${allUsers.length} users for matches`, 'info');
+            
+            // Show first few users for debugging
+            allUsers.slice(0, 3).forEach((u, idx) => {
+              addDebugLog(`User ${idx}: id=${u.id}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, name=${u.displayName || u.name}`, 'info');
+            });
+            
+            const student = allUsers.find(u => {
+              const matches = [
+                u.studentNumber === studentInfo.studentNumber,
+                u.referenceId === studentInfo.studentNumber,
+                `STU-${u.studentNumber}` === studentInfo.studentNumber,
+                // Only check generateReferenceId if id exists
+                u.id && generateReferenceId(u.id) === studentInfo.studentNumber
+              ];
+              
+              if (matches.some(Boolean)) {
+                addDebugLog(`🎯 Found potential match: ${u.displayName || u.name || 'Unknown'}, studentNumber=${u.studentNumber}, referenceId=${u.referenceId}, id=${u.id}`, 'info');
+              }
+              
+              return matches.some(Boolean);
+            });
+            
+            if (student && student.role !== 'admin' && student.role !== 'super_admin') {
+              foundStudent = {
+                id: student.id,
+                docId: student.docId,
+                studentId: student.studentNumber || student.id,
+                studentNumber: student.studentNumber || student.id,
+                name: student.displayName || student.realName || student.name || 'Unknown',
+                displayName: student.displayName,
+                realName: student.realName,
+                email: student.email,
+                attendance: 'absent_no_excuse',
+                participation: 0,
+                behavior: 0,
+                penalty: 0,
+                totalAttendance: 0,
+                attendanceStats: {
+                  present: 0,
+                  late: 0,
+                  absent: 0,
+                  absentWithExcuse: 0,
+                  excusedLeave: 0,
+                  humanitarianCase: 0
+                },
+                isPinned: false,
+                behaviorHistory: [],
+                participationHistory: [],
+                penaltyHistory: []
+              };
+              addDebugLog(`✅ Found student by searching all users: ${foundStudent.name}`, 'success');
+            } else if (student) {
+              addDebugLog(`⚠️ Found user but it's an admin: ${student.displayName || student.name}, role: ${student.role}`, 'warning');
+            }
+          }
+        } catch (error) {
+          addDebugLog(`❌ Error searching all users: ${error.message}`, 'error');
+        }
+      }
+      
+      if (foundStudent) {
+        setLastScannedStudent({
+          ...foundStudent,
+          name: foundStudent.name || foundStudent.displayName,
+          email: foundStudent.email,
+          studentNumber: foundStudent.studentNumber
+        });
+        setShowScanDialog(true);
+        setIsScanningLocked(false);
+        setLastScannedCode(null);
+        stopCamera();
+        return;
+      }
     }
     
-    // Method 3: Try by id field
-    if (!fullStudent) {
-      fullStudent = students.find(s => s.id === studentInfo.studentNumber);
-    }
+    // Use the EXACT same lookup logic as manual scan
+    const fullStudent = students.find(s => {
+      const matches = [
+        s.studentNumber === studentInfo.studentNumber,
+        s.referenceId === studentInfo.studentNumber,
+        s.studentId === studentInfo.studentNumber,
+        `STU-${s.studentNumber}` === studentInfo.studentNumber, // Backward compatibility
+        generateReferenceId(s.id) === studentInfo.studentNumber // Backward compatibility
+      ];
+      
+      if (matches.some(Boolean)) {
+        addDebugLog('Camera student match found:', {
+          searchingFor: studentInfo.studentNumber,
+          found: {
+            id: s.id,
+            studentId: s.studentId,
+            referenceId: s.referenceId,
+            studentNumber: s.studentNumber,
+            matches: matches
+          }
+        });
+      }
+      
+      return matches.some(Boolean);
+    });
     
-    // Method 4: Try by referenceId (for STU- format)
-    if (!fullStudent) {
-      fullStudent = students.find(s => s.referenceId === studentInfo.studentNumber);
-    }
-    
-    // Method 5: If it's a simple number, try to find by matching the end of studentNumber
-    if (!fullStudent && /^\d+$/.test(studentInfo.studentNumber)) {
-      fullStudent = students.find(s => 
-        s.studentNumber && s.studentNumber.endsWith(studentInfo.studentNumber)
-      );
-    }
-    
-    // Method 6: If still not found, try to fetch from Firebase
+    // If still not found in local array, try to fetch from Firebase
     if (!fullStudent && studentInfo.studentNumber) {
       try {
         addDebugLog(`🔄 Fetching student from Firebase for number: ${studentInfo.studentNumber}`, 'info');
@@ -422,6 +554,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } else {
       addDebugLog(`❌ Student not found with number: ${studentInfo.studentNumber}`, 'error');
       addDebugLog(`🔍 Available student numbers: ${students.slice(0, 5).map(s => s.studentNumber).join(', ')}...`, 'info');
+      addDebugLog(`🔍 Available referenceIds: ${students.slice(0, 5).map(s => s.referenceId).join(', ')}...`, 'info');
+      addDebugLog(`🔍 Available studentIds: ${students.slice(0, 5).map(s => s.studentId).join(', ')}...`, 'info');
       playFeedbackSound('error'); // Add vibration for student not found
       // If not found in students array, use what we have
       setLastScannedStudent({
