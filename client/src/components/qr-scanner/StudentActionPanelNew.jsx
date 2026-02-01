@@ -10,7 +10,8 @@ import {
   ClockIcon, 
   XCircleIcon, 
   HeartIcon, 
-  HelpCircleIcon 
+  HelpCircleIcon,
+  BedIcon 
 } from '@utils/icons.jsx';
 import { useAuth } from '@contexts/AuthContext';
 import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
@@ -33,7 +34,8 @@ export default function StudentActionPanelNew({
   onToggleFavorites = () => {},
   selectedDate,
   sendNotifications = false,
-  onToggleNotifications
+  onToggleNotifications,
+  initialTab = 'behavior' // Default to behavior tab
 }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
@@ -58,7 +60,7 @@ export default function StudentActionPanelNew({
   const [showEmailDropdown, setShowEmailDropdown] = useState(false);
   const [sendingQRCode, setSendingQRCode] = useState(false);
   const [sendingSummary, setSendingSummary] = useState(false);
-  const [activeTab, setActiveTab] = useState('behavior'); // 'behavior', 'participation', 'penalty'
+  const [activeTab, setActiveTab] = useState(initialTab); // 'behavior', 'participation', 'penalty'
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
 
   // Load favorite behaviors from user preferences
@@ -139,14 +141,7 @@ export default function StudentActionPanelNew({
       Heart: <HeartIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
       HelpCircle: <HelpCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
       Users: <Users style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      Bed: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke={finalColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M2 4v16h20V4z"></path>
-          <path d="M2 4h20"></path>
-          <path d="M7 4v16"></path>
-          <path d="M17 4v16"></path>
-        </svg>
-      )
+      Bed: <BedIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
     };
     
     return iconMap[finalIconName] || iconMap.AlertCircleIcon;

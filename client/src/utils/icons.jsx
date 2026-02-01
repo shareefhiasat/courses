@@ -318,6 +318,16 @@ export const TrashIcon = ({ style = {} }) => (
   </svg>
 );
 
+// Bed Icon (for attendance/leave)
+export const BedIcon = ({ style = {} }) => (
+  <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 4v16h20V4z"></path>
+    <path d="M2 4h20"></path>
+    <path d="M7 4v16"></path>
+    <path d="M17 4v16"></path>
+  </svg>
+);
+
 // Default export containing all icons
 export const Icons = {
   QrCode: QrCodeIcon,
@@ -355,7 +365,8 @@ export const Icons = {
   UserInput: UserInputIcon,
   Shield: ShieldIcon,
   ChevronDown: ChevronDownIcon,
-  Trash: TrashIcon
+  Trash: TrashIcon,
+  Bed: BedIcon
 };
 
 export default Icons;

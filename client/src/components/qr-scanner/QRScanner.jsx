@@ -20,6 +20,7 @@ import StudentActionPanelNew from './StudentActionPanelNew';
 import { generateReferenceId } from '@utils/qrCode';
 import { BEHAVIOR_TYPES, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes';
+import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes';
 import { QrCodeIcon, StopIcon, ActionsIcon, DetailsIcon, MinimizeIcon, VibrationIcon, SoundIcon, DebugIcon, UserInputIcon, RefreshIcon, DeleteIcon, UserPlusIcon, ZapIcon, AlertCircleSmallIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, CircleIcon, ShieldIcon, ChevronDownIcon, TrashIcon } from '@utils/icons.jsx';
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
@@ -49,6 +50,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [resultModalData, setResultModalData] = useState({ type: '', message: '' });
   const [showStudentActionPanel, setShowStudentActionPanel] = useState(false);
   const [showStudentActionPanelNew, setShowStudentActionPanelNew] = useState(false);
+  const [initialTab, setInitialTab] = useState('behavior'); // Track which tab to open
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentForAction, setStudentForAction] = useState(null);
   const [todayAttendanceStatus, setTodayAttendanceStatus] = useState(null);
@@ -853,10 +855,45 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       });
       
-      showSuccess('Actions recorded successfully');
+      // Success message is handled by StudentActionPanelNew
     } catch (error) {
       console.error('Error submitting behavior/participation:', error);
       showError('Failed to record actions');
+    }
+  }, [selectedClassId, user]);
+
+  // Handle penalty submission
+  const handlePenaltySubmit = useCallback(async (studentId, penalties, note) => {
+    try {
+      // For now, treat penalties similar to behaviors but with different logging
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Process each penalty
+      penalties.forEach(async (penalty) => {
+        // Log penalty action (you might want to create a separate penalty logging function)
+        logger.info(`Penalty recorded: ${penalty.id} for student ${studentId}`, {
+          studentId,
+          penaltyId: penalty.id,
+          classId: selectedClassId,
+          date: today,
+          note: note,
+          performedBy: user
+        });
+
+        // Emit event for real-time updates
+        eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {
+          studentId,
+          classId: selectedClassId,
+          status: 'penalty_logged',
+          performedBy: user,
+          timestamp: new Date()
+        });
+      });
+      
+      // Success message is handled by StudentActionPanelNew
+    } catch (error) {
+      console.error('Error submitting penalty:', error);
+      showError('Failed to record penalty');
     }
   }, [selectedClassId, user]);
 
@@ -2424,6 +2461,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   try {
                     const studentData = await processStudentData(lastScannedStudent.referenceId);
                     if (studentData) {
+                      setInitialTab('penalty');
                       setStudentForAction(studentData);
                       setShowStudentActionPanelNew(true);
                       setShowScanDialog(false);
@@ -2503,6 +2541,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   try {
                     const studentData = await processStudentData(lastScannedStudent.referenceId);
                     if (studentData) {
+                      setInitialTab('participation');
                       addDebugLog(`🔍 Setting studentForAction and showing new panel`, 'info');
                       setStudentForAction(studentData);
                       setShowStudentActionPanelNew(true);
@@ -3201,6 +3240,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       {showStudentActionPanelNew && studentForAction && (
         <StudentActionPanelNew
           student={studentForAction}
+          initialTab={initialTab}
           onClose={() => {
             addDebugLog('🔚 Closing StudentActionPanelNew', 'info');
             setShowStudentActionPanelNew(false);
@@ -3208,6 +3248,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           }}
           onBehaviorSubmit={handleBehaviorSubmit}
           onParticipationSubmit={handleBehaviorSubmit}
+          onPenaltySubmit={handlePenaltySubmit}
           onMarkAttendance={handleMarkAttendance}
           onUpdate={() => {
             if (onActivityUpdate) {
@@ -3247,6 +3288,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               points: participation.points,
               icon: participation.icon || 'MessageSquare',
               color: getParticipationColor(participation.id)
+            })),
+            // Penalty options
+            ...PENALTY_TYPES.map(penalty => ({
+              id: penalty.id,
+              label_en: penalty.label_en,
+              label_ar: penalty.label_ar,
+              category: 'penalty',
+              points: penalty.points,
+              icon: penalty.icon || 'AlertTriangle',
+              color: getPenaltyColor(penalty.id)
             }))
           ]}
         />
