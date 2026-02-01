@@ -292,7 +292,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, [soundEnabled, vibrationEnabled, t, addToast]);
 
   const handleQRCodeDetected = async (data) => {
-    // Prevent infinite scanning - lock scanning for 10 seconds
+    // Prevent infinite scanning - lock scanning for 3 seconds
     if (isScanningLocked) {
       addDebugLog('🔒 Scanning locked - ignoring duplicate scan', 'warning');
       return;
@@ -578,12 +578,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     addDebugLog('🔄 Semi-auto mode: Showing action dialog', 'info');
     setShowScanDialog(true);
     
-    // Safety timeout to unlock scanning after 10 seconds
+    // Safety timeout to unlock scanning after 3 seconds
     setTimeout(() => {
       setIsScanningLocked(false);
       setLastScannedCode(null); // Reset to allow re-scanning
       addDebugLog('🔓 Scanning unlocked after timeout', 'info');
-    }, 10000);
+    }, 3000);
     
     // Stop camera after scan - user will manually restart
     stopCamera();
@@ -2578,14 +2578,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('details');
                   
                   try {
-                    const studentData = await processStudentData(lastScannedStudent.referenceId);
-                    if (studentData) {
-                      setStudentForAction(studentData);
+                    // Directly use the lastScannedStudent instead of searching again
+                    if (lastScannedStudent) {
+                      setStudentForAction(lastScannedStudent);
                       setShowStudentActionPanel(true);
                       setShowScanDialog(false);
-                      addDebugLog(`✅ Found student: ${studentData.name || studentData.email}`, 'success');
+                      addDebugLog(`✅ Opening details for: ${lastScannedStudent.name || lastScannedStudent.email || 'Unknown'}`, 'success');
                     } else {
-                      showResult('error', 'Student not found with this reference ID');
+                      showResult('error', 'No student data available');
                     }
                   } catch (error) {
                     addDebugLog(`❌ Error opening student details: ${error.message}`, 'error');
