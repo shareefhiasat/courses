@@ -452,8 +452,13 @@ const DashboardPage = () => {
   // QR Code generation function for users
   const openQRCodeInNewTab = async (user) => {
     try {
-      const referenceId = user.studentNumber ? `STU-${user.studentNumber}` : generateReferenceId(user.docId || user.id);
-      const qrDataUrl = await generateStudentQRCode(referenceId, { width: 512, margin: 4 });
+      const studentNumber = user.studentNumber;
+      if (!studentNumber) {
+        toast?.showError('Student number is required to generate QR code');
+        return;
+      }
+      
+      const qrDataUrl = await generateStudentQRCode(studentNumber, { width: 512, margin: 4 });
       
       const newTab = window.open();
       newTab.document.write(`
@@ -471,7 +476,7 @@ const DashboardPage = () => {
               <img src="${qrDataUrl}" alt="QR Code" />
               <h1>${user.displayName || user.name}</h1>
               <p>${user.email || ''}</p>
-              <div class="ref">${referenceId}</div>
+              <div class="ref">${studentNumber}</div>
             </div>
           </body>
         </html>
@@ -697,7 +702,7 @@ const DashboardPage = () => {
   const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('all');
   const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('all');
   const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
-  const [userForm, setUserForm] = useState({ email: '', displayName: '', role: 'student', referenceId: '' });
+  const [userForm, setUserForm] = useState({ email: '', displayName: '', role: 'student', studentNumber: '', order: '' });
   const [activeUserFormTab, setActiveUserFormTab] = useState('basic');
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
@@ -4836,6 +4841,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 return;
               }
 
+              // Validate student number is required for students
+              if (userForm.role === 'student' && !userForm.studentNumber?.trim()) {
+                toast?.showError('Student number is required for students');
+                return;
+              }
+
               setLoading(true);
               try {
                 if (editingUser) {
@@ -4879,7 +4890,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                 await loadData();
                 setEditingUser(null);
-                setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', role: 'student', referenceId: '' });
+                setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', order: '', role: 'student' });
               } catch (error) {
                 toast?.showError('Error: ' + error.message);
               } finally {
@@ -4914,16 +4925,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   />
                   <Input
                     type="text"
-                    placeholder={t('student_number_placeholder') || 'Student Number (Optional)'}
+                    placeholder={t('student_number_placeholder') || 'Student Number (Required)'}
                     value={userForm.studentNumber || ''}
                     onChange={(e) => setUserForm({ ...userForm, studentNumber: e.target.value })}
+                    required
                   />
                   <Input
-                    type="text"
-                    placeholder={t('reference_id_placeholder') || 'Custom Reference ID (QR Code)'}
-                    value={userForm.referenceId || ''}
-                    onChange={(e) => setUserForm({ ...userForm, referenceId: e.target.value })}
-                    description={t('reference_id_description') || 'Leave empty to auto-generate, or enter custom ID for QR code'}
+                    type="number"
+                    placeholder={t('student_order_placeholder') || 'Order/Sequence (Optional)'}
+                    value={userForm.order || ''}
+                    onChange={(e) => setUserForm({ ...userForm, order: e.target.value })}
+                    description={t('student_order_description') || 'Display order for student lists'}
                   />
                   <div /> {/* Empty div to maintain grid layout */}
                 </div>
@@ -5028,7 +5040,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       variant="outline" 
                       onClick={() => {
                         setEditingUser(null);
-                        setUserForm({ email: '', displayName: '', role: 'student', referenceId: '' });
+                        setUserForm({ email: '', displayName: '', role: 'student', studentNumber: '', order: '' });
                         setActiveUserFormTab('basic');
                       }}
                     >
@@ -5160,8 +5172,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           displayName: params.row.displayName || '',
                           realName: params.row.realName || '',
                           studentNumber: params.row.studentNumber || '',
-                          role: params.row.role || 'student',
-                          referenceId: params.row.referenceId || ''
+                          order: params.row.order || '',
+                          role: params.row.role || 'student'
                         });
                       }}>
                         {t('edit') || 'Edit'}

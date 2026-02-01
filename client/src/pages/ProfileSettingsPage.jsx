@@ -114,7 +114,6 @@ const ProfileSettingsPage = () => {
       await updateDoc(userRef, {
         displayName: profileData.displayName,
         realName: profileData.realName,
-        studentNumber: profileData.studentNumber,
         phoneNumber: profileData.phoneNumber,
         messageColor: normalizedColor,
         preferOTPLogin: profileData.preferOTPLogin
@@ -267,9 +266,10 @@ const ProfileSettingsPage = () => {
                 type="text"
                 label={t('student_number')}
                 value={profileData.studentNumber}
-                onChange={(e) => handleChange('studentNumber', e.target.value)}
+                disabled
                 placeholder={t('student_number_placeholder')}
                 maxLength={100}
+                description={t('student_number_readonly') || 'Student number cannot be changed here. Contact administrator if you need to update it.'}
               />
 
               <Input

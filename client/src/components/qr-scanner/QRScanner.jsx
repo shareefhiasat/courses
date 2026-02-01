@@ -300,20 +300,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     let studentInfo = null;
     try {
       if (typeof data === 'string') {
-        if (data.startsWith('STU-')) {
-          // Reference ID format
-          studentInfo = { referenceId: data };
-        } else if (data.includes('/qr/student/')) {
-          // URL format like https://localhost:5174/qr/student/STU-JLHXQ2
+        if (data.includes('/qr/student/')) {
+          // URL format like https://localhost:5174/qr/student/12345 or any student number
           const urlParts = data.split('/qr/student/');
           if (urlParts.length > 1) {
             const studentId = urlParts[1].split('?')[0]; // Remove query params if any
-            studentInfo = { referenceId: studentId };
+            studentInfo = { studentNumber: studentId };
           }
         } else {
-          // Try to parse as JSON
-          const parsed = JSON.parse(data);
-          studentInfo = parsed;
+          // Direct student number or any text/number
+          studentInfo = { studentNumber: data.trim() };
         }
       } else {
         studentInfo = data;
@@ -380,11 +376,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       return;
     }
     
-    const studentInfo = { referenceId: manualStudentId.trim() };
+    const studentInfo = { studentNumber: manualStudentId.trim() };
     
-    // Try to find the full student object using the reference ID
+    // Try to find the full student object using the student number
     logger.debug('Manual student input lookup:', {
-      referenceId: manualStudentId.trim(),
+      studentNumber: manualStudentId.trim(),
       totalStudents: students.length,
       studentsSample: students.slice(0, 3).map(s => ({
         id: s.id,
@@ -397,18 +393,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     });
     
     const fullStudent = students.find(s => {
-      const generatedReferenceId = generateReferenceId(s.id);
       const matches = [
+        s.studentNumber === manualStudentId.trim(),
         s.referenceId === manualStudentId.trim(),
         s.studentId === manualStudentId.trim(),
-        `STU-${s.studentNumber}` === manualStudentId.trim(),
-        generatedReferenceId === manualStudentId.trim() // NEW: Match generated reference ID
+        `STU-${s.studentNumber}` === manualStudentId.trim(), // Backward compatibility
+        generateReferenceId(s.id) === manualStudentId.trim() // Backward compatibility
       ];
       
       if (matches.some(Boolean)) {
         logger.debug('Manual student match found:', {
           searchingFor: manualStudentId.trim(),
-          generatedReferenceId: generatedReferenceId,
           found: {
             id: s.id,
             studentId: s.studentId,
@@ -424,10 +419,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     
     if (fullStudent) {
       logger.debug('Found full student object for manual input:', {
-        referenceId: manualStudentId.trim(),
+        studentNumber: manualStudentId.trim(),
         fullStudent: {
           id: fullStudent.id,
-          referenceId: fullStudent.referenceId,
+          studentNumber: fullStudent.studentNumber,
           displayName: fullStudent.displayName,
           name: fullStudent.name
         }
@@ -440,7 +435,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       playFeedbackSound('success');
     } else {
       // Student not found - show error message
-      showResult('error', t('student_not_found') || 'Student not found. Please check the student ID and try again.');
+      showResult('error', t('student_not_found') || 'Student not found. Please check the student number and try again.');
       addDebugLog(`❌ Student not found: ${manualStudentId.trim()}`, 'error');
       playFeedbackSound('error');
     }

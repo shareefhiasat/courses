@@ -29,17 +29,13 @@ export const validateReferenceId = (referenceId) => {
 
 /**
  * Generate QR code data URL for student profile
- * @param {string} referenceId - Student reference ID
+ * @param {string} studentNumber - Student number (can be any text/number)
  * @param {Object} options - QR code options
  * @returns {Promise<string>} - Data URL of the QR code
  */
-export const generateStudentQRCode = async (referenceId, options = {}) => {
-  if (!referenceId) {
-    throw new Error('Reference ID is required');
-  }
-  
-  if (!validateReferenceId(referenceId)) {
-    throw new Error('Invalid reference ID format');
+export const generateStudentQRCode = async (studentNumber, options = {}) => {
+  if (!studentNumber) {
+    throw new Error('Student number is required');
   }
   
   const defaultOptions = {
@@ -55,9 +51,9 @@ export const generateStudentQRCode = async (referenceId, options = {}) => {
   const qrOptions = { ...defaultOptions, ...options };
   
   try {
-    // Generate QR code content - URL to student profile
+    // Generate QR code content - URL to student profile using student number
     const baseUrl = window.location.origin;
-    const qrContent = `${baseUrl}/qr/student/${referenceId}`;
+    const qrContent = `${baseUrl}/qr/student/${studentNumber}`;
     
     // Generate QR code
     const qrDataUrl = await QRCode.toDataURL(qrContent, qrOptions);
@@ -71,15 +67,15 @@ export const generateStudentQRCode = async (referenceId, options = {}) => {
 
 /**
  * Generate QR code for download/print
- * @param {string} referenceId - Student reference ID
+ * @param {string} studentNumber - Student number
  * @param {Object} studentInfo - Student information for the card
  * @param {Object} options - QR code options
  * @returns {Promise<string>} - Data URL of the complete QR card
  */
-export const generateStudentQRCard = async (referenceId, studentInfo = {}, options = {}) => {
+export const generateStudentQRCard = async (studentNumber, studentInfo = {}, options = {}) => {
   try {
     // Generate QR code
-    const qrDataUrl = await generateStudentQRCode(referenceId, {
+    const qrDataUrl = await generateStudentQRCode(studentNumber, {
       width: 200,
       margin: 1,
       ...options
@@ -129,10 +125,10 @@ export const generateStudentQRCard = async (referenceId, studentInfo = {}, optio
     ctx.fillStyle = '#6b7280';
     ctx.fillText(studentInfo.email || 'email@example.com', 200, 85);
     
-    // Reference ID
+    // Student Number
     ctx.font = 'bold 16px monospace';
     ctx.fillStyle = '#059669';
-    ctx.fillText(referenceId, 200, 120);
+    ctx.fillText(studentNumber, 200, 120);
     
     // School/Institution info
     ctx.font = '12px Arial';
@@ -178,9 +174,9 @@ export const downloadQRCode = (dataUrl, filename = 'student-qr-code.png') => {
 };
 
 /**
- * Parse QR code content to extract reference ID
+ * Parse QR code content to extract student number or reference ID
  * @param {string} qrContent - QR code content
- * @returns {string|null} - Reference ID or null if invalid
+ * @returns {string|null} - Student number/reference ID or null if invalid
  */
 export const parseQRContent = (qrContent) => {
   if (!qrContent || typeof qrContent !== 'string') {
@@ -188,32 +184,34 @@ export const parseQRContent = (qrContent) => {
   }
   
   try {
-    // Parse URL format: https://domain.com/qr/student/REFERENCE_ID
+    // Parse URL format: https://domain.com/qr/student/STUDENT_NUMBER
     const url = new URL(qrContent);
     const pathParts = url.pathname.split('/');
     
-    // Check if path matches /qr/student/REFERENCE_ID
+    // Check if path matches /qr/student/STUDENT_NUMBER
     if (pathParts.length >= 4 && 
         pathParts[pathParts.length - 3] === 'qr' && 
         pathParts[pathParts.length - 2] === 'student') {
       
-      const referenceId = pathParts[pathParts.length - 1];
+      const studentId = pathParts[pathParts.length - 1];
       
-      if (validateReferenceId(referenceId)) {
-        return referenceId;
+      if (studentId && studentId.trim()) {
+        return studentId.trim();
       }
     }
     
-    // Fallback: check if content is directly a reference ID
-    if (validateReferenceId(qrContent.trim())) {
-      return qrContent.trim();
+    // Fallback: check if content is directly a student number or reference ID
+    const trimmedContent = qrContent.trim();
+    if (trimmedContent) {
+      return trimmedContent;
     }
     
     return null;
   } catch (error) {
     // If URL parsing fails, try direct validation
-    if (validateReferenceId(qrContent.trim())) {
-      return qrContent.trim();
+    const trimmedContent = qrContent.trim();
+    if (trimmedContent) {
+      return trimmedContent;
     }
     return null;
   }
