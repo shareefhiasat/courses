@@ -70,7 +70,7 @@ export const HistoryEntry = ({
       
       {log.comment && (
         <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
-          - {log.comment}
+          {log.comment}
         </span>
       )}
       

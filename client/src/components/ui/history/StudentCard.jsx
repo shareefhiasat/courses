@@ -192,6 +192,26 @@ const StudentCard = ({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+            {t('penalties')}:
+          </span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '2rem',
+            height: '1.75rem',
+            borderRadius: '0.375rem',
+            fontWeight: 500,
+            background: student.penalty < 0 ? '#fee2e2' : '#f3f4f6',
+            color: student.penalty < 0 ? '#991b1b' : '#374151',
+            fontSize: '0.75rem',
+            padding: '0 0.5rem'
+          }}>
+            {student.penalty}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
             {t('id') || 'ID'}:
           </span>
           <span style={{

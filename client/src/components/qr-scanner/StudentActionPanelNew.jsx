@@ -68,28 +68,20 @@ export default function StudentActionPanelNew({
 
   // Get current attendance status
   const attendanceStatus = useMemo(() => {
-    console.log('🔧 StudentActionPanelNew attendanceStatus check:', { 
-      studentId: student?.id, 
-      studentAttendance: student?.attendance,
-      hasTodayAttendance: student?.attendance && ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(student.attendance)
-    });
+    // If we have a direct status from student, use it
+    const status = student?.attendance;
     
-    // Check if there are actual attendance records for today (not participation/behavior/penalty)
-    // This matches the logic from the old StudentActionPanel
-    const hasTodayAttendance = student?.attendance && 
-      ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(student.attendance);
-    
-    // Show proper attendance status for any valid attendance
-    if (hasTodayAttendance) {
-      const statusInfo = ATTENDANCE_STATUS_LABELS[student?.attendance];
+    // Check if status is actually a valid attendance status (not the default absent_no_excuse)
+    if (status && status !== 'absent_no_excuse') {
+      const statusInfo = ATTENDANCE_STATUS_LABELS[status];
       if (statusInfo) {
-        console.log('🔧 Using attendance status:', student?.attendance, statusInfo);
+        console.log('🔧 Using direct attendance status:', status, statusInfo);
         return statusInfo;
       }
     }
     
-    // If no attendance, show None (matching StudentActionPanel and roster)
-    console.log('🔧 Showing None for student:', student?.displayName || student?.name || 'No Name', '(attendance:', student?.attendance, ')');
+    // If status is absent_no_excuse (default when no attendance), show None
+    console.log('🔧 No valid attendance found - showing None');
     return {
       en: t('none') || 'None',
       ar: t('none') || 'لا شيء',
@@ -350,9 +342,15 @@ export default function StudentActionPanelNew({
                     background: attendanceStatus.color,
                     borderRadius: '9999px'
                   }} />
-                  {/* Only show text for attendance status if it's not 'present' */}
-                  {student?.attendance !== 'present' && (
+                  {/* Only show text for attendance status if it's not 'present' and not 'None' */}
+                  {student?.attendance !== 'present' && attendanceStatus.en !== 'None' && (
                     <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                      {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
+                    </span>
+                  )}
+                  {/* Show None when there's no valid attendance */}
+                  {!student?.attendance && (
+                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                       {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                     </span>
                   )}

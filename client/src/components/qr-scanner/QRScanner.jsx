@@ -235,9 +235,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   // Play feedback sound and vibration
   const playFeedbackSound = useCallback((type) => {
     try {
-      // Vibration for error only (as requested)
-      if (type === 'error' && vibrationEnabled && navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
+      // Vibration for both success and error
+      if (vibrationEnabled && navigator.vibrate) {
+        if (type === 'success') {
+          // Short vibration for success
+          navigator.vibrate(100);
+        } else if (type === 'error') {
+          // Longer vibration pattern for error
+          navigator.vibrate([200, 100, 200]);
+        }
       }
       
       // Sound feedback
@@ -316,27 +322,56 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }
     } catch (error) {
       addDebugLog(`❌ Error parsing QR data: ${error.message}`, 'error');
+      playFeedbackSound('error'); // Add vibration for parsing error
       addToast('Invalid QR code format', 'error');
       setIsScanningLocked(false);
       return;
     }
     
     addDebugLog(`👤 Student info parsed: ${JSON.stringify(studentInfo)}`, 'info');
+    addDebugLog(`🔍 Available students count: ${students.length}`, 'info');
     
     // Look up full student data using student number
     const fullStudent = students.find(s => s.studentNumber === studentInfo.studentNumber);
     
+    // Also try to find by studentId if not found by studentNumber
+    const altStudent = !fullStudent ? students.find(s => s.studentId === studentInfo.studentNumber) : null;
+    
     if (fullStudent) {
-      addDebugLog(`✅ Found full student: ${fullStudent.displayName || fullStudent.name} (${fullStudent.studentNumber})`, 'success');
-      setLastScannedStudent(fullStudent);
+      addDebugLog(`✅ Found full student by studentNumber: ${fullStudent.displayName || fullStudent.name} (${fullStudent.studentNumber})`, 'success');
+      // Make sure we include all necessary fields
+      setLastScannedStudent({
+        ...fullStudent,
+        // Ensure we have these fields from the full student record
+        name: fullStudent.name || fullStudent.displayName,
+        email: fullStudent.email,
+        studentNumber: fullStudent.studentNumber
+      });
+    } else if (altStudent) {
+      addDebugLog(`✅ Found full student by studentId: ${altStudent.displayName || altStudent.name} (${altStudent.studentId})`, 'success');
+      // Make sure we include all necessary fields
+      setLastScannedStudent({
+        ...altStudent,
+        // Ensure we have these fields from the full student record
+        name: altStudent.name || altStudent.displayName,
+        email: altStudent.email,
+        studentNumber: altStudent.studentNumber
+      });
     } else {
       addDebugLog(`❌ Student not found with number: ${studentInfo.studentNumber}`, 'error');
-      // Still set the basic info so user can see what was scanned
-      setLastScannedStudent(studentInfo);
+      addDebugLog(`🔍 Available student numbers: ${students.slice(0, 5).map(s => s.studentNumber).join(', ')}...`, 'info');
+      playFeedbackSound('error'); // Add vibration for student not found
+      // If not found in students array, use what we have
+      setLastScannedStudent({
+        ...studentInfo,
+        // If we don't have a name, use a default
+        name: studentInfo.name || `Student ${studentInfo.studentNumber || ''}`.trim()
+      });
     }
     
     // Check if all required fields are selected
     if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+      playFeedbackSound('error'); // Add vibration for missing fields
       showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
       addDebugLog('❌ Cannot scan: Missing required selections', 'error');
       stopCamera();
@@ -438,7 +473,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           name: fullStudent.name
         }
       });
-      setLastScannedStudent(fullStudent);
+      // Make sure we include all necessary fields
+      setLastScannedStudent({
+        ...fullStudent,
+        // Ensure we have these fields from the full student record
+        name: fullStudent.name || fullStudent.displayName,
+        email: fullStudent.email,
+        studentNumber: fullStudent.studentNumber
+      });
       setShowScanDialog(true);
       setShowManualInput(false);
       setManualStudentId('');
@@ -1795,20 +1837,29 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               color: '#6b7280'
             }}>
               <strong>{t('scanned_student') || 'Scanned Student'}:</strong>
-              <br />
-              {lastScannedStudent.displayName || lastScannedStudent.realName || lastScannedStudent.name ? (
-                <>
-                  {lastScannedStudent.displayName || lastScannedStudent.realName || lastScannedStudent.name}
-                  {lastScannedStudent.studentNumber && (
-                    <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                      <br />
-                      {t('student_number') || 'Student Number'}: {lastScannedStudent.studentNumber}
-                    </span>
-                  )}
-                </>
-              ) : (
-                `${t('student') || 'Student'} ${lastScannedStudent.studentNumber || lastScannedStudent.referenceId || ''}`
-              )}
+              <div style={{ marginTop: '0.5rem' }}>
+                {lastScannedStudent.name || lastScannedStudent.displayName || lastScannedStudent.email ? (
+                  <div style={{ fontWeight: 500, color: '#111827' }}>
+                    {lastScannedStudent.name || lastScannedStudent.displayName || lastScannedStudent.email}
+                  </div>
+                ) : (
+                  <div style={{ fontStyle: 'italic' }}>
+                    {t('no_name_available') || 'No name available'}
+                  </div>
+                )}
+                
+                {lastScannedStudent.email && lastScannedStudent.name && (
+                  <div style={{ color: '#4b5563', marginTop: '0.25rem' }}>
+                    {lastScannedStudent.email}
+                  </div>
+                )}
+                
+                {lastScannedStudent.studentNumber && (
+                  <div style={{ color: '#6b7280', marginTop: '0.25rem', fontSize: '0.8rem' }}>
+                    {t('student_number') || 'Student Number'}: {lastScannedStudent.studentNumber}
+                  </div>
+                )}
+              </div>
             </div>
             
             <div style={{
