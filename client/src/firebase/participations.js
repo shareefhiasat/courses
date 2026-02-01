@@ -1,19 +1,26 @@
-import { doc, deleteDoc, collection, addDoc, serverTimestamp, updateDoc, setDoc, getDoc, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { doc, deleteDoc, collection, addDoc, serverTimestamp, updateDoc, getDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from './config';
 import { addNotification } from './notifications';
 import { sendEmail } from './firestore';
 
+const toYmd = (tsOrDate) => {
+  if (!tsOrDate) return null;
+  const d = tsOrDate?.toDate ? tsOrDate.toDate() : new Date(tsOrDate);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 /**
  * Create a participation record
- * Participation records are stored in the attendance collection as delta records
  * @param {Object} params
  * @param {string} params.classId - Class ID
  * @param {string} params.studentId - Student user ID
- * @param {string} params.date - Date string (YYYY-MM-DD)
- * @param {number} params.delta - Participation points (positive for participation, negative for behavior)
- * @param {string} params.category - 'participation' or 'behavior'
+ * @param {string} params.subjectId - Subject ID (optional)
+ * @param {string} params.type - 'participation' or 'behavior' (default: 'participation')
+ * @param {number} params.points - Participation points (default: 0)
+ * @param {string} params.description - Optional description
  * @param {string} params.createdBy - User ID who created the record
- * @param {string} params.notes - Optional notes
+ * @param {string} params.date - Date string (YYYY-MM-DD) (default: today)
  * @param {Object} params.studentInfo - Optional { email, displayName } for notifications
  * @param {string} params.className - Optional class name for notifications
  * @param {boolean} params.sendNotification - Whether to send notification (default: true)
@@ -21,89 +28,82 @@ import { sendEmail } from './firestore';
 export async function createParticipation({
   classId,
   studentId,
-  date,
-  delta,
-  category,
+  subjectId = null,
+  type = 'participation',
+  points = 0,
+  description = '',
   createdBy,
-  notes = '',
+  date = null,
   studentInfo = null,
   className = '',
   sendNotification = true
 }) {
   try {
-    const attendanceRef = collection(db, 'attendance');
-    // Generate unique ID for participation/behavior records
-    const participationId = `${classId}_${studentId}_${date}_${category || 'participation'}_${Date.now()}`;
-    
-    const docRef = doc(attendanceRef, participationId);
-    
-    await setDoc(docRef, {
+    const todayStr = date || toYmd(new Date());
+
+    const payload = {
       classId,
       studentId,
-      date,
-      delta,
-      category,
-      markedBy: createdBy,
-      method: 'manual',
-      notes,
-      timestamp: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      // Track creation info
+      ...(subjectId ? { subjectId } : {}),
+      type,
+      points,
+      description,
+      date: todayStr,
       createdBy,
-      createdAt: serverTimestamp()
-    });
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
 
-    // Send notification to student if requested
+    const docRef = await addDoc(collection(db, 'participations'), payload);
+
     if (sendNotification && studentId) {
       try {
-        const categoryLabel = category === 'behavior' ? 'Behavior' : 'Participation';
-        const actionLabel = delta > 0 ? 'added' : 'recorded';
-        const formattedDate = new Date(date).toLocaleDateString('en-GB');
+        const actionLabel = points > 0 ? 'added' : 'recorded';
+        const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
         // In-app notification
         await addNotification({
           userId: studentId,
-          title: `📝 ${categoryLabel} ${actionLabel}`,
-          message: `${categoryLabel} ${actionLabel} for ${className || 'class'} on ${formattedDate}${notes ? ` - ${notes}` : ''}`,
-          type: category,
+          title: `📝 Participation ${actionLabel}`,
+          message: `Participation ${actionLabel} for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
+          type: 'participation',
           classId: classId,
           metadata: {
-            date,
-            delta,
-            category,
+            date: todayStr,
+            points,
+            type,
             className: className,
             method: 'manual'
           },
           data: { 
             classId, 
-            date, 
-            delta,
-            category
+            date: todayStr, 
+            points,
+            type
           }
         });
 
-        // Email notification for significant changes
-        if (studentInfo?.email && Math.abs(delta) >= 2) {
+        if (studentInfo?.email && Math.abs(points) >= 2) {
           try {
             await sendEmail({
               to: studentInfo.email,
               template: 'participationNotification',
-              type: category,
+              type: 'participation',
               classId: classId,
               data: {
                 studentName: studentInfo.displayName || studentInfo.email,
                 className: className || 'Class',
                 date: formattedDate,
-                category: categoryLabel,
-                delta: delta,
-                notes: notes || ''
+                category: 'Participation',
+                delta: points,
+                notes: description || ''
               },
               metadata: {
                 classId,
                 className,
-                date,
-                category,
-                delta
+                date: todayStr,
+                type,
+                points
               }
             });
           } catch (emailError) {
@@ -115,7 +115,7 @@ export async function createParticipation({
       }
     }
 
-    return { success: true, id: participationId };
+    return { success: true, id: docRef.id };
   } catch (error) {
     console.error('Error creating participation record:', error);
     return { success: false, error: error.message };
@@ -130,7 +130,7 @@ export async function createParticipation({
  */
 export async function updateParticipation(participationId, { updatedBy, ...updateData }) {
   try {
-    const docRef = doc(db, 'attendance', participationId);
+    const docRef = doc(db, 'participations', participationId);
     
     // Get existing document to preserve history
     const existingDoc = await getDoc(docRef);
@@ -158,7 +158,7 @@ export async function updateParticipation(participationId, { updatedBy, ...updat
 
 /**
  * Delete a participation record
- * Note: Participation records are stored in the attendance collection as delta records
+ * Note: Participation records are stored in the participations collection
  */
 export async function deleteParticipation(participationId) {
   try {
@@ -166,9 +166,8 @@ export async function deleteParticipation(participationId) {
       return { success: false, error: 'Participation ID is required' };
     }
     
-    // Participation records are stored in the attendance collection
-    await deleteDoc(doc(db, 'attendance', participationId));
-    console.log('[Participation] Deleted participation record from attendance collection:', participationId);
+    await deleteDoc(doc(db, 'participations', participationId));
+    console.log('[Participation] Deleted participation record:', participationId);
     
     return { success: true };
   } catch (error) {
@@ -196,10 +195,24 @@ export const getParticipationsByClassAndDate = async (classId, date) => {
     
     // Filter by classId and date in JavaScript
     const filteredParticipations = allParticipations.filter(participation => 
-      participation.classId === classId && participation.date === date
+      participation.classId === classId && (
+        participation.date === date || toYmd(participation.createdAt) === date
+      )
     );
     
     return { success: true, data: filteredParticipations };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getParticipations = async () => {
+  try {
+    const participationsRef = collection(db, "participations");
+    const participationsQuery = query(participationsRef, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(participationsQuery);
+    const allParticipations = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
+    return { success: true, data: allParticipations };
   } catch (error) {
     return { success: false, error: error.message };
   }

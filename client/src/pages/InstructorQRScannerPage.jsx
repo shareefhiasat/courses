@@ -7,6 +7,8 @@ import { getUsers, getClasses, getEnrollments } from '@firebaseServices/firestor
 import { getPrograms, getSubjects } from '@firebaseServices/programs';
 import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
 import { createPenalty, getPenalties, deletePenalty } from '@firebaseServices/penalties';
+import { createParticipation, getParticipations, deleteParticipation } from '@firebaseServices/participations';
+import { createBehavior, getBehaviors, deleteBehavior } from '@firebaseServices/behaviors';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { db } from '@firebaseServices/config';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
@@ -129,6 +131,16 @@ const InstructorQRScannerPage = () => {
         result = await deletePenalty(activityToDelete.id);
         if (result.success) {
           eventBus.emit(EVENTS.PENALTY_ASSIGNED, { studentId: activityToDelete.studentId });
+        }
+      } else if (activityToDelete.type === 'participation') {
+        result = await deleteParticipation(activityToDelete.id);
+        if (result.success) {
+          eventBus.emit(EVENTS.PARTICIPATION_ADDED, { studentId: activityToDelete.studentId, status: 'deleted' });
+        }
+      } else if (activityToDelete.type === 'behavior') {
+        result = await deleteBehavior(activityToDelete.id);
+        if (result.success) {
+          eventBus.emit(EVENTS.BEHAVIOR_LOGGED, { studentId: activityToDelete.studentId, status: 'deleted' });
         }
       }
       
@@ -376,15 +388,19 @@ const InstructorQRScannerPage = () => {
       setLoading(true);
 
       // Parallel data fetching for better performance
-      const [enrollmentsResponse, usersResponse, penaltiesResponse] = await Promise.all([
+      const [enrollmentsResponse, usersResponse, penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
         getEnrollments(),
         getUsers(),
-        getPenalties()
+        getPenalties(),
+        getParticipations(),
+        getBehaviors()
       ]);
 
       const allEnrollments = enrollmentsResponse.success ? enrollmentsResponse.data : [];
       const allUsers = usersResponse.success ? usersResponse.data : [];
       const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      const allParticipations = participationsResponse.success ? participationsResponse.data : [];
+      const allBehaviors = behaviorsResponse.success ? behaviorsResponse.data : [];
       
       // Create Set for O(1) lookup performance
       const classEnrollments = allEnrollments.filter(e => e.classId === classId);
@@ -417,6 +433,25 @@ const InstructorQRScannerPage = () => {
       });
       setPenaltyRecords(Array.from(penaltyMap.values()).flat());
 
+      // Create participation/behavior maps for O(1) lookup
+      const participationMap = new Map();
+      allParticipations.forEach(p => {
+        if (studentIdSet.has(p.studentId) || studentIdSet.has(p.docId)) {
+          const existing = participationMap.get(p.studentId) || [];
+          existing.push(p);
+          participationMap.set(p.studentId, existing);
+        }
+      });
+
+      const behaviorMap = new Map();
+      allBehaviors.forEach(b => {
+        if (studentIdSet.has(b.studentId) || studentIdSet.has(b.docId)) {
+          const existing = behaviorMap.get(b.studentId) || [];
+          existing.push(b);
+          behaviorMap.set(b.studentId, existing);
+        }
+      });
+
       // Process students in parallel batches for better performance
       const BATCH_SIZE = 10;
       const studentsWithData = [];
@@ -431,57 +466,12 @@ const InstructorQRScannerPage = () => {
           const studentRecords = attendance.filter(a => a.studentId === studentId);
           const todayAttendance = studentRecords.find(a => !a.delta) || studentRecords[0];
 
-          // Fetch all attendance records for this student
+          // Fetch all attendance records for this student (attendance only)
           const studentAttendanceResponse = await getAttendanceByStudent(studentId);
           const studentAttendanceRecords = studentAttendanceResponse.success ? studentAttendanceResponse.data : [];
 
-          // Calculate totals efficiently
-          let participationTotal = 0;
-          let behaviorTotal = 0;
+          // Attendance total should count status records only
           let totalAttendanceCount = 0;
-          const studentParticipationHistory = [];
-          const studentBehaviorHistory = [];
-          
-          studentAttendanceRecords.forEach(record => {
-            if (record.delta) {
-              const category = record.category || (record.delta > 0 ? 'participation' : 'behavior');
-              const historyItem = {
-                id: record.id,
-                date: record.date,
-                time: record.timestamp,
-                points: record.delta,
-                reason: record.notes || record.reason || '',
-                markedBy: record.markedBy,
-                category
-              };
-
-              if (category === 'participation') {
-                participationTotal += record.delta;
-                studentParticipationHistory.push(historyItem);
-              } else if (category === 'behavior') {
-                behaviorTotal += record.delta;
-                studentBehaviorHistory.push(historyItem);
-              }
-            }
-            
-            if (record.status === 'present' || record.status === 'late') {
-              totalAttendanceCount++;
-            }
-          });
-
-          // Get penalties from map
-          const penalties = penaltyMap.get(studentId) || [];
-          
-          const penaltyTotal = penalties.reduce((sum, p) => {
-            const pPoints = p.points;
-            if (pPoints !== null && pPoints !== undefined && pPoints !== '' && !isNaN(pPoints)) {
-              const negativePoints = -Math.abs(Number(pPoints)); // Convert to negative
-              return sum + negativePoints;
-            }
-            return sum;
-          }, 0);
-
-          // Calculate attendance statistics
           const attendanceStats = {
             present: 0,
             late: 0,
@@ -490,8 +480,11 @@ const InstructorQRScannerPage = () => {
             excusedLeave: 0,
             humanitarianCase: 0
           };
-          
+
           studentAttendanceRecords.forEach(record => {
+            if (record.status === 'present' || record.status === 'late') {
+              totalAttendanceCount++;
+            }
             switch (record.status) {
               case 'present':
                 attendanceStats.present++;
@@ -513,6 +506,45 @@ const InstructorQRScannerPage = () => {
                 break;
             }
           });
+
+          // Participation/Behavior totals + history from dedicated collections
+          const participations = participationMap.get(studentId) || [];
+          const behaviors = behaviorMap.get(studentId) || [];
+
+          const participationTotal = participations.reduce((sum, p) => sum + (Number(p.points) || 0), 0);
+          const behaviorTotal = behaviors.reduce((sum, b) => sum + (Number(b.points) || 0), 0);
+
+          const studentParticipationHistory = participations.map(p => ({
+            id: p.docId || p.id,
+            date: p.date,
+            time: p.createdAt,
+            points: p.points,
+            reason: p.description || '',
+            markedBy: p.createdBy,
+            category: 'participation'
+          }));
+
+          const studentBehaviorHistory = behaviors.map(b => ({
+            id: b.docId || b.id,
+            date: b.date,
+            time: b.createdAt,
+            points: b.points,
+            reason: b.description || '',
+            markedBy: b.createdBy,
+            category: 'behavior'
+          }));
+
+          // Get penalties from map
+          const penalties = penaltyMap.get(studentId) || [];
+          
+          const penaltyTotal = penalties.reduce((sum, p) => {
+            const pPoints = p.points;
+            if (pPoints !== null && pPoints !== undefined && pPoints !== '' && !isNaN(pPoints)) {
+              const negativePoints = -Math.abs(Number(pPoints)); // Convert to negative
+              return sum + negativePoints;
+            }
+            return sum;
+          }, 0);
 
           return {
             id: studentId,
@@ -699,59 +731,32 @@ const InstructorQRScannerPage = () => {
             createdBy: user.uid
           });
         } else if (action.category === 'behavior' || action.category === 'participation') {
-          // Add behavior/participation using markAttendance with delta
-          // Get student information for proper naming
-          const studentData = students.find(s => s.id === studentId);
-          const studentInfo = studentData ? {
-            name: studentData.name || studentData.displayName || 'Unknown',
-            email: studentData.email,
-            studentId: studentData.studentId,
-            referenceId: studentData.referenceId
-          } : null;
-          
-          await markAttendance({
-            classId: selectedClassId,
-            studentId,
-            date: selectedDate,
-            status: null, // No status for delta records
-            markedBy: user.uid,
-            method: 'manual',
-            notes: `${action.label_en || action.type}: ${note}`,
-            delta: points,
-            category: action.category,
-            studentInfo, // Pass student information
-            className: classes.find(c => c.id === selectedClassId)?.name || ''
-          });
-
-          // ALSO add to dedicated collections for Dashboard compatibility
-          try {
-            if (action.category === 'behavior') {
-              await addDoc(collection(db, 'behaviors'), {
-                studentId,
-                classId: selectedClassId,
-                subjectId: selectedSubjectId,
-                type: action.type || 'unknown',
-                points: points,
-                description: note,
-                createdBy: user.uid,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-              });
-            } else if (action.category === 'participation') {
-              await addDoc(collection(db, 'participations'), {
-                studentId,
-                classId: selectedClassId,
-                subjectId: selectedSubjectId,
-                type: action.type || 'participation',
-                points: points,
-                description: note,
-                createdBy: user.uid,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-              });
-            }
-          } catch (e) {
-            logger.error(`Error saving to ${action.category} collection:`, e);
+          if (action.category === 'behavior') {
+            await createBehavior({
+              classId: selectedClassId,
+              studentId,
+              subjectId: selectedSubjectId,
+              type: action.type || action.id || 'behavior',
+              points: points,
+              description: note,
+              createdBy: user.uid,
+              date: selectedDate,
+              sendNotification: sendNotifications,
+              className: classes.find(c => c.id === selectedClassId)?.name || ''
+            });
+          } else {
+            await createParticipation({
+              classId: selectedClassId,
+              studentId,
+              subjectId: selectedSubjectId,
+              type: action.type || action.id || 'participation',
+              points: points,
+              description: note,
+              createdBy: user.uid,
+              date: selectedDate,
+              sendNotification: sendNotifications,
+              className: classes.find(c => c.id === selectedClassId)?.name || ''
+            });
           }
         } else {
           // Unknown action category

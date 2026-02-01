@@ -19,6 +19,7 @@ const StudentCard = ({
   toggleDayExpansion, 
   handleDeleteAttendance, 
   handleDeleteParticipation,
+  handleDeleteBehavior,
   handleDeletePenalty, 
   getAttendanceBadge, 
   t, 
@@ -429,6 +430,7 @@ const StudentCard = ({
             toggleDayExpansion={toggleDayExpansion}
             handleDeleteAttendance={handleDeleteAttendance}
             handleDeleteParticipation={handleDeleteParticipation}
+            handleDeleteBehavior={handleDeleteBehavior}
             handleDeletePenalty={handleDeletePenalty}
             t={t}
             isRTL={isRTL}

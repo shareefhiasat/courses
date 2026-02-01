@@ -1,18 +1,26 @@
-import { doc, deleteDoc, collection, addDoc, serverTimestamp, updateDoc, setDoc, getDoc, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { doc, deleteDoc, collection, addDoc, serverTimestamp, updateDoc, getDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from './config';
 import { addNotification } from './notifications';
 import { sendEmail } from './firestore';
+
+const toYmd = (tsOrDate) => {
+  if (!tsOrDate) return null;
+  const d = tsOrDate?.toDate ? tsOrDate.toDate() : new Date(tsOrDate);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 /**
  * Create a behavior record
  * @param {Object} params
  * @param {string} params.classId - Class ID
  * @param {string} params.studentId - Student user ID
- * @param {string} params.date - Date string (YYYY-MM-DD)
- * @param {number} params.delta - Behavior points (negative for behavior issues)
- * @param {string} params.behaviorType - Type of behavior
+ * @param {string} params.subjectId - Optional subject ID
+ * @param {string} params.type - Type of behavior
+ * @param {number} params.points - Behavior points (negative for behavior issues)
+ * @param {string} params.description - Optional description
  * @param {string} params.createdBy - User ID who created the record
- * @param {string} params.notes - Optional notes
+ * @param {string} params.date - Optional date string (YYYY-MM-DD)
  * @param {Object} params.studentInfo - Optional { email, displayName } for notifications
  * @param {string} params.className - Optional class name for notifications
  * @param {boolean} params.sendNotification - Whether to send notification (default: true)
@@ -20,61 +28,61 @@ import { sendEmail } from './firestore';
 export async function createBehavior({
   classId,
   studentId,
-  date,
-  delta,
-  behaviorType,
+  subjectId = null,
+  type = 'behavior',
+  points = 0,
+  description = '',
   createdBy,
-  notes = '',
+  date = null,
   studentInfo = null,
   className = '',
   sendNotification = true
 }) {
   try {
-    const behavior = {
+    const todayStr = date || toYmd(new Date());
+
+    const payload = {
       classId,
       studentId,
-      date,
-      delta,
-      behaviorType,
-      notes,
-      markedBy: createdBy,
-      createdBy: createdBy, // User tracking compliance
-      method: 'manual',
+      ...(subjectId ? { subjectId } : {}),
+      type,
+      points,
+      description,
+      date: todayStr,
+      createdBy,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     };
-    
-    const docRef = await addDoc(collection(db, "behaviors"), behavior);
 
-    // Send notification to student if requested
+    const docRef = await addDoc(collection(db, 'behaviors'), payload);
+
     if (sendNotification && studentId) {
       try {
-        const formattedDate = new Date(date).toLocaleDateString('en-GB');
+        const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
         // In-app notification
         await addNotification({
           userId: studentId,
           title: '⚠️ Behavior Recorded',
-          message: `Behavior recorded for ${className || 'class'} on ${formattedDate}${notes ? ` - ${notes}` : ''}`,
+          message: `Behavior recorded for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
           type: 'behavior',
           classId: classId,
           metadata: {
-            date,
-            delta,
-            behaviorType,
+            date: todayStr,
+            points,
+            type,
             className: className,
             method: 'manual'
           },
           data: { 
             classId, 
-            date, 
-            delta,
-            behaviorType
+            date: todayStr, 
+            points,
+            type
           }
         });
 
-        // Email notification for significant behavior issues
-        if (studentInfo?.email && Math.abs(delta) >= 2) {
+        if (studentInfo?.email && Math.abs(points) >= 2) {
           try {
             await sendEmail({
               to: studentInfo.email,
@@ -85,16 +93,16 @@ export async function createBehavior({
                 studentName: studentInfo.displayName || studentInfo.email,
                 className: className || 'Class',
                 date: formattedDate,
-                behaviorType: behaviorType,
-                delta: delta,
-                notes: notes || ''
+                behaviorType: type,
+                delta: points,
+                notes: description || ''
               },
               metadata: {
                 classId,
                 className,
-                date,
-                behaviorType,
-                delta
+                date: todayStr,
+                type,
+                points
               }
             });
           } catch (emailError) {
@@ -185,10 +193,24 @@ export const getBehaviorsByClassAndDate = async (classId, date) => {
     
     // Filter by classId and date in JavaScript
     const filteredBehaviors = allBehaviors.filter(behavior => 
-      behavior.classId === classId && behavior.date === date
+      behavior.classId === classId && (
+        behavior.date === date || toYmd(behavior.createdAt) === date
+      )
     );
     
     return { success: true, data: filteredBehaviors };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const getBehaviors = async () => {
+  try {
+    const behaviorsRef = collection(db, 'behaviors');
+    const behaviorsQuery = query(behaviorsRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(behaviorsQuery);
+    const allBehaviors = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
+    return { success: true, data: allBehaviors };
   } catch (error) {
     return { success: false, error: error.message };
   }

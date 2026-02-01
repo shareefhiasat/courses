@@ -29,7 +29,13 @@ const DeleteModal = ({
         <CardBody>
           <h3>
             {t('delete_activity_title', { 
-              type: deleteType === 'attendance' ? t('attendance') : t('penalty') 
+              type: deleteType === 'attendance'
+                ? t('attendance')
+                : deleteType === 'participation'
+                  ? t('participation')
+                  : deleteType === 'behavior'
+                    ? t('behavior')
+                    : t('penalty')
             })}
           </h3>
           <p>

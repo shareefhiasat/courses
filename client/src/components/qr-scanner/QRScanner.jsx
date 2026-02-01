@@ -6,8 +6,8 @@ import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
 import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
-import { getParticipationsByClassAndDate } from '@firebaseServices/participations';
-import { getBehaviorsByClassAndDate } from '@firebaseServices/behaviors';
+import { createParticipation, getParticipations, getParticipationsByClassAndDate } from '@firebaseServices/participations';
+import { createBehavior, getBehaviors, getBehaviorsByClassAndDate } from '@firebaseServices/behaviors';
 import { getUsers } from '@firebaseServices/firestore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -462,7 +462,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
     
     // Use the EXACT same lookup logic as manual scan
-    const fullStudent = students.find(s => {
+    let fullStudent = students.find(s => {
       const matches = [
         s.studentNumber === studentInfo.studentNumber,
         s.referenceId === studentInfo.studentNumber,
@@ -632,7 +632,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }))
     });
     
-    const fullStudent = students.find(s => {
+    let fullStudent = students.find(s => {
       const matches = [
         s.studentNumber === manualStudentId.trim(),
         s.referenceId === manualStudentId.trim(),
@@ -732,63 +732,22 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           studentData.attendance = attendanceStatus;
         }
         
-        // Fetch student's activity counts
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        
-        // Get all attendance records for this class (without date filter)
-        let attendanceRecords = [];
-        try {
-          // First try to get records without date filter
-          const attendanceResponse = await getAttendanceByClass(classId, todayStr);
-          if (attendanceResponse.success) {
-            attendanceRecords = attendanceResponse.data;
-          }
-        } catch (error) {
-          // If that fails, we need to fetch all records differently
-          addDebugLog(`⚠️ Could not fetch attendance without date: ${error.message}`, 'warning');
-          // As fallback, just use today's records
-          const attendanceResponse = await getAttendanceByClass(classId, todayStr);
-          attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
-        }
-        const studentAttendance = attendanceRecords.filter(r => r.studentId === (studentData.docId || studentData.id));
-        
-        // Get penalties for this student (all time, not just today)
-        const penaltiesResponse = await getPenalties(classId);
-        const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-        const studentPenalties = allPenalties.filter(p => p.studentId === (studentData.docId || studentData.id));
-        
-        // Calculate counts
-        let participationCount = 0;
-        let behaviorCount = 0;
-        let penaltyCount = 0;
-        
-        // Count from attendance records
-        studentAttendance.forEach(record => {
-          if (record.category === 'participation' && record.delta > 0) {
-            participationCount += record.delta || 0;
-          } else if (record.category === 'behavior' && record.delta < 0) {
-            behaviorCount += Math.abs(record.delta || 0);
-          } else if (record.category === 'penalty' && record.delta < 0) {
-            penaltyCount += Math.abs(record.delta || 0);
-          }
-        });
-        
-        // Count from penalties (all time, not just today)
-        studentPenalties.forEach(penalty => {
-          if (penalty.points < 0) {
-            penaltyCount += Math.abs(penalty.points || 0);
-          }
-        });
-        
-        // Also count penalty records from attendance
-        studentAttendance.forEach(record => {
-          if (record.category === 'penalty' && record.delta < 0) {
-            penaltyCount += Math.abs(record.delta || 0);
-          }
-        });
-        
-        // Update studentData with counts
+        const sid = studentData.docId || studentData.id;
+
+        const [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
+          getPenalties(sid),
+          getParticipations(),
+          getBehaviors()
+        ]);
+
+        const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+        const studentParticipations = (participationsResponse.success ? participationsResponse.data : []).filter(p => p.studentId === sid);
+        const studentBehaviors = (behaviorsResponse.success ? behaviorsResponse.data : []).filter(b => b.studentId === sid);
+
+        const participationCount = studentParticipations.reduce((sum, p) => sum + (Number(p.points) || 0), 0);
+        const behaviorCount = studentBehaviors.reduce((sum, b) => sum + Math.abs(Number(b.points) || 0), 0);
+        const penaltyCount = studentPenalties.reduce((sum, p) => sum + Math.abs(Number(p.points) || 0), 0);
+
         studentData.participation = participationCount;
         studentData.behavior = behaviorCount;
         studentData.penalty = penaltyCount;
@@ -822,25 +781,33 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       } : null;
       
       for (const action of actions) {
-        console.log('🔧 Processing action:', action);
-        
-        const attendanceData = {
-          classId: selectedClassId,
-          studentId,
-          date: today,
-          status: null, // No status for delta records
-          markedBy: user.uid,
-          method: 'manual',
-          notes: note || '',
-          delta: action.points,
-          category: action.category, // 'participation' or 'behavior'
-          studentInfo, // Pass student information
-          className: selectedClassName || ''
-        };
-        
-        console.log('🔧 Saving action to attendance:', attendanceData);
-        
-        await markAttendance(attendanceData);
+        if (action.category === 'behavior') {
+          await createBehavior({
+            classId: selectedClassId,
+            studentId,
+            subjectId: selectedSubjectId,
+            type: action.id || action.type || 'behavior',
+            points: action.points,
+            description: note || '',
+            createdBy: user.uid,
+            date: today,
+            studentInfo,
+            className: selectedClassName || ''
+          });
+        } else if (action.category === 'participation') {
+          await createParticipation({
+            classId: selectedClassId,
+            studentId,
+            subjectId: selectedSubjectId,
+            type: action.id || action.type || 'participation',
+            points: action.points,
+            description: note || '',
+            createdBy: user.uid,
+            date: today,
+            studentInfo,
+            className: selectedClassName || ''
+          });
+        }
       }
       
       // Emit events for real-time updates
@@ -869,7 +836,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       console.error('Error submitting behavior/participation:', error);
       showError('Failed to record actions');
     }
-  }, [selectedClassId, user]);
+  }, [selectedClassId, selectedSubjectId, selectedClassName, user]);
 
   // Handle penalty submission
   const handlePenaltySubmit = useCallback(async (studentId, penalties, note) => {
@@ -887,9 +854,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         const penaltyData = {
           classId: selectedClassId,
           studentId,
+          type: penalty.id,
           penaltyType: penalty.id,
           penaltyName: penaltyName,
-          points: penalty.points,
+          points: Math.abs(penalty.points),
+          reason: note || '',
           note: note || '',
           date: new Date().toISOString().split('T')[0],
           markedBy: user.uid,
@@ -1013,19 +982,19 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       
       // Get today's attendance records for this class
       const attendanceResponse = await getAttendanceByClass(classId, todayStr);
-      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
+      const attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status) : [];
       
       // Get today's penalties for this class
       const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
-      const penaltyRecords = penaltiesResponse.success ? penaltiesResponse.data : [];
+      const penaltyRecords = penaltiesResponse.success ? penaltiesResponse.data.map(p => ({ ...p, category: 'penalty' })) : [];
       
       // Get today's participations for this class
       const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
-      const participationRecords = participationsResponse.success ? participationsResponse.data : [];
+      const participationRecords = participationsResponse.success ? participationsResponse.data.map(p => ({ ...p, category: 'participation' })) : [];
       
       // Get today's behaviors for this class
       const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
-      const behaviorRecords = behaviorsResponse.success ? behaviorsResponse.data : [];
+      const behaviorRecords = behaviorsResponse.success ? behaviorsResponse.data.map(b => ({ ...b, category: 'behavior' })) : [];
       
       logger.debug('[QR Scanner] Attendance records fetched:', {
         success: attendanceResponse.success,
@@ -1116,9 +1085,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         reason: allRecords[0]?.reason
       } : 'No attendance records');
       
-      // Debug: Log all penalty records found
-      const debugPenaltyRecords = allRecords.filter(r => r.category === 'penalty' || r.penaltyType);
-      
       const activityLogs = allRecords.map((record, index) => {
           const studentId = record.studentId;
           let studentName = studentMap[studentId];
@@ -1142,63 +1108,76 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             studentName = 'Unknown Student';
           }
           
+          const recordPointsRaw = record.delta !== undefined && record.delta !== null ? record.delta : (record.points !== undefined && record.points !== null ? record.points : 0);
+          const recordPoints = (record.category === 'penalty' || record.penaltyType)
+            ? -Math.abs(Number(recordPointsRaw) || 0)
+            : (record.category === 'behavior')
+              ? -Math.abs(Number(recordPointsRaw) || 0)
+              : Number(recordPointsRaw) || 0;
+
           logger.debug('[QR Scanner] Processing attendance record #' + index + ':', {
             studentId,
             studentName,
             status: record.status,
             category: record.category,
-            delta: record.delta,
+            delta: recordPoints,
             date: record.date,
             timestamp: record.timestamp,
             method: record.method,
             notes: record.notes,
             reason: record.reason,
+            description: record.description,
+            note: record.note,
+            penaltyName: record.penaltyName,
+            penaltyType: record.penaltyType,
+            type: record.type,
             availableInMap: !!studentMap[studentId],
             totalStudentsInMap: Object.keys(studentMap).length,
-            computedType: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance')
+            computedType: record.category || (recordPoints ? (recordPoints > 0 ? 'participation' : 'behavior') : 'attendance')
           });
           
-          const activityLabel = record.notes || record.reason || record.penaltyName || '';
-          
-          // Special handling for penalty records
+          const activityLabel = record.notes || record.note || record.reason || record.description || record.penaltyName || record.penaltyType || record.type || '';
+
+          // Resolve human-readable label per type
           let finalLabel = activityLabel;
+
           if (record.category === 'penalty' || record.penaltyType) {
-            // For penalty records, use penaltyName if available, otherwise fallback
-            finalLabel = record.penaltyName || activityLabel || 'Penalty';
-            console.log('🔧 Penalty label debug:', {
-              recordId: record.id,
-              penaltyName: record.penaltyName,
-              activityLabel,
-              finalLabel,
-              recordSource: 'penalties collection'
-            });
-          } else if (record.category === 'penalty' && !activityLabel) {
-            // Fallback for old penalty records with empty notes
-            const penaltyType = PENALTY_TYPES.find(pt => pt.points === Math.abs(record.delta || 0));
-            if (penaltyType) {
-              finalLabel = lang === 'ar' ? penaltyType.label_ar : penaltyType.label_en;
-            } else {
-              finalLabel = 'Penalty';
-            }
-          } else if (record.behaviorType) {
-            // For behavior records from behaviors collection
-            finalLabel = record.behaviorType || 'Behavior';
-          } else if (record.delta !== undefined && record.delta > 0) {
-            // For participation records from participations collection
-            finalLabel = record.notes || 'Participation';
-          } else if (record.delta !== undefined && record.delta < 0) {
-            // For behavior records (negative delta)
-            finalLabel = record.notes || record.behaviorType || 'Behavior';
+            const penaltyId = record.penaltyType || record.type;
+            const penaltyDef = PENALTY_TYPES.find(pt => pt.id === penaltyId);
+            finalLabel = record.penaltyName
+              || (penaltyDef ? (lang === 'ar' ? penaltyDef.label_ar : penaltyDef.label_en) : null)
+              || penaltyId
+              || activityLabel
+              || 'Penalty';
+          } else if (record.category === 'participation') {
+            const participationDef = PARTICIPATION_TYPES.find(pt => pt.id === record.type);
+            finalLabel = (participationDef ? (lang === 'ar' ? participationDef.label_ar : participationDef.label_en) : null)
+              || record.type
+              || activityLabel
+              || 'Participation';
+          } else if (record.category === 'behavior') {
+            const behaviorDef = BEHAVIOR_TYPES.find(bt => bt.id === record.type);
+            finalLabel = (behaviorDef ? (lang === 'ar' ? behaviorDef.label_ar : behaviorDef.label_en) : null)
+              || record.type
+              || activityLabel
+              || 'Behavior';
+          } else if (record.status) {
+            finalLabel = ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Attendance';
           }
-          
+
+          const computedType = (record.category === 'penalty' || record.penaltyType)
+            ? 'penalty'
+            : (record.category || (record.status ? 'attendance' : (recordPoints > 0 ? 'participation' : (recordPoints < 0 ? 'behavior' : 'attendance'))));
+
           const finalActivityLog = {
             id: record.id || `attendance-${Math.random()}`,
             time: record.timestamp || record.updatedAt || record.date || record.createdAt,
-            type: record.category || record.penaltyType ? 'penalty' : (record.behaviorType ? 'behavior' : (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance')),
+            type: computedType,
             studentId,
             studentName,
             status: record.status || 'present',
-            delta: record.delta,
+            delta: recordPoints,
+            points: recordPoints,
             label: finalLabel,
             method: record.method || 'QR Scan',
             performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
@@ -1207,7 +1186,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             program: selectedProgramName,
             class: selectedClassName
           };
-          
+
           return finalActivityLog;
         }).sort((a, b) => {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);

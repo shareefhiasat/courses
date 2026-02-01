@@ -5,7 +5,8 @@ import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
-import { deleteParticipation } from '@firebaseServices/participations';
+import { getParticipations, deleteParticipation } from '@firebaseServices/participations';
+import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviors';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@firebaseServices/userPreferences';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -14,6 +15,8 @@ import eventBus, { EVENTS } from '@utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getParticipationLabel } from '@constants/participationTypes';
+import { getBehaviorLabel } from '@constants/behaviorTypes';
 import StudentHistory from '@ui/history';
 import StudentRosterHistory from '@ui/history/StudentRosterHistory';
 import DeleteModal from '@ui/history/DeleteModal';
@@ -70,6 +73,13 @@ const StudentRoster = React.memo(function StudentRoster({
   const [favoriteStudents, setFavoriteStudents] = useState([]);
   const [sendingEmails, setSendingEmails] = useState({}); // Track sending state per student
 
+  const toYmd = useCallback((tsOrDate) => {
+    if (!tsOrDate) return null;
+    const d = tsOrDate?.toDate ? tsOrDate.toDate() : new Date(tsOrDate);
+    if (Number.isNaN(d.getTime())) return null;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
   // Check if all dropdowns are selected to show total attendance column
   const showTotalAttendance = selectedProgramId &&
       selectedProgramId !== 'all' &&
@@ -94,52 +104,29 @@ const StudentRoster = React.memo(function StudentRoster({
       const attendanceRecords = attendanceResponse.success
           ? attendanceResponse.data : [];
 
-      // Get all penalties for this student
-      const penaltiesResponse = await getPenalties();
-      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data
-          : [];
-      
-      // Filter penalties for today only
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      
-      const studentPenalties = allPenalties.filter(p => {
-        if (p.studentId !== studentId) return false;
-        
-        // Check if penalty is from today
-        const timestamp = p.createdAt || p.timestamp;
-        if (!timestamp) return false;
-        
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        
-        return dateStr === todayStr;
-      });
+      const [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
+        getPenalties(studentId),
+        getParticipations(),
+        getBehaviors()
+      ]);
+
+      const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
+      const studentParticipations = (participationsResponse.success ? participationsResponse.data : []).filter(p => p.studentId === studentId);
+      const studentBehaviors = (behaviorsResponse.success ? behaviorsResponse.data : []).filter(b => b.studentId === studentId);
 
       // Combine and format logs
       const logs = [
-        ...attendanceRecords.map(record => {
+        ...attendanceRecords.filter(r => r.status).map(record => {
           const logEntry = {
             id: record.id,
-            type: record.category || (record.delta ? (record.delta > 0
-                ? 'participation' : 'behavior') : 'attendance'),
-            date: record.date || (record.timestamp?.toDate
-                ? record.timestamp.toDate().toISOString().split('T')[0]
-                : new Date(record.timestamp).toISOString().split('T')[0]),
+            type: 'attendance',
+            date: record.date || toYmd(record.timestamp) || toYmd(record.updatedAt) || toYmd(record.createdAt),
             time: record.timestamp || record.date,
-            label: record.category === 'participation' 
-              ? 'Participation' 
-              : (record.category === 'behavior' 
-                ? 'Behavior' 
-                : (ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown')),
-            points: record.delta || 0,
+            label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown',
+            points: 0,
             comment: record.reason || record.notes || '',
             severity: 'low',
-            color: record.category === 'participation' 
-              ? '#3b82f6' 
-              : (record.category === 'behavior' 
-                ? '#f97316' 
-                : (ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280')),
+            color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
             originalStatus: record.status,
             originalCategory: record.category
           };
@@ -155,7 +142,38 @@ const StudentRoster = React.memo(function StudentRoster({
 
           return logEntry;
         }),
+        ...studentParticipations.map(p => {
+          const points = Number(p.points) || 0;
+          const label = getParticipationLabel(p.type || 'participation', lang);
+          return {
+            id: p.docId || p.id,
+            type: 'participation',
+            date: p.date || toYmd(p.createdAt) || toYmd(p.updatedAt),
+            time: p.createdAt,
+            label: label,
+            points: points,
+            comment: p.description || '',
+            severity: 'low',
+            color: '#dbeafe'
+          };
+        }),
+        ...studentBehaviors.map(b => {
+          const points = Number(b.points) || 0;
+          const label = getBehaviorLabel(b.type || 'behavior', lang);
+          return {
+            id: b.docId || b.id,
+            type: 'behavior',
+            date: b.date || toYmd(b.createdAt) || toYmd(b.updatedAt),
+            time: b.createdAt,
+            label: label,
+            points: -Math.abs(points),
+            comment: b.description || '',
+            severity: 'low',
+            color: '#fff7ed'
+          };
+        }),
         ...studentPenalties.map(penalty => {
+          const pType = penalty.penaltyType || penalty.type;
           return {
             id: penalty.docId || penalty.id,
             type: 'penalty',
@@ -163,9 +181,9 @@ const StudentRoster = React.memo(function StudentRoster({
                 ? penalty.createdAt.toDate().toISOString().split('T')[0]
                 : new Date(penalty.createdAt).toISOString().split('T')[0]),
             time: penalty.createdAt,
-            label: penalty.type || penalty.reason || 'Penalty',
-            points: -Math.abs(penalty.points || 0), // Always negative for penalties
-            comment: penalty.reason || penalty.comment || '', // Use reason first, then comment
+            label: penalty.penaltyName || pType || 'Penalty',
+            points: -Math.abs(penalty.points || 0),
+            comment: penalty.reason || penalty.note || penalty.comment || '',
             severity: penalty.severity || 'medium',
             color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
           };
@@ -199,6 +217,12 @@ const StudentRoster = React.memo(function StudentRoster({
 
   const handleDeleteParticipation = async (studentId, logId) => {
     setDeleteType('participation');
+    setDeleteLogId(logId);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteBehavior = async (studentId, logId) => {
+    setDeleteType('behavior');
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
   };
@@ -240,6 +264,15 @@ const StudentRoster = React.memo(function StudentRoster({
           eventBus.emit(EVENTS.PARTICIPATION_ADDED,
               {studentId: deleteLogId.split('_')[1], status: 'deleted'});
         }
+      } else if (deleteType === 'behavior') {
+        result = await deleteBehavior(deleteLogId);
+        if (result.success) {
+          students.forEach(student => {
+            fetchStudentHistory(student.id);
+          });
+          eventBus.emit(EVENTS.BEHAVIOR_LOGGED,
+              {studentId: deleteLogId.split('_')[1], status: 'deleted'});
+        }
       }
     } catch (error) {
       logger.error(`Error deleting ${deleteType}:`, error);
@@ -253,9 +286,7 @@ const StudentRoster = React.memo(function StudentRoster({
 
   // Auto-expand all students when autoExpand prop changes
   useEffect(() => {
-    console.log('🔧 StudentRoster autoExpand effect triggered:', { autoExpand, studentsLength: students.length }); // Debug
     if (autoExpand && students.length > 0) {
-      console.log('🔧 Auto-expanding all students:', students.map(s => s.id)); // Debug
       const allStudentIds = new Set(students.map(s => s.id));
       setExpandedRows(allStudentIds);
       
@@ -746,6 +777,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   toggleDayExpansion={toggleDayExpansion}
                   handleDeleteAttendance={handleDeleteAttendance}
                   handleDeleteParticipation={handleDeleteParticipation}
+                  handleDeleteBehavior={handleDeleteBehavior}
                   handleDeletePenalty={handleDeletePenalty}
                   getAttendanceBadge={getAttendanceBadge}
                   t={t}
@@ -949,6 +981,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     toggleDayExpansion={toggleDayExpansion}
                     handleDeleteAttendance={handleDeleteAttendance}
                     handleDeleteParticipation={handleDeleteParticipation}
+                    handleDeleteBehavior={handleDeleteBehavior}
                     handleDeletePenalty={handleDeletePenalty}
                     getAttendanceBadge={getAttendanceBadge}
                     showTotalAttendance={showTotalAttendance}
@@ -973,7 +1006,7 @@ const StudentRoster = React.memo(function StudentRoster({
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
         deleteType={deleteType}
-        studentName={students.find(s => s.id === deleteLogId?.split('_')[1])?.name || t('this_student')}
+        studentName={t('this_student')}
         deleteLoading={deleteLoading}
         t={t}
       />

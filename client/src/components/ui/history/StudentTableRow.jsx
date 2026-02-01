@@ -20,6 +20,7 @@ const StudentTableRow = ({
   toggleDayExpansion, 
   handleDeleteAttendance, 
   handleDeleteParticipation,
+  handleDeleteBehavior,
   handleDeletePenalty, 
   getAttendanceBadge, 
   showTotalAttendance, 
@@ -434,6 +435,7 @@ const StudentTableRow = ({
               toggleDayExpansion={toggleDayExpansion}
               handleDeleteAttendance={handleDeleteAttendance}
               handleDeleteParticipation={handleDeleteParticipation}
+              handleDeleteBehavior={handleDeleteBehavior}
               handleDeletePenalty={handleDeletePenalty}
               t={t}
               isRTL={isRTL}

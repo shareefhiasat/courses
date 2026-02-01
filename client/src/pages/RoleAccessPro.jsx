@@ -63,6 +63,7 @@ export default function RoleAccessPro() {
     { id: 'smtpConfig', name: 'SMTP Config', group: 'COMMUNICATION', description: 'Configure SMTP settings for emails' },
     // COMMUNITY
     { id: 'notifications', name: 'Notifications', group: 'COMMUNITY', description: 'Manage your notifications' },
+    { id: 'notificationManagement', name: 'Notification Management', group: 'COMMUNITY', description: 'Control system-triggered notifications per role' },
     // WORKSPACE SETTINGS
     { id: 'profile', name: 'Profile Settings', group: 'SETTINGS', description: 'Manage your profile and preferences' },
     { id: 'roleAccess', name: 'Role Access', group: 'SETTINGS', description: 'Manage role-based access control' },
@@ -77,7 +78,7 @@ export default function RoleAccessPro() {
       attendance: true, hrAttendance: true, myAttendance: false, hrPenalties: true, instructorParticipation: true, instructorBehavior: true,
       analytics: true, advancedAnalytics: true,
       chat: true, scheduledReports: true, smtpConfig: true,
-      notifications: true,
+      notifications: true, notificationManagement: true,
       profile: true, roleAccess: true
     },
     instructor: { 
