@@ -287,7 +287,7 @@ export default function StudentActionPanelNew({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'var(--overlay, rgba(0, 0, 0, 0.5))',
+          background: 'rgba(0, 0, 0, 0.5)',
           zIndex: 1999
         }}
         onClick={onClose}
@@ -299,7 +299,7 @@ export default function StudentActionPanelNew({
         width: isMobile ? '100%' : '100%',
         maxWidth: isMobile ? '100%' : '28rem',
         height: '100%',
-        background: 'var(--panel, white)',
+        background: 'white',
         boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
         zIndex: 2000,
         display: 'flex',
@@ -308,7 +308,7 @@ export default function StudentActionPanelNew({
         overflow: 'hidden'
       }}>
       {/* Header */}
-      <div style={{ padding: '0.8rem', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
+      <div style={{ padding: '0.8rem', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -332,7 +332,7 @@ export default function StudentActionPanelNew({
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.75rem' }}>
+                <h3 style={{ fontWeight: 600, color: '#111827', margin: 0, fontSize: '0.75rem' }}>
                   {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -358,16 +358,16 @@ export default function StudentActionPanelNew({
               </div>
               <div style={{ 
                 fontSize: '0.875rem', 
-                color: 'var(--text-muted, #6b7280)', 
+                color: '#6b7280', 
                 marginTop: '0.125rem',
                 fontFamily: 'monospace',
-                background: 'var(--panel-hover, #f3f4f6)',
+                background: '#f3f4f6',
                 padding: '0.25rem 0.5rem',
                 borderRadius: '0.25rem',
                 display: 'inline-block',
                 fontWeight: 600
               }}>
-                ID: STU-{student.studentNumber || student.id?.slice(-4) || '0000'}
+                ID: STU-{student.studentNumber || student.docId?.slice(-4) || student.id?.slice(-4) || '0000'}
               </div>
             </div>
           </div>
@@ -537,7 +537,7 @@ export default function StudentActionPanelNew({
                   style={{
                     padding: viewMode === 'grid' ? '0.5rem' : '0.375rem 0.5rem',
                     borderRadius: '0.5rem',
-                    border: `2px solid ${isSelected ? 'var(--color-primary, #8b5cf6)' : 'var(--border, #e5e7eb)'}`,
+                    border: `2px solid ${isSelected ? '#8b5cf6' : '#e5e7eb'}`,
                     background: isSelected ? 'rgba(139, 92, 246, 0.05)' : 'transparent',
                     transition: 'all 0.2s',
                     position: 'relative',
@@ -569,7 +569,7 @@ export default function StudentActionPanelNew({
                     <span style={{
                       fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
                       fontWeight: 500,
-                      color: 'var(--text, #111827)',
+                      color: '#111827',
                       lineHeight: '1.2',
                       flex: 1
                     }}>
@@ -663,7 +663,7 @@ export default function StudentActionPanelNew({
                         justifyContent: 'center',
                         fontSize: '0.75rem',
                         fontWeight: '700',
-                        color: 'var(--text, #111827)',
+                        color: '#111827',
                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                       }}>
                         {actionPoints[option.id] || 0}

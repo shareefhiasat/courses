@@ -1,3 +1,6 @@
+// DEPRECATED: This component is deprecated. Use StudentActionPanelNew instead.
+// This file is kept for reference but should be removed in a future release.
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { X, Star, Mail, QrCode, Users, AlertCircle, Zap, ChevronDown, ExternalLink, Trophy, Grid, List, Trash2 } from 'lucide-react';
@@ -98,6 +101,13 @@ export default function StudentActionPanel({
     behavior: true,
     penalties: true
   });
+
+  // Initialize current attendance status from student data
+  useEffect(() => {
+    if (student?.attendance) {
+      setCurrentAttendanceStatus(student.attendance);
+    }
+  }, [student?.attendance]);
 
   // Debounced resize handler for performance
   useEffect(() => {
