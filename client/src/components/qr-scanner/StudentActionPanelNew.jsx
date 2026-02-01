@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import logger from '@utils/logger';
 import { Button, Input } from '@ui';
-import { X, Star, Mail, ChevronDown, Users, Zap, AlertCircle, Plus, Minus, Grid, List } from 'lucide-react';
+import { X, Star, Mail, ChevronDown, Users, Zap, Plus, Minus, Grid, List } from 'lucide-react';
+import { 
+  AlertCircleIcon, 
+  MessageSquareIcon, 
+  AlertTriangleIcon, 
+  CheckCircleIcon, 
+  ClockIcon, 
+  XCircleIcon, 
+  HeartIcon, 
+  HelpCircleIcon 
+} from '@utils/icons.jsx';
 import { useAuth } from '@contexts/AuthContext';
 import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
@@ -119,113 +129,54 @@ export default function StudentActionPanelNew({
       finalColor = participationColor;
     }
     
-    const icons = {
-      MessageSquare: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke={finalColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-      ),
+    const iconMap = {
+      MessageSquare: <MessageSquareIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      AlertCircleIcon: <AlertCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      AlertTriangle: <AlertTriangleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      CheckCircle: <CheckCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      Clock: <ClockIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      XCircle: <XCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      Heart: <HeartIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      HelpCircle: <HelpCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      Users: <Users style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
       Bed: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke={finalColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 4v16h20V4z"></path>
           <path d="M2 4h20"></path>
           <path d="M7 4v16"></path>
           <path d="M17 4v16"></path>
         </svg>
-      ),
-      Users: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-        </svg>
-      ),
-      Smartphone: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-          <line x1="12" y1="18" x2="12.01" y2="18"></line>
-        </svg>
-      ),
-      AlertTriangle: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-          <line x1="12" y1="9" x2="12" y2="13"></line>
-          <line x1="12" y1="17" x2="12.01" y2="17"></line>
-        </svg>
-      ),
-      Clock: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-      ),
-      XCircle: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="15" y1="9" x2="9" y2="15"></line>
-          <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-      ),
-      CheckCircle: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-        </svg>
-      ),
-      Award: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="8" r="7"></circle>
-          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-        </svg>
-      ),
-      FileText: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-      ),
-      HelpCircle: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-          <line x1="12" y1="17" x2="12.01" y2="17"></line>
-        </svg>
-      ),
-      Star: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"></polygon>
-        </svg>
-      ),
-      ThumbsUp: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-        </svg>
-      ),
-      Minus: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-      ),
-      X: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      ),
-      MoreHorizontal: (
-        <svg width={style.width || 16} height={style.height || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="1"></circle>
-          <circle cx="19" cy="12" r="1"></circle>
-          <circle cx="5" cy="12" r="1"></circle>
-        </svg>
       )
     };
-    return icons[finalIconName] || icons.MessageSquare;
+    
+    return iconMap[finalIconName] || iconMap.AlertCircleIcon;
   };
+
+  const getAttendanceIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'present':
+        return <CheckCircleIcon style={{ width: 16, height: 16, color: '#22c55e' }} />;
+      case 'late':
+        return <ClockIcon style={{ width: 16, height: 16, color: '#f59e0b' }} />;
+      case 'absent_with_excuse':
+      case 'excused_leave':
+        return <HeartIcon style={{ width: 16, height: 16, color: '#3b82f6' }} />;
+      case 'human_case':
+        return <HelpCircleIcon style={{ width: 16, height: 16, color: '#8b5cf6' }} />;
+      default:
+        return <XCircleIcon style={{ width: 16, height: 16, color: '#ef4444' }} />;
+    }
+  };
+
+  const filteredOptions = useMemo(() => {
+    return options.filter(option => {
+      // Filter based on attendance status
+      if (attendanceStatus.en === 'None') {
+        return option.category !== 'attendance';
+      }
+      return true;
+    });
+  }, [options, attendanceStatus]);
 
   // Clear selected actions when attendance status is None
   useEffect(() => {
@@ -367,7 +318,7 @@ export default function StudentActionPanelNew({
                 display: 'inline-block',
                 fontWeight: 600
               }}>
-                ID: STU-{student.studentNumber || student.docId?.slice(-4) || student.id?.slice(-4) || '0000'}
+                ID: STU-{student.studentNumber || '0000'}
               </div>
             </div>
           </div>
@@ -480,7 +431,7 @@ export default function StudentActionPanelNew({
               boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            <AlertCircle style={{ width: '14px', height: '14px' }} />
+            <AlertCircleIcon style={{ width: '14px', height: '14px' }} />
             {t('penalty')}
           </button>
           <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -757,13 +708,13 @@ export default function StudentActionPanelNew({
                 
                 // Call appropriate handlers
                 if (behaviorActions.length > 0) {
-                  await onBehaviorSubmit(student.id, behaviorActions, internalNote, actionPoints);
+                  await onBehaviorSubmit(student.docId || student.id, behaviorActions, internalNote, actionPoints);
                 }
                 if (participationActions.length > 0) {
-                  await onParticipationSubmit(student.id, participationActions, internalNote, actionPoints);
+                  await onParticipationSubmit(student.docId || student.id, participationActions, internalNote, actionPoints);
                 }
                 if (penaltyActions.length > 0) {
-                  await onPenaltySubmit(student.id, penaltyActions, internalNote, actionPoints);
+                  await onPenaltySubmit(student.docId || student.id, penaltyActions, internalNote, actionPoints);
                 }
                 
                 setSelectedActions([]);
