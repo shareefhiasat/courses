@@ -26,6 +26,54 @@ export const ATTENDANCE_STATUS_LABELS = {
   human_case: { en: 'Human Case', ar: 'حالة إنسانية', color: '#8b5cf6' }
 };
 
+/**
+ * Get absences from attendance collection
+ * @param {string} studentId - Student ID
+ * @param {string} subjectId - Optional subject ID filter
+ * @param {string} semester - Optional semester filter
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getAbsences = async (
+  studentId = null,
+  subjectId = null,
+  semester = null
+) => {
+  try {
+    let q;
+    const conditions = [];
+
+    if (studentId) {
+      conditions.push(where("studentId", "==", studentId));
+    }
+    if (subjectId) {
+      conditions.push(where("subjectId", "==", subjectId));
+    }
+    if (semester) {
+      conditions.push(where("semester", "==", semester));
+    }
+
+    // Filter for absence statuses
+    conditions.push(where("status", "in", ['absent_no_excuse', 'absent_with_excuse', 'excused_leave']));
+
+    if (conditions.length > 0) {
+      q = query(
+        collection(db, "attendance"),
+        ...conditions,
+        orderBy("date", "desc")
+      );
+    } else {
+      q = query(collection(db, "attendance"), orderBy("date", "desc"));
+    }
+
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 // Minimal helper scaffolding for Attendance sessions and marks
 // Collections:
 // - classes/{classId}/sessions/{sessionId}

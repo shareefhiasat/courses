@@ -782,11 +782,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       
       for (const action of actions) {
         if (action.category === 'behavior') {
+          const behaviorTypeId = action.id || action.type;
+          if (!behaviorTypeId || behaviorTypeId === 'behavior') {
+            console.error('🔧 Invalid behavior type detected:', { action });
+            throw new Error('Invalid behavior type: must be a specific behavior type');
+          }
+          
           await createBehavior({
             classId: selectedClassId,
             studentId,
             subjectId: selectedSubjectId,
-            type: action.id || action.type || 'behavior',
+            type: behaviorTypeId,
             points: action.points,
             description: note || '',
             createdBy: user.uid,
@@ -795,11 +801,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             className: selectedClassName || ''
           });
         } else if (action.category === 'participation') {
+          const participationTypeId = action.id || action.type;
+          if (!participationTypeId || participationTypeId === 'participation') {
+            console.error('🔧 Invalid participation type detected:', { action });
+            throw new Error('Invalid participation type: must be a specific participation type');
+          }
+          
           await createParticipation({
             classId: selectedClassId,
             studentId,
             subjectId: selectedSubjectId,
-            type: action.id || action.type || 'participation',
+            type: participationTypeId,
             points: action.points,
             description: note || '',
             createdBy: user.uid,
@@ -846,43 +858,42 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Process each penalty
       for (const penalty of penalties) {
         console.log('🔧 Processing penalty:', penalty);
+        console.log('🔧 penalty.id:', penalty.id);
+        console.log('🔧 penalty.type:', penalty.type);
         
-        // Get penalty name from PENALTY_TYPES
-        const penaltyType = PENALTY_TYPES.find(pt => pt.id === penalty.id);
-        const penaltyName = penaltyType ? (lang === 'ar' ? penaltyType.label_ar : penaltyType.label_en) : penalty.id;
+        const today = new Date().toISOString().split('T')[0];
         
-        const penaltyData = {
-          classId: selectedClassId,
-          studentId,
-          type: penalty.id,
-          penaltyType: penalty.id,
-          penaltyName: penaltyName,
-          points: Math.abs(penalty.points),
-          reason: note || '',
-          note: note || '',
-          date: new Date().toISOString().split('T')[0],
-          markedBy: user.uid,
-          createdBy: user.uid, // User tracking compliance
-          method: 'manual'
-        };
-        
-        console.log('🔧 Saving penalty to penalties collection:', penaltyData);
-        
-        const result = await createPenalty(penaltyData);
-        
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to create penalty');
+        // Ensure we always use the correct penalty type ID
+        const penaltyTypeId = penalty.id || penalty.type;
+        if (!penaltyTypeId || penaltyTypeId === 'penalty') {
+          console.error('🔧 Invalid penalty type detected:', { penalty });
+          throw new Error('Invalid penalty type: must be a specific penalty type like "cheating", not "penalty"');
         }
         
-        console.log('🔧 Penalty saved successfully with ID:', result.id);
+        await createPenalty({
+          classId: selectedClassId,
+          studentId,
+          subjectId: selectedSubjectId,
+          type: penaltyTypeId, // Always use the specific penalty type ID
+          points: penalty.points, // Use points as provided (should be negative)
+          reason: note || '',
+          note: note || '',
+          description: note || '', // Add description field to match behavior pattern
+          createdBy: user.uid,
+          date: today,
+          studentInfo: await findStudentData(studentId),
+          className: selectedClassName || ''
+        });
+        
+        console.log('🔧 Penalty saved successfully');
       }
       
       // Emit events for real-time updates
       penalties.forEach(penalty => {
-        eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {
+        eventBus.emit(EVENTS.PENALTY_ASSIGNED, {
           studentId,
           classId: selectedClassId,
-          status: 'penalty_logged',
+          status: 'penalty_assigned',
           performedBy: user,
           timestamp: new Date()
         });
@@ -893,7 +904,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       console.error('Error submitting penalty:', error);
       showError('Failed to record penalty');
     }
-  }, [selectedClassId, user, findStudentData, selectedClassName, PENALTY_TYPES, lang]);
+  }, [selectedClassId, selectedSubjectId, user, findStudentData, selectedClassName]);
 
   // Handle attendance marking
   const handleMarkAttendance = useCallback(async (studentId, status) => {
@@ -2431,7 +2442,25 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('penalty');
                   
                   try {
-                    const studentData = await processStudentData(lastScannedStudent.referenceId);
+                    // For manual scan, use the student data we already have
+                    // For QR scan, use processStudentData to get complete student data
+                    let studentData;
+                    if (lastScannedStudent?.referenceId) {
+                      studentData = await processStudentData(lastScannedStudent.referenceId);
+                    } else if (lastScannedStudent?.id) {
+                      // Use the student data we already have from manual scan
+                      studentData = {
+                        id: lastScannedStudent.id,
+                        docId: lastScannedStudent.id,
+                        studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
+                        studentNumber: lastScannedStudent.studentNumber,
+                        name: lastScannedStudent.name || lastScannedStudent.displayName,
+                        displayName: lastScannedStudent.displayName,
+                        email: lastScannedStudent.email,
+                        referenceId: lastScannedStudent.referenceId || generateReferenceId(lastScannedStudent.id)
+                      };
+                    }
+                    
                     if (studentData) {
                       setInitialTab('penalty');
                       setStudentForAction(studentData);
@@ -2511,15 +2540,32 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('participation');
                   
                   try {
-                    const studentData = await processStudentData(lastScannedStudent.referenceId);
+                    // For manual scan, use the student data we already have
+                    // For QR scan, use processStudentData to get complete student data
+                    let studentData;
+                    if (lastScannedStudent?.referenceId) {
+                      studentData = await processStudentData(lastScannedStudent.referenceId);
+                    } else if (lastScannedStudent?.id) {
+                      // Use the student data we already have from manual scan
+                      studentData = {
+                        id: lastScannedStudent.id,
+                        docId: lastScannedStudent.id,
+                        studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
+                        studentNumber: lastScannedStudent.studentNumber,
+                        name: lastScannedStudent.name || lastScannedStudent.displayName,
+                        displayName: lastScannedStudent.displayName,
+                        email: lastScannedStudent.email,
+                        referenceId: lastScannedStudent.referenceId || generateReferenceId(lastScannedStudent.id)
+                      };
+                    }
+                    
                     if (studentData) {
                       setInitialTab('participation');
-                      addDebugLog(`🔍 Setting studentForAction and showing new panel`, 'info');
                       setStudentForAction(studentData);
                       setShowStudentActionPanelNew(true);
                       setShowScanDialog(false);
                       addDebugLog(`✅ Found student for participation: ${studentData.name || studentData.email}`, 'success');
-                      addDebugLog(`🔍 showStudentActionPanelNew: true, studentForAction set: ${!!studentForAction}`, 'info');
+                      addDebugLog(`🔍 Setting studentForAction and showing new panel`, 'info');
                     } else {
                       showResult('error', 'Student not found with this reference ID');
                     }
@@ -2602,19 +2648,32 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   setCurrentAction('actions');
                   
                   try {
-                    // Use processStudentData to get complete student data with correct ID
+                    // For manual scan, use the student data we already have
+                    // For QR scan, use processStudentData to get complete student data
+                    let studentData;
                     if (lastScannedStudent?.referenceId) {
-                      const studentData = await processStudentData(lastScannedStudent.referenceId);
-                      if (studentData) {
-                        setStudentForAction(studentData);
-                        setShowStudentActionPanelNew(true); // Use the NEW panel for actions
-                        setShowScanDialog(false);
-                        addDebugLog(`✅ Opening actions for: ${studentData.name || studentData.email || 'Unknown'}`, 'success');
-                      } else {
-                        showResult('error', 'Student data not found');
-                      }
+                      studentData = await processStudentData(lastScannedStudent.referenceId);
+                    } else if (lastScannedStudent?.id) {
+                      // Use the student data we already have from manual scan
+                      studentData = {
+                        id: lastScannedStudent.id,
+                        docId: lastScannedStudent.id,
+                        studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
+                        studentNumber: lastScannedStudent.studentNumber,
+                        name: lastScannedStudent.name || lastScannedStudent.displayName,
+                        displayName: lastScannedStudent.displayName,
+                        email: lastScannedStudent.email,
+                        referenceId: lastScannedStudent.referenceId || generateReferenceId(lastScannedStudent.id)
+                      };
+                    }
+                    
+                    if (studentData) {
+                      setStudentForAction(studentData);
+                      setShowStudentActionPanelNew(true); // Use the NEW panel for actions
+                      setShowScanDialog(false);
+                      addDebugLog(`✅ Opening actions for: ${studentData.name || studentData.email || 'Unknown'}`, 'success');
                     } else {
-                      showResult('error', 'No student reference ID available');
+                      showResult('error', 'Student data not found');
                     }
                   } catch (error) {
                     addDebugLog(`❌ Error opening student actions: ${error.message}`, 'error');

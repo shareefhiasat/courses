@@ -14,9 +14,13 @@ import {
 } from "firebase/firestore";
 import { db } from "./config";
 import { addNotification } from "./notifications";
-import { sendEmail } from "./firestore";
-import { ABSENCE_TYPES, calculateAbsenceStats } from '../constants/absenceTypes';
-import { PENALTY_TYPES } from '../constants/penaltyTypes';
+
+const toYmd = (tsOrDate) => {
+  if (!tsOrDate) return null;
+  const d = tsOrDate?.toDate ? tsOrDate.toDate() : new Date(tsOrDate);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().split('T')[0];
+};
 
 /**
  * Penalties Collection
@@ -82,123 +86,75 @@ export const getPenaltiesByClassAndDate = async (classId, date) => {
     
     return { success: true, data: filteredPenalties };
   } catch (error) {
+    console.error('🔧 Error in getPenaltiesByClassAndDate:', error);
     return { success: false, error: error.message };
   }
 };
 
-export const createPenalty = async (penaltyData) => {
+export const createPenalty = async ({
+  classId,
+  studentId,
+  subjectId = null,
+  type = 'penalty',
+  points = 0,
+  reason = '',
+  note = '',
+  description = '',
+  createdBy,
+  date = null,
+  studentInfo = null,
+  className = '',
+  sendNotification = true
+}) => {
   try {
-    const {
-      sendEmailNotification = false,
-      sendInAppNotification = false,
-      createdBy, // User ID who created the penalty
-      ...penaltyFields
-    } = penaltyData;
+    const todayStr = date || toYmd(new Date());
 
-    const penalty = {
-      ...penaltyFields,
-      createdAt: serverTimestamp(), // UTC in Firestore, displayed in Qatar timezone
-      updatedAt: serverTimestamp(),
-      // Track who created this penalty
-      createdBy: createdBy || penaltyFields.markedBy || null,
+    const payload = {
+      classId,
+      studentId,
+      ...(subjectId ? { subjectId } : {}),
+      type,
+      points,
+      reason,
+      note,
+      description,
+      date: todayStr,
+      createdBy,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     };
-    const docRef = await addDoc(collection(db, "penalties"), penalty);
+
+    const docRef = await addDoc(collection(db, "penalties"), payload);
 
     // Send notifications if requested
-    if (sendInAppNotification || sendEmailNotification) {
-      await sendPenaltyNotifications({
-        penaltyId: docRef.id,
-        penalty,
-        sendEmail: sendEmailNotification,
-        sendInApp: sendInAppNotification,
-      });
+    if (sendNotification && studentId) {
+      try {
+        const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
+        
+        // In-app notification
+        await addNotification({
+          userId: studentId,
+          title: '⚠️ Penalty Recorded',
+          message: `Penalty recorded for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
+          type: 'penalty',
+          classId: classId,
+          metadata: {
+            date: todayStr,
+            points,
+            type,
+            className: className,
+            method: 'manual'
+          }
+        });
+      } catch (notifyError) {
+        console.warn('Failed to send penalty notification:', notifyError);
+      }
     }
 
     return { success: true, id: docRef.id };
   } catch (error) {
+    console.error('Error creating penalty record:', error);
     return { success: false, error: error.message };
-  }
-};
-
-/**
- * Send notifications for penalty
- */
-const sendPenaltyNotifications = async ({
-  penaltyId,
-  penalty,
-  sendEmail,
-  sendInApp,
-}) => {
-  try {
-    const studentDoc = await getDoc(doc(db, "users", penalty.studentId));
-    if (!studentDoc.exists()) {
-      console.warn("Student not found for penalty notification");
-      return;
-    }
-
-    const student = studentDoc.data();
-    const penaltyType = PENALTY_TYPES.find((pt) => pt.id === penalty.type) || {
-      label_en: penalty.type,
-      label_ar: penalty.type,
-    };
-
-    let subjectName = "";
-    if (penalty.subjectId) {
-      const subjectDoc = await getDoc(doc(db, "subjects", penalty.subjectId));
-      if (subjectDoc.exists()) {
-        const subject = subjectDoc.data();
-        subjectName = subject.name_en || subject.code || "";
-      }
-    }
-
-    const notificationTitle = "Academic Penalty Recorded";
-    const notificationMessage = `A penalty has been recorded: ${
-      penaltyType.label_en
-    }${subjectName ? ` for ${subjectName}` : ""}`;
-
-    // In-app notification
-    if (sendInApp) {
-      await addNotification({
-        userId: penalty.studentId,
-        title: notificationTitle,
-        message: notificationMessage,
-        type: "penalty",
-        metadata: {
-          penaltyId,
-          penaltyType: penalty.type,
-          subjectId: penalty.subjectId || null,
-          severity: penalty.severity || "minor",
-          description: penalty.description || "",
-        },
-        data: { penaltyId, subjectId: penalty.subjectId },
-      });
-    }
-
-    // Email notification
-    if (sendEmail && student.email) {
-      await sendEmailFunc({
-        to: student.email,
-        template: "penaltyRecorded",
-        type: "penalty",
-        data: {
-          studentName: student.displayName || student.email,
-          penaltyType: penaltyType.label_en,
-          penaltyTypeAr: penaltyType.label_ar,
-          subjectName: subjectName || "General",
-          description: penalty.description || "",
-          severity: penalty.severity || "minor",
-          action: penalty.action || "",
-          date: new Date().toLocaleDateString(),
-        },
-        metadata: {
-          penaltyId,
-          studentId: penalty.studentId,
-          subjectId: penalty.subjectId,
-        },
-      });
-    }
-  } catch (error) {
-    console.error("Error sending penalty notifications:", error);
   }
 };
 
@@ -229,85 +185,4 @@ export const deletePenalty = async (penaltyId) => {
     return { success: false, error: error.message };
   }
 };
-
-/**
- * Absences Tracking
- * Track student absences with types and penalties
- */
-export const getAbsences = async (
-  studentId = null,
-  subjectId = null,
-  semester = null
-) => {
-  try {
-    let q;
-    const conditions = [];
-
-    if (studentId) {
-      conditions.push(where("studentId", "==", studentId));
-    }
-    if (subjectId) {
-      conditions.push(where("subjectId", "==", subjectId));
-    }
-    if (semester) {
-      conditions.push(where("semester", "==", semester));
-    }
-
-    if (conditions.length > 0) {
-      q = query(
-        collection(db, "absences"),
-        ...conditions,
-        orderBy("date", "desc")
-      );
-    } else {
-      q = query(collection(db, "absences"), orderBy("date", "desc"));
-    }
-
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const recordAbsence = async (absenceData) => {
-  try {
-    const absence = {
-      ...absenceData,
-      createdAt: serverTimestamp(), // UTC in Firestore, displayed in Qatar timezone
-      updatedAt: serverTimestamp(),
-    };
-    const docRef = await addDoc(collection(db, "absences"), absence);
-    return { success: true, id: docRef.id };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const updateAbsence = async (absenceId, data) => {
-  try {
-    const docRef = doc(db, "absences", absenceId);
-    await updateDoc(docRef, {
-      ...data,
-      updatedAt: Timestamp.now(),
-    });
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const deleteAbsence = async (absenceId) => {
-  try {
-    await deleteDoc(doc(db, "absences", absenceId));
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-// Re-export for backward compatibility
-export { ABSENCE_TYPES, calculateAbsenceStats, PENALTY_TYPES };
 

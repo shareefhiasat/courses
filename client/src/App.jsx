@@ -41,7 +41,6 @@ import SubjectsManagementPage from './pages/SubjectsManagementPage';
 import ScheduledReportsPage from './pages/ScheduledReportsPage';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
 import FancyLoading from './components/ui/FancyLoading/FancyLoading';
-import NotificationManagementPage from './pages/NotificationManagementPage';
 
 // Lazy loaded heavy components
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -147,7 +146,6 @@ const AppContent = () => {
           <Route path="/manage-enrollments" element={<ManageEnrollmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
-          <Route path="/notification-management" element={<NotificationManagementPage />} />
           <Route path="/role-access-pro" element={<RoleAccessPro />} />
           {/* Redirect old student-profile to new unified dashboard */}
           <Route path="/student-profile" element={<StudentProfilePage />} />
