@@ -51,9 +51,8 @@ export const generateStudentQRCode = async (studentNumber, options = {}) => {
   const qrOptions = { ...defaultOptions, ...options };
   
   try {
-    // Generate QR code content - URL to student profile using student number
-    const baseUrl = window.location.origin;
-    const qrContent = `${baseUrl}/qr/student/${studentNumber}`;
+    // Generate QR code content - use student number directly
+    const qrContent = studentNumber;
     
     // Generate QR code
     const qrDataUrl = await QRCode.toDataURL(qrContent, qrOptions);

@@ -37,8 +37,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  flex-wrap: wrap; /* allow items to wrap on small screens */
-  gap: 0.5rem; /* Add gap to prevent overlap */
+  flex-wrap: nowrap; /* prevent wrapping */
+  gap: 0.25rem; /* reduced gap */
   min-height: 60px; /* Ensure consistent height */
 }
 
@@ -46,7 +46,7 @@
 .nav-actions {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px; /* reduced gap */
 }
 
 /* Navbar DraggableClock styles */
@@ -185,7 +185,7 @@
 .navbar-actions-wrap { display: inline-flex; align-items: center; gap: 10px; }
 
 @media (max-width: 640px) {
-  .navbar-actions-wrap { gap: 4px; }
+  .navbar-actions-wrap { gap: 2px; } /* further reduced gap */
   .nav-icon-btn { 
     width: 30px; 
     height: 30px;
@@ -305,8 +305,9 @@
 
 @media (max-width: 768px) {
   .navbar-container {
-    padding: 0.5rem 0.75rem;
-    row-gap: 0.5rem;
+    padding: 0.4rem 0.75rem; /* further reduced padding */
+    gap: 0.15rem; /* further reduced gap */
+    row-gap: 0.25rem;
   }
   .navbar-brand { font-size: 1.1rem; }
   .navbar-menu {

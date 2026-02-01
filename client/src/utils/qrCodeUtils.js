@@ -1,14 +1,20 @@
 import React from 'react';
-import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
+import { generateStudentQRCode } from '@utils/qrCode';
+import { getFunctions } from '@firebaseServices/config';
 import logger from '@utils/logger';
 
 // Component for displaying QR code in new tab
 export const QRCodeDisplay = ({ student }) => {
   const openQRCodeInNewTab = async (student) => {
     try {
-      const referenceId = student.studentNumber ? `STU-${student.studentNumber}`
-          : generateReferenceId(student.id || student.docId);
-      const qrDataUrl = await generateStudentQRCode(referenceId, {width: 512, margin: 4});
+      const studentNumber = student.studentNumber;
+      if (!studentNumber) {
+        logger.error('Student number is required to generate QR code');
+        alert('Student number is required to generate QR code');
+        return;
+      }
+      
+      const qrDataUrl = await generateStudentQRCode(studentNumber, {width: 512, margin: 4});
 
       const newTab = window.open();
       newTab.document.write(`
@@ -29,7 +35,7 @@ export const QRCodeDisplay = ({ student }) => {
               <img src="${qrDataUrl}" alt="QR Code" />
               <h1>${student.displayName || student.name}</h1>
               <p>${student.email || 'No email'}</p>
-              <div class="ref">${referenceId}</div>
+              <div class="ref">${studentNumber}</div>
             </div>
           </body>
         </html>
@@ -50,10 +56,22 @@ export const useQRCodeEmail = () => {
     setSendingEmails(
         prev => ({...prev, [student.id]: {...prev[student.id], qrCode: true}}));
     try {
-      // Email functionality would go here
-      logger.debug('Sending QR code email to:', student.email);
-      // await sendQRCodeEmail(student.email, student.id);
-      alert('QR Code email sent successfully!');
+      // Call the backend function to send QR code email
+      const functions = getFunctions();
+      const sendQRCodeEmail = functions.httpsCallable('sendQRCodeEmail');
+
+      const result = await sendQRCodeEmail({
+        studentId: student.id,
+        studentEmail: student.email
+      });
+
+      if (result.data?.success) {
+        logger.debug('QR code email sent successfully');
+        alert('QR Code email sent successfully!');
+      } else {
+        logger.error('Failed to send QR code email:', result.data?.message);
+        alert('Failed to send QR Code email');
+      }
     } catch (error) {
       logger.error('Error sending QR code email:', error);
       alert('Failed to send QR Code email');

@@ -176,14 +176,21 @@ const StudentTableRow = ({
                 {student.displayName || student.realName || student.name || student.email}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                ID: STU-{student.studentNumber || student.studentId?.slice(-4) || '0000'}
+                ID: {student.studentNumber || '0000'}
               </div>
             </div>
           </div>
         </td>
         <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {getAttendanceDisplay(student.attendance)}
+            {student.attendance && student.attendance !== 'absent_no_excuse' ? getAttendanceDisplay(student.attendance) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
+              </div>
+            )}
           </div>
         </td>
         <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }} onClick={() => onStudentSelect(student)}>

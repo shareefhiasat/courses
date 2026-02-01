@@ -4847,6 +4847,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 return;
               }
 
+              // Validate student number uniqueness for students
+              if (userForm.role === 'student' && userForm.studentNumber?.trim()) {
+                const isDuplicate = users.some(user => 
+                  user.studentNumber === userForm.studentNumber.trim() && 
+                  user.docId !== editingUser?.docId
+                );
+                
+                if (isDuplicate) {
+                  toast?.showError('Student number must be unique. This student number is already in use.');
+                  return;
+                }
+              }
+
               setLoading(true);
               try {
                 if (editingUser) {
@@ -5058,6 +5071,45 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               columns={[
                 { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
                 { field: 'displayName', headerName: t('display_name_col'), flex: 1, minWidth: 180 },
+                {
+                  field: 'studentNumber', 
+                  headerName: t('student_number') || 'Student Number', 
+                  width: 140,
+                  renderCell: (params) => {
+                    if (params.row.role === 'student') {
+                      return (
+                        <span style={{ 
+                          fontFamily: 'monospace', 
+                          fontSize: '0.875rem',
+                          color: '#059669',
+                          fontWeight: 600
+                        }}>
+                          {params.value || '—'}
+                        </span>
+                      );
+                    }
+                    return '—';
+                  }
+                },
+                {
+                  field: 'order', 
+                  headerName: t('order') || 'Order', 
+                  width: 80,
+                  renderCell: (params) => {
+                    if (params.row.role === 'student') {
+                      return (
+                        <span style={{ 
+                          fontSize: '0.875rem',
+                          color: params.value ? '#1f2937' : '#9ca3af',
+                          fontWeight: params.value ? 600 : 400
+                        }}>
+                          {params.value || '—'}
+                        </span>
+                      );
+                    }
+                    return '—';
+                  }
+                },
                 {
                   field: 'role', headerName: t('role_col'), width: 120,
                   renderCell: (params) => {

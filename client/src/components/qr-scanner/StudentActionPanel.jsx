@@ -70,7 +70,7 @@ export default function StudentActionPanel({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('');
   const [deleteLogId, setDeleteLogId] = useState('');
-  const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState(student?.attendance || null);
+  const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
@@ -722,7 +722,7 @@ export default function StudentActionPanel({
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name, getAvatarColor]);
   const attendanceStatus = useMemo(() => {
     // First check if there's a specific attendance status (prefer current status for immediate updates)
-    const attendanceToUse = currentAttendanceStatus || student?.attendance;
+    const attendanceToUse = currentAttendanceStatus;
     if (attendanceToUse) {
       const statusInfo = ATTENDANCE_STATUS_LABELS[attendanceToUse];
       if (statusInfo) {
@@ -772,9 +772,9 @@ export default function StudentActionPanel({
       return acc;
     }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
     
-    // If there's a current attendance status that's different from both todayLogs and student.attendance,
+    // If there's a current attendance status that's different from todayLogs,
     // increment the appropriate counter (for immediate UI feedback during selection)
-    if (currentAttendanceStatus && currentAttendanceStatus !== student?.attendance) {
+    if (currentAttendanceStatus) {
       // Check if this status is already counted in todayLogs
       const isInTodayLogs = todayLogs.some(log => 
         log.type === 'attendance' && log.data?.status === currentAttendanceStatus
@@ -893,17 +893,21 @@ export default function StudentActionPanel({
                     {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <span style={{
-                      width: '0.375rem',
-                      height: '0.375rem',
-                      background: attendanceStatus.color,
-                      borderRadius: '9999px'
-                    }} />
-                    {/* Only show text for attendance status if it's not 'present' */}
-                    {(currentAttendanceStatus || student?.attendance) !== 'present' && (
-                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                        {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                      </span>
+                    {currentAttendanceStatus && (
+                      <>
+                        <span style={{
+                          width: '0.375rem',
+                          height: '0.375rem',
+                          background: attendanceStatus.color,
+                          borderRadius: '9999px'
+                        }} />
+                        {/* Only show text for attendance status if it's not 'present' */}
+                        {currentAttendanceStatus !== 'present' && (
+                          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                            {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -1009,8 +1013,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #10b981',
-                  background: (currentAttendanceStatus || student.attendance) === 'present' ? '#10b981' : 'white',
-                  color: (currentAttendanceStatus || student.attendance) === 'present' ? 'white' : '#10b981',
+                  background: currentAttendanceStatus === 'present' ? '#10b981' : 'white',
+                  color: currentAttendanceStatus === 'present' ? 'white' : '#10b981',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1052,8 +1056,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #f59e0b',
-                  background: (currentAttendanceStatus || student.attendance) === 'late' ? '#f59e0b' : 'white',
-                  color: (currentAttendanceStatus || student.attendance) === 'late' ? 'white' : '#f59e0b',
+                  background: currentAttendanceStatus === 'late' ? '#f59e0b' : 'white',
+                  color: currentAttendanceStatus === 'late' ? 'white' : '#f59e0b',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1096,8 +1100,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #ef4444',
-                  background: (currentAttendanceStatus || student.attendance) === 'absent_no_excuse' ? '#ef4444' : 'white',
-                  color: (currentAttendanceStatus || student.attendance) === 'absent_no_excuse' ? 'white' : '#ef4444',
+                  background: currentAttendanceStatus === 'absent_no_excuse' ? '#ef4444' : 'white',
+                  color: currentAttendanceStatus === 'absent_no_excuse' ? 'white' : '#ef4444',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1140,8 +1144,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #ef4444',
-                  background: (currentAttendanceStatus || student.attendance) === 'absent_with_excuse' ? '#ef4444' : 'white',
-                  color: (currentAttendanceStatus || student.attendance) === 'absent_with_excuse' ? 'white' : '#ef4444',
+                  background: currentAttendanceStatus === 'absent_with_excuse' ? '#ef4444' : 'white',
+                  color: currentAttendanceStatus === 'absent_with_excuse' ? 'white' : '#ef4444',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1187,8 +1191,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #ef4444',
-                  background: (currentAttendanceStatus || student.attendance) === 'excused_leave' ? '#ef4444' : 'white',
-                  color: (currentAttendanceStatus || student.attendance) === 'excused_leave' ? 'white' : '#ef4444',
+                  background: currentAttendanceStatus === 'excused_leave' ? '#ef4444' : 'white',
+                  color: currentAttendanceStatus === 'excused_leave' ? 'white' : '#ef4444',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1233,8 +1237,8 @@ export default function StudentActionPanel({
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #8b5cf6',
-                  background: (currentAttendanceStatus || student.attendance) === 'human_case' ? '#8b5cf6' : 'white',
-                  color: (currentAttendanceStatus || student.attendance) === 'human_case' ? 'white' : '#8b5cf6',
+                  background: currentAttendanceStatus === 'human_case' ? '#8b5cf6' : 'white',
+                  color: currentAttendanceStatus === 'human_case' ? 'white' : '#8b5cf6',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',

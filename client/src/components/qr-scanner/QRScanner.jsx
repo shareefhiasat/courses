@@ -125,8 +125,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const constraints = {
         video: {
           facingMode: cameraMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: isMobile ? 640 : 1280 }, // Lower resolution for mobile
+          height: { ideal: isMobile ? 480 : 720 }  // Lower resolution for mobile
         }
       };
 
@@ -1349,41 +1349,41 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       <div>
         <div style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
+          gap: '0.25rem',
           marginBottom: '1rem',
-          padding: '0.75rem',
+          padding: '0.5rem',
           background: 'var(--background-secondary, #f9fafb)',
           borderRadius: '0.5rem',
           border: '1px solid var(--border, #e5e7eb)',
-          justifyContent: isMobile ? 'center' : 'space-between'
+          justifyContent: isMobile ? 'center' : 'space-between',
+          flexWrap: 'nowrap',
+          overflow: 'auto'
         }}>
           <div style={{ 
             display: 'flex', 
-            gap: '0.5rem',
-            flexWrap: 'wrap',
+            gap: '0.25rem',
             justifyContent: 'center',
-            width: '100%'
+            flexWrap: 'nowrap'
           }}>
             <button
               onClick={() => setVibrationEnabled(!vibrationEnabled)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 0.75rem',
+                gap: '0.25rem',
+                padding: '0.375rem 0.5rem',
                 borderRadius: '0.375rem',
                 border: '1px solid var(--border, #e5e7eb)',
                 background: vibrationEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
                 color: vibrationEnabled ? 'white' : 'var(--text, #111827)',
-                fontSize: '0.75rem',
+                fontSize: '0.7rem',
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
               title={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M2 8v8l2-2m0 0l2 2m-2-2v6m14-10v8l-2-2m0 0l-2 2m2-2v6m-8-10v6l-2-2m0 0l-2 2m2-2v6"/>
               </svg>
             </button>
@@ -1393,8 +1393,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 0.75rem',
+                gap: '0.25rem',
+                padding: '0.375rem 0.5rem',
                 borderRadius: '0.375rem',
                 border: '1px solid var(--border, #e5e7eb)',
                 background: soundEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
@@ -1406,7 +1406,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               }}
               title={soundEnabled ? (t('disable_sound') || 'Disable sound') : (t('enable_sound') || 'Enable sound')}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
               </svg>
@@ -1417,8 +1417,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 0.75rem',
+                gap: '0.25rem',
+                padding: '0.375rem 0.5rem',
                 borderRadius: '0.375rem',
                 border: '1px solid var(--border, #e5e7eb)',
                 background: showDebugBox ? '#ef4444' : 'white',
@@ -1430,7 +1430,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               }}
               title="Toggle debug console"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="4 17 10 11 4 5"></polyline>
                 <line x1="12" y1="19" x2="20" y2="19"></line>
               </svg>
@@ -1449,8 +1449,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 0.75rem',
+                gap: '0.25rem',
+                padding: '0.375rem 0.5rem',
                 borderRadius: '0.375rem',
                 border: '1px solid var(--border, #e5e7eb)',
                 background: (!selectedProgramId || !selectedSubjectId || !selectedClassId) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
@@ -1463,7 +1463,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               }}
               title={(!selectedProgramId || !selectedSubjectId || !selectedClassId) ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning') : 'Manual student ID input'}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
                 <line x1="16" y1="13" x2="8" y2="13"/>
@@ -1488,8 +1488,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 0.75rem',
+                gap: '0.25rem',
+                padding: '0.375rem 0.5rem',
                 borderRadius: '0.375rem',
                 border: '1px solid var(--border, #e5e7eb)',
                 background: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? '#f3f4f6' : '#10b981',
@@ -1502,7 +1502,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               }}
               title="Refresh today's activity"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23 4 23 10 17 10"/>
                 <polyline points="1 20 1 14 7 14"/>
                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -1785,7 +1785,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             }}>
               <strong>{t('scanned_student') || 'Scanned Student'}:</strong>
               <br />
-              {lastScannedStudent.referenceId || lastScannedStudent.email || JSON.stringify(lastScannedStudent)}
+              {lastScannedStudent.displayName || lastScannedStudent.realName || lastScannedStudent.name || 
+               `${t('student') || 'Student'} ${lastScannedStudent.studentNumber || lastScannedStudent.referenceId || ''}`}
             </div>
             
             <div style={{
