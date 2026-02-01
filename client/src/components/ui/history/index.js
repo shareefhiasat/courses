@@ -8,7 +8,7 @@ export {
   BehaviorIcon, 
   PenaltyIcon, 
   UserIcon 
-} from './HistoryIcons';
+} from '@utils/icons';
 export { default as StudentRosterHistory } from './StudentRosterHistory';
 export { default as DeleteModal } from './DeleteModal';
 export { default as StudentCard } from './StudentCard';

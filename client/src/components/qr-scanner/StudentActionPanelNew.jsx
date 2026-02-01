@@ -445,7 +445,7 @@ export default function StudentActionPanelNew({
                 cursor: 'pointer',
                 boxShadow: 'none'
               }}
-              title={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+              title={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')}
             >
               {viewMode === 'grid' ? <List style={{ width: '14px', height: '14px' }} /> : <Grid style={{ width: '14px', height: '14px' }} />}
             </button>
@@ -540,7 +540,7 @@ export default function StudentActionPanelNew({
                       e.stopPropagation();
                       onToggleFavorite(option.id);
                     }}
-                    title={favoriteBehaviors.includes(option.id) ? "Remove from favorites" : "Add to favorites"}
+                    title={favoriteBehaviors.includes(option.id) ? t('remove_from_favorites') : t('add_to_favorites')}
                     style={{
                       position: 'absolute',
                       top: '0.25rem',
@@ -580,7 +580,7 @@ export default function StudentActionPanelNew({
                           }
                           handlePointsChange(option.id, newValue);
                         }}
-                        title="Decrease points"
+                        title={t('decrease_points')}
                         style={{
                           width: '1.5rem',
                           height: '1.5rem',
@@ -627,7 +627,7 @@ export default function StudentActionPanelNew({
                           }
                           handlePointsChange(option.id, newValue);
                         }}
-                        title="Increase points"
+                        title={t('increase_points')}
                         style={{
                           width: '1.5rem',
                           height: '1.5rem',

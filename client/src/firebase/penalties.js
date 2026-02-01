@@ -58,11 +58,40 @@ export const getPenalties = async (studentId = null, subjectId = null) => {
   }
 };
 
+/**
+ * Get penalties by class and date
+ * @param {string} classId - Class ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getPenaltiesByClassAndDate = async (classId, date) => {
+  try {
+    const penaltiesRef = collection(db, "penalties");
+    // Get all penalties ordered by createdAt (no where clause to avoid index requirement)
+    const penaltiesQuery = query(
+      penaltiesRef,
+      orderBy("createdAt", "desc")
+    );
+    const penaltiesSnapshot = await getDocs(penaltiesQuery);
+    const allPenalties = penaltiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Filter by classId and date in JavaScript
+    const filteredPenalties = allPenalties.filter(penalty => 
+      penalty.classId === classId && penalty.date === date
+    );
+    
+    return { success: true, data: filteredPenalties };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 export const createPenalty = async (penaltyData) => {
   try {
     const {
       sendEmailNotification = false,
       sendInAppNotification = false,
+      createdBy, // User ID who created the penalty
       ...penaltyFields
     } = penaltyData;
 
@@ -70,6 +99,8 @@ export const createPenalty = async (penaltyData) => {
       ...penaltyFields,
       createdAt: serverTimestamp(), // UTC in Firestore, displayed in Qatar timezone
       updatedAt: serverTimestamp(),
+      // Track who created this penalty
+      createdBy: createdBy || penaltyFields.markedBy || null,
     };
     const docRef = await addDoc(collection(db, "penalties"), penalty);
 
@@ -173,10 +204,16 @@ const sendPenaltyNotifications = async ({
 
 export const updatePenalty = async (penaltyId, data) => {
   try {
+    const {
+      updatedBy, // User ID who updated the penalty
+      ...updateFields
+    } = data;
+    
     const docRef = doc(db, "penalties", penaltyId);
     await updateDoc(docRef, {
-      ...data,
-      updatedAt: Timestamp.now(),
+      ...updateFields,
+      updatedAt: serverTimestamp(),
+      updatedBy: updatedBy || null,
     });
     return { success: true };
   } catch (error) {

@@ -5,8 +5,9 @@ import { CollapsibleSection } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
 import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
-import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
-import { deleteParticipation } from '@firebaseServices/participations';
+import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
+import { getParticipationsByClassAndDate } from '@firebaseServices/participations';
+import { getBehaviorsByClassAndDate } from '@firebaseServices/behaviors';
 import { getUsers } from '@firebaseServices/firestore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -125,15 +126,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         // Handle specific permission errors
         let errorMessage = '';
         if (permissionError.name === 'NotAllowedError') {
-          errorMessage = 'Camera permission denied. Please allow camera access in your browser settings and refresh the page.';
+          errorMessage = t('camera_permission_denied');
         } else if (permissionError.name === 'NotFoundError') {
-          errorMessage = 'No camera found. Please connect a camera and try again.';
+          errorMessage = t('camera_not_found');
         } else if (permissionError.name === 'NotReadableError') {
-          errorMessage = 'Camera is already in use by another application. Please close other apps using the camera and try again.';
+          errorMessage = t('camera_already_in_use');
         } else if (permissionError.name === 'OverconstrainedError') {
-          errorMessage = 'Camera does not support the required settings. Try switching cameras.';
+          errorMessage = t('camera_constraints_not_supported');
         } else {
-          errorMessage = `Camera access failed: ${permissionError.message}`;
+          errorMessage = `${t('camera_access_failed')}: ${permissionError.message}`;
         }
         
         // Play error feedback
@@ -315,7 +316,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } catch (error) {
       addDebugLog(`❌ Error parsing QR data: ${error.message}`, 'error');
       playFeedbackSound('error'); // Add vibration for parsing error
-      showError('Invalid QR code format');
+      showError(t('invalid_qr_code_format'));
       setIsScanningLocked(false);
       return;
     }
@@ -681,7 +682,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       playFeedbackSound('success');
     } else {
       // Student not found - show error message
-      showResult('error', t('student_not_found') || 'Student not found. Please check the student number and try again.');
+      showResult('error', t('student_not_found'));
       addDebugLog(`❌ Student not found: ${manualStudentId.trim()}`, 'error');
       playFeedbackSound('error');
     }
@@ -806,6 +807,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Handle behavior/participation submission
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note) => {
+    console.log('🔧 handleBehaviorSubmit called with:', { studentId, actions, note });
+    
     try {
       const today = new Date().toISOString().split('T')[0];
       
@@ -819,7 +822,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       } : null;
       
       for (const action of actions) {
-        await markAttendance({
+        console.log('🔧 Processing action:', action);
+        
+        const attendanceData = {
           classId: selectedClassId,
           studentId,
           date: today,
@@ -831,7 +836,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           category: action.category, // 'participation' or 'behavior'
           studentInfo, // Pass student information
           className: selectedClassName || ''
-        });
+        };
+        
+        console.log('🔧 Saving action to attendance:', attendanceData);
+        
+        await markAttendance(attendanceData);
       }
       
       // Emit events for real-time updates
@@ -864,23 +873,43 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Handle penalty submission
   const handlePenaltySubmit = useCallback(async (studentId, penalties, note) => {
+    console.log('🔧 handlePenaltySubmit called with:', { studentId, penalties, note });
+    
     try {
-      // For now, treat penalties similar to behaviors but with different logging
-      const today = new Date().toISOString().split('T')[0];
-      
       // Process each penalty
-      penalties.forEach(async (penalty) => {
-        // Log penalty action (you might want to create a separate penalty logging function)
-        logger.info(`Penalty recorded: ${penalty.id} for student ${studentId}`, {
-          studentId,
-          penaltyId: penalty.id,
+      for (const penalty of penalties) {
+        console.log('🔧 Processing penalty:', penalty);
+        
+        // Get penalty name from PENALTY_TYPES
+        const penaltyType = PENALTY_TYPES.find(pt => pt.id === penalty.id);
+        const penaltyName = penaltyType ? (lang === 'ar' ? penaltyType.label_ar : penaltyType.label_en) : penalty.id;
+        
+        const penaltyData = {
           classId: selectedClassId,
-          date: today,
-          note: note,
-          performedBy: user
-        });
-
-        // Emit event for real-time updates
+          studentId,
+          penaltyType: penalty.id,
+          penaltyName: penaltyName,
+          points: penalty.points,
+          note: note || '',
+          date: new Date().toISOString().split('T')[0],
+          markedBy: user.uid,
+          createdBy: user.uid, // User tracking compliance
+          method: 'manual'
+        };
+        
+        console.log('🔧 Saving penalty to penalties collection:', penaltyData);
+        
+        const result = await createPenalty(penaltyData);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create penalty');
+        }
+        
+        console.log('🔧 Penalty saved successfully with ID:', result.id);
+      }
+      
+      // Emit events for real-time updates
+      penalties.forEach(penalty => {
         eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {
           studentId,
           classId: selectedClassId,
@@ -895,7 +924,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       console.error('Error submitting penalty:', error);
       showError('Failed to record penalty');
     }
-  }, [selectedClassId, user]);
+  }, [selectedClassId, user, findStudentData, selectedClassName, PENALTY_TYPES, lang]);
 
   // Handle attendance marking
   const handleMarkAttendance = useCallback(async (studentId, status) => {
@@ -986,6 +1015,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const attendanceResponse = await getAttendanceByClass(classId, todayStr);
       const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
       
+      // Get today's penalties for this class
+      const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
+      const penaltyRecords = penaltiesResponse.success ? penaltiesResponse.data : [];
+      
+      // Get today's participations for this class
+      const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
+      const participationRecords = participationsResponse.success ? participationsResponse.data : [];
+      
+      // Get today's behaviors for this class
+      const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
+      const behaviorRecords = behaviorsResponse.success ? behaviorsResponse.data : [];
+      
       logger.debug('[QR Scanner] Attendance records fetched:', {
         success: attendanceResponse.success,
         count: attendanceRecords.length,
@@ -1000,28 +1041,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }))
       });
       
-      // Only fetch penalties if we have a valid classId (not 'all')
-      if (!classId || classId === 'all') {
-        console.log('🔧 Skipping penalties fetch - no valid classId');
-        return;
-      }
+      // Combine attendance, penalty, participation, and behavior records
+      const allRecords = [...attendanceRecords, ...penaltyRecords, ...participationRecords, ...behaviorRecords];
       
-      // Get today's penalty records for students in this class
-      console.log('🔧 QRScanner fetching penalties for classId:', classId);
-      let allPenalties = [];
-      try {
-        const penaltiesResponse = await getPenalties(); // Get all penalties for now
-        console.log('🔧 QRScanner penalties response:', { success: penaltiesResponse.success, count: penaltiesResponse.data?.length || 0, error: penaltiesResponse.error });
-        
-        if (!penaltiesResponse.success) {
-          console.error('🔧 Penalties API failed:', penaltiesResponse.error);
-        }
-        
-        allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-        console.log('🔧 QRScanner penalties data:', allPenalties.map(p => ({ id: p.id, studentId: p.studentId, type: p.type, reason: p.reason, createdAt: p.createdAt })));
-      } catch (error) {
-        console.error('🔧 Error fetching penalties:', error);
-      }
+      logger.debug('[QR Scanner] Activity refresh found:', allRecords.length, 'total records');
       
       // Create a map of studentId to student name from captured students
       const studentMap = {};
@@ -1077,45 +1100,26 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         });
       }
       
-      // Filter penalties for today only
-      const todayPenalties = allPenalties.filter(p => {
-        if (!p.studentId) return false;
-        
-        // Handle Firestore serverTimestamp field values (might be null if just created locally)
-        const timestamp = p.createdAt || p.timestamp;
-        if (!timestamp) return true; // Assume today if no timestamp yet (just created)
-        
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        
-        const isToday = dateStr === todayStr;
-        console.log('🔧 Penalty date check:', { penaltyId: p.id, timestamp, dateStr, todayStr, isToday });
-        
-        return isToday;
-      });
-      
-      console.log('🔧 Today penalties after filtering:', todayPenalties.length);
-      
-      logger.debug('[QR Scanner] Activity refresh found:', attendanceRecords.length, 'attendance,', todayPenalties.length, 'penalties');
-      
-      // Combine and format activity logs
-      logger.debug('[QR Scanner] Processing', attendanceRecords.length, 'attendance records');
-      logger.debug('[QR Scanner] First attendance record details:', attendanceRecords.length > 0 ? {
-        fullRecord: attendanceRecords[0],
-        id: attendanceRecords[0]?.id,
-        studentId: attendanceRecords[0]?.studentId,
-        status: attendanceRecords[0]?.status,
-        category: attendanceRecords[0]?.category,
-        delta: attendanceRecords[0]?.delta,
-        date: attendanceRecords[0]?.date,
-        timestamp: attendanceRecords[0]?.timestamp,
-        method: attendanceRecords[0]?.method,
-        notes: attendanceRecords[0]?.notes,
-        reason: attendanceRecords[0]?.reason
+      // Combine and format activity logs (penalties are now included from separate collection)
+      logger.debug('[QR Scanner] Processing', allRecords.length, 'total records');
+      logger.debug('[QR Scanner] First record details:', allRecords.length > 0 ? {
+        fullRecord: allRecords[0],
+        id: allRecords[0]?.id,
+        studentId: allRecords[0]?.studentId,
+        status: allRecords[0]?.status,
+        category: allRecords[0]?.category,
+        delta: allRecords[0]?.delta,
+        date: allRecords[0]?.date,
+        timestamp: allRecords[0]?.timestamp,
+        method: allRecords[0]?.method,
+        notes: allRecords[0]?.notes,
+        reason: allRecords[0]?.reason
       } : 'No attendance records');
       
-      const activityLogs = [
-        ...attendanceRecords.map((record, index) => {
+      // Debug: Log all penalty records found
+      const debugPenaltyRecords = allRecords.filter(r => r.category === 'penalty' || r.penaltyType);
+      
+      const activityLogs = allRecords.map((record, index) => {
           const studentId = record.studentId;
           let studentName = studentMap[studentId];
           
@@ -1154,15 +1158,48 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             computedType: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance')
           });
           
-          return {
+          const activityLabel = record.notes || record.reason || record.penaltyName || '';
+          
+          // Special handling for penalty records
+          let finalLabel = activityLabel;
+          if (record.category === 'penalty' || record.penaltyType) {
+            // For penalty records, use penaltyName if available, otherwise fallback
+            finalLabel = record.penaltyName || activityLabel || 'Penalty';
+            console.log('🔧 Penalty label debug:', {
+              recordId: record.id,
+              penaltyName: record.penaltyName,
+              activityLabel,
+              finalLabel,
+              recordSource: 'penalties collection'
+            });
+          } else if (record.category === 'penalty' && !activityLabel) {
+            // Fallback for old penalty records with empty notes
+            const penaltyType = PENALTY_TYPES.find(pt => pt.points === Math.abs(record.delta || 0));
+            if (penaltyType) {
+              finalLabel = lang === 'ar' ? penaltyType.label_ar : penaltyType.label_en;
+            } else {
+              finalLabel = 'Penalty';
+            }
+          } else if (record.behaviorType) {
+            // For behavior records from behaviors collection
+            finalLabel = record.behaviorType || 'Behavior';
+          } else if (record.delta !== undefined && record.delta > 0) {
+            // For participation records from participations collection
+            finalLabel = record.notes || 'Participation';
+          } else if (record.delta !== undefined && record.delta < 0) {
+            // For behavior records (negative delta)
+            finalLabel = record.notes || record.behaviorType || 'Behavior';
+          }
+          
+          const finalActivityLog = {
             id: record.id || `attendance-${Math.random()}`,
-            time: record.timestamp || record.updatedAt || record.date,
-            type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
+            time: record.timestamp || record.updatedAt || record.date || record.createdAt,
+            type: record.category || record.penaltyType ? 'penalty' : (record.behaviorType ? 'behavior' : (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance')),
             studentId,
             studentName,
             status: record.status || 'present',
             delta: record.delta,
-            label: record.notes || record.reason || '',
+            label: finalLabel,
             method: record.method || 'QR Scan',
             performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
             scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor'),
@@ -1170,54 +1207,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             program: selectedProgramName,
             class: selectedClassName
           };
-        }),
-        ...todayPenalties.map(record => {
-          console.log('🔧 QRScanner processing penalty:', {
-            penaltyId: record.id || record.docId,
-            penaltyStudentId: record.studentId,
-            penaltyType: record.type,
-            availableStudentIds: Object.keys(studentMap),
-            availableStudents: students.map(s => ({ id: s.id, displayName: s.displayName, name: s.name }))
-          }); // Debug
           
-          let studentName = studentMap[record.studentId];
-          
-          // If not found in map, try to find the student by generating reference ID from user IDs
-          if (!studentName && students.length > 0) {
-            const foundStudent = students.find(s => {
-              const generatedRefId = generateReferenceId(s.id);
-              return generatedRefId === record.studentId || s.id === record.studentId;
-            });
-            if (foundStudent) {
-              studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
-            }
-          }
-          
-          // Final fallback
-          if (!studentName) {
-            studentName = 'Unknown Student';
-          }
-          
-          console.log('🔧 Final student name for penalty:', studentName); // Debug
-          
-          return {
-            id: record.id || record.docId || `penalty-${Math.random()}`,
-            time: record.createdAt || record.timestamp || new Date(),
-            type: 'penalty',
-            studentId: record.studentId,
-            studentName,
-            status: 'penalty',
-            label: record.type && record.reason ? `${record.type}: ${record.reason}` : (record.type || record.reason || 'Penalty'), // Show type and reason
-            points: -Math.abs(record.points || 0), // Always negative for penalties
-            comment: record.reason || record.comment || '', // Add comment field for history
-            performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
-            scanMethod: 'manual_instructor',
-            subject: selectedSubjectName,
-            program: selectedProgramName,
-            class: selectedClassName
-          };
-        })
-      ].sort((a, b) => {
+          return finalActivityLog;
+        }).sort((a, b) => {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
         return timeB - timeA;
@@ -1342,11 +1334,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     if (type === 'participation' || delta > 0) {
       return <UserPlusIcon style={{ width: '12px', height: '12px' }} />;
     }
-    if (type === 'behavior' || delta < 0) {
-      return <ZapIcon style={{ width: '12px', height: '12px' }} />;
-    }
     if (type === 'penalty') {
       return <AlertCircleSmallIcon style={{ width: '12px', height: '12px' }} />;
+    }
+    if (type === 'behavior' || delta < 0) {
+      return <ZapIcon style={{ width: '12px', height: '12px' }} />;
     }
 
     switch(status?.toLowerCase()) {
@@ -1367,11 +1359,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   const getStatusLabel = useCallback((status, type, delta) => {
-    // Show only icons for behavior, participation, and penalty to save space
-    // Also show only icons for all attendance types in the Today grid
+    // Show only icons for behavior and participation to save space
     if (type === 'participation' || delta > 0) return '';
     if (type === 'behavior' || delta < 0) return '';
-    if (type === 'penalty') return '';
+    
+    // For penalties, show the label if available
+    if (type === 'penalty') return status || '';
     
     // Hide labels for all attendance types in Today grid - show only icons
     if (type === 'attendance') return '';
@@ -1478,7 +1471,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             variant="ghost"
             size="icon"
             onClick={() => setIsMinimized(!isMinimized)}
-            title="Toggle minimization"
+            title={t('toggle_minimization')}
             style={{ padding: '0.25rem' }}
           >
             <MinimizeIcon style={{ width: '16px', height: '16px' }} />
@@ -1663,7 +1656,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             zIndex: isScanning ? 0 : 2
           }}
         >
-          <span className="qr-sr-only">{isScanning ? 'Stop camera' : 'Activate camera'}</span>
+          <span className="qr-sr-only">{isScanning ? t('stop_camera') : t('activate_camera')}</span>
         </Button>
       </div>
 
@@ -1744,7 +1737,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
-              title="Toggle debug console"
+              title={t('toggle_debug_console')}
             >
               <DebugIcon style={{ width: '14px', height: '14px' }} />
             </button>
@@ -1807,7 +1800,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 transition: 'all 0.2s',
                 opacity: (!selectedProgramId || !selectedSubjectId || !selectedClassId || students.length === 0) ? 0.6 : 1
               }}
-              title="Refresh today's activity"
+              title={t('refresh_today_activity')}
             >
               <RefreshIcon style={{ width: '14px', height: '14px' }} />
               {/*{t('refresh_today') || 'Refresh Today'}*/}
@@ -1831,7 +1824,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
-                title="Stop Scanner"
+                title={t('stop_scanner')}
               >
                 <StopIcon style={{ width: '14px', height: '14px' }} />
               </button>
@@ -1861,7 +1854,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   console.log('🔧 Refresh button clicked - fetching recent activity'); // Debug
                   fetchRecentActivity();
                 }}
-                title="Refresh activity"
+                title={t('refresh_activity')}
                 style={{ padding: '0.25rem' }}
               >
                 <RefreshCw style={{ width: '1rem', height: '1rem' }} />
@@ -1970,7 +1963,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             justifyContent: 'center',
                             borderRadius: '0.25rem'
                           }}
-                          title="Delete activity"
+                          title={t('delete_activity')}
                         >
                           <DeleteIcon style={{ width: '14px', height: '14px' }} />
                         </button>
