@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@ui';
-import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle } from 'lucide-react';
+import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle, Settings, BarChart3, QrCode, Mail } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
@@ -29,6 +29,17 @@ const StudentCard = ({
   setSendingEmails,
   sendStudentSummaryEmail
 }) => {
+  const [isMobile, setIsMobile] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const { openQRCodeInNewTab } = QRCodeDisplay({});
   const { sendQRCodeEmail } = useQRCodeEmail();
   
@@ -118,14 +129,21 @@ const StudentCard = ({
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
-        {student.attendance && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-              {t('todays_attendance') || "Today's Attendance"}:
-            </span>
-            {getAttendanceBadge(student.attendance)}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+            {t('todays_attendance') || "Today's Attendance"}:
+          </span>
+          {student.attendance ? (
+            getAttendanceBadge(student.attendance)
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+              <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
+            </div>
+          )}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
             {t('part')}:
@@ -300,10 +318,16 @@ const StudentCard = ({
         </div>
       </div>
       
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        gap: isMobile ? '0.25rem' : '0.5rem',
+        flexWrap: isMobile ? 'wrap' : 'nowrap'
+      }}>
         <Button 
           variant="ghost" 
-          size="sm"
+          size={isMobile ? 'icon' : 'sm'}
           onClick={(e) => {
             e.stopPropagation();
             try {
@@ -312,20 +336,51 @@ const StudentCard = ({
               console.error('Error calling onStudentAction:', error);
             }
           }}
-          style={{ flex: 1 }}
+          style={isMobile ? {} : { flex: 1 }}
+          title={t('actions')}
         >
-          {t('actions')}
+          {isMobile ? <Settings style={{ width: '1rem', height: '1rem' }} /> : t('actions')}
         </Button>
         <Button 
           variant="ghost" 
-          size="sm"
+          size={isMobile ? 'icon' : 'sm'}
           onClick={(e) => {
             e.stopPropagation();
             onStudentSelect(student);
           }}
-          style={{ flex: 1 }}
+          style={isMobile ? {} : { flex: 1 }}
+          title={t('stats')}
         >
-          {t('stats')}
+          {isMobile ? <BarChart3 style={{ width: '1rem', height: '1rem' }} /> : t('stats')}
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            openQRCodeInNewTab(student);
+          }}
+          title={t('open_qr_code') || 'Open QR Code'}
+        >
+          <QrCode style={{ width: '1rem', height: '1rem' }} />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            sendQRCodeEmail(student, {
+              onSuccess: () => {
+                // Handle success
+              },
+              onError: (error) => {
+                console.error('Failed to send QR code email:', error);
+              }
+            });
+          }}
+          title={t('send_qr_code') || 'Send QR Code'}
+        >
+          <Mail style={{ width: '1rem', height: '1rem' }} />
         </Button>
       </div>
       

@@ -88,12 +88,12 @@ export default function StudentActionPanelNew({
       }
     }
     
-    // If no attendance, show NOTHING YET
-    console.log('🔧 Showing NOTHING YET for student:', student?.displayName || student?.name || 'No Name', '(attendance:', student?.attendance, ')');
+    // If no attendance, show None (matching StudentActionPanel and roster)
+    console.log('🔧 Showing None for student:', student?.displayName || student?.name || 'No Name', '(attendance:', student?.attendance, ')');
     return {
-      en: t('nothing_yet') || 'NOTHING YET',
-      ar: t('nothing_yet') || 'لا شيء بعد',
-      color: '#fbbf24'
+      en: t('none') || 'None',
+      ar: t('none') || 'لا شيء',
+      color: '#9ca3af'
     };
   }, [student?.attendance, t]);
 
@@ -235,9 +235,9 @@ export default function StudentActionPanelNew({
     return icons[finalIconName] || icons.MessageSquare;
   };
 
-  // Clear selected actions when attendance status is NOTHING YET
+  // Clear selected actions when attendance status is None
   useEffect(() => {
-    if (attendanceStatus.en === 'NOTHING YET') {
+    if (attendanceStatus.en === 'None') {
       setSelectedActions([]);
     }
   }, [attendanceStatus]);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@ui';
 import { Trash2 } from 'lucide-react';
 
@@ -13,17 +13,32 @@ export const HistoryEntry = ({
   showDeleteButton = true,
   borderColor = '#f1f5f9'
 }) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
     <div style={{ 
       display: 'flex', 
       alignItems: 'center', 
-      gap: '0.5rem', 
+      gap: isMobile ? '0.25rem' : '0.5rem', 
       padding: '0.25rem 0',
       fontSize: '0.8125rem',
       borderBottom: 'none',
       marginBottom: '0.125rem'
     }}>
-      <span style={{ color: '#64748b', minWidth: '70px', fontSize: '0.75rem' }}>
+      <span style={{ 
+        color: '#64748b', 
+        minWidth: isMobile ? '60px' : '70px', 
+        fontSize: isMobile ? '0.7rem' : '0.75rem' 
+      }}>
         {log.time?.toDate 
           ? log.time.toDate().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) 
           : new Date(log.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
@@ -32,18 +47,24 @@ export const HistoryEntry = ({
       
       {icon && (
         <div style={{ 
-          width: '16px', 
-          height: '16px', 
+          width: isMobile ? '14px' : '16px', 
+          height: isMobile ? '14px' : '16px', 
           color: iconColor, 
-          [isRTL ? 'marginLeft' : 'marginRight']: '0.5rem',
+          [isRTL ? 'marginLeft' : 'marginRight']: isMobile ? '0.25rem' : '0.5rem',
           display: 'flex',
-          alignItems: 'center'
+          alignItems: 'center',
+          flexShrink: 0
         }}>
           {icon}
         </div>
       )}
       
-      <span style={{ color: '#374151', fontWeight: 500 }}>
+      <span style={{ 
+        color: '#374151', 
+        fontWeight: 500,
+        fontSize: isMobile ? '0.75rem' : '0.8125rem',
+        flex: 1
+      }}>
         {log.label}
       </span>
       

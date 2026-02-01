@@ -309,7 +309,9 @@
     gap: 0.1rem; /* further reduced gap */
     row-gap: 0.15rem;
   }
-  .navbar-brand { font-size: 1.1rem; }
+  .navbar-brand { 
+    display: none; /* Hide logo on mobile */
+  }
   .navbar-menu {
     width: 100%;
     justify-content: space-between;
@@ -329,8 +331,7 @@
     padding: 0.3rem 0.4rem;
   }
   .navbar-brand {
-    max-width: 80px;
-    font-size: 0.9rem;
+    display: none; /* Hide logo on mobile */
   }
   .nav-icon-btn {
     width: 28px;

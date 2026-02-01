@@ -659,6 +659,12 @@ const StudentRoster = React.memo(function StudentRoster({
               >
                 <Star style={{ width: '1rem', height: '1rem', color: showFavoritesOnly ? '#f59e0b' : '#6b7280' }} fill={showFavoritesOnly ? 'currentColor' : 'none'} />
               </Button>
+              <Button variant="ghost" size="icon" onClick={onDownload} title={t('export_csv')}>
+                <Download style={{ width: '1rem', height: '1rem' }} />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onRefresh} title={t('refresh')}>
+                <RefreshCw style={{ width: '1rem', height: '1rem' }} />
+              </Button>
             </div>
           )}
         </div>
@@ -713,16 +719,6 @@ const StudentRoster = React.memo(function StudentRoster({
                 <RefreshCw style={{ width: '1rem', height: '1rem' }} />
               </Button>
             </div>
-          )}
-          {isMobile && (
-            <Button 
-              variant="outline" 
-              style={{ width: '100%', justifyContent: 'center', gap: '0.5rem' }} 
-              onClick={onDownload}
-            >
-              <Download style={{ width: '1rem', height: '1rem' }} />
-              {t('export_csv')}
-            </Button>
           )}
         </div>
       </div>
