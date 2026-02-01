@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@ui';
-import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle, Settings, BarChart3, QrCode, Mail } from 'lucide-react';
+import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle, Settings, BarChart3, QrCode, Mail, SidebarOpen, ExternalLink } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
@@ -100,7 +100,7 @@ const StudentCard = ({
               {student.displayName || student.realName || student.name || student.email}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-              ID: STU-{student.studentNumber || student.studentId?.slice(-4) || '0000'}
+              ID: {student.studentNumber || student.studentId?.slice(-4) || '0000'}
             </div>
           </div>
         </div>
@@ -128,10 +128,16 @@ const StudentCard = ({
         </button>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
+      {/* Student Details - Grid Layout */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+        gap: '0.75rem', 
+        marginBottom: '1rem'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-            {t('todays_attendance') || "Today's Attendance"}:
+            {t('today') || "Today"}:
           </span>
           {student.attendance ? (
             getAttendanceBadge(student.attendance)
@@ -186,28 +192,33 @@ const StudentCard = ({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-            {t('penalties')}:
+            {t('id') || 'ID'}:
           </span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '2rem',
-            height: '1.75rem',
-            borderRadius: '0.375rem',
-            fontWeight: 500,
-            background: student.penalty < 0 ? '#fee2e2' : '#f3f4f6',
-            color: student.penalty < 0 ? '#991b1b' : '#374151',
-            fontSize: '0.75rem',
-            padding: '0 0.5rem'
+            fontFamily: 'monospace',
+            fontSize: '0.875rem',
+            color: '#059669',
+            fontWeight: 600
           }}>
-            {student.penalty}
+            {student.studentNumber || '—'}
           </span>
         </div>
       </div>
       
-      {/* Attendance Statistics */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+      {/* Attendance Statistics - Grid Layout */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', 
+        gap: '0.5rem', 
+        marginBottom: '1rem',
+        padding: '0.75rem',
+        background: 'var(--panel-hover, #f8fafc)',
+        borderRadius: '0.5rem',
+        border: '1px solid #e2e8f0'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Present:</span>
           <span style={{
@@ -339,7 +350,11 @@ const StudentCard = ({
           style={isMobile ? {} : { flex: 1 }}
           title={t('actions')}
         >
-          {isMobile ? <Settings style={{ width: '1rem', height: '1rem' }} /> : t('actions')}
+          {isMobile ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          ) : t('actions')}
         </Button>
         <Button 
           variant="ghost" 
@@ -351,7 +366,7 @@ const StudentCard = ({
           style={isMobile ? {} : { flex: 1 }}
           title={t('stats')}
         >
-          {isMobile ? <BarChart3 style={{ width: '1rem', height: '1rem' }} /> : t('stats')}
+          {isMobile ? <SidebarOpen style={{ width: '1rem', height: '1rem' }} /> : t('stats')}
         </Button>
         <Button 
           variant="ghost" 
@@ -362,7 +377,7 @@ const StudentCard = ({
           }}
           title={t('open_qr_code') || 'Open QR Code'}
         >
-          <QrCode style={{ width: '1rem', height: '1rem' }} />
+          <ExternalLink style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
         </Button>
         <Button 
           variant="ghost" 

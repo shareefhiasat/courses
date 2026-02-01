@@ -522,7 +522,7 @@ const StudentRoster = React.memo(function StudentRoster({
 
   // Memoized badge component for performance
   const getAttendanceBadge = useCallback((status) => {
-    // If no status, show "NOTHING YET"
+    // If no status, show "None"
     if (!status) {
       return (
           <span style={{
@@ -530,16 +530,16 @@ const StudentRoster = React.memo(function StudentRoster({
             borderRadius: '0.375rem',
             fontSize: '0.75rem',
             fontWeight: 500,
-            background: '#fef3c7',
-            color: '#92400e',
-            border: '1px solid #fbbf24'
+            background: '#f3f4f6',
+            color: '#9ca3af',
+            border: '1px solid #e5e7eb'
           }}>
-          {t('nothing_yet') || 'NOTHING YET'}
+          {t('none') || 'None'}
         </span>
       );
     }
 
-    // If status is a default absent status (likely set when no actual attendance exists), show NOTHING YET
+    // If status is a default absent status (likely set when no actual attendance exists), show None
     if (status === 'absent_no_excuse' || status === 'absent') {
       return (
           <span style={{
@@ -547,11 +547,11 @@ const StudentRoster = React.memo(function StudentRoster({
             borderRadius: '0.375rem',
             fontSize: '0.75rem',
             fontWeight: 500,
-            background: '#fef3c7',
-            color: '#92400e',
-            border: '1px solid #fbbf24'
+            background: '#f3f4f6',
+            color: '#9ca3af',
+            border: '1px solid #e5e7eb'
           }}>
-          {t('nothing_yet') || 'NOTHING YET'}
+          {t('none') || 'None'}
         </span>
       );
     }
@@ -559,18 +559,18 @@ const StudentRoster = React.memo(function StudentRoster({
     // Use the proper attendance status labels from lookup
     const statusInfo = ATTENDANCE_STATUS_LABELS[status];
     if (!statusInfo) {
-      // If status is not found in lookup, show NOTHING YET
+      // If status is not found in lookup, show None
       return (
           <span style={{
             padding: '0.25rem 0.75rem',
             borderRadius: '0.375rem',
             fontSize: '0.75rem',
             fontWeight: 500,
-            background: '#fef3c7',
-            color: '#92400e',
-            border: '1px solid #fbbf24'
+            background: '#f3f4f6',
+            color: '#9ca3af',
+            border: '1px solid #e5e7eb'
           }}>
-          {t('nothing_yet') || 'NOTHING YET'}
+          {t('none') || 'None'}
         </span>
       );
     }

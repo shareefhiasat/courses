@@ -738,21 +738,21 @@ export default function StudentActionPanel({
       ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(log.data.status)
     );
     
-    // If no actual attendance records for today, show NOTHING YET
+    // If no actual attendance records for today, show None (matching roster)
     if (!hasTodayAttendance) {
-      console.log('🔧 No attendance found - showing NOTHING YET');
+      console.log('🔧 No attendance found - showing None');
       return {
-        en: t('nothing_yet') || 'NOTHING YET',
-        ar: t('nothing_yet') || 'لا شيء بعد',
-        color: '#fbbf24'
+        en: t('none') || 'None',
+        ar: t('none') || 'لا شيء',
+        color: '#9ca3af'
       };
     }
     
-    // Fallback to NOTHING YET if no valid status found
+    // Fallback to None if no valid status found
     return {
-      en: t('nothing_yet') || 'NOTHING YET',
-      ar: t('nothing_yet') || 'لا شيء بعد',
-      color: '#fbbf24'
+      en: t('none') || 'None',
+      ar: t('none') || 'لا شيء',
+      color: '#9ca3af'
     };
   }, [student?.attendance, todayLogs, t]);
 
@@ -893,7 +893,7 @@ export default function StudentActionPanel({
                     {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    {currentAttendanceStatus && (
+                    {currentAttendanceStatus ? (
                       <>
                         <span style={{
                           width: '0.375rem',
@@ -907,6 +907,16 @@ export default function StudentActionPanel({
                             {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                           </span>
                         )}
+                      </>
+                    ) : (
+                      // Show None when no attendance status
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                          {t('none') || 'None'}
+                        </span>
                       </>
                     )}
                   </div>

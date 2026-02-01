@@ -298,7 +298,9 @@
   .navbar-container {
     padding: 0.75rem 1rem;
   }
-  .navbar-brand { font-size: 1.2rem; }
+  .navbar-brand { 
+    display: none; /* Hide logo on tablets and mobile */
+  }
   .navbar-menu { gap: 0.75rem; }
   .navbar-item { padding: 0.4rem 0.6rem; font-size: 0.95rem; }
 }
