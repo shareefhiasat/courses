@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export const HistoryDayHeader = ({ 
   dateStr, 
@@ -8,6 +8,17 @@ export const HistoryDayHeader = ({
   t, 
   isRTL 
 }) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
     <div
       onClick={onToggle}
@@ -15,7 +26,7 @@ export const HistoryDayHeader = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.5rem 0.75rem',
+        padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
         background: 'var(--background-secondary, #f9fafb)',
         cursor: 'pointer',
         borderBottom: isDayExpanded ? '1px solid #e5e7eb' : 'none'
@@ -25,18 +36,26 @@ export const HistoryDayHeader = ({
         <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
           {dateStr}
         </span>
-        <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: isMobile ? '0.2rem' : '0.375rem', 
+          alignItems: 'center',
+          flexWrap: isMobile ? 'nowrap' : 'wrap',
+          overflowX: isMobile ? 'auto' : 'visible'
+        }}>
           {filteredCounts.attendance > 0 && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.25rem',
-              padding: '0.25rem 0.5rem',
+              padding: isMobile ? '0.2rem 0.3rem' : '0.25rem 0.5rem',
               background: '#f0fdf4',
               border: '1px solid #bbf7d0',
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
-              color: '#166534'
+              color: '#166534',
+              minWidth: isMobile ? 'auto' : undefined,
+              flexShrink: 0
             }}>
               {filteredCounts.attendance}
             </div>
@@ -46,12 +65,14 @@ export const HistoryDayHeader = ({
               display: 'flex',
               alignItems: 'center',
               gap: '0.25rem',
-              padding: '0.25rem 0.5rem',
+              padding: isMobile ? '0.2rem 0.3rem' : '0.25rem 0.5rem',
               background: '#eff6ff',
               border: '1px solid #bfdbfe',
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
-              color: '#1e40af'
+              color: '#1e40af',
+              minWidth: isMobile ? 'auto' : undefined,
+              flexShrink: 0
             }}>
               {filteredCounts.participation}
             </div>
@@ -61,12 +82,14 @@ export const HistoryDayHeader = ({
               display: 'flex',
               alignItems: 'center',
               gap: '0.25rem',
-              padding: '0.25rem 0.5rem',
+              padding: isMobile ? '0.2rem 0.3rem' : '0.25rem 0.5rem',
               background: '#fff7ed',
               border: '1px solid #fed7aa',
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
-              color: '#c2410c'
+              color: '#c2410c',
+              minWidth: isMobile ? 'auto' : undefined,
+              flexShrink: 0
             }}>
               {filteredCounts.behavior}
             </div>
@@ -76,12 +99,14 @@ export const HistoryDayHeader = ({
               display: 'flex',
               alignItems: 'center',
               gap: '0.25rem',
-              padding: '0.25rem 0.5rem',
+              padding: isMobile ? '0.2rem 0.3rem' : '0.25rem 0.5rem',
               background: '#fef2f2',
               border: '1px solid #fecaca',
               borderRadius: '0.375rem',
               fontSize: '0.75rem',
-              color: '#b91c1c'
+              color: '#b91c1c',
+              minWidth: isMobile ? 'auto' : undefined,
+              flexShrink: 0
             }}>
               {filteredCounts.penalties}
             </div>

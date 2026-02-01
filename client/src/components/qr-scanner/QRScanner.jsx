@@ -322,7 +322,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
     
     addDebugLog(`👤 Student info parsed: ${JSON.stringify(studentInfo)}`, 'info');
-    setLastScannedStudent(studentInfo);
+    
+    // Look up full student data using student number
+    const fullStudent = students.find(s => s.studentNumber === studentInfo.studentNumber);
+    
+    if (fullStudent) {
+      addDebugLog(`✅ Found full student: ${fullStudent.displayName || fullStudent.name} (${fullStudent.studentNumber})`, 'success');
+      setLastScannedStudent(fullStudent);
+    } else {
+      addDebugLog(`❌ Student not found with number: ${studentInfo.studentNumber}`, 'error');
+      // Still set the basic info so user can see what was scanned
+      setLastScannedStudent(studentInfo);
+    }
     
     // Check if all required fields are selected
     if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
@@ -1785,8 +1796,19 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             }}>
               <strong>{t('scanned_student') || 'Scanned Student'}:</strong>
               <br />
-              {lastScannedStudent.displayName || lastScannedStudent.realName || lastScannedStudent.name || 
-               `${t('student') || 'Student'} ${lastScannedStudent.studentNumber || lastScannedStudent.referenceId || ''}`}
+              {lastScannedStudent.displayName || lastScannedStudent.realName || lastScannedStudent.name ? (
+                <>
+                  {lastScannedStudent.displayName || lastScannedStudent.realName || lastScannedStudent.name}
+                  {lastScannedStudent.studentNumber && (
+                    <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                      <br />
+                      {t('student_number') || 'Student Number'}: {lastScannedStudent.studentNumber}
+                    </span>
+                  )}
+                </>
+              ) : (
+                `${t('student') || 'Student'} ${lastScannedStudent.studentNumber || lastScannedStudent.referenceId || ''}`
+              )}
             </div>
             
             <div style={{
@@ -1823,90 +1845,30 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                    lastScannedStudent?.studentId ||
                                    lastScannedStudent?.docId;
                     
-                    // If still no student ID, try to find it in the students array
-                    if (!studentId && lastScannedStudent?.referenceId) {
-                      logger.debug('Searching for student in students array:', {
-                        referenceId: lastScannedStudent.referenceId,
-                        totalStudents: students.length,
-                        studentsSample: students.slice(0, 3).map(s => ({
-                          id: s.id,
-                          studentId: s.studentId,
-                          referenceId: s.referenceId,
-                          studentNumber: s.studentNumber,
-                          displayName: s.displayName,
-                          name: s.name,
-                          email: s.email,
-                          // Show all available fields
-                          allFields: Object.keys(s)
-                        })),
-                        fullStudentObject: students[0] // Show the complete first student object
+                    // If still no student ID, try to find it in the students array using student number
+                    if (!studentId && lastScannedStudent?.studentNumber) {
+                      logger.debug('Searching for student in students array by studentNumber:', {
+                        studentNumber: lastScannedStudent.studentNumber,
+                        totalStudents: students.length
                       });
                       
-                      const foundStudent = students.find(s => {
-                        const generatedReferenceId = generateReferenceId(s.id);
-                        const matches = [
-                          s.referenceId === lastScannedStudent.referenceId,
-                          s.studentId === lastScannedStudent.referenceId,
-                          `STU-${s.studentNumber}` === lastScannedStudent.referenceId,
-                          generatedReferenceId === lastScannedStudent.referenceId // NEW: Match generated reference ID
-                        ];
-                        
-                        logger.debug('Checking student:', {
-                          student: s,
-                          searchingFor: lastScannedStudent.referenceId,
-                          generatedReferenceId: generatedReferenceId,
-                          allStudentFields: Object.keys(s),
-                          allStudentValues: Object.entries(s).reduce((acc, [key, value]) => {
-                            acc[key] = value;
-                            return acc;
-                          }, {}),
-                          checks: {
-                            referenceId: {
-                              student: s.referenceId,
-                              matches: s.referenceId === lastScannedStudent.referenceId
-                            },
-                            studentId: {
-                              student: s.studentId,
-                              matches: s.studentId === lastScannedStudent.referenceId
-                            },
-                            studentNumber: {
-                              student: s.studentNumber,
-                              generated: `STU-${s.studentNumber}`,
-                              matches: `STU-${s.studentNumber}` === lastScannedStudent.referenceId
-                            },
-                            generatedReferenceId: {
-                              studentId: s.id,
-                              generated: generatedReferenceId,
-                              matches: generatedReferenceId === lastScannedStudent.referenceId
-                            }
-                          },
-                          anyMatch: matches.some(Boolean)
-                        });
-                        
-                        return matches.some(Boolean);
-                      });
-                      
+                      const foundStudent = students.find(s => s.studentNumber === lastScannedStudent.studentNumber);
                       studentId = foundStudent?.id;
+                      
                       logger.debug('Found student ID from students array:', {
-                        referenceId: lastScannedStudent.referenceId,
-                        foundStudentId: studentId,
-                        foundStudent: foundStudent ? {
-                          id: foundStudent.id,
-                          studentId: foundStudent.studentId,
-                          referenceId: foundStudent.referenceId,
-                          studentNumber: foundStudent.studentNumber
-                        } : null
+                        studentNumber: lastScannedStudent.studentNumber,
+                        foundStudentId: studentId
                       });
                     }
                     
                     if (!studentId) {
-                      throw new Error(`Student ID not found. Reference ID: ${lastScannedStudent?.referenceId}`);
+                      throw new Error(`Student ID not found. Student Number: ${lastScannedStudent?.studentNumber}`);
                     }
                     
                     logger.debug('Using studentId:', studentId);
                     
                     // Check if already marked present today
-                    const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
+                    const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.studentNumber}_${today}`));
                     if (existingDoc.exists() && (existingDoc.data().status === 'present' || existingDoc.data().status === 'late')) {
                       showResult('info', 'Student is already marked for today.');
                       setShowScanDialog(false);
@@ -1931,7 +1893,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       // Emit proper attendance event with both IDs
                       eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
                         studentId: studentId, // Primary: user ID
-                        referenceId: lastScannedStudent.referenceId, // Secondary: reference ID
+                        studentNumber: lastScannedStudent.studentNumber, // Secondary: student number
                         classId,
                         status: 'present',
                         performedBy: user,
