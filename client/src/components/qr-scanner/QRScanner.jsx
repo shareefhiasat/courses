@@ -57,6 +57,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebugBox, setShowDebugBox] = useState(false);
   const [isScanningLocked, setIsScanningLocked] = useState(false);
+  const [lastScannedCode, setLastScannedCode] = useState(null); // Track last scanned code to prevent duplicates
   const [isMinimized, setIsMinimized] = useState(false); // Track minimization state
   const scannerRef = useRef(null); // Ref for the scanner section
   const [showResultModal, setShowResultModal] = useState(false);
@@ -207,7 +208,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const code = jsQR(imageData.data, imageData.width, imageData.height);
 
       if (code) {
-        handleQRCodeDetected(code.data);
+        // Add additional check to prevent multiple scans of the same code
+        if (code.data !== lastScannedCode) {
+          setLastScannedCode(code.data);
+          handleQRCodeDetected(code.data);
+        }
       }
     }
   };
@@ -287,7 +292,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, [soundEnabled, vibrationEnabled, t, addToast]);
 
   const handleQRCodeDetected = async (data) => {
-    // Prevent infinite scanning - lock scanning for 3 seconds
+    // Prevent infinite scanning - lock scanning for 10 seconds
     if (isScanningLocked) {
       addDebugLog('🔒 Scanning locked - ignoring duplicate scan', 'warning');
       return;
@@ -331,14 +336,81 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     addDebugLog(`👤 Student info parsed: ${JSON.stringify(studentInfo)}`, 'info');
     addDebugLog(`🔍 Available students count: ${students.length}`, 'info');
     
-    // Look up full student data using student number
-    const fullStudent = students.find(s => s.studentNumber === studentInfo.studentNumber);
+    // Look up full student data using multiple methods
+    let fullStudent = null;
     
-    // Also try to find by studentId if not found by studentNumber
-    const altStudent = !fullStudent ? students.find(s => s.studentId === studentInfo.studentNumber) : null;
+    // Method 1: Try by studentNumber
+    fullStudent = students.find(s => s.studentNumber === studentInfo.studentNumber);
+    
+    // Method 2: Try by studentId
+    if (!fullStudent) {
+      fullStudent = students.find(s => s.studentId === studentInfo.studentNumber);
+    }
+    
+    // Method 3: Try by id field
+    if (!fullStudent) {
+      fullStudent = students.find(s => s.id === studentInfo.studentNumber);
+    }
+    
+    // Method 4: Try by referenceId (for STU- format)
+    if (!fullStudent) {
+      fullStudent = students.find(s => s.referenceId === studentInfo.studentNumber);
+    }
+    
+    // Method 5: If it's a simple number, try to find by matching the end of studentNumber
+    if (!fullStudent && /^\d+$/.test(studentInfo.studentNumber)) {
+      fullStudent = students.find(s => 
+        s.studentNumber && s.studentNumber.endsWith(studentInfo.studentNumber)
+      );
+    }
+    
+    // Method 6: If still not found, try to fetch from Firebase
+    if (!fullStudent && studentInfo.studentNumber) {
+      try {
+        addDebugLog(`🔄 Fetching student from Firebase for number: ${studentInfo.studentNumber}`, 'info');
+        const studentDoc = await getDoc(doc(db, 'users', studentInfo.studentNumber));
+        if (studentDoc.exists()) {
+          const studentData = studentDoc.data();
+          // Create a student object with the same structure as the students array
+          fullStudent = {
+            id: studentDoc.id,
+            docId: studentDoc.id,
+            studentId: studentData.studentNumber || studentDoc.id,
+            studentNumber: studentData.studentNumber || studentDoc.id,
+            name: studentData.displayName || studentData.realName || studentData.name || 'Unknown',
+            displayName: studentData.displayName,
+            realName: studentData.realName,
+            email: studentData.email,
+            // Add default values for fields that might be expected
+            attendance: 'absent_no_excuse', // Default when no attendance
+            participation: 0,
+            behavior: 0,
+            penalty: 0,
+            totalAttendance: 0,
+            attendanceStats: {
+              present: 0,
+              late: 0,
+              absent: 0,
+              absentWithExcuse: 0,
+              excusedLeave: 0,
+              humanitarianCase: 0
+            },
+            isPinned: false,
+            behaviorHistory: [],
+            participationHistory: [],
+            penaltyHistory: []
+          };
+          addDebugLog(`✅ Fetched student from Firebase: ${fullStudent.name}`, 'success');
+        }
+      } catch (error) {
+        addDebugLog(`❌ Error fetching student from Firebase: ${error.message}`, 'error');
+      }
+    }
     
     if (fullStudent) {
-      addDebugLog(`✅ Found full student by studentNumber: ${fullStudent.displayName || fullStudent.name} (${fullStudent.studentNumber})`, 'success');
+      const searchMethod = students.find(s => s.studentNumber === studentInfo.studentNumber) ? 'studentNumber' :
+                          students.find(s => s.studentId === studentInfo.studentNumber) ? 'studentId' : 'Firebase';
+      addDebugLog(`✅ Found full student by ${searchMethod}: ${fullStudent.displayName || fullStudent.name} (${fullStudent.studentNumber})`, 'success');
       // Make sure we include all necessary fields
       setLastScannedStudent({
         ...fullStudent,
@@ -346,16 +418,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         name: fullStudent.name || fullStudent.displayName,
         email: fullStudent.email,
         studentNumber: fullStudent.studentNumber
-      });
-    } else if (altStudent) {
-      addDebugLog(`✅ Found full student by studentId: ${altStudent.displayName || altStudent.name} (${altStudent.studentId})`, 'success');
-      // Make sure we include all necessary fields
-      setLastScannedStudent({
-        ...altStudent,
-        // Ensure we have these fields from the full student record
-        name: altStudent.name || altStudent.displayName,
-        email: altStudent.email,
-        studentNumber: altStudent.studentNumber
       });
     } else {
       addDebugLog(`❌ Student not found with number: ${studentInfo.studentNumber}`, 'error');
@@ -381,6 +443,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     // Always use semi-auto mode - show dialog to choose action
     addDebugLog('🔄 Semi-auto mode: Showing action dialog', 'info');
     setShowScanDialog(true);
+    
+    // Safety timeout to unlock scanning after 10 seconds
+    setTimeout(() => {
+      setIsScanningLocked(false);
+      setLastScannedCode(null); // Reset to allow re-scanning
+      addDebugLog('🔓 Scanning unlocked after timeout', 'info');
+    }, 10000);
     
     // Stop camera after scan - user will manually restart
     stopCamera();
