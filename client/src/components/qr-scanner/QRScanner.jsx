@@ -865,10 +865,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         
         // Ensure we always use the correct penalty type ID
         const penaltyTypeId = penalty.id || penalty.type;
+        console.log('🔧 penaltyTypeId extracted:', penaltyTypeId);
+        console.log('🔧 penalty object:', JSON.stringify(penalty, null, 2));
+        
         if (!penaltyTypeId || penaltyTypeId === 'penalty') {
-          console.error('🔧 Invalid penalty type detected:', { penalty });
+          console.error('🔧 Invalid penalty type detected:', { penalty, penaltyTypeId });
           throw new Error('Invalid penalty type: must be a specific penalty type like "cheating", not "penalty"');
         }
+        
+        console.log('🔧 About to create penalty with type:', penaltyTypeId);
         
         await createPenalty({
           classId: selectedClassId,

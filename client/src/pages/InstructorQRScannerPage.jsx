@@ -725,7 +725,7 @@ const InstructorQRScannerPage = () => {
             studentId,
             classId: selectedClassId,
             subjectId: selectedSubjectId,
-            type: action.type || 'penalty', // Add fallback for undefined type
+            type: action.type || action.id, // Use specific penalty type
             points: Math.abs(points), // Store as positive in Firebase
             reason: note,
             createdBy: user.uid
