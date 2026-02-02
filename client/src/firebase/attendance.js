@@ -18,12 +18,12 @@ export const ATTENDANCE_STATUS = {
 };
 
 export const ATTENDANCE_STATUS_LABELS = {
-  present: { en: 'Present', ar: 'حاضر', color: '#22c55e' },
-  absent_no_excuse: { en: 'Absent (No Excuse)', ar: 'غياب بدون عذر', color: '#ef4444' },
-  absent_with_excuse: { en: 'Absent (Excused)', ar: 'غياب بعذر', color: '#ef4444' },
-  late: { en: 'Late', ar: 'متأخر', color: '#eab308' },
-  excused_leave: { en: 'Excused Leave', ar: 'استئذان', color: '#ef4444' },
-  human_case: { en: 'Human Case', ar: 'حالة إنسانية', color: '#8b5cf6' }
+  present: { en: 'Present', ar: 'حاضر', color: '#22c55e', icon: 'CheckCircle' },
+  absent_no_excuse: { en: 'Absent (No Excuse)', ar: 'غياب بدون عذر', color: '#ef4444', icon: 'XCircle' },
+  absent_with_excuse: { en: 'Absent (Excused)', ar: 'غياب بعذر', color: '#ef4444', icon: 'AlertCircle' },
+  late: { en: 'Late', ar: 'متأخر', color: '#eab308', icon: 'Clock' },
+  excused_leave: { en: 'Excused Leave', ar: 'استئذان', color: '#ef4444', icon: 'Heart' },
+  human_case: { en: 'Human Case', ar: 'حالة إنسانية', color: '#8b5cf6', icon: 'HelpCircle' }
 };
 
 /**
@@ -500,6 +500,45 @@ export async function getAttendanceHistory(classId = null, studentId = null, sta
     console.error('Error getting attendance history:', error);
     return { success: false, error: error.message, data: [] };
   }
+}
+
+/**
+ * Get attendance icon for a given status
+ * @param {string} status - Attendance status
+ * @returns {string} Icon name
+ */
+export function getAttendanceIcon(status) {
+  const icon = ATTENDANCE_STATUS_LABELS[status]?.icon || 'HelpCircle';
+  console.log('🔍 getAttendanceIcon:', { status, icon });
+  return icon;
+}
+
+/**
+ * Get attendance color for a given status
+ * @param {string} status - Attendance status
+ * @returns {string} Color hex code
+ */
+export function getAttendanceColor(status) {
+  const color = ATTENDANCE_STATUS_LABELS[status]?.color || '#6b7280';
+  console.log('🔍 getAttendanceColor:', { status, color });
+  return color;
+}
+
+/**
+ * Get attendance label for a given status
+ * @param {string} status - Attendance status
+ * @param {string} lang - Language code ('en' or 'ar')
+ * @returns {string} Localized label
+ */
+export function getAttendanceLabel(status, lang = 'en') {
+  const label = ATTENDANCE_STATUS_LABELS[status];
+  if (!label) {
+    console.log('🔍 getAttendanceLabel: No label found for status:', status);
+    return status;
+  }
+  const result = lang === 'ar' ? label.ar : label.en;
+  console.log('🔍 getAttendanceLabel:', { status, lang, result });
+  return result;
 }
 
 /**

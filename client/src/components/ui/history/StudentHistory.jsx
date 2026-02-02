@@ -43,6 +43,7 @@ const StudentHistory = React.memo(({
       filteredCounts,
       hasVisibleItems,
       attendanceLogs: dayGroup.attendance.length,
+      attendanceData: dayGroup.attendance.slice(0, 2), // Show first 2 attendance logs
       penaltyLogs: dayGroup.penalties.length,
       participationLogs: dayGroup.participation.length,
       behaviorLogs: dayGroup.behavior ? dayGroup.behavior.length : 0

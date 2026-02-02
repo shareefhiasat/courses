@@ -130,8 +130,7 @@ const StudentRoster = React.memo(function StudentRoster({
             comment: record.reason || record.notes || '',
             severity: 'low',
             color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
-            originalStatus: record.status,
-            originalCategory: record.category
+            status: record.status  // ← Clean: only the status field
           };
 
           logger.debug('Processing attendance record:', {

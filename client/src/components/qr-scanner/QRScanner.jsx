@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { CollapsibleSection } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
-import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
+import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
 import { createParticipation, getParticipations, getParticipationsByClassAndDate } from '@firebaseServices/participations';
 import { createBehavior, getBehaviors, getBehaviorsByClassAndDate } from '@firebaseServices/behaviors';
@@ -43,7 +43,9 @@ import {
   ShieldIcon,
   ChevronDownIcon,
   TrashIcon,
-  HeartIcon
+  HeartIcon,
+  AlertCircleIcon,
+  HelpCircleIcon
 } from '@utils/icons.jsx';
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
@@ -1377,21 +1379,25 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       return <ZapIcon style={{ width: '12px', height: '12px' }} />;
     }
 
-    switch(status?.toLowerCase()) {
-      case 'present':
-        return <CheckSmallIcon style={{ width: '12px', height: '12px' }} />;
-      case 'late':
-        return <ClockSmallIcon style={{ width: '12px', height: '12px' }} />;
-      case 'absent':
-      case 'absent_no_excuse':
-      case 'absent_with_excuse':
-      case 'excused_leave':
-        return <XSmallIcon style={{ width: '12px', height: '12px' }} />;
-      case 'human_case':
-        return <HeartIcon style={{ width: '12px', height: '12px' }} />;
-      default:
-        return <CircleIcon style={{ width: '12px', height: '12px' }} />;
+    // Use unified attendance icons for attendance types
+    if (type === 'attendance' || status) {
+      const iconName = getAttendanceIcon(status);
+      const iconColor = getAttendanceColor(status);
+      
+      const iconMap = {
+        CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: iconColor }} />,
+        Clock: <ClockSmallIcon style={{ width: '14px', height: '14px', color: iconColor }} />,
+        AlertCircle: <AlertCircleIcon style={{ width: '12px', height: '12px', color: iconColor }} />,
+        XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: iconColor }} />,
+        Heart: <HeartIcon style={{ width: '12px', height: '12px', color: iconColor }} />,
+        HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: iconColor }} />
+      };
+      
+      return iconMap[iconName] || iconMap.HelpCircle;
     }
+
+    // Fallback for unknown types
+    return <CircleIcon style={{ width: '12px', height: '12px' }} />;
   }, []);
 
   const getStatusLabel = useCallback((status, type, delta) => {
@@ -1991,7 +1997,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                 alignItems: 'center',
                                 gap: '0.125rem'
                               }}>
-                                {getStatusIcon(activity.status, activity.type, activity.delta)} {getStatusLabel(activity.status, activity.type, activity.delta)}
+                                {(() => {
+                                  console.log('🔍 QRScanner activity rendering:', {
+                                    activity: {
+                                      status: activity.status,
+                                      type: activity.type,
+                                      delta: activity.delta,
+                                      label: activity.label,
+                                      studentName: activity.studentName
+                                    }
+                                  });
+                                  return getStatusIcon(activity.status, activity.type, activity.delta);
+                                })()} {getStatusLabel(activity.status, activity.type, activity.delta)}
                                 {(activity.type === 'penalty' || activity.type === 'participation' || activity.type === 'behavior') && activity.points && (
                                   <span style={{ marginLeft: '0.25rem' }}>({activity.points})</span>
                                 )}
@@ -3376,12 +3393,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     // Attendance options
                     ...Object.values(ATTENDANCE_STATUS).map(status => ({
                       id: status,
-                      label_en: ATTENDANCE_STATUS_LABELS[status]?.en || status,
-                      label_ar: ATTENDANCE_STATUS_LABELS[status]?.ar || status,
+                      label_en: getAttendanceLabel(status, 'en'),
+                      label_ar: getAttendanceLabel(status, 'ar'),
                       category: 'attendance',
                       points: 0,
-                      icon: status === 'present' ? 'CheckCircle' : status === 'late' ? 'Clock' : status === 'absent_no_excuse' ? 'XCircle' : status === 'absent_with_excuse' ? 'AlertCircle' : 'HelpCircle',
-                      color: ATTENDANCE_STATUS_LABELS[status]?.color || '#6b7280'
+                      icon: getAttendanceIcon(status),
+                      color: getAttendanceColor(status)
                     })),
                     // Behavior options
                     ...BEHAVIOR_TYPES.map(behavior => ({

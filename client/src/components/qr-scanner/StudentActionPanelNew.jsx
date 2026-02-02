@@ -14,7 +14,7 @@ import {
   BedIcon 
 } from '@utils/icons.jsx';
 import { useAuth } from '@contexts/AuthContext';
-import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
+import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@firebaseServices/attendance';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
@@ -143,20 +143,20 @@ export default function StudentActionPanelNew({
     return iconMap[finalIconName] || iconMap.AlertCircleIcon;
   };
 
-  const getAttendanceIcon = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'present':
-        return <CheckCircleIcon style={{ width: 16, height: 16, color: '#22c55e' }} />;
-      case 'late':
-        return <ClockIcon style={{ width: 16, height: 16, color: '#f59e0b' }} />;
-      case 'absent_with_excuse':
-      case 'excused_leave':
-        return <HeartIcon style={{ width: 16, height: 16, color: '#3b82f6' }} />;
-      case 'human_case':
-        return <HelpCircleIcon style={{ width: 16, height: 16, color: '#8b5cf6' }} />;
-      default:
-        return <XCircleIcon style={{ width: 16, height: 16, color: '#ef4444' }} />;
-    }
+  const getAttendanceIconComponent = (status) => {
+    const iconName = getAttendanceIcon(status);
+    const iconColor = getAttendanceColor(status);
+    
+    const iconMap = {
+      CheckCircle: <CheckCircleIcon style={{ width: 16, height: 16, color: iconColor }} />,
+      Clock: <ClockIcon style={{ width: 16, height: 16, color: iconColor }} />,
+      AlertCircle: <AlertCircleIcon style={{ width: 16, height: 16, color: iconColor }} />,
+      XCircle: <XCircleIcon style={{ width: 16, height: 16, color: iconColor }} />,
+      Heart: <HeartIcon style={{ width: 16, height: 16, color: iconColor }} />,
+      HelpCircle: <HelpCircleIcon style={{ width: 16, height: 16, color: iconColor }} />
+    };
+    
+    return iconMap[iconName] || iconMap.HelpCircle;
   };
 
   const filteredOptions = useMemo(() => {
