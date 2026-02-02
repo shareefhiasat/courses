@@ -1328,20 +1328,41 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, [lang]);
 
   const getStatusColor = useCallback((status, type, delta) => {
-    if (type === 'participation' || delta > 0) return '#3b82f6';
-    if (type === 'behavior' || delta < 0) return '#f97316';
-    if (type === 'penalty') return '#dc2626';
+    // Debug logging for penalty color issue
+    console.log('🔍 getStatusColor called:', { status, type, delta });
+    
+    if (type === 'participation' || delta > 0) {
+      console.log('🔍 Returning participation color: #3b82f6');
+      return '#3b82f6';
+    }
+    if (type === 'penalty') {
+      console.log('🔍 PENALTY DETECTED! Returning penalty color: #dc2626 (red)');
+      return '#dc2626';
+    }
+    if (type === 'behavior' || delta < 0) {
+      console.log('🔍 Returning behavior color: #f97316');
+      return '#f97316';
+    }
 
     switch(status?.toLowerCase()) {
-      case 'present': return '#16a34a';
-      case 'late': return '#eab308';
-      case 'human_case': return '#8b5cf6';
+      case 'present': 
+        console.log('🔍 Returning present color: #16a34a');
+        return '#16a34a';
+      case 'late': 
+        console.log('🔍 Returning late color: #eab308');
+        return '#eab308';
+      case 'human_case': 
+        console.log('🔍 Returning human_case color: #8b5cf6');
+        return '#8b5cf6';
       case 'absent':
       case 'absent_no_excuse':
       case 'absent_with_excuse':
       case 'excused_leave':
+        console.log('🔍 Returning absent color: #dc2626');
         return '#dc2626';
-      default: return '#6b7280';
+      default: 
+        console.log('🔍 Returning default color: #6b7280');
+        return '#6b7280';
     }
   }, []);
 
@@ -1928,6 +1949,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     </div>
                 ) : (
                     recentActivity.map((activity) => {
+                      // Debug logging for penalty activities
+                      if (activity.type === 'penalty') {
+                        console.log('🔍 PENALTY ACTIVITY FOUND:', {
+                          id: activity.id,
+                          type: activity.type,
+                          status: activity.status,
+                          delta: activity.delta,
+                          points: activity.points,
+                          label: activity.label,
+                          studentName: activity.studentName
+                        });
+                      }
 
                       return (
                           <div key={activity.id} style={{
@@ -1956,7 +1989,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                 gap: '0.125rem'
                               }}>
                                 {getStatusIcon(activity.status, activity.type, activity.delta)} {getStatusLabel(activity.status, activity.type, activity.delta)}
-                                {activity.points}
+                                {(activity.type === 'penalty' || activity.type === 'participation' || activity.type === 'behavior') && activity.points && (
+                                  <span style={{ marginLeft: '0.25rem' }}>({activity.points})</span>
+                                )}
                               </div>
                               <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1 }}>
                       {activity.studentName}
