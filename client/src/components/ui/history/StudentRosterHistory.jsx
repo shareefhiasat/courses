@@ -1,5 +1,6 @@
 import React from 'react';
 import StudentHistory from './StudentHistory';
+import {CheckSmallIcon} from "@utils/icons.jsx";
 
 const StudentRosterHistory = ({ 
   student, 
@@ -70,9 +71,7 @@ const StudentRosterHistory = ({
               boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+            <CheckSmallIcon style={{ width: '14px', height: '14px' }} />
             {t('attendance')}
           </button>
           <button

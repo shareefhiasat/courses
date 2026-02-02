@@ -1,7 +1,7 @@
 import React from 'react';
 import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
-import { AttendanceIcon, ParticipationIcon, BehaviorIcon, PenaltyIcon } from '@utils/icons';
+import { AttendanceIcon, ParticipationIcon, BehaviorIcon, PenaltyIcon } from '@utils/icons.jsx';
 
 const StudentHistory = React.memo(({ 
   groupedLogs, 

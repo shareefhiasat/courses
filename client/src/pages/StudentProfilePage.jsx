@@ -6,6 +6,7 @@ import { db } from '@firebaseServices/config';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
 import { User, Users, Calendar, TrendingUp, Award, FileText, Clock, Search, Trophy, Flame, Target, X, BookOpen, Filter } from 'lucide-react';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '@firebaseServices/badges';
+import { CheckSmallIcon } from '@utils/icons.jsx';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Loading, Select } from '@ui';
 import { StudentQRCodeDisplay } from '@ui';
@@ -662,9 +663,7 @@ const StudentProfilePage = () => {
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl shadow-lg p-5 hover:shadow-xl transition-shadow border border-green-100 dark:border-green-800">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                <CheckSmallIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
             <div className="text-xs uppercase font-semibold text-green-700 dark:text-green-400 mb-1">{t('present_count')}</div>
@@ -1030,9 +1029,7 @@ const StudentProfilePage = () => {
                   {/* Earned Checkmark */}
                   {isEarned && (
                     <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <CheckSmallIcon className="w-4 h-4 text-white" />
                     </div>
                   )}
 
