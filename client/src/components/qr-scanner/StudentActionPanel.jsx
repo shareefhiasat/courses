@@ -59,6 +59,7 @@ export default function StudentActionPanel({
   const [sendingQRCode, setSendingQRCode] = useState(false);
   const [sendingSummary, setSendingSummary] = useState(false);
   const [showEmailDropdown, setShowEmailDropdown] = useState(false);
+  const [showExpandAllButton, setShowExpandAllButton] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     behavior: false,
     participation: false,
@@ -238,6 +239,15 @@ export default function StudentActionPanel({
       }
       return newExpanded;
     });
+  }, []);
+
+  const expandAllDays = useCallback(() => {
+    const allDates = [...new Set(historicalLogs.map(log => log.date))];
+    setExpandedDays(new Set(allDates));
+  }, [historicalLogs]);
+
+  const collapseAllDays = useCallback(() => {
+    setExpandedDays(new Set());
   }, []);
 
   const toggleSectionExpansion = useCallback((section) => {
@@ -435,9 +445,8 @@ export default function StudentActionPanel({
       // Set todayLogs to only today's logs
       setTodayLogs(todayLogsFiltered);
       
-      // Expand all dates by default so user can see all history
-      const allDates = [...new Set(logs.map(log => log.date))];
-      setExpandedDays(new Set(allDates));
+      // Don't auto-expand - let user choose what to expand
+      setExpandedDays(new Set());
       
       setLogsError('');
     } catch (error) {
@@ -2030,6 +2039,37 @@ export default function StudentActionPanel({
                   {t('penalties')}
                 </button>
               </div>
+              {historicalLogs.length > 0 && (
+                <button
+                  onClick={expandedDays.size === memoizedGroupedLogs.length ? collapseAllDays : expandAllDays}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '0.375rem',
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  title={expandedDays.size === memoizedGroupedLogs.length ? (t('collapse_all') || 'Collapse All') : (t('expand_all') || 'Expand All')}
+                >
+                  {expandedDays.size === memoizedGroupedLogs.length ? (
+                    <>
+                      <ChevronDown style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} />
+                      {t('collapse_all') || 'Collapse All'}
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown style={{ width: '14px', height: '14px' }} />
+                      {t('expand_all') || 'Expand All'}
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
             <div style={{

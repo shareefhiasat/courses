@@ -524,6 +524,20 @@ const StudentRoster = React.memo(function StudentRoster({
     });
   }, []);
 
+  const expandAllDays = useCallback(() => {
+    const allDates = new Set();
+    Object.values(studentHistory).forEach(logs => {
+      logs.forEach(log => {
+        if (log.date) allDates.add(log.date);
+      });
+    });
+    setExpandedDays(allDates);
+  }, [studentHistory]);
+
+  const collapseAllDays = useCallback(() => {
+    setExpandedDays(new Set());
+  }, []);
+
   // Memoized group logs by day for performance
   const groupLogsByDay = useCallback((logs) => {
     const grouped = {};
@@ -811,6 +825,8 @@ const StudentRoster = React.memo(function StudentRoster({
                   expandedDays={expandedDays}
                   activeFilters={activeFilters}
                   toggleDayExpansion={toggleDayExpansion}
+                  expandAllDays={expandAllDays}
+                  collapseAllDays={collapseAllDays}
                   handleDeleteAttendance={handleDeleteAttendance}
                   handleDeleteParticipation={handleDeleteParticipation}
                   handleDeleteBehavior={handleDeleteBehavior}
@@ -1015,6 +1031,8 @@ const StudentRoster = React.memo(function StudentRoster({
                     expandedDays={expandedDays}
                     activeFilters={activeFilters}
                     toggleDayExpansion={toggleDayExpansion}
+                    expandAllDays={expandAllDays}
+                    collapseAllDays={collapseAllDays}
                     handleDeleteAttendance={handleDeleteAttendance}
                     handleDeleteParticipation={handleDeleteParticipation}
                     handleDeleteBehavior={handleDeleteBehavior}

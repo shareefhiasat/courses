@@ -17,7 +17,9 @@ const StudentCard = ({
   studentHistory, 
   expandedDays, 
   activeFilters, 
-  toggleDayExpansion, 
+  toggleDayExpansion,
+  expandAllDays,
+  collapseAllDays,
   handleDeleteAttendance, 
   handleDeleteParticipation,
   handleDeleteBehavior,
@@ -425,6 +427,8 @@ const StudentCard = ({
             expandedDays={expandedDays}
             activeFilters={activeFilters}
             toggleDayExpansion={toggleDayExpansion}
+            expandAllDays={expandAllDays}
+            collapseAllDays={collapseAllDays}
             handleDeleteAttendance={handleDeleteAttendance}
             handleDeleteParticipation={handleDeleteParticipation}
             handleDeleteBehavior={handleDeleteBehavior}
