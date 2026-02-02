@@ -880,7 +880,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           studentId,
           subjectId: selectedSubjectId,
           type: penaltyTypeId, // Always use the specific penalty type ID
-          points: penalty.points, // Use points as provided (should be negative)
+          points: -Math.abs(penalty.points || 0), // Always negative for penalties
           reason: note || '',
           note: note || '',
           description: note || '', // Add description field to match behavior pattern
