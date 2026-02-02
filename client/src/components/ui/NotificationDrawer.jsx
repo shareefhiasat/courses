@@ -21,7 +21,7 @@ import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, ToggleSwitch } from '@ui';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
-import { ATTENDANCE_STATUS } from '@firebaseServices/attendance';
+import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import useNotifications from '@hooks/useNotifications';
 
 const NotificationDrawer = ({ isOpen, onClose }) => {

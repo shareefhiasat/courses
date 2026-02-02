@@ -3,7 +3,8 @@ import logger from '@utils/logger';
 import { Input } from '@ui';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
+import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
 import { getParticipations, deleteParticipation } from '@firebaseServices/participations';
 import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviors';
@@ -128,7 +129,6 @@ const StudentRoster = React.memo(function StudentRoster({
             label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown',
             points: 0,
             comment: record.reason || record.notes || '',
-            severity: 'low',
             color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
             status: record.status  // ← Clean: only the status field
           };

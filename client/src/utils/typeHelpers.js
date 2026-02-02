@@ -7,7 +7,7 @@ import { BEHAVIOR_TYPES, getBehaviorTypeById, getBehaviorLabel, getBehaviorIcon,
 import { PARTICIPATION_TYPES, getParticipationTypeById, getParticipationLabel, getParticipationIcon, getParticipationColor } from '../constants/participationTypes';
 import { ABSENCE_TYPES, getAbsenceTypeById, getAbsenceLabel, getAbsenceIcon, getAbsenceColor } from '../constants/absenceTypes';
 import { PENALTY_TYPES, getPenaltyTypeById, getPenaltyLabel, getPenaltyIcon, getPenaltyColor } from '../constants/penaltyTypes';
-import { ATTENDANCE_STATUS_LABELS } from '../firebase/attendance';
+import { ATTENDANCE_STATUS_LABELS } from '../constants/attendanceTypes';
 
 // Type constants for type safety
 export const TYPE_CATEGORIES = {

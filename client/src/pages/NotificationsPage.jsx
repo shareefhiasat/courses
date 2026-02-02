@@ -21,7 +21,7 @@ import { ToggleSwitch } from '@ui';
 import useNotifications from '@hooks/useNotifications';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
-import { ATTENDANCE_STATUS } from '@firebaseServices/attendance';
+import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@firebaseServices/programs';
 import { getClasses } from '@firebaseServices/firestore';
 

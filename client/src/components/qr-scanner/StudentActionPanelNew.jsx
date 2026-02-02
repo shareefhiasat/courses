@@ -14,7 +14,8 @@ import {
   BedIcon 
 } from '@utils/icons.jsx';
 import { useAuth } from '@contexts/AuthContext';
-import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@firebaseServices/attendance';
+import { markAttendance } from '@firebaseServices/attendance';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';

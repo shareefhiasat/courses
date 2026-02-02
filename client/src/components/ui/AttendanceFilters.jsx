@@ -1,6 +1,6 @@
 import React from 'react';
 import { Select, DatePicker } from '@ui';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 
 const AttendanceFilters = ({
   programFilter,

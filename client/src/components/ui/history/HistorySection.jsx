@@ -1,6 +1,6 @@
 import React from 'react';
 import { HistoryEntry } from './HistoryEntry';
-import { getAttendanceIcon, getAttendanceColor } from '@firebaseServices/attendance';
+import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
 import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 import { getPenaltyIcon, getPenaltyColor } from '@constants/penaltyTypes';
@@ -76,15 +76,14 @@ export const HistorySection = ({
       const status = log.status;
       
       const iconName = getAttendanceIcon(status);
-      const iconColor = getAttendanceColor(status);
       
       const iconMap = {
-        CheckCircle: <CheckSmallIcon style={{ width: '14px', height: '14px', color: iconColor }} />,
-        Clock: <ClockSmallIcon style={{ width: '14px', height: '14px', color: iconColor }} />,
-        AlertCircle: <XSmallIcon style={{ width: '14px', height: '14px', color: iconColor }} />,
-        XCircle: <XSmallIcon style={{ width: '14px', height: '14px', color: iconColor }} />,
-        Heart: <HeartIcon style={{ width: '14px', height: '14px', color: iconColor }} />,
-        HelpCircle: <HelpCircleIcon style={{ width: '14px', height: '14px', color: iconColor }} />
+        CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px' }} />,
+        Clock: <ClockSmallIcon style={{ width: '12px', height: '12px' }} />,
+        AlertCircle: <XSmallIcon style={{ width: '12px', height: '12px' }} />,
+        XCircle: <XSmallIcon style={{ width: '12px', height: '12px' }} />,
+        Heart: <HeartIcon style={{ width: '12px', height: '12px' }} />,
+        HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px' }} />
       };
       
       return iconMap[iconName] || iconMap.HelpCircle;

@@ -6,7 +6,7 @@ import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, query, where, orderBy, limit, getDoc } from 'firebase/firestore';
 import { FileDown, Search, Filter, Calendar, User, AlertCircle, Clock, CheckCircle, XCircle, Activity, Users, Heart } from 'lucide-react';
 import { Button, Select, Loading, DatePicker } from '@ui';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@firebaseServices/programs';
 
 const HRAttendancePage = () => {

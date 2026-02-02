@@ -3,7 +3,7 @@ import { Card, CardBody, Grid, Badge, ProgressBar, EmptyState } from '../ui';
 import {
   CheckCircle, XCircle, Clock, CalendarClock, Calendar, CalendarCheck
 } from 'lucide-react';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { useLang } from '../../contexts/LangContext';
 import styles from '../../pages/StudentDashboardPage_NEW.module.css';
 

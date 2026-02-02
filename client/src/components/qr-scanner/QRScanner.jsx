@@ -4,7 +4,8 @@ import { Button } from './ui/button';
 import { CollapsibleSection } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
-import { markAttendance, ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@firebaseServices/attendance';
+import { markAttendance } from '@firebaseServices/attendance';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
 import { createParticipation, getParticipations, getParticipationsByClassAndDate } from '@firebaseServices/participations';
 import { createBehavior, getBehaviors, getBehaviorsByClassAndDate } from '@firebaseServices/behaviors';
@@ -1382,15 +1383,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     // Use unified attendance icons for attendance types
     if (type === 'attendance' || status) {
       const iconName = getAttendanceIcon(status);
-      const iconColor = getAttendanceColor(status);
       
       const iconMap = {
-        CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: iconColor }} />,
-        Clock: <ClockSmallIcon style={{ width: '14px', height: '14px', color: iconColor }} />,
-        AlertCircle: <AlertCircleIcon style={{ width: '12px', height: '12px', color: iconColor }} />,
-        XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: iconColor }} />,
-        Heart: <HeartIcon style={{ width: '12px', height: '12px', color: iconColor }} />,
-        HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: iconColor }} />
+        CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
+        Clock: <ClockSmallIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
+        AlertCircle: <AlertCircleIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
+        XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
+        Heart: <HeartIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
+        HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />
       };
       
       return iconMap[iconName] || iconMap.HelpCircle;

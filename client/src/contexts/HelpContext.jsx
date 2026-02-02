@@ -3,17 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useLang } from './LangContext';
 import { ABSENCE_TYPES } from '../constants/absenceTypes';
 import { PENALTY_TYPES } from '../constants/penaltyTypes';
-
-// Participation types with points
-const PARTICIPATION_TYPES = [
-  { id: 'explain_lesson', label_ar: 'شرح الدرس', label_en: 'Explained Lesson', points: 5 },
-  { id: 'gave_project', label_ar: 'قدم مشروع', label_en: 'Gave Project', points: 10 },
-  { id: 'gave_paper', label_ar: 'قدم ورقة', label_en: 'Gave Paper', points: 3 },
-  { id: 'answered_question', label_ar: 'أجاب على سؤال', label_en: 'Answered Question', points: 2 },
-  { id: 'participated_discussion', label_ar: 'شارك في النقاش', label_en: 'Participated in Discussion', points: 3 },
-  { id: 'helped_peer', label_ar: 'ساعد زميل', label_en: 'Helped a Peer', points: 4 },
-  { id: 'presented', label_ar: 'قدم عرضاً', label_en: 'Gave a Presentation', points: 8 }
-];
+import { PARTICIPATION_TYPES } from '../constants/participationTypes';
 
 const HelpContext = createContext();
 

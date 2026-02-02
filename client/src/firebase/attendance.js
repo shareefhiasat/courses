@@ -1,30 +1,9 @@
-import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, getDocs, query, where, getDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, getDocs, query, where, getDoc, onSnapshot, deleteDoc, orderBy } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './config';
 import { addNotification } from './notifications';
 import { sendEmail } from './firestore';
-
-/**
- * Attendance Status Types
- * These are the official attendance statuses used throughout the system
- */
-export const ATTENDANCE_STATUS = {
-  PRESENT: 'present',
-  ABSENT_NO_EXCUSE: 'absent_no_excuse',      // غياب بدون عذر
-  ABSENT_WITH_EXCUSE: 'absent_with_excuse',  // غياب بعذر
-  LATE: 'late',                               // تأخر على الحصة
-  EXCUSED_LEAVE: 'excused_leave',            // استئذان
-  HUMAN_CASE: 'human_case'                   // حالة إنسانية
-};
-
-export const ATTENDANCE_STATUS_LABELS = {
-  present: { en: 'Present', ar: 'حاضر', color: '#22c55e', icon: 'CheckCircle' },
-  absent_no_excuse: { en: 'Absent (No Excuse)', ar: 'غياب بدون عذر', color: '#ef4444', icon: 'XCircle' },
-  absent_with_excuse: { en: 'Absent (Excused)', ar: 'غياب بعذر', color: '#ef4444', icon: 'AlertCircle' },
-  late: { en: 'Late', ar: 'متأخر', color: '#eab308', icon: 'Clock' },
-  excused_leave: { en: 'Excused Leave', ar: 'استئذان', color: '#ef4444', icon: 'Heart' },
-  human_case: { en: 'Human Case', ar: 'حالة إنسانية', color: '#8b5cf6', icon: 'HelpCircle' }
-};
+import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 
 /**
  * Get absences from attendance collection
@@ -500,45 +479,6 @@ export async function getAttendanceHistory(classId = null, studentId = null, sta
     console.error('Error getting attendance history:', error);
     return { success: false, error: error.message, data: [] };
   }
-}
-
-/**
- * Get attendance icon for a given status
- * @param {string} status - Attendance status
- * @returns {string} Icon name
- */
-export function getAttendanceIcon(status) {
-  const icon = ATTENDANCE_STATUS_LABELS[status]?.icon || 'HelpCircle';
-  console.log('🔍 getAttendanceIcon:', { status, icon });
-  return icon;
-}
-
-/**
- * Get attendance color for a given status
- * @param {string} status - Attendance status
- * @returns {string} Color hex code
- */
-export function getAttendanceColor(status) {
-  const color = ATTENDANCE_STATUS_LABELS[status]?.color || '#6b7280';
-  console.log('🔍 getAttendanceColor:', { status, color });
-  return color;
-}
-
-/**
- * Get attendance label for a given status
- * @param {string} status - Attendance status
- * @param {string} lang - Language code ('en' or 'ar')
- * @returns {string} Localized label
- */
-export function getAttendanceLabel(status, lang = 'en') {
-  const label = ATTENDANCE_STATUS_LABELS[status];
-  if (!label) {
-    console.log('🔍 getAttendanceLabel: No label found for status:', status);
-    return status;
-  }
-  const result = lang === 'ar' ? label.ar : label.en;
-  console.log('🔍 getAttendanceLabel:', { status, lang, result });
-  return result;
 }
 
 /**

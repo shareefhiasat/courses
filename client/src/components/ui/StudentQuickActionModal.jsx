@@ -38,6 +38,7 @@ import { markAttendance } from '@firebaseServices/attendance';
 import { getClasses, getEnrollments } from '@firebaseServices/firestore';
 import { addNotification } from '@firebaseServices/notifications';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
+import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import './StudentQuickActionModal.css';
 
 const StudentQuickActionModal = ({ 
@@ -117,16 +118,11 @@ const StudentQuickActionModal = ({
   ];
 
   // Behavior types
-  const behaviorTypes = [
-    { value: 'talk_in_class', label: 'Talk in Class', severity: 'low' },
-    { value: 'sleep', label: 'Sleep', severity: 'medium' },
-    { value: 'bathroom_requests', label: 'Excessive Bathroom Requests', severity: 'medium' },
-    { value: 'mobile_in_class', label: 'Mobile in Class', severity: 'high' },
-    { value: 'disruptive', label: 'Disruptive Behavior', severity: 'high' },
-    { value: 'late_arrival', label: 'Late Arrival', severity: 'medium' },
-    { value: 'inappropriate_language', label: 'Inappropriate Language', severity: 'high' },
-    { value: 'other_behavior', label: 'Other', severity: 'low' }
-  ];
+  const behaviorTypes = BEHAVIOR_TYPES.map(type => ({
+    value: type.id,
+    label: type.label_en,
+    severity: type.points <= -1 ? 'low' : type.points <= -2 ? 'medium' : 'high'
+  }));
 
   // Load instructor's classes and programs
   useEffect(() => {

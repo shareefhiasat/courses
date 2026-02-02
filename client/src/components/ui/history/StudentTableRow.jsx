@@ -4,7 +4,7 @@ import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, Ext
 import StudentRosterHistory from './StudentRosterHistory';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import { ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
+import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 
 const StudentTableRow = ({ 

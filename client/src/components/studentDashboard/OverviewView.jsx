@@ -4,7 +4,7 @@ import {
   AlertCircle, CheckCircle, CalendarCheck, Clock, XCircle,
   ChevronRight, Inbox
 } from 'lucide-react';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '../../firebase/attendance';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import styles from '../../pages/StudentDashboardPage_NEW.module.css';
 
 export default function OverviewView({ 
