@@ -1,6 +1,6 @@
 import React from 'react';
 import { HistoryEntry } from './HistoryEntry';
-import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
+import { getAttendanceIcon, getAttendanceColor, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 import { getPenaltyIcon, getPenaltyColor } from '@constants/penaltyTypes';

@@ -1385,12 +1385,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const iconName = getAttendanceIcon(status);
       
       const iconMap = {
-        CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
-        Clock: <ClockSmallIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
-        AlertCircle: <AlertCircleIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
-        XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
-        Heart: <HeartIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />,
-        HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />
+        CheckCircle: <CheckSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
+        Clock: <ClockSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
+        AlertCircle: <AlertCircleIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
+        XCircle: <XSmallIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
+        Heart: <HeartIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />,
+        HelpCircle: <HelpCircleIcon style={{ width: '16px', height: '16px', color: '#ffffff' }} />
       };
       
       return iconMap[iconName] || iconMap.HelpCircle;

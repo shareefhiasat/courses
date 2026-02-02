@@ -6,7 +6,7 @@ import logger from '@utils/logger';
 import { X, Mail, Users, Zap, ChevronDown, ExternalLink, Trash2 } from 'lucide-react';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
-import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
 import { getParticipations, deleteParticipation } from '@firebaseServices/participations';
@@ -137,9 +137,9 @@ export default function StudentActionPanel({
       // Calculate statistics from the logs we already have
       const allLogs = [...historicalLogs, ...todayLogs];
       const attendanceStats = {
-        present: allLogs.filter(log => log.type === 'attendance' && log.status === 'present').length,
-        late: allLogs.filter(log => log.type === 'attendance' && log.status === 'late').length,
-        absent: allLogs.filter(log => log.type === 'attendance' && log.status === 'absent').length,
+        present: allLogs.filter(log => log.type === 'attendance' && log.status === ATTENDANCE_STATUS.PRESENT).length,
+        late: allLogs.filter(log => log.type === 'attendance' && log.status === ATTENDANCE_STATUS.LATE).length,
+        absent: allLogs.filter(log => log.type === 'attendance' && log.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE).length,
         percentage: 0 // Will be calculated
       };
 
@@ -790,7 +790,7 @@ export default function StudentActionPanel({
     const hasTodayAttendance = todayLogs.some(log => 
       log.type === 'attendance' && 
       log.status && 
-      ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(log.status)
+      [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, ATTENDANCE_STATUS.LATE, ATTENDANCE_STATUS.EXCUSED_LEAVE, ATTENDANCE_STATUS.HUMAN_CASE].includes(log.status)
     );
     
     // If no actual attendance records for today, show None (matching roster)
@@ -816,13 +816,13 @@ export default function StudentActionPanel({
     // Start with todayLogs calculation
     const stats = todayLogs.reduce((acc, log) => {
       if (log.type === 'attendance') {
-        const status = log.data?.status;
-        if (status === 'present') acc.present++;
-        else if (status === 'absent_no_excuse') acc.absent_no_excuse++;
-        else if (status === 'absent_with_excuse') acc.absent_with_excuse++;
-        else if (status === 'late') acc.late++;
-        else if (status === 'excused_leave') acc.excused_leave++;
-        else if (status === 'human_case') acc.human_case++;
+        const status = log.status;
+        if (status === ATTENDANCE_STATUS.PRESENT) acc.present++;
+        else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) acc.absent_no_excuse++;
+        else if (status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) acc.absent_with_excuse++;
+        else if (status === ATTENDANCE_STATUS.LATE) acc.late++;
+        else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE) acc.excused_leave++;
+        else if (status === ATTENDANCE_STATUS.HUMAN_CASE) acc.human_case++;
       }
       return acc;
     }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
@@ -837,12 +837,12 @@ export default function StudentActionPanel({
       
       // Only add to stats if it's not already in todayLogs
       if (!isInTodayLogs) {
-        if (currentAttendanceStatus === 'present') stats.present++;
-        else if (currentAttendanceStatus === 'absent_no_excuse') stats.absent_no_excuse++;
-        else if (currentAttendanceStatus === 'absent_with_excuse') stats.absent_with_excuse++;
-        else if (currentAttendanceStatus === 'late') stats.late++;
-        else if (currentAttendanceStatus === 'excused_leave') stats.excused_leave++;
-        else if (currentAttendanceStatus === 'human_case') stats.human_case++;
+        if (currentAttendanceStatus === ATTENDANCE_STATUS.PRESENT) stats.present++;
+        else if (currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) stats.absent_no_excuse++;
+        else if (currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) stats.absent_with_excuse++;
+        else if (currentAttendanceStatus === ATTENDANCE_STATUS.LATE) stats.late++;
+        else if (currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE) stats.excused_leave++;
+        else if (currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE) stats.human_case++;
       }
     }
     
@@ -854,12 +854,12 @@ export default function StudentActionPanel({
     return historicalLogs.reduce((acc, log) => {
       if (log.type === 'attendance') {
         const status = log.status;
-        if (status === 'present') acc.present++;
-        else if (status === 'absent_no_excuse') acc.absent_no_excuse++;
-        else if (status === 'absent_with_excuse') acc.absent_with_excuse++;
-        else if (status === 'late') acc.late++;
-        else if (status === 'excused_leave') acc.excused_leave++;
-        else if (status === 'human_case') acc.human_case++;
+        if (status === ATTENDANCE_STATUS.PRESENT) acc.present++;
+        else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) acc.absent_no_excuse++;
+        else if (status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) acc.absent_with_excuse++;
+        else if (status === ATTENDANCE_STATUS.LATE) acc.late++;
+        else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE) acc.excused_leave++;
+        else if (status === ATTENDANCE_STATUS.HUMAN_CASE) acc.human_case++;
       }
       return acc;
     }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
@@ -1070,7 +1070,7 @@ export default function StudentActionPanel({
             }}>
               <button
                 onClick={async () => {
-                  await handleMarkAttendance(student.id, 'present');
+                  await handleMarkAttendance(student.id, ATTENDANCE_STATUS.PRESENT);
                 }}
                 style={{
                   padding: '0.375rem',
@@ -1110,7 +1110,7 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await handleMarkAttendance(student.id, 'late');
+                  await handleMarkAttendance(student.id, ATTENDANCE_STATUS.LATE);
                 }}
                 disabled={showLoadingOverlay}
                 style={{
@@ -1151,7 +1151,7 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await handleMarkAttendance(student.id, 'absent_no_excuse');
+                  await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
                 }}
                 disabled={showLoadingOverlay}
                 style={{
@@ -1192,7 +1192,7 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await handleMarkAttendance(student.id, 'absent_with_excuse');
+                  await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE);
                 }}
                 disabled={showLoadingOverlay}
                 style={{
@@ -1233,7 +1233,7 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await handleMarkAttendance(student.id, 'excused_leave');
+                  await handleMarkAttendance(student.id, ATTENDANCE_STATUS.EXCUSED_LEAVE);
                 }}
                 disabled={showLoadingOverlay}
                 style={{
@@ -1274,7 +1274,7 @@ export default function StudentActionPanel({
               </button>
               <button
                 onClick={async () => {
-                  await handleMarkAttendance(student.id, 'human_case');
+                  await handleMarkAttendance(student.id, ATTENDANCE_STATUS.HUMAN_CASE);
                 }}
                 disabled={showLoadingOverlay}
                 style={{
