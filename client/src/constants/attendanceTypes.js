@@ -24,7 +24,7 @@ export const ATTENDANCE_TYPES = [
     id: 'absent_with_excuse', 
     label_ar: 'غياب بعذر', 
     label_en: 'Absent (Excused)', 
-    icon: 'AlertCircle',
+    icon: 'XCircle',
     color: '#ef4444'
   },
   { 
@@ -38,7 +38,7 @@ export const ATTENDANCE_TYPES = [
     id: 'excused_leave', 
     label_ar: 'استئذان', 
     label_en: 'Excused Leave', 
-    icon: 'Heart',
+    icon: 'XCircle',
     color: '#ef4444'
   },
   { 

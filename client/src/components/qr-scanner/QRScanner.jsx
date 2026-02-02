@@ -2738,113 +2738,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     gap: '0.75rem',
                     marginTop: '0.5rem'
                   }}>
-                    {/* Actions Button - Opens StudentActionPanelNew */}
-                    <button
-                        onClick={async () => {
-                          console.log('🎯 Open student actions');
-                          addDebugLog('🎯 Opening student actions', 'info');
-
-                          setActionLoading(true);
-                          setCurrentAction('actions');
-
-                          try {
-                            // For manual scan, use the student data we already have
-                            // For QR scan, use processStudentData to get complete student data
-                            let studentData;
-                            if (lastScannedStudent?.referenceId) {
-                              studentData = await processStudentData(lastScannedStudent.referenceId);
-                            } else if (lastScannedStudent?.id) {
-                              // Use the student data we already have from manual scan
-                              studentData = {
-                                id: lastScannedStudent.id,
-                                docId: lastScannedStudent.id,
-                                studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
-                                studentNumber: lastScannedStudent.studentNumber,
-                                name: lastScannedStudent.name || lastScannedStudent.displayName,
-                                displayName: lastScannedStudent.displayName,
-                                email: lastScannedStudent.email,
-                                referenceId: lastScannedStudent.referenceId || generateReferenceId(lastScannedStudent.id)
-                              };
-                            }
-
-                            if (studentData) {
-                              setStudentForAction(studentData);
-                              setShowStudentActionPanelNew(true); // Use the NEW panel for actions
-                              setShowScanDialog(false);
-                              addDebugLog(`✅ Opening actions for: ${studentData.name || studentData.email || 'Unknown'}`, 'success');
-                            } else {
-                              showResult('error', 'Student data not found');
-                            }
-                          } catch (error) {
-                            addDebugLog(`❌ Error opening student actions: ${error.message}`, 'error');
-                            showResult('error', `Failed to open student actions: ${error.message}`);
-                          } finally {
-                            setActionLoading(false);
-                            setCurrentAction(null);
-                          }
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          flex: isMobile ? 1 : 1,
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'actions' ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'center',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
-                            e.target.style.transform = 'translateY(-2px)';
-                            e.target.style.boxShadow = '0 6px 12px rgba(16, 185, 129, 0.4)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 4px 6px rgba(16, 185, 129, 0.3)';
-                          }
-                        }}
-                        onMouseDown={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#047857';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.2)';
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'actions' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <ZapIcon style={{ width: '18px', height: '18px' }} />
-                            {t('actions') || 'Actions'}
-                          </>
-                      )}
-                    </button>
-
                     {/* Details Button - Opens StudentActionPanel */}
                     <button
                         onClick={async () => {
@@ -2934,44 +2827,158 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     </button>
                   </div>
 
-                  {/* Cancel Button - Full Width at Bottom */}
-                  <button
-                      onClick={async () => {
-                        console.log('❌ Cancel scan action');
-                        setShowScanDialog(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '0.875rem',
-                        border: '2px solid #e5e7eb',
-                        background: 'white',
-                        color: '#6b7280',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.625rem',
-                        transition: 'all 0.2s ease',
-                        marginTop: '0.5rem'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = '#f9fafb';
-                        e.target.style.borderColor = '#d1d5db';
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = 'white';
-                        e.target.style.borderColor = '#e5e7eb';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                  >
-                    <XSmallIcon style={{ width: '18px', height: '18px' }} />
-                    {t('cancel') || 'Cancel'}
-                  </button>
+                  {/* Actions and Cancel Buttons Side by Side */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    marginTop: '0.5rem'
+                  }}>
+                    {/* Actions Button - 1/3 width */}
+                    <button
+                        onClick={async () => {
+                          console.log('🎯 Open student actions');
+                          addDebugLog('🎯 Opening student actions', 'info');
+
+                          setActionLoading(true);
+                          setCurrentAction('actions');
+
+                          try {
+                            // For manual scan, use the student data we already have
+                            // For QR scan, use processStudentData to get complete student data
+                            let studentData;
+                            if (lastScannedStudent?.referenceId) {
+                              studentData = await processStudentData(lastScannedStudent.referenceId);
+                            } else if (lastScannedStudent?.id) {
+                              // Use the student data we already have from manual scan
+                              studentData = {
+                                id: lastScannedStudent.id,
+                                docId: lastScannedStudent.id,
+                                studentId: lastScannedStudent.studentNumber || lastScannedStudent.id,
+                                studentNumber: lastScannedStudent.studentNumber,
+                                name: lastScannedStudent.name || lastScannedStudent.displayName,
+                                displayName: lastScannedStudent.displayName,
+                                email: lastScannedStudent.email,
+                                referenceId: lastScannedStudent.referenceId || generateReferenceId(lastScannedStudent.id)
+                              };
+                            }
+
+                            if (studentData) {
+                              setStudentForAction(studentData);
+                              setShowStudentActionPanelNew(true); // Use the NEW panel for actions
+                              setShowScanDialog(false);
+                              addDebugLog(`✅ Opening actions for: ${studentData.name || studentData.email || 'Unknown'}`, 'success');
+                            } else {
+                              showResult('error', 'Student data not found');
+                            }
+                          } catch (error) {
+                            addDebugLog(`❌ Error opening student actions: ${error.message}`, 'error');
+                            showResult('error', `Failed to open student actions: ${error.message}`);
+                          } finally {
+                            setActionLoading(false);
+                            setCurrentAction(null);
+                          }
+                        }}
+                        disabled={actionLoading}
+                        style={{
+                          flex: 1, // 1/3 of the space
+                          padding: '0.875rem',
+                          border: 'none',
+                          background: actionLoading && currentAction === 'actions' ? '#94a3b8' : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                          color: 'white',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: actionLoading ? 'not-allowed' : 'pointer',
+                          textAlign: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.625rem',
+                          opacity: actionLoading ? 0.7 : 1,
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 4px 6px rgba(251, 191, 36, 0.3)'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                            e.target.style.transform = 'translateY(-2px)';
+                            e.target.style.boxShadow = '0 6px 12px rgba(251, 191, 36, 0.4)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 4px 6px rgba(251, 191, 36, 0.3)';
+                          }
+                        }}
+                        onMouseDown={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#d97706';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 2px 4px rgba(251, 191, 36, 0.2)';
+                          }
+                        }}
+                    >
+                      {actionLoading && currentAction === 'actions' ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid white',
+                              borderTop: '2px solid transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }} />
+                            {t('processing') || 'Processing...'}
+                          </>
+                      ) : (
+                          <>
+                            <ZapIcon style={{ width: '18px', height: '18px', color: '#ffffff' }} />
+                            {t('actions') || 'Actions'}
+                          </>
+                      )}
+                    </button>
+
+                    {/* Cancel Button - 2/3 width */}
+                    <button
+                        onClick={async () => {
+                          console.log('❌ Cancel scan action');
+                          setShowScanDialog(false);
+                        }}
+                        style={{
+                          flex: 2, // 2/3 of the space
+                          padding: '0.875rem',
+                          border: '2px solid #e5e7eb',
+                          background: 'white',
+                          color: '#6b7280',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.625rem',
+                          transition: 'all 0.2s ease',
+                          marginTop: '0'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#f9fafb';
+                          e.target.style.borderColor = '#d1d5db';
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'white';
+                          e.target.style.borderColor = '#e5e7eb';
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                    >
+                      <XSmallIcon style={{ width: '18px', height: '18px' }} />
+                      {t('cancel') || 'Cancel'}
+                    </button>
+                  </div>
 
                   {/* Fourth Row: Clear Today's Scans */}
                   <div style={{
