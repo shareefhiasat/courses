@@ -21,6 +21,7 @@ import HRPenaltiesPage from './pages/HRPenaltiesPage';
 import InstructorParticipationPage from './pages/InstructorParticipationPage';
 import InstructorBehaviorPage from './pages/InstructorBehaviorPage';
 import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
+import QRCodeDisplayPage from './pages/QRCodeDisplayPage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
 import ManageEnrollmentsPage from './pages/ManageEnrollmentsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -142,6 +143,9 @@ const AppContent = () => {
           <Route path="/instructor-participation" element={<InstructorParticipationPage />} />
           <Route path="/instructor-behavior" element={<InstructorBehaviorPage />} />
           <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
+          <Route path="/qrcode/:studentId" element={<QRCodeDisplayPage />} />
+          <Route path="/qrcode/:studentId/:classId" element={<QRCodeDisplayPage />} />
+          <Route path="/qrcode" element={<QRCodeDisplayPage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />
           <Route path="/manage-enrollments" element={<ManageEnrollmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />

@@ -2,10 +2,10 @@ import React from 'react';
 import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, ExternalLink, Users, Trophy, AlertCircle } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
-import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
+import { useNavigate } from 'react-router-dom';
 
 const StudentTableRow = ({ 
   student, 
@@ -36,8 +36,7 @@ const StudentTableRow = ({
   groupLogsByDay,
   toggleFilter 
 }) => {
-  const { openQRCodeInNewTab } = QRCodeDisplay({});
-  const { sendQRCodeEmail } = useQRCodeEmail();
+  const navigate = useNavigate();
   
   const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
 
@@ -346,35 +345,13 @@ const StudentTableRow = ({
               size="icon"
               onClick={async (e) => {
                 e.stopPropagation();
-                await openQRCodeInNewTab(student);
+                // Navigate to QR code display page with student number
+                const studentNumber = student.studentNumber || student.id;
+                navigate(`/qrcode/${studentNumber}`);
               }}
               title={t('open_qr_code')}
             >
-              <ExternalLink style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await sendQRCodeEmail(student, setSendingEmails);
-              }}
-              disabled={sendingEmails[student.id]?.qrCode}
-              title={t('send_qr_code')}
-            >
-              {sendingEmails[student.id]?.qrCode ? (
-                <div style={{
-                  width: '1rem',
-                  height: '1rem',
-                  border: '2px solid #6b7280',
-                  borderTop: '2px solid transparent',
-                  borderRight: '2px solid transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }} />
-              ) : (
-                <QrCode style={{ width: '1rem', height: '1rem' }} />
-              )}
+              <QrCode style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
             </Button>
             <Button 
               variant="ghost" 

@@ -2,9 +2,9 @@ import React from 'react';
 import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle, Settings, BarChart3, QrCode, Mail, SidebarOpen, ExternalLink } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
-import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { CircleIcon, ZapIcon } from '@utils/icons.jsx';
+import { useNavigate } from 'react-router-dom';
 
 const StudentCard = ({ 
   student, 
@@ -44,8 +44,7 @@ const StudentCard = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const { openQRCodeInNewTab } = QRCodeDisplay({});
-  const { sendQRCodeEmail } = useQRCodeEmail();
+  const navigate = useNavigate();
   
   const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
 
@@ -393,29 +392,13 @@ const StudentCard = ({
           size="icon"
           onClick={(e) => {
             e.stopPropagation();
-            openQRCodeInNewTab(student);
+            // Navigate to QR code display page with student number
+            const studentNumber = student.studentNumber || student.id;
+            navigate(`/qrcode/${studentNumber}`);
           }}
           title={t('open_qr_code') || 'Open QR Code'}
         >
-          <ExternalLink style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            sendQRCodeEmail(student, {
-              onSuccess: () => {
-                // Handle success
-              },
-              onError: (error) => {
-                console.error('Failed to send QR code email:', error);
-              }
-            });
-          }}
-          title={t('send_qr_code') || 'Send QR Code'}
-        >
-          <Mail style={{ width: '1rem', height: '1rem' }} />
+          <QrCode style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
         </Button>
       </div>
       
