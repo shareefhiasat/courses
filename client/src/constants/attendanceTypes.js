@@ -45,7 +45,7 @@ export const ATTENDANCE_TYPES = [
     id: 'human_case', 
     label_ar: 'حالة إنسانية', 
     label_en: 'Human Case', 
-    icon: 'HelpCircle',
+    icon: 'Heart',
     color: '#8b5cf6'
   }
 ];

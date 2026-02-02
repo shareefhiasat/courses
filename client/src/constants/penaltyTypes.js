@@ -24,8 +24,8 @@ export const PENALTY_TYPES = [
   },
   {
     id: "attempted_cheating",
-    label_ar: "محاولة الغش أو مساعدة في الغش",
-    label_en: "Attempted Cheating or Assisting in Cheating",
+    label_ar: "محاولة الغش أو مساعدة",
+    label_en: "Cheat attempt or assist",
     points: 5,
     icon: "AlertTriangle",
     color: "#dc2626",
