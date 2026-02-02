@@ -199,7 +199,13 @@ const StudentRoster = React.memo(function StudentRoster({
       ].sort((a, b) => {
         const dateA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const dateB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
-        return dateB - dateA;
+        const result = dateB - dateA;
+        console.log('🔍 StudentRoster sort comparison:', {
+          logA: { id: a.id, type: a.type, date: a.date, time: a.time, parsedDate: dateA },
+          logB: { id: b.id, type: b.type, date: b.date, time: b.time, parsedDate: dateB },
+          result
+        });
+        return result;
       });
 
       setStudentHistory(prev => ({
@@ -639,7 +645,13 @@ const StudentRoster = React.memo(function StudentRoster({
 
     return Object.values(grouped).sort((a, b) => {
       // Sort days by date (newest first)
-      return new Date(b.date) - new Date(a.date);
+      const result = new Date(b.date) - new Date(a.date);
+      console.log('🔍 StudentRoster day sort:', {
+        dayA: { date: a.date, parsedDate: new Date(a.date) },
+        dayB: { date: b.date, parsedDate: new Date(b.date) },
+        result
+      });
+      return result;
     });
   }, []);
 

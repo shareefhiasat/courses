@@ -797,7 +797,37 @@ export default function StudentActionPanel({
       }
     });
 
-    return Object.values(grouped);
+    // Sort logs within each day by time (newest first)
+    Object.keys(grouped).forEach(date => {
+      const sortLogs = (logs) => {
+        return logs.sort((a, b) => {
+          const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+          const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+          return timeB - timeA; // Newest first
+        });
+      };
+
+      grouped[date].attendance = sortLogs(grouped[date].attendance);
+      grouped[date].penalties = sortLogs(grouped[date].penalties);
+      grouped[date].participation = sortLogs(grouped[date].participation);
+      grouped[date].behavior = sortLogs(grouped[date].behavior);
+    });
+
+    // Sort days by date (newest first)
+    const sortedGrouped = Object.values(grouped).sort((a, b) => {
+      // Sort days by date (newest first)
+      const result = new Date(b.date) - new Date(a.date);
+      console.log('🔍 StudentActionPanel day sort:', {
+        dayA: { date: a.date, parsedDate: new Date(a.date) },
+        dayB: { date: b.date, parsedDate: new Date(b.date) },
+        result
+      });
+      return result;
+    });
+    
+    console.log('🔍 StudentActionPanel final grouped logs:', sortedGrouped.map(g => ({ date: g.date, counts: { attendance: g.attendance.length, penalties: g.penalties.length, participation: g.participation.length, behavior: g.behavior.length } })));
+    
+    return sortedGrouped;
   }, []);
 
   // Memoized grouped logs for display
@@ -926,16 +956,6 @@ export default function StudentActionPanel({
   // Memoized computed values for performance
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name, getAvatarColor]);
   const attendanceStatus = useMemo(() => {
-    // First check if there's a specific attendance status (prefer current status for immediate updates)
-    const attendanceToUse = currentAttendanceStatus;
-    if (attendanceToUse) {
-      const statusInfo = ATTENDANCE_STATUS_LABELS[attendanceToUse];
-      if (statusInfo) {
-        console.log('🔧 Using direct attendance status:', attendanceToUse, statusInfo);
-        return statusInfo;
-      }
-    }
-    
     // Check if there are actual attendance records for today (not participation/behavior/penalty)
     const hasTodayAttendance = todayLogs.some(log => 
       log.type === 'attendance' && 
@@ -953,13 +973,26 @@ export default function StudentActionPanel({
       };
     }
     
+    // If there are attendance records, check for current status (prefer current status for immediate updates)
+    const attendanceToUse = currentAttendanceStatus;
+    if (attendanceToUse) {
+      const statusInfo = ATTENDANCE_STATUS_LABELS[attendanceToUse];
+      if (statusInfo) {
+        console.log('🔧 Using direct attendance status:', attendanceToUse, statusInfo);
+        return statusInfo;
+      }
+    }
+    
     // Fallback to None if no valid status found
     return {
       en: t('none') || 'None',
       ar: t('none') || 'لا شيء',
       color: '#9ca3af'
     };
-  }, [student?.attendance, todayLogs, t]);
+  }, [student?.attendance, todayLogs, currentAttendanceStatus, t]);
+
+  // Helper variable to check if attendance status is None
+  const isAttendanceNone = attendanceStatus?.en === 'None';
 
   // Memoized attendance statistics calculation (TODAY ONLY)
   const attendanceStats = useMemo(() => {
@@ -1222,13 +1255,15 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, ATTENDANCE_STATUS.PRESENT);
                 }}
+                disabled={showLoadingOverlay || isAttendanceNone}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #10b981',
-                  background: currentAttendanceStatus === 'present' ? '#10b981' : 'white',
-                  color: currentAttendanceStatus === 'present' ? 'white' : '#10b981',
-                  cursor: 'pointer',
+                  background: !isAttendanceNone && currentAttendanceStatus === 'present' ? '#10b981' : 'white',
+                  color: !isAttendanceNone && currentAttendanceStatus === 'present' ? 'white' : '#10b981',
+                  cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
+                  opacity: isAttendanceNone ? 0.5 : 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -1262,14 +1297,15 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, ATTENDANCE_STATUS.LATE);
                 }}
-                disabled={showLoadingOverlay}
+                disabled={showLoadingOverlay || isAttendanceNone}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #f59e0b',
-                  background: currentAttendanceStatus === 'late' ? '#f59e0b' : 'white',
-                  color: currentAttendanceStatus === 'late' ? 'white' : '#f59e0b',
-                  cursor: 'pointer',
+                  background: !isAttendanceNone && currentAttendanceStatus === 'late' ? '#f59e0b' : 'white',
+                  color: !isAttendanceNone && currentAttendanceStatus === 'late' ? 'white' : '#f59e0b',
+                  cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
+                  opacity: isAttendanceNone ? 0.5 : 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -1303,14 +1339,15 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
                 }}
-                disabled={showLoadingOverlay}
+                disabled={showLoadingOverlay || isAttendanceNone}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #ef4444',
-                  background: currentAttendanceStatus === 'absent_no_excuse' ? '#ef4444' : 'white',
-                  color: currentAttendanceStatus === 'absent_no_excuse' ? 'white' : '#ef4444',
-                  cursor: 'pointer',
+                  background: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? '#ef4444' : 'white',
+                  color: !isAttendanceNone && currentAttendanceStatus === 'absent_no_excuse' ? 'white' : '#ef4444',
+                  cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
+                  opacity: isAttendanceNone ? 0.5 : 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -1344,14 +1381,15 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE);
                 }}
-                disabled={showLoadingOverlay}
+                disabled={showLoadingOverlay || isAttendanceNone}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #ef4444',
-                  background: currentAttendanceStatus === 'absent_with_excuse' ? '#ef4444' : 'white',
-                  color: currentAttendanceStatus === 'absent_with_excuse' ? 'white' : '#ef4444',
-                  cursor: 'pointer',
+                  background: !isAttendanceNone && currentAttendanceStatus === 'absent_with_excuse' ? '#ef4444' : 'white',
+                  color: !isAttendanceNone && currentAttendanceStatus === 'absent_with_excuse' ? 'white' : '#ef4444',
+                  cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
+                  opacity: isAttendanceNone ? 0.5 : 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -1385,14 +1423,15 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, ATTENDANCE_STATUS.EXCUSED_LEAVE);
                 }}
-                disabled={showLoadingOverlay}
+                disabled={showLoadingOverlay || isAttendanceNone}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #ef4444',
-                  background: currentAttendanceStatus === 'excused_leave' ? '#ef4444' : 'white',
-                  color: currentAttendanceStatus === 'excused_leave' ? 'white' : '#ef4444',
-                  cursor: 'pointer',
+                  background: !isAttendanceNone && currentAttendanceStatus === 'excused_leave' ? '#ef4444' : 'white',
+                  color: !isAttendanceNone && currentAttendanceStatus === 'excused_leave' ? 'white' : '#ef4444',
+                  cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
+                  opacity: isAttendanceNone ? 0.5 : 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -1426,14 +1465,15 @@ export default function StudentActionPanel({
                 onClick={async () => {
                   await handleMarkAttendance(student.id, ATTENDANCE_STATUS.HUMAN_CASE);
                 }}
-                disabled={showLoadingOverlay}
+                disabled={showLoadingOverlay || isAttendanceNone}
                 style={{
                   padding: '0.375rem',
                   borderRadius: '0.25rem',
                   border: '2px solid #8b5cf6',
-                  background: currentAttendanceStatus === 'human_case' ? '#8b5cf6' : 'white',
-                  color: currentAttendanceStatus === 'human_case' ? 'white' : '#8b5cf6',
-                  cursor: 'pointer',
+                  background: !isAttendanceNone && currentAttendanceStatus === 'human_case' ? '#8b5cf6' : 'white',
+                  color: !isAttendanceNone && currentAttendanceStatus === 'human_case' ? 'white' : '#8b5cf6',
+                  cursor: (showLoadingOverlay || isAttendanceNone) ? 'not-allowed' : 'pointer',
+                  opacity: isAttendanceNone ? 0.5 : 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',

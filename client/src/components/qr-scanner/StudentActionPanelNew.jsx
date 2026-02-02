@@ -93,9 +93,13 @@ export default function StudentActionPanelNew({
       }
     }
     
-    // If no valid attendance status, don't show anything (not even "None")
-    console.log('🔧 No valid attendance found - hiding status');
-    return null;
+    // If no valid attendance status, show None
+    console.log('🔧 No valid attendance found - showing None');
+    return {
+      en: t('none') || 'None',
+      ar: t('none') || 'لا شيء',
+      color: '#9ca3af'
+    };
   }, [student?.attendance, t]);
 
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name]);

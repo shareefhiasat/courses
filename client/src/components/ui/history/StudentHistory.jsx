@@ -1,6 +1,7 @@
 import React from 'react';
 import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
+import { HistoryEntry } from './HistoryEntry';
 import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon } from '@utils/icons.jsx';
 
 const StudentHistory = React.memo(({ 
@@ -72,73 +73,74 @@ const StudentHistory = React.memo(({
         
         {isDayExpanded && (
           <div style={{ padding: '0.5rem 0.75rem' }}>
-            <HistorySection
-              title="Attendance"
-              logs={dayGroup.attendance.sort((a, b) => {
+            {/* Combined Timeline - All records sorted by time */}
+            {(() => {
+              // Combine all logs from all types and sort by time
+              const allLogs = [
+                ...dayGroup.attendance.map(log => ({ ...log, logType: 'attendance' })),
+                ...dayGroup.participation.map(log => ({ ...log, logType: 'participation' })),
+                ...(dayGroup.behavior || []).map(log => ({ ...log, logType: 'behavior' })),
+                ...dayGroup.penalties.map(log => ({ ...log, logType: 'penalty' }))
+              ].sort((a, b) => {
                 const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
                 const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
                 return timeB - timeA; // Newest first
-              })}
-              type="attendance"
-              icon={<AttendanceIcon />}
-              iconColor="#10b981"
-              activeFilters={activeFilters}
-              onDelete={(logId) => handleDeleteAttendance(studentId, logId)}
-              t={t}
-              isRTL={isRTL}
-              borderColor="#f1f5f9"
-            />
-            
-            <HistorySection
-              title="Participation"
-              logs={dayGroup.participation.sort((a, b) => {
-                const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
-                const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
-                return timeB - timeA; // Newest first
-              })}
-              type="participation"
-              icon={<ParticipationIcon />}
-              iconColor="#3b82f6"
-              activeFilters={activeFilters}
-              onDelete={(logId) => handleDeleteParticipation(studentId, logId)}
-              t={t}
-              isRTL={isRTL}
-              borderColor="#e5e7eb"
-            />
-            
-            <HistorySection
-              title="Behavior"
-              logs={(dayGroup.behavior || []).sort((a, b) => {
-                const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
-                const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
-                return timeB - timeA; // Newest first
-              })}
-              type="behavior"
-              icon={<ZapIcon />}
-              iconColor="#f97316"
-              activeFilters={activeFilters}
-              onDelete={(logId) => handleDeleteBehavior(studentId, logId)}
-              t={t}
-              isRTL={isRTL}
-              borderColor="#fed7aa"
-            />
-            
-            <HistorySection
-              title="Penalties"
-              logs={dayGroup.penalties.sort((a, b) => {
-                const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
-                const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
-                return timeB - timeA; // Newest first
-              })}
-              type="penalty"
-              icon={<PenaltyIcon />}
-              iconColor="#ef4444"
-              activeFilters={activeFilters}
-              onDelete={(logId) => handleDeletePenalty(studentId, logId)}
-              t={t}
-              isRTL={isRTL}
-              borderColor="#fecaca"
-            />
+              });
+
+              console.log('🔍 Combined timeline logs:', allLogs.map(log => ({
+                time: log.time,
+                type: log.logType,
+                label: log.label
+              })));
+
+              return allLogs.map((log, index) => {
+                // Get the appropriate icon and color based on log type
+                let icon, iconColor, borderColor, onDelete;
+                
+                switch (log.logType) {
+                  case 'attendance':
+                    icon = <AttendanceIcon />;
+                    iconColor = "#10b981";
+                    borderColor = "#f1f5f9";
+                    onDelete = (logId) => handleDeleteAttendance(studentId, logId);
+                    break;
+                  case 'participation':
+                    icon = <ParticipationIcon />;
+                    iconColor = "#3b82f6";
+                    borderColor = "#e5e7eb";
+                    onDelete = (logId) => handleDeleteParticipation(studentId, logId);
+                    break;
+                  case 'behavior':
+                    icon = <ZapIcon />;
+                    iconColor = "#f97316";
+                    borderColor = "#fed7aa";
+                    onDelete = (logId) => handleDeleteBehavior(studentId, logId);
+                    break;
+                  case 'penalty':
+                    icon = <PenaltyIcon />;
+                    iconColor = "#ef4444";
+                    borderColor = "#fecaca";
+                    onDelete = (logId) => handleDeletePenalty(studentId, logId);
+                    break;
+                  default:
+                    return null;
+                }
+
+                return (
+                  <HistoryEntry
+                    key={`${log.logType}-${log.id}-${index}`}
+                    log={log}
+                    type={log.logType}
+                    icon={icon}
+                    iconColor={iconColor}
+                    borderColor={index === allLogs.length - 1 ? 'none' : borderColor}
+                    onDelete={onDelete}
+                    t={t}
+                    isRTL={isRTL}
+                  />
+                );
+              });
+            })()}
           </div>
         )}
       </div>
