@@ -20,6 +20,14 @@ import { useToast } from '@ui';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
+
+// Record type constants
+const RECORD_TYPES = {
+  ATTENDANCE: 'attendance',
+  PENALTY: 'penalty', 
+  PARTICIPATION: 'participation',
+  BEHAVIOR: 'behavior'
+};
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, FileIcon, HeartIcon, HelpCircleIcon, UserIcon, UserPlusIcon, ZapIcon} from "@utils/icons.jsx";
 
@@ -140,9 +148,9 @@ export default function StudentActionPanel({
       // Calculate statistics from the logs we already have
       const allLogs = [...historicalLogs, ...todayLogs];
       const attendanceStats = {
-        present: allLogs.filter(log => log.type === 'attendance' && log.status === ATTENDANCE_STATUS.PRESENT).length,
-        late: allLogs.filter(log => log.type === 'attendance' && log.status === ATTENDANCE_STATUS.LATE).length,
-        absent: allLogs.filter(log => log.type === 'attendance' && log.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE).length,
+        present: allLogs.filter(log => log.type === RECORD_TYPES.ATTENDANCE && log.status === ATTENDANCE_STATUS.PRESENT).length,
+        late: allLogs.filter(log => log.type === RECORD_TYPES.ATTENDANCE && log.status === ATTENDANCE_STATUS.LATE).length,
+        absent: allLogs.filter(log => log.type === RECORD_TYPES.ATTENDANCE && log.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE).length,
         percentage: 0 // Will be calculated
       };
 
@@ -153,21 +161,21 @@ export default function StudentActionPanel({
 
       const participationStats = {
         total: student.participation || 0,
-        positive: allLogs.filter(log => log.type === 'participation' && log.points > 0).reduce((sum, log) => sum + log.points, 0),
-        neutral: allLogs.filter(log => log.type === 'participation' && log.points === 0).length
+        positive: allLogs.filter(log => log.type === RECORD_TYPES.PARTICIPATION && log.points > 0).reduce((sum, log) => sum + log.points, 0),
+        neutral: allLogs.filter(log => log.type === RECORD_TYPES.PARTICIPATION && log.points === 0).length
       };
 
       const behaviorStats = {
         total: student.behavior || 0,
-        positive: allLogs.filter(log => log.type === 'behavior' && log.points > 0).reduce((sum, log) => sum + log.points, 0),
-        negative: Math.abs(allLogs.filter(log => log.type === 'behavior' && log.points < 0).reduce((sum, log) => sum + log.points, 0))
+        positive: allLogs.filter(log => log.type === RECORD_TYPES.BEHAVIOR && log.points > 0).reduce((sum, log) => sum + log.points, 0),
+        negative: Math.abs(allLogs.filter(log => log.type === RECORD_TYPES.BEHAVIOR && log.points < 0).reduce((sum, log) => sum + log.points, 0))
       };
 
       const penaltyStats = {
-        total: allLogs.filter(log => log.type === 'penalty').length,
-        minor: allLogs.filter(log => log.type === 'penalty' && log.severity === 'minor').length,
-        major: allLogs.filter(log => log.type === 'penalty' && log.severity === 'major').length,
-        recentPenalties: allLogs.filter(log => log.type === 'penalty').slice(0, 3).map(log =>
+        total: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY).length,
+        minor: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY && log.severity === 'minor').length,
+        major: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY && log.severity === 'major').length,
+        recentPenalties: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY).slice(0, 3).map(log =>
           `${log.label} (${new Date(log.time).toLocaleDateString()})`
         ).join(', ')
       };
@@ -567,10 +575,10 @@ export default function StudentActionPanel({
       
       // Handle bulk delete operations
       if (bulkDeleteType) {
-        if (bulkDeleteType.type === 'penalty') {
+        if (bulkDeleteType.type === RECORD_TYPES.PENALTY) {
           // Get all penalty logs for this type
           const penaltyLogs = todayLogs.filter(log => 
-            log.type === 'penalty' && log.data?.type === bulkDeleteType.typeId
+            log.type === RECORD_TYPES.PENALTY && log.data?.type === bulkDeleteType.typeId
           );
           
           // Delete each penalty
@@ -589,10 +597,10 @@ export default function StudentActionPanel({
           
           // Close panel
           onClose();
-        } else if (bulkDeleteType.type === 'participation') {
+        } else if (bulkDeleteType.type === RECORD_TYPES.PARTICIPATION) {
           // Get all participation logs for this type
           const participationLogs = todayLogs.filter(log => 
-            log.type === 'participation' && log.data?.type === bulkDeleteType.typeId
+            log.type === RECORD_TYPES.PARTICIPATION && log.data?.type === bulkDeleteType.typeId
           );
           
           // Delete each participation
@@ -611,10 +619,10 @@ export default function StudentActionPanel({
           
           // Close panel
           onClose();
-        } else if (bulkDeleteType.type === 'behavior') {
+        } else if (bulkDeleteType.type === RECORD_TYPES.BEHAVIOR) {
           // Get all behavior logs for this type
           const behaviorLogs = todayLogs.filter(log => 
-            log.type === 'behavior' && log.data?.type === bulkDeleteType.typeId
+            log.type === RECORD_TYPES.BEHAVIOR && log.data?.type === bulkDeleteType.typeId
           );
           
           // Delete each behavior
@@ -639,7 +647,7 @@ export default function StudentActionPanel({
         setBulkDeleteType(null);
       } else {
         // Handle single item delete (existing logic)
-        if (deleteType === 'attendance') {
+        if (deleteType === RECORD_TYPES.ATTENDANCE) {
           result = await deleteAttendance(deleteLogId);
           if (result.success) {
             // Refresh the history
@@ -667,7 +675,7 @@ export default function StudentActionPanel({
             console.error('Failed to delete attendance record:', result.error);
             showError('Failed to delete attendance record: ' + result.error);
           }
-        } else if (deleteType === 'participation') {
+        } else if (deleteType === RECORD_TYPES.PARTICIPATION) {
           result = await deleteParticipation(deleteLogId);
           if (result.success) {
             // Refresh the history
@@ -695,7 +703,7 @@ export default function StudentActionPanel({
             logger.error('Failed to delete participation record:', result.error);
             showError('Failed to delete participation record: ' + result.error);
           }
-        } else if (deleteType === 'penalty') {
+        } else if (deleteType === RECORD_TYPES.PENALTY) {
           result = await deletePenalty(deleteLogId);
           if (result.success) {
             // Refresh the history
@@ -723,7 +731,7 @@ export default function StudentActionPanel({
             logger.error('Failed to delete penalty record:', result.error);
             showError('Failed to delete penalty record: ' + result.error);
           }
-        } else if (deleteType === 'behavior') {
+        } else if (deleteType === RECORD_TYPES.BEHAVIOR) {
           result = await deleteBehavior(deleteLogId);
           if (result.success) {
             // Refresh the history
