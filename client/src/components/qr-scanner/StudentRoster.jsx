@@ -435,12 +435,55 @@ const StudentRoster = React.memo(function StudentRoster({
       }
     });
 
+    // Add refresh event listeners
+    const unsubscribeRefreshRoster = eventBus.on(EVENTS.REFRESH_ROSTER, () => {
+      if (onRefresh) {
+        setTimeout(() => {
+          onRefresh();
+        }, 100);
+      }
+    });
+
+    const unsubscribeRefreshStudent = eventBus.on(EVENTS.REFRESH_STUDENT_DATA, (data) => {
+      // Refresh specific student history if expanded
+      if (data?.studentId && expandedRows.has(data.studentId)) {
+        fetchStudentHistory(data.studentId);
+      }
+      
+      // Refresh entire roster if no specific student ID
+      if (!data?.studentId && onRefresh) {
+        setTimeout(() => {
+          onRefresh();
+        }, 100);
+      }
+    });
+
+    const unsubscribeRefreshRecent = eventBus.on(EVENTS.REFRESH_RECENT_ACTIVITY, () => {
+      // Refresh all expanded students
+      const expandedStudents = Array.from(expandedRows);
+      expandedStudents.forEach(studentId => {
+        fetchStudentHistory(studentId);
+      });
+    });
+
+    const unsubscribeRefreshToday = eventBus.on(EVENTS.REFRESH_TODAY_ACTIVITY, () => {
+      // Refresh all expanded students for today's activity
+      const expandedStudents = Array.from(expandedRows);
+      expandedStudents.forEach(studentId => {
+        fetchStudentHistory(studentId);
+      });
+    });
+
     return () => {
       unsubscribeActivity();
       unsubscribeAttendance();
       unsubscribeBehavior();
       unsubscribeParticipation();
       unsubscribePenalty();
+      unsubscribeRefreshRoster();
+      unsubscribeRefreshStudent();
+      unsubscribeRefreshRecent();
+      unsubscribeRefreshToday();
     };
   }, [expandedRows, fetchStudentHistory, onRefresh]);
 

@@ -10,12 +10,13 @@ import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS } from '@constants/attendan
 import { getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
 import { getParticipations, deleteParticipation } from '@firebaseServices/participations';
-import { getBehaviors } from '@firebaseServices/behaviors';
+import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviors';
 import { getFunctions } from '@firebaseServices/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { FancyLoading } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useToast } from '@ui';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
@@ -38,6 +39,7 @@ export default function StudentActionPanel({
 }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
+  const { showSuccess, showError } = useToast();
   const [selectedActions, setSelectedActions] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -494,11 +496,27 @@ export default function StudentActionPanel({
       if (data.studentId === student.id) fetchHistoricalLogs();
     });
 
+    // Add refresh event listeners
+    const unsubscribeRefreshStudent = eventBus.on(EVENTS.REFRESH_STUDENT_DATA, (data) => {
+      if (data?.studentId === student.id || !data?.studentId) fetchHistoricalLogs();
+    });
+
+    const unsubscribeRefreshRecent = eventBus.on(EVENTS.REFRESH_RECENT_ACTIVITY, () => {
+      fetchHistoricalLogs();
+    });
+
+    const unsubscribeRefreshToday = eventBus.on(EVENTS.REFRESH_TODAY_ACTIVITY, () => {
+      fetchHistoricalLogs();
+    });
+
     return () => {
       unsubscribeAttendance();
       unsubscribeBehavior();
       unsubscribeParticipation();
       unsubscribePenalty();
+      unsubscribeRefreshStudent();
+      unsubscribeRefreshRecent();
+      unsubscribeRefreshToday();
     };
   }, [student?.id, fetchHistoricalLogs]);
 
@@ -552,7 +570,7 @@ export default function StudentActionPanel({
         if (bulkDeleteType.type === 'penalty') {
           // Get all penalty logs for this type
           const penaltyLogs = todayLogs.filter(log => 
-            log.type === 'penalty' && log.data?.penaltyType === bulkDeleteType.typeId
+            log.type === 'penalty' && log.data?.type === bulkDeleteType.typeId
           );
           
           // Delete each penalty
@@ -563,6 +581,58 @@ export default function StudentActionPanel({
           // Refresh data
           eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
           eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+          eventBus.emit(EVENTS.REFRESH_ROSTER);
+          eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+          
+          // Show success feedback
+          showSuccess(`Successfully deleted ${penaltyLogs.length} penalty records`);
+          
+          // Close panel
+          onClose();
+        } else if (bulkDeleteType.type === 'participation') {
+          // Get all participation logs for this type
+          const participationLogs = todayLogs.filter(log => 
+            log.type === 'participation' && log.data?.type === bulkDeleteType.typeId
+          );
+          
+          // Delete each participation
+          for (const log of participationLogs) {
+            await deleteParticipation(log.id);
+          }
+          
+          // Refresh data
+          eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+          eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+          eventBus.emit(EVENTS.REFRESH_ROSTER);
+          eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+          
+          // Show success feedback
+          showSuccess(`Successfully deleted ${participationLogs.length} participation records`);
+          
+          // Close panel
+          onClose();
+        } else if (bulkDeleteType.type === 'behavior') {
+          // Get all behavior logs for this type
+          const behaviorLogs = todayLogs.filter(log => 
+            log.type === 'behavior' && log.data?.type === bulkDeleteType.typeId
+          );
+          
+          // Delete each behavior
+          for (const log of behaviorLogs) {
+            await deleteBehavior(log.id);
+          }
+          
+          // Refresh data
+          eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+          eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+          eventBus.emit(EVENTS.REFRESH_ROSTER);
+          eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+          
+          // Show success feedback
+          showSuccess(`Successfully deleted ${behaviorLogs.length} behavior records`);
+          
+          // Close panel
+          onClose();
         }
         
         // Reset bulk delete
@@ -584,9 +654,18 @@ export default function StudentActionPanel({
               performedBy: user,
               timestamp: new Date()
             });
+            
+            // Refresh roster and activity
+            eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+            eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+            eventBus.emit(EVENTS.REFRESH_ROSTER);
+            eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+            
+            // Show success feedback
+            showSuccess('Attendance record deleted successfully');
           } else {
             console.error('Failed to delete attendance record:', result.error);
-            alert('Failed to delete attendance record: ' + result.error);
+            showError('Failed to delete attendance record: ' + result.error);
           }
         } else if (deleteType === 'participation') {
           result = await deleteParticipation(deleteLogId);
@@ -603,9 +682,18 @@ export default function StudentActionPanel({
               performedBy: user,
               timestamp: new Date()
             });
+            
+            // Refresh roster and activity
+            eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+            eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+            eventBus.emit(EVENTS.REFRESH_ROSTER);
+            eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+            
+            // Show success feedback
+            showSuccess('Participation record deleted successfully');
           } else {
             logger.error('Failed to delete participation record:', result.error);
-            alert('Failed to delete participation record: ' + result.error);
+            showError('Failed to delete participation record: ' + result.error);
           }
         } else if (deleteType === 'penalty') {
           result = await deletePenalty(deleteLogId);
@@ -622,9 +710,18 @@ export default function StudentActionPanel({
               performedBy: user,
               timestamp: new Date()
             });
+            
+            // Refresh roster and activity
+            eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+            eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+            eventBus.emit(EVENTS.REFRESH_ROSTER);
+            eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+            
+            // Show success feedback
+            showSuccess('Penalty record deleted successfully');
           } else {
             logger.error('Failed to delete penalty record:', result.error);
-            alert('Failed to delete penalty record: ' + result.error);
+            showError('Failed to delete penalty record: ' + result.error);
           }
         } else if (deleteType === 'behavior') {
           result = await deleteBehavior(deleteLogId);
@@ -641,22 +738,31 @@ export default function StudentActionPanel({
               performedBy: user,
               timestamp: new Date()
             });
+            
+            // Refresh roster and activity
+            eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+            eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+            eventBus.emit(EVENTS.REFRESH_ROSTER);
+            eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
+            
+            // Show success feedback
+            showSuccess('Behavior record deleted successfully');
           } else {
             logger.error('Failed to delete behavior record:', result.error);
-            alert('Failed to delete behavior record: ' + result.error);
+            showError('Failed to delete behavior record: ' + result.error);
           }
         }
       }
     } catch (error) {
       logger.error(`Error deleting ${deleteType} record:`, error);
-      alert(`Error deleting ${deleteType} record: ` + error.message);
+      showError(`Error deleting ${deleteType} record: ` + error.message);
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
       setDeleteType('');
       setDeleteLogId('');
     }
-  }, [deleteType, deleteLogId, student, user, fetchHistoricalLogs]);
+  }, [deleteType, deleteLogId, student, user, fetchHistoricalLogs, bulkDeleteType, todayLogs, onClose, showSuccess, showError]);
 
   // Memoized group logs by day for performance
   const groupLogsByDay = useCallback((logs) => {
@@ -1638,6 +1744,36 @@ export default function StudentActionPanel({
                           }}>
                             Count: ({stat.count})
                           </div>
+                          {stat.count > 0 && (
+                            <button
+                              onClick={() => {
+                                setDeleteType('participation');
+                                setBulkDeleteType({ type: 'participation', typeId: type.id, typeName: type.label_en });
+                                setDeleteModalOpen(true);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.25rem',
+                                borderRadius: '0.25rem',
+                                color: '#dc2626',
+                                marginLeft: '0.5rem',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.background = '#dc2626';
+                                e.target.style.color = 'white';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.background = 'none';
+                                e.target.style.color = '#dc2626';
+                              }}
+                              title={`Delete all ${type.label_en} entries`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       );
                     });
@@ -1764,6 +1900,36 @@ export default function StudentActionPanel({
                           }}>
                             {t('count')}: ({stat.count})
                           </div>
+                          {stat.count > 0 && (
+                            <button
+                              onClick={() => {
+                                setDeleteType('behavior');
+                                setBulkDeleteType({ type: 'behavior', typeId: type.id, typeName: type.label_en });
+                                setDeleteModalOpen(true);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.25rem',
+                                borderRadius: '0.25rem',
+                                color: '#dc2626',
+                                marginLeft: '0.5rem',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.background = '#dc2626';
+                                e.target.style.color = 'white';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.background = 'none';
+                                e.target.style.color = '#dc2626';
+                              }}
+                              title={`Delete all ${type.label_en} entries`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       );
                     });

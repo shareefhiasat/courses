@@ -41,5 +41,9 @@ export const EVENTS = {
   ATTENDANCE_DELETED: 'attendance_deleted',
   BEHAVIOR_LOGGED: 'behavior_logged',
   PARTICIPATION_ADDED: 'participation_added',
-  PENALTY_ASSIGNED: 'penalty_assigned'
+  PENALTY_ASSIGNED: 'penalty_assigned',
+  REFRESH_RECENT_ACTIVITY: 'refresh_recent_activity',
+  REFRESH_STUDENT_DATA: 'refresh_student_data',
+  REFRESH_ROSTER: 'refresh_roster',
+  REFRESH_TODAY_ACTIVITY: 'refresh_today_activity'
 };

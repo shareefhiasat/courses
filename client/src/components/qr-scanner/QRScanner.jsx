@@ -1422,6 +1422,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, fetchRecentActivity);
     const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED, fetchRecentActivity);
     const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, fetchRecentActivity);
+    
+    // Add refresh event listeners
+    const unsubscribeRefreshRecent = eventBus.on(EVENTS.REFRESH_RECENT_ACTIVITY, fetchRecentActivity);
+    const unsubscribeRefreshToday = eventBus.on(EVENTS.REFRESH_TODAY_ACTIVITY, fetchRecentActivity);
 
     return () => {
       unsubscribeActivity();
@@ -1429,6 +1433,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       unsubscribeBehavior();
       unsubscribeParticipation();
       unsubscribePenalty();
+      unsubscribeRefreshRecent();
+      unsubscribeRefreshToday();
     };
   }, [fetchRecentActivity]);
 
@@ -2158,13 +2164,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               }}>
                 <div style={{
                   background: 'white',
-                  borderRadius: '0.5rem',
-                  padding: '1.5rem',
-                  width: isMobile ? '90vw' : '400px',
-                  maxWidth: '400px',
-                  minWidth: isMobile ? '280px' : '350px',
-                  maxHeight: '80vh',
-                  overflow: 'auto'
+                  borderRadius: isMobile ? '0' : '0.5rem',
+                  padding: isMobile ? '1rem' : '1.5rem',
+                  width: isMobile ? '100vw' : '400px',
+                  maxWidth: isMobile ? '100vw' : '400px',
+                  minWidth: isMobile ? '100vw' : '350px',
+                  height: isMobile ? '100vh' : 'auto',
+                  maxHeight: isMobile ? '100vh' : '80vh',
+                  overflow: 'auto',
+                  position: isMobile ? 'fixed' : 'relative',
+                  top: isMobile ? '0' : 'auto',
+                  left: isMobile ? '0' : 'auto'
                 }}>
                   <h3 style={{
                     fontSize: '1.125rem',
@@ -3112,17 +3122,20 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           {showManualInput && (
               <div style={{
                 position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
+                top: isMobile ? '0' : '50%',
+                left: isMobile ? '0' : '50%',
+                transform: isMobile ? 'none' : 'translate(-50%, -50%)',
                 background: 'white',
-                borderRadius: '0.5rem',
-                padding: '1.5rem',
+                borderRadius: isMobile ? '0' : '0.5rem',
+                padding: isMobile ? '1rem' : '1.5rem',
                 boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
                 zIndex: 1003,
-                width: isMobile ? '90vw' : '400px',
-                maxWidth: '400px',
-                minWidth: isMobile ? '280px' : '350px'
+                width: isMobile ? '100vw' : '400px',
+                maxWidth: isMobile ? '100vw' : '400px',
+                minWidth: isMobile ? '100vw' : '350px',
+                height: isMobile ? '100vh' : 'auto',
+                maxHeight: isMobile ? '100vh' : '80vh',
+                overflow: 'auto'
               }}>
                 <h3 style={{
                   margin: '0 0 1rem 0',
@@ -3220,11 +3233,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               }}>
                 <div style={{
                   background: 'white',
-                  borderRadius: '0.5rem',
-                  padding: '2rem',
-                  width: isMobile ? '90vw' : '400px',
-                  maxWidth: '400px',
-                  minWidth: isMobile ? '280px' : '350px',
+                  borderRadius: isMobile ? '0' : '0.5rem',
+                  padding: isMobile ? '1rem' : '2rem',
+                  width: isMobile ? '100vw' : '400px',
+                  maxWidth: isMobile ? '100vw' : '400px',
+                  minWidth: isMobile ? '100vw' : '350px',
+                  height: isMobile ? '100vh' : 'auto',
+                  maxHeight: isMobile ? '100vh' : '80vh',
+                  overflow: 'auto',
+                  position: isMobile ? 'fixed' : 'relative',
+                  top: isMobile ? '0' : 'auto',
+                  left: isMobile ? '0' : 'auto',
                   textAlign: 'center'
                 }}>
                   <div style={{
