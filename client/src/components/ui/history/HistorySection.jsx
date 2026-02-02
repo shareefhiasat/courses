@@ -72,7 +72,7 @@ export const HistorySection = ({
   // Get appropriate icon for each log based on type
   const getLogIcon = (log) => {
     if (type === 'attendance') {
-      // Clean: use only the status field
+      // Attendance status is now flattened to top level (no more data nesting)
       const status = log.status;
       
       const iconName = getAttendanceIcon(status);

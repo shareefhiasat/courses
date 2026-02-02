@@ -137,9 +137,9 @@ export default function StudentActionPanel({
       // Calculate statistics from the logs we already have
       const allLogs = [...historicalLogs, ...todayLogs];
       const attendanceStats = {
-        present: allLogs.filter(log => log.type === 'attendance' && log.data.status === 'present').length,
-        late: allLogs.filter(log => log.type === 'attendance' && log.data.status === 'late').length,
-        absent: allLogs.filter(log => log.type === 'attendance' && log.data.status === 'absent').length,
+        present: allLogs.filter(log => log.type === 'attendance' && log.status === 'present').length,
+        late: allLogs.filter(log => log.type === 'attendance' && log.status === 'late').length,
+        absent: allLogs.filter(log => log.type === 'attendance' && log.status === 'absent').length,
         percentage: 0 // Will be calculated
       };
 
@@ -365,7 +365,7 @@ export default function StudentActionPanel({
           type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
           date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
-          data: record,
+          status: record.status,  // ← Flatten status to top level
           label: record.category === 'participation' 
             ? 'Participation' 
             : (record.category === 'behavior' 
@@ -789,8 +789,8 @@ export default function StudentActionPanel({
     // Check if there are actual attendance records for today (not participation/behavior/penalty)
     const hasTodayAttendance = todayLogs.some(log => 
       log.type === 'attendance' && 
-      log.data?.status && 
-      ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(log.data.status)
+      log.status && 
+      ['present', 'absent_no_excuse', 'absent_with_excuse', 'late', 'excused_leave', 'human_case'].includes(log.status)
     );
     
     // If no actual attendance records for today, show None (matching roster)
@@ -832,7 +832,7 @@ export default function StudentActionPanel({
     if (currentAttendanceStatus) {
       // Check if this status is already counted in todayLogs
       const isInTodayLogs = todayLogs.some(log => 
-        log.type === 'attendance' && log.data?.status === currentAttendanceStatus
+        log.type === 'attendance' && log.status === currentAttendanceStatus
       );
       
       // Only add to stats if it's not already in todayLogs
@@ -853,7 +853,7 @@ export default function StudentActionPanel({
   const totalAttendanceStats = useMemo(() => {
     return historicalLogs.reduce((acc, log) => {
       if (log.type === 'attendance') {
-        const status = log.data?.status;
+        const status = log.status;
         if (status === 'present') acc.present++;
         else if (status === 'absent_no_excuse') acc.absent_no_excuse++;
         else if (status === 'absent_with_excuse') acc.absent_with_excuse++;
