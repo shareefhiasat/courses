@@ -123,33 +123,61 @@ const QRCodeDisplayPage = () => {
   };
 
   const handleShare = async () => {
-    if (!qrCodeData?.image) return;
+    if (!qrCodeData?.image) {
+      showError('No QR code available to share');
+      return;
+    }
     
     try {
+      console.log('🔗 Starting share process');
+      
       if (navigator.share) {
-        // Use native share API if available
-        const blob = await (await fetch(qrCodeData.image)).blob();
+        console.log('🔗 Using native share API');
+        
+        // Convert data URL to blob
+        const response = await fetch(qrCodeData.image);
+        const blob = await response.blob();
         const file = new File([blob], 'qrcode.png', { type: 'image/png' });
         
-        await navigator.share({
+        const shareData = {
           title: t('student_qrcode') || 'Student QR Code',
           text: studentInfo 
-            ? `${t('student')}: ${studentInfo.name || studentInfo.displayName} (${studentInfo.studentNumber || studentId})`
-            : `${t('student')}: ${studentId}`,
+            ? `${t('student') || 'Student'}: ${studentInfo.name || studentInfo.displayName} (${studentInfo.studentNumber || studentId})`
+            : `${t('student') || 'Student'}: ${studentId}`,
           files: [file]
-        });
+        };
+        
+        console.log('🔗 Share data:', shareData);
+        await navigator.share(shareData);
+        showSuccess(t('qrcode_shared') || 'QR code shared successfully');
+        
       } else {
+        console.log('🔗 Using clipboard fallback');
         // Fallback: copy to clipboard
         const text = studentInfo 
-          ? `${t('student')}: ${studentInfo.name || studentInfo.displayName} (${studentInfo.studentNumber || studentId})`
-          : `${t('student')}: ${studentId}`;
+          ? `${t('student') || 'Student'}: ${studentInfo.name || studentInfo.displayName} (${studentInfo.studentNumber || studentId})`
+          : `${t('student') || 'Student'}: ${studentId}`;
         
         await navigator.clipboard.writeText(text);
         showSuccess(t('qrcode_copied') || 'QR code info copied to clipboard');
       }
     } catch (error) {
       console.error('Error sharing QR code:', error);
-      showError(t('error_share_qrcode') || 'Failed to share QR code');
+      
+      // Try fallback if native share failed
+      if (error.name !== 'AbortError') {
+        try {
+          const text = studentInfo 
+            ? `${t('student') || 'Student'}: ${studentInfo.name || studentInfo.displayName} (${studentInfo.studentNumber || studentId})`
+            : `${t('student') || 'Student'}: ${studentId}`;
+          
+          await navigator.clipboard.writeText(text);
+          showSuccess(t('qrcode_copied') || 'QR code info copied to clipboard');
+        } catch (clipboardError) {
+          console.error('Clipboard fallback also failed:', clipboardError);
+          showError(t('error_share_qrcode') || 'Failed to share QR code');
+        }
+      }
     }
   };
 
@@ -168,6 +196,7 @@ const QRCodeDisplayPage = () => {
   };
 
   const handleKeyPress = (e) => {
+    console.log('🔑 Key pressed:', e.key); // Debug log
     if (e.key === 'f' || e.key === 'F') {
       e.preventDefault();
       toggleFullscreen();
@@ -180,15 +209,18 @@ const QRCodeDisplayPage = () => {
     } else if (e.key === 's' || e.key === 'S') {
       e.preventDefault();
       handleShare();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === 'b' || e.key === 'B') {
+      e.preventDefault();
+      console.log('🔑 B pressed, navigating back');
       navigate(-1);
     }
   };
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
+    const keyHandler = (e) => handleKeyPress(e);
+    window.addEventListener('keydown', keyHandler);
+    return () => window.removeEventListener('keydown', keyHandler);
+  }, [navigate, qrCodeData, studentInfo, studentId]); // Add dependencies
 
   if (loading) {
     return (
@@ -327,7 +359,7 @@ const QRCodeDisplayPage = () => {
                     <span>Share</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="bg-gray-200 px-2 py-1 rounded text-xs border border-gray-400">ESC</kbd> 
+                    <kbd className="bg-gray-200 px-2 py-1 rounded text-xs border border-gray-400">B</kbd> 
                     <span>Back</span>
                   </span>
                 </div>
