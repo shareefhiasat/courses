@@ -16,6 +16,10 @@ const StudentHistory = React.memo(({
   isRTL,
   studentId 
 }) => {
+  console.log('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
+  console.log('🔧 StudentHistory expandedDays:', expandedDays);
+  console.log('🔧 StudentHistory activeFilters:', activeFilters);
+  
   return groupedLogs.map((dayGroup, dayIndex) => {
     const dateObj = new Date(dayGroup.date);
     const dateStr = dateObj.toLocaleDateString('en-US', { 
@@ -33,7 +37,21 @@ const StudentHistory = React.memo(({
     };
     const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.behavior + filteredCounts.penalties > 0;
     
-    if (!hasVisibleItems) return null;
+    console.log('🔧 StudentHistory dayGroup:', {
+      date: dayGroup.date,
+      isDayExpanded,
+      filteredCounts,
+      hasVisibleItems,
+      attendanceLogs: dayGroup.attendance.length,
+      penaltyLogs: dayGroup.penalties.length,
+      participationLogs: dayGroup.participation.length,
+      behaviorLogs: dayGroup.behavior ? dayGroup.behavior.length : 0
+    });
+    
+    if (!hasVisibleItems) {
+      console.log('🔧 StudentHistory - skipping day due to no visible items:', dayGroup.date);
+      return null;
+    }
     
     return (
       <div key={dayIndex} style={{

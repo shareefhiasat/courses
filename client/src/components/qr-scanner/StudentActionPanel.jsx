@@ -8,7 +8,8 @@ import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
-import { deleteParticipation } from '@firebaseServices/participations';
+import { getParticipations, deleteParticipation } from '@firebaseServices/participations';
+import { getBehaviors } from '@firebaseServices/behaviors';
 import { getFunctions } from '@firebaseServices/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { FancyLoading } from '@ui';
@@ -370,6 +371,14 @@ export default function StudentActionPanel({
       const penaltiesResponse = await getPenalties(student.id);
       const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
 
+      // Get behavior records for this student
+      const behaviorResponse = await getBehaviors();
+      const studentBehaviors = behaviorResponse.success ? behaviorResponse.data.filter(b => b.studentId === student.id) : [];
+
+      // Get participation records for this student
+      const participationResponse = await getParticipations();
+      const studentParticipations = participationResponse.success ? participationResponse.data.filter(p => p.studentId === student.id) : [];
+
       // Combine and format logs with date information
       const logs = [
         ...attendanceRecords.map(record => ({
@@ -391,6 +400,30 @@ export default function StudentActionPanel({
             : (record.category === 'behavior' 
               ? '#f97316' 
               : (ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'))
+        })),
+        ...studentBehaviors.map(behavior => ({
+          id: behavior.id || behavior.docId,
+          type: 'behavior',
+          date: behavior.date || (behavior.createdAt?.toDate ? behavior.createdAt.toDate().toISOString().split('T')[0] : new Date(behavior.createdAt).toISOString().split('T')[0]),
+          time: behavior.createdAt,
+          data: behavior,
+          label: behavior.type ? (BEHAVIOR_TYPES.find(bt => bt.id === behavior.type)?.label_en || behavior.type) : 'Behavior',
+          points: behavior.points || 0,
+          comment: behavior.comment || behavior.description || behavior.reason || '',
+          severity: behavior.severity || 'medium',
+          color: '#f97316'
+        })),
+        ...studentParticipations.map(participation => ({
+          id: participation.id || participation.docId,
+          type: 'participation',
+          date: participation.date || (participation.createdAt?.toDate ? participation.createdAt.toDate().toISOString().split('T')[0] : new Date(participation.createdAt).toISOString().split('T')[0]),
+          time: participation.createdAt,
+          data: participation,
+          label: participation.type ? (PARTICIPATION_TYPES.find(pt => pt.id === participation.type)?.label_en || participation.type) : 'Participation',
+          points: participation.points || 0,
+          comment: participation.comment || participation.description || participation.reason || '',
+          severity: 'low',
+          color: '#3b82f6'
         })),
         ...studentPenalties.map(penalty => {
           // Try multiple possible fields for the penalty type
@@ -419,12 +452,25 @@ export default function StudentActionPanel({
         return dateB - dateA; // Most recent first
       });
       
+      console.log('🔧 StudentActionPanel - total logs fetched:', logs.length);
+      console.log('🔧 StudentActionPanel - logs:', logs);
+      
       // Filter today's logs
       const today = new Date().toISOString().split('T')[0];
       const todayLogsFiltered = logs.filter(log => log.date === today);
       
+      console.log('🔧 StudentActionPanel - today logs filtered:', todayLogsFiltered.length);
+      console.log('🔧 StudentActionPanel - historical logs to set:', logs.length);
+      
+      // Set historicalLogs to ALL logs (including today)
       setHistoricalLogs(logs);
+      // Set todayLogs to only today's logs
       setTodayLogs(todayLogsFiltered);
+      
+      // Expand all dates by default so user can see all history
+      const allDates = [...new Set(logs.map(log => log.date))];
+      setExpandedDays(new Set(allDates));
+      
       setLogsError('');
     } catch (error) {
       logger.error('Error fetching historical logs:', error);
@@ -627,7 +673,28 @@ export default function StudentActionPanel({
   }, []);
 
   // Memoized grouped logs for display
-  const memoizedGroupedLogs = useMemo(() => groupLogsByDay(historicalLogs), [historicalLogs, groupLogsByDay]);
+  const memoizedGroupedLogs = useMemo(() => {
+    const grouped = groupLogsByDay(historicalLogs);
+    console.log('🔧 StudentActionPanel - memoizedGroupedLogs:', grouped);
+    console.log('🔧 StudentActionPanel - historicalLogs length:', historicalLogs.length);
+    console.log('🔧 StudentActionPanel - activeFilters:', activeFilters);
+    
+    // Debug today's logs specifically
+    const today = new Date().toISOString().split('T')[0];
+    const todayGroup = grouped.find(g => g.date === today);
+    if (todayGroup) {
+      console.log('🔧 Today group logs:', {
+        date: todayGroup.date,
+        attendance: todayGroup.attendance.length,
+        penalties: todayGroup.penalties.length,
+        participation: todayGroup.participation.length,
+        behavior: todayGroup.behavior.length,
+        total: todayGroup.attendance.length + todayGroup.penalties.length + todayGroup.participation.length + todayGroup.behavior.length
+      });
+    }
+    
+    return grouped;
+  }, [historicalLogs, groupLogsByDay, activeFilters]);
 
   if (!student) return null;
 
