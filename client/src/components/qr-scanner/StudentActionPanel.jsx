@@ -20,14 +20,7 @@ import { useToast } from '@ui';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
-
-// Record type constants
-const RECORD_TYPES = {
-  ATTENDANCE: 'attendance',
-  PENALTY: 'penalty', 
-  PARTICIPATION: 'participation',
-  BEHAVIOR: 'behavior'
-};
+import { RECORD_TYPES } from '@constants/activityTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, FileIcon, HeartIcon, HelpCircleIcon, UserIcon, UserPlusIcon, ZapIcon} from "@utils/icons.jsx";
 

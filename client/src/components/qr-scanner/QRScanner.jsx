@@ -2758,19 +2758,42 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           setCurrentAction('details');
 
                           try {
-                            // Use processStudentData to get complete student data with correct ID
+                            // Try to get student reference from multiple sources
+                            let studentReferenceId = null;
+                            
+                            // First try from lastScannedStudent
                             if (lastScannedStudent?.referenceId) {
-                              const studentData = await processStudentData(lastScannedStudent.referenceId);
+                              studentReferenceId = lastScannedStudent.referenceId;
+                            }
+                            // Try from lastScannedStudent.studentId
+                            else if (lastScannedStudent?.studentId) {
+                              studentReferenceId = lastScannedStudent.studentId;
+                            }
+                            // Try to find student by name from the activity
+                            else if (activity?.studentName && students?.length > 0) {
+                              const foundStudent = students.find(s => 
+                                s.name === activity.studentName || 
+                                s.displayName === activity.studentName ||
+                                s.email === activity.studentName
+                              );
+                              if (foundStudent?.studentId) {
+                                studentReferenceId = foundStudent.studentId;
+                              }
+                            }
+                            
+                            if (studentReferenceId) {
+                              const studentData = await processStudentData(studentReferenceId);
                               if (studentData) {
                                 setStudentForAction(studentData);
                                 setShowStudentActionPanel(true); // Use the OLD panel for details
                                 setShowScanDialog(false);
-                                addDebugLog(`✅ Opening details for: ${studentData.name || studentData.email || 'Unknown'}`, 'success');
+                                addDebugLog(`✅ Opening details for: ${studentData.name || studentData.email || 'Unknown'} (${studentReferenceId})`, 'success');
                               } else {
                                 showResult('error', 'Student data not found');
                               }
                             } else {
                               showResult('error', 'No student reference ID available');
+                              addDebugLog('❌ Could not find student reference ID', 'error');
                             }
                           } catch (error) {
                             addDebugLog(`❌ Error opening student details: ${error.message}`, 'error');
