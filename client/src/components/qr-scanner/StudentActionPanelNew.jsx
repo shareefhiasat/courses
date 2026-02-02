@@ -162,8 +162,8 @@ export default function StudentActionPanelNew({
 
   const filteredOptions = useMemo(() => {
     return options.filter(option => {
-      // Filter based on attendance status
-      if (attendanceStatus.en === 'None') {
+      // Filter based on attendance status - only if attendanceStatus exists
+      if (attendanceStatus && attendanceStatus.en === 'None') {
         return option.category !== 'attendance';
       }
       return true;
@@ -172,7 +172,7 @@ export default function StudentActionPanelNew({
 
   // Clear selected actions when attendance status is None
   useEffect(() => {
-    if (attendanceStatus.en === 'None') {
+    if (attendanceStatus && attendanceStatus.en === 'None') {
       setSelectedActions([]);
     }
   }, [attendanceStatus]);
@@ -288,7 +288,7 @@ export default function StudentActionPanelNew({
                         borderRadius: '9999px'
                       }} />
                       {/* Only show text for attendance status if it's not 'present' */}
-                      {student?.attendance !== 'present' && (
+                      {student?.attendance !== 'present' && attendanceStatus && (
                         <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                           {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                         </span>

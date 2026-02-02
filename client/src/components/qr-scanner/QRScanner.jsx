@@ -7,8 +7,8 @@ import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attend
 import { markAttendance } from '@firebaseServices/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
-import { createParticipation, getParticipations, getParticipationsByClassAndDate } from '@firebaseServices/participations';
-import { createBehavior, getBehaviors, getBehaviorsByClassAndDate } from '@firebaseServices/behaviors';
+import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@firebaseServices/participations';
+import { createBehavior, getBehaviors, getBehaviorsByClassAndDate, deleteBehavior } from '@firebaseServices/behaviors';
 import { getUsers } from '@firebaseServices/firestore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -2989,7 +2989,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           }
                         }}
                     >
-                      <Trash2 style={{ width: '18px', height: '18px' }} />
+                      <TrashIcon style={{ width: '18px', height: '18px' }} />
                       {t('clear_today') || 'Clear Today'}
                     </button>
 
@@ -3464,7 +3464,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     color: '#6b7280',
                     lineHeight: '1.5'
                   }}>
-                    {t('confirm_clear_message') || 'Are you sure you want to clear all scans for today? This will permanently delete all attendance, penalties, and participation records for today\'s date.'}
+                    {t('confirm_clear_message') || 'Are you sure you want to clear all records for today? This will permanently delete all attendance, penalties, participation, and behavior records for today\'s date.'}
                   </p>
                   <div style={{
                     display: 'flex',
@@ -3550,20 +3550,69 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               }
                             }
 
+                            // Delete all participation records for today
+                            const participationResponse = await getParticipations();
+                            const allParticipations = participationResponse.success ? participationResponse.data : [];
+                            const todayParticipations = allParticipations.filter(p => {
+                              const timestamp = p.createdAt || p.timestamp;
+                              if (!timestamp) return false;
+                              const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                              return dateStr === today;
+                            });
+
+                            let deletedParticipationCount = 0;
+                            for (const participation of todayParticipations) {
+                              try {
+                                await deleteParticipation(participation.id || participation.docId);
+                                logger.debug('Deleted participation record:', participation.id || participation.docId);
+                                deletedParticipationCount++;
+                              } catch (error) {
+                                logger.error('Failed to delete participation record:', participation.id || participation.docId, error);
+                              }
+                            }
+
+                            // Delete all behavior records for today
+                            const behaviorResponse = await getBehaviors();
+                            const allBehaviors = behaviorResponse.success ? behaviorResponse.data : [];
+                            const todayBehaviors = allBehaviors.filter(b => {
+                              const timestamp = b.createdAt || b.timestamp;
+                              if (!timestamp) return false;
+                              const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                              return dateStr === today;
+                            });
+
+                            let deletedBehaviorCount = 0;
+                            for (const behavior of todayBehaviors) {
+                              try {
+                                await deleteBehavior(behavior.id || behavior.docId);
+                                logger.debug('Deleted behavior record:', behavior.id || behavior.docId);
+                                deletedBehaviorCount++;
+                              } catch (error) {
+                                logger.error('Failed to delete behavior record:', behavior.id || behavior.docId, error);
+                              }
+                            }
+
                             // Refresh the activity display
                             fetchRecentActivity();
+
+                            // Emit events to refresh roster and student data
+                            eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+                            eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
+                            eventBus.emit(EVENTS.REFRESH_ROSTER);
 
                             // Show detailed summary with actual deleted counts
                             const summaryData = {
                               attendance: deletedAttendanceCount,
-                              behavior: behaviorRecords.length,
-                              participation: participationRecords.length,
+                              behavior: deletedBehaviorCount,
+                              participation: deletedParticipationCount,
                               penalties: deletedPenaltyCount,
-                              total: deletedAttendanceCount + deletedPenaltyCount
+                              total: deletedAttendanceCount + deletedBehaviorCount + deletedParticipationCount + deletedPenaltyCount
                             };
 
                             showResult('success', summaryData, true); // Pass true to indicate this is a summary
-                            addDebugLog(`✅ Cleared ${deletedAttendanceCount} attendance and ${deletedPenaltyCount} penalty records for today`, 'success');
+                            addDebugLog(`✅ Cleared ${deletedAttendanceCount} attendance, ${deletedBehaviorCount} behavior, ${deletedParticipationCount} participation, and ${deletedPenaltyCount} penalty records for today`, 'success');
 
                             setShowScanDialog(false);
                           } catch (error) {

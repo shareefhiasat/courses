@@ -19,7 +19,7 @@ import { useLang } from '@contexts/LangContext';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
-import {ParticipationIcon, PenaltyIcon, StudentHistory} from '@ui/history';
+import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, FileIcon, HeartIcon, HelpCircleIcon, UserIcon, UserPlusIcon, ZapIcon} from "@utils/icons.jsx";
 
 export default function StudentActionPanel({
@@ -43,6 +43,7 @@ export default function StudentActionPanel({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('');
   const [deleteLogId, setDeleteLogId] = useState('');
+  const [bulkDeleteType, setBulkDeleteType] = useState(null); // For bulk delete operations
   const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [actionPoints, setActionPoints] = useState({});
@@ -545,62 +546,105 @@ export default function StudentActionPanel({
     setDeleteLoading(true);
     try {
       let result;
-      if (deleteType === 'attendance') {
-        result = await deleteAttendance(deleteLogId);
-        if (result.success) {
-          // Refresh the history
-          setHistoryRefreshKey(prev => prev + 1);
-          await fetchHistoricalLogs();
+      
+      // Handle bulk delete operations
+      if (bulkDeleteType) {
+        if (bulkDeleteType.type === 'penalty') {
+          // Get all penalty logs for this type
+          const penaltyLogs = todayLogs.filter(log => 
+            log.type === 'penalty' && log.data?.penaltyType === bulkDeleteType.typeId
+          );
           
-          // Emit event for real-time updates
-          eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
-            studentId: student.id,
-            classId: student.classId,
-            status: 'deleted',
-            performedBy: user,
-            timestamp: new Date()
-          });
-        } else {
-          console.error('Failed to delete attendance record:', result.error);
-          alert('Failed to delete attendance record: ' + result.error);
+          // Delete each penalty
+          for (const log of penaltyLogs) {
+            await deletePenalty(log.id);
+          }
+          
+          // Refresh data
+          eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
+          eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
         }
-      } else if (deleteType === 'participation') {
-        result = await deleteParticipation(deleteLogId);
-        if (result.success) {
-          // Refresh the history
-          setHistoryRefreshKey(prev => prev + 1);
-          await fetchHistoricalLogs();
-          
-          // Emit event for real-time updates
-          eventBus.emit(EVENTS.PARTICIPATION_ADDED, {
-            studentId: student.id,
-            classId: student.classId,
-            status: 'deleted',
-            performedBy: user,
-            timestamp: new Date()
-          });
-        } else {
-          logger.error('Failed to delete participation record:', result.error);
-          alert('Failed to delete participation record: ' + result.error);
-        }
-      } else if (deleteType === 'penalty') {
-        result = await deletePenalty(deleteLogId);
-        if (result.success) {
-          // Refresh the history
-          setHistoryRefreshKey(prev => prev + 1);
-          await fetchHistoricalLogs();
-          
-          // Emit event for real-time updates
-          eventBus.emit(EVENTS.PENALTY_ASSIGNED, {
-            studentId: student.id,
-            classId: student.classId,
-            status: 'deleted',
-            performedBy: user,
-            timestamp: new Date()
-          });
-        } else {
-          logger.error('Failed to delete penalty record:', result.error);
-          alert('Failed to delete penalty record: ' + result.error);
+        
+        // Reset bulk delete
+        setBulkDeleteType(null);
+      } else {
+        // Handle single item delete (existing logic)
+        if (deleteType === 'attendance') {
+          result = await deleteAttendance(deleteLogId);
+          if (result.success) {
+            // Refresh the history
+            setHistoryRefreshKey(prev => prev + 1);
+            await fetchHistoricalLogs();
+            
+            // Emit event for real-time updates
+            eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+              studentId: student.id,
+              classId: student.classId,
+              status: 'deleted',
+              performedBy: user,
+              timestamp: new Date()
+            });
+          } else {
+            console.error('Failed to delete attendance record:', result.error);
+            alert('Failed to delete attendance record: ' + result.error);
+          }
+        } else if (deleteType === 'participation') {
+          result = await deleteParticipation(deleteLogId);
+          if (result.success) {
+            // Refresh the history
+            setHistoryRefreshKey(prev => prev + 1);
+            await fetchHistoricalLogs();
+            
+            // Emit event for real-time updates
+            eventBus.emit(EVENTS.PARTICIPATION_ADDED, {
+              studentId: student.id,
+              classId: student.classId,
+              status: 'deleted',
+              performedBy: user,
+              timestamp: new Date()
+            });
+          } else {
+            logger.error('Failed to delete participation record:', result.error);
+            alert('Failed to delete participation record: ' + result.error);
+          }
+        } else if (deleteType === 'penalty') {
+          result = await deletePenalty(deleteLogId);
+          if (result.success) {
+            // Refresh the history
+            setHistoryRefreshKey(prev => prev + 1);
+            await fetchHistoricalLogs();
+            
+            // Emit event for real-time updates
+            eventBus.emit(EVENTS.PENALTY_ASSIGNED, {
+              studentId: student.id,
+              classId: student.classId,
+              status: 'deleted',
+              performedBy: user,
+              timestamp: new Date()
+            });
+          } else {
+            logger.error('Failed to delete penalty record:', result.error);
+            alert('Failed to delete penalty record: ' + result.error);
+          }
+        } else if (deleteType === 'behavior') {
+          result = await deleteBehavior(deleteLogId);
+          if (result.success) {
+            // Refresh the history
+            setHistoryRefreshKey(prev => prev + 1);
+            await fetchHistoricalLogs();
+            
+            // Emit event for real-time updates
+            eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {
+              studentId: student.id,
+              classId: student.classId,
+              status: 'deleted',
+              performedBy: user,
+              timestamp: new Date()
+            });
+          } else {
+            logger.error('Failed to delete behavior record:', result.error);
+            alert('Failed to delete behavior record: ' + result.error);
+          }
         }
       }
     } catch (error) {
@@ -1848,27 +1892,10 @@ export default function StudentActionPanel({
                           </div>
                           {stat.count > 0 && (
                             <button
-                              onClick={async () => {
-                                if (window.confirm(`Delete all ${type.label_en} entries for ${student?.name || 'this student'}?`)) {
-                                  try {
-                                    // Get all penalty logs for this type
-                                    const penaltyLogs = todayLogs.filter(log => 
-                                      log.type === 'penalty' && log.data?.penaltyType === type.id
-                                    );
-                                    
-                                    // Delete each penalty
-                                    for (const log of penaltyLogs) {
-                                      await deletePenalty(log.id);
-                                    }
-                                    
-                                    // Refresh data
-                                    eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
-                                    eventBus.emit(EVENTS.REFRESH_STUDENT_DATA);
-                                  } catch (error) {
-                                    logger.error('Failed to delete penalty entries:', error);
-                                    alert('Failed to delete penalty entries');
-                                  }
-                                }
+                              onClick={() => {
+                                setDeleteType('penalty');
+                                setBulkDeleteType({ type: 'penalty', typeId: type.id, typeName: type.label_en });
+                                setDeleteModalOpen(true);
                               }}
                               style={{
                                 background: 'none',
