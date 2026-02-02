@@ -56,10 +56,10 @@ const StudentCard = ({
         border: '1px solid var(--border, #e5e7eb)',
         borderRadius: '0.5rem',
         padding: '1rem',
-        cursor: 'pointer',
+        cursor: isMobile ? 'default' : 'pointer',
         transition: 'all 0.15s'
       }}
-      onClick={() => onStudentSelect(student)}
+      onClick={() => isMobile ? null : onStudentSelect(student)}
     >
       <div style={{ 
         display: 'flex', 
@@ -371,6 +371,19 @@ const StudentCard = ({
         gap: isMobile ? '0.25rem' : '0.5rem',
         flexWrap: isMobile ? 'wrap' : 'nowrap'
       }}>
+        {isMobile && (
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStudentSelect(student);
+            }}
+            title={t('view_details') || 'View Details'}
+          >
+            <SidebarOpen style={{ width: '1rem', height: '1rem' }} />
+          </Button>
+        )}
         <Button 
           variant="ghost" 
           size={isMobile ? 'icon' : 'sm'}
@@ -389,18 +402,20 @@ const StudentCard = ({
             <ZapIcon style={{ width: '16px', height: '16px', color: '#f59e0b' }} />
           ) : t('actions')}
         </Button>
-        <Button 
-          variant="ghost" 
-          size={isMobile ? 'icon' : 'sm'}
-          onClick={(e) => {
-            e.stopPropagation();
-            onStudentSelect(student);
-          }}
-          style={isMobile ? {} : { flex: 1 }}
-          title={t('stats')}
-        >
-          {isMobile ? <SidebarOpen style={{ width: '1rem', height: '1rem' }} /> : t('stats')}
-        </Button>
+        {!isMobile && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStudentSelect(student);
+            }}
+            style={{ flex: 1 }}
+            title={t('stats')}
+          >
+            {t('stats')}
+          </Button>
+        )}
         <Button 
           variant="ghost" 
           size="icon"
