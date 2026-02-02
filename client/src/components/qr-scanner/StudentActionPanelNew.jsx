@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import logger from '@utils/logger';
 import { Button, Input } from '@ui';
-import { X, Users, Zap, Grid, List } from 'lucide-react';
+import { X, Users, Zap, Grid, List, Star } from 'lucide-react';
 import { 
   AlertCircleIcon, 
   MessageSquareIcon, 

@@ -1953,32 +1953,35 @@ export default function StudentActionPanel({
               alignItems: 'center',
               justifyContent: 'space-between',
               marginBottom: '0.5rem',
-              padding: '0.5rem',
+              padding: '0.2rem',
               background: 'var(--panel-hover, #f8fafc)',
               borderRadius: '0.5rem',
               border: '1px solid var(--border-light, #e2e8f0)'
             }}>
               <div style={{
                 display: 'flex',
-                gap: '0.25rem'
+                gap: '0.05rem',
+                flex: 1,
+                flexWrap: 'nowrap'
               }}>
                 <button
                   onClick={() => toggleFilter('attendance')}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.1rem',
-                    padding: '0.1rem 0.2rem',
-                    fontSize: '0.8125rem',
+                    gap: '0.02rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
                     borderRadius: '0.375rem',
                     border: '1px solid var(--border-light, #e2e8f0)',
                     background: activeFilters.attendance ? '#065f46' : 'var(--panel, #ffffff)',
                     color: activeFilters.attendance ? 'white' : 'var(--text-muted, #64748b)',
                     cursor: 'pointer',
-                    boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <UserIcon style={{ width: '14px', height: '14px' }} />
+                  <UserIcon style={{ width: '12px', height: '12px' }} />
                   {t('attendance')}
                 </button>
                 <button
@@ -1986,18 +1989,19 @@ export default function StudentActionPanel({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.1rem',
-                    padding: '0.1rem 0.2rem',
-                    fontSize: '0.8125rem',
+                    gap: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
                     borderRadius: '0.375rem',
                     border: '1px solid var(--border-light, #e2e8f0)',
                     background: activeFilters.participation ? '#3b82f6' : 'var(--panel, #ffffff)',
                     color: activeFilters.participation ? 'white' : 'var(--text-muted, #64748b)',
                     cursor: 'pointer',
-                    boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <ParticipationIcon style={{ width: '14px', height: '14px' }} />
+                  <ParticipationIcon style={{ width: '12px', height: '12px' }} />
                   {t('participation')}
                 </button>
                 <button
@@ -2005,18 +2009,19 @@ export default function StudentActionPanel({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.1rem',
-                    padding: '0.1rem 0.2rem',
-                    fontSize: '0.8125rem',
+                    gap: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
                     borderRadius: '0.375rem',
                     border: '1px solid var(--border-light, #e2e8f0)',
                     background: activeFilters.behavior ? '#f97316' : 'var(--panel, #ffffff)',
                     color: activeFilters.behavior ? 'white' : 'var(--text-muted, #64748b)',
                     cursor: 'pointer',
-                    boxShadow: activeFilters.behavior ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    boxShadow: activeFilters.behavior ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <ZapIcon style={{ width: '14px', height: '14px' }} />
+                  <ZapIcon style={{ width: '12px', height: '12px' }} />
                   {t('behavior')}
                 </button>
                 <button
@@ -2024,18 +2029,19 @@ export default function StudentActionPanel({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.1rem',
-                    padding: '0.1rem 0.2rem',
-                    fontSize: '0.8125rem',
+                    gap: '0.25rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
                     borderRadius: '0.375rem',
                     border: '1px solid #e2e8f0',
                     background: activeFilters.penalties ? '#dc2626' : '#ffffff',
                     color: activeFilters.penalties ? 'white' : '#64748b',
                     cursor: 'pointer',
-                    boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    whiteSpace: 'nowrap'
                   }}
                 >
-                  <PenaltyIcon style={{ width: '14px', height: '14px' }}/>
+                  <PenaltyIcon style={{ width: '12px', height: '12px' }}/>
                   {t('penalties')}
                 </button>
               </div>
