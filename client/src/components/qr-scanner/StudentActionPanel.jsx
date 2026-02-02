@@ -15,10 +15,10 @@ import eventBus, { EVENTS } from '@utils/eventBus';
 import { FancyLoading } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { BEHAVIOR_TYPES, getBehaviorTypeById, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
-import { PARTICIPATION_TYPES, getParticipationTypeById, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
-import { PENALTY_TYPES, getPenaltyTypeById, getPenaltyLabel, getPenaltyDescription, getPenaltyIcon, getPenaltyColor } from '@constants/penaltyTypes';
-import {PenaltyIcon, StudentHistory} from '@ui/history';
+import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
+import { PARTICIPATION_TYPES } from '@constants/participationTypes';
+import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import {ParticipationIcon, PenaltyIcon, StudentHistory} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, FileIcon, HeartIcon, HelpCircleIcon, UserIcon, UserPlusIcon, ZapIcon} from "@utils/icons.jsx";
 
 export default function StudentActionPanel({
@@ -1988,7 +1988,7 @@ export default function StudentActionPanel({
                     boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                   }}
                 >
-                  <UserPlusIcon style={{ width: '14px', height: '14px' }} />
+                  <ParticipationIcon style={{ width: '14px', height: '14px' }} />
                   {t('participation')}
                 </button>
                 <button

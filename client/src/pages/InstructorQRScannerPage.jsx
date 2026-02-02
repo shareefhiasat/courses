@@ -18,7 +18,7 @@ import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { Select, DatePicker, Button, Loading, Card, CardBody } from '@ui';
 import { FancyLoading } from '@ui';
-import { BookOpen, FileText, Users, Filter, Star } from 'lucide-react';
+import { BookOpen, FileText, Users, Filter } from 'lucide-react';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionPanel from '@/components/qr-scanner/StudentActionPanel';

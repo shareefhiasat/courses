@@ -1,7 +1,7 @@
 import React from 'react';
 import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
-import { AttendanceIcon, ParticipationIcon, BehaviorIcon, PenaltyIcon } from '@utils/icons.jsx';
+import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon } from '@utils/icons.jsx';
 
 const StudentHistory = React.memo(({ 
   groupedLogs, 
@@ -101,7 +101,7 @@ const StudentHistory = React.memo(({
               title="Behavior"
               logs={dayGroup.behavior || []}
               type="behavior"
-              icon={<BehaviorIcon />}
+              icon={<ZapIcon />}
               iconColor="#f97316"
               activeFilters={activeFilters}
               onDelete={(logId) => handleDeleteBehavior(studentId, logId)}

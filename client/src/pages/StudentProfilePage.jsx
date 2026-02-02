@@ -4,7 +4,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { db } from '@firebaseServices/config';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
-import { User, Users, Calendar, TrendingUp, Award, FileText, Clock, Search, Trophy, Flame, Target, X, BookOpen, Filter } from 'lucide-react';
+import { Users, Calendar, TrendingUp, Award, Clock, Search, Trophy, Flame, Target, X, BookOpen, Filter } from 'lucide-react';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '@firebaseServices/badges';
 import { CheckSmallIcon } from '@utils/icons.jsx';
 import { useSearchParams } from 'react-router-dom';

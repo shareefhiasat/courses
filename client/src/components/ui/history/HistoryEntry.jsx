@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@ui';
 import { Trash2 } from 'lucide-react';
+import { UserIcon } from '@utils/icons.jsx';
 
 export const HistoryEntry = ({ 
   log, 
@@ -112,10 +113,7 @@ export const HistoryEntry = ({
           fontSize: '0.625rem',
           color: '#0369a1'
         }}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
+          <UserIcon style={{ width: '10px', height: '10px' }} />
           <span style={{ fontWeight: 500 }}>
             {log.performedBy.displayName || log.performedBy.email || 'Unknown'}
           </span>

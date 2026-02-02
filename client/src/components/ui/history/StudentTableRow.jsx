@@ -5,6 +5,7 @@ import StudentRosterHistory from './StudentRosterHistory';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { ATTENDANCE_STATUS_LABELS } from '@firebaseServices/attendance';
+import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 
 const StudentTableRow = ({ 
   student, 
@@ -56,40 +57,18 @@ const StudentTableRow = ({
     const getIcon = (status) => {
       switch(status?.toLowerCase()) {
         case 'present': 
-          return (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          );
+          return <CheckSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
         case 'late': 
-          return (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 12 12"></polyline>
-            </svg>
-          );
+          return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
         case 'absent':
         case 'absent_no_excuse':
         case 'absent_with_excuse':
         case 'excused_leave':
-          return (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          );
+          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
         case 'human_case':
-          return (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-          );
+          return <HeartIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
         default: 
-          return (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusInfo.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-            </svg>
-          );
+          return <CircleIcon style={{ width: '16px', height: '16px', stroke: statusInfo.color }} />;
       }
     };
 

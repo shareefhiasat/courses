@@ -15,14 +15,35 @@ import eventBus, { EVENTS } from '@utils/eventBus';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '../ui/Toast';
-import { RefreshCw, Activity } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';
 import { generateReferenceId } from '@utils/qrCode';
 import { BEHAVIOR_TYPES, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes';
 import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes';
-import { QrCodeIcon, StopIcon, ActionsIcon, DetailsIcon, MinimizeIcon, VibrationIcon, SoundIcon, DebugIcon, UserInputIcon, RefreshIcon, DeleteIcon, UserPlusIcon, ZapIcon, AlertCircleSmallIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, CircleIcon, ShieldIcon, ChevronDownIcon, TrashIcon } from '@utils/icons.jsx';
+import {
+  QrCodeIcon,
+  StopIcon,
+  DetailsIcon,
+  MinimizeIcon,
+  VibrationIcon,
+  SoundIcon,
+  DebugIcon,
+  UserInputIcon,
+  RefreshIcon,
+  DeleteIcon,
+  ZapIcon,
+  CheckSmallIcon,
+  ClockSmallIcon,
+  XSmallIcon,
+  HeartIcon,
+  CircleIcon,
+  ShieldIcon,
+  ChevronDownIcon,
+  TrashIcon,
+  ParticipationIcon, PenaltyIcon
+} from '@utils/icons.jsx';
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
   const { user } = useAuth();
@@ -1324,29 +1345,40 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   const getStatusIcon = useCallback((status, type, delta) => {
+    addDebugLog(`🔍 getStatusIcon called: status=${status}, type=${type}, delta=${delta}`, 'info');
+    
     if (type === 'participation' || delta > 0) {
-      return <UserPlusIcon style={{ width: '12px', height: '12px' }} />;
+      addDebugLog(`✅ Returning ParticipationIcon for participation/delta>0`, 'info');
+      return <ParticipationIcon style={{ width: '12px', height: '12px' }} />;
     }
     if (type === 'penalty') {
-      return <AlertCircleSmallIcon style={{ width: '12px', height: '12px' }} />;
+      addDebugLog(`⚠️ Returning PenaltyIcon for penalty type`, 'info');
+      return <PenaltyIcon style={{ width: '12px', height: '12px' }} />;
     }
     if (type === 'behavior' || delta < 0) {
+      addDebugLog(`⚡ Returning ZapIcon for behavior/delta<0`, 'info');
       return <ZapIcon style={{ width: '12px', height: '12px' }} />;
     }
 
+    // Handle attendance status icons
     switch(status?.toLowerCase()) {
-      case 'present': 
+      case 'present':
+        addDebugLog(`✅ Returning CheckSmallIcon for present status`, 'info');
         return <CheckSmallIcon style={{ width: '12px', height: '12px' }} />;
-      case 'late': 
+      case 'late':
+        addDebugLog(`⏰ Returning ClockSmallIcon for late status`, 'info');
         return <ClockSmallIcon style={{ width: '12px', height: '12px' }} />;
       case 'absent':
       case 'absent_no_excuse':
       case 'absent_with_excuse':
       case 'excused_leave':
+        addDebugLog(`❌ Returning XSmallIcon for absent status: ${status}`, 'info');
         return <XSmallIcon style={{ width: '12px', height: '12px' }} />;
       case 'human_case':
+        addDebugLog(`❤️ Returning HeartIcon for human_case status`, 'info');
         return <HeartIcon style={{ width: '12px', height: '12px' }} />;
-      default: 
+      default:
+        addDebugLog(`⭕ Returning CircleIcon for default status: ${status}`, 'info');
         return <CircleIcon style={{ width: '12px', height: '12px' }} />;
     }
   }, []);
@@ -1829,7 +1861,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           sectionId="recent-activity"
           title={t('today') || 'Today'}
           titleStyle={{ fontSize: '0.75rem' }}
-          icon={<Activity size={16} />}
+          icon={<ZapIcon style={{ width: '16px', height: '16px' }} />}
           color="#6366f1"
           defaultMode="full"
           compactContent={
@@ -2528,7 +2560,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </>
                 ) : (
                   <>
-                    <ShieldIcon style={{ width: '18px', height: '18px' }} />
+                    <PenaltyIcon style={{ width: '18px', height: '18px' }} />
                     {t('penalty') || 'Penalty'}
                   </>
                 )}
@@ -2627,7 +2659,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </>
                 ) : (
                   <>
-                    <UserPlusIcon style={{ width: '18px', height: '18px' }} />
+                    <ParticipationIcon style={{ width: '18px', height: '18px' }} />
                     {t('participation') || 'Participation'}
                   </>
                 )}
@@ -2742,7 +2774,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   </>
                 ) : (
                   <>
-                    <ActionsIcon style={{ width: '18px', height: '18px' }} />
+                    <ZapIcon style={{ width: '18px', height: '18px' }} />
                     {t('actions') || 'Actions'}
                   </>
                 )}

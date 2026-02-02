@@ -4,6 +4,7 @@ import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle, Se
 import StudentRosterHistory from './StudentRosterHistory';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { CircleIcon, ZapIcon } from '@utils/icons.jsx';
 
 const StudentCard = ({ 
   student, 
@@ -144,9 +145,7 @@ const StudentCard = ({
             getAttendanceBadge(student.attendance)
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-              </svg>
+              <CircleIcon style={{ width: '16px', height: '16px', stroke: '#9ca3af' }} />
               <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
             </div>
           )}
@@ -372,9 +371,7 @@ const StudentCard = ({
           title={t('actions')}
         >
           {isMobile ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-            </svg>
+            <ZapIcon style={{ width: '16px', height: '16px', color: '#f59e0b' }} />
           ) : t('actions')}
         </Button>
         <Button 

@@ -10,7 +10,7 @@ import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviors';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@firebaseServices/userPreferences';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { Mail, ChevronDown, QrCode, User, Trash2, ExternalLink, RefreshCw, Star, ChevronRight, Download, SidebarOpen, Search, Filter, Users, Trophy, AlertCircle } from 'lucide-react';
+import { ChevronRight, RefreshCw, Star, Download, Search, Filter } from 'lucide-react';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
