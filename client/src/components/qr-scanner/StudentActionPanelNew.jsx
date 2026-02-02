@@ -92,13 +92,9 @@ export default function StudentActionPanelNew({
       }
     }
     
-    // If status is absent_no_excuse (default when no attendance), show None
-    console.log('🔧 No valid attendance found - showing None');
-    return {
-      en: t('none') || 'None',
-      ar: t('none') || 'لا شيء',
-      color: '#9ca3af'
-    };
+    // If no valid attendance status, don't show anything (not even "None")
+    console.log('🔧 No valid attendance found - hiding status');
+    return null;
   }, [student?.attendance, t]);
 
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name]);
@@ -282,23 +278,21 @@ export default function StudentActionPanelNew({
                   {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span style={{
-                    width: '0.375rem',
-                    height: '0.375rem',
-                    background: attendanceStatus.color,
-                    borderRadius: '9999px'
-                  }} />
-                  {/* Only show text for attendance status if it's not 'present' and not 'None' */}
-                  {student?.attendance !== 'present' && attendanceStatus.en !== 'None' && (
-                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                      {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                    </span>
-                  )}
-                  {/* Show None when there's no valid attendance */}
-                  {!student?.attendance && (
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                      {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
-                    </span>
+                  {attendanceStatus && (
+                    <>
+                      <span style={{
+                        width: '0.375rem',
+                        height: '0.375rem',
+                        background: attendanceStatus.color,
+                        borderRadius: '9999px'
+                      }} />
+                      {/* Only show text for attendance status if it's not 'present' */}
+                      {student?.attendance !== 'present' && (
+                        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                          {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -473,7 +467,12 @@ export default function StudentActionPanelNew({
               
               if (aIsFavorite && !bIsFavorite) return -1;
               if (!aIsFavorite && bIsFavorite) return 1;
-              return 0;
+              
+              // Then sort by most recently used (if we have timestamp data) or by label
+              // For now, sort by label to maintain consistent order
+              const aLabel = lang === 'ar' ? (a.label_ar || a.label_en) : a.label_en;
+              const bLabel = lang === 'ar' ? (b.label_ar || b.label_en) : b.label_en;
+              return aLabel.localeCompare(bLabel);
             }).map((option) => {
               const isSelected = selectedActions.some(a => a.id === option.id);
               

@@ -1227,7 +1227,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }).sort((a, b) => {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
-        return timeB - timeA;
+        return timeB - timeA; // Descending order (newest first)
       }).slice(0, 15);
 
       // Remove duplicate attendance records for same student
@@ -1249,11 +1249,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
       });
 
-      // Sort by time (most recent first)
+      // Sort by time (newest first)
       uniqueLogs.sort((a, b) => {
         const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
-        return timeB - timeA;
+        return timeB - timeA; // Descending order (newest first)
       });
 
       logger.debug('[QR Scanner] Final activity logs (deduped):', uniqueLogs.length);
@@ -1866,8 +1866,20 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     </button>
                 )}
 
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  minHeight: '24px'
+                }}>
+              <span style={{ 
+                fontSize: '0.875rem', 
+                color: '#6b7280',
+                fontWeight: '500',
+                minWidth: '20px',
+                textAlign: 'center'
+              }}>
                 {activityLoading ?
                     t('loading') || 'Loading...' :
                     `${recentActivity.length}`

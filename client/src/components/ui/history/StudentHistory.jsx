@@ -73,7 +73,11 @@ const StudentHistory = React.memo(({
           <div style={{ padding: '0.5rem 0.75rem' }}>
             <HistorySection
               title="Attendance"
-              logs={dayGroup.attendance}
+              logs={dayGroup.attendance.sort((a, b) => {
+                const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+                const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+                return timeB - timeA; // Newest first
+              })}
               type="attendance"
               icon={<AttendanceIcon />}
               iconColor="#10b981"
@@ -86,7 +90,11 @@ const StudentHistory = React.memo(({
             
             <HistorySection
               title="Participation"
-              logs={dayGroup.participation}
+              logs={dayGroup.participation.sort((a, b) => {
+                const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+                const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+                return timeB - timeA; // Newest first
+              })}
               type="participation"
               icon={<ParticipationIcon />}
               iconColor="#3b82f6"
@@ -99,7 +107,11 @@ const StudentHistory = React.memo(({
             
             <HistorySection
               title="Behavior"
-              logs={dayGroup.behavior || []}
+              logs={(dayGroup.behavior || []).sort((a, b) => {
+                const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+                const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+                return timeB - timeA; // Newest first
+              })}
               type="behavior"
               icon={<ZapIcon />}
               iconColor="#f97316"
@@ -112,7 +124,11 @@ const StudentHistory = React.memo(({
             
             <HistorySection
               title="Penalties"
-              logs={dayGroup.penalties}
+              logs={dayGroup.penalties.sort((a, b) => {
+                const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+                const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+                return timeB - timeA; // Newest first
+              })}
               type="penalty"
               icon={<PenaltyIcon />}
               iconColor="#ef4444"
