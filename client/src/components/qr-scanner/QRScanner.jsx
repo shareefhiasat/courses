@@ -22,7 +22,29 @@ import { generateReferenceId } from '@utils/qrCode';
 import { BEHAVIOR_TYPES, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes';
 import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes';
-import { QrCodeIcon, StopIcon, ZapIcon, DetailsIcon, MinimizeIcon, VibrationIcon, SoundIcon, DebugIcon, UserInputIcon, RefreshIcon, DeleteIcon, PenaltyIcon, ParticipationIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, CircleIcon, ShieldIcon, ChevronDownIcon, TrashIcon } from '@utils/icons.jsx';
+import {
+  QrCodeIcon,
+  StopIcon,
+  ZapIcon,
+  DetailsIcon,
+  MinimizeIcon,
+  VibrationIcon,
+  SoundIcon,
+  DebugIcon,
+  UserInputIcon,
+  RefreshIcon,
+  DeleteIcon,
+  PenaltyIcon,
+  ParticipationIcon,
+  CheckSmallIcon,
+  ClockSmallIcon,
+  XSmallIcon,
+  CircleIcon,
+  ShieldIcon,
+  ChevronDownIcon,
+  TrashIcon,
+  HeartIcon
+} from '@utils/icons.jsx';
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
   const { user } = useAuth();
@@ -1934,6 +1956,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                 gap: '0.125rem'
                               }}>
                                 {getStatusIcon(activity.status, activity.type, activity.delta)} {getStatusLabel(activity.status, activity.type, activity.delta)}
+                                {activity.points}
                               </div>
                               <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1 }}>
                       {activity.studentName}
@@ -1981,40 +2004,59 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                   color: '#6b7280',
                                   display: isMobile ? 'flex' : 'block',
                                   flexDirection: isMobile ? 'column' : 'none',
-                                  gap: isMobile ? '0.25rem' : '0'
+                                  gap: isMobile ? '0.15rem' : '0'
                                 }}>
-                                  <div style={{ marginBottom: '0.25rem' }}>
-                                    <strong>{t('date') || 'Date'}:</strong> {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')} {activity.time?.toDate ? activity.time.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (activity.time instanceof Date ? activity.time.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : activity.time || '')}
+                                  <div style={{ marginBottom: '0.15rem' }}>
+                                    {/*<strong>{t('date') || 'Date'}:</strong> */}
+                                    {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')} {activity.time?.toDate ? activity.time.toDate().toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (activity.time instanceof Date ? activity.time.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : activity.time || '')}
                                   </div>
                                   {activity.subject && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        <strong>{t('subject') || 'Subject'}:</strong> {activity.subject}
+                                        {/*<strong>{t('subject') || 'Subject'}:</strong> */}
+                                        {activity.subject}
                                       </div>
                                   )}
                                   {activity.program && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        <strong>{t('program') || 'Program'}:</strong> {activity.program}
+                                        {/*<strong>{t('program') || 'Program'}:</strong>*/}
+                                        {activity.program}
                                       </div>
                                   )}
                                   {activity.class && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        <strong>{t('class') || 'Class'}:</strong> {activity.class}
+                                        {/*<strong>{t('class') || 'Class'}:</strong> */}
+                                        {activity.class}
                                       </div>
                                   )}
                                   <div style={{ marginBottom: '0.25rem' }}>
-                                    <strong>{t('method') || 'Method'}:</strong> {getScanMethodDisplay(activity.scanMethod).text}
+                                    <strong>{t('method') || 'Method'}</strong>
+                                    {getScanMethodDisplay(activity.scanMethod).text}
                                   </div>
                                   <div style={{ marginBottom: '0.25rem' }}>
-                                    <strong>{t('by') || 'By'}:</strong> {activity.performedBy?.displayName || activity.performedBy?.email?.split('@')[0] || t('unknown')}
+                                    <strong>{t('by') || 'By'}</strong>
+                                    {activity.performedBy?.displayName || activity.performedBy?.email?.split('@')[0] || t('unknown')}
                                   </div>
                                   {activity.comment && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        <strong>{t('reason') || 'Reason'}:</strong> {activity.comment}
+                                        <strong>{t('reason') || 'Reason'}
+                                        </strong> {activity.comment}
                                       </div>
                                   )}
                                   {activity.label && activity.type === 'penalty' && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        <strong>{t('penalty_type') || 'Penalty Type'}:</strong> {activity.label}
+                                        {/*<strong>{t('penalty_type') || 'Penalty Type'}:</strong>*/}
+                                        {activity.label}
+                                      </div>
+                                  )}
+                                  {activity.type === 'participation' && (
+                                      <div style={{ marginBottom: '0.25rem' }}>
+                                        <strong>{t('participation_type') || 'Participation Type'}:</strong> {activity.label || t('participation') || 'Participation'}
+                                      </div>
+                                  )}
+                                  {activity.type === 'behavior' && (
+                                      <div style={{ marginBottom: '0.25rem' }}>
+                                        {/*<strong>{t('behavior_type') || 'Behavior Type'}</strong> */}
+                                        {activity.label || t('behavior') || 'Behavior'}
                                       </div>
                                   )}
                                 </div>

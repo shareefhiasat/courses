@@ -28,7 +28,7 @@ export const PENALTY_TYPES = [
     label_en: "Attempted Cheating or Assisting in Cheating",
     points: 5,
     icon: "AlertTriangle",
-    color: "#ea580c",
+    color: "#dc2626",
     description_ar: "محاولة الغش أو مساعدة الآخرين على الغش في الاختبارات",
     description_en: "Attempting to cheat or assisting others in cheating during exams"
   },
@@ -68,7 +68,7 @@ export const PENALTY_TYPES = [
     label_en: "Other Violations Disrupting Public Order",
     points: 5,
     icon: "HelpCircle",
-    color: "#ea580c",
+    color: "#dc2626",
     description_ar: "أي مخالفات أخرى تؤثر على النظام العام للمدرسة",
     description_en: "Any other violations that disrupt the school's public order"
   },
