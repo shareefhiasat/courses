@@ -19,6 +19,7 @@ import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAtte
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
+import { RECORD_TYPES } from '@constants/activityTypes';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '@firebaseServices/userPreferences';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
@@ -36,7 +37,7 @@ export default function StudentActionPanelNew({
   selectedDate,
   sendNotifications = false,
   onToggleNotifications,
-  initialTab = 'behavior' // Default to behavior tab
+  initialTab = RECORD_TYPES.BEHAVIOR // Default to behavior tab
 }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
@@ -61,7 +62,7 @@ export default function StudentActionPanelNew({
   const [showEmailDropdown, setShowEmailDropdown] = useState(false);
   const [sendingQRCode, setSendingQRCode] = useState(false);
   const [sendingSummary, setSendingSummary] = useState(false);
-  const [activeTab, setActiveTab] = useState(initialTab); // 'behavior', 'participation', 'penalty'
+  const [activeTab, setActiveTab] = useState(initialTab); // RECORD_TYPES.BEHAVIOR, RECORD_TYPES.PARTICIPATION, RECORD_TYPES.PENALTY
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
 
   // Load favorite behaviors from user preferences
@@ -168,7 +169,7 @@ export default function StudentActionPanelNew({
     return options.filter(option => {
       // Filter based on attendance status - only if attendanceStatus exists
       if (attendanceStatus && attendanceStatus.en === 'None') {
-        return option.category !== 'attendance';
+        return option.category !== RECORD_TYPES.ATTENDANCE;
       }
       return true;
     });
@@ -372,7 +373,7 @@ export default function StudentActionPanelNew({
         {/* Tab Navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>
           <button
-            onClick={() => setActiveTab('participation')}
+            onClick={() => setActiveTab(RECORD_TYPES.PARTICIPATION)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -381,17 +382,17 @@ export default function StudentActionPanelNew({
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
-              background: activeTab === 'participation' ? '#3b82f6' : '#f8fafc',
-              color: activeTab === 'participation' ? 'white' : '#64748b',
+              background: activeTab === RECORD_TYPES.PARTICIPATION ? '#3b82f6' : '#f8fafc',
+              color: activeTab === RECORD_TYPES.PARTICIPATION ? 'white' : '#64748b',
               cursor: 'pointer',
-              boxShadow: activeTab === 'participation' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: activeTab === RECORD_TYPES.PARTICIPATION ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
             <Users style={{ width: '14px', height: '14px' }} />
             {t('participation')}
           </button>
           <button
-            onClick={() => setActiveTab('behavior')}
+            onClick={() => setActiveTab(RECORD_TYPES.BEHAVIOR)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -400,17 +401,17 @@ export default function StudentActionPanelNew({
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
-              background: activeTab === 'behavior' ? '#f97316' : '#f8fafc',
-              color: activeTab === 'behavior' ? 'white' : '#64748b',
+              background: activeTab === RECORD_TYPES.BEHAVIOR ? '#f97316' : '#f8fafc',
+              color: activeTab === RECORD_TYPES.BEHAVIOR ? 'white' : '#64748b',
               cursor: 'pointer',
-              boxShadow: activeTab === 'behavior' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: activeTab === RECORD_TYPES.BEHAVIOR ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
             <Zap style={{ width: '14px', height: '14px' }} />
             {t('behavior')}
           </button>
           <button
-            onClick={() => setActiveTab('penalty')}
+            onClick={() => setActiveTab(RECORD_TYPES.PENALTY)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -419,10 +420,10 @@ export default function StudentActionPanelNew({
               fontSize: '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
-              background: activeTab === 'penalty' ? '#dc2626' : '#f8fafc',
-              color: activeTab === 'penalty' ? 'white' : '#64748b',
+              background: activeTab === RECORD_TYPES.PENALTY ? '#dc2626' : '#f8fafc',
+              color: activeTab === RECORD_TYPES.PENALTY ? 'white' : '#64748b',
               cursor: 'pointer',
-              boxShadow: activeTab === 'penalty' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: activeTab === RECORD_TYPES.PENALTY ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
             <AlertCircleIcon style={{ width: '14px', height: '14px' }} />
@@ -461,9 +462,9 @@ export default function StudentActionPanelNew({
           }}>
             {options.filter(option => {
               // Filter options based on active tab
-              if (activeTab === 'behavior') return option.category === 'behavior';
-              if (activeTab === 'participation') return option.category === 'participation';
-              if (activeTab === 'penalty') return option.category === 'penalty';
+              if (activeTab === RECORD_TYPES.BEHAVIOR) return option.category === RECORD_TYPES.BEHAVIOR;
+              if (activeTab === RECORD_TYPES.PARTICIPATION) return option.category === RECORD_TYPES.PARTICIPATION;
+              if (activeTab === RECORD_TYPES.PENALTY) return option.category === RECORD_TYPES.PENALTY;
               return true;
             }).sort((a, b) => {
               // Sort favorites to the top
@@ -526,7 +527,7 @@ export default function StudentActionPanelNew({
                       {lang === 'ar' ? (option.label_ar || option.label_en) : option.label_en}
                     </span>
                     {/* Only show points for behavior, participation, and penalty options, not attendance */}
-                    {option.category !== 'attendance' && (
+                    {option.category !== RECORD_TYPES.ATTENDANCE && (
                       <div style={{
                         fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
                         fontWeight: 600,
@@ -577,7 +578,7 @@ export default function StudentActionPanelNew({
                           const currentValue = actionPoints[option.id] || 0;
                           // Allow only negative values for behavior and penalty, only positive for participation
                           let newValue;
-                          if (option.category === 'participation') {
+                          if (option.category === RECORD_TYPES.PARTICIPATION) {
                             newValue = Math.max(0, currentValue - 1); // Don't go below 0 for participation
                           } else {
                             newValue = Math.max(-10, currentValue - 1); // Allow negative for behavior/penalty
@@ -624,7 +625,7 @@ export default function StudentActionPanelNew({
                           const currentValue = actionPoints[option.id] || 0;
                           // Allow only positive values for participation, only negative for behavior/penalty
                           let newValue;
-                          if (option.category === 'participation') {
+                          if (option.category === RECORD_TYPES.PARTICIPATION) {
                             newValue = Math.min(10, currentValue + 1); // Allow positive for participation
                           } else {
                             newValue = Math.min(0, currentValue + 1); // Don't go above 0 for behavior/penalty
@@ -701,9 +702,9 @@ export default function StudentActionPanelNew({
                 }));
                 
                 // Group actions by category and call appropriate handlers
-                const behaviorActions = actionsWithPoints.filter(action => action.category === 'behavior');
-                const participationActions = actionsWithPoints.filter(action => action.category === 'participation');
-                const penaltyActions = actionsWithPoints.filter(action => action.category === 'penalty');
+                const behaviorActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.BEHAVIOR);
+                const participationActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PARTICIPATION);
+                const penaltyActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PENALTY);
                 
                 // Call appropriate handlers
                 if (behaviorActions.length > 0) {

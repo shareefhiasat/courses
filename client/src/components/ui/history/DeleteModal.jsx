@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, Card, CardBody } from '@ui';
+import { RECORD_TYPES } from '@constants/activityTypes';
 
 const DeleteModal = ({ 
   isOpen, 
@@ -29,11 +30,11 @@ const DeleteModal = ({
         <CardBody>
           <h3>
             {t('delete_activity_title', { 
-              type: deleteType === 'attendance'
+              type: deleteType === RECORD_TYPES.ATTENDANCE
                 ? t('attendance')
-                : deleteType === 'participation'
+                : deleteType === RECORD_TYPES.PARTICIPATION
                   ? t('participation')
-                  : deleteType === 'behavior'
+                  : deleteType === RECORD_TYPES.BEHAVIOR
                     ? t('behavior')
                     : t('penalty')
             })}

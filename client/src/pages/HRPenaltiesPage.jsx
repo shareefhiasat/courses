@@ -9,6 +9,7 @@ import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, S
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@firebaseServices/penalties';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
+import { RECORD_TYPES } from '@constants/activityTypes';
 import { getPrograms, getSubjects } from '@firebaseServices/programs';
 import { getClasses, getEnrollments } from '@firebaseServices/firestore';
 import { addNotification } from '@firebaseServices/notifications';
@@ -396,7 +397,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         try {
           await addNotification({
             userId: deleteModal.item.studentId,
-            type: 'penalty',
+            type: RECORD_TYPES.PENALTY,
             title: 'Penalty Withdrawn',
             message: `Your penalty for "${PENALTY_TYPES.find(pt => pt.id === deleteModal.item.type)?.label_en || deleteModal.item.type}" has been withdrawn.`,
             data: { penaltyId: deleteModal.item.id, action: 'withdrawn' }

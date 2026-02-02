@@ -19,6 +19,7 @@ import { getClasses } from '@firebaseServices/firestore';
 import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Filter, MoreVertical, Trash2, Eye, EyeOff, MessageCircle, Mail, UserCheck, ExternalLink, Volume2, Vibrate, TestTube } from 'lucide-react';
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, ToggleSwitch } from '@ui';
+import { RECORD_TYPES } from '@constants/activityTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
@@ -128,12 +129,12 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     }
 
     // Filter by penalty type
-    if (filterPenaltyType !== 'all' && filterCategory === 'penalty') {
+    if (filterPenaltyType !== 'all' && filterCategory === RECORD_TYPES.PENALTY) {
       filtered = filtered.filter(n => n.metadata?.penaltyType === filterPenaltyType);
     }
 
     // Filter by attendance status
-    if (filterAttendanceStatus !== 'all' && filterCategory === 'attendance') {
+    if (filterAttendanceStatus !== 'all' && filterCategory === RECORD_TYPES.ATTENDANCE) {
       filtered = filtered.filter(n => n.metadata?.attendanceStatus === filterAttendanceStatus);
     }
 
@@ -233,8 +234,8 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
       case 'activity': return <FileText {...iconProps} className="text-indigo-600" />;
       case 'message': case 'chat': return <MessageCircle {...iconProps} className="text-pink-600" />;
       case 'newsletter': return <Mail {...iconProps} className="text-purple-600" />;
-      case 'attendance': return <UserCheck {...iconProps} className="text-blue-600" />;
-      case 'penalty': return <AlertTriangle {...iconProps} className="text-orange-600" />;
+      case RECORD_TYPES.ATTENDANCE: return <UserCheck {...iconProps} className="text-blue-600" />;
+      case RECORD_TYPES.PENALTY: return <AlertTriangle {...iconProps} className="text-orange-600" />;
       case 'absence': return <XCircle {...iconProps} className="text-red-600" />;
       default: return <Info {...iconProps} className="text-gray-600" />;
     }
@@ -366,10 +367,10 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
         ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${msgId}`
         : `/chat?dest=${encodeURIComponent(dest)}`;
       navigate(url);
-    } else if (n.type === 'attendance' || n.type === 'absence') {
+    } else if (n.type === RECORD_TYPES.ATTENDANCE || n.type === 'absence') {
       // Attendance/absence - navigate to student dashboard for now
       navigate('/student-dashboard');
-    } else if (n.type === 'penalty') {
+    } else if (n.type === RECORD_TYPES.PENALTY) {
       // Penalty - navigate to student dashboard for now
       navigate('/student-dashboard');
     } else if (n.type === 'announcement' || n.type === 'newsletter') {
@@ -520,9 +521,9 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 { value: 'announcement', label: 'Announcements' },
                 { value: 'newsletter', label: 'Newsletter' },
                 { value: 'grade', label: 'Grades' },
-                { value: 'attendance', label: 'Attendance' },
+                { value: RECORD_TYPES.ATTENDANCE, label: 'Attendance' },
                 { value: 'absence', label: 'Absences' },
-                { value: 'penalty', label: 'Penalties' },
+                { value: RECORD_TYPES.PENALTY, label: 'Penalties' },
                 { value: 'success', label: 'Success' },
                 { value: 'warning', label: 'Warning' },
                 { value: 'error', label: 'Error' }
@@ -530,7 +531,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               size="small"
               style={{ flex: 1, minWidth: '90px', fontSize: '0.75rem' }}
             />
-            {filterCategory === 'penalty' && (
+            {filterCategory === RECORD_TYPES.PENALTY && (
               <Select
                 value={filterPenaltyType}
                 onChange={(e) => setFilterPenaltyType(e.target.value)}
@@ -542,7 +543,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 style={{ flex: 1, minWidth: '100px' }}
               />
             )}
-            {filterCategory === 'attendance' && (
+            {filterCategory === RECORD_TYPES.ATTENDANCE && (
               <Select
                 value={filterAttendanceStatus}
                 onChange={(e) => setFilterAttendanceStatus(e.target.value)}

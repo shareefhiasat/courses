@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./config";
 import { addNotification } from "./notifications";
+import { RECORD_TYPES } from "@constants/activityTypes";
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -127,7 +128,7 @@ export const createPenalty = async ({
   classId,
   studentId,
   subjectId = null,
-  type = 'penalty',
+  type = RECORD_TYPES.PENALTY,
   points = 0,
   reason = '',
   note = '',
@@ -168,7 +169,7 @@ export const createPenalty = async ({
           userId: studentId,
           title: '⚠️ Penalty Recorded',
           message: `Penalty recorded for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
-          type: 'penalty',
+          type: RECORD_TYPES.PENALTY,
           classId: classId,
           metadata: {
             date: todayStr,

@@ -19,6 +19,7 @@ import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { getParticipationLabel } from '@constants/participationTypes';
 import { getBehaviorLabel } from '@constants/behaviorTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { RECORD_TYPES } from '@constants/activityTypes';
 import StudentHistory from '@ui/history';
 import StudentRosterHistory from '@ui/history/StudentRosterHistory';
 import DeleteModal from '@ui/history/DeleteModal';
@@ -123,7 +124,7 @@ const StudentRoster = React.memo(function StudentRoster({
         ...attendanceRecords.filter(r => r.status).map(record => {
           const logEntry = {
             id: record.id,
-            type: 'attendance',
+            type: RECORD_TYPES.ATTENDANCE,
             date: record.date || toYmd(record.timestamp) || toYmd(record.updatedAt) || toYmd(record.createdAt),
             time: record.timestamp || record.date,
             label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown',
@@ -146,10 +147,10 @@ const StudentRoster = React.memo(function StudentRoster({
         }),
         ...studentParticipations.map(p => {
           const points = Number(p.points) || 0;
-          const label = getParticipationLabel(p.type || 'participation', lang);
+          const label = getParticipationLabel(p.type || RECORD_TYPES.PARTICIPATION, lang);
           return {
             id: p.docId || p.id,
-            type: 'participation',
+            type: RECORD_TYPES.PARTICIPATION,
             date: p.date || toYmd(p.createdAt) || toYmd(p.updatedAt),
             time: p.createdAt,
             label: label,
@@ -161,10 +162,10 @@ const StudentRoster = React.memo(function StudentRoster({
         }),
         ...studentBehaviors.map(b => {
           const points = Number(b.points) || 0;
-          const label = getBehaviorLabel(b.type || 'behavior', lang);
+          const label = getBehaviorLabel(b.type || RECORD_TYPES.BEHAVIOR, lang);
           return {
             id: b.docId || b.id,
-            type: 'behavior',
+            type: RECORD_TYPES.BEHAVIOR,
             date: b.date || toYmd(b.createdAt) || toYmd(b.updatedAt),
             time: b.createdAt,
             label: label,
@@ -184,7 +185,7 @@ const StudentRoster = React.memo(function StudentRoster({
           
           return {
             id: penalty.docId || penalty.id,
-            type: 'penalty',
+            type: RECORD_TYPES.PENALTY,
             date: penalty.date || (penalty.createdAt?.toDate
                 ? penalty.createdAt.toDate().toISOString().split('T')[0]
                 : new Date(penalty.createdAt).toISOString().split('T')[0]),
@@ -218,25 +219,25 @@ const StudentRoster = React.memo(function StudentRoster({
   }, []);
 
   const handleDeleteAttendance = async (studentId, logId) => {
-    setDeleteType('attendance');
+    setDeleteType(RECORD_TYPES.ATTENDANCE);
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
   };
 
   const handleDeletePenalty = async (studentId, logId) => {
-    setDeleteType('penalty');
+    setDeleteType(RECORD_TYPES.PENALTY);
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
   };
 
   const handleDeleteParticipation = async (studentId, logId) => {
-    setDeleteType('participation');
+    setDeleteType(RECORD_TYPES.PARTICIPATION);
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
   };
 
   const handleDeleteBehavior = async (studentId, logId) => {
-    setDeleteType('behavior');
+    setDeleteType(RECORD_TYPES.BEHAVIOR);
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
   };
@@ -246,7 +247,7 @@ const StudentRoster = React.memo(function StudentRoster({
     setDeleteLoading(true);
     try {
       let result;
-      if (deleteType === 'attendance') {
+      if (deleteType === RECORD_TYPES.ATTENDANCE) {
         result = await deleteAttendance(deleteLogId);
         if (result.success) {
           // Find the student ID from the log or refresh all
@@ -258,7 +259,7 @@ const StudentRoster = React.memo(function StudentRoster({
           eventBus.emit(EVENTS.ATTENDANCE_DELETED,
               {studentId: deleteLogId.split('_')[1]});
         }
-      } else if (deleteType === 'penalty') {
+      } else if (deleteType === RECORD_TYPES.PENALTY) {
         result = await deletePenalty(deleteLogId);
         if (result.success) {
           // Find the student ID from the log or refresh all
@@ -268,7 +269,7 @@ const StudentRoster = React.memo(function StudentRoster({
           eventBus.emit(EVENTS.PENALTY_ASSIGNED,
               {studentId: deleteLogId.split('_')[1]});
         }
-      } else if (deleteType === 'participation') {
+      } else if (deleteType === RECORD_TYPES.PARTICIPATION) {
         result = await deleteParticipation(deleteLogId);
         if (result.success) {
           // Find the student ID from the log or refresh all
@@ -278,7 +279,7 @@ const StudentRoster = React.memo(function StudentRoster({
           eventBus.emit(EVENTS.PARTICIPATION_ADDED,
               {studentId: deleteLogId.split('_')[1], status: 'deleted'});
         }
-      } else if (deleteType === 'behavior') {
+      } else if (deleteType === RECORD_TYPES.BEHAVIOR) {
         result = await deleteBehavior(deleteLogId);
         if (result.success) {
           students.forEach(student => {
@@ -602,13 +603,13 @@ const StudentRoster = React.memo(function StudentRoster({
         };
       }
 
-      if (log.type === 'attendance') {
+      if (log.type === RECORD_TYPES.ATTENDANCE) {
         grouped[date].attendance.push(log);
-      } else if (log.type === 'penalty') {
+      } else if (log.type === RECORD_TYPES.PENALTY) {
         grouped[date].penalties.push(log);
-      } else if (log.type === 'participation') {
+      } else if (log.type === RECORD_TYPES.PARTICIPATION) {
         grouped[date].participation.push(log);
-      } else if (log.type === 'behavior') {
+      } else if (log.type === RECORD_TYPES.BEHAVIOR) {
         grouped[date].behavior.push(log);
       } else if (log.points > 0) {
         // Fallback for older records

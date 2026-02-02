@@ -4,6 +4,7 @@ import { db, functions } from './config';
 import { addNotification } from './notifications';
 import { sendEmail } from './firestore';
 import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { RECORD_TYPES } from '@constants/activityTypes';
 
 /**
  * Get absences from attendance collection
@@ -76,8 +77,8 @@ export async function markScan({ classId, sessionId, uid, action, reason }) {
     history: [{ at: serverTimestamp(), action, reason: reason || null }],
   };
   if (action === 'present') base.status = 'present';
-  if (action === 'participation') base.delta = (base.delta || 0) + 1;
-  if (action === 'penalty') base.delta = (base.delta || 0) - 1;
+  if (action === RECORD_TYPES.PARTICIPATION) base.delta = (base.delta || 0) + 1;
+  if (action === RECORD_TYPES.PENALTY) base.delta = (base.delta || 0) - 1;
   await setDoc(markRef, base, { merge: true });
 }
 
@@ -252,7 +253,7 @@ export async function markAttendance({
           userId: studentId,
           title: statusChanged ? '📋 Attendance Updated' : '📋 Attendance Recorded',
           message: `Your attendance for ${className || 'class'} on ${formattedDate}: ${statusLabel.en}${notes ? ` - ${notes}` : ''}`,
-          type: 'attendance',
+          type: RECORD_TYPES.ATTENDANCE,
           classId: classId,
           metadata: {
             date,
@@ -275,7 +276,7 @@ export async function markAttendance({
             await sendEmail({
               to: studentInfo.email,
               template: 'attendanceNotification',
-              type: 'attendance',
+              type: RECORD_TYPES.ATTENDANCE,
               classId: classId,
               data: {
                 studentName: studentInfo.displayName || studentInfo.email,

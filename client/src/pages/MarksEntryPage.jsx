@@ -7,7 +7,7 @@ import { getSubjects, getPrograms } from '@firebaseServices/programs';
 import { getSubjectMarksDistribution, setSubjectMarksDistribution, getStudentMarks, saveStudentMarks } from '@firebaseServices/grading';
 import { getUsers, getEnrollments, getClasses } from '@firebaseServices/firestore';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
-import { MARK_TYPES } from '@constants/activityTypes';
+import { MARK_TYPES, RECORD_TYPES } from '@constants/activityTypes';
 import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
 import { FileSpreadsheet, Save, Edit, Award, Eye, AlertCircle, Award as ParticipationIcon, Calendar, Info, Filter, GraduationCap, BookOpen, Users } from 'lucide-react';
 import { CollapsibleSideWindow } from '@ui';
@@ -553,7 +553,7 @@ const MarksEntryPage = () => {
       }
     },
     {
-      field: 'participation',
+      field: RECORD_TYPES.PARTICIPATION,
       headerName: `Participation (${marksDistribution?.participation || 10}%)`,
       width: 140,
       renderCell: (params) => {
@@ -563,7 +563,7 @@ const MarksEntryPage = () => {
       }
     },
     {
-      field: 'attendance',
+      field: RECORD_TYPES.ATTENDANCE,
       headerName: `Attendance (${marksDistribution?.attendance || 10}%)`,
       width: 140,
       renderCell: (params) => {
@@ -649,7 +649,7 @@ const MarksEntryPage = () => {
               variant="ghost"
               size="sm"
               icon={<AlertCircle size={14} />}
-              onClick={() => openSideWindow('behavior', student, filters)}
+              onClick={() => openSideWindow(RECORD_TYPES.BEHAVIOR, student, filters)}
               title={t('view_behavior') || 'View Behavior'}
             >
               {t('behavior') || 'Behavior'}
@@ -658,7 +658,7 @@ const MarksEntryPage = () => {
               variant="ghost"
               size="sm"
               icon={<Award size={14} />}
-              onClick={() => openSideWindow('penalties', student, filters)}
+              onClick={() => openSideWindow(RECORD_TYPES.PENALTY, student, filters)}
               title={t('view_penalties') || 'View Penalties'}
             >
               {t('penalties') || 'Penalties'}
@@ -667,7 +667,7 @@ const MarksEntryPage = () => {
               variant="ghost"
               size="sm"
               icon={<ParticipationIcon size={14} />}
-              onClick={() => openSideWindow('participation', student, filters)}
+              onClick={() => openSideWindow(RECORD_TYPES.PARTICIPATION, student, filters)}
               title={t('view_participation') || 'View Participation'}
             >
               {t('participation') || 'Participation'}
@@ -691,7 +691,7 @@ const MarksEntryPage = () => {
     if (!sideWindowContent || !sideWindowStudent) return null;
 
     switch (sideWindowContent) {
-      case 'behavior':
+      case RECORD_TYPES.BEHAVIOR:
         return (
           <InstructorBehaviorPage 
             isDashboardTab={true}
@@ -699,7 +699,7 @@ const MarksEntryPage = () => {
             hideActions={true}
           />
         );
-      case 'penalties':
+      case RECORD_TYPES.PENALTY:
         return (
           <HRPenaltiesPage 
             isDashboardTab={true}
@@ -707,7 +707,7 @@ const MarksEntryPage = () => {
             hideActions={true}
           />
         );
-      case 'participation':
+      case RECORD_TYPES.PARTICIPATION:
         return (
           <InstructorParticipationPage 
             isDashboardTab={true}
@@ -1187,9 +1187,9 @@ const MarksEntryPage = () => {
       <CollapsibleSideWindow
         isOpen={sideWindowOpen}
         onClose={closeSideWindow}
-        title={sideWindowContent === 'behavior' ? 'Behavior' :
-              sideWindowContent === 'penalties' ? 'Penalties' :
-              sideWindowContent === 'participation' ? 'Participation' : 'Student Overview'}
+        title={sideWindowContent === RECORD_TYPES.BEHAVIOR ? 'Behavior' :
+              sideWindowContent === RECORD_TYPES.PENALTY ? 'Penalties' :
+              sideWindowContent === RECORD_TYPES.PARTICIPATION ? 'Participation' : 'Student Overview'}
         studentName={sideWindowStudent?.displayName || sideWindowStudent?.email || 'Student'}
         searchable={false}
         initialFilters={sideWindowFilters}

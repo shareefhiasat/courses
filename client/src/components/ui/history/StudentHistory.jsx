@@ -3,6 +3,7 @@ import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
 import { HistoryEntry } from './HistoryEntry';
 import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon } from '@utils/icons.jsx';
+import { RECORD_TYPES } from '@constants/activityTypes';
 
 const StudentHistory = React.memo(({ 
   groupedLogs, 
@@ -77,10 +78,10 @@ const StudentHistory = React.memo(({
             {(() => {
               // Combine all logs from all types and sort by time
               const allLogs = [
-                ...dayGroup.attendance.map(log => ({ ...log, logType: 'attendance' })),
-                ...dayGroup.participation.map(log => ({ ...log, logType: 'participation' })),
-                ...(dayGroup.behavior || []).map(log => ({ ...log, logType: 'behavior' })),
-                ...dayGroup.penalties.map(log => ({ ...log, logType: 'penalty' }))
+                ...dayGroup.attendance.map(log => ({ ...log, logType: RECORD_TYPES.ATTENDANCE })),
+                ...dayGroup.participation.map(log => ({ ...log, logType: RECORD_TYPES.PARTICIPATION })),
+                ...(dayGroup.behavior || []).map(log => ({ ...log, logType: RECORD_TYPES.BEHAVIOR })),
+                ...dayGroup.penalties.map(log => ({ ...log, logType: RECORD_TYPES.PENALTY }))
               ].sort((a, b) => {
                 const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
                 const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
@@ -98,25 +99,25 @@ const StudentHistory = React.memo(({
                 let icon, iconColor, borderColor, onDelete;
                 
                 switch (log.logType) {
-                  case 'attendance':
+                  case RECORD_TYPES.ATTENDANCE:
                     icon = <AttendanceIcon />;
                     iconColor = "#10b981";
                     borderColor = "#f1f5f9";
                     onDelete = (logId) => handleDeleteAttendance(studentId, logId);
                     break;
-                  case 'participation':
+                  case RECORD_TYPES.PARTICIPATION:
                     icon = <ParticipationIcon />;
                     iconColor = "#3b82f6";
                     borderColor = "#e5e7eb";
                     onDelete = (logId) => handleDeleteParticipation(studentId, logId);
                     break;
-                  case 'behavior':
+                  case RECORD_TYPES.BEHAVIOR:
                     icon = <ZapIcon />;
                     iconColor = "#f97316";
                     borderColor = "#fed7aa";
                     onDelete = (logId) => handleDeleteBehavior(studentId, logId);
                     break;
-                  case 'penalty':
+                  case RECORD_TYPES.PENALTY:
                     icon = <PenaltyIcon />;
                     iconColor = "#ef4444";
                     borderColor = "#fecaca";

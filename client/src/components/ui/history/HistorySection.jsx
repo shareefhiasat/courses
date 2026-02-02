@@ -4,6 +4,7 @@ import { getAttendanceIcon, getAttendanceColor, ATTENDANCE_STATUS } from '@const
 import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 import { getPenaltyIcon, getPenaltyColor } from '@constants/penaltyTypes';
+import { RECORD_TYPES } from '@constants/activityTypes';
 import {
   CheckSmallIcon,
   ClockSmallIcon,
@@ -28,7 +29,7 @@ export const HistorySection = ({
   borderColor = '#f1f5f9'
 }) => {
   // Handle the mismatch between type ('penalty') and filter key ('penalties')
-  const filterKey = type === 'penalty' ? 'penalties' : type;
+  const filterKey = type === RECORD_TYPES.PENALTY ? 'penalties' : type;
   const isActive = activeFilters[filterKey];
   
   console.log('🔧 HistorySection:', {
@@ -71,7 +72,7 @@ export const HistorySection = ({
 
   // Get appropriate icon for each log based on type
   const getLogIcon = (log) => {
-    if (type === 'attendance') {
+    if (type === RECORD_TYPES.ATTENDANCE) {
       // Attendance status is now flattened to top level (no more data nesting)
       const status = log.status;
       
@@ -89,17 +90,17 @@ export const HistorySection = ({
       return iconMap[iconName] || iconMap.HelpCircle;
     }
     
-    if (type === 'behavior') {
+    if (type === RECORD_TYPES.BEHAVIOR) {
       console.log('🔍 HistorySection returning behavior icon');
       return <ZapIcon style={{ width: '14px', height: '14px', color: getBehaviorColor(log.type) }} />;
     }
     
-    if (type === 'participation') {
+    if (type === RECORD_TYPES.PARTICIPATION) {
       console.log('🔍 HistorySection returning participation icon');
       return <ParticipationIcon style={{ width: '14px', height: '14px', color: getParticipationColor(log.type) }} />;
     }
     
-    if (type === 'penalty') {
+    if (type === RECORD_TYPES.PENALTY) {
       console.log('🔍 HistorySection returning penalty icon');
       return <PenaltyIcon style={{ width: '14px', height: '14px', color: getPenaltyColor(log.type) }} />;
     }
@@ -118,7 +119,7 @@ export const HistorySection = ({
           log={log}
           type={type}
           icon={getLogIcon(log)}
-          iconColor={type === 'attendance' ? getAttendanceColor(log.status) : iconColor}
+          iconColor={type === RECORD_TYPES.ATTENDANCE ? getAttendanceColor(log.status) : iconColor}
           onDelete={onDelete}
           t={t}
           isRTL={isRTL}

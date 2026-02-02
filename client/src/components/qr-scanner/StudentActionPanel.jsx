@@ -51,7 +51,7 @@ export default function StudentActionPanel({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [actionPoints, setActionPoints] = useState({});
   const [internalNote, setInternalNote] = useState('');
-  const [activeTab, setActiveTab] = useState('behavior');
+  const [activeTab, setActiveTab] = useState(RECORD_TYPES.BEHAVIOR);
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
   const [todayLogs, setTodayLogs] = useState([]);
   const [historicalLogs, setHistoricalLogs] = useState([]);
@@ -305,7 +305,7 @@ export default function StudentActionPanel({
 
     // Process logs to calculate stats
     todayLogs.forEach((log) => {
-      if (log.type === 'behavior') {
+      if (log.type === RECORD_TYPES.BEHAVIOR) {
         const behaviorType = log.data.type || 'other';
 
         if (stats.behavior[behaviorType]) {
@@ -317,14 +317,14 @@ export default function StudentActionPanel({
           stats.penalty[behaviorType].count++;
           stats.penalty[behaviorType].totalPoints += log.points || 0;
         }
-      } else if (log.type === 'participation') {
+      } else if (log.type === RECORD_TYPES.PARTICIPATION) {
         const participationType = log.data.type || 'other';
 
         if (stats.participation[participationType]) {
           stats.participation[participationType].count++;
           stats.participation[participationType].totalPoints += log.points || 0;
         }
-      } else if (log.type === 'penalty') {
+      } else if (log.type === RECORD_TYPES.PENALTY) {
         const penaltyType = log.data.type || 'other';
 
         if (stats.penalty[penaltyType]) {
@@ -366,27 +366,27 @@ export default function StudentActionPanel({
       const logs = [
         ...attendanceRecords.map(record => ({
           id: record.id || record.docId,
-          type: record.category || (record.delta ? (record.delta > 0 ? 'participation' : 'behavior') : 'attendance'),
+          type: record.category || (record.delta ? (record.delta > 0 ? RECORD_TYPES.PARTICIPATION : RECORD_TYPES.BEHAVIOR) : RECORD_TYPES.ATTENDANCE),
           date: record.date || (record.timestamp?.toDate ? record.timestamp.toDate().toISOString().split('T')[0] : new Date(record.timestamp).toISOString().split('T')[0]),
           time: record.timestamp || record.date,
           status: record.status,  // ← Flatten status to top level
-          label: record.category === 'participation' 
+          label: record.category === RECORD_TYPES.PARTICIPATION 
             ? 'Participation' 
-            : (record.category === 'behavior' 
+            : (record.category === RECORD_TYPES.BEHAVIOR 
               ? 'Behavior' 
               : (ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown')),
           points: record.delta || 0,
           comment: record.reason || record.notes || '',
           severity: 'low',
-          color: record.category === 'participation' 
+          color: record.category === RECORD_TYPES.PARTICIPATION 
             ? '#3b82f6' 
-            : (record.category === 'behavior' 
+            : (record.category === RECORD_TYPES.BEHAVIOR 
               ? '#f97316' 
               : (ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'))
         })),
         ...studentBehaviors.map(behavior => ({
           id: behavior.id || behavior.docId,
-          type: 'behavior',
+          type: RECORD_TYPES.BEHAVIOR,
           date: behavior.date || (behavior.createdAt?.toDate ? behavior.createdAt.toDate().toISOString().split('T')[0] : new Date(behavior.createdAt).toISOString().split('T')[0]),
           time: behavior.createdAt,
           data: behavior,
@@ -398,7 +398,7 @@ export default function StudentActionPanel({
         })),
         ...studentParticipations.map(participation => ({
           id: participation.id || participation.docId,
-          type: 'participation',
+          type: RECORD_TYPES.PARTICIPATION,
           date: participation.date || (participation.createdAt?.toDate ? participation.createdAt.toDate().toISOString().split('T')[0] : new Date(participation.createdAt).toISOString().split('T')[0]),
           time: participation.createdAt,
           data: participation,
@@ -415,7 +415,7 @@ export default function StudentActionPanel({
           
           const mappedPenalty = {
             id: penalty.id || penalty.docId,
-            type: 'penalty',
+            type: RECORD_TYPES.PENALTY,
             date: penalty.date || (penalty.createdAt?.toDate ? penalty.createdAt.toDate().toISOString().split('T')[0] : new Date(penalty.createdAt).toISOString().split('T')[0]),
             time: penalty.createdAt,
             data: penalty,
@@ -541,21 +541,21 @@ export default function StudentActionPanel({
 
   // Delete attendance log
   const handleDeleteAttendance = useCallback((logId) => {
-    setDeleteType('attendance');
+    setDeleteType(RECORD_TYPES.ATTENDANCE);
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
   }, []);
 
   // Delete participation log
   const handleDeleteParticipation = useCallback((studentId, logId) => {
-    setDeleteType('participation');
+    setDeleteType(RECORD_TYPES.PARTICIPATION);
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
   }, []);
 
   // Delete penalty log
   const handleDeletePenalty = useCallback((logId) => {
-    setDeleteType('penalty');
+    setDeleteType(RECORD_TYPES.PENALTY);
     setDeleteLogId(logId);
     setDeleteModalOpen(true);
   }, []);
@@ -781,13 +781,13 @@ export default function StudentActionPanel({
         };
       }
 
-      if (log.type === 'attendance') {
+      if (log.type === RECORD_TYPES.ATTENDANCE) {
         grouped[date].attendance.push(log);
-      } else if (log.type === 'penalty') {
+      } else if (log.type === RECORD_TYPES.PENALTY) {
         grouped[date].penalties.push(log);
-      } else if (log.type === 'participation') {
+      } else if (log.type === RECORD_TYPES.PARTICIPATION) {
         grouped[date].participation.push(log);
-      } else if (log.type === 'behavior') {
+      } else if (log.type === RECORD_TYPES.BEHAVIOR) {
         grouped[date].behavior.push(log);
       } else if (log.points > 0) {
         // Fallback for older records
@@ -859,20 +859,20 @@ export default function StudentActionPanel({
 
   // Memoized available options for performance
   const options = useMemo(() => {
-    if (activeTab === 'participation') {
+    if (activeTab === RECORD_TYPES.PARTICIPATION) {
       return participationTypes.map(pt => ({
         ...pt,
-        category: 'participation'
+        category: RECORD_TYPES.PARTICIPATION
       }));
-    } else if (activeTab === 'behavior') {
+    } else if (activeTab === RECORD_TYPES.BEHAVIOR) {
       return behaviorTypes.filter(bt => bt.points !== 0).map(bt => ({
         ...bt,
-        category: 'behavior'
+        category: RECORD_TYPES.BEHAVIOR
       }));
-    } else if (activeTab === 'penalty') {
+    } else if (activeTab === RECORD_TYPES.PENALTY) {
       return behaviorTypes.filter(bt => bt.points < 0).map(bt => ({
         ...bt,
-        category: 'penalty'
+        category: RECORD_TYPES.PENALTY
       }));
     }
     return [];
@@ -959,7 +959,7 @@ export default function StudentActionPanel({
   const attendanceStatus = useMemo(() => {
     // Check if there are actual attendance records for today (not participation/behavior/penalty)
     const hasTodayAttendance = todayLogs.some(log => 
-      log.type === 'attendance' && 
+      log.type === RECORD_TYPES.ATTENDANCE && 
       log.status && 
       [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, ATTENDANCE_STATUS.LATE, ATTENDANCE_STATUS.EXCUSED_LEAVE, ATTENDANCE_STATUS.HUMAN_CASE].includes(log.status)
     );
@@ -999,7 +999,7 @@ export default function StudentActionPanel({
   const attendanceStats = useMemo(() => {
     // Start with todayLogs calculation
     const stats = todayLogs.reduce((acc, log) => {
-      if (log.type === 'attendance') {
+      if (log.type === RECORD_TYPES.ATTENDANCE) {
         const status = log.status;
         if (status === ATTENDANCE_STATUS.PRESENT) acc.present++;
         else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) acc.absent_no_excuse++;
@@ -1016,7 +1016,7 @@ export default function StudentActionPanel({
     if (currentAttendanceStatus) {
       // Check if this status is already counted in todayLogs
       const isInTodayLogs = todayLogs.some(log => 
-        log.type === 'attendance' && log.status === currentAttendanceStatus
+        log.type === RECORD_TYPES.ATTENDANCE && log.status === currentAttendanceStatus
       );
       
       // Only add to stats if it's not already in todayLogs
@@ -1036,7 +1036,7 @@ export default function StudentActionPanel({
   // Memoized TOTAL attendance statistics calculation (ALL TIME)
   const totalAttendanceStats = useMemo(() => {
     return historicalLogs.reduce((acc, log) => {
-      if (log.type === 'attendance') {
+      if (log.type === RECORD_TYPES.ATTENDANCE) {
         const status = log.status;
         if (status === ATTENDANCE_STATUS.PRESENT) acc.present++;
         else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) acc.absent_no_excuse++;

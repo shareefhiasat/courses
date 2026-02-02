@@ -4,6 +4,7 @@ import {
   CheckSmallIcon, MessageSquareIcon, ZapIcon, AlertCircleSmallIcon,
   ParticipationIcon
 } from "@utils/icons.jsx";
+import { RECORD_TYPES } from '@constants/activityTypes';
 
 const StudentRosterHistory = ({ 
   student, 
@@ -57,7 +58,7 @@ const StudentRosterHistory = ({
           flexWrap: 'wrap'
         }}>
           <button
-            onClick={() => toggleFilter('attendance')}
+            onClick={() => toggleFilter(RECORD_TYPES.ATTENDANCE)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -76,7 +77,7 @@ const StudentRosterHistory = ({
             {t('attendance')}
           </button>
           <button
-            onClick={() => toggleFilter('participation')}
+            onClick={() => toggleFilter(RECORD_TYPES.PARTICIPATION)}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -95,7 +96,7 @@ const StudentRosterHistory = ({
             {t('participation')}
           </button>
           <button
-            onClick={() => toggleFilter('behavior')}
+            onClick={() => toggleFilter(RECORD_TYPES.BEHAVIOR)}
             style={{
               display: 'flex',
               alignItems: 'center',

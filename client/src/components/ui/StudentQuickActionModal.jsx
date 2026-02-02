@@ -39,6 +39,7 @@ import { getClasses, getEnrollments } from '@firebaseServices/firestore';
 import { addNotification } from '@firebaseServices/notifications';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
+import { RECORD_TYPES } from '@constants/activityTypes';
 import './StudentQuickActionModal.css';
 
 const StudentQuickActionModal = ({ 
@@ -54,7 +55,7 @@ const StudentQuickActionModal = ({
   const { isDark, theme } = useTheme();
   
   // State management
-  const [activeTab, setActiveTab] = useState('attendance');
+  const [activeTab, setActiveTab] = useState(RECORD_TYPES.ATTENDANCE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -177,7 +178,7 @@ const StudentQuickActionModal = ({
         
         if (onSuccess) {
           onSuccess({
-            type: 'attendance',
+            type: RECORD_TYPES.ATTENDANCE,
             data: {
               status: attendanceStatus,
               classId: selectedClass,
@@ -228,7 +229,7 @@ const StudentQuickActionModal = ({
         userId: student.uid,
         title: 'Participation Awarded',
         message: `You were awarded ${participationDelta > 0 ? '+' : ''}${participationDelta} participation points${participationNote ? ': ' + participationNote : ''}`,
-        type: 'participation',
+        type: RECORD_TYPES.PARTICIPATION,
         classId: selectedClass,
         data: participationData
       });
@@ -237,7 +238,7 @@ const StudentQuickActionModal = ({
       
       if (onSuccess) {
         onSuccess({
-          type: 'participation',
+          type: RECORD_TYPES.PARTICIPATION,
           data: {
             delta: participationDelta,
             classId: selectedClass,
@@ -290,7 +291,7 @@ const StudentQuickActionModal = ({
         userId: student.uid,
         title: 'Penalty Issued',
         message: `A penalty has been issued: ${penaltyInfo?.label || penaltyType}${penaltyNote ? ' - ' + penaltyNote : ''}`,
-        type: 'penalty',
+        type: RECORD_TYPES.PENALTY,
         classId: selectedClass,
         data: penaltyData
       });
@@ -299,7 +300,7 @@ const StudentQuickActionModal = ({
       
       if (onSuccess) {
         onSuccess({
-          type: 'penalty',
+          type: RECORD_TYPES.PENALTY,
           data: {
             type: penaltyType,
             points: points,
@@ -354,7 +355,7 @@ const StudentQuickActionModal = ({
           userId: student.uid,
           title: 'Behavior Record',
           message: `A behavior note has been recorded: ${behaviorInfo?.label || behaviorType}${behaviorNote ? ' - ' + behaviorNote : ''}`,
-          type: 'behavior',
+          type: RECORD_TYPES.BEHAVIOR,
           classId: selectedClass,
           data: behaviorData
         });
@@ -364,7 +365,7 @@ const StudentQuickActionModal = ({
       
       if (onSuccess) {
         onSuccess({
-          type: 'behavior',
+          type: RECORD_TYPES.BEHAVIOR,
           data: {
             type: behaviorType,
             severity: behaviorSeverity,

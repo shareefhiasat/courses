@@ -16,6 +16,7 @@ import { addNotification } from '@firebaseServices/notifications';
 import { sendStudentNotification } from '@utils/notificationService';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
+import { RECORD_TYPES } from '@constants/activityTypes';
 import { Select, DatePicker, Button, Loading, Card, CardBody } from '@ui';
 import { FancyLoading } from '@ui';
 import { BookOpen, FileText, Users, Filter } from 'lucide-react';
@@ -122,22 +123,22 @@ const InstructorQRScannerPage = () => {
     setDeleteActivityLoading(true);
     try {
       let result;
-      if (activityToDelete.type === 'attendance') {
+      if (activityToDelete.type === RECORD_TYPES.ATTENDANCE) {
         result = await deleteAttendance(activityToDelete.id);
         if (result.success) {
           eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId: activityToDelete.studentId });
         }
-      } else if (activityToDelete.type === 'penalty') {
+      } else if (activityToDelete.type === RECORD_TYPES.PENALTY) {
         result = await deletePenalty(activityToDelete.id);
         if (result.success) {
           eventBus.emit(EVENTS.PENALTY_ASSIGNED, { studentId: activityToDelete.studentId });
         }
-      } else if (activityToDelete.type === 'participation') {
+      } else if (activityToDelete.type === RECORD_TYPES.PARTICIPATION) {
         result = await deleteParticipation(activityToDelete.id);
         if (result.success) {
           eventBus.emit(EVENTS.PARTICIPATION_ADDED, { studentId: activityToDelete.studentId, status: 'deleted' });
         }
-      } else if (activityToDelete.type === 'behavior') {
+      } else if (activityToDelete.type === RECORD_TYPES.BEHAVIOR) {
         result = await deleteBehavior(activityToDelete.id);
         if (result.success) {
           eventBus.emit(EVENTS.BEHAVIOR_LOGGED, { studentId: activityToDelete.studentId, status: 'deleted' });
@@ -521,7 +522,7 @@ const InstructorQRScannerPage = () => {
             points: p.points,
             reason: p.description || '',
             markedBy: p.createdBy,
-            category: 'participation'
+            category: RECORD_TYPES.PARTICIPATION
           }));
 
           const studentBehaviorHistory = behaviors.map(b => ({
@@ -531,7 +532,7 @@ const InstructorQRScannerPage = () => {
             points: b.points,
             reason: b.description || '',
             markedBy: b.createdBy,
-            category: 'behavior'
+            category: RECORD_TYPES.BEHAVIOR
           }));
 
           // Get penalties from map
@@ -677,7 +678,7 @@ const InstructorQRScannerPage = () => {
               className: currentClass.name || currentClass.code,
               status: lang === 'ar' ? (label.ar || label.en) : label.en
             }),
-            type: 'attendance',
+            type: RECORD_TYPES.ATTENDANCE,
             templateId: 'attendance_marked_default',
             variables: {
               recipientName: student.displayName || student.realName || student.name || student.email,
@@ -719,7 +720,7 @@ const InstructorQRScannerPage = () => {
           ? pointsOverride[action.type]
           : action.points;
 
-        if (action.category === 'penalty') {
+        if (action.category === RECORD_TYPES.PENALTY) {
           // Add penalty (only for actions with category 'penalty')
           const penaltyResult = await createPenalty({
             studentId,
@@ -730,8 +731,8 @@ const InstructorQRScannerPage = () => {
             reason: note,
             createdBy: user.uid
           });
-        } else if (action.category === 'behavior' || action.category === 'participation') {
-          if (action.category === 'behavior') {
+        } else if (action.category === RECORD_TYPES.BEHAVIOR || action.category === 'participation') {
+          if (action.category === RECORD_TYPES.BEHAVIOR) {
             await createBehavior({
               classId: selectedClassId,
               studentId,
@@ -1580,8 +1581,8 @@ const InstructorQRScannerPage = () => {
               onPenaltySubmit={handleBehaviorSubmit}
               onMarkAttendance={handleMarkAttendance}
               options={[
-                ...BEHAVIOR_TYPES.map(type => ({ ...type, category: 'behavior' })),
-                ...PARTICIPATION_TYPES.map(type => ({ ...type, category: 'participation' })),
+                ...BEHAVIOR_TYPES.map(type => ({ ...type, category: RECORD_TYPES.BEHAVIOR })),
+                ...PARTICIPATION_TYPES.map(type => ({ ...type, category: RECORD_TYPES.PARTICIPATION })),
                 ...PENALTY_TYPES.map(type => ({
                   id: type.id,
                   label_en: type.label_en,
@@ -1589,7 +1590,7 @@ const InstructorQRScannerPage = () => {
                   icon: type.icon,
                   color: type.color,
                   points: -type.points, // Make points negative for penalties
-                  category: 'penalty'
+                  category: RECORD_TYPES.PENALTY
                 }))
               ]}
               showFavoritesOnly={showFavoritesOnly}

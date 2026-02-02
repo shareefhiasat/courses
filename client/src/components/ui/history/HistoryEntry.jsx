@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@ui';
 import { Trash2 } from 'lucide-react';
 import { UserIcon } from '@utils/icons.jsx';
+import { RECORD_TYPES } from '@constants/activityTypes';
 
 export const HistoryEntry = ({ 
   log, 
@@ -75,7 +76,7 @@ export const HistoryEntry = ({
         </span>
       )}
       
-      {log.points !== undefined && type !== 'attendance' && (
+      {log.points !== undefined && type !== RECORD_TYPES.ATTENDANCE && (
         <span style={{ 
           padding: '0.125rem 0.375rem',
           background: log.points > 0 ? '#eff6ff' : '#fff7ed',

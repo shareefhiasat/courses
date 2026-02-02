@@ -23,6 +23,7 @@ import { generateReferenceId } from '@utils/qrCode';
 import { BEHAVIOR_TYPES, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes';
 import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes';
+import { RECORD_TYPES } from '@constants/activityTypes';
 import {
   QrCodeIcon,
   StopIcon,
@@ -76,7 +77,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [resultModalData, setResultModalData] = useState({ type: '', message: '' });
   const [showStudentActionPanel, setShowStudentActionPanel] = useState(false);
   const [showStudentActionPanelNew, setShowStudentActionPanelNew] = useState(false);
-  const [initialTab, setInitialTab] = useState('behavior'); // Track which tab to open
+  const [initialTab, setInitialTab] = useState(RECORD_TYPES.BEHAVIOR); // Track which tab to open
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentForAction, setStudentForAction] = useState(null);
   const [todayAttendanceStatus, setTodayAttendanceStatus] = useState(null);
@@ -806,9 +807,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       } : null;
 
       for (const action of actions) {
-        if (action.category === 'behavior') {
+        if (action.category === RECORD_TYPES.BEHAVIOR) {
           const behaviorTypeId = action.id || action.type;
-          if (!behaviorTypeId || behaviorTypeId === 'behavior') {
+          if (!behaviorTypeId || behaviorTypeId === RECORD_TYPES.BEHAVIOR) {
             console.error('🔧 Invalid behavior type detected:', { action });
             throw new Error('Invalid behavior type: must be a specific behavior type');
           }
@@ -825,9 +826,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             studentInfo,
             className: selectedClassName || ''
           });
-        } else if (action.category === 'participation') {
+        } else if (action.category === RECORD_TYPES.PARTICIPATION) {
           const participationTypeId = action.id || action.type;
-          if (!participationTypeId || participationTypeId === 'participation') {
+          if (!participationTypeId || participationTypeId === RECORD_TYPES.PARTICIPATION) {
             console.error('🔧 Invalid participation type detected:', { action });
             throw new Error('Invalid participation type: must be a specific participation type');
           }
@@ -849,7 +850,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Emit events for real-time updates
       actions.forEach(action => {
-        if (action.category === 'participation') {
+        if (action.category === RECORD_TYPES.PARTICIPATION) {
           eventBus.emit(EVENTS.PARTICIPATION_ADDED, {
             studentId,
             classId: selectedClassId,
@@ -857,7 +858,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             performedBy: user,
             timestamp: new Date()
           });
-        } else if (action.category === 'behavior') {
+        } else if (action.category === RECORD_TYPES.BEHAVIOR) {
           eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {
             studentId,
             classId: selectedClassId,
@@ -893,7 +894,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         console.log('🔧 penaltyTypeId extracted:', penaltyTypeId);
         console.log('🔧 penalty object:', JSON.stringify(penalty, null, 2));
 
-        if (!penaltyTypeId || penaltyTypeId === 'penalty') {
+        if (!penaltyTypeId || penaltyTypeId === RECORD_TYPES.PENALTY) {
           console.error('🔧 Invalid penalty type detected:', { penalty, penaltyTypeId });
           throw new Error('Invalid penalty type: must be a specific penalty type like "cheating", not "penalty"');
         }
@@ -1027,15 +1028,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Get today's penalties for this class
       const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
-      const penaltyRecords = penaltiesResponse.success ? penaltiesResponse.data.map(p => ({ ...p, category: 'penalty' })) : [];
+      const penaltyRecords = penaltiesResponse.success ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
 
       // Get today's participations for this class
       const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
-      const participationRecords = participationsResponse.success ? participationsResponse.data.map(p => ({ ...p, category: 'participation' })) : [];
+      const participationRecords = participationsResponse.success ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
 
       // Get today's behaviors for this class
       const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
-      const behaviorRecords = behaviorsResponse.success ? behaviorsResponse.data.map(b => ({ ...b, category: 'behavior' })) : [];
+      const behaviorRecords = behaviorsResponse.success ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
 
       logger.debug('[QR Scanner] Attendance records fetched:', {
         success: attendanceResponse.success,
@@ -1150,9 +1151,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         }
 
         const recordPointsRaw = record.delta !== undefined && record.delta !== null ? record.delta : (record.points !== undefined && record.points !== null ? record.points : 0);
-        const recordPoints = (record.category === 'penalty' || record.penaltyType)
+        const recordPoints = (record.category === RECORD_TYPES.PENALTY || record.penaltyType)
             ? -Math.abs(Number(recordPointsRaw) || 0)
-            : (record.category === 'behavior')
+            : (record.category === RECORD_TYPES.BEHAVIOR)
                 ? -Math.abs(Number(recordPointsRaw) || 0)
                 : Number(recordPointsRaw) || 0;
 
@@ -1172,7 +1173,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           type: record.type,
           availableInMap: !!studentMap[studentId],
           totalStudentsInMap: Object.keys(studentMap).length,
-          computedType: record.category || (recordPoints ? (recordPoints > 0 ? 'participation' : 'behavior') : 'attendance')
+          computedType: record.category || (recordPoints ? (recordPoints > 0 ? RECORD_TYPES.PARTICIPATION : RECORD_TYPES.BEHAVIOR) : RECORD_TYPES.ATTENDANCE)
         });
 
         const activityLabel = record.notes || record.note || record.reason || record.description || record.type || '';
@@ -1180,7 +1181,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         // Resolve human-readable label per type
         let finalLabel = activityLabel;
 
-        if (record.category === 'penalty') {
+        if (record.category === RECORD_TYPES.PENALTY) {
           const penaltyId = record.type;
           const penaltyDef = PENALTY_TYPES.find(pt => pt.id === penaltyId);
           finalLabel = penaltyDef
@@ -1188,13 +1189,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               : penaltyId
               || activityLabel
               || 'Penalty';
-        } else if (record.category === 'participation') {
+        } else if (record.category === RECORD_TYPES.PARTICIPATION) {
           const participationDef = PARTICIPATION_TYPES.find(pt => pt.id === record.type);
           finalLabel = (participationDef ? (lang === 'ar' ? participationDef.label_ar : participationDef.label_en) : null)
               || record.type
               || activityLabel
               || 'Participation';
-        } else if (record.category === 'behavior') {
+        } else if (record.category === RECORD_TYPES.BEHAVIOR) {
           const behaviorDef = BEHAVIOR_TYPES.find(bt => bt.id === record.type);
           finalLabel = (behaviorDef ? (lang === 'ar' ? behaviorDef.label_ar : behaviorDef.label_en) : null)
               || record.type
@@ -1204,9 +1205,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           finalLabel = ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Attendance';
         }
 
-        const computedType = (record.category === 'penalty' || record.penaltyType)
-            ? 'penalty'
-            : (record.category || (record.status ? 'attendance' : (recordPoints > 0 ? 'participation' : (recordPoints < 0 ? 'behavior' : 'attendance'))));
+        const computedType = (record.category === RECORD_TYPES.PENALTY || record.penaltyType)
+            ? RECORD_TYPES.PENALTY
+            : (record.category || (record.status ? RECORD_TYPES.ATTENDANCE : (recordPoints > 0 ? RECORD_TYPES.PARTICIPATION : (recordPoints < 0 ? RECORD_TYPES.BEHAVIOR : RECORD_TYPES.ATTENDANCE))));
 
         const finalActivityLog = {
           id: record.id || `attendance-${Math.random()}`,
@@ -1240,7 +1241,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       activityLogs.forEach(log => {
         // Create a unique key based on student and action type
         // For attendance, we only want the latest one
-        if (log.type === 'attendance') {
+        if (log.type === RECORD_TYPES.ATTENDANCE) {
           const key = `${log.studentId}-${log.type}`;
           if (!seen.has(key)) {
             seen.add(key);
@@ -1334,15 +1335,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     // Debug logging for penalty color issue
     console.log('🔍 getStatusColor called:', { status, type, delta });
     
-    if (type === 'participation' || delta > 0) {
+    if (type === RECORD_TYPES.PARTICIPATION || delta > 0) {
       console.log('🔍 Returning participation color: #3b82f6');
       return '#3b82f6';
     }
-    if (type === 'penalty') {
+    if (type === RECORD_TYPES.PENALTY) {
       console.log('🔍 PENALTY DETECTED! Returning penalty color: #dc2626 (red)');
       return '#dc2626';
     }
-    if (type === 'behavior' || delta < 0) {
+    if (type === RECORD_TYPES.BEHAVIOR || delta < 0) {
       console.log('🔍 Returning behavior color: #f97316');
       return '#f97316';
     }
@@ -1370,13 +1371,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   const getStatusIcon = useCallback((status, type, delta) => {
-    if (type === 'participation' || delta > 0) {
+    if (type === RECORD_TYPES.PARTICIPATION || delta > 0) {
       return <ParticipationIcon style={{ width: '12px', height: '12px' }} />;
     }
-    if (type === 'penalty') {
+    if (type === RECORD_TYPES.PENALTY) {
       return <PenaltyIcon style={{ width: '12px', height: '12px' }} />;
     }
-    if (type === 'behavior' || delta < 0) {
+    if (type === RECORD_TYPES.BEHAVIOR || delta < 0) {
       return <ZapIcon style={{ width: '12px', height: '12px' }} />;
     }
 
@@ -2758,28 +2759,39 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           setCurrentAction('details');
 
                           try {
+                            // Debug logging to understand the data structure
+                            console.log('🔍 Debug - lastScannedStudent:', lastScannedStudent);
+                            console.log('🔍 Debug - students array length:', students?.length);
+                            
                             // Try to get student reference from multiple sources
                             let studentReferenceId = null;
                             
                             // First try from lastScannedStudent
                             if (lastScannedStudent?.referenceId) {
                               studentReferenceId = lastScannedStudent.referenceId;
+                              console.log('🔍 Found referenceId from lastScannedStudent:', studentReferenceId);
                             }
                             // Try from lastScannedStudent.studentId
                             else if (lastScannedStudent?.studentId) {
                               studentReferenceId = lastScannedStudent.studentId;
+                              console.log('🔍 Found studentId from lastScannedStudent:', studentReferenceId);
                             }
                             // Try to find student by name from the activity
                             else if (activity?.studentName && students?.length > 0) {
+                              console.log('🔍 Searching for student by name:', activity.studentName);
                               const foundStudent = students.find(s => 
                                 s.name === activity.studentName || 
                                 s.displayName === activity.studentName ||
                                 s.email === activity.studentName
                               );
+                              console.log('🔍 Found student by name:', foundStudent);
                               if (foundStudent?.studentId) {
                                 studentReferenceId = foundStudent.studentId;
+                                console.log('🔍 Found studentId from name lookup:', studentReferenceId);
                               }
                             }
+                            
+                            console.log('🔍 Final studentReferenceId:', studentReferenceId);
                             
                             if (studentReferenceId) {
                               const studentData = await processStudentData(studentReferenceId);
