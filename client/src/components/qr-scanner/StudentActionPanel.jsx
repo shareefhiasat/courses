@@ -1213,7 +1213,7 @@ export default function StudentActionPanel({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <FileIcon style={{ width: '12px', height: '12px' }} />
+                  <XSmallIcon style={{ width: '12px', height: '12px' }} />
                   {/*{attendanceStats.absent_with_excuse && Number(attendanceStats.absent_with_excuse) > 0 && (*/}
                   {/*  <span style={{*/}
                   {/*    fontSize: '0.5rem',*/}
@@ -1254,7 +1254,7 @@ export default function StudentActionPanel({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <HelpCircleIcon style={{ width: '12px', height: '12px' }} />
+                  <XSmallIcon style={{ width: '12px', height: '12px' }} />
                   {/*{attendanceStats.excused_leave && Number(attendanceStats.excused_leave) > 0 && (*/}
                   {/*  <span style={{*/}
                   {/*    fontSize: '0.5rem',*/}

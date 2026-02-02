@@ -2825,15 +2825,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           </>
                       )}
                     </button>
-                  </div>
 
-                  {/* Actions and Cancel Buttons Side by Side */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '0.5rem',
-                    marginTop: '0.5rem'
-                  }}>
-                    {/* Actions Button - 1/3 width */}
+                    {/* Actions Button - Opens StudentActionPanelNew */}
                     <button
                         onClick={async () => {
                           console.log('🎯 Open student actions');
@@ -2880,7 +2873,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         }}
                         disabled={actionLoading}
                         style={{
-                          flex: 1, // 1/3 of the space
+                          flex: isMobile ? 1 : 1,
                           padding: '0.875rem',
                           border: 'none',
                           background: actionLoading && currentAction === 'actions' ? '#94a3b8' : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
@@ -2939,6 +2932,66 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           </>
                       )}
                     </button>
+                  </div>
+
+                  {/* Clear Today's Scans and Cancel Buttons Side by Side */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    marginTop: '0.5rem'
+                  }}>
+                    {/* Clear Today's Scans Button - 1/3 width */}
+                    <button
+                        onClick={() => {
+                          console.log('🗑️ Clear today\'s scans');
+                          addDebugLog('🗑️ Clearing all scans for today', 'warning');
+                          setShowClearConfirmModal(true);
+                        }}
+                        disabled={actionLoading}
+                        style={{
+                          flex: 1, // 1/3 of the space
+                          padding: '0.875rem',
+                          border: '2px solid #dc2626',
+                          background: actionLoading ? '#fca5a5' : '#ef4444',
+                          color: 'white',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: actionLoading ? 'not-allowed' : 'pointer',
+                          textAlign: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.625rem',
+                          opacity: actionLoading ? 0.7 : 1,
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 4px 6px rgba(239, 68, 68, 0.3)'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#dc2626';
+                            e.target.style.transform = 'translateY(-2px)';
+                            e.target.style.boxShadow = '0 6px 12px rgba(239, 68, 68, 0.4)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#ef4444';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 4px 6px rgba(239, 68, 68, 0.3)';
+                          }
+                        }}
+                        onMouseDown={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#b91c1c';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
+                          }
+                        }}
+                    >
+                      <Trash2 style={{ width: '18px', height: '18px' }} />
+                      {t('clear_today') || 'Clear Today'}
+                    </button>
 
                     {/* Cancel Button - 2/3 width */}
                     <button
@@ -2980,72 +3033,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     </button>
                   </div>
 
-                  {/* Fourth Row: Clear Today's Scans */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '0.75rem',
-                    marginTop: '0.25rem'
-                  }}>
-                    <button
-                        onClick={() => {
-                          console.log('🗑️ Clear today\'s scans');
-                          addDebugLog('🗑️ Clearing all scans for today', 'warning');
-                          setShowClearConfirmModal(true);
-                        }}
-                        disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === 'clear' ? '#94a3b8' : '#dc2626',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'center',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#b91c1c';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(220, 38, 38, 0.3)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = '#dc2626';
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(220, 38, 38, 0.2)';
-                          }
-                        }}
-                    >
-                      {actionLoading && currentAction === 'clear' ? (
-                          <>
-                            <div style={{
-                              width: '16px',
-                              height: '16px',
-                              border: '2px solid white',
-                              borderTop: '2px solid transparent',
-                              borderRadius: '50%',
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                            {t('processing') || 'Processing...'}
-                          </>
-                      ) : (
-                          <>
-                            <TrashIcon style={{ width: '18px', height: '18px' }} />
-                            {t('clear_today_scans') || 'Clear Today\'s Scans'}
-                          </>
-                      )}
-                    </button>
-                  </div>
                 </div>
               </div>
           )}
