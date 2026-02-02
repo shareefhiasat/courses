@@ -366,10 +366,9 @@ export default function StudentActionPanel({
       const attendanceResponse = await getAttendanceByStudent(student.id);
       const attendanceRecords = attendanceResponse.success ? attendanceResponse.data : [];
 
-      // Get all penalties for this student
-      const penaltiesResponse = await getPenalties();
-      const allPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-      const studentPenalties = allPenalties.filter(p => p.studentId === student.id);
+      // Get penalties for this student
+      const penaltiesResponse = await getPenalties(student.id);
+      const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
 
       // Combine and format logs with date information
       const logs = [

@@ -1139,25 +1139,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             reason: record.reason,
             description: record.description,
             note: record.note,
-            penaltyName: record.penaltyName,
-            penaltyType: record.penaltyType,
             type: record.type,
             availableInMap: !!studentMap[studentId],
             totalStudentsInMap: Object.keys(studentMap).length,
             computedType: record.category || (recordPoints ? (recordPoints > 0 ? 'participation' : 'behavior') : 'attendance')
           });
           
-          const activityLabel = record.notes || record.note || record.reason || record.description || record.penaltyName || record.penaltyType || record.type || '';
+          const activityLabel = record.notes || record.note || record.reason || record.description || record.type || '';
 
           // Resolve human-readable label per type
           let finalLabel = activityLabel;
 
-          if (record.category === 'penalty' || record.penaltyType) {
-            const penaltyId = record.penaltyType || record.type;
+          if (record.category === 'penalty') {
+            const penaltyId = record.type;
             const penaltyDef = PENALTY_TYPES.find(pt => pt.id === penaltyId);
-            finalLabel = record.penaltyName
-              || (penaltyDef ? (lang === 'ar' ? penaltyDef.label_ar : penaltyDef.label_en) : null)
-              || penaltyId
+            finalLabel = penaltyDef 
+              ? (lang === 'ar' ? penaltyDef.label_ar : penaltyDef.label_en)
+              : penaltyId
               || activityLabel
               || 'Penalty';
           } else if (record.category === 'participation') {

@@ -17,6 +17,7 @@ import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { getParticipationLabel } from '@constants/participationTypes';
 import { getBehaviorLabel } from '@constants/behaviorTypes';
+import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import StudentHistory from '@ui/history';
 import StudentRosterHistory from '@ui/history/StudentRosterHistory';
 import DeleteModal from '@ui/history/DeleteModal';
@@ -109,6 +110,8 @@ const StudentRoster = React.memo(function StudentRoster({
         getParticipations(),
         getBehaviors()
       ]);
+      
+      console.log('🔧 fetchStudentHistory called getPenalties with studentId:', studentId);
 
       const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       const studentParticipations = (participationsResponse.success ? participationsResponse.data : []).filter(p => p.studentId === studentId);
@@ -173,7 +176,13 @@ const StudentRoster = React.memo(function StudentRoster({
           };
         }),
         ...studentPenalties.map(penalty => {
-          const pType = penalty.penaltyType || penalty.type;
+          const pType = penalty.type; // Use the 'type' field directly
+          // Get the penalty label from PENALTY_TYPES
+          const penaltyDef = PENALTY_TYPES.find(pt => pt.id === pType);
+          const label = penaltyDef 
+            ? (lang === 'ar' ? penaltyDef.label_ar : penaltyDef.label_en)
+            : pType || 'Penalty';
+          
           return {
             id: penalty.docId || penalty.id,
             type: 'penalty',
@@ -181,7 +190,7 @@ const StudentRoster = React.memo(function StudentRoster({
                 ? penalty.createdAt.toDate().toISOString().split('T')[0]
                 : new Date(penalty.createdAt).toISOString().split('T')[0]),
             time: penalty.createdAt,
-            label: penalty.penaltyName || pType || 'Penalty',
+            label: label,
             points: -Math.abs(penalty.points || 0),
             comment: penalty.reason || penalty.note || penalty.comment || '',
             severity: penalty.severity || 'medium',
@@ -548,7 +557,34 @@ const StudentRoster = React.memo(function StudentRoster({
       }
     });
 
-    return Object.values(grouped);
+    // Sort each array by time (newest first)
+    Object.keys(grouped).forEach(date => {
+      grouped[date].attendance.sort((a, b) => {
+        const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+        const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+        return timeB - timeA;
+      });
+      grouped[date].penalties.sort((a, b) => {
+        const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+        const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+        return timeB - timeA;
+      });
+      grouped[date].participation.sort((a, b) => {
+        const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+        const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+        return timeB - timeA;
+      });
+      grouped[date].behavior.sort((a, b) => {
+        const timeA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
+        const timeB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
+        return timeB - timeA;
+      });
+    });
+
+    return Object.values(grouped).sort((a, b) => {
+      // Sort days by date (newest first)
+      return new Date(b.date) - new Date(a.date);
+    });
   }, []);
 
   // Memoized badge component for performance
