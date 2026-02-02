@@ -38,9 +38,11 @@ const QRCodeDisplayPage = () => {
           errorCorrectionLevel: 'H' // High error correction for logo overlay
         });
         
+        // Create composite image with QAF logo embedded
+        const compositeImage = await createQRCodeWithLogo(qrDataUrl, '/qaf_logo_transparent.png');
+        
         setQrCodeData({ 
-          image: qrDataUrl,
-          logo: '/qaf_logo_transparent.png'
+          image: compositeImage
         });
         
         // Set basic student info
@@ -55,6 +57,47 @@ const QRCodeDisplayPage = () => {
       } finally {
         setLoading(false);
       }
+    };
+
+    const createQRCodeWithLogo = async (qrDataUrl, logoUrl) => {
+      return new Promise((resolve, reject) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 400;
+        
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Load QR code image
+        const qrImg = new Image();
+        qrImg.onload = () => {
+          // Draw QR code
+          ctx.drawImage(qrImg, 0, 0, size, size);
+          
+          // Load and draw logo
+          const logoImg = new Image();
+          logoImg.onload = () => {
+            // Calculate logo size (about 20% of QR code size)
+            const logoSize = size * 0.2;
+            const logoX = (size - logoSize) / 2;
+            const logoY = (size - logoSize) / 2;
+            
+            // Create white background for logo
+            ctx.fillStyle = 'white';
+            ctx.fillRect(logoX - 5, logoY - 5, logoSize + 10, logoSize + 10);
+            
+            // Draw logo
+            ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+            
+            // Convert to data URL
+            resolve(canvas.toDataURL());
+          };
+          logoImg.onerror = reject;
+          logoImg.src = logoUrl;
+        };
+        qrImg.onerror = reject;
+        qrImg.src = qrDataUrl;
+      });
     };
 
     if (studentId) {
@@ -245,30 +288,18 @@ const QRCodeDisplayPage = () => {
                 }}
               >
                 {qrCodeData.image ? (
-                  <div className="relative">
-                    <img 
-                      src={qrCodeData.image} 
-                      alt="Student QR Code"
-                      className="max-w-full max-h-full object-contain"
-                      style={{
-                        width: '100%',
-                        maxWidth: '400px',
-                        height: 'auto'
-                      }}
-                    />
-                    {qrCodeData.logo && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <img 
-                          src={qrCodeData.logo} 
-                          alt="QAF Logo"
-                          style={{
-                            width: '60px',
-                            height: '60px'
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <img 
+                    src={qrCodeData.image} 
+                    alt="Student QR Code with QAF Logo"
+                    className="max-w-full max-h-full object-contain"
+                    style={{
+                      width: '100%',
+                      maxWidth: '400px',
+                      height: 'auto',
+                      border: '4px solid #800000',
+                      borderRadius: '8px'
+                    }}
+                  />
                 ) : (
                   <div className="text-center text-gray-500">
                     <p>{t('qrcode_generation_failed') || 'QR code generation failed'}</p>
@@ -279,11 +310,26 @@ const QRCodeDisplayPage = () => {
               {/* Simple Keyboard Shortcuts */}
               <div className="mt-6 text-center">
                 <div className="flex justify-center gap-4 text-sm text-gray-600">
-                  <span><kbd className="bg-gray-200 px-2 py-1 rounded text-xs">F</kbd> Fullscreen</span>
-                  <span><kbd className="bg-gray-200 px-2 py-1 rounded text-xs">R</kbd> Rotate</span>
-                  <span><kbd className="bg-gray-200 px-2 py-1 rounded text-xs">D</kbd> Download</span>
-                  <span><kbd className="bg-gray-200 px-2 py-1 rounded text-xs">S</kbd> Share</span>
-                  <span><kbd className="bg-gray-200 px-2 py-1 rounded text-xs">ESC</kbd> Back</span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="bg-gray-200 px-2 py-1 rounded text-xs border border-gray-400">F</kbd> 
+                    <span>Fullscreen</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="bg-gray-200 px-2 py-1 rounded text-xs border border-gray-400">R</kbd> 
+                    <span>Rotate</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="bg-gray-200 px-2 py-1 rounded text-xs border border-gray-400">D</kbd> 
+                    <span>Download</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="bg-gray-200 px-2 py-1 rounded text-xs border border-gray-400">S</kbd> 
+                    <span>Share</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="bg-gray-200 px-2 py-1 rounded text-xs border border-gray-400">ESC</kbd> 
+                    <span>Back</span>
+                  </span>
                 </div>
               </div>
             </CardBody>
