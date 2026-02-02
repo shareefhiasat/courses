@@ -1757,26 +1757,26 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   <SoundIcon style={{ width: '14px', height: '14px' }} />
                 </button>
 
-                <button
-                    onClick={() => setShowDebugBox(!showDebugBox)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.375rem 0.5rem',
-                      borderRadius: '0.375rem',
-                      border: '1px solid var(--border, #e5e7eb)',
-                      background: showDebugBox ? '#ef4444' : 'white',
-                      color: showDebugBox ? 'white' : 'var(--text, #111827)',
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    title={t('toggle_debug_console')}
-                >
-                  <DebugIcon style={{ width: '14px', height: '14px' }} />
-                </button>
+                {/*<button*/}
+                {/*    onClick={() => setShowDebugBox(!showDebugBox)}*/}
+                {/*    style={{*/}
+                {/*      display: 'flex',*/}
+                {/*      alignItems: 'center',*/}
+                {/*      gap: '0.25rem',*/}
+                {/*      padding: '0.375rem 0.5rem',*/}
+                {/*      borderRadius: '0.375rem',*/}
+                {/*      border: '1px solid var(--border, #e5e7eb)',*/}
+                {/*      background: showDebugBox ? '#ef4444' : 'white',*/}
+                {/*      color: showDebugBox ? 'white' : 'var(--text, #111827)',*/}
+                {/*      fontSize: '0.75rem',*/}
+                {/*      fontWeight: 500,*/}
+                {/*      cursor: 'pointer',*/}
+                {/*      transition: 'all 0.2s'*/}
+                {/*    }}*/}
+                {/*    title={t('toggle_debug_console')}*/}
+                {/*>*/}
+                {/*  <DebugIcon style={{ width: '14px', height: '14px' }} />*/}
+                {/*</button>*/}
 
                 <button
                     onClick={() => {
@@ -1865,39 +1865,30 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       <StopIcon style={{ width: '14px', height: '14px' }} />
                     </button>
                 )}
-              </div>
-            </div>
 
-            <CollapsibleSection
-                sectionId="recent-activity"
-                title={t('today') || 'Today'}
-                titleStyle={{ fontSize: '0.75rem' }}
-                icon={<ZapIcon size={16} />}
-                color="#6366f1"
-                defaultMode="full"
-                compactContent={
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                 {activityLoading ?
                     t('loading') || 'Loading...' :
-                    `${recentActivity.length} ${t('transactions') || 'transactions'}`
+                    `${recentActivity.length}`
                 }
               </span>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          console.log('🔧 Refresh button clicked - fetching recent activity'); // Debug
-                          fetchRecentActivity();
-                        }}
-                        title={t('refresh_activity')}
-                        style={{ padding: '0.25rem' }}
-                    >
-                      <RefreshCw style={{ width: '1rem', height: '1rem' }} />
-                    </Button>
-                  </div>
-                }
-            >
+                  {/*<Button*/}
+                  {/*    variant="ghost"*/}
+                  {/*    size="icon"*/}
+                  {/*    onClick={() => {*/}
+                  {/*      console.log('🔧 Refresh button clicked - fetching recent activity'); // Debug*/}
+                  {/*      fetchRecentActivity();*/}
+                  {/*    }}*/}
+                  {/*    title={t('refresh_activity')}*/}
+                  {/*    style={{ padding: '0.25rem' }}*/}
+                  {/*>*/}
+                  {/*  <RefreshCw style={{ width: '1rem', height: '1rem' }} />*/}
+                  {/*</Button>*/}
+                </div>
+              </div>
+            </div>
+
               {/*<div style={{*/}
               {/*  display: 'flex',*/}
               {/*  alignItems: 'center',*/}
@@ -2101,7 +2092,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     })
                 )}
               </div>
-            </CollapsibleSection>
+
 
             {devices.length > 1 && isScanning && (
                 <button
