@@ -23,6 +23,16 @@ const StudentRosterHistory = ({
   groupLogsByDay,
   toggleFilter 
 }) => {
+  const [isMobile, setIsMobile] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   if (!studentHistory[student.id]) {
     return (
       <div style={{
@@ -45,35 +55,39 @@ const StudentRosterHistory = ({
     }}>
       {/* Filter Buttons */}
       <div style={{
-        padding: '0.75rem 1rem',
+        padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1rem',
         borderBottom: '1px solid var(--border, #e5e7eb)',
         backgroundColor: 'var(--surface, #f9fafb)',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
+        gap: isMobile ? '0.5rem' : '0'
       }}>
         <div style={{
           display: 'flex',
-          gap: '0.5rem',
-          flexWrap: 'wrap'
+          gap: isMobile ? '0.25rem' : '0.5rem',
+          flexWrap: 'wrap',
+          flex: isMobile ? '1' : 'auto'
         }}>
           <button
             onClick={() => toggleFilter(RECORD_TYPES.ATTENDANCE)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
+              gap: isMobile ? '0.25rem' : '0.375rem',
+              padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
+              fontSize: isMobile ? '0.75rem' : '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
               background: activeFilters.attendance ? '#10b981' : '#ffffff',
               color: activeFilters.attendance ? 'white' : '#64748b',
               cursor: 'pointer',
-              boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: activeFilters.attendance ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              minWidth: isMobile ? 'auto' : '0'
             }}
           >
-            <CheckSmallIcon style={{ width: '14px', height: '14px' }} />
+            <CheckSmallIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
             {t('attendance')}
           </button>
           <button
@@ -81,18 +95,19 @@ const StudentRosterHistory = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
+              gap: isMobile ? '0.25rem' : '0.375rem',
+              padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
+              fontSize: isMobile ? '0.75rem' : '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
               background: activeFilters.participation ? '#3b82f6' : '#ffffff',
               color: activeFilters.participation ? 'white' : '#64748b',
               cursor: 'pointer',
-              boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: activeFilters.participation ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              minWidth: isMobile ? 'auto' : '0'
             }}
           >
-            <ParticipationIcon style={{ width: '14px', height: '14px' }} />
+            <ParticipationIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
             {t('participation')}
           </button>
           <button
@@ -100,18 +115,19 @@ const StudentRosterHistory = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
+              gap: isMobile ? '0.25rem' : '0.375rem',
+              padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
+              fontSize: isMobile ? '0.75rem' : '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
               background: activeFilters.behavior ? '#f97316' : '#ffffff',
               color: activeFilters.behavior ? 'white' : '#64748b',
               cursor: 'pointer',
-              boxShadow: activeFilters.behavior ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: activeFilters.behavior ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              minWidth: isMobile ? 'auto' : '0'
             }}
           >
-            <ZapIcon style={{ width: '14px', height: '14px' }} />
+            <ZapIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
             {t('behavior')}
           </button>
           <button
@@ -119,18 +135,19 @@ const StudentRosterHistory = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
+              gap: isMobile ? '0.25rem' : '0.375rem',
+              padding: isMobile ? '0.375rem 0.5rem' : '0.5rem 0.75rem',
+              fontSize: isMobile ? '0.75rem' : '0.8125rem',
               borderRadius: '0.375rem',
               border: '1px solid #e2e8f0',
               background: activeFilters.penalties ? '#dc2626' : '#ffffff',
               color: activeFilters.penalties ? 'white' : '#64748b',
               cursor: 'pointer',
-              boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: activeFilters.penalties ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              minWidth: isMobile ? 'auto' : '0'
             }}
           >
-            <AlertCircleSmallIcon style={{ width: '14px', height: '14px' }} />
+            <AlertCircleSmallIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
             {t('penalties')}
           </button>
         </div>
@@ -146,7 +163,7 @@ const StudentRosterHistory = ({
               }
             }}
             style={{
-              display: 'flex',
+              display: isMobile ? 'none' : 'flex',
               alignItems: 'center',
               gap: '0.25rem',
               padding: '0.25rem 0.5rem',

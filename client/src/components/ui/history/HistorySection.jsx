@@ -28,6 +28,16 @@ export const HistorySection = ({
   isRTL,
   borderColor = '#f1f5f9'
 }) => {
+  const [isMobile, setIsMobile] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   // Handle the mismatch between type ('penalty') and filter key ('penalties')
   const filterKey = type === RECORD_TYPES.PENALTY ? 'penalties' : type;
   const isActive = activeFilters[filterKey];
@@ -112,7 +122,7 @@ export const HistorySection = ({
   console.log('🔧 HistorySection - rendering section:', title);
 
   return (
-    <div style={{ marginBottom: '0.5rem' }}>
+    <div style={{ marginBottom: isMobile ? '0.25rem' : '0.5rem' }}>
       {sortedLogs.map((log, idx) => (
         <HistoryEntry
           key={idx}
