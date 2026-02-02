@@ -2065,7 +2065,7 @@ export default function StudentActionPanel({
                   ) : (
                     <>
                       <ChevronDown style={{ width: '14px', height: '14px' }} />
-                      {t('expand_all') || 'Expand All'}
+                      {/*{t('expand_all') || 'Expand All'}*/}
                     </>
                   )}
                 </button>
