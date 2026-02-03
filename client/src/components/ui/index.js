@@ -24,6 +24,7 @@ export { StudentHistory } from './history';
 export { default as Breadcrumb } from './Breadcrumb';
 export { default as Chart } from './Chart';
 export { default as InfoTooltip } from './InfoTooltip/InfoTooltip';
+export { default as PerformedBy } from './PerformedBy/PerformedBy';
 
 // Form Components
 export { default as DatePicker } from './DatePicker';

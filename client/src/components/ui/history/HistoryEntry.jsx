@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, InfoTooltip } from '@ui';
+import { Button, InfoTooltip, PerformedBy } from '@ui';
 import { Trash2 } from 'lucide-react';
-import { UserIcon } from '@utils/icons.jsx';
 import { RECORD_TYPES } from '@constants/activityTypes';
 
 export const HistoryEntry = ({ 
@@ -128,10 +127,19 @@ export const HistoryEntry = ({
           fontSize: '0.625rem',
           color: '#0369a1'
         }}>
-          <UserIcon style={{ width: '10px', height: '10px' }} />
-          <span style={{ fontWeight: 500 }}>
-            {log.performedByName || log.performedByEmail || log.performedBy}
-          </span>
+          <PerformedBy 
+            performedByName={log.performedByName}
+            performedBy={log.performedBy}
+            containerStyle={{ marginBottom: 0 }}
+            style={{ 
+              background: 'transparent',
+              padding: 0,
+              fontSize: '0.625rem',
+              border: 'none'
+            }}
+            iconStyle={{ width: '10px', height: '10px' }}
+            textStyle={{ fontWeight: 500 }}
+          />
         </div>
       )}
       

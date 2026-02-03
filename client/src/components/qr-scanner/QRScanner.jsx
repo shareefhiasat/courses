@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import logger from '../../utils/logger';
 import { Button } from './ui/button';
-import { CollapsibleSection } from '@ui';
+import { CollapsibleSection, PerformedBy } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
 import { markAttendance, quickMarkAttendance } from '@firebaseServices/attendance';
@@ -2428,13 +2428,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                         {activity.class}
                                       </div>
                                   )}
-                                  <div style={{ marginBottom: '0.25rem' }}>
-                                    <strong>{t('by') || 'By'}</strong>
-                                    {activity.performedByName}
-                                  </div>
+                                  <PerformedBy 
+                                    performedByName={activity.performedByName}
+                                    performedBy={activity.performedBy}
+                                  />
                                   {activity.comment && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        <strong>{t('note') || 'Note'}</strong>
                                         {activity.comment}
                                       </div>
                                   )}
