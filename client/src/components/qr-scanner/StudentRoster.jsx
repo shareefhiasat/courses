@@ -21,7 +21,7 @@ import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { getParticipationLabel } from '@constants/participationTypes';
 import { getBehaviorLabel } from '@constants/behaviorTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import StudentHistory from '@ui/history';
 import StudentRosterHistory from '@ui/history/StudentRosterHistory';
 import DeleteModal from '@ui/history/DeleteModal';
@@ -997,7 +997,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   {t('student')} {getSortIcon('name')}
                 </th>
                 <th 
-                  onClick={() => onSort('attendance')}
+                  onClick={() => onSort(RECORD_TYPES.ATTENDANCE)}
                   style={{
                     textAlign: isRTL ? 'right' : 'left',
                     padding: '0.5rem 0.75rem',
@@ -1010,7 +1010,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     userSelect: 'none'
                   }}
                 >
-                  {t('todays_attendance') || "Today's Attendance"} {getSortIcon('attendance')}
+                  {t('todays_attendance') || "Today's Attendance"} {getSortIcon(RECORD_TYPES.ATTENDANCE)}
                 </th>
                 <th 
                   onClick={() => onSort('participation')}

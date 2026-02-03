@@ -6,6 +6,7 @@ import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
 import { markAttendance, quickMarkAttendance } from '@firebaseServices/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
+import { USER_ROLES, isAdmin, isSuperAdmin, isStudent } from '@constants/userRoles';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
 import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@firebaseServices/participations';
 import { createBehavior, getBehaviors, getBehaviorsByClassAndDate, deleteBehavior } from '@firebaseServices/behaviors';
@@ -24,7 +25,7 @@ import { generateReferenceId } from '@utils/qrCode';
 import { BEHAVIOR_TYPES, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes';
 import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
   QrCodeIcon,
   StopIcon,
@@ -251,7 +252,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     let finalType = type;
     let finalMessage = message;
     
-    if (attendanceStatus && ['present', 'late', 'absent_no_excuse', 'absent_with_excuse', 'excused_leave', 'human_case'].includes(attendanceStatus)) {
+    if (attendanceStatus && [
+      ATTENDANCE_STATUS.PRESENT,
+      ATTENDANCE_STATUS.LATE,
+      ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+      ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
+      ATTENDANCE_STATUS.EXCUSED_LEAVE,
+      ATTENDANCE_STATUS.HUMAN_CASE
+    ].includes(attendanceStatus)) {
       finalType = attendanceStatus;
       // Add attendance icon to message if not already present
       const icon = getAttendanceIcon(attendanceStatus);
@@ -385,7 +393,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           if (studentDoc.exists()) {
             const studentData = studentDoc.data();
             // Check if this is actually a student (not admin)
-            if (studentData.role !== 'admin' && studentData.role !== 'super_admin') {
+            if (!isAdmin(studentData.role) && !isSuperAdmin(studentData.role)) {
               foundStudent = {
                 id: studentDoc.id,
                 docId: studentDoc.id,
@@ -396,7 +404,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 displayName: studentData.displayName,
                 realName: studentData.realName,
                 email: studentData.email,
-                attendance: 'absent_no_excuse',
+                attendance: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
                 participation: 0,
                 behavior: 0,
                 penalty: 0,
@@ -452,7 +460,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               return matches.some(Boolean);
             });
 
-            if (student && student.role !== 'admin' && student.role !== 'super_admin') {
+            if (student && !isAdmin(student.role) && !isSuperAdmin(student.role)) {
               foundStudent = {
                 id: student.docId || student.id, // Use docId as primary, fallback to id
                 docId: student.docId,
@@ -463,7 +471,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 displayName: student.displayName,
                 realName: student.realName,
                 email: student.email,
-                attendance: 'absent_no_excuse',
+                attendance: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
                 participation: 0,
                 behavior: 0,
                 penalty: 0,
@@ -551,7 +559,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             realName: studentData.realName,
             email: studentData.email,
             // Add default values for fields that might be expected
-            attendance: 'absent_no_excuse', // Default when no attendance
+            attendance: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, // Default when no attendance
             participation: 0,
             behavior: 0,
             penalty: 0,
@@ -740,7 +748,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const students = result.success ? result.data : [];
       const student = students.find(s =>
           s.referenceId === referenceId &&
-          s.role === 'student' // Only match students exactly
+          s.role === USER_ROLES.STUDENT // Only match students exactly
       );
       return student;
     } catch (error) {
@@ -1443,7 +1451,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const handleMarkAttendance = useCallback(async (studentIdOrStatus, statusOrNotes, notes) => {
     // Check if this is called from scan dialog (status, notes) or from elsewhere (studentId, status)
     const isFromScanDialog = typeof studentIdOrStatus === 'string' && 
-                             ['present', 'late', 'absent_no_excuse', 'absent_with_excuse', 'excused_leave', 'human_case'].includes(studentIdOrStatus);
+                             [
+                               ATTENDANCE_STATUS.PRESENT,
+                               ATTENDANCE_STATUS.LATE,
+                               ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+                               ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
+                               ATTENDANCE_STATUS.EXCUSED_LEAVE,
+                               ATTENDANCE_STATUS.HUMAN_CASE
+                             ].includes(studentIdOrStatus);
     
     if (isFromScanDialog) {
       // Called from scan dialog: handleMarkAttendance(status, notes)
@@ -1486,7 +1501,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         // Check if already marked with any attendance status today
         const studentIdentifier = lastScannedStudent?.studentNumber || lastScannedStudent?.referenceId;
         const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${studentIdentifier}_${today}`));
-        if (existingDoc.exists() && ['present', 'late', 'absent_no_excuse', 'absent_with_excuse', 'excused_leave', 'human_case'].includes(existingDoc.data().status)) {
+        if (existingDoc.exists() && [
+          ATTENDANCE_STATUS.PRESENT,
+          ATTENDANCE_STATUS.LATE,
+          ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+          ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
+          ATTENDANCE_STATUS.EXCUSED_LEAVE,
+          ATTENDANCE_STATUS.HUMAN_CASE
+        ].includes(existingDoc.data().status)) {
           showResult('info', 'Student is already marked for today.');
           setShowScanDialog(false);
           return;
@@ -2656,13 +2678,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/* Additional Attendance Status Buttons */}
                     <button
                         onClick={async () => {
-                          await handleMarkAttendance('absent_no_excuse', 'Marked absent (no excuse) manually');
+                          await handleMarkAttendance(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 'Marked absent (no excuse) manually');
                         }}
                         disabled={actionLoading}
                         style={{
                           padding: '0.875rem',
                           border: 'none',
-                          background: actionLoading && currentAction === 'absent_no_excuse' ? '#94a3b8' : getAttendanceColor('absent_no_excuse'),
+                          background: actionLoading && currentAction === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? '#94a3b8' : getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE),
                           color: 'white',
                           borderRadius: '0.5rem',
                           fontSize: '0.875rem',
@@ -2674,25 +2696,25 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           gap: '0.625rem',
                           opacity: actionLoading ? 0.7 : 1,
                           transition: 'all 0.2s ease',
-                          boxShadow: `0 2px 4px ${getAttendanceColor('absent_no_excuse')}20`
+                          boxShadow: `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE)}20`
                         }}
                         onMouseEnter={(e) => {
                           if (!actionLoading) {
-                            const color = getAttendanceColor('absent_no_excuse');
+                            const color = getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
                             e.target.style.background = color + 'dd';
                             e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('absent_no_excuse')}40`;
+                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE)}40`;
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = getAttendanceColor('absent_no_excuse');
+                            e.target.style.background = getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
                             e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('absent_no_excuse')}20`;
+                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE)}20`;
                           }
                         }}
                     >
-                      {actionLoading && currentAction === 'absent_no_excuse' ? (
+                      {actionLoading && currentAction === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? (
                           <>
                             <div style={{
                               width: '16px',

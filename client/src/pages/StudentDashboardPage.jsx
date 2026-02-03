@@ -37,8 +37,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
 
-// Unified Type Helpers
-import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor } from '@utils/typeHelpers';
+// Unified Shared Type Helpers
+import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor } from '@utils/sharedTypes';
 
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();

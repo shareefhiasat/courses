@@ -17,7 +17,7 @@ import { addNotification } from '@firebaseServices/notifications';
 import { sendStudentNotification } from '@utils/notificationService';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Select, DatePicker, Button, Loading, Card, CardBody } from '@ui';
 import { FancyLoading } from '@ui';
 import { BookOpen, FileText, Users, Filter } from 'lucide-react';
@@ -1910,7 +1910,7 @@ const InstructorQRScannerPage = () => {
           }}>
             <Card style={{ maxWidth: '400px', margin: '1rem' }}>
               <CardBody>
-                <h3>{t('delete_activity_title', { type: activityToDelete?.type === 'attendance' ? t('attendance') : t('penalties') })}</h3>
+                <h3>{t('delete_activity_title', { type: activityToDelete?.type === RECORD_TYPES.ATTENDANCE ? t('attendance') : t('penalties') })}</h3>
                 <p>{t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}</p>
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                   <Button variant="outline" onClick={() => setDeleteActivityModalOpen(false)}>

@@ -4,7 +4,7 @@ import {
   CheckSmallIcon, MessageSquareIcon, ZapIcon, AlertCircleSmallIcon,
   ParticipationIcon
 } from "@utils/icons.jsx";
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 
 const StudentRosterHistory = ({ 
   student, 

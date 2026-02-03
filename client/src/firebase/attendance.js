@@ -5,7 +5,7 @@ import { addNotification } from './notifications';
 import { sendEmail } from './firestore';
 import { getUserDisplayName } from './user';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 
 /**
  * Get absences from attendance collection

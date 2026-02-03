@@ -1,6 +1,7 @@
 /**
- * Unified Type Helpers System
- * Provides consistent interface for all types: behavior, participation, absence, penalty, attendance
+ * Unified Shared Types System
+ * Provides consistent interface for all shared types: behavior, participation, absence, penalty, attendance
+ * These are shared type utilities used throughout the application
  */
 
 import { BEHAVIOR_TYPES, getBehaviorTypeById, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '../constants/behaviorTypes';
@@ -8,6 +9,14 @@ import { PARTICIPATION_TYPES, getParticipationTypeById, getParticipationLabel, g
 import { ABSENCE_TYPES, getAbsenceTypeById, getAbsenceLabel, getAbsenceIcon, getAbsenceColor } from '../constants/absenceTypes';
 import { PENALTY_TYPES, getPenaltyTypeById, getPenaltyLabel, getPenaltyIcon, getPenaltyColor } from '../constants/penaltyTypes';
 import { ATTENDANCE_STATUS_LABELS } from '../constants/attendanceTypes';
+
+// Record type constants for student logs and activities - MOVED HERE from constants/activityTypes.js
+export const RECORD_TYPES = {
+  ATTENDANCE: 'attendance',
+  PENALTY: 'penalty', 
+  PARTICIPATION: 'participation',
+  BEHAVIOR: 'behavior'
+};
 
 // Type constants for type safety
 export const TYPE_CATEGORIES = {

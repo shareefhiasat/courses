@@ -20,7 +20,7 @@ import { useToast } from '@ui';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, FileIcon, HeartIcon, HelpCircleIcon, UserIcon, UserPlusIcon, ZapIcon} from "@utils/icons.jsx";
 
@@ -2200,7 +2200,7 @@ export default function StudentActionPanel({
                 flexWrap: 'nowrap'
               }}>
                 <button
-                  onClick={() => toggleFilter('attendance')}
+                  onClick={() => toggleFilter(RECORD_TYPES.ATTENDANCE)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2369,7 +2369,7 @@ export default function StudentActionPanel({
         }}>
           <Card style={{ maxWidth: '400px', margin: '1rem' }}>
             <CardBody>
-              <h3>{t('delete_activity_title', { type: deleteType === 'attendance' ? t('attendance') : t('penalty') })}</h3>
+              <h3>{t('delete_activity_title', { type: deleteType === RECORD_TYPES.ATTENDANCE ? t('attendance') : t('penalty') })}</h3>
               <p>{t('delete_activity_msg', { studentName: student.displayName || student.name || t('this_student') })}</p>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>

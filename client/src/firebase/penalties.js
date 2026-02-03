@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./config";
 import { addNotification } from "./notifications";
-import { RECORD_TYPES } from "@constants/activityTypes";
+import { RECORD_TYPES } from "@utils/sharedTypes";
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;

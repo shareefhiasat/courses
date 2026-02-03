@@ -5,6 +5,7 @@ import { db } from '@firebaseServices/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Shield, Settings2, Save, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '@ui';
+import { USER_ROLES } from '@constants/userRoles';
 import styles from './RoleAccessPro.module.css';
 
 export default function RoleAccessPro() {
@@ -16,11 +17,11 @@ export default function RoleAccessPro() {
   const [saving, setSaving] = useState(false);
   const [roleScreens, setRoleScreens] = useState({});
   const [message, setMessage] = useState('');
-  const [activeRole, setActiveRole] = useState('admin');
+  const [activeRole, setActiveRole] = useState(USER_ROLES.ADMIN);
   const [q, setQ] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  const roles = ['admin', 'instructor', 'hr', 'student'];
+  const roles = [USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR, USER_ROLES.HR, USER_ROLES.STUDENT];
 
   const screens = [
     // MAIN

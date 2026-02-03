@@ -6,6 +6,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Container, Card, CardBody, Button, Badge, Grid, ProgressBar, Loading } from '@ui';
 import { BarChart3, TrendingUp, Users, Calendar, Award, FileText, Download } from 'lucide-react';
+import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import styles from './AnalyticsPage.module.css';
 
 const KPICard = ({ label, value, subtitle, icon: Icon, color = '#800020' }) => (
@@ -60,11 +61,11 @@ export default function AnalyticsPage() {
         let presentCount = 0, absentCount = 0, lateCount = 0, leaveCount = 0;
         marksSnap.forEach(m => {
           const md = m.data();
-          const status = md.status || 'present';
-          if (status === 'present') presentCount++;
-          else if (status === 'absent') absentCount++;
-          else if (status === 'late') lateCount++;
-          else if (status === 'leave') leaveCount++;
+          const status = md.status || ATTENDANCE_STATUS.PRESENT;
+          if (status === ATTENDANCE_STATUS.PRESENT) presentCount++;
+          else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) absentCount++;
+          else if (status === ATTENDANCE_STATUS.LATE) lateCount++;
+          else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE) leaveCount++;
         });
         
         present += presentCount;

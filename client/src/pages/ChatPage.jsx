@@ -4,6 +4,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import EmojiPicker from 'emoji-picker-react';
+import { USER_ROLES } from '@constants/userRoles';
 import {
   collection,
   query,
@@ -991,7 +992,7 @@ const ChatPage = memo(() => {
       }
     } catch {}
     // Optionally include platform admins so students can DM an admin (but not self)
-    const admins = safeAllUsers.filter(u => u.role === 'admin' && u.docId !== user.uid);
+    const admins = safeAllUsers.filter(u => u.role === USER_ROLES.ADMIN && u.docId !== user.uid);
     admins.forEach(a => { if (!members.some(m => m.docId === a.docId)) members.push(a); });
     setClassMembers(members);
     setAllUsers(allUsers);
@@ -3156,7 +3157,7 @@ const ChatPage = memo(() => {
                 );
               }
               if (studentsOnly) {
-                filtered = filtered.filter(m => m.role === 'student');
+                filtered = filtered.filter(m => m.role === USER_ROLES.STUDENT);
               }
               return filtered;
             })().map(m => {
@@ -3164,7 +3165,7 @@ const ChatPage = memo(() => {
               const isDeleted = !m || m.deleted;
               const isDisabled = m?.disabled || m?.isDisabled;
               const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
-                m.role === 'student' && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
+                m.role === USER_ROLES.STUDENT && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
               const showIndicator = isDeleted || isDisabled || isUnenrolled;
               const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
               
@@ -3184,7 +3185,7 @@ const ChatPage = memo(() => {
                     <div>
                       <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                         {m.displayName || m.email}
-                        {m.role === 'admin' && (
+                        {m.role === USER_ROLES.ADMIN && (
                           <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Admin</span>
                         )}
                       </div>

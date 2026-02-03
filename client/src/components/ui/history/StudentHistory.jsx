@@ -3,7 +3,7 @@ import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
 import { HistoryEntry } from './HistoryEntry';
 import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon } from '@utils/icons.jsx';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
 
 const StudentHistory = React.memo(({ 

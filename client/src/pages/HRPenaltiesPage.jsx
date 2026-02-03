@@ -9,7 +9,7 @@ import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, S
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@firebaseServices/penalties';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getPrograms, getSubjects } from '@firebaseServices/programs';
 import { getClasses, getEnrollments } from '@firebaseServices/firestore';
 import { addNotification } from '@firebaseServices/notifications';

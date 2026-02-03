@@ -18,7 +18,7 @@ import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarCha
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, Container, Loading } from '@ui';
 import { ToggleSwitch } from '@ui';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import useNotifications from '@hooks/useNotifications';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';

@@ -7,6 +7,14 @@ import { getAllowlist, ensureUserDoc, addLoginLog } from '../firebase/firestore'
 import { signOutUser } from '../firebase/auth';
 import { ActivityLogger } from '../firebase/activityLogger';
 import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
+import { 
+  USER_ROLES,
+  isAdmin,
+  isSuperAdmin,
+  isHR,
+  isInstructor,
+  isStudent
+} from '@constants/userRoles';
 
 const AuthContext = createContext();
 
@@ -26,7 +34,7 @@ export const AuthProvider = ({ children }) => {
   const [isInstructor, setIsInstructor] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState('guest'); // 'guest' | 'student' | 'instructor' | 'hr' | 'admin'
+  const [role, setRole] = useState(USER_ROLES.STUDENT); // 'guest' | 'student' | 'instructor' | 'hr' | 'admin'
   const [impersonating, setImpersonating] = useState(null); // { originalUser, impersonatedUser }
   const [realUser, setRealUser] = useState(null); // Store the real admin user
   
@@ -210,7 +218,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Check user doc for roles and fetch full profile
-        let userRole = 'student';
+        let userRole = USER_ROLES.STUDENT;
         let hr = false;
         let instructor = false;
         let adminFromDoc = false;
@@ -219,10 +227,10 @@ export const AuthProvider = ({ children }) => {
         try {
           profile = await getUserProfile(firebaseUser);
           if (profile) {
-            adminFromDoc = (profile.role === 'admin' || profile.role === 'super_admin') || profile.isAdmin === true;
-            superAdminFromDoc = profile.role === 'super_admin' || profile.isSuperAdmin === true;
-            hr = profile.role === 'hr' || profile.isHR === true;
-            instructor = profile.role === 'instructor' || profile.isInstructor === true;
+            adminFromDoc = isAdmin(profile.role) || profile.isAdmin === true;
+            superAdminFromDoc = isSuperAdmin(profile.role) || profile.isSuperAdmin === true;
+            hr = isHR(profile.role) || profile.isHR === true;
+            instructor = isInstructor(profile.role) || profile.isInstructor === true;
             
             // Load user enrollments for status check
             let enrollments = [];
@@ -280,14 +288,14 @@ export const AuthProvider = ({ children }) => {
         if (!admin && adminFromDoc) admin = true;
 
         setIsAdmin(!!admin);
-        setIsSuperAdmin(!!superAdminFromDoc || (!!admin && userRole === 'super_admin'));
+        setIsSuperAdmin(!!superAdminFromDoc || (!!admin && userRole === USER_ROLES.SUPER_ADMIN));
         setIsHR(hr);
         setIsInstructor(instructor);
         
-        if (admin) userRole = 'admin';
-        else if (hr) userRole = 'hr';
-        else if (instructor) userRole = 'instructor';
-        else userRole = 'student';
+        if (admin) userRole = USER_ROLES.ADMIN;
+        else if (hr) userRole = USER_ROLES.HR;
+        else if (instructor) userRole = USER_ROLES.INSTRUCTOR;
+        else userRole = USER_ROLES.STUDENT;
         
         setRole(userRole);
 
@@ -316,7 +324,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.warn('Auth init non-fatal error:', error?.message || error);
         setIsAdmin(false);
-        setRole('student');
+        setRole(USER_ROLES.STUDENT);
       }
       setLoading(false);
     });
@@ -361,7 +369,7 @@ export const AuthProvider = ({ children }) => {
       setIsAdmin(false);
       setIsHR(false);
       setIsInstructor(false);
-      setRole(studentData.role || 'student');
+      setRole(studentData.role || USER_ROLES.STUDENT);
       
       return { success: true };
     } catch (error) {
@@ -376,13 +384,13 @@ export const AuthProvider = ({ children }) => {
     // Restore original user
     setUser(realUser);
     // Restore original role
-    const wasAdmin = impersonating?.originalUser?.role === 'admin';
-    const wasHR = impersonating?.originalUser?.role === 'hr';
-    const wasInstructor = impersonating?.originalUser?.role === 'instructor';
+    const wasAdmin = impersonating?.originalUser?.role === USER_ROLES.ADMIN;
+    const wasHR = impersonating?.originalUser?.role === USER_ROLES.HR;
+    const wasInstructor = impersonating?.originalUser?.role === USER_ROLES.INSTRUCTOR;
     setIsAdmin(wasAdmin || false);
     setIsHR(wasHR || false);
     setIsInstructor(wasInstructor || false);
-    setRole(impersonating?.originalUser?.role || 'admin');
+    setRole(impersonating?.originalUser?.role || USER_ROLES.ADMIN);
     setImpersonating(null);
     setRealUser(null);
   };

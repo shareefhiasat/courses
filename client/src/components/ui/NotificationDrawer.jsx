@@ -19,7 +19,7 @@ import { getClasses } from '@firebaseServices/firestore';
 import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Filter, MoreVertical, Trash2, Eye, EyeOff, MessageCircle, Mail, UserCheck, ExternalLink, Volume2, Vibrate, TestTube } from 'lucide-react';
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, ToggleSwitch } from '@ui';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';

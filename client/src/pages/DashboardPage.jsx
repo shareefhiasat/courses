@@ -6,6 +6,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
+import { USER_ROLES } from '@constants/userRoles';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
   getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement,
@@ -674,7 +675,7 @@ const DashboardPage = () => {
   const [enrollmentForm, setEnrollmentForm] = useState({ 
     userId: '', 
     classId: '', 
-    role: 'student', 
+    role: USER_ROLES.STUDENT, 
     programId: '', 
     subjectId: '' 
   });
@@ -703,7 +704,7 @@ const DashboardPage = () => {
   const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('all');
   const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('all');
   const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
-  const [userForm, setUserForm] = useState({ email: '', displayName: '', role: 'student', studentNumber: '', order: '' });
+  const [userForm, setUserForm] = useState({ email: '', displayName: '', role: USER_ROLES.STUDENT, studentNumber: '', order: '' });
   const [activeUserFormTab, setActiveUserFormTab] = useState('basic');
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
@@ -3409,9 +3410,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const getRoleIcon = (role) => {
                       switch(role) {
                         case 'superadmin': return <Crown size={16} color="#f59e0b" />;
-                        case 'admin': return <Shield size={16} color="#4f46e5" />;
-                        case 'instructor': return <BookOpen size={16} color="#0ea5e9" />;
-                        case 'hr': return <Users size={16} color="#8b5cf6" />;
+                        case USER_ROLES.ADMIN: return <Shield size={16} color="#4f46e5" />;
+                        case USER_ROLES.INSTRUCTOR: return <BookOpen size={16} color="#0ea5e9" />;
+                        case USER_ROLES.HR: return <Users size={16} color="#8b5cf6" />;
                         default: return <User size={16} color="#16a34a" />;
                       }
                     };
@@ -3667,10 +3668,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
                         options={[
                           { value: '', label: t('all_instructors') || 'All Instructors', icon: <Filter size={16} color={getFilterIconColor()} /> },
-                          ...users.filter(user => user.role === 'admin' || user.role === 'instructor').map(instructor => {
+                          ...users.filter(user => user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.INSTRUCTOR).map(instructor => {
                             const displayName = instructor.displayName || instructor.name || instructor.realName || '';
-                            const isInstructor = instructor.role === 'instructor';
-                            const isAdmin = instructor.role === 'admin';
+                            const isInstructor = instructor.role === USER_ROLES.INSTRUCTOR;
+                            const isAdmin = instructor.role === USER_ROLES.ADMIN;
                             return {
                               value: instructor.email,
                               label: displayName ? `${displayName} (${instructor.email})` : instructor.email,
@@ -4154,7 +4155,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     });
                   } catch (e) { }
                   await loadData();
-                  setEnrollmentForm({ userId: '', classId: '', role: 'student', programId: '', subjectId: '', year: '', term: '' });
+                  setEnrollmentForm({ userId: '', classId: '', role: USER_ROLES.STUDENT, programId: '', subjectId: '', year: '', term: '' });
                   toast?.showSuccess('Enrollment added successfully!');
                 } else {
                   toast?.showError('Error: ' + result.error);
@@ -4176,7 +4177,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     options={[
                       { value: '', label: t('select_user') || 'Select User' },
                       ...users
-                        .filter(u => u.role === 'student')
+                        .filter(u => u.role === USER_ROLES.STUDENT)
                         .map(u => {
                           // Get user enrollments count
                           const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
@@ -4275,7 +4276,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     value={enrollmentForm.role}
                     onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
                     options={[
-                      { value: 'student', label: (
+                      { value: USER_ROLES.STUDENT, label: (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <User size={16} style={{ color: '#16a34a' }} />
                           {t('student') || 'Student'}
@@ -4460,9 +4461,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'role', headerName: t('role_col'), width: 150,
                   renderCell: (params) => {
                     const roleMap = {
-                      'student': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><User size={16} color="var(--color-success, #16a34a)" /> Student</span>,
+                      [USER_ROLES.STUDENT]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><User size={16} color="var(--color-success, #16a34a)" /> Student</span>,
                       'ta': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👨‍🏫 TA</span>,
-                      'instructor': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👩‍🏫 Instructor</span>
+                      [USER_ROLES.INSTRUCTOR]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👩‍🏫 Instructor</span>
                     };
                     return roleMap[params.value] || params.value;
                   }
@@ -4843,13 +4844,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               }
 
               // Validate student number is required for students
-              if (userForm.role === 'student' && !userForm.studentNumber?.trim()) {
+              if (userForm.role === USER_ROLES.STUDENT && !userForm.studentNumber?.trim()) {
                 toast?.showError('Student number is required for students');
                 return;
               }
 
               // Validate student number uniqueness for students
-              if (userForm.role === 'student' && userForm.studentNumber?.trim()) {
+              if (userForm.role === USER_ROLES.STUDENT && userForm.studentNumber?.trim()) {
                 const isDuplicate = users.some(user => 
                   user.studentNumber === userForm.studentNumber.trim() && 
                   user.docId !== editingUser?.docId
@@ -4879,7 +4880,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 } else {
                   // Add to allowlist if checkbox is checked
                   if (autoAddToAllowlist && userForm.email) {
-                    const targetList = userForm.role === 'admin' ? 'adminEmails' : 'allowedEmails';
+                    const targetList = userForm.role === USER_ROLES.ADMIN ? 'adminEmails' : 'allowedEmails';
                     const currentEmails = allowlist[targetList] || [];
 
                     if (!currentEmails.includes(userForm.email)) {
@@ -4904,7 +4905,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
 
                 await loadData();
                 setEditingUser(null);
-                setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', order: '', role: 'student' });
+                setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', order: '', role: USER_ROLES.STUDENT });
               } catch (error) {
                 toast?.showError('Error: ' + error.message);
               } finally {
@@ -4963,25 +4964,25 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   value={userForm.role}
                   onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
                   options={[
-                    { value: 'student', label: (
+                    { value: USER_ROLES.STUDENT, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <User size={16} style={{ color: '#16a34a' }} />
                         {t('student') || 'Student'}
                       </span>
                     )},
-                    { value: 'instructor', label: (
+                    { value: USER_ROLES.INSTRUCTOR, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <BookOpen size={16} style={{ color: '#0ea5e9' }} />
                         {t('instructor') || 'Instructor'}
                       </span>
                     )},
-                    { value: 'hr', label: (
+                    { value: USER_ROLES.HR, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Users size={16} style={{ color: '#8b5cf6' }} />
                         {t('hr') || 'HR'}
                       </span>
                     )},
-                    { value: 'admin', label: (
+                    { value: USER_ROLES.ADMIN, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Shield size={16} style={{ color: '#4f46e5' }} />
                         {t('admin') || 'Admin'}
@@ -5054,7 +5055,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       variant="outline" 
                       onClick={() => {
                         setEditingUser(null);
-                        setUserForm({ email: '', displayName: '', role: 'student', studentNumber: '', order: '' });
+                        setUserForm({ email: '', displayName: '', role: USER_ROLES.STUDENT, studentNumber: '', order: '' });
                         setActiveUserFormTab('basic');
                       }}
                     >

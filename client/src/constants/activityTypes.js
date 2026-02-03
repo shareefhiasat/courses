@@ -57,11 +57,7 @@ export const MARK_TYPE_TO_ACTIVITY_TYPE = {
   [MARK_TYPES.ATTENDANCE]: ACTIVITY_TYPES.ATTENDANCE
 };
 
-// Record type constants for student logs and activities
-export const RECORD_TYPES = {
-  ATTENDANCE: 'attendance',
-  PENALTY: 'penalty', 
-  PARTICIPATION: 'participation',
-  BEHAVIOR: 'behavior'
-};
+// Export empty object to maintain compatibility for now
+// RECORD_TYPES moved to utils/sharedTypes.js
+export const RECORD_TYPES = {};
 

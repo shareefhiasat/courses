@@ -40,7 +40,7 @@ import { getClasses, getEnrollments } from '@firebaseServices/firestore';
 import { addNotification } from '@firebaseServices/notifications';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import './StudentQuickActionModal.css';
 
 const StudentQuickActionModal = ({ 

@@ -4,7 +4,7 @@ import { getAttendanceIcon, getAttendanceColor, ATTENDANCE_STATUS } from '@const
 import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 import { getPenaltyIcon, getPenaltyColor } from '@constants/penaltyTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
   CheckSmallIcon,
   ClockSmallIcon,

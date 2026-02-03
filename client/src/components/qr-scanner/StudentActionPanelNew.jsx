@@ -19,7 +19,7 @@ import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAtte
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
-import { RECORD_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '@firebaseServices/userPreferences';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
@@ -703,7 +703,7 @@ export default function StudentActionPanelNew({
         </div>
 
         {/* Internal Note Section - Hide for attendance tab */}
-        {activeTab !== 'attendance' && (
+        {activeTab !== RECORD_TYPES.ATTENDANCE && (
           <div style={{ marginBottom: '1.5rem' }}>
             <h4 style={{
               fontSize: '0.875rem',
@@ -731,7 +731,7 @@ export default function StudentActionPanelNew({
       </div>
 
       {/* Action Buttons - Hide for attendance tab */}
-      {activeTab !== 'attendance' && (
+      {activeTab !== RECORD_TYPES.ATTENDANCE && (
       <div style={{ padding: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button

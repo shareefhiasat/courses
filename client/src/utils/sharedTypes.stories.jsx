@@ -10,10 +10,10 @@ import {
   getAutoTypeLabel,
   getAutoTypeIcon,
   getAutoTypeColor
-} from './typeHelpers';
+} from './sharedTypes';
 
 export default {
-  title: 'Utils/TypeHelpers',
+  title: 'Utils/SharedTypes',
   component: null,
   parameters: {
     layout: 'centered',

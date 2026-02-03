@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import { getPrograms, getSubjects } from '../firebase/programs';
+import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
@@ -472,8 +473,8 @@ export default function AdvancedAnalytics() {
           const status = record.status || 'unknown';
           // Map legacy statuses
           let mappedStatus = status;
-          if (status === 'absent') mappedStatus = 'absent_no_excuse';
-          if (status === 'excused') mappedStatus = 'absent_with_excuse';
+          if (status === 'absent') mappedStatus = ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
+          if (status === 'excused') mappedStatus = ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE;
           grouped[mappedStatus] = (grouped[mappedStatus] || 0) + 1;
         });
       } else if (groupBy === 'classId' || groupBy === 'class') {
