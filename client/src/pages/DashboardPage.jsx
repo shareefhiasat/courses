@@ -40,6 +40,7 @@ import ScheduledReportsPage from './ScheduledReportsPage';
 import { getSubjects, getPrograms } from '@firebaseServices/programs';
 import { getAllQuizzes } from '@firebaseServices/quizzes';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { getUserDisplayName } from '@firebaseServices/user';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';
 import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe, Tag, QrCode, KeyRound } from 'lucide-react';
@@ -1465,7 +1466,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               type: 'announcement_created',
               userId: user.uid,
               email: user.email,
-              displayName: user.displayName || user.email,
+              displayName: await getUserDisplayName(user),
               userAgent: navigator.userAgent,
               metadata: {
                 announcementId: result.id,

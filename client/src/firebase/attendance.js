@@ -3,6 +3,7 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './config';
 import { addNotification } from './notifications';
 import { sendEmail } from './firestore';
+import { getUserDisplayName } from './user';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { RECORD_TYPES } from '@constants/activityTypes';
 
@@ -367,20 +368,8 @@ export async function quickMarkAttendance({
   const today = new Date().toISOString().split('T')[0];
 
   // Load user profile from Firestore to get display name
-  let displayName = user?.displayName || user?.email || 'Unknown User';
-  try {
-    const { doc, getDoc } = await import('firebase/firestore');
-    const { db } = await import('@firebaseServices/config');
-    const userDocRef = doc(db, "users", user?.uid);
-    const userDocSnap = await getDoc(userDocRef);
-    if (userDocSnap.exists()) {
-      const userDocData = userDocSnap.data();
-      displayName = userDocData.displayName || userDocData.realName || user?.displayName || user?.email || 'Unknown User';
-      console.log('🔧 quickMarkAttendance loaded displayName from Firestore:', displayName);
-    }
-  } catch (error) {
-    console.warn('Failed to load user profile for displayName:', error);
-  }
+  const displayName = await getUserDisplayName(user);
+  console.log('🔧 quickMarkAttendance loaded displayName from user service:', displayName);
 
   try {
     // Call the main markAttendance function with streamlined parameters

@@ -9,6 +9,7 @@ import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAtt
 import { createPenalty, getPenalties, deletePenalty } from '@firebaseServices/penalties';
 import { createParticipation, getParticipations, deleteParticipation } from '@firebaseServices/participations';
 import { createBehavior, getBehaviors, deleteBehavior } from '@firebaseServices/behaviors';
+import { getPerformedByFields } from '@firebaseServices/user';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { db } from '@firebaseServices/config';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
@@ -32,19 +33,6 @@ const InstructorQRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { t, lang, isRTL } = useLang();
   const navigate = useNavigate();
-  
-  // Helper function to get user profile information
-  const getUserProfile = useCallback(async () => {
-    if (!user) return null;
-    try {
-      const usersResult = await getUsers();
-      const userProfile = usersResult.data?.find(u => u.docId === user?.uid);
-      return userProfile;
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      return null;
-    }
-  }, [user]);
 
   // Filter state
   const [programs, setPrograms] = useState([]);
@@ -631,10 +619,8 @@ const InstructorQRScannerPage = () => {
 
   const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = 'manual_instructor') => {
     try {
-      // Get user profile for proper name
-      const userProfile = await getUserProfile();
-      const performedByName = userProfile?.displayName || user.displayName || user.email || 'Instructor';
-      const performedByEmail = userProfile?.email || user.email || '';
+      // Get performedBy fields using shared service
+      const performedByFields = await getPerformedByFields(user);
       
       // Ensure selectedDate is a string in yyyy-MM-dd format
       const dateStr = typeof selectedDate === 'string' ? selectedDate : selectedDate.toISOString().split('T')[0];
@@ -647,9 +633,7 @@ const InstructorQRScannerPage = () => {
         notes,
         method,
         markedBy: user.uid,
-        performedBy: user.uid,
-        performedByName: performedByName,
-        performedByEmail: performedByEmail
+        ...performedByFields
       });
 
       // Reload students to reflect changes
@@ -718,14 +702,12 @@ const InstructorQRScannerPage = () => {
     } catch (error) {
       logger.error('Error marking attendance:', error);
     }
-  }, [selectedClassId, selectedDate, user, getUserProfile, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
+  }, [selectedClassId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note, pointsOverride = {}) => {
     try {
-      // Get user profile for proper name
-      const userProfile = await getUserProfile();
-      const performedByName = userProfile?.displayName || user.displayName || user.email || 'Instructor';
-      const performedByEmail = userProfile?.email || user.email || '';
+      // Get performedBy fields using shared service
+      const performedByFields = await getPerformedByFields(user);
       
       // Handle participation
       const participationActions = actions.filter(a =>
@@ -756,9 +738,7 @@ const InstructorQRScannerPage = () => {
             points: Math.abs(points), // Store as positive in Firebase
             reason: note,
             createdBy: user.uid,
-            performedBy: user.uid,
-            performedByName: performedByName,
-            performedByEmail: performedByEmail
+            ...performedByFields
           });
         } else if (action.category === RECORD_TYPES.BEHAVIOR || action.category === 'participation') {
           if (action.category === RECORD_TYPES.BEHAVIOR) {
@@ -770,9 +750,7 @@ const InstructorQRScannerPage = () => {
               points: points,
               description: note,
               createdBy: user.uid,
-              performedBy: user.uid,
-              performedByName: performedByName,
-              performedByEmail: performedByEmail,
+              ...performedByFields,
               date: selectedDate,
               sendNotification: sendNotifications,
               className: classes.find(c => c.id === selectedClassId)?.name || ''
@@ -786,9 +764,7 @@ const InstructorQRScannerPage = () => {
               points: points,
               description: note,
               createdBy: user.uid,
-              performedBy: user.uid,
-              performedByName: performedByName,
-              performedByEmail: performedByEmail,
+              ...performedByFields,
               date: selectedDate,
               sendNotification: sendNotifications,
               className: classes.find(c => c.id === selectedClassId)?.name || ''
@@ -900,7 +876,7 @@ const InstructorQRScannerPage = () => {
     } catch (error) {
       logger.error('Error submitting behavior:', error);
     }
-  }, [selectedClassId, selectedSubjectId, selectedDate, user?.uid, getUserProfile, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
+  }, [selectedClassId, selectedSubjectId, selectedDate, user?.uid, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
   const handleTogglePin = useCallback((studentId) => {
     // TODO: Implement pin/unpin in Firebase

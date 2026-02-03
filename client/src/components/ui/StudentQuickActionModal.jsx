@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { Button, Input, Card, CardBody, Loading, Select } from '@ui';
 import { markAttendance } from '@firebaseServices/attendance';
+import { getPerformedByFields } from '@firebaseServices/user';
 import { getClasses, getEnrollments } from '@firebaseServices/firestore';
 import { addNotification } from '@firebaseServices/notifications';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
@@ -155,6 +156,9 @@ const StudentQuickActionModal = ({
       setError('');
       setSuccess('');
       
+      // Get performedBy fields using shared service
+      const performedByFields = await getPerformedByFields(user);
+      
       const today = new Date().toISOString().split('T')[0];
       
       const result = await markAttendance({
@@ -165,6 +169,7 @@ const StudentQuickActionModal = ({
         markedBy: user.uid,
         method: 'qr_manual',
         notes: attendanceNote,
+        ...performedByFields,
         studentInfo: {
           email: student.email,
           displayName: student.displayName

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { onAuthChange } from '../firebase/auth';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
+import { getUserProfile } from '@firebaseServices/user';
 import { getAllowlist, ensureUserDoc, addLoginLog } from '../firebase/firestore';
 import { signOutUser } from '../firebase/auth';
 import { ActivityLogger } from '../firebase/activityLogger';
@@ -165,17 +166,15 @@ export const AuthProvider = ({ children }) => {
           
           // Load the user document to get the display name from Firestore
           try {
-            const userDocRef = doc(db, "users", firebaseUser.uid);
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-              const userDocData = userDocSnap.data();
-              console.log('🔧 AuthContext loaded user doc:', userDocData);
-              console.log('🔧 AuthContext userDocData.displayName:', userDocData.displayName);
-              console.log('🔧 AuthContext userDocData.realName:', userDocData.realName);
-              userData.displayName = userDocData.displayName || userDocData.realName || userData.displayName;
+            const userProfile = await getUserProfile(firebaseUser);
+            if (userProfile) {
+              console.log('🔧 AuthContext loaded user profile:', userProfile);
+              console.log('🔧 AuthContext userProfile.displayName:', userProfile.displayName);
+              console.log('🔧 AuthContext userProfile.realName:', userProfile.realName);
+              userData.displayName = userProfile.displayName || userProfile.realName || userData.displayName;
               console.log('🔧 AuthContext final userData.displayName:', userData.displayName);
             } else {
-              console.log('🔧 AuthContext user doc does not exist');
+              console.log('🔧 AuthContext user profile does not exist');
             }
           } catch (error) {
             console.warn("Failed to load user document for display name:", error);
@@ -218,13 +217,12 @@ export const AuthProvider = ({ children }) => {
         let superAdminFromDoc = false;
         let profile = null;
         try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            adminFromDoc = (userData.role === 'admin' || userData.role === 'super_admin') || userData.isAdmin === true;
-            superAdminFromDoc = userData.role === 'super_admin' || userData.isSuperAdmin === true;
-            hr = userData.role === 'hr' || userData.isHR === true;
-            instructor = userData.role === 'instructor' || userData.isInstructor === true;
+          profile = await getUserProfile(firebaseUser);
+          if (profile) {
+            adminFromDoc = (profile.role === 'admin' || profile.role === 'super_admin') || profile.isAdmin === true;
+            superAdminFromDoc = profile.role === 'super_admin' || profile.isSuperAdmin === true;
+            hr = profile.role === 'hr' || profile.isHR === true;
+            instructor = profile.role === 'instructor' || profile.isInstructor === true;
             
             // Load user enrollments for status check
             let enrollments = [];
@@ -236,11 +234,11 @@ export const AuthProvider = ({ children }) => {
             }
             
             // Check user status
-            const userStatus = getUserStatus(userData, enrollments);
-            const statusSummary = getUserStatusSummary(userData, enrollments);
+            const userStatus = getUserStatus(profile, enrollments);
+            const statusSummary = getUserStatusSummary(profile, enrollments);
             
             // Prevent deleted users from logging in
-            if (!canUserLogin(userData)) {
+            if (!canUserLogin(profile)) {
               console.warn('[Auth] User is deleted. Signing out.');
               await signOutUser();
               return;

@@ -9,6 +9,7 @@ import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAtte
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
 import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@firebaseServices/participations';
 import { createBehavior, getBehaviors, getBehaviorsByClassAndDate, deleteBehavior } from '@firebaseServices/behaviors';
+import { getPerformedByFields } from '@firebaseServices/user';
 import { getUsers } from '@firebaseServices/firestore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -815,6 +816,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
     try {
       const today = new Date().toISOString().split('T')[0];
+      
+      // Get performedBy fields using shared service
+      const performedByFields = await getPerformedByFields(user);
 
       // Get student information for proper naming
       const studentData = await findStudentData(studentId);
@@ -841,9 +845,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             points: action.points,
             description: note || '',
             createdBy: user.uid,
-            performedBy: user.uid || 'system',
-            performedByName: user.displayName || user.email || 'Unknown User',
-            performedByEmail: user.email || '',
+            ...performedByFields,
             date: today,
             studentInfo,
             className: selectedClassName || ''
@@ -863,9 +865,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             points: action.points,
             description: note || '',
             createdBy: user.uid,
-            performedBy: user.uid || 'system',
-            performedByName: user.displayName || user.email || 'Unknown User',
-            performedByEmail: user.email || '',
+            ...performedByFields,
             date: today,
             studentInfo,
             className: selectedClassName || ''
@@ -906,6 +906,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     console.log('🔧 handlePenaltySubmit called with:', { studentId, penalties, note });
 
     try {
+      // Get performedBy fields using shared service
+      const performedByFields = await getPerformedByFields(user);
+      
       // Process each penalty
       for (const penalty of penalties) {
         console.log('🔧 Processing penalty:', penalty);
@@ -936,9 +939,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           note: note || '',
           description: note || '', // Add description field to match behavior pattern
           createdBy: user.uid,
-          performedBy: user.uid || 'system',
-          performedByName: user.displayName || user.email || 'Unknown User',
-          performedByEmail: user.email || '',
+          ...performedByFields,
           date: today,
           studentInfo: await findStudentData(studentId),
           className: selectedClassName || ''
@@ -1500,6 +1501,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           return;
         }
 
+        // Get performedBy fields using shared service
+        const performedByFields = await getPerformedByFields(user);
+
         // Mark attendance
         const result = await markAttendance({
           classId,
@@ -1508,7 +1512,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           status,
           markedBy: user.uid,
           method: 'manual_instructor',
-          notes: scanNotes
+          notes: scanNotes,
+          ...performedByFields
         });
 
         if (result.success) {
@@ -1551,6 +1556,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       
       try {
         const today = new Date().toISOString().split('T')[0];
+        
+        // Get performedBy fields using shared service
+        const performedByFields = await getPerformedByFields(user);
 
         await markAttendance({
           classId: selectedClassId,
@@ -1558,7 +1566,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           date: today,
           status,
           markedBy: user.uid,
-          method: 'manual'
+          method: 'manual',
+          ...performedByFields
         });
 
         // Emit event for real-time updates

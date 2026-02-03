@@ -7,6 +7,7 @@ import { Tabs } from '@ui';
 import { getActivities, getAnnouncements, getCourses, getResources } from '@firebaseServices/firestore';
 import { getAllQuizzes } from '@firebaseServices/quizzes';
 import { getUserSubmissions } from '@firebaseServices/submissions';
+import { getUserProfile } from '@firebaseServices/user';
 import { useAuth } from '@contexts/AuthContext';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -165,8 +166,7 @@ const HomePage = memo(() => {
     const loadUserData = async () => {
       if (!user) return;
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        const data = snap.exists() ? snap.data() : {};
+        const data = await getUserProfile(user) || {};
         setEnrolledClasses(Array.isArray(data.enrolledClasses) ? data.enrolledClasses : []);
         setUserData(data);
         setBookmarks({

@@ -5,6 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
+import { getUserProfile, getUserDisplayName } from '@firebaseServices/user';
 import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown, Globe, Volume2, Vibrate, Smartphone, Bell, TestTube, Monitor, Users, BookOpen } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast, Loading } from '@ui';
 import { ToggleSwitch } from '@ui';
@@ -45,19 +46,18 @@ const ProfileSettingsPage = () => {
 
     const loadProfile = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          const resolvedColor = normalizeHexColor(data.messageColor, DEFAULT_ACCENT);
+        const userProfile = await getUserProfile(user);
+        if (userProfile) {
+          const resolvedColor = normalizeHexColor(userProfile.messageColor, DEFAULT_ACCENT);
           // Save to localStorage for ChatPage access
           localStorage.setItem('userMessageColor', resolvedColor);
           setProfileData({
-            displayName: data.displayName || user.displayName || '',
-            realName: data.realName || '',
-            studentNumber: data.studentNumber || '',
-            phoneNumber: data.phoneNumber || '',
+            displayName: userProfile.displayName || user.displayName || '',
+            realName: userProfile.realName || '',
+            studentNumber: userProfile.studentNumber || '',
+            phoneNumber: userProfile.phoneNumber || '',
             messageColor: resolvedColor,
-            preferOTPLogin: data.preferOTPLogin || false
+            preferOTPLogin: userProfile.preferOTPLogin || false
           });
           setCustomColorInput(resolvedColor);
           // Apply color on load

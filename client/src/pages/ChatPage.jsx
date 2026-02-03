@@ -26,6 +26,7 @@ import {
 import { ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@firebaseServices/config';
 import { getClasses, getEnrollments, getUsers } from '@firebaseServices/firestore';
+import { getUserProfile } from '@firebaseServices/user';
 import { addNotification } from '@firebaseServices/notifications';
 import { Loading, useToast, Input } from '@ui';
 import logger from '@utils/logger';
@@ -131,8 +132,7 @@ const ChatPage = memo(() => {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const usersResult = await getUsers();
-        const me = usersResult.data?.find(u => u.docId === user?.uid);
+        const me = await getUserProfile(user);
         if (me?.displayName) setProfileName(me.displayName);
         setArchivedRooms(me?.archivedRooms || {});
         setArchivedClasses(me?.archivedClasses || {});
@@ -587,8 +587,7 @@ const ChatPage = memo(() => {
           let ids = new Set(mine.map(e => e.classId));
           if (ids.size === 0) {
             try {
-              const usersRes = await getUsers();
-              const me = (usersRes.data || []).find(u => u.docId === user.uid || u.email === user.email);
+              const me = await getUserProfile(user);
               const enrolled = Array.isArray(me?.enrolledClasses) ? me.enrolledClasses : [];
               ids = new Set(enrolled);
             } catch {}
@@ -878,8 +877,7 @@ const ChatPage = memo(() => {
         let ids = new Set(mine.map(e => e.classId));
         if (ids.size === 0) {
           try {
-            const usersRes = await getUsers();
-            const me = (usersRes.data || []).find(u => u.docId === user.uid || u.email === user.email);
+            const me = await getUserProfile(user);
             const enrolled = Array.isArray(me?.enrolledClasses) ? me.enrolledClasses : [];
             ids = new Set(enrolled);
           } catch {}

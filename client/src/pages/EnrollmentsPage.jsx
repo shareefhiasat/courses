@@ -3,6 +3,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { getClasses, getEnrollments, getUsers } from '@firebaseServices/firestore';
+import { getUserProfile } from '@firebaseServices/user';
 import { Container, Grid, Card, CardBody, Button, Spinner, EmptyState } from '@ui';
 import { MessageCircle, BookOpen } from 'lucide-react';
 import styles from './EnrollmentsPage.module.css';
@@ -34,8 +35,7 @@ const EnrollmentsPage = () => {
           // Fallback: read enrolledClasses array from users/{uid}
           if (ids.size === 0) {
             try {
-              const usersRes = await getUsers();
-              const me = (usersRes.data || []).find(u => u.docId === user.uid || u.email === user.email);
+              const me = await getUserProfile(user);
               const enrolled = Array.isArray(me?.enrolledClasses) ? me.enrolledClasses : [];
               ids = new Set(enrolled);
             } catch {}

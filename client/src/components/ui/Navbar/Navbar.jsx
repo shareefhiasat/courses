@@ -5,6 +5,7 @@ import { signOutUser } from '@firebaseServices/auth';
 import { NotificationBell } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { getUsers, updateUser } from '@firebaseServices/firestore';
+import { getUserDisplayName } from '@firebaseServices/user';
 import { db } from '@firebaseServices/config';
 import './Navbar.css';
 import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List, Info, Users, BookOpen, Shield } from 'lucide-react';
@@ -84,20 +85,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
   const openProfile = async () => {
     try {
-      // Prefer deterministic users/{uid} document for reliability with rules
-      const { getDoc, doc } = await import('firebase/firestore');
-      let me = null;
-      try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        me = snap.exists() ? { docId: user.uid, ...snap.data() } : null;
-      } catch {}
-      // Fallback: list query (in case read rules block direct doc)
-      if (!me) {
-        try {
-          const res = await getUsers();
-          me = (res.data || []).find(u => u.docId === user.uid || u.email === user.email) || null;
-        } catch {}
-      }
+      // Use the user service to get profile data
+      const me = await getUserProfile(user);
+      
       setDisplayName(user?.displayName || me?.displayName || '');
       setPhoneNumber(me?.phoneNumber || '');
       const color = normalizeHexColor(me?.messageColor, ACCENT_FALLBACK);
@@ -410,7 +400,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {showDropdown && (
                   <div className="dropdown-menu" style={{ right: 0, top: 48, zIndex: 9999 }}>
                     <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
-                      <div className="user-email" style={{ fontWeight: 600, marginBottom: 8 }}>{user.displayName || user.email}</div>
+                      <div className="user-email" style={{ fontWeight: 600, marginBottom: 8 }}>{displayName || user.email}</div>
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems:'center' }}>
                         {isSuperAdmin && (
                           <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
@@ -497,12 +487,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               
               <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)} ref={menuRef}>
                 <div className="user-avatar">
-                  {(user.displayName || user.email)?.charAt(0).toUpperCase()}
+                  {(displayName || user.email)?.charAt(0).toUpperCase()}
                 </div>
                 {showDropdown && (
                   <div className="dropdown-menu">
                     <div className="dropdown-item user-info">
-                      <div className="user-email">{user.displayName || user.email}</div>
+                      <div className="user-email">{displayName || user.email}</div>
                       {isAdmin && <div className="admin-badge">{t('admin') || 'Admin'}</div>}
                     </div>
                     <button className="dropdown-item" onClick={openProfile}>
