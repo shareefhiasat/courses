@@ -82,7 +82,64 @@ export const HistoryEntry = ({
               fontSize: '0.75rem',
               lineHeight: '1.4'
             }}>
-              <strong>{t('note') || 'Note'}:</strong> {log.comment}
+              <div style={{ marginBottom: '0.5rem' }}>
+                <strong>{t('note') || 'Note'}:</strong> {log.comment}
+              </div>
+              {log.performedBy && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.25rem',
+                  padding: '0.25rem',
+                  background: '#f0f9ff',
+                  borderRadius: '0.25rem',
+                  fontSize: '0.7rem'
+                }}>
+                  <UserIcon style={{ width: '12px', height: '12px', color: '#0369a1' }} />
+                  <span style={{ color: '#0369a1', fontWeight: 500 }}>
+                    {t('by') || 'By'}: {log.performedBy}
+                  </span>
+                </div>
+              )}
+              {log.markedBy && !log.performedBy && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.25rem',
+                  padding: '0.25rem',
+                  background: '#f0f9ff',
+                  borderRadius: '0.25rem',
+                  fontSize: '0.7rem'
+                }}>
+                  <UserIcon style={{ width: '12px', height: '12px', color: '#0369a1' }} />
+                  <span style={{ color: '#0369a1', fontWeight: 500 }}>
+                    {t('by') || 'By'}: {(
+                      typeof log.markedBy === 'string' ? log.markedBy :
+                      (log.markedBy.displayName || log.markedBy.email || log.markedBy.uid || 'Unknown')
+                    )}
+                  </span>
+                </div>
+              )}
+              {!log.performedBy && !log.markedBy && (log.user || log.userId || log.createdBy) && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.25rem',
+                  padding: '0.25rem',
+                  background: '#f0f9ff',
+                  borderRadius: '0.25rem',
+                  fontSize: '0.7rem'
+                }}>
+                  <UserIcon style={{ width: '12px', height: '12px', color: '#0369a1' }} />
+                  <span style={{ color: '#0369a1', fontWeight: 500 }}>
+                    {t('by') || 'By'}: {(
+                      (log.user && (log.user.displayName || log.user.email)) ||
+                      (log.createdBy && (log.createdBy.displayName || log.createdBy.email)) ||
+                      (typeof log.userId === 'string' ? log.userId : 'Unknown')
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
           </InfoTooltip>
         </div>
@@ -128,7 +185,7 @@ export const HistoryEntry = ({
         }}>
           <UserIcon style={{ width: '10px', height: '10px' }} />
           <span style={{ fontWeight: 500 }}>
-            {log.performedBy.displayName || log.performedBy.email || 'Unknown'}
+            {log.performedByName || log.performedByEmail || log.performedBy}
           </span>
         </div>
       )}

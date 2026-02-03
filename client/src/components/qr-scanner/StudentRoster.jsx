@@ -133,7 +133,12 @@ const StudentRoster = React.memo(function StudentRoster({
             points: 0,
             comment: record.reason || record.notes || '',
             color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
-            status: record.status  // ← Clean: only the status field
+            status: record.status,  // ← Clean: only the status field
+            // Add user information
+            markedBy: record.markedBy,
+            performedBy: record.performedBy,
+            performedByName: record.performedByName,
+            performedByEmail: record.performedByEmail
           };
 
           logger.debug('Processing attendance record:', {
@@ -141,6 +146,8 @@ const StudentRoster = React.memo(function StudentRoster({
             status: record.status,
             category: record.category,
             delta: record.delta,
+            markedBy: record.markedBy,
+            performedBy: record.performedBy,
             resultingType: logEntry.type,
             resultingLabel: logEntry.label
           });
@@ -159,7 +166,13 @@ const StudentRoster = React.memo(function StudentRoster({
             points: points,
             comment: p.description || '',
             severity: 'low',
-            color: '#dbeafe'
+            color: '#dbeafe',
+            // Add user information
+            performedBy: p.performedBy,
+            performedByName: p.performedByName,
+            performedByEmail: p.performedByEmail,
+            user: p.user,
+            createdBy: p.createdBy
           };
         }),
         ...studentBehaviors.map(b => {
@@ -174,7 +187,13 @@ const StudentRoster = React.memo(function StudentRoster({
             points: -Math.abs(points),
             comment: b.description || '',
             severity: 'low',
-            color: '#fff7ed'
+            color: '#fff7ed',
+            // Add user information
+            performedBy: b.performedBy,
+            performedByName: b.performedByName,
+            performedByEmail: b.performedByEmail,
+            user: b.user,
+            createdBy: b.createdBy
           };
         }),
         ...studentPenalties.map(penalty => {
@@ -196,7 +215,13 @@ const StudentRoster = React.memo(function StudentRoster({
             points: -Math.abs(penalty.points || 0),
             comment: penalty.reason || penalty.note || penalty.comment || '',
             severity: penalty.severity || 'medium',
-            color: penalty.points > 0 ? '#dcfce7' : '#fee2e2'
+            color: penalty.points > 0 ? '#dcfce7' : '#fee2e2',
+            // Add user information
+            performedBy: penalty.performedBy,
+            performedByName: penalty.performedByName,
+            performedByEmail: penalty.performedByEmail,
+            user: penalty.user,
+            createdBy: penalty.createdBy
           };
         })
       ].sort((a, b) => {
@@ -538,6 +563,10 @@ const StudentRoster = React.memo(function StudentRoster({
   // Senior-Level Quick Attendance Handler for Roster
   const handleQuickAttendance = useCallback(async (student, status) => {
     if (!student || !status || !selectedClassId) return;
+    
+    console.log('🔧 StudentRoster handleQuickAttendance called with user:', user);
+    console.log('🔧 StudentRoster User displayName:', user?.displayName);
+    console.log('🔧 StudentRoster User email:', user?.email);
     
     try {
       // Use the streamlined quickMarkAttendance utility

@@ -33,6 +33,9 @@ export async function createBehavior({
   points = 0,
   description = '',
   createdBy,
+  performedBy,
+  performedByName,
+  performedByEmail,
   date = null,
   studentInfo = null,
   className = '',
@@ -50,6 +53,9 @@ export async function createBehavior({
       description,
       date: todayStr,
       createdBy,
+      performedBy,
+      performedByName,
+      performedByEmail,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };

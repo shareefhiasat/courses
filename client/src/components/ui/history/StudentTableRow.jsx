@@ -124,20 +124,28 @@ const StudentTableRow = ({
     
     try {
       await onQuickAttendance(student, status);
-      // Add a small delay to ensure the modal shows before any parent refresh
-      setTimeout(() => {
-        showResult('success', `Successfully marked ${getAttendanceLabel(status, lang)}`, status);
-      }, 100);
-    } catch (error) {
-      setTimeout(() => {
-        showResult('error', `Failed to mark ${getAttendanceLabel(status, lang)}: ${error.message}`, status);
-      }, 100);
-    } finally {
+      // Show modal immediately, delay table refresh
+      showResult('success', `Successfully marked ${getAttendanceLabel(status, lang)}`, status);
+      
+      // Delay to let user see the modal before table refresh
       setTimeout(() => {
         setIsSubmitting(false);
-      }, 200);
+      }, 2000); // 2 seconds delay
+    } catch (error) {
+      showResult('error', `Failed to mark ${getAttendanceLabel(status, lang)}: ${error.message}`, status);
+      
+      // Delay to let user see the error modal
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 2000); // 2 seconds delay
     }
   }, [isSubmitting, onQuickAttendance, showResult, lang]);
+
+  // Prevent double click
+  const preventDoubleClick = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
   return (
     <React.Fragment key={student.id}>
@@ -377,9 +385,11 @@ const StudentTableRow = ({
                   size="icon"
                   onClick={async (e) => {
                     e.stopPropagation();
+                    preventDoubleClick(e);
                     await handleQuickAttendance(student, 'present');
                   }}
                   disabled={isSubmitting || student.attendance === 'present'}
+                  onDoubleClick={preventDoubleClick}
                   style={{
                     background: student.attendance === 'present' ? '#9ca3af' : getAttendanceColor('present'),
                     border: 'none',
@@ -413,9 +423,11 @@ const StudentTableRow = ({
                   size="icon"
                   onClick={async (e) => {
                     e.stopPropagation();
+                    preventDoubleClick(e);
                     await handleQuickAttendance(student, 'late');
                   }}
                   disabled={isSubmitting || student.attendance === 'late'}
+                  onDoubleClick={preventDoubleClick}
                   style={{
                     background: student.attendance === 'late' ? '#9ca3af' : getAttendanceColor('late'),
                     border: 'none',

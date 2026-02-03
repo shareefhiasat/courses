@@ -841,6 +841,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             points: action.points,
             description: note || '',
             createdBy: user.uid,
+            performedBy: user.displayName || user.email || 'Unknown User',
+            performedByName: user.displayName || user.displayName || 'System',
+            performedByEmail: user.email || '',
             date: today,
             studentInfo,
             className: selectedClassName || ''
@@ -860,6 +863,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             points: action.points,
             description: note || '',
             createdBy: user.uid,
+            performedBy: user.displayName || user.email || 'Unknown User',
+            performedByName: user.displayName || user.displayName || 'System',
+            performedByEmail: user.email || '',
             date: today,
             studentInfo,
             className: selectedClassName || ''
@@ -930,6 +936,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           note: note || '',
           description: note || '', // Add description field to match behavior pattern
           createdBy: user.uid,
+          performedBy: user.displayName || user.email || 'Unknown User',
+          performedByName: user.displayName || user.displayName || 'System',
+          performedByEmail: user.email || '',
           date: today,
           studentInfo: await findStudentData(studentId),
           className: selectedClassName || ''
@@ -1209,7 +1218,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           points: recordPoints,
           label: finalLabel,
           method: record.method || 'QR Scan',
-          performedBy: record.performedBy || user || { displayName: 'System', email: 'system@qaf.com' },
+          performedBy: record.performedBy || user?.displayName || user?.email || '-',
+          performedByName: record.performedByName || user?.displayName || '',
+          performedByEmail: record.performedByEmail || user?.email || '',
           scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor'),
           subject: selectedSubjectName,
           program: selectedProgramName,
@@ -2212,10 +2223,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             const student = students.find(s => s.id === activity.studentId);
                             if (student) {
                               handleQuickAttendance(student, 'present');
                             }
+                          }}
+                          onDoubleClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                           }}
                           disabled={activity.studentId && (() => {
                             const student = students.find(s => s.id === activity.studentId);
@@ -2277,10 +2293,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             const student = students.find(s => s.id === activity.studentId);
                             if (student) {
                               handleQuickAttendance(student, 'late');
                             }
+                          }}
+                          onDoubleClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                           }}
                           disabled={activity.studentId && (() => {
                             const student = students.find(s => s.id === activity.studentId);
@@ -2412,7 +2433,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                   </div>
                                   <div style={{ marginBottom: '0.25rem' }}>
                                     <strong>{t('by') || 'By'}</strong>
-                                    {activity.performedBy?.displayName || activity.performedBy?.email?.split('@')[0] || t('unknown')}
+                                    {activity.performedBy}
                                   </div>
                                   {activity.comment && (
                                       <div style={{ marginBottom: '0.25rem' }}>

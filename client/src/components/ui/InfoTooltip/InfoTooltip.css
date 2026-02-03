@@ -83,7 +83,7 @@
   white-space: normal;
   width: max-content;
   max-width: min(300px, calc(100vw - 32px));
-  z-index: 1000;
+  z-index: 9999;
   border: 1px solid #e9ecef;
   animation: tooltipFadeIn 0.15s ease-out;
   word-wrap: break-word;

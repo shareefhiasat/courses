@@ -184,6 +184,9 @@ export async function markAttendance({
   date, 
   status, 
   markedBy, 
+  performedBy,
+  performedByName,
+  performedByEmail,
   method = 'manual', 
   notes = '',
   studentInfo = null,
@@ -223,6 +226,9 @@ export async function markAttendance({
       date,
       status,
       markedBy,
+      performedBy,
+      performedByName,
+      performedByEmail,
       method,
       notes,
       timestamp: serverTimestamp(),
@@ -362,16 +368,23 @@ export async function quickMarkAttendance({
 
   try {
     // Call the main markAttendance function with streamlined parameters
+    console.log('🔧 quickMarkAttendance called with user:', user);
+    console.log('🔧 User displayName:', user?.displayName);
+    console.log('🔧 User email:', user?.email);
     const result = await markAttendance({
       classId,
       studentId,
       date: today,
       status,
       markedBy: user?.uid || 'system',
+      performedBy: user?.displayName || user?.email || 'System',
+      performedByName: user?.displayName || user?.email || 'Unknown User',
+      performedByEmail: user?.email || '',
       method,
       notes: autoNotes,
       sendNotification: true // Always send notifications for quick actions
     });
+    console.log('🔧 quickMarkAttendance result:', result);
 
     return {
       success: result.success,

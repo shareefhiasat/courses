@@ -134,6 +134,9 @@ export const createPenalty = async ({
   note = '',
   description = '',
   createdBy,
+  performedBy,
+  performedByName,
+  performedByEmail,
   date = null,
   studentInfo = null,
   className = '',
@@ -153,6 +156,9 @@ export const createPenalty = async ({
       description,
       date: todayStr,
       createdBy,
+      performedBy,
+      performedByName,
+      performedByEmail,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
