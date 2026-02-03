@@ -244,12 +244,31 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     console.log(`[${timestamp}] ${message}`);
   }, []);
 
-  // Show result modal function
-  const showResult = useCallback((type, message, isSummary = false) => {
-    setResultModalData({ type, message, isSummary });
+  // Show result modal function - Enhanced for attendance types
+  const showResult = useCallback((type, message, attendanceStatus = null, isSummary = false) => {
+    // If attendance status is provided, use its color and icon
+    let finalType = type;
+    let finalMessage = message;
+    
+    if (attendanceStatus && ['present', 'late', 'absent_no_excuse', 'absent_with_excuse', 'excused_leave', 'human_case'].includes(attendanceStatus)) {
+      finalType = attendanceStatus;
+      // Add attendance icon to message if not already present
+      const icon = getAttendanceIcon(attendanceStatus);
+      const label = getAttendanceLabel(attendanceStatus, lang);
+      if (!message.includes(label)) {
+        finalMessage = `${label}: ${message}`;
+      }
+    }
+    
+    setResultModalData({ 
+      type: finalType, 
+      message: finalMessage, 
+      isSummary,
+      attendanceStatus // Store for icon/color rendering
+    });
     setShowResultModal(true);
-    addDebugLog(`📢 Showing result modal: ${type} - ${message}`, 'info');
-  }, [addDebugLog]);
+    addDebugLog(`📢 Showing result modal: ${finalType} - ${finalMessage}`, 'info');
+  }, [addDebugLog, getAttendanceIcon, getAttendanceLabel, lang]);
 
   // Play feedback sound and vibration
   const playFeedbackSound = useCallback((type) => {
@@ -1483,7 +1502,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         if (result.success) {
           setShowScanDialog(false);
           const statusLabel = getAttendanceLabel(status, lang);
-          showResult('success', `Student marked as ${statusLabel} successfully!`);
+          showResult('success', `Student marked as ${statusLabel} successfully!`, status);
 
           // Emit proper attendance event
           eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -1568,7 +1587,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       if (result.success) {
         // Show success feedback
-        showResult('success', `${student.displayName || student.name} marked as ${statusLabel}!`);
+        showResult('success', `${student.displayName || student.name} marked as ${statusLabel}!`, status);
         
         // Emit real-time event
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -3560,22 +3579,41 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     width: '60px',
                     height: '60px',
                     borderRadius: '50%',
-                    background: resultModalData.type === 'success' ? '#16a34a' :
+                    background: resultModalData.attendanceStatus ? 
+                      getAttendanceColor(resultModalData.attendanceStatus) :
+                      (resultModalData.type === 'success' ? '#16a34a' :
                         resultModalData.type === 'error' ? '#dc2626' :
-                            resultModalData.type === 'late' ? '#eab308' : '#3b82f6',
+                          resultModalData.type === 'late' ? '#eab308' : '#3b82f6'),
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 1rem auto'
                   }}>
-                    {resultModalData.type === 'success' ? (
-                        <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+                    {resultModalData.attendanceStatus ? (
+                      // Use attendance icon
+                      (() => {
+                        const iconName = getAttendanceIcon(resultModalData.attendanceStatus);
+                        switch (iconName) {
+                          case 'CheckCircle':
+                            return <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                          case 'Clock':
+                            return <ClockSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                          case 'XCircle':
+                            return <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                          case 'Heart':
+                            return <HeartIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                          default:
+                            return <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                        }
+                      })()
+                    ) : resultModalData.type === 'success' ? (
+                      <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
                     ) : resultModalData.type === 'error' ? (
-                        <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+                      <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
                     ) : resultModalData.type === 'late' ? (
-                        <ClockSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+                      <ClockSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
                     ) : (
-                        <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+                      <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />
                     )}
                   </div>
 
@@ -3585,8 +3623,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     color: '#111827',
                     margin: '0 0 0.5rem 0'
                   }}>
-                    {resultModalData.type === 'success' ? 'Success!' :
-                        resultModalData.type === 'error' ? 'Error!' : 'Information'}
+                    {resultModalData.attendanceStatus ? 
+                      getAttendanceLabel(resultModalData.attendanceStatus, lang) :
+                      (resultModalData.type === 'success' ? 'Success!' :
+                        resultModalData.type === 'error' ? 'Error!' : 'Information')}
                   </h3>
 
                   <p style={{
@@ -3654,9 +3694,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       onClick={() => setShowResultModal(false)}
                       style={{
                         padding: '0.75rem 1.5rem',
-                        background: resultModalData.type === 'success' ? '#16a34a' :
+                        background: resultModalData.attendanceStatus ? 
+                          getAttendanceColor(resultModalData.attendanceStatus) :
+                          (resultModalData.type === 'success' ? '#16a34a' :
                             resultModalData.type === 'error' ? '#dc2626' :
-                                resultModalData.type === 'late' ? '#eab308' : '#3b82f6',
+                              resultModalData.type === 'late' ? '#eab308' : '#3b82f6'),
                         color: 'white',
                         border: 'none',
                         borderRadius: '0.375rem',
