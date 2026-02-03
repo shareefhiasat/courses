@@ -4,13 +4,15 @@ import { Input } from '@ui';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
-import { getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendance';
+import { getAttendanceByStudent, deleteAttendance, quickMarkAttendance } from '@firebaseServices/attendance';
 import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
 import { getParticipations, deleteParticipation } from '@firebaseServices/participations';
 import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviors';
 import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@firebaseServices/userPreferences';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
+import { CheckSmallIcon, ClockSmallIcon } from '@utils/icons.jsx';
 import { ChevronRight, RefreshCw, Star, Download, Search, Filter } from 'lucide-react';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
@@ -532,6 +534,56 @@ const StudentRoster = React.memo(function StudentRoster({
   // QR Code utilities
   const { openQRCodeInNewTab } = QRCodeDisplay({});
   const { sendQRCodeEmail } = useQRCodeEmail();
+
+  // Senior-Level Quick Attendance Handler for Roster
+  const handleQuickAttendance = useCallback(async (student, status) => {
+    if (!student || !status || !selectedClassId) return;
+    
+    try {
+      // Use the streamlined quickMarkAttendance utility
+      const result = await quickMarkAttendance({
+        studentId: student.id,
+        classId: selectedClassId,
+        status,
+        method: 'roster_quick_action',
+        notes: `Marked ${getAttendanceLabel(status, lang)} via roster quick action`,
+        user
+      });
+
+      if (result.success) {
+        // Show success feedback
+        console.log(`✅ ${student.displayName || student.name} marked as ${getAttendanceLabel(status, lang)}`);
+        
+        // Emit real-time event
+        eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+          studentId: student.id,
+          studentNumber: student.studentNumber,
+          referenceId: student.referenceId,
+          classId: selectedClassId,
+          status,
+          performedBy: user,
+          timestamp: new Date(),
+          quickAction: true,
+          source: 'roster'
+        });
+
+        // Trigger refresh if callback provided
+        if (onRefresh) {
+          onRefresh();
+        }
+
+        // Add haptic feedback if available
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+
+      } else {
+        console.error('Quick attendance failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Quick attendance error:', error);
+    }
+  }, [selectedClassId, user, lang, onRefresh]);
 
   const sendStudentSummaryEmail = async (student) => {
     setSendingEmails(prev => ({
@@ -1082,6 +1134,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     toggleRowExpansion={toggleRowExpansion}
                     onStudentAction={onStudentAction}
                     onStudentSelect={onStudentSelect}
+                    onQuickAttendance={handleQuickAttendance}
                     studentHistory={studentHistory}
                     expandedDays={expandedDays}
                     activeFilters={activeFilters}

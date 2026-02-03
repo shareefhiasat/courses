@@ -3,7 +3,7 @@ import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, ExternalLink, Users, Trophy, AlertCircle } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,7 +14,8 @@ const StudentTableRow = ({
   toggleFavorite, 
   toggleRowExpansion, 
   onStudentAction, 
-  onStudentSelect, 
+  onStudentSelect,
+  onQuickAttendance, // New prop for quick attendance
   studentHistory, 
   expandedDays, 
   activeFilters, 
@@ -353,6 +354,69 @@ const StudentTableRow = ({
             >
               <QrCode style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
             </Button>
+
+            {/* Senior-Level Quick Attendance Actions */}
+            {onQuickAttendance && (
+              <>
+                {/* Quick Present Button */}
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await onQuickAttendance(student, 'present');
+                  }}
+                  style={{
+                    background: getAttendanceColor('present'),
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '0.375rem',
+                    transition: 'all 0.2s ease',
+                    boxShadow: `0 2px 4px ${getAttendanceColor('present')}30`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
+                  }}
+                  title="Mark Present"
+                >
+                  <CheckSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
+                </Button>
+
+                {/* Quick Late Button */}
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await onQuickAttendance(student, 'late');
+                  }}
+                  style={{
+                    background: getAttendanceColor('late'),
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '0.375rem',
+                    transition: 'all 0.2s ease',
+                    boxShadow: `0 2px 4px ${getAttendanceColor('late')}30`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
+                  }}
+                  title="Mark Late"
+                >
+                  <ClockSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
+                </Button>
+              </>
+            )}
             <Button 
               variant="ghost" 
               size="icon"
