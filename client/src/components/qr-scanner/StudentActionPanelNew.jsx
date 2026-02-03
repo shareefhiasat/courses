@@ -37,7 +37,7 @@ export default function StudentActionPanelNew({
   selectedDate,
   sendNotifications = false,
   onToggleNotifications,
-  initialTab = 'attendance' // Default to attendance tab
+  initialTab = RECORD_TYPES.PARTICIPATION // Default to participation tab
 }) {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
@@ -417,25 +417,6 @@ export default function StudentActionPanelNew({
         {/* Tab Navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>
           <button
-            onClick={() => setActiveTab('attendance')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #e2e8f0',
-              background: activeTab === 'attendance' ? '#16a34a' : '#f8fafc',
-              color: activeTab === 'attendance' ? 'white' : '#64748b',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'attendance' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            <CheckCircleIcon style={{ width: '14px', height: '14px' }} />
-            {t('attendance')}
-          </button>
-          <button
             onClick={() => setActiveTab(RECORD_TYPES.PARTICIPATION)}
             style={{
               display: 'flex',
@@ -515,181 +496,6 @@ export default function StudentActionPanelNew({
           </div>
         </div>
 
-        {/* Attendance Section */}
-        {activeTab === 'attendance' && (
-          <div style={{ marginTop: '1rem' }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '0.5rem',
-              marginBottom: '1rem'
-            }}>
-              <button
-                onClick={async () => {
-                  if (onMarkAttendance) {
-                    setIsSubmitting(true);
-                    try {
-                      await onMarkAttendance(student.id, ATTENDANCE_STATUS.PRESENT);
-                      showSuccess(t('attendance_marked_present'));
-                    } catch (error) {
-                      showError(t('failed_to_mark_attendance'));
-                    } finally {
-                      setIsSubmitting(false);
-                    }
-                  }
-                }}
-                disabled={isSubmitting}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #16a34a',
-                  background: '#16a34a',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <CheckCircleIcon style={{ width: '16px', height: '16px' }} />
-                {t('present')}
-              </button>
-              
-              <button
-                onClick={async () => {
-                  if (onMarkAttendance) {
-                    setIsSubmitting(true);
-                    try {
-                      await onMarkAttendance(student.id, ATTENDANCE_STATUS.LATE);
-                      showSuccess(t('attendance_marked_late'));
-                    } catch (error) {
-                      showError(t('failed_to_mark_attendance'));
-                    } finally {
-                      setIsSubmitting(false);
-                    }
-                  }
-                }}
-                disabled={isSubmitting}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #f59e0b',
-                  background: '#f59e0b',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <ClockIcon style={{ width: '16px', height: '16px' }} />
-                {t('late')}
-              </button>
-              
-              <button
-                onClick={async () => {
-                  if (onMarkAttendance) {
-                    setIsSubmitting(true);
-                    try {
-                      await onMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
-                      showSuccess(t('attendance_marked_absent'));
-                    } catch (error) {
-                      showError(t('failed_to_mark_attendance'));
-                    } finally {
-                      setIsSubmitting(false);
-                    }
-                  }
-                }}
-                disabled={isSubmitting}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #dc2626',
-                  background: '#dc2626',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <XCircleIcon style={{ width: '16px', height: '16px' }} />
-                {t('absent')}
-              </button>
-              
-              <button
-                onClick={async () => {
-                  if (onMarkAttendance) {
-                    setIsSubmitting(true);
-                    try {
-                      await onMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE);
-                      showSuccess(t('attendance_marked_excused'));
-                    } catch (error) {
-                      showError(t('failed_to_mark_attendance'));
-                    } finally {
-                      setIsSubmitting(false);
-                    }
-                  }
-                }}
-                disabled={isSubmitting}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid #6b7280',
-                  background: '#6b7280',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <AlertTriangleIcon style={{ width: '16px', height: '16px' }} />
-                {t('excused')}
-              </button>
-            </div>
-            
-            {/* Current Attendance Status Display */}
-            <div style={{
-              padding: '0.75rem',
-              borderRadius: '0.5rem',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              fontSize: '0.875rem',
-              color: '#64748b'
-            }}>
-              <div style={{ fontWeight: '500', marginBottom: '0.25rem' }}>
-                {t('current_status')}:
-              </div>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.375rem',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '0.375rem',
-                background: attendanceStatus?.color || '#f3f4f6',
-                color: 'white',
-                fontSize: '0.8125rem',
-                fontWeight: '500'
-              }}>
-                {attendanceStatus?.en || t('none')}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Select Reason Grid */}
         <div style={{ marginBottom: '0.5rem', marginTop: '1rem' }}>
           <div style={{
@@ -700,7 +506,6 @@ export default function StudentActionPanelNew({
           }}>
             {options.filter(option => {
               // Filter options based on active tab
-              if (activeTab === 'attendance') return false; // Attendance doesn't use options grid
               if (activeTab === RECORD_TYPES.BEHAVIOR) return option.category === RECORD_TYPES.BEHAVIOR;
               if (activeTab === RECORD_TYPES.PARTICIPATION) return option.category === RECORD_TYPES.PARTICIPATION;
               if (activeTab === RECORD_TYPES.PENALTY) return option.category === RECORD_TYPES.PENALTY;
