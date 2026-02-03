@@ -2217,11 +2217,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               handleQuickAttendance(student, 'present');
                             }
                           }}
+                          disabled={activity.studentId && (() => {
+                            const student = students.find(s => s.id === activity.studentId);
+                            return student?.attendance === 'present';
+                          })()}
                           style={{
-                            background: getAttendanceColor('present'),
+                            background: (() => {
+                              const student = students.find(s => s.id === activity.studentId);
+                              return student?.attendance === 'present' ? '#9ca3af' : getAttendanceColor('present');
+                            })(),
                             border: 'none',
                             color: 'white',
-                            cursor: 'pointer',
+                            cursor: (() => {
+                              const student = students.find(s => s.id === activity.studentId);
+                              return student?.attendance === 'present' ? 'not-allowed' : 'pointer';
+                            })(),
                             padding: '0.25rem 0.5rem',
                             display: 'flex',
                             alignItems: 'center',
@@ -2230,19 +2240,35 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             transition: 'all 0.2s ease',
-                            boxShadow: `0 2px 4px ${getAttendanceColor('present')}30`,
+                            boxShadow: (() => {
+                              const student = students.find(s => s.id === activity.studentId);
+                              return student?.attendance === 'present' ? 'none' : `0 2px 4px ${getAttendanceColor('present')}30`;
+                            })(),
+                            opacity: (() => {
+                              const student = students.find(s => s.id === activity.studentId);
+                              return student?.attendance === 'present' ? 0.6 : 1;
+                            })(),
                             minWidth: '24px',
                             height: '24px'
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
+                            const student = students.find(s => s.id === activity.studentId);
+                            if (student?.attendance !== 'present') {
+                              e.target.style.transform = 'translateY(-1px)';
+                              e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
+                            }
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
+                            const student = students.find(s => s.id === activity.studentId);
+                            if (student?.attendance !== 'present') {
+                              e.target.style.transform = 'translateY(0)';
+                              e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
+                            }
                           }}
-                          title="Mark Present"
+                          title={(() => {
+                            const student = students.find(s => s.id === activity.studentId);
+                            return student?.attendance === 'present' ? 'Already marked as present' : 'Mark Present';
+                          })()}
                         >
                           <CheckSmallIcon style={{ width: '12px', height: '12px' }} />
                         </button>
@@ -2256,11 +2282,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               handleQuickAttendance(student, 'late');
                             }
                           }}
+                          disabled={activity.studentId && (() => {
+                            const student = students.find(s => s.id === activity.studentId);
+                            return student?.attendance === 'late';
+                          })()}
                           style={{
-                            background: getAttendanceColor('late'),
+                            background: (() => {
+                              const student = students.find(s => s.id === activity.studentId);
+                              return student?.attendance === 'late' ? '#9ca3af' : getAttendanceColor('late');
+                            })(),
                             border: 'none',
                             color: 'white',
-                            cursor: 'pointer',
+                            cursor: (() => {
+                              const student = students.find(s => s.id === activity.studentId);
+                              return student?.attendance === 'late' ? 'not-allowed' : 'pointer';
+                            })(),
                             padding: '0.25rem 0.5rem',
                             display: 'flex',
                             alignItems: 'center',
@@ -2269,19 +2305,35 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             fontSize: '0.75rem',
                             fontWeight: 600,
                             transition: 'all 0.2s ease',
-                            boxShadow: `0 2px 4px ${getAttendanceColor('late')}30`,
+                            boxShadow: (() => {
+                              const student = students.find(s => s.id === activity.studentId);
+                              return student?.attendance === 'late' ? 'none' : `0 2px 4px ${getAttendanceColor('late')}30`;
+                            })(),
+                            opacity: (() => {
+                              const student = students.find(s => s.id === activity.studentId);
+                              return student?.attendance === 'late' ? 0.6 : 1;
+                            })(),
                             minWidth: '24px',
                             height: '24px'
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
+                            const student = students.find(s => s.id === activity.studentId);
+                            if (student?.attendance !== 'late') {
+                              e.target.style.transform = 'translateY(-1px)';
+                              e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
+                            }
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
+                            const student = students.find(s => s.id === activity.studentId);
+                            if (student?.attendance !== 'late') {
+                              e.target.style.transform = 'translateY(0)';
+                              e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
+                            }
                           }}
-                          title="Mark Late"
+                          title={(() => {
+                            const student = students.find(s => s.id === activity.studentId);
+                            return student?.attendance === 'late' ? 'Already marked as late' : 'Mark Late';
+                          })()}
                         >
                           <ClockSmallIcon style={{ width: '12px', height: '12px' }} />
                         </button>

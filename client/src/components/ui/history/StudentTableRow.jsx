@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, ExternalLink, Users, Trophy, AlertCircle } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getAttendanceIcon } from '@constants/attendanceTypes';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 import { useNavigate } from 'react-router-dom';
+import { useLang } from '@contexts/LangContext';
 
 const StudentTableRow = ({ 
   student, 
@@ -32,12 +33,17 @@ const StudentTableRow = ({
   sendingEmails, 
   setSendingEmails,
   sendStudentSummaryEmail, 
-  t, 
   isRTL,
   groupLogsByDay,
   toggleFilter 
 }) => {
   const navigate = useNavigate();
+  const { t, lang } = useLang();
+  
+  // Modal state for attendance confirmation
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultModalData, setResultModalData] = useState({ type: '', message: '', attendanceStatus: null });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const avatarColor = getAvatarColor(student.displayName || student.realName || student.name || '');
 
@@ -83,6 +89,55 @@ const StudentTableRow = ({
       </div>
     );
   };
+
+  // Show result modal function - Same as QR scanner
+  const showResult = useCallback((type, message, attendanceStatus = null) => {
+    let finalType = type;
+    let finalMessage = message;
+    
+    // If attendance status is provided, use its color and icon
+    if (attendanceStatus) {
+      finalType = 'attendance';
+      finalMessage = message || getAttendanceLabel(attendanceStatus, lang);
+    }
+    
+    setResultModalData({ 
+      type: finalType, 
+      message: finalMessage, 
+      attendanceStatus
+    });
+    setShowResultModal(true);
+  }, [lang]);
+
+  // Handle attendance with confirmation modal
+  const handleQuickAttendance = useCallback(async (student, status) => {
+    if (isSubmitting) return;
+    
+    // Check if student already has this status
+    const currentStatus = student.attendance;
+    if (currentStatus === status) {
+      showResult('info', `Student is already marked as ${getAttendanceLabel(status, lang)}`, status);
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      await onQuickAttendance(student, status);
+      // Add a small delay to ensure the modal shows before any parent refresh
+      setTimeout(() => {
+        showResult('success', `Successfully marked ${getAttendanceLabel(status, lang)}`, status);
+      }, 100);
+    } catch (error) {
+      setTimeout(() => {
+        showResult('error', `Failed to mark ${getAttendanceLabel(status, lang)}: ${error.message}`, status);
+      }, 100);
+    } finally {
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 200);
+    }
+  }, [isSubmitting, onQuickAttendance, showResult, lang]);
 
   return (
     <React.Fragment key={student.id}>
@@ -322,25 +377,32 @@ const StudentTableRow = ({
                   size="icon"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    await onQuickAttendance(student, 'present');
+                    await handleQuickAttendance(student, 'present');
                   }}
+                  disabled={isSubmitting || student.attendance === 'present'}
                   style={{
-                    background: getAttendanceColor('present'),
+                    background: student.attendance === 'present' ? '#9ca3af' : getAttendanceColor('present'),
                     border: 'none',
                     color: 'white',
                     borderRadius: '0.375rem',
                     transition: 'all 0.2s ease',
-                    boxShadow: `0 2px 4px ${getAttendanceColor('present')}30`
+                    boxShadow: student.attendance === 'present' ? 'none' : `0 2px 4px ${getAttendanceColor('present')}30`,
+                    opacity: student.attendance === 'present' ? 0.6 : 1,
+                    cursor: student.attendance === 'present' ? 'not-allowed' : 'pointer'
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-1px)';
-                    e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
+                    if (student.attendance !== 'present') {
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
+                    if (student.attendance !== 'present') {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
+                    }
                   }}
-                  title="Mark Present"
+                  title={student.attendance === 'present' ? 'Already marked as present' : 'Mark Present'}
                 >
                   <CheckSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
                 </Button>
@@ -351,25 +413,32 @@ const StudentTableRow = ({
                   size="icon"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    await onQuickAttendance(student, 'late');
+                    await handleQuickAttendance(student, 'late');
                   }}
+                  disabled={isSubmitting || student.attendance === 'late'}
                   style={{
-                    background: getAttendanceColor('late'),
+                    background: student.attendance === 'late' ? '#9ca3af' : getAttendanceColor('late'),
                     border: 'none',
                     color: 'white',
                     borderRadius: '0.375rem',
                     transition: 'all 0.2s ease',
-                    boxShadow: `0 2px 4px ${getAttendanceColor('late')}30`
+                    boxShadow: student.attendance === 'late' ? 'none' : `0 2px 4px ${getAttendanceColor('late')}30`,
+                    opacity: student.attendance === 'late' ? 0.6 : 1,
+                    cursor: student.attendance === 'late' ? 'not-allowed' : 'pointer'
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-1px)';
-                    e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
+                    if (student.attendance !== 'late') {
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
+                    if (student.attendance !== 'late') {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
+                    }
                   }}
-                  title="Mark Late"
+                  title={student.attendance === 'late' ? 'Already marked as late' : 'Mark Late'}
                 >
                   <ClockSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
                 </Button>
@@ -467,6 +536,117 @@ const StudentTableRow = ({
             />
           </td>
         </tr>
+      )}
+
+      {/* Result Modal - Same as QR Scanner */}
+      {showResultModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '1rem',
+            padding: '2rem',
+            maxWidth: '400px',
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: resultModalData.attendanceStatus ? 
+                getAttendanceColor(resultModalData.attendanceStatus) :
+                (resultModalData.type === 'success' ? '#16a34a' :
+                  resultModalData.type === 'error' ? '#dc2626' :
+                    resultModalData.type === 'info' ? '#3b82f6' : '#6b7280'),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto'
+            }}>
+              {resultModalData.attendanceStatus ? (
+                // Use attendance icon
+                (() => {
+                  const iconName = getAttendanceIcon(resultModalData.attendanceStatus);
+                  switch (iconName) {
+                    case 'CheckCircle':
+                      return <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                    case 'Clock':
+                      return <ClockSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                    case 'XCircle':
+                      return <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                    case 'Heart':
+                      return <HeartIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                    default:
+                      return <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                  }
+                })()
+              ) : resultModalData.type === 'success' ? (
+                <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+              ) : resultModalData.type === 'error' ? (
+                <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+              ) : resultModalData.type === 'info' ? (
+                <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+              ) : (
+                <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+              )}
+            </div>
+
+            <h3 style={{
+              fontSize: '1.25rem',
+              fontWeight: '600',
+              color: '#111827',
+              margin: '0 0 0.5rem 0'
+            }}>
+              {resultModalData.attendanceStatus ? 
+                getAttendanceLabel(resultModalData.attendanceStatus, lang) :
+                (resultModalData.type === 'success' ? 'Success!' :
+                  resultModalData.type === 'error' ? 'Error!' : 
+                  resultModalData.type === 'info' ? 'Info' : 'Information')}
+            </h3>
+
+            <p style={{
+              fontSize: '1rem',
+              color: '#6b7280',
+              margin: '0 0 1.5rem 0',
+              lineHeight: '1.5'
+            }}>
+              {resultModalData.message}
+            </p>
+
+            <Button
+              onClick={() => setShowResultModal(false)}
+              style={{
+                background: resultModalData.attendanceStatus ? 
+                  getAttendanceColor(resultModalData.attendanceStatus) :
+                  (resultModalData.type === 'success' ? '#16a34a' :
+                    resultModalData.type === 'error' ? '#dc2626' :
+                      resultModalData.type === 'info' ? '#3b82f6' : '#6b7280'),
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                fontWeight: '500',
+                cursor: 'pointer',
+                width: '100%'
+              }}
+            >
+              OK
+            </Button>
+          </div>
+        </div>
       )}
     </React.Fragment>
   );
