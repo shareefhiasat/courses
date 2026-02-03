@@ -12,7 +12,8 @@ import { createParticipation, getParticipations, getParticipationsByClassAndDate
 import { createBehavior, getBehaviors, getBehaviorsByClassAndDate, deleteBehavior } from '@firebaseServices/behaviors';
 import { getPerformedByFields } from '@firebaseServices/user';
 import { getUsers } from '@firebaseServices/firestore';
-import { doc, getDoc } from 'firebase/firestore';
+import { getUserByStudentNumber, getUserById } from '@firebase/userService';
+import { getTodayAttendanceStatus, isStudentMarkedToday } from '@firebase/attendanceService';
 import { db } from '@firebaseServices/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { useAuth } from '@contexts/AuthContext';
@@ -22,7 +23,7 @@ import { RefreshCw, Activity } from 'lucide-react';
 import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';
 import { generateReferenceId } from '@utils/qrCode';
-import { BEHAVIOR_TYPES, getBehaviorColor } from '@constants/behaviorTypes';
+import { getTypeColor } from '@utils/sharedTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes';
 import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -389,17 +390,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Method 1: Try to find by document ID (but only if it's not a simple number)
       if (!/^\d+$/.test(studentInfo.studentNumber) || studentInfo.studentNumber.length > 4) {
         try {
-          const studentDoc = await getDoc(doc(db, 'users', studentInfo.studentNumber));
-          if (studentDoc.exists()) {
-            const studentData = studentDoc.data();
+          const userResult = await getUserByStudentNumber(studentInfo.studentNumber);
+          if (userResult.success) {
+            const studentData = userResult.data;
             // Check if this is actually a student (not admin)
             if (!isAdmin(studentData.role) && !isSuperAdmin(studentData.role)) {
               foundStudent = {
-                id: studentDoc.id,
-                docId: studentDoc.id,
+                id: userResult.data.id,
+                docId: userResult.data.id,
                 referenceId: studentData.referenceId, // Include referenceId
-                studentId: studentData.studentNumber || studentDoc.id,
-                studentNumber: studentData.studentNumber || studentDoc.id,
+                studentId: studentData.studentNumber || userResult.data.id,
+                studentNumber: studentData.studentNumber || userResult.data.id,
                 name: studentData.displayName || studentData.realName || studentData.name || 'Unknown',
                 displayName: studentData.displayName,
                 realName: studentData.realName,
@@ -545,15 +546,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     if (!fullStudent && studentInfo.studentNumber) {
       try {
         addDebugLog(`🔄 Fetching student from Firebase for number: ${studentInfo.studentNumber}`, 'info');
-        const studentDoc = await getDoc(doc(db, 'users', studentInfo.studentNumber));
-        if (studentDoc.exists()) {
-          const studentData = studentDoc.data();
+        const userResult = await getUserByStudentNumber(studentInfo.studentNumber);
+        if (userResult.success) {
+          const studentData = userResult.data;
           // Create a student object with the same structure as the students array
           fullStudent = {
-            id: studentDoc.id,
-            docId: studentDoc.id,
-            studentId: studentData.studentNumber || studentDoc.id,
-            studentNumber: studentData.studentNumber || studentDoc.id,
+            id: userResult.data.id,
+            docId: userResult.data.id,
+            studentId: studentData.studentNumber || userResult.data.id,
+            studentNumber: studentData.studentNumber || userResult.data.id,
             name: studentData.displayName || studentData.realName || studentData.name || 'Unknown',
             displayName: studentData.displayName,
             realName: studentData.realName,
@@ -759,11 +760,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   const checkTodayAttendanceStatus = useCallback(async (studentId) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${studentId}_${today}`));
+      const attendanceResult = await getTodayAttendanceStatus(classId, studentId);
 
-      if (existingDoc.exists()) {
-        const data = existingDoc.data();
+      if (attendanceResult.success && attendanceResult.data) {
+        const data = attendanceResult.data;
         return data.status; // 'present', 'late', or null
       }
       return null;
@@ -1342,18 +1342,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, [lang]);
 
   const getStatusColor = useCallback((status, type, delta) => {
-    // Removed debug logging for cleaner console
+    // Use centralized type color system for record types
+    if (type) {
+      const typeColor = getTypeColor('record', type);
+      if (typeColor && typeColor !== '#6b7280') {
+        return typeColor;
+      }
+    }
     
-    if (type === RECORD_TYPES.PARTICIPATION || delta > 0) {
-      return '#3b82f6';
+    // Fallback for delta-based logic
+    if (delta > 0) {
+      return '#3b82f6'; // Positive changes
     }
-    if (type === RECORD_TYPES.PENALTY) {
-      return '#dc2626';
-    }
-    if (type === RECORD_TYPES.BEHAVIOR || delta < 0) {
-      return '#f97316';
+    if (delta < 0) {
+      return '#f97316'; // Negative changes
     }
 
+    // Use centralized attendance color system
     switch(status?.toLowerCase()) {
       case 'present': 
         return '#16a34a';
@@ -1500,15 +1505,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         // Check if already marked with any attendance status today
         const studentIdentifier = lastScannedStudent?.studentNumber || lastScannedStudent?.referenceId;
-        const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${studentIdentifier}_${today}`));
-        if (existingDoc.exists() && [
-          ATTENDANCE_STATUS.PRESENT,
-          ATTENDANCE_STATUS.LATE,
-          ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
-          ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
-          ATTENDANCE_STATUS.EXCUSED_LEAVE,
-          ATTENDANCE_STATUS.HUMAN_CASE
-        ].includes(existingDoc.data().status)) {
+        const isMarked = await isStudentMarkedToday(classId, studentIdentifier);
+        if (isMarked) {
           showResult('info', 'Student is already marked for today.');
           setShowScanDialog(false);
           return;
