@@ -100,8 +100,6 @@ export { default as SideDrawer } from './SideDrawer/SideDrawer';
 export { default as Navbar } from './Navbar/Navbar';
 export { default as RankDisplay } from './RankDisplay';
 export { default as RankHistory } from './RankHistory';
-export { default as RankUpgradeModal } from './RankUpgradeModal';
-export { default as RecentMedals } from './RecentMedals';
 export { default as VariableHelper } from './VariableHelper';
 export { default as StudentQRCodeDisplay } from './StudentQRCodeDisplay/StudentQRCodeDisplay';
 export { default as CollapsibleSideWindow } from './CollapsibleSideWindow';

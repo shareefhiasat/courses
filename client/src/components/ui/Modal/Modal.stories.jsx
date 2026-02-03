@@ -7,6 +7,13 @@ export default {
   title: 'UI/Modal',
   component: Modal,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component: 'Base modal component with advanced features like dragging, sizing, and accessibility. This is the foundation for specialized modal variations:\n\n- **ConfirmModal**: Standardized confirmation dialogs for destructive actions\n- **DeleteModal**: Business logic wrapper for activity deletion confirmations\n- **UserDeletionModal**: User account deletion confirmations\n\nSee the individual stories for each variation for specific use cases.'
+      }
+    }
+  }
 };
 
 // Basic Modal
@@ -257,6 +264,97 @@ export const SuccessMessage = () => {
             Your changes have been saved successfully.
           </p>
         </div>
+      </Modal>
+    </>
+  );
+};
+
+// Modal Variations Showcase
+export const ModalVariations = () => {
+  const [modalType, setModalType] = useState(null);
+
+  const openModal = (type) => {
+    setModalType(type);
+  };
+
+  const closeModal = () => {
+    setModalType(null);
+  };
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <Button onClick={() => openModal('basic')}>Basic Modal</Button>
+        <Button variant="danger" onClick={() => openModal('confirm')}>Confirm Modal</Button>
+        <Button variant="danger" onClick={() => openModal('delete')}>Delete Activity</Button>
+        <Button variant="danger" onClick={() => openModal('userDelete')}>Delete User</Button>
+      </div>
+
+      {/* Basic Modal */}
+      <Modal
+        isOpen={modalType === 'basic'}
+        onClose={closeModal}
+        title="Basic Modal Example"
+        footer={
+          <>
+            <Button variant="outline" onClick={closeModal}>Cancel</Button>
+            <Button variant="primary" onClick={closeModal}>OK</Button>
+          </>
+        }
+      >
+        <p>This is the base modal component. All other modal variations are built on top of this foundation.</p>
+        <p>Features include dragging, resizing, accessibility, and keyboard navigation.</p>
+      </Modal>
+
+      {/* Confirm Modal */}
+      <Modal
+        isOpen={modalType === 'confirm'}
+        onClose={closeModal}
+        title="Confirm Action"
+        size="small"
+        footer={
+          <>
+            <Button variant="outline" onClick={closeModal}>Cancel</Button>
+            <Button variant="danger" onClick={closeModal}>Confirm</Button>
+          </>
+        }
+      >
+        <p>Are you sure you want to perform this action?</p>
+        <p style={{ color: '#dc2626' }}>This cannot be undone.</p>
+      </Modal>
+
+      {/* Delete Activity Modal */}
+      <Modal
+        isOpen={modalType === 'delete'}
+        onClose={closeModal}
+        title="Delete Attendance Record"
+        size="small"
+        footer={
+          <>
+            <Button variant="outline" onClick={closeModal}>Cancel</Button>
+            <Button variant="danger" onClick={closeModal}>Delete</Button>
+          </>
+        }
+      >
+        <p>Are you sure you want to delete this attendance record for John Doe?</p>
+      </Modal>
+
+      {/* Delete User Modal */}
+      <Modal
+        isOpen={modalType === 'userDelete'}
+        onClose={closeModal}
+        title="Delete User"
+        size="small"
+        footer={
+          <>
+            <Button variant="outline" onClick={closeModal}>Cancel</Button>
+            <Button variant="danger" onClick={closeModal}>Delete User</Button>
+          </>
+        }
+      >
+        <p>Are you sure you want to delete this user?</p>
+        <p><strong>john.doe@example.com</strong></p>
+        <p style={{ color: '#dc2626' }}>This action cannot be undone.</p>
       </Modal>
     </>
   );
