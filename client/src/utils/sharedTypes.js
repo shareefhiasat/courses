@@ -1,6 +1,6 @@
 /**
  * Unified Shared Types System
- * Provides consistent interface for all shared types: behavior, participation, absence, penalty, attendance
+ * Provides consistent interface for all shared types: behavior, participation, absence, penalty, attendance, and general statuses
  * These are shared type utilities used throughout the application
  */
 
@@ -16,6 +16,308 @@ export const RECORD_TYPES = {
   PENALTY: 'penalty', 
   PARTICIPATION: 'participation',
   BEHAVIOR: 'behavior'
+};
+
+// General Status Constants - Phase 2
+export const GENERAL_STATUS = {
+  // Basic statuses
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  PENDING: 'pending',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  
+  // Task/Assignment statuses
+  DRAFT: 'draft',
+  SUBMITTED: 'submitted',
+  GRADED: 'graded',
+  RETURNED: 'returned',
+  OVERDUE: 'overdue',
+  
+  // Progress statuses
+  NOT_STARTED: 'not_started',
+  IN_PROGRESS: 'in_progress',
+  ON_HOLD: 'on_hold',
+  REVIEW: 'review',
+  
+  // Quality statuses
+  EXCELLENT: 'excellent',
+  GOOD: 'good',
+  SATISFACTORY: 'satisfactory',
+  NEEDS_IMPROVEMENT: 'needs_improvement',
+  
+  // System statuses
+  LOADING: 'loading',
+  ERROR: 'error',
+  SUCCESS: 'success',
+  IDLE: 'idle'
+};
+
+// Enrollment Status Constants
+export const ENROLLMENT_STATUS = {
+  ACTIVE: GENERAL_STATUS.ACTIVE,
+  PENDING: GENERAL_STATUS.PENDING,
+  COMPLETED: GENERAL_STATUS.COMPLETED,
+  CANCELLED: GENERAL_STATUS.CANCELLED,
+  SUSPENDED: 'suspended',
+  WITHDRAWN: 'withdrawn'
+};
+
+// Submission Status Constants
+export const SUBMISSION_STATUS = {
+  DRAFT: GENERAL_STATUS.DRAFT,
+  SUBMITTED: GENERAL_STATUS.SUBMITTED,
+  GRADED: GENERAL_STATUS.GRADED,
+  RETURNED: GENERAL_STATUS.RETURNED,
+  OVERDUE: GENERAL_STATUS.OVERDUE,
+  PLAGIARISM_DETECTED: 'plagiarism_detected'
+};
+
+// Task Status Constants
+export const TASK_STATUS = {
+  NOT_STARTED: GENERAL_STATUS.NOT_STARTED,
+  IN_PROGRESS: GENERAL_STATUS.IN_PROGRESS,
+  COMPLETED: GENERAL_STATUS.COMPLETED,
+  OVERDUE: GENERAL_STATUS.OVERDUE,
+  CANCELLED: GENERAL_STATUS.CANCELLED
+};
+
+// User Account Status Constants
+export const USER_STATUS = {
+  ACTIVE: GENERAL_STATUS.ACTIVE,
+  INACTIVE: GENERAL_STATUS.INACTIVE,
+  PENDING: GENERAL_STATUS.PENDING,
+  SUSPENDED: 'suspended',
+  BANNED: 'banned'
+};
+
+// Class/Course Status Constants
+export const CLASS_STATUS = {
+  ACTIVE: GENERAL_STATUS.ACTIVE,
+  INACTIVE: GENERAL_STATUS.INACTIVE,
+  UPCOMING: 'upcoming',
+  COMPLETED: GENERAL_STATUS.COMPLETED,
+  CANCELLED: GENERAL_STATUS.CANCELLED
+};
+
+// Status Display Labels (English)
+export const STATUS_LABELS_EN = {
+  [GENERAL_STATUS.ACTIVE]: 'Active',
+  [GENERAL_STATUS.INACTIVE]: 'Inactive',
+  [GENERAL_STATUS.PENDING]: 'Pending',
+  [GENERAL_STATUS.COMPLETED]: 'Completed',
+  [GENERAL_STATUS.CANCELLED]: 'Cancelled',
+  [GENERAL_STATUS.APPROVED]: 'Approved',
+  [GENERAL_STATUS.REJECTED]: 'Rejected',
+  [GENERAL_STATUS.DRAFT]: 'Draft',
+  [GENERAL_STATUS.SUBMITTED]: 'Submitted',
+  [GENERAL_STATUS.GRADED]: 'Graded',
+  [GENERAL_STATUS.RETURNED]: 'Returned',
+  [GENERAL_STATUS.OVERDUE]: 'Overdue',
+  [GENERAL_STATUS.NOT_STARTED]: 'Not Started',
+  [GENERAL_STATUS.IN_PROGRESS]: 'In Progress',
+  [GENERAL_STATUS.ON_HOLD]: 'On Hold',
+  [GENERAL_STATUS.REVIEW]: 'Under Review',
+  [GENERAL_STATUS.EXCELLENT]: 'Excellent',
+  [GENERAL_STATUS.GOOD]: 'Good',
+  [GENERAL_STATUS.SATISFACTORY]: 'Satisfactory',
+  [GENERAL_STATUS.NEEDS_IMPROVEMENT]: 'Needs Improvement',
+  [GENERAL_STATUS.LOADING]: 'Loading',
+  [GENERAL_STATUS.ERROR]: 'Error',
+  [GENERAL_STATUS.SUCCESS]: 'Success',
+  [GENERAL_STATUS.IDLE]: 'Idle',
+  [ENROLLMENT_STATUS.SUSPENDED]: 'Suspended',
+  [ENROLLMENT_STATUS.WITHDRAWN]: 'Withdrawn',
+  [SUBMISSION_STATUS.PLAGIARISM_DETECTED]: 'Plagiarism Detected',
+  [USER_STATUS.SUSPENDED]: 'Suspended',
+  [USER_STATUS.BANNED]: 'Banned',
+  [CLASS_STATUS.UPCOMING]: 'Upcoming'
+};
+
+// Status Display Labels (Arabic)
+export const STATUS_LABELS_AR = {
+  [GENERAL_STATUS.ACTIVE]: 'نشط',
+  [GENERAL_STATUS.INACTIVE]: 'غير نشط',
+  [GENERAL_STATUS.PENDING]: 'في الانتظار',
+  [GENERAL_STATUS.COMPLETED]: 'مكتمل',
+  [GENERAL_STATUS.CANCELLED]: 'ملغي',
+  [GENERAL_STATUS.APPROVED]: 'موافق عليه',
+  [GENERAL_STATUS.REJECTED]: 'مرفوض',
+  [GENERAL_STATUS.DRAFT]: 'مسودة',
+  [GENERAL_STATUS.SUBMITTED]: 'مقدم',
+  [GENERAL_STATUS.GRADED]: 'مصنف',
+  [GENERAL_STATUS.RETURNED]: 'مُعاد',
+  [GENERAL_STATUS.OVERDUE]: 'متأخر',
+  [GENERAL_STATUS.NOT_STARTED]: 'لم يبدأ',
+  [GENERAL_STATUS.IN_PROGRESS]: 'قيد التنفيذ',
+  [GENERAL_STATUS.ON_HOLD]: 'معلق',
+  [GENERAL_STATUS.REVIEW]: 'قيد المراجعة',
+  [GENERAL_STATUS.EXCELLENT]: 'ممتاز',
+  [GENERAL_STATUS.GOOD]: 'جيد',
+  [GENERAL_STATUS.SATISFACTORY]: 'مرضي',
+  [GENERAL_STATUS.NEEDS_IMPROVEMENT]: 'يحتاج تحسين',
+  [GENERAL_STATUS.LOADING]: 'جاري التحميل',
+  [GENERAL_STATUS.ERROR]: 'خطأ',
+  [GENERAL_STATUS.SUCCESS]: 'نجح',
+  [GENERAL_STATUS.IDLE]: 'خامل',
+  [ENROLLMENT_STATUS.SUSPENDED]: 'موقوف',
+  [ENROLLMENT_STATUS.WITHDRAWN]: 'منسحب',
+  [SUBMISSION_STATUS.PLAGIARISM_DETECTED]: 'تم اكتشاف الانتحال',
+  [USER_STATUS.SUSPENDED]: 'موقوف',
+  [USER_STATUS.BANNED]: 'محظور',
+  [CLASS_STATUS.UPCOMING]: 'قادم'
+};
+
+// Status Color Mapping
+export const STATUS_COLORS = {
+  [GENERAL_STATUS.ACTIVE]: '#16a34a',      // green-600
+  [GENERAL_STATUS.INACTIVE]: '#6b7280',    // gray-500
+  [GENERAL_STATUS.PENDING]: '#f59e0b',     // amber-500
+  [GENERAL_STATUS.COMPLETED]: '#059669',   // emerald-600
+  [GENERAL_STATUS.CANCELLED]: '#dc2626',   // red-600
+  [GENERAL_STATUS.APPROVED]: '#059669',     // emerald-600
+  [GENERAL_STATUS.REJECTED]: '#dc2626',     // red-600
+  [GENERAL_STATUS.DRAFT]: '#6b7280',       // gray-500
+  [GENERAL_STATUS.SUBMITTED]: '#3b82f6',    // blue-500
+  [GENERAL_STATUS.GRADED]: '#059669',      // emerald-600
+  [GENERAL_STATUS.RETURNED]: '#f59e0b',     // amber-500
+  [GENERAL_STATUS.OVERDUE]: '#dc2626',      // red-600
+  [GENERAL_STATUS.NOT_STARTED]: '#6b7280',  // gray-500
+  [GENERAL_STATUS.IN_PROGRESS]: '#3b82f6',  // blue-500
+  [GENERAL_STATUS.ON_HOLD]: '#f59e0b',     // amber-500
+  [GENERAL_STATUS.REVIEW]: '#8b5cf6',      // violet-500
+  [GENERAL_STATUS.EXCELLENT]: '#059669',   // emerald-600
+  [GENERAL_STATUS.GOOD]: '#16a34a',        // green-600
+  [GENERAL_STATUS.SATISFACTORY]: '#f59e0b', // amber-500
+  [GENERAL_STATUS.NEEDS_IMPROVEMENT]: '#f97316', // orange-500
+  [GENERAL_STATUS.LOADING]: '#6b7280',     // gray-500
+  [GENERAL_STATUS.ERROR]: '#dc2626',       // red-600
+  [GENERAL_STATUS.SUCCESS]: '#059669',     // emerald-600
+  [GENERAL_STATUS.IDLE]: '#6b7280',        // gray-500
+  [ENROLLMENT_STATUS.SUSPENDED]: '#dc2626', // red-600
+  [ENROLLMENT_STATUS.WITHDRAWN]: '#6b7280', // gray-500
+  [SUBMISSION_STATUS.PLAGIARISM_DETECTED]: '#dc2626', // red-600
+  [USER_STATUS.SUSPENDED]: '#dc2626',       // red-600
+  [USER_STATUS.BANNED]: '#7f1d1d',          // red-900
+  [CLASS_STATUS.UPCOMING]: '#3b82f6'        // blue-500
+};
+
+// Status Icon Mapping
+export const STATUS_ICONS = {
+  [GENERAL_STATUS.ACTIVE]: 'CheckCircle',
+  [GENERAL_STATUS.INACTIVE]: 'XCircle',
+  [GENERAL_STATUS.PENDING]: 'Clock',
+  [GENERAL_STATUS.COMPLETED]: 'CheckCircle',
+  [GENERAL_STATUS.CANCELLED]: 'XCircle',
+  [GENERAL_STATUS.APPROVED]: 'CheckCircle',
+  [GENERAL_STATUS.REJECTED]: 'XCircle',
+  [GENERAL_STATUS.DRAFT]: 'FileText',
+  [GENERAL_STATUS.SUBMITTED]: 'Send',
+  [GENERAL_STATUS.GRADED]: 'Award',
+  [GENERAL_STATUS.RETURNED]: 'RotateCcw',
+  [GENERAL_STATUS.OVERDUE]: 'AlertCircle',
+  [GENERAL_STATUS.NOT_STARTED]: 'Circle',
+  [GENERAL_STATUS.IN_PROGRESS]: 'Loader',
+  [GENERAL_STATUS.ON_HOLD]: 'Pause',
+  [GENERAL_STATUS.REVIEW]: 'Eye',
+  [GENERAL_STATUS.EXCELLENT]: 'Star',
+  [GENERAL_STATUS.GOOD]: 'ThumbsUp',
+  [GENERAL_STATUS.SATISFACTORY]: 'Check',
+  [GENERAL_STATUS.NEEDS_IMPROVEMENT]: 'AlertTriangle',
+  [GENERAL_STATUS.LOADING]: 'Loader',
+  [GENERAL_STATUS.ERROR]: 'XCircle',
+  [GENERAL_STATUS.SUCCESS]: 'CheckCircle',
+  [GENERAL_STATUS.IDLE]: 'Circle',
+  [ENROLLMENT_STATUS.SUSPENDED]: 'Ban',
+  [ENROLLMENT_STATUS.WITHDRAWN]: 'LogOut',
+  [SUBMISSION_STATUS.PLAGIARISM_DETECTED]: 'AlertTriangle',
+  [USER_STATUS.SUSPENDED]: 'Ban',
+  [USER_STATUS.BANNED]: 'Shield',
+  [CLASS_STATUS.UPCOMING]: 'Calendar'
+};
+
+// Helper Functions for Status Management
+export const getStatusLabel = (status, lang = 'en') => {
+  const labels = lang === 'ar' ? STATUS_LABELS_AR : STATUS_LABELS_EN;
+  return labels[status] || status;
+};
+
+export const getStatusColor = (status) => {
+  return STATUS_COLORS[status] || '#6b7280';
+};
+
+export const getStatusIcon = (status) => {
+  return STATUS_ICONS[status] || 'HelpCircle';
+};
+
+export const getStatusDisplay = (status, lang = 'en') => {
+  return {
+    value: status,
+    label: getStatusLabel(status, lang),
+    color: getStatusColor(status),
+    icon: getStatusIcon(status)
+  };
+};
+
+// Status validation functions
+export const isValidStatus = (status) => {
+  return Object.values(GENERAL_STATUS).includes(status);
+};
+
+export const isValidEnrollmentStatus = (status) => {
+  return Object.values(ENROLLMENT_STATUS).includes(status);
+};
+
+export const isValidSubmissionStatus = (status) => {
+  return Object.values(SUBMISSION_STATUS).includes(status);
+};
+
+export const isValidTaskStatus = (status) => {
+  return Object.values(TASK_STATUS).includes(status);
+};
+
+export const isValidUserStatus = (status) => {
+  return Object.values(USER_STATUS).includes(status);
+};
+
+export const isValidClassStatus = (status) => {
+  return Object.values(CLASS_STATUS).includes(status);
+};
+
+// Status comparison functions
+export const isActiveStatus = (status) => {
+  return status === GENERAL_STATUS.ACTIVE;
+};
+
+export const isPendingStatus = (status) => {
+  return status === GENERAL_STATUS.PENDING;
+};
+
+export const isCompletedStatus = (status) => {
+  return status === GENERAL_STATUS.COMPLETED;
+};
+
+export const isNegativeStatus = (status) => {
+  return [
+    GENERAL_STATUS.CANCELLED,
+    GENERAL_STATUS.REJECTED,
+    GENERAL_STATUS.ERROR,
+    GENERAL_STATUS.OVERDUE,
+    GENERAL_STATUS.NEEDS_IMPROVEMENT
+  ].includes(status);
+};
+
+export const isPositiveStatus = (status) => {
+  return [
+    GENERAL_STATUS.ACTIVE,
+    GENERAL_STATUS.COMPLETED,
+    GENERAL_STATUS.APPROVED,
+    GENERAL_STATUS.SUCCESS,
+    GENERAL_STATUS.EXCELLENT,
+    GENERAL_STATUS.GOOD
+  ].includes(status);
 };
 
 // Type constants for type safety
@@ -286,6 +588,16 @@ export const getAutoTypeColor = (typeId) => {
 
 export default {
   TYPE_CATEGORIES,
+  GENERAL_STATUS,
+  ENROLLMENT_STATUS,
+  SUBMISSION_STATUS,
+  TASK_STATUS,
+  USER_STATUS,
+  CLASS_STATUS,
+  STATUS_LABELS_EN,
+  STATUS_LABELS_AR,
+  STATUS_COLORS,
+  STATUS_ICONS,
   getTypeInfo,
   getTypeLabel,
   getTypeIcon,
@@ -297,5 +609,20 @@ export default {
   detectTypeCategory,
   getAutoTypeLabel,
   getAutoTypeIcon,
-  getAutoTypeColor
+  getAutoTypeColor,
+  getStatusLabel,
+  getStatusColor,
+  getStatusIcon,
+  getStatusDisplay,
+  isValidStatus,
+  isValidEnrollmentStatus,
+  isValidSubmissionStatus,
+  isValidTaskStatus,
+  isValidUserStatus,
+  isValidClassStatus,
+  isActiveStatus,
+  isPendingStatus,
+  isCompletedStatus,
+  isNegativeStatus,
+  isPositiveStatus
 };

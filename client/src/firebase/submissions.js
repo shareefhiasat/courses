@@ -10,6 +10,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db } from './config';
+import { SUBMISSION_STATUS } from '@utils/sharedTypes';
 
 // Submit activity completion
 export const submitActivity = async (userId, activityId, classId, data = {}) => {
@@ -29,7 +30,7 @@ export const submitActivity = async (userId, activityId, classId, data = {}) => 
       const submissionDoc = querySnapshot.docs[0];
       await updateDoc(doc(db, 'submissions', submissionDoc.id), {
         ...data,
-        status: 'completed',
+        status: SUBMISSION_STATUS.COMPLETED,
         submittedAt: serverTimestamp(),
         retakeCount: (submissionDoc.data().retakeCount || 0) + 1
       });
@@ -40,7 +41,7 @@ export const submitActivity = async (userId, activityId, classId, data = {}) => 
         userId,
         activityId,
         classId,
-        status: 'completed',
+        status: SUBMISSION_STATUS.COMPLETED,
         submittedAt: serverTimestamp(),
         score: null, // Will be set by instructor
         feedback: '',
@@ -113,7 +114,7 @@ export const gradeSubmission = async (submissionId, score, feedback = '') => {
       score,
       feedback,
       gradedAt: serverTimestamp(),
-      status: 'graded'
+      status: SUBMISSION_STATUS.GRADED
     });
     return { success: true, message: 'Submission graded' };
   } catch (error) {
@@ -191,10 +192,10 @@ export const getActivityProgress = async (userId, classId) => {
     // Calculate progress
     const totalActivities = activities.filter(a => !a.optional).length;
     const completedActivities = activities.filter(a => 
-      !a.optional && submissions[a.id] && submissions[a.id].status === 'completed'
+      !a.optional && submissions[a.id] && submissions[a.id].status === SUBMISSION_STATUS.COMPLETED
     ).length;
     const gradedActivities = activities.filter(a => 
-      !a.optional && submissions[a.id] && submissions[a.id].status === 'graded'
+      !a.optional && submissions[a.id] && submissions[a.id].status === SUBMISSION_STATUS.GRADED
     ).length;
     
     const totalScore = activities.reduce((sum, activity) => {

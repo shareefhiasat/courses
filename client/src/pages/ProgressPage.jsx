@@ -8,6 +8,7 @@ import { getSubmissions, getResources, getActivities } from '@firebaseServices/f
 import { Container, Card, CardBody, Spinner, Badge, Grid, ProgressBar, EmptyState } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { RankDisplay, RankHistory } from '@ui';
+import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import { Trophy, Target, BookOpen, Award } from 'lucide-react';
 import styles from './ProgressPage.module.css';
 
@@ -71,7 +72,7 @@ const ProgressPage = () => {
   }
 
   const progressEntries = Object.entries(progress);
-  const gradedSubmissions = submissions.filter(s => s.status === 'graded');
+  const gradedSubmissions = submissions.filter(s => s.status === SUBMISSION_STATUS.GRADED);
   const activityCompletedCount = gradedSubmissions.length;
   const resourceCompletedCount = Object.values(resourceProgress).filter(r => r.completed).length;
   const totalScore = gradedSubmissions.reduce((sum, s) => sum + (s.score || 0), 0);
@@ -149,7 +150,7 @@ const ProgressPage = () => {
                     {stats.completed}/{stats.total}
                   </div>
                   <div className={styles.typePercentage}>
-                    {stats.percentage}% {t('completed') || 'Complete'}
+                    {stats.percentage}% {getStatusLabel(TASK_STATUS.COMPLETED, lang)}
                   </div>
                   <ProgressBar
                     value={stats.completed}
@@ -179,13 +180,13 @@ const ProgressPage = () => {
               <CardBody>
                 <h3>Activity: {sub.activityId}</h3>
                 <div className={styles.cardBadge}>
-                  <Badge variant={sub.status === 'graded' ? 'primary' : 'success'}>
-                    {sub.status === 'graded' ? `Graded: ${sub.score || 0}%` : 'Completed'}
+                  <Badge variant={sub.status === SUBMISSION_STATUS.GRADED ? 'primary' : 'success'}>
+                    {sub.status === SUBMISSION_STATUS.GRADED ? `Graded: ${sub.score || 0}%` : 'Completed'}
                   </Badge>
                 </div>
                 {sub.submittedAt && (
                   <p className={styles.cardDate}>
-                    {t('submitted_at') || 'Submitted'}: {new Date(sub.submittedAt.seconds * 1000).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB')}
+                    {getStatusLabel(SUBMISSION_STATUS.SUBMITTED, lang)}: {new Date(sub.submittedAt.seconds * 1000).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB')}
                   </p>
                 )}
               </CardBody>
@@ -205,7 +206,7 @@ const ProgressPage = () => {
                   </div>
                   {rp.completedAt && (
                     <p className={styles.cardDate}>
-                      {t('completed') || 'Completed'}: {new Date(rp.completedAt.seconds ? rp.completedAt.seconds * 1000 : rp.completedAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB')}
+                      {getStatusLabel(TASK_STATUS.COMPLETED, lang)}: {new Date(rp.completedAt.seconds ? rp.completedAt.seconds * 1000 : rp.completedAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB')}
                     </p>
                   )}
                 </CardBody>
@@ -221,7 +222,7 @@ const ProgressPage = () => {
                   <h3>{activityId}</h3>
                   <div className={styles.cardBadge}>
                     <Badge variant={progressData.completed ? 'success' : 'warning'}>
-                      {progressData.completed ? 'Completed' : 'In Progress'}
+                      {progressData.completed ? getStatusLabel(TASK_STATUS.COMPLETED, lang) : getStatusLabel(TASK_STATUS.IN_PROGRESS, lang)}
                     </Badge>
                   </div>
                   <div className={styles.cardInfo}>
@@ -232,7 +233,7 @@ const ProgressPage = () => {
                   </div>
                   {progressData.completedAt && (
                     <div className={styles.cardInfo}>
-                      <strong>{t('completed') || 'Completed'}:</strong> {new Date(progressData.completedAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB')}
+                      <strong>{getStatusLabel(TASK_STATUS.COMPLETED, lang)}:</strong> {new Date(progressData.completedAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-GB')}
                     </div>
                   )}
                 </CardBody>

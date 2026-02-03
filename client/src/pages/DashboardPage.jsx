@@ -7,6 +7,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import { USER_ROLES } from '@constants/userRoles';
+import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
   getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement,
@@ -578,11 +579,11 @@ const DashboardPage = () => {
       if (submissionStudentFilter !== 'all' && s.userId !== submissionStudentFilter) return false;
 
       if (submissionStatusFilter !== 'all') {
-        const status = s.status || 'submitted';
+        const status = s.status || SUBMISSION_STATUS.SUBMITTED;
         if (submissionStatusFilter === 'pending') {
-          if (!(status === 'pending' || status === 'submitted')) return false;
+          if (!(status === SUBMISSION_STATUS.PENDING || status === SUBMISSION_STATUS.SUBMITTED)) return false;
         } else if (submissionStatusFilter === 'graded') {
-          if (status !== 'graded') return false;
+          if (status !== SUBMISSION_STATUS.GRADED) return false;
         } else if (submissionStatusFilter === 'late') {
           if (status !== 'late') return false;
         }
@@ -2055,7 +2056,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       { id: 'w_classes', title: 'Classes', render: () => (<div>{classes.length} classes</div>) },
                       {
                         id: 'w_submissions', title: 'Submissions', render: () => {
-                          const graded = submissions.filter(s => s.status === 'graded').length;
+                          const graded = submissions.filter(s => s.status === SUBMISSION_STATUS.GRADED).length;
                           const rate = submissions.length ? Math.round((graded / submissions.length) * 100) : 0;
                           return (
                             <div>
@@ -4668,7 +4669,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 onChange={(e) => setSubmissionStatusFilter(e.target.value)}
                 options={[
                   { value: 'all', label: t('all_statuses') || 'All Status', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'pending', label: t('pending') || 'Pending' },
+                  { value: SUBMISSION_STATUS.PENDING, label: t('pending') || 'Pending' },
                   { value: 'graded', label: t('graded') || 'Graded' },
                   { value: 'late', label: t('late') || 'Late' }
                 ]}
@@ -4718,12 +4719,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'status', headerName: t('status_col'), width: 140,
                   renderCell: (params) => {
                     const statusMap = {
-                      'submitted': { icon: <FileText size={16} color="var(--text-secondary, #374151)" />, text: 'Submitted' },
-                      'graded': { icon: <CheckCircle size={16} color="var(--color-success, #16a34a)" />, text: 'Graded' },
+                      [SUBMISSION_STATUS.SUBMITTED]: { icon: <FileText size={16} color="var(--text-secondary, #374151)" />, text: 'Submitted' },
+                      [SUBMISSION_STATUS.GRADED]: { icon: <CheckCircle size={16} color="var(--color-success, #16a34a)" />, text: 'Graded' },
                       'late': { icon: <Clock size={16} color="var(--color-warning, #f59e0b)" />, text: 'Late' },
-                      'pending': { icon: <Clock size={16} color="var(--text-secondary, #374151)" />, text: 'Pending' }
+                      [SUBMISSION_STATUS.PENDING]: { icon: <Clock size={16} color="var(--text-secondary, #374151)" />, text: 'Pending' }
                     };
-                    const status = statusMap[params.value] || statusMap['submitted'];
+                    const status = statusMap[params.value] || statusMap[SUBMISSION_STATUS.SUBMITTED];
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                         {status.icon} {status.text}

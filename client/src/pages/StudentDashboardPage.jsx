@@ -13,6 +13,7 @@ import {
   Container, Button, Select, Tabs, useToast, Loading, Card, CardBody, Badge, EmptyState
 } from '@ui';
 import { InfoTooltip } from '@ui';
+import { GENERAL_STATUS, TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   RefreshCw, CheckCircle, Sparkles, Plus as PlusIcon, Download, FileImage, FileText, LayoutGrid, LayoutList, Clock,
   BarChart3, CalendarCheck, TrendingUp, Award, AlertTriangle, XCircle, User, UserCheck, UserX, UserMinus, Info
@@ -465,7 +466,7 @@ export default function StudentDashboardPage() {
 
   const getTaskStatus = (activity, submission, quizResult) => {
     if (quizResult || submission?.submittedAt) {
-      return 'completed';
+      return TASK_STATUS.COMPLETED;
     }
     
     if (activity.deadline) {
@@ -482,7 +483,7 @@ export default function StudentDashboardPage() {
       }
     }
     
-    return 'pending';
+    return TASK_STATUS.NOT_STARTED;
   };
 
   // Filter tasks based on top-level filters
@@ -534,9 +535,9 @@ export default function StudentDashboardPage() {
   // Calculate comprehensive stats
   const stats = useMemo(() => {
     const enrolledCount = enrollments.length;
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
+    const completedTasks = tasks.filter(t => t.status === TASK_STATUS.COMPLETED).length;
     const totalTasks = tasks.length;
-    const totalHours = Math.round(tasks.filter(t => t.status === 'completed').length * 1.5);
+    const totalHours = Math.round(tasks.filter(t => t.status === TASK_STATUS.COMPLETED).length * 1.5);
     const gradedTasks = tasks.filter(t => t.isGraded && t.score != null);
     const avgGrade = gradedTasks.length > 0
       ? Math.round(gradedTasks.reduce((sum, t) => sum + t.score, 0) / gradedTasks.length)
@@ -1078,10 +1079,10 @@ export default function StudentDashboardPage() {
                       onChange={(e) => setStatusFilter(e.target.value)}
                       options={[
                         { value: 'all', label: t('all_status') || 'All Status' },
-                        { value: 'pending', label: t('pending') || 'Pending' },
+                        { value: TASK_STATUS.NOT_STARTED, label: t('pending') || 'Pending' },
                         { value: 'urgent', label: t('urgent') || 'Urgent' },
                         { value: 'overdue', label: t('overdue') || 'Overdue' },
-                        { value: 'completed', label: t('completed') || 'Completed' }
+                        { value: TASK_STATUS.COMPLETED, label: t('completed') || 'Completed' }
                       ]}
                       style={{ minWidth: 150 }}
                     />
@@ -1100,7 +1101,7 @@ export default function StudentDashboardPage() {
                         borderLeft: `4px solid ${
                           task.status === 'urgent' ? '#ef4444' : 
                           task.status === 'overdue' ? '#f59e0b' : 
-                          task.status === 'completed' ? '#10b981' : '#6b7280'
+                          task.status === TASK_STATUS.COMPLETED ? '#10b981' : '#6b7280'
                         }` 
                       }}>
                         <CardBody>
@@ -1111,7 +1112,7 @@ export default function StudentDashboardPage() {
                                 <Badge variant={
                                   task.status === 'urgent' ? 'danger' : 
                                   task.status === 'overdue' ? 'warning' : 
-                                  task.status === 'completed' ? 'success' : 'default'
+                                  task.status === TASK_STATUS.COMPLETED ? 'success' : 'default'
                                 }>
                                   {task.status}
                                 </Badge>
@@ -1136,7 +1137,7 @@ export default function StudentDashboardPage() {
                               size="sm"
                               onClick={() => navigate(task.type === 'quiz' ? `/quiz/${task.id}` : `/activity/${task.id}`)}
                             >
-                              {task.status === 'completed' ? (t('view') || 'View') : (task.type === 'quiz' ? (t('start') || 'Start') : (t('submit') || 'Submit'))}
+                              {task.status === TASK_STATUS.COMPLETED ? (t('view') || 'View') : (task.type === 'quiz' ? (t('start') || 'Start') : (t('submit') || 'Submit'))}
                             </Button>
                           </div>
                         </CardBody>

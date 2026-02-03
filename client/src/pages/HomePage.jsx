@@ -13,6 +13,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
+import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import { Loading, Card, CardBody } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
 import AuthForm from '@/components/AuthForm';
@@ -317,7 +318,7 @@ const HomePage = memo(() => {
             return false;
           } else {
             // Activities
-            return submissions[id]?.status === 'graded';
+            return submissions[id]?.status === SUBMISSION_STATUS.GRADED;
           }
         }
         return false;
@@ -351,7 +352,7 @@ const HomePage = memo(() => {
             isCompleted = false;
           } else {
             // Activities
-            isCompleted = submissions[id]?.status === 'graded';
+            isCompleted = submissions[id]?.status === SUBMISSION_STATUS.GRADED;
           }
         }
         
@@ -372,7 +373,7 @@ const HomePage = memo(() => {
             return true;
           } else {
             // Activities
-            return !submissions[id] || submissions[id]?.status !== 'graded';
+            return !submissions[id] || submissions[id]?.status !== SUBMISSION_STATUS.GRADED;
           }
         }
         return true;
@@ -393,12 +394,12 @@ const HomePage = memo(() => {
     if (gradedFilter === 'graded') {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
-        return submissions[id]?.status === 'graded';
+        return submissions[id]?.status === SUBMISSION_STATUS.GRADED;
       });
     } else if (gradedFilter === 'not_graded') {
       filtered = filtered.filter(item => {
         const id = item.docId || item.id;
-        return !submissions[id] || submissions[id]?.status !== 'graded';
+        return !submissions[id] || submissions[id]?.status !== SUBMISSION_STATUS.GRADED;
       });
     }
 
@@ -488,17 +489,17 @@ const HomePage = memo(() => {
         // Activities stats
         const completedCount = items.filter(a => {
           const aid = a.docId || a.id;
-          return submissions[aid]?.status === 'graded';
+          return submissions[aid]?.status === SUBMISSION_STATUS.GRADED;
         }).length;
         const pendingCount = items.filter(a => {
           const aid = a.docId || a.id;
-          return !submissions[aid] || submissions[aid]?.status !== 'graded';
+          return !submissions[aid] || submissions[aid]?.status !== SUBMISSION_STATUS.GRADED;
         }).length;
         const overdueCount = items.filter(a => {
           if (!a.dueDate) return false;
           const dueDate = a.dueDate?.seconds ? new Date(a.dueDate.seconds * 1000) : new Date(a.dueDate);
           const aid = a.docId || a.id;
-          return dueDate < now && submissions[aid]?.status !== 'graded';
+          return dueDate < now && submissions[aid]?.status !== SUBMISSION_STATUS.GRADED;
         }).length;
         const optionalCount = items.filter(a => a.optional).length;
         const requiredCount = items.filter(a => !a.optional).length;
@@ -822,7 +823,7 @@ const HomePage = memo(() => {
                 <button
                   className={`filter-button ${isMinified ? 'minified' : ''}`}
                   onClick={() => setCompletedFilter(v => !v)}
-                  title={t('completed') || 'Completed'}
+                  title={getStatusLabel(TASK_STATUS.COMPLETED, lang)}
                   style={{
                     width: 28,
                     height: 28,
@@ -843,7 +844,7 @@ const HomePage = memo(() => {
                 <button
                   className={`filter-button ${isMinified ? 'minified' : ''}`}
                   onClick={() => setPendingFilter(v => !v)}
-                  title={t('pending') || 'Pending'}
+                  title={getStatusLabel(TASK_STATUS.NOT_STARTED, lang)}
                   style={{
                     width: 28,
                     height: 28,
@@ -943,7 +944,7 @@ const HomePage = memo(() => {
                   }}
                 >
                   <CheckCircle size={12} />
-                  {t('completed') || 'Completed'}
+                  {getStatusLabel(TASK_STATUS.COMPLETED, lang)}
                 </button>
                 
                 <button
@@ -964,7 +965,7 @@ const HomePage = memo(() => {
                   }}
                 >
                   <Hourglass size={12} />
-                  {t('pending') || 'Pending'}
+                  {getStatusLabel(TASK_STATUS.NOT_STARTED, lang)}
                 </button>
 
                 <button
@@ -1273,7 +1274,7 @@ const HomePage = memo(() => {
                   </button>
                   <button
                     onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
-                    title={t('graded') || 'Graded'}
+                    title={getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
                     style={{
                       width: 28,
                       height: 28,
@@ -1352,6 +1353,7 @@ const HomePage = memo(() => {
                   </button>
                   <button
                     onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
+                    title={getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
                     style={{
                       padding: '4px 10px',
                       borderRadius: 999,
@@ -1367,7 +1369,7 @@ const HomePage = memo(() => {
                     }}
                   >
                     <CheckCircle size={12} />
-                    {t('graded') || 'Graded'}
+                    {getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
                   </button>
                 </>
               )}
@@ -1410,7 +1412,7 @@ const HomePage = memo(() => {
                     // TODO: Add quiz completion logic
                   } else {
                     const submission = submissions[itemId];
-                    isCompleted = submission?.status === 'graded';
+                    isCompleted = submission?.status === SUBMISSION_STATUS.GRADED;
                     completedAt = submission?.completedAt || submission?.submittedAt;
                     isBookmarked = !!bookmarks.activities[itemId];
                     dueDate = item.dueDate;

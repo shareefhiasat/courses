@@ -8,6 +8,7 @@ import {
   BookOpen, Clock, Users, Calendar, TrendingUp, Award,
   ChevronRight, Play, CheckCircle, AlertCircle
 } from 'lucide-react';
+import { ENROLLMENT_STATUS, getStatusLabel, getStatusColor } from '@utils/sharedTypes';
 import styles from './MyEnrollmentsPage.module.css';
 
 export default function MyEnrollmentsPage() {
@@ -35,7 +36,7 @@ export default function MyEnrollmentsPage() {
           schedule: 'Mon, Wed 10:00 AM - 11:30 AM',
           progress: 75,
           grade: 'A',
-          status: 'active',
+          status: ENROLLMENT_STATUS.ACTIVE,
           totalHours: 45,
           completedHours: 34,
           nextClass: new Date(Date.now() + 2 * 60 * 60 * 1000),
@@ -52,7 +53,7 @@ export default function MyEnrollmentsPage() {
           schedule: 'Tue, Thu 2:00 PM - 3:30 PM',
           progress: 60,
           grade: 'B+',
-          status: 'active',
+          status: ENROLLMENT_STATUS.ACTIVE,
           totalHours: 40,
           completedHours: 24,
           nextClass: new Date(Date.now() + 5 * 60 * 60 * 1000),
@@ -69,7 +70,7 @@ export default function MyEnrollmentsPage() {
           schedule: 'Mon, Wed, Fri 1:00 PM - 2:00 PM',
           progress: 90,
           grade: 'A',
-          status: 'active',
+          status: ENROLLMENT_STATUS.ACTIVE,
           totalHours: 36,
           completedHours: 32,
           nextClass: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -86,7 +87,7 @@ export default function MyEnrollmentsPage() {
           schedule: 'Completed',
           progress: 100,
           grade: 'A-',
-          status: 'completed',
+          status: ENROLLMENT_STATUS.COMPLETED,
           totalHours: 30,
           completedHours: 30,
           nextClass: null,
@@ -103,7 +104,7 @@ export default function MyEnrollmentsPage() {
           schedule: 'Completed',
           progress: 100,
           grade: 'B+',
-          status: 'completed',
+          status: ENROLLMENT_STATUS.COMPLETED,
           totalHours: 42,
           completedHours: 42,
           nextClass: null,
@@ -131,9 +132,9 @@ export default function MyEnrollmentsPage() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'active':
+      case ENROLLMENT_STATUS.ACTIVE:
         return <Badge variant="success" size="sm">Active</Badge>;
-      case 'completed':
+      case ENROLLMENT_STATUS.COMPLETED:
         return <Badge variant="primary" size="sm">Completed</Badge>;
       default:
         return <Badge variant="secondary" size="sm">{status}</Badge>;
@@ -182,8 +183,8 @@ export default function MyEnrollmentsPage() {
   }
 
   const filteredEnrollments = getFilteredEnrollments;
-  const activeCount = enrollments.filter(e => e.status === 'active').length;
-  const completedCount = enrollments.filter(e => e.status === 'completed').length;
+  const activeCount = enrollments.filter(e => e.status === ENROLLMENT_STATUS.ACTIVE).length;
+  const completedCount = enrollments.filter(e => e.status === ENROLLMENT_STATUS.COMPLETED).length;
 
   return (
     <div className={styles.enrollmentsPage}>
@@ -221,14 +222,14 @@ export default function MyEnrollmentsPage() {
             All Classes ({enrollments.length})
           </button>
           <button
-            className={`${styles.filterTab} ${filter === 'active' ? styles.active : ''}`}
-            onClick={() => setFilter('active')}
+            className={`${styles.filterTab} ${filter === ENROLLMENT_STATUS.ACTIVE ? styles.active : ''}`}
+            onClick={() => setFilter(ENROLLMENT_STATUS.ACTIVE)}
           >
             Active ({activeCount})
           </button>
           <button
-            className={`${styles.filterTab} ${filter === 'completed' ? styles.active : ''}`}
-            onClick={() => setFilter('completed')}
+            className={`${styles.filterTab} ${filter === ENROLLMENT_STATUS.COMPLETED ? styles.active : ''}`}
+            onClick={() => setFilter(ENROLLMENT_STATUS.COMPLETED)}
           >
             Completed ({completedCount})
           </button>
@@ -326,7 +327,7 @@ export default function MyEnrollmentsPage() {
                     </div>
                   </div>
 
-                  {enrollment.status === 'active' && enrollment.nextClass && (
+                  {enrollment.status === ENROLLMENT_STATUS.ACTIVE && enrollment.nextClass && (
                     <div className={styles.nextClassBanner}>
                       <Clock size={16} />
                       <span>Next class: {formatNextClass(enrollment.nextClass)}</span>
@@ -342,7 +343,7 @@ export default function MyEnrollmentsPage() {
                       View Progress
                       <ChevronRight size={16} style={{ marginLeft: 4 }} />
                     </Button>
-                    {enrollment.status === 'active' && (
+                    {enrollment.status === ENROLLMENT_STATUS.ACTIVE && (
                       <Button
                         variant="primary"
                         size="sm"
