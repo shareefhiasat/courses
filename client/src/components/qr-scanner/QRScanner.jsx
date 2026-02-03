@@ -2450,7 +2450,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         style={{
                           padding: '0.875rem',
                           border: 'none',
-                          background: actionLoading && currentAction === 'absent_no_excuse' ? '#94a3b8' : '#ef4444',
+                          background: actionLoading && currentAction === 'absent_no_excuse' ? '#94a3b8' : getAttendanceColor('absent_no_excuse'),
                           color: 'white',
                           borderRadius: '0.5rem',
                           fontSize: '0.875rem',
@@ -2462,20 +2462,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           gap: '0.625rem',
                           opacity: actionLoading ? 0.7 : 1,
                           transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
+                          boxShadow: `0 2px 4px ${getAttendanceColor('absent_no_excuse')}20`
                         }}
                         onMouseEnter={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = '#dc2626';
+                            const color = getAttendanceColor('absent_no_excuse');
+                            e.target.style.background = color + 'dd';
                             e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.3)';
+                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('absent_no_excuse')}40`;
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = '#ef4444';
+                            e.target.style.background = getAttendanceColor('absent_no_excuse');
                             e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
+                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('absent_no_excuse')}20`;
                           }
                         }}
                     >
@@ -2507,7 +2508,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         style={{
                           padding: '0.875rem',
                           border: 'none',
-                          background: actionLoading && currentAction === 'absent_with_excuse' ? '#94a3b8' : '#f97316',
+                          background: actionLoading && currentAction === 'absent_with_excuse' ? '#94a3b8' : getAttendanceColor('absent_with_excuse'),
                           color: 'white',
                           borderRadius: '0.5rem',
                           fontSize: '0.875rem',
@@ -2519,20 +2520,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           gap: '0.625rem',
                           opacity: actionLoading ? 0.7 : 1,
                           transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(249, 115, 22, 0.2)'
+                          boxShadow: `0 2px 4px ${getAttendanceColor('absent_with_excuse')}20`
                         }}
                         onMouseEnter={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = '#ea580c';
+                            const color = getAttendanceColor('absent_with_excuse');
+                            e.target.style.background = color + 'dd';
                             e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(249, 115, 22, 0.3)';
+                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('absent_with_excuse')}40`;
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = '#f97316';
+                            e.target.style.background = getAttendanceColor('absent_with_excuse');
                             e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(249, 115, 22, 0.2)';
+                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('absent_with_excuse')}20`;
                           }
                         }}
                     >
@@ -2550,7 +2552,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           </>
                       ) : (
                           <>
-                            <AlertCircleIcon style={{ width: '18px', height: '18px' }} />
+                            <XSmallIcon style={{ width: '18px', height: '18px' }} />
                             {t('absent_with_excuse') || 'Absent (With Excuse)'}
                           </>
                       )}
@@ -2564,7 +2566,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         style={{
                           padding: '0.875rem',
                           border: 'none',
-                          background: actionLoading && currentAction === 'excused_leave' ? '#94a3b8' : '#06b6d4',
+                          background: actionLoading && currentAction === 'excused_leave' ? '#94a3b8' : getAttendanceColor('excused_leave'),
                           color: 'white',
                           borderRadius: '0.5rem',
                           fontSize: '0.875rem',
@@ -2576,20 +2578,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           gap: '0.625rem',
                           opacity: actionLoading ? 0.7 : 1,
                           transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(6, 182, 212, 0.2)'
+                          boxShadow: `0 2px 4px ${getAttendanceColor('excused_leave')}20`
                         }}
                         onMouseEnter={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = '#0891b2';
+                            const color = getAttendanceColor('excused_leave');
+                            e.target.style.background = color + 'dd';
                             e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(6, 182, 212, 0.3)';
+                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('excused_leave')}40`;
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = '#06b6d4';
+                            e.target.style.background = getAttendanceColor('excused_leave');
                             e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(6, 182, 212, 0.2)';
+                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('excused_leave')}20`;
                           }
                         }}
                     >
@@ -2607,7 +2610,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           </>
                       ) : (
                           <>
-                            <ShieldIcon style={{ width: '18px', height: '18px' }} />
+                            <XSmallIcon style={{ width: '18px', height: '18px' }} />
                             {t('excused_leave') || 'Excused Leave'}
                           </>
                       )}
@@ -2621,7 +2624,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         style={{
                           padding: '0.875rem',
                           border: 'none',
-                          background: actionLoading && currentAction === 'human_case' ? '#94a3b8' : '#8b5cf6',
+                          background: actionLoading && currentAction === 'human_case' ? '#94a3b8' : getAttendanceColor('human_case'),
                           color: 'white',
                           borderRadius: '0.5rem',
                           fontSize: '0.875rem',
@@ -2633,20 +2636,21 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           gap: '0.625rem',
                           opacity: actionLoading ? 0.7 : 1,
                           transition: 'all 0.2s ease',
-                          boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)'
+                          boxShadow: `0 2px 4px ${getAttendanceColor('human_case')}20`
                         }}
                         onMouseEnter={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = '#7c3aed';
+                            const color = getAttendanceColor('human_case');
+                            e.target.style.background = color + 'dd';
                             e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(139, 92, 246, 0.3)';
+                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('human_case')}40`;
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (!actionLoading) {
-                            e.target.style.background = '#8b5cf6';
+                            e.target.style.background = getAttendanceColor('human_case');
                             e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(139, 92, 246, 0.2)';
+                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('human_case')}20`;
                           }
                         }}
                     >
@@ -2944,6 +2948,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         }}
                         disabled={actionLoading}
                         style={{
+                          display: 'none', // Hidden as requested
                           flex: isMobile ? 1 : 2,
                           padding: '0.875rem',
                           border: 'none',
@@ -2954,7 +2959,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           fontWeight: 600,
                           cursor: actionLoading ? 'not-allowed' : 'pointer',
                           textAlign: 'center',
-                          display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '0.625rem',
