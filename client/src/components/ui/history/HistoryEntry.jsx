@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@ui';
+import { Button, InfoTooltip } from '@ui';
 import { Trash2 } from 'lucide-react';
 import { UserIcon } from '@utils/icons.jsx';
 import { RECORD_TYPES } from '@constants/activityTypes';
@@ -71,9 +71,21 @@ export const HistoryEntry = ({
       </span>
       
       {log.comment && (
-        <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-          {log.comment}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+            {log.comment.length > 30 ? `${log.comment.substring(0, 30)}...` : log.comment}
+          </span>
+          <InfoTooltip>
+            <div style={{ 
+              maxWidth: '300px', 
+              padding: '0.5rem',
+              fontSize: '0.75rem',
+              lineHeight: '1.4'
+            }}>
+              <strong>{t('note') || 'Note'}:</strong> {log.comment}
+            </div>
+          </InfoTooltip>
+        </div>
       )}
       
       {log.points !== undefined && type !== RECORD_TYPES.ATTENDANCE && (

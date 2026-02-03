@@ -546,7 +546,7 @@ const StudentRoster = React.memo(function StudentRoster({
         classId: selectedClassId,
         status,
         method: 'roster_quick_action',
-        notes: `Marked ${getAttendanceLabel(status, lang)} via roster quick action`,
+        notes: `Quick ${getAttendanceLabel(status, lang)}`,
         user
       });
 

@@ -592,7 +592,7 @@ const InstructorQRScannerPage = () => {
         userId: student.id,
         studentName: student.displayName || student.name
       });
-      handleMarkAttendance(student.id, 'present', 'Marked present via QR camera scan', 'qr_camera');
+      handleMarkAttendance(student.id, 'present', 'QR scan', 'qr_camera');
     } else {
       logger.error('handleScan: Student not found', { studentId });
     }

@@ -1581,7 +1581,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         classId: selectedClassId,
         status,
         method: 'quick_action',
-        notes: `Marked ${statusLabel} via quick action`,
+        notes: `Quick ${statusLabel}`,
         user
       });
 

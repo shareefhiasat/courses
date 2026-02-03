@@ -355,7 +355,7 @@ export async function quickMarkAttendance({
   }
 
   // Generate auto-notes if not provided
-  const autoNotes = notes || `Marked ${status} via quick action`;
+  const autoNotes = notes || `Quick ${status}`;
   
   // Get current date
   const today = new Date().toISOString().split('T')[0];
