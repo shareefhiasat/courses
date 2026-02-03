@@ -1,0 +1,25 @@
+.performed-by-container {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: #f0f9ff;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+}
+
+.performed-by-icon {
+  width: 12px;
+  height: 12px;
+  color: #0369a1;
+}
+
+.performed-by-text {
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.performed-by-label {
+  margin-right: 0.25rem;
+  font-weight: bold;
+}
