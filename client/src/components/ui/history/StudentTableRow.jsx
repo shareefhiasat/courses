@@ -313,49 +313,7 @@ const StudentTableRow = ({
         </td>
         <td style={{ padding: '0.5rem 0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                try {
-                  onStudentAction(student);
-                } catch (error) {
-                  console.error('Error calling onStudentAction:', error);
-                }
-              }}
-              title={t('actions')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              title={t('stats')}
-              onClick={(e) => {
-                e.stopPropagation();
-                onStudentSelect(student);
-              }}
-            >
-              <SidebarOpen style={{ width: '1rem', height: '1rem' }} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={async (e) => {
-                e.stopPropagation();
-                // Navigate to QR code display page with student number
-                const studentNumber = student.studentNumber || student.id;
-                navigate(`/qrcode/${studentNumber}`);
-              }}
-              title={t('open_qr_code')}
-            >
-              <QrCode style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
-            </Button>
-
-            {/* Senior-Level Quick Attendance Actions */}
+            {/* Senior-Level Quick Attendance Actions - Moved to first */}
             {onQuickAttendance && (
               <>
                 {/* Quick Present Button */}
@@ -417,6 +375,47 @@ const StudentTableRow = ({
                 </Button>
               </>
             )}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                try {
+                  onStudentAction(student);
+                } catch (error) {
+                  console.error('Error calling onStudentAction:', error);
+                }
+              }}
+              title={t('actions')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f59e0b' }}>
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              title={t('stats')}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStudentSelect(student);
+              }}
+            >
+              <SidebarOpen style={{ width: '1rem', height: '1rem' }} />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={async (e) => {
+                e.stopPropagation();
+                // Navigate to QR code display page with student number
+                const studentNumber = student.studentNumber || student.id;
+                navigate(`/qrcode/${studentNumber}`);
+              }}
+              title={t('open_qr_code')}
+            >
+              <QrCode style={{ width: '1rem', height: '1rem', color: '#10b981' }} />
+            </Button>
             <Button 
               variant="ghost" 
               size="icon"

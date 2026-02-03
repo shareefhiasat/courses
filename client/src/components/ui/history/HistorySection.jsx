@@ -87,14 +87,15 @@ export const HistorySection = ({
       const status = log.status;
       
       const iconName = getAttendanceIcon(status);
+      const statusColor = getAttendanceColor(status);
       
       const iconMap = {
-        CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px' }} />,
-        Clock: <ClockSmallIcon style={{ width: '12px', height: '12px' }} />,
-        AlertCircle: <XSmallIcon style={{ width: '12px', height: '12px' }} />,
-        XCircle: <XSmallIcon style={{ width: '12px', height: '12px' }} />,
-        Heart: <HeartIcon style={{ width: '12px', height: '12px' }} />,
-        HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px' }} />
+        CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+        Clock: <ClockSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+        AlertCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+        XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+        Heart: <HeartIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+        HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: statusColor }} />
       };
       
       return iconMap[iconName] || iconMap.HelpCircle;

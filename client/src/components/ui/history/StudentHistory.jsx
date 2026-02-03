@@ -2,8 +2,9 @@ import React from 'react';
 import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
 import { HistoryEntry } from './HistoryEntry';
-import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon } from '@utils/icons.jsx';
+import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon } from '@utils/icons.jsx';
 import { RECORD_TYPES } from '@constants/activityTypes';
+import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
 
 const StudentHistory = React.memo(({ 
   groupedLogs, 
@@ -100,8 +101,22 @@ const StudentHistory = React.memo(({
                 
                 switch (log.logType) {
                   case RECORD_TYPES.ATTENDANCE:
-                    icon = <AttendanceIcon />;
-                    iconColor = "#10b981";
+                    // Use specific attendance icons based on status
+                    const status = log.status;
+                    const iconName = getAttendanceIcon(status);
+                    const statusColor = getAttendanceColor(status);
+                    
+                    const attendanceIconMap = {
+                      CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+                      Clock: <ClockSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+                      AlertCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+                      XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+                      Heart: <HeartIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+                      HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: statusColor }} />
+                    };
+                    
+                    icon = attendanceIconMap[iconName] || attendanceIconMap.HelpCircle;
+                    iconColor = statusColor;
                     borderColor = "#f1f5f9";
                     onDelete = (logId) => handleDeleteAttendance(studentId, logId);
                     break;
