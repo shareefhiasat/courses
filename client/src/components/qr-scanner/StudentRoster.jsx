@@ -564,10 +564,6 @@ const StudentRoster = React.memo(function StudentRoster({
   const handleQuickAttendance = useCallback(async (student, status) => {
     if (!student || !status || !selectedClassId) return;
     
-    console.log('🔧 StudentRoster handleQuickAttendance called with user:', user);
-    console.log('🔧 StudentRoster User displayName:', user?.displayName);
-    console.log('🔧 StudentRoster User email:', user?.email);
-    
     try {
       // Use the streamlined quickMarkAttendance utility
       const result = await quickMarkAttendance({

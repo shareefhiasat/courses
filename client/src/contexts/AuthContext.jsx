@@ -162,6 +162,24 @@ export const AuthProvider = ({ children }) => {
             userData.displayName = firebaseUser.displayName;
           }
           await ensureUserDoc(firebaseUser.uid, userData);
+          
+          // Load the user document to get the display name from Firestore
+          try {
+            const userDocRef = doc(db, "users", firebaseUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+              const userDocData = userDocSnap.data();
+              console.log('🔧 AuthContext loaded user doc:', userDocData);
+              console.log('🔧 AuthContext userDocData.displayName:', userDocData.displayName);
+              console.log('🔧 AuthContext userDocData.realName:', userDocData.realName);
+              userData.displayName = userDocData.displayName || userDocData.realName || userData.displayName;
+              console.log('🔧 AuthContext final userData.displayName:', userData.displayName);
+            } else {
+              console.log('🔧 AuthContext user doc does not exist');
+            }
+          } catch (error) {
+            console.warn("Failed to load user document for display name:", error);
+          }
         } catch {}
 
         // Claims and allowlist
@@ -241,6 +259,9 @@ export const AuthProvider = ({ children }) => {
               statusSummary,
               ...userData
             };
+            
+            console.log('🔧 AuthContext final profile:', profile);
+            console.log('🔧 AuthContext final profile.displayName:', profile.displayName);
             
             // Cache in sessionStorage
             sessionStorage.setItem('userProfile', JSON.stringify(profile));

@@ -366,19 +366,32 @@ export async function quickMarkAttendance({
   // Get current date
   const today = new Date().toISOString().split('T')[0];
 
+  // Load user profile from Firestore to get display name
+  let displayName = user?.displayName || user?.email || 'Unknown User';
+  try {
+    const { doc, getDoc } = await import('firebase/firestore');
+    const { db } = await import('@firebaseServices/config');
+    const userDocRef = doc(db, "users", user?.uid);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      const userDocData = userDocSnap.data();
+      displayName = userDocData.displayName || userDocData.realName || user?.displayName || user?.email || 'Unknown User';
+      console.log('🔧 quickMarkAttendance loaded displayName from Firestore:', displayName);
+    }
+  } catch (error) {
+    console.warn('Failed to load user profile for displayName:', error);
+  }
+
   try {
     // Call the main markAttendance function with streamlined parameters
-    console.log('🔧 quickMarkAttendance called with user:', user);
-    console.log('🔧 User displayName:', user?.displayName);
-    console.log('🔧 User email:', user?.email);
     const result = await markAttendance({
       classId,
       studentId,
       date: today,
       status,
       markedBy: user?.uid || 'system',
-      performedBy: user?.displayName || user?.email || 'System',
-      performedByName: user?.displayName || user?.email || 'Unknown User',
+      performedBy: user?.uid || 'system',
+      performedByName: displayName,
       performedByEmail: user?.email || '',
       method,
       notes: autoNotes,
