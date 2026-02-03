@@ -318,6 +318,82 @@ export async function markAttendance({
 }
 
 /**
+ * Quick Attendance Marker - Senior Level Utility
+ * Streamlined attendance marking for quick actions (Present/Late)
+ * @param {Object} params - Attendance parameters
+ * @param {string} params.studentId - Student ID
+ * @param {string} params.classId - Class ID  
+ * @param {string} params.status - Attendance status ('present' | 'late')
+ * @param {string} [params.method='quick_action'] - Method identifier
+ * @param {string} [params.notes] - Optional notes
+ * @param {Object} [params.user] - User object performing action
+ * @returns {Promise<{success: boolean, error?: string, data?: Object}>}
+ */
+export async function quickMarkAttendance({
+  studentId,
+  classId,
+  status,
+  method = 'quick_action',
+  notes = '',
+  user
+}) {
+  // Validate inputs
+  if (!studentId || !classId || !status) {
+    return { 
+      success: false, 
+      error: 'Missing required parameters: studentId, classId, status' 
+    };
+  }
+
+  // Validate status
+  const validStatuses = ['present', 'late', 'absent_no_excuse', 'absent_with_excuse', 'excused_leave', 'human_case'];
+  if (!validStatuses.includes(status)) {
+    return { 
+      success: false, 
+      error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` 
+    };
+  }
+
+  // Generate auto-notes if not provided
+  const autoNotes = notes || `Marked ${status} via quick action`;
+  
+  // Get current date
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    // Call the main markAttendance function with streamlined parameters
+    const result = await markAttendance({
+      classId,
+      studentId,
+      date: today,
+      status,
+      markedBy: user?.uid || 'system',
+      method,
+      notes: autoNotes,
+      sendNotification: true // Always send notifications for quick actions
+    });
+
+    return {
+      success: result.success,
+      error: result.error,
+      data: {
+        ...result,
+        quickAction: true,
+        status,
+        timestamp: new Date().toISOString()
+      }
+    };
+
+  } catch (error) {
+    console.error('Quick attendance marking failed:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Quick attendance marking failed' 
+    };
+  }
+}
+
+/**
  * Get attendance records for a specific class and date
  */
 export async function getAttendanceByClass(classId, date) {

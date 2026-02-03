@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { CollapsibleSection } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
-import { markAttendance } from '@firebaseServices/attendance';
+import { markAttendance, quickMarkAttendance } from '@firebaseServices/attendance';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
 import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@firebaseServices/participations';
@@ -1547,6 +1547,62 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   }, [selectedClassId, user, lastScannedStudent, students, classId, lang, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, logger, showSuccess, showError]);
 
+  // Senior-Level Quick Attendance Handler
+  const handleQuickAttendance = useCallback(async (student, status) => {
+    if (!student || !status) return;
+    
+    // Show immediate visual feedback
+    const statusLabel = getAttendanceLabel(status, lang);
+    addDebugLog(`⚡ Quick marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
+    
+    try {
+      // Use the streamlined quickMarkAttendance utility
+      const result = await quickMarkAttendance({
+        studentId: student.id,
+        classId: selectedClassId,
+        status,
+        method: 'quick_action',
+        notes: `Marked ${statusLabel} via quick action`,
+        user
+      });
+
+      if (result.success) {
+        // Show success feedback
+        showResult('success', `${student.displayName || student.name} marked as ${statusLabel}!`);
+        
+        // Emit real-time event
+        eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+          studentId: student.id,
+          studentNumber: student.studentNumber,
+          referenceId: student.referenceId,
+          classId: selectedClassId,
+          status,
+          performedBy: user,
+          timestamp: new Date(),
+          quickAction: true
+        });
+
+        // Refresh activity to show the change
+        if (onActivityUpdate) {
+          onActivityUpdate(() => {
+            fetchRecentActivity();
+          });
+        }
+
+        // Add haptic feedback if available
+        if (navigator.vibrate) {
+          navigator.vibrate(50); // Short vibration for success
+        }
+
+      } else {
+        showResult('error', result.error || `Failed to mark ${statusLabel}`);
+      }
+    } catch (error) {
+      addDebugLog(`❌ Quick attendance error: ${error.message}`, 'error');
+      showResult('error', `Failed to mark ${statusLabel}: ${error.message}`);
+    }
+  }, [selectedClassId, user, lang, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog]);
+
   // Fetch activity when classId and students change
   useEffect(() => {
     // Only fetch if we have a valid classId (not 'all') AND students
@@ -2124,6 +2180,94 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1 }}>
                       {activity.studentName}
                     </span>
+                    
+                    {/* Senior-Level Quick Actions - Only for Attendance Records */}
+                    {activity.studentId && activity.type === 'attendance' && (
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.25rem',
+                        marginRight: '0.5rem'
+                      }}>
+                        {/* Quick Present Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const student = students.find(s => s.id === activity.studentId);
+                            if (student) {
+                              handleQuickAttendance(student, 'present');
+                            }
+                          }}
+                          style={{
+                            background: getAttendanceColor('present'),
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            padding: '0.25rem 0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease',
+                            boxShadow: `0 2px 4px ${getAttendanceColor('present')}30`,
+                            minWidth: '24px',
+                            height: '24px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'translateY(-1px)';
+                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('present')}40`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('present')}30`;
+                          }}
+                          title="Mark Present"
+                        >
+                          <CheckSmallIcon style={{ width: '12px', height: '12px' }} />
+                        </button>
+
+                        {/* Quick Late Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const student = students.find(s => s.id === activity.studentId);
+                            if (student) {
+                              handleQuickAttendance(student, 'late');
+                            }
+                          }}
+                          style={{
+                            background: getAttendanceColor('late'),
+                            border: 'none',
+                            color: 'white',
+                            cursor: 'pointer',
+                            padding: '0.25rem 0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            transition: 'all 0.2s ease',
+                            boxShadow: `0 2px 4px ${getAttendanceColor('late')}30`,
+                            minWidth: '24px',
+                            height: '24px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'translateY(-1px)';
+                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor('late')}40`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor('late')}30`;
+                          }}
+                          title="Mark Late"
+                        >
+                          <ClockSmallIcon style={{ width: '12px', height: '12px' }} />
+                        </button>
+                      </div>
+                    )}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                 {onDeleteActivity && (
                                     <button
