@@ -3,7 +3,7 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './config';
 import { addNotification } from './notifications';
 import { sendEmail } from './firestore';
-import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { RECORD_TYPES } from '@constants/activityTypes';
 
 /**

@@ -937,36 +937,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   }, [selectedClassId, selectedSubjectId, user, findStudentData, selectedClassName]);
 
-  // Handle attendance marking
-  const handleMarkAttendance = useCallback(async (studentId, status) => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-
-      await markAttendance({
-        classId: selectedClassId,
-        studentId,
-        date: today,
-        status,
-        markedBy: user.uid,
-        method: 'manual'
-      });
-
-      // Emit event for real-time updates
-      eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
-        studentId,
-        classId: selectedClassId,
-        status,
-        performedBy: user,
-        timestamp: new Date()
-      });
-
-      showSuccess('Attendance marked successfully');
-    } catch (error) {
-      console.error('Error marking attendance:', error);
-      showError('Failed to mark attendance');
-    }
-  }, [selectedClassId, user]);
-
   const switchCameraMode = () => {
     const newMode = cameraMode === 'environment' ? 'user' : 'environment';
     setCameraMode(newMode);
@@ -1445,6 +1415,137 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       onActivityUpdate(fetchRecentActivity);
     }
   }, [onActivityUpdate, fetchRecentActivity]);
+
+  // Handle attendance marking
+  const handleMarkAttendance = useCallback(async (studentIdOrStatus, statusOrNotes, notes) => {
+    // Check if this is called from scan dialog (status, notes) or from elsewhere (studentId, status)
+    const isFromScanDialog = typeof studentIdOrStatus === 'string' && 
+                             ['present', 'late', 'absent_no_excuse', 'absent_with_excuse', 'excused_leave', 'human_case'].includes(studentIdOrStatus);
+    
+    if (isFromScanDialog) {
+      // Called from scan dialog: handleMarkAttendance(status, notes)
+      const status = studentIdOrStatus;
+      const scanNotes = statusOrNotes;
+      
+      setActionLoading(true);
+      setCurrentAction(status);
+
+      try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // Get the correct student ID - try multiple possible fields
+        let studentId = lastScannedStudent?.id ||
+            lastScannedStudent?.userId ||
+            lastScannedStudent?.studentId ||
+            lastScannedStudent?.docId;
+
+        // If still no student ID, try to find it in the students array
+        if (!studentId) {
+          const searchField = lastScannedStudent?.studentNumber || lastScannedStudent?.referenceId;
+          if (searchField) {
+            const foundStudent = students.find(s => 
+              s.studentNumber === searchField || 
+              s.referenceId === searchField ||
+              s.studentId === searchField ||
+              `STU-${s.studentNumber}` === searchField ||
+              generateReferenceId(s.id) === searchField
+            );
+            studentId = foundStudent?.id;
+          }
+        }
+
+        if (!studentId) {
+          throw new Error(`Student ID not found. Student data: ${JSON.stringify(lastScannedStudent)}`);
+        }
+
+        logger.debug('Using studentId:', studentId);
+
+        // Check if already marked with any attendance status today
+        const studentIdentifier = lastScannedStudent?.studentNumber || lastScannedStudent?.referenceId;
+        const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${studentIdentifier}_${today}`));
+        if (existingDoc.exists() && ['present', 'late', 'absent_no_excuse', 'absent_with_excuse', 'excused_leave', 'human_case'].includes(existingDoc.data().status)) {
+          showResult('info', 'Student is already marked for today.');
+          setShowScanDialog(false);
+          return;
+        }
+
+        // Mark attendance
+        const result = await markAttendance({
+          classId,
+          studentId: studentId,
+          date: today,
+          status,
+          markedBy: user.uid,
+          method: 'manual_instructor',
+          notes: scanNotes
+        });
+
+        if (result.success) {
+          setShowScanDialog(false);
+          const statusLabel = getAttendanceLabel(status, lang);
+          showResult('success', `Student marked as ${statusLabel} successfully!`);
+
+          // Emit proper attendance event
+          eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+            studentId: studentId,
+            studentNumber: lastScannedStudent.studentNumber,
+            referenceId: lastScannedStudent.referenceId,
+            classId,
+            status,
+            performedBy: user,
+            timestamp: new Date()
+          });
+
+          // Trigger activity update
+          if (onActivityUpdate) {
+            onActivityUpdate(() => {
+              logger.debug(`[QR Scanner] Triggering activity refresh after marking ${status}`);
+              fetchRecentActivity();
+            });
+          }
+        } else {
+          showResult('error', result.error || 'Failed to mark attendance');
+        }
+      } catch (error) {
+        addDebugLog(`❌ Error marking attendance (${status}): ${error.message}`, 'error');
+        showResult('error', `Failed to mark attendance: ${error.message}`);
+      } finally {
+        setActionLoading(false);
+        setCurrentAction(null);
+      }
+    } else {
+      // Original functionality: handleMarkAttendance(studentId, status)
+      const studentId = studentIdOrStatus;
+      const status = statusOrNotes;
+      
+      try {
+        const today = new Date().toISOString().split('T')[0];
+
+        await markAttendance({
+          classId: selectedClassId,
+          studentId,
+          date: today,
+          status,
+          markedBy: user.uid,
+          method: 'manual'
+        });
+
+        // Emit event for real-time updates
+        eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
+          studentId,
+          classId: selectedClassId,
+          status,
+          performedBy: user,
+          timestamp: new Date()
+        });
+
+        showSuccess('Attendance marked successfully');
+      } catch (error) {
+        console.error('Error marking attendance:', error);
+        showError('Failed to mark attendance');
+      }
+    }
+  }, [selectedClassId, user, lastScannedStudent, students, classId, lang, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, logger, showSuccess, showError]);
 
   // Fetch activity when classId and students change
   useEffect(() => {
@@ -2228,104 +2329,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/* First Row: Primary Actions */}
                     <button
                         onClick={async () => {
-                          console.log('✅ Mark as present');
-                          addDebugLog('✅ Marking student as present', 'success');
-
-                          // Debug: Check what's in lastScannedStudent
-                          logger.debug('lastScannedStudent structure:', {
-                            lastScannedStudent,
-                            id: lastScannedStudent?.id,
-                            referenceId: lastScannedStudent?.referenceId,
-                            userId: lastScannedStudent?.userId,
-                            studentId: lastScannedStudent?.studentId,
-                            displayName: lastScannedStudent?.displayName,
-                            name: lastScannedStudent?.name
-                          });
-
-                          setActionLoading(true);
-                          setCurrentAction('present');
-
-                          try {
-                            const today = new Date().toISOString().split('T')[0];
-
-                            // Get the correct student ID - try multiple possible fields
-                            let studentId = lastScannedStudent?.id ||
-                                lastScannedStudent?.userId ||
-                                lastScannedStudent?.studentId ||
-                                lastScannedStudent?.docId;
-
-                            // If still no student ID, try to find it in the students array using student number
-                            if (!studentId && lastScannedStudent?.studentNumber) {
-                              logger.debug('Searching for student in students array by studentNumber:', {
-                                studentNumber: lastScannedStudent.studentNumber,
-                                totalStudents: students.length
-                              });
-
-                              const foundStudent = students.find(s => s.studentNumber === lastScannedStudent.studentNumber);
-                              studentId = foundStudent?.id;
-
-                              logger.debug('Found student ID from students array:', {
-                                studentNumber: lastScannedStudent.studentNumber,
-                                foundStudentId: studentId
-                              });
-                            }
-
-                            if (!studentId) {
-                              throw new Error(`Student ID not found. Student Number: ${lastScannedStudent?.studentNumber}`);
-                            }
-
-                            logger.debug('Using studentId:', studentId);
-
-                            // Check if already marked present today
-                            const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.studentNumber}_${today}`));
-                            if (existingDoc.exists() && (existingDoc.data().status === 'present' || existingDoc.data().status === 'late')) {
-                              showResult('info', 'Student is already marked for today.');
-                              setShowScanDialog(false);
-                              return;
-                            }
-
-                            // Use user ID for consistency, not reference ID
-                            const result = await markAttendance({
-                              classId,
-                              studentId: studentId, // Use the resolved student ID
-                              date: today,
-                              status: 'present',
-                              markedBy: user.uid,
-                              method: 'manual_instructor',
-                              notes: 'Marked present manually'
-                            });
-
-                            if (result.success) {
-                              setShowScanDialog(false);
-                              showResult('success', 'Student marked as present successfully!');
-
-                              // Emit proper attendance event with both IDs
-                              eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
-                                studentId: studentId, // Primary: user ID
-                                studentNumber: lastScannedStudent.studentNumber, // Secondary: student number
-                                classId,
-                                status: 'present',
-                                performedBy: user,
-                                timestamp: new Date()
-                              });
-
-                              // Trigger activity update
-                              if (onActivityUpdate) {
-                                onActivityUpdate(() => {
-                                  logger.debug('[QR Scanner] Triggering activity refresh after marking present');
-                                  fetchRecentActivity();
-                                });
-                              }
-                            } else {
-                              showResult('error', result.error || 'Failed to mark attendance');
-                            }
-                          } catch (error) {
-                            addDebugLog(`❌ Error marking attendance: ${error.message}`, 'error');
-                            showResult('error', `Failed to mark attendance: ${error.message}`);
-                          } finally {
-                            setActionLoading(false);
-                            setCurrentAction(null);
-                          }
+                          await handleMarkAttendance('present', 'Marked present manually');
                         }}
                         disabled={actionLoading}
                         style={{
@@ -2382,113 +2386,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                     <button
                         onClick={async () => {
-                          console.log('⏰ Mark as late');
-                          addDebugLog('⏰ Marking student as late', 'info');
-
-                          // Debug: Check what's in lastScannedStudent
-                          logger.debug('lastScannedStudent structure (late):', {
-                            lastScannedStudent,
-                            id: lastScannedStudent?.id,
-                            referenceId: lastScannedStudent?.referenceId,
-                            userId: lastScannedStudent?.userId,
-                            studentId: lastScannedStudent?.studentId,
-                            displayName: lastScannedStudent?.displayName,
-                            name: lastScannedStudent?.name
-                          });
-
-                          setActionLoading(true);
-                          setCurrentAction('late');
-                          try {
-                            const today = new Date().toISOString().split('T')[0];
-
-                            // Get the correct student ID - try multiple possible fields
-                            let studentId = lastScannedStudent?.id ||
-                                lastScannedStudent?.userId ||
-                                lastScannedStudent?.studentId ||
-                                lastScannedStudent?.docId;
-
-                            // If still no student ID, try to find it in the students array
-                            if (!studentId && lastScannedStudent?.referenceId) {
-                              const foundStudent = students.find(s => {
-                                const generatedReferenceId = generateReferenceId(s.id);
-                                const matches = [
-                                  s.referenceId === lastScannedStudent.referenceId,
-                                  s.studentId === lastScannedStudent.referenceId,
-                                  `STU-${s.studentNumber}` === lastScannedStudent.referenceId,
-                                  generatedReferenceId === lastScannedStudent.referenceId
-                                ];
-
-                                logger.debug('Checking student (late):', {
-                                  student: s,
-                                  searchingFor: lastScannedStudent.referenceId,
-                                  generatedReferenceId: generatedReferenceId,
-                                  matches: matches
-                                });
-
-                                return matches.some(Boolean);
-                              });
-                              studentId = foundStudent?.id;
-                              logger.debug('Found student ID from students array (late):', {
-                                referenceId: lastScannedStudent.referenceId,
-                                foundStudentId: studentId
-                              });
-                            }
-
-                            if (!studentId) {
-                              throw new Error(`Student ID not found. Reference ID: ${lastScannedStudent?.referenceId}`);
-                            }
-
-                            logger.debug('Using studentId (late):', studentId);
-
-                            // Check if already marked present or late today
-                            const existingDoc = await getDoc(doc(db, 'attendance', `${classId}_${lastScannedStudent.referenceId}_${today}`));
-                            if (existingDoc.exists() && (existingDoc.data().status === 'present' || existingDoc.data().status === 'late')) {
-                              showResult('info', 'Student is already marked for today.');
-                              setShowScanDialog(false);
-                              return;
-                            }
-
-                            const result = await markAttendance({
-                              classId,
-                              studentId: studentId, // Use user ID, not reference ID
-                              date: today,
-                              status: 'late',
-                              markedBy: user.uid,
-                              method: 'manual_instructor',
-                              notes: 'Marked late manually'
-                            });
-
-                            if (result.success) {
-                              setShowScanDialog(false);
-                              showResult('late', 'Student marked as late successfully!');
-
-                              // Emit proper attendance event with both IDs
-                              eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
-                                studentId: studentId, // Primary: user ID
-                                referenceId: lastScannedStudent.referenceId, // Secondary: reference ID
-                                classId,
-                                status: 'late',
-                                performedBy: user,
-                                timestamp: new Date()
-                              });
-
-                              // Trigger activity update
-                              if (onActivityUpdate) {
-                                onActivityUpdate(() => {
-                                  logger.debug('[QR Scanner] Triggering activity refresh after marking late');
-                                  fetchRecentActivity();
-                                });
-                              }
-                            } else {
-                              showResult('error', result.error || 'Failed to mark late');
-                            }
-                          } catch (error) {
-                            addDebugLog(`❌ Error marking late: ${error.message}`, 'error');
-                            showResult('error', `Failed to mark late: ${error.message}`);
-                          } finally {
-                            setActionLoading(false);
-                            setCurrentAction(null);
-                          }
+                          await handleMarkAttendance('late', 'Marked late manually');
                         }}
                         disabled={actionLoading}
                         style={{
@@ -2539,6 +2437,235 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           <>
                             <ClockSmallIcon style={{ width: '18px', height: '18px' }} />
                             {t('late') || 'Late'}
+                          </>
+                      )}
+                    </button>
+
+                    {/* Additional Attendance Status Buttons */}
+                    <button
+                        onClick={async () => {
+                          await handleMarkAttendance('absent_no_excuse', 'Marked absent (no excuse) manually');
+                        }}
+                        disabled={actionLoading}
+                        style={{
+                          padding: '0.875rem',
+                          border: 'none',
+                          background: actionLoading && currentAction === 'absent_no_excuse' ? '#94a3b8' : '#ef4444',
+                          color: 'white',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: actionLoading ? 'not-allowed' : 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.625rem',
+                          opacity: actionLoading ? 0.7 : 1,
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#dc2626';
+                            e.target.style.transform = 'translateY(-1px)';
+                            e.target.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.3)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#ef4444';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.2)';
+                          }
+                        }}
+                    >
+                      {actionLoading && currentAction === 'absent_no_excuse' ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid white',
+                              borderTop: '2px solid transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }} />
+                            {t('processing') || 'Processing...'}
+                          </>
+                      ) : (
+                          <>
+                            <XSmallIcon style={{ width: '18px', height: '18px' }} />
+                            {t('absent_no_excuse') || 'Absent (No Excuse)'}
+                          </>
+                      )}
+                    </button>
+
+                    <button
+                        onClick={async () => {
+                          await handleMarkAttendance('absent_with_excuse', 'Marked absent (with excuse) manually');
+                        }}
+                        disabled={actionLoading}
+                        style={{
+                          padding: '0.875rem',
+                          border: 'none',
+                          background: actionLoading && currentAction === 'absent_with_excuse' ? '#94a3b8' : '#f97316',
+                          color: 'white',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: actionLoading ? 'not-allowed' : 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.625rem',
+                          opacity: actionLoading ? 0.7 : 1,
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 4px rgba(249, 115, 22, 0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#ea580c';
+                            e.target.style.transform = 'translateY(-1px)';
+                            e.target.style.boxShadow = '0 4px 8px rgba(249, 115, 22, 0.3)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#f97316';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 2px 4px rgba(249, 115, 22, 0.2)';
+                          }
+                        }}
+                    >
+                      {actionLoading && currentAction === 'absent_with_excuse' ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid white',
+                              borderTop: '2px solid transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }} />
+                            {t('processing') || 'Processing...'}
+                          </>
+                      ) : (
+                          <>
+                            <AlertCircleIcon style={{ width: '18px', height: '18px' }} />
+                            {t('absent_with_excuse') || 'Absent (With Excuse)'}
+                          </>
+                      )}
+                    </button>
+
+                    <button
+                        onClick={async () => {
+                          await handleMarkAttendance('excused_leave', 'Marked excused leave manually');
+                        }}
+                        disabled={actionLoading}
+                        style={{
+                          padding: '0.875rem',
+                          border: 'none',
+                          background: actionLoading && currentAction === 'excused_leave' ? '#94a3b8' : '#06b6d4',
+                          color: 'white',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: actionLoading ? 'not-allowed' : 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.625rem',
+                          opacity: actionLoading ? 0.7 : 1,
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 4px rgba(6, 182, 212, 0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#0891b2';
+                            e.target.style.transform = 'translateY(-1px)';
+                            e.target.style.boxShadow = '0 4px 8px rgba(6, 182, 212, 0.3)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#06b6d4';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 2px 4px rgba(6, 182, 212, 0.2)';
+                          }
+                        }}
+                    >
+                      {actionLoading && currentAction === 'excused_leave' ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid white',
+                              borderTop: '2px solid transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }} />
+                            {t('processing') || 'Processing...'}
+                          </>
+                      ) : (
+                          <>
+                            <ShieldIcon style={{ width: '18px', height: '18px' }} />
+                            {t('excused_leave') || 'Excused Leave'}
+                          </>
+                      )}
+                    </button>
+
+                    <button
+                        onClick={async () => {
+                          await handleMarkAttendance('human_case', 'Marked human case manually');
+                        }}
+                        disabled={actionLoading}
+                        style={{
+                          padding: '0.875rem',
+                          border: 'none',
+                          background: actionLoading && currentAction === 'human_case' ? '#94a3b8' : '#8b5cf6',
+                          color: 'white',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: actionLoading ? 'not-allowed' : 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.625rem',
+                          opacity: actionLoading ? 0.7 : 1,
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#7c3aed';
+                            e.target.style.transform = 'translateY(-1px)';
+                            e.target.style.boxShadow = '0 4px 8px rgba(139, 92, 246, 0.3)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!actionLoading) {
+                            e.target.style.background = '#8b5cf6';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 2px 4px rgba(139, 92, 246, 0.2)';
+                          }
+                        }}
+                    >
+                      {actionLoading && currentAction === 'human_case' ? (
+                          <>
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '2px solid white',
+                              borderTop: '2px solid transparent',
+                              borderRadius: '50%',
+                              animation: 'spin 1s linear infinite'
+                            }} />
+                            {t('processing') || 'Processing...'}
+                          </>
+                      ) : (
+                          <>
+                            <HeartIcon style={{ width: '18px', height: '18px' }} />
+                            {t('human_case') || 'Human Case'}
                           </>
                       )}
                     </button>
