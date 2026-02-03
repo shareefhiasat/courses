@@ -3,7 +3,7 @@
   position: relative;
   vertical-align: middle;
   margin-left: auto; /* Push to the far right */
-  z-index: 1; /* Ensure it stays above other elements */
+  z-index: 99998; /* Ensure it stays above other elements */
 }
 
 /* Base styles for both button and div triggers */
@@ -63,14 +63,14 @@
 
 /* Make sure the tooltip is accessible to screen readers */
 .info-tooltip-trigger[aria-expanded="true"] {
-  z-index: 1001; /* Above the tooltip content */
+  z-index: 100001; /* Above the tooltip content */
 }
 
 .info-tooltip-content {
   position: absolute;
-  bottom: 100%;
+  top: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(-8px);
+  transform: translateX(-50%) translateY(8px);
   background: white;
   color: #212529;
   padding: 8px 12px;
@@ -83,24 +83,27 @@
   white-space: normal;
   width: max-content;
   max-width: min(300px, calc(100vw - 32px));
-  z-index: 9999;
+  z-index: 99999;
   border: 1px solid #e9ecef;
   animation: tooltipFadeIn 0.15s ease-out;
   word-wrap: break-word;
   overflow-wrap: break-word;
   min-width: 200px;
+  /* Ensure tooltip can break out of parent containers */
+  overflow: visible !important;
+  contain: layout style paint;
 }
 
 /* Arrow pointing to the trigger */
 .info-tooltip-content::after {
   content: '';
   position: absolute;
-  top: 100%;
+  bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
   border-width: 6px;
   border-style: solid;
-  border-color: white transparent transparent transparent;
+  border-color: transparent transparent white transparent;
 }
 
 /* Position the tooltip relative to the trigger */

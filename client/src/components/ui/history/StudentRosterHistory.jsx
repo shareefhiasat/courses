@@ -51,7 +51,9 @@ const StudentRosterHistory = ({
       backgroundColor: 'var(--background, #ffffff)',
       borderRadius: '0.5rem',
       border: '1px solid var(--border, #e5e7eb)',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative',
+      zIndex: 1
     }}>
       {/* Filter Buttons */}
       <div style={{

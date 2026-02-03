@@ -1224,7 +1224,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           scanMethod: record.scanMethod || (record.method === 'QR Scan' ? 'auto' : 'manual_instructor'),
           subject: selectedSubjectName,
           program: selectedProgramName,
-          class: selectedClassName
+          class: selectedClassName,
+          comment: record.notes || record.note || record.reason || record.description || ''
         };
 
         return finalActivityLog;
@@ -2428,17 +2429,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                                       </div>
                                   )}
                                   <div style={{ marginBottom: '0.25rem' }}>
-                                    <strong>{t('method') || 'Method'}</strong>
-                                    {getScanMethodDisplay(activity.scanMethod).text}
-                                  </div>
-                                  <div style={{ marginBottom: '0.25rem' }}>
                                     <strong>{t('by') || 'By'}</strong>
-                                    {activity.performedBy}
+                                    {activity.performedByName}
                                   </div>
                                   {activity.comment && (
                                       <div style={{ marginBottom: '0.25rem' }}>
-                                        <strong>{t('reason') || 'Reason'}
-                                        </strong> {activity.comment}
+                                        <strong>{t('note') || 'Note'}</strong>
+                                        {activity.comment}
                                       </div>
                                   )}
                                   {activity.label && activity.type === 'penalty' && (
