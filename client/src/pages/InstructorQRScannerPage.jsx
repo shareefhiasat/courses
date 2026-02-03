@@ -34,13 +34,75 @@ const InstructorQRScannerPage = () => {
   const { t, lang, isRTL } = useLang();
   const navigate = useNavigate();
 
+  // Helper functions to save selections to localStorage
+  const saveSelectedProgramId = useCallback((programId) => {
+    try {
+      localStorage.setItem('qrScanner_selectedProgramId', programId);
+    } catch (error) {
+      console.warn('Failed to save selected programId to localStorage:', error);
+    }
+    setSelectedProgramId(programId);
+  }, []);
+
+  const saveSelectedSubjectId = useCallback((subjectId) => {
+    try {
+      localStorage.setItem('qrScanner_selectedSubjectId', subjectId);
+    } catch (error) {
+      console.warn('Failed to save selected subjectId to localStorage:', error);
+    }
+    setSelectedSubjectId(subjectId);
+  }, []);
+
+  const saveSelectedClassId = useCallback((classId) => {
+    try {
+      localStorage.setItem('qrScanner_selectedClassId', classId);
+    } catch (error) {
+      console.warn('Failed to save selected classId to localStorage:', error);
+    }
+    setSelectedClassId(classId);
+  }, []);
+
+  // Helper function to validate if a selection still exists in available data
+  const validateSelection = useCallback((selectionId, availableItems, itemType) => {
+    if (selectionId === 'all') return true;
+    return availableItems.some(item => 
+      (item.id === selectionId) || (item.docId === selectionId)
+    );
+  }, []);
+
   // Filter state
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [selectedProgramId, setSelectedProgramId] = useState('all');
-  const [selectedSubjectId, setSelectedSubjectId] = useState('all');
-  const [selectedClassId, setSelectedClassId] = useState('all');
+  const [selectedProgramId, setSelectedProgramId] = useState(() => {
+    // Try to get saved selection from localStorage, fallback to 'all'
+    try {
+      const saved = localStorage.getItem('qrScanner_selectedProgramId');
+      return saved || 'all';
+    } catch {
+      return 'all';
+    }
+  });
+  
+  const [selectedSubjectId, setSelectedSubjectId] = useState(() => {
+    // Try to get saved selection from localStorage, fallback to 'all'
+    try {
+      const saved = localStorage.getItem('qrScanner_selectedSubjectId');
+      return saved || 'all';
+    } catch {
+      return 'all';
+    }
+  });
+  
+  const [selectedClassId, setSelectedClassId] = useState(() => {
+    // Try to get saved selection from localStorage, fallback to 'all'
+    try {
+      const saved = localStorage.getItem('qrScanner_selectedClassId');
+      return saved || 'all';
+    } catch {
+      return 'all';
+    }
+  });
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0]; // Format as yyyy-MM-dd
@@ -254,8 +316,7 @@ const InstructorQRScannerPage = () => {
       setGridLoading(true);
       loadSubjects(null);
       setSubjects([]);
-      setSelectedSubjectId('all');
-      setSelectedClassId('all');
+      // Don't reset selections here - let the auto-selection logic handle it
       setGridLoading(false);
     }
   }, [selectedProgramId]);
@@ -266,7 +327,7 @@ const InstructorQRScannerPage = () => {
       loadClasses(selectedSubjectId);
     } else {
       setClasses([]);
-      setSelectedClassId('all');
+      // Don't reset selectedClassId here - let the auto-selection logic handle it
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubjectId]);
@@ -316,9 +377,26 @@ const InstructorQRScannerPage = () => {
 
       if (programsData.length === 0) {
         logger.warn('[QR Scanner] No programs found in database');
+        setPrograms(programsData);
+        setInitialLoading(false);
+        return;
       }
 
       setPrograms(programsData);
+      
+      // Validate saved selection or auto-select first program
+      const currentSelection = selectedProgramId;
+      const isValidSelection = validateSelection(currentSelection, programsData, 'program');
+      
+      if (!isValidSelection || currentSelection === 'all') {
+        const firstProgram = programsData[0];
+        const programId = firstProgram.id || firstProgram.docId;
+        saveSelectedProgramId(programId);
+        logger.debug('[QR Scanner] Auto-selected first program:', firstProgram.name || firstProgram.code);
+      } else {
+        logger.debug('[QR Scanner] Using saved program selection:', currentSelection);
+      }
+      
       setInitialLoading(false);
     } catch (error) {
       logger.error('[QR Scanner] Error loading programs:', error);
@@ -339,6 +417,22 @@ const InstructorQRScannerPage = () => {
       }
 
       setSubjects(subjectsData);
+      
+      // Validate saved selection or auto-select first subject
+      const currentSelection = selectedSubjectId;
+      const isValidSelection = validateSelection(currentSelection, subjectsData, 'subject');
+      
+      if (!isValidSelection || currentSelection === 'all') {
+        if (subjectsData.length > 0) {
+          const firstSubject = subjectsData[0];
+          const subjectId = firstSubject.id || firstSubject.docId;
+          saveSelectedSubjectId(subjectId);
+          logger.debug('[QR Scanner] Auto-selected first subject:', firstSubject.name || firstSubject.code);
+        }
+      } else {
+        logger.debug('[QR Scanner] Using saved subject selection:', currentSelection);
+      }
+      
       setGridLoading(false);
     } catch (error) {
       logger.error('[QR Scanner] Error loading subjects:', error);
@@ -375,6 +469,21 @@ const InstructorQRScannerPage = () => {
       }
 
       setClasses(filteredClasses);
+      
+      // Validate saved selection or auto-select first class
+      const currentSelection = selectedClassId;
+      const isValidSelection = validateSelection(currentSelection, filteredClasses, 'class');
+      
+      if (!isValidSelection || currentSelection === 'all') {
+        if (filteredClasses.length > 0) {
+          const firstClass = filteredClasses[0];
+          const classId = firstClass.id || firstClass.docId;
+          saveSelectedClassId(classId);
+          logger.debug('[QR Scanner] Auto-selected first class:', firstClass.name || firstClass.code);
+        }
+      } else {
+        logger.debug('[QR Scanner] Using saved class selection:', currentSelection);
+      }
     } catch (error) {
       logger.error('[QR Scanner] Error loading classes:', error);
       setClasses([]);
