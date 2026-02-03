@@ -216,6 +216,50 @@ export default function StudentActionPanelNew({
     }
   }, [user, favoriteBehaviors]);
 
+  const handleSaveActions = useCallback(async () => {
+    if (selectedActions.length === 0) {
+      alert(t('please_select_at_least_one_action'));
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare actions with points override
+      const actionsWithPoints = selectedActions.map(action => ({
+        ...action,
+        points: actionPoints[action.id] || action.points || 0
+      }));
+      
+      // Group actions by category and call appropriate handlers
+      const behaviorActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.BEHAVIOR);
+      const participationActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PARTICIPATION);
+      const penaltyActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PENALTY);
+      
+      // Call appropriate handlers
+      if (behaviorActions.length > 0) {
+        await onBehaviorSubmit(student.docId || student.id, behaviorActions, internalNote, actionPoints);
+      }
+      if (participationActions.length > 0) {
+        await onParticipationSubmit(student.docId || student.id, participationActions, internalNote, actionPoints);
+      }
+      if (penaltyActions.length > 0) {
+        await onPenaltySubmit(student.docId || student.id, penaltyActions, internalNote, actionPoints);
+      }
+      
+      setSelectedActions([]);
+      setInternalNote('');
+      setActionPoints({});
+      showSuccess(t('actions_saved_successfully'));
+      onClose(); // Close panel after successful save
+    } catch (error) {
+      logger.error('Error saving actions:', error);
+      showError(t('failed_to_save_actions'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError]);
+
   const getInitials = useCallback((name) => {
     return name
       .split(' ')
@@ -886,49 +930,7 @@ export default function StudentActionPanelNew({
       <div style={{ padding: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button
-            onClick={useCallback(async () => {
-              if (selectedActions.length === 0) {
-                alert(t('please_select_at_least_one_action'));
-                return;
-              }
-              
-              setIsSubmitting(true);
-              
-              try {
-                // Prepare actions with points override
-                const actionsWithPoints = selectedActions.map(action => ({
-                  ...action,
-                  points: actionPoints[action.id] || action.points || 0
-                }));
-                
-                // Group actions by category and call appropriate handlers
-                const behaviorActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.BEHAVIOR);
-                const participationActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PARTICIPATION);
-                const penaltyActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PENALTY);
-                
-                // Call appropriate handlers
-                if (behaviorActions.length > 0) {
-                  await onBehaviorSubmit(student.docId || student.id, behaviorActions, internalNote, actionPoints);
-                }
-                if (participationActions.length > 0) {
-                  await onParticipationSubmit(student.docId || student.id, participationActions, internalNote, actionPoints);
-                }
-                if (penaltyActions.length > 0) {
-                  await onPenaltySubmit(student.docId || student.id, penaltyActions, internalNote, actionPoints);
-                }
-                
-                setSelectedActions([]);
-                setInternalNote('');
-                setActionPoints({});
-                showSuccess(t('actions_saved_successfully'));
-                onClose(); // Close panel after successful save
-              } catch (error) {
-                logger.error('Error saving actions:', error);
-                showError(t('failed_to_save_actions'));
-              } finally {
-                setIsSubmitting(false);
-              }
-            }, [selectedActions, actionPoints, internalNote, student?.id, onBehaviorSubmit, onParticipationSubmit, onPenaltySubmit, onClose, t, showSuccess, showError])}
+            onClick={handleSaveActions}
             disabled={selectedActions.length === 0 || isSubmitting}
             style={{ 
               flex: 1, 
