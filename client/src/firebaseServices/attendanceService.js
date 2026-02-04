@@ -1,4 +1,4 @@
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from './config';
 
 /**
@@ -306,3 +306,172 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
     return { success: false, error: error.message };
   }
 };
+
+// ===== ABSENCE TRACKING =====
+
+/**
+ * Get student absences
+ * @param {string} studentId - Optional student ID filter
+ * @param {string} subjectId - Optional subject ID filter  
+ * @param {string} semester - Optional semester filter
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getAbsences = async (
+  studentId = null,
+  subjectId = null,
+  semester = null
+) => {
+  try {
+    let q;
+    const conditions = [];
+
+    if (studentId) {
+      conditions.push(where("studentId", "==", studentId));
+    }
+    if (subjectId) {
+      conditions.push(where("subjectId", "==", subjectId));
+    }
+    if (semester) {
+      conditions.push(where("semester", "==", semester));
+    }
+
+    // Filter for absence statuses
+    conditions.push(where("status", "in", ['absent_no_excuse', 'absent_with_excuse', 'excused_leave']));
+
+    if (conditions.length > 0) {
+      q = query(
+        collection(db, "attendance"),
+        ...conditions,
+        orderBy("date", "desc")
+      );
+    } else {
+      q = query(collection(db, "attendance"), orderBy("date", "desc"));
+    }
+
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ===== ATTENDANCE SESSIONS =====
+
+/**
+ * Create attendance session
+ * @param {Object} params - Session parameters
+ * @returns {Promise<{success: boolean, data: Object, error?: string}>}
+ */
+export async function createSession({ classId, subjectId, scheduledAt, createdBy }) {
+  try {
+    // Import functions dynamically to avoid circular dependencies
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('./config');
+    const fn = httpsCallable(functions, 'attendanceCreateSession');
+    console.log('[Attendance/api] calling attendanceCreateSession', { classId, subjectId });
+    
+    const { data } = await fn({ classId, subjectId, scheduledAt, createdBy });
+    return { success: true, data: { id: data?.sessionId, token: data?.token, rotationSeconds: data?.rotationSeconds, endAt: data?.endAt } };
+  } catch (error) {
+    console.error('Error creating session:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * List open attendance sessions
+ * @param {string} classId - Class ID
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export async function listOpenSessions({ classId }) {
+  try {
+    const col = collection(db, 'classes', classId, 'sessions');
+    const q = query(col, where('status', '==', 'open'));
+    const snap = await getDocs(q);
+    const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { success: true, data: sessions };
+  } catch (error) {
+    console.error('Error listing open sessions:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Listen to attendance session changes
+ * @param {string} sessionId - Session ID
+ * @param {Function} cb - Callback function
+ * @returns {Function} Unsubscribe function
+ */
+export function listenAttendanceSession(sessionId, cb) {
+  try {
+    const ref = doc(db, 'attendanceSessions', sessionId);
+    return onSnapshot(ref, (snap) => cb(snap.exists() ? { id: snap.id, ...snap.data() } : null));
+  } catch (error) {
+    console.error('Error listening to session:', error);
+    return () => {}; // Return empty unsubscribe function
+  }
+}
+
+/**
+ * Close attendance session
+ * @param {string} sessionId - Session ID
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export async function closeAttendanceSession(sessionId) {
+  try {
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('./config');
+    const fn = httpsCallable(functions, 'attendanceCloseSession');
+    console.log('[Attendance/api] calling attendanceCloseSession', { sid: sessionId });
+    
+    const res = await fn({ sid: sessionId });
+    return { success: true, data: res?.data };
+  } catch (error) {
+    console.error('Error closing session:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Scan attendance (QR code scanning)
+ * @param {Object} payload - Scan payload
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export async function scanAttendance(payload) {
+  try {
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('./config');
+    const fn = httpsCallable(functions, 'attendanceScan');
+    console.log('[Attendance/api] calling attendanceScan', payload);
+    
+    const { data } = await fn(payload);
+    if (!data?.success) {
+      throw new Error(data?.error || 'Scan failed');
+    }
+    return { success: true, data: data.data };
+  } catch (error) {
+    console.error('Error scanning attendance:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Generate simple device hash for attendance tracking
+ * @returns {string} Device hash
+ */
+export function simpleDeviceHash() {
+  try {
+    const s = [navigator.userAgent, navigator.platform, Intl.DateTimeFormat().resolvedOptions().timeZone].join('|');
+    let h = 0; 
+    for (let i = 0; i < s.length; i++) { 
+      h = (h << 5) - h + s.charCodeAt(i); 
+      h |= 0; 
+    }
+    return h.toString(36);
+  } catch (error) {
+    console.error('Error generating device hash:', error);
+    return 'unknown';
+  }
+}

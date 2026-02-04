@@ -31,7 +31,7 @@ import {
 import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { getAttendanceByStudent, getAttendanceStats } from '@firebaseServices/attendanceService';
-import { getAbsences } from '../firebase/attendance';
+import { getAbsences } from '@firebaseServices/attendanceService';
 import { getPenalties } from '@firebaseServices/penaltyService';
 import { getStudentMarks } from '@firebaseServices/gradingService';
 import { getSubjects, getPrograms } from '@firebaseServices/programService';

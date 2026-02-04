@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getSubjects, getPrograms } from '@firebaseServices/programService';
-import { getSubjectMarksDistribution, setSubjectMarksDistribution, getStudentMarks, saveStudentMarks } from '@firebaseServices/grading';
+import { getSubjectMarksDistribution, setSubjectMarksDistribution, getStudentMarks, saveStudentMarks } from '@firebaseServices/gradingService';
 import { getUsers } from '@firebaseServices/userService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getClasses } from '@firebaseServices/classService';

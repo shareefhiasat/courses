@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '../firebase/attendance';
+import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '@firebaseServices/attendanceService';
 import QRCode from 'qrcode';
 import { db } from '@firebaseServices/config';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';

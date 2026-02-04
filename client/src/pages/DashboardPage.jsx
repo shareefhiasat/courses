@@ -5468,7 +5468,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         resourceId: resourceId
                       };
 
-                      const addAnnouncement = (await import('../firebase/firestore')).addAnnouncement;
+                      const addAnnouncement = (await import('@firebaseServices/activityService')).addAnnouncement;
                       await addAnnouncement(announcementData);
                       // Send notifications based on scope
                       try {
@@ -6555,7 +6555,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               toast?.showInfo(`Deleting user and ${totalRecords} related records...`);
 
               // Use cascade delete function which handles all related data
-              const { deleteUserCascade } = await import('../firebase/firestore');
+              const { deleteUserCascade } = await import('@firebaseServices/userService');
               const result = await deleteUserCascade(userId);
 
               if (result.success) {

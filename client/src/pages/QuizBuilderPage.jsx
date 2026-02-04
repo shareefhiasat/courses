@@ -275,7 +275,7 @@ export default function QuizBuilderPage() {
     // Ensure we initialize title_en, title_ar, description_en, description_ar when loading
     setLoading(true);
     try {
-      const { getQuiz } = await import('../firebase/quizzes');
+      const { getQuiz } = await import('@firebaseServices/quizService');
       const result = await getQuiz(id);
       if (result.success) {
         const normalized = normalizeQuizData(result.data);
@@ -305,7 +305,7 @@ export default function QuizBuilderPage() {
 
     setSaving(true);
     try {
-      const { createQuiz, updateQuiz } = await import('../firebase/quizzes');
+      const { createQuiz, updateQuiz } = await import('@firebaseServices/quizService');
 
       let targetQuizId = quizId;
 
