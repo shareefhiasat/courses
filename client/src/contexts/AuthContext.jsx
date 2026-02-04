@@ -6,7 +6,7 @@ import { getUserProfile } from '@utils/userUtils';
 import { getAllowlist } from '@firebaseServices/configService';
 import { ensureUserDoc } from '@firebaseServices/userService';
 import { addLoginLog } from '@firebaseServices/activityService';
-import { ActivityLogger } from '@firebaseServices/activityLogger';
+import { ActivityLogger } from '@firebaseServices/activityLogger.jsx';
 import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
 import { 
   USER_ROLES

@@ -40,7 +40,7 @@ import InstructorBehaviorPage from './InstructorBehaviorPage';
 import ScheduledReportsPage from './ScheduledReportsPage';
 import { getSubjects, getPrograms } from '@firebaseServices/programService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_TYPES, getActivityLogOptions } from '@firebaseServices/activityLogger.jsx';
 import { getUserDisplayName } from '@firebaseServices/userService';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';
@@ -983,37 +983,6 @@ const DashboardPage = () => {
 
   // Listen for URL changes (hash or search params) from sidebar or direct navigation
   const [hashProcessed, setHashProcessed] = useState(false);
- 
-  // Initialize localized tour steps
-  useEffect(() => {
-    const steps = [
-      {
-        target: '[data-tour="mode-switcher"]',
-        content: t('tour.mode_switcher_content'),
-        disableBeacon: true,
-        placement: 'bottom'
-      },
-      {
-        target: '[data-tour="stats"]',
-        content: t('tour.stats_content_alt'),
-        disableBeacon: true,
-        placement: 'bottom'
-      },
-      {
-        target: '[data-tour="filters"]',
-        content: t('tour.filters_content_alt'),
-        disableBeacon: true,
-        placement: 'bottom'
-      },
-      {
-        target: '[data-tour="cards-grid"]',
-        content: t('tour.cards_grid_content_alt'),
-        disableBeacon: true,
-        placement: 'top'
-      }
-    ];
-    setTourSteps(steps);
-  }, [lang]);
 
   useEffect(() => {
     // First check for tab in query parameters
@@ -3309,94 +3278,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           {activeTab === 'login' && (
             <div className="login-activity-tab">
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '0.5rem 0 1rem', flexWrap: 'wrap', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                <Select value={activityTypeFilter} onChange={(e) => setActivityTypeFilter(e.target.value)} options={[
-                  { value: 'all', label: t('all_activity_types') || 'All Activity Types', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
-                  // Authentication
-                  { value: 'login', label: t('login') || 'Login', icon: <LogIn size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'logout', label: t('logout') || 'Logout', icon: <LogOut size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'signup', label: t('signup') || 'Signup', icon: <UserPlus size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'session_timeout', label: t('session_timeout') || 'Session Timeout', icon: <Clock size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'profile_update', label: t('profile_update') || 'Profile Update', icon: <User size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'password_change', label: t('password_change') || 'Password Change', icon: <Key size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'email_change', label: t('email_change') || 'Email Change', icon: <Mail size={16} color="var(--text-secondary, #374151)" /> },
-                  // Quiz Activities
-                  { value: 'quiz_started', label: t('quiz_started') || 'Quiz Started', icon: <Target size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'quiz_submitted', label: t('quiz_submitted') || 'Quiz Submitted', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'quiz_created', label: t('quiz_created') || 'Quiz Created', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'quiz_deleted', label: t('quiz_deleted') || 'Quiz Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'quiz_published', label: t('quiz_published') || 'Quiz Published', icon: <Send size={16} color="var(--text-secondary, #374151)" /> },
-                  // Activity CRUD
-                  { value: 'activity_created', label: t('activity_created') || 'Activity Created', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'activity_updated', label: t('activity_updated') || 'Activity Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'activity_deleted', label: t('activity_deleted') || 'Activity Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'activity_viewed', label: t('activity_viewed') || 'Activity Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // Assignment/Submission
-                  { value: 'assignment_started', label: t('assignment_started') || 'Assignment Started', icon: <PenTool size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'assignment_submitted', label: t('assignment_submitted') || 'Assignment Submitted', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'submission_graded', label: t('submission_graded') || 'Submission Graded', icon: <Award size={16} color="var(--text-secondary, #374151)" /> },
-                  // Resources CRUD
-                  { value: 'resource_created', label: t('resource_created') || 'Resource Created', icon: <BookOpen size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'resource_updated', label: t('resource_updated') || 'Resource Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'resource_deleted', label: t('resource_deleted') || 'Resource Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'resource_completed', label: t('resource_completed') || 'Resource Completed', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'resource_bookmarked', label: t('resource_bookmarked') || 'Resource Bookmarked', icon: <Bookmark size={16} color="var(--text-secondary, #374151)" /> },
-                  // Attendance
-                  { value: 'attendance_marked', label: t('attendance_marked') || 'Attendance Marked', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
-                  // Communication
-                  { value: 'message_sent', label: t('message_sent') || 'Message Sent', icon: <Send size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'message_received', label: t('message_received') || 'Message Received', icon: <MessageSquare size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'announcement_read', label: t('announcement_read') || 'Announcement Read', icon: <Bell size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'announcement_created', label: t('announcement_created') || 'Announcement Created', icon: <Bell size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'announcement_updated', label: t('announcement_updated') || 'Announcement Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'announcement_deleted', label: t('announcement_deleted') || 'Announcement Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  // Penalties CRUD
-                  { value: 'penalty_created', label: t('penalty_created') || 'Penalty Created', icon: <AlertTriangle size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'penalty_updated', label: t('penalty_updated') || 'Penalty Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'penalty_deleted', label: t('penalty_deleted') || 'Penalty Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'penalty_viewed', label: t('penalty_viewed') || 'Penalty Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // Participation CRUD
-                  { value: 'participation_created', label: t('participation_created') || 'Participation Created', icon: <Users size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'participation_updated', label: t('participation_updated') || 'Participation Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'participation_deleted', label: t('participation_deleted') || 'Participation Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'participation_viewed', label: t('participation_viewed') || 'Participation Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // Behavior CRUD
-                  { value: 'behavior_created', label: t('behavior_created') || 'Behavior Created', icon: <UserMinus size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'behavior_updated', label: t('behavior_updated') || 'Behavior Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'behavior_deleted', label: t('behavior_deleted') || 'Behavior Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'behavior_viewed', label: t('behavior_viewed') || 'Behavior Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // Class CRUD
-                  { value: 'class_created', label: t('class_created') || 'Class Created', icon: <Home size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'class_updated', label: t('class_updated') || 'Class Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'class_deleted', label: t('class_deleted') || 'Class Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'class_viewed', label: t('class_viewed') || 'Class Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // Subject CRUD
-                  { value: 'subject_created', label: t('subject_created') || 'Subject Created', icon: <BookOpen size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'subject_updated', label: t('subject_updated') || 'Subject Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'subject_deleted', label: t('subject_deleted') || 'Subject Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'subject_viewed', label: t('subject_viewed') || 'Subject Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // Program CRUD
-                  { value: 'program_created', label: t('program_created') || 'Program Created', icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'program_updated', label: t('program_updated') || 'Program Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'program_deleted', label: t('program_deleted') || 'Program Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'program_viewed', label: t('program_viewed') || 'Program Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // Enrollment CRUD
-                  { value: 'enrollment_created', label: t('enrollment_created') || 'Enrollment Created', icon: <Users size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'enrollment_updated', label: t('enrollment_updated') || 'Enrollment Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'enrollment_deleted', label: t('enrollment_deleted') || 'Enrollment Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'enrollment_viewed', label: t('enrollment_viewed') || 'Enrollment Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // Mark Entry CRUD
-                  { value: 'mark_entry_created', label: t('mark_entry_created') || 'Mark Entry Created', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'mark_entry_updated', label: t('mark_entry_updated') || 'Mark Entry Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'mark_entry_deleted', label: t('mark_entry_deleted') || 'Mark Entry Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'mark_entry_viewed', label: t('mark_entry_viewed') || 'Mark Entry Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
-                  // User CRUD
-                  { value: 'user_created', label: t('user_created') || 'User Created', icon: <UserPlus size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'user_updated', label: t('user_updated') || 'User Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'user_deleted', label: t('user_deleted') || 'User Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
-                  // Navigation
-                  { value: 'dashboard_viewed', label: t('dashboard_viewed') || 'Dashboard Viewed', icon: <Home size={16} color="var(--text-secondary, #374151)" /> },
-                  { value: 'analytics_viewed', label: t('analytics_viewed') || 'Analytics Viewed', icon: <BarChart3 size={16} color="var(--text-secondary, #374151)" /> }
-                ]} style={{ minWidth: '200px', flex: '1' }} />
+                <Select value={activityTypeFilter} onChange={(e) => setActivityTypeFilter(e.target.value)} options={getActivityLogOptions(t)} style={{ minWidth: '200px', flex: '1' }} />
                 <Input
                   type="text"
                   placeholder={t('search_by_email_name_ua')}
@@ -3494,6 +3376,20 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     icon={<RefreshCw size={16} />}
                   >
                     Refresh
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete all logs? This action cannot be undone.')) {
+                        // TODO: Implement delete all logs functionality
+                        toast?.showInfo('Delete all logs functionality coming soon');
+                      }
+                    }} 
+                    variant="danger" 
+                    size="small" 
+                    title="Delete All Logs"
+                    icon={<Trash size={16} />}
+                  >
+                    Delete All
                   </Button>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-// import '../css/EmailManager.css';
+import './EmailManager.css';
 import { Modal } from '@ui';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';

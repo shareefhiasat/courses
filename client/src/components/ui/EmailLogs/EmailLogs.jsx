@@ -3,9 +3,15 @@ import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
-import { Mail, Megaphone, FileText, CheckCircle2, XCircle, GraduationCap, BookOpen, MessageSquareText, Mailbox, Eye, Clock, Send, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter } from 'lucide-react';
 import { formatDateTime } from '@utils/date';
 import { AdvancedDataGrid, Loading, Select, Input, Badge } from '../../ui';
+import { 
+  getEmailTypeIcon, 
+  getEmailStatusOptions, 
+  getEmailTypeOptions, 
+  getEmailStatusBadge,
+  Eye 
+} from '@constants/emailTypes';
 
 const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const toast = useToast();
@@ -105,40 +111,6 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   })
   .filter(Boolean);
 
-  const getTypeIcon = (type, size = 16) => {
-    const common = { size };
-    const map = {
-      newsletter: <Mailbox {...common} title="Newsletter" />,
-      announcement: <Megaphone {...common} title="Announcement" />,
-      activity: <FileText {...common} title="Activity" />,
-      activity_complete: <CheckCircle2 {...common} title="Completion" />,
-      activity_graded: <FileText {...common} title="Grading" />,
-      enrollment: <GraduationCap {...common} title="Enrollment" />,
-      resource: <BookOpen {...common} title="Resource" />,
-      chat_digest: <MessageSquareText {...common} title="Chat Digest" />,
-      custom: <Mail {...common} title="Email" />
-    };
-    return map[type] || <Mail {...common} title="Email" />;
-  };
-
-  const getStatusBadge = (status) => {
-    if (status === 'sent') {
-      return (
-          <span style={{ padding: '4px 8px', background: '#d4edda', color: '#155724', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          <CheckCircle2 size={14} />
-            {t('sent_status')}
-        </span>
-      );
-    } else {
-      return (
-          <span style={{ padding: '4px 8px', background: '#f8d7da', color: '#721c24', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          <XCircle size={14} />
-            {t('failed_status')}
-        </span>
-      );
-    }
-  };
-
   return (
       <div>
         {missingIndexUrl && (
@@ -165,17 +137,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             {defaultTypeFilter === 'all' && <Select
                 value={filters.type}
                 onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                options={[
-                  { value: 'all', label: 'All Types' },
-                  { value: 'newsletter', label: 'Newsletter', icon: <Mailbox size={16} title="Newsletter" /> },
-                  { value: 'announcement', label: 'Announcements', icon: <Megaphone size={16} title="Announcement" /> },
-                  { value: 'activity', label: 'Activities', icon: <FileText size={16} title="Activity" /> },
-                  { value: 'activity_graded', label: 'Grading', icon: <FileText size={16} title="Grading" /> },
-                  { value: 'activity_complete', label: 'Completions', icon: <CheckCircle2 size={16} title="Completion" /> },
-                  { value: 'enrollment', label: 'Enrollments', icon: <GraduationCap size={16} title="Enrollment" /> },
-                  { value: 'resource', label: 'Resources', icon: <BookOpen size={16} title="Resource" /> },
-                  { value: 'chat_digest', label: 'Chat Digest', icon: <MessageSquareText size={16} title="Chat Digest" /> }
-                ]}
+                options={getEmailTypeOptions()}
                 fullWidth
                 searchable
             />}
@@ -183,16 +145,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             <Select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                options={[
-                  { value: 'all', label: 'All Status', icon: <ListFilter size={16} title="All Status" /> },
-                  { value: 'sent', label: 'Sent', icon: <Send size={16} title="Sent" /> },
-                  { value: 'delivered', label: 'Delivered', icon: <CheckCircle2 size={16} title="Delivered" /> },
-                  { value: 'failed', label: 'Failed', icon: <XCircle size={16} title="Failed" /> },
-                  { value: 'opened', label: 'Opened', icon: <MailOpen size={16} title="Opened" /> },
-                  { value: 'clicked', label: 'Clicked', icon: <MousePointerClick size={16} title="Clicked" /> },
-                  { value: 'bounced', label: 'Bounced', icon: <CornerDownLeft size={16} title="Bounced" /> },
-                  { value: 'complained', label: 'Complained', icon: <Flag size={16} title="Complained" /> }
-                ]}
+                options={getEmailStatusOptions()}
                 fullWidth
                 searchable
             />
@@ -246,7 +199,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                 width: 150,
                 renderCell: (params) => (
                     <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
-                {getTypeIcon(params.value, 18)}
+                {getEmailTypeIcon(params.value, 18)}
                       <span style={{ fontSize: '0.85rem' }}>{params.value}</span>
               </span>
                 )
@@ -278,7 +231,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                 field: 'status',
                 headerName: t('status'),
                 width: 120,
-                renderCell: (params) => getStatusBadge(params.value)
+                renderCell: (params) => getEmailStatusBadge(params.value, t)
               },
               {
                 field: 'actions',

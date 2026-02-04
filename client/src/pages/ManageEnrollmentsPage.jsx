@@ -180,22 +180,22 @@ const ManageEnrollmentsPage = () => {
         return uid;
       }).filter(Boolean);
       
-      console.log('🔍 [ManageEnrollments] Student IDs to match:', studentIds);
+      // console.log('🔍 [ManageEnrollments] Student IDs to match:', studentIds);
 
       // Get all users and filter by student role and enrollment
       const usersSnap = await getDocs(collection(db, 'users'));
       const allUsers = usersSnap.docs.map(d => ({ docId: d.id, id: d.id, ...d.data() }));
 
-      console.log('🔍 [ManageEnrollments] Total users loaded:', allUsers.length);
-      console.log('🔍 [ManageEnrollments] ALL users details:', allUsers.map(u => ({ 
-        docId: u.docId, 
-        id: u.id, 
-        email: u.email, 
-        role: u.role,
-        archived: u.archived,
-        deleted: u.deleted
-      })));
-      console.log('🔍 [ManageEnrollments] Looking for student IDs:', studentIds);
+      // console.log('🔍 [ManageEnrollments] Total users loaded:', allUsers.length);
+      // console.log('🔍 [ManageEnrollments] ALL users details:', allUsers.map(u => ({ 
+      //   docId: u.docId,
+      //   id: u.id,
+      //   email: u.email,
+      //   role: u.role,
+      //   archived: u.archived,
+      //   deleted: u.deleted
+      // })));
+      // console.log('🔍 [ManageEnrollments] Looking for student IDs:', studentIds);
 
       // Filter: must be a student AND enrolled in this class
       // IMPORTANT: Check enrollment role, not just user doc role (user might not have role set)
@@ -215,22 +215,22 @@ const ManageEnrollmentsPage = () => {
           (enrollmentForUser.role === 'student' || enrollmentForUser.role === 'Student') :
           (u.role === 'student' || u.role === 'Student');
         
-        console.log('🔍 [ManageEnrollments] Processing user:', {
-          userId,
-          email: u.email,
-          userRole: u.role,
-          enrollmentRole: enrollmentForUser?.role,
-          isStudent,
-          hasEnrollment: !!enrollmentForUser,
-          docId: u.docId,
-          id: u.id,
-          archived: u.archived,
-          deleted: u.deleted
-        });
+        // console.log('🔍 [ManageEnrollments] Processing user:', {
+        //   userId,
+        //   email: u.email,
+        //   userRole: u.role,
+        //   enrollmentRole: enrollmentForUser?.role,
+        //   isStudent,
+        //   hasEnrollment: !!enrollmentForUser,
+        //   docId: u.docId,
+        //   id: u.id,
+        //   archived: u.archived,
+        //   deleted: u.deleted
+        // });
         
         // Check if user is archived or deleted - exclude them
         if (u.archived || u.deleted) {
-          console.log('⚠️ [ManageEnrollments] Skipping archived/deleted user:', userId, u.email);
+          // console.log('⚠️ [ManageEnrollments] Skipping archived/deleted user:', userId, u.email);
           return false;
         }
         
@@ -242,37 +242,37 @@ const ManageEnrollmentsPage = () => {
           const match = normalizedSid === normalizedUserId;
           
           if (match) {
-            console.log('✅ [ManageEnrollments] ID Match found:', { 
-              enrollmentUserId: sid, 
-              userDocId: userId, 
-              normalizedSid, 
-              normalizedUserId, 
-              match 
-            });
+            // console.log('✅ [ManageEnrollments] ID Match found:', { 
+            //   enrollmentUserId: sid, 
+            //   userDocId: userId, 
+            //   normalizedSid, 
+            //   normalizedUserId, 
+            //   match 
+            // });
           }
           return match;
         });
         
-        console.log('🔍 [ManageEnrollments] User check result:', {
-          userId,
-          email: u.email,
-          isStudent,
-          isEnrolled,
-          willInclude: isStudent && isEnrolled
-        });
+        // console.log('🔍 [ManageEnrollments] User check result:', {
+        //   userId,
+        //   email: u.email,
+        //   isStudent,
+        //   isEnrolled,
+        //   willInclude: isStudent && isEnrolled
+        // });
         
         if (isStudent && isEnrolled) {
-          console.log('✅ [ManageEnrollments] MATCHED STUDENT - Will include:', userId, u.email);
+          // console.log('✅ [ManageEnrollments] MATCHED STUDENT - Will include:', userId, u.email);
         } else if (isStudent && !isEnrolled) {
-          console.log('❌ [ManageEnrollments] Student but NOT enrolled:', userId, u.email);
+          // console.log('❌ [ManageEnrollments] Student but NOT enrolled:', userId, u.email);
         } else if (!isStudent && isEnrolled) {
-          console.log('❌ [ManageEnrollments] Enrolled but NOT a student:', userId, u.email, 'userRole:', u.role, 'enrollmentRole:', enrollmentForUser?.role);
+          // console.log('❌ [ManageEnrollments] Enrolled but NOT a student:', userId, u.email, 'userRole:', u.role, 'enrollmentRole:', enrollmentForUser?.role);
         }
         
         return isStudent && isEnrolled;
       });
       
-      console.log('🔍 [ManageEnrollments] Final enrolled students:', enrolledStudents.length, enrolledStudents.map(s => ({ id: s.docId || s.id, email: s.email, role: s.role })));
+      // console.log('🔍 [ManageEnrollments] Final enrolled students:', enrolledStudents.length, enrolledStudents.map(s => ({ id: s.docId || s.id, email: s.email, role: s.role })));
 
       // Add disabled status
       const studentsWithStatus = enrolledStudents.map(s => ({

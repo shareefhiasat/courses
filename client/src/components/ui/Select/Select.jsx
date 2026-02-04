@@ -83,16 +83,15 @@ const Select = forwardRef(({
     }
   }, [isOpen, handleClickOutside]);
 
-  // Calculate dropdown position when it opens and update on scroll/resize (for portal/fixed positioning)
+  // Calculate dropdown position when it opens (use relative positioning to avoid scroll issues)
   useEffect(() => {
     if (isOpen && containerRef.current) {
       const updatePosition = () => {
         const rect = containerRef.current.getBoundingClientRect();
-        const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-        const scrollX = window.scrollX || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
+        // Use relative positioning to avoid scroll-to-top issues
         setDropdownPosition({
-          top: rect.bottom + scrollY + 4,
-          left: rect.left + scrollX,
+          top: rect.bottom + 4,
+          left: rect.left,
           width: rect.width
         });
       };
@@ -100,12 +99,10 @@ const Select = forwardRef(({
       // Initial position
       updatePosition();
       
-      // Update on scroll and resize
-      window.addEventListener('scroll', updatePosition, true);
+      // Only update on resize, not scroll (to avoid scroll interference)
       window.addEventListener('resize', updatePosition);
       
       return () => {
-        window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
       };
     }
@@ -332,7 +329,7 @@ const Select = forwardRef(({
             ref={dropdownRef}
             className={styles.dropdown}
             style={{
-              position: 'absolute',
+              position: 'fixed',
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
               width: `${dropdownPosition.width}px`,

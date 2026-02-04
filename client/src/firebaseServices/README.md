@@ -7,7 +7,7 @@ This directory contains all Firebase service files and utilities that are common
 ### 🔧 Core Services
 - `config.js` - Firebase configuration and initialization
 - `firestore.js` - Core Firestore utilities and helpers
-- `activityLogger.js` - Activity logging service
+- `activityLogger.jsx` - Activity logging service
 
 ### 📊 Service Modules (Service.js naming convention)
 - `authService.js` - Authentication operations
@@ -38,13 +38,13 @@ import { createQuiz } from '@firebaseServices/quizService';
 
 // Import utilities
 import { db } from '@firebaseServices/config';
-import { logActivity } from '@firebaseServices/activityLogger';
+import { logActivity } from '@firebaseServices/activityLogger.jsx';
 ```
 
 ## 📋 Naming Convention
 
 - **Service files**: Use `Service.js` suffix (e.g., `userService.js`, `attendanceService.js`)
-- **Utility files**: Use descriptive names (e.g., `config.js`, `activityLogger.js`)
+- **Utility files**: Use descriptive names (e.g., `config.js`, `activityLogger.jsx`)
 - **Consistent imports**: All use the `@firebaseServices/` prefix
 
 ## 🔗 Related Directories

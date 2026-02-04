@@ -1372,9 +1372,16 @@ const DICT = {
   },
   // Visualization / Tour localizations for dashboard (dot-notation keys added for t())
   'tour.mode_switcher': 'Use these tabs to switch between dashboard sections',
+  'tour.mode_switcher_content': 'Switch between different dashboard views and functionalities using these tabs',
   'tour.stats': 'These summary cards show counts for activities, enrollments, and more',
+  'tour.stats_content': 'View key metrics and statistics about your courses and activities',
+  'tour.stats_content_alt': 'Monitor important metrics and system statistics at a glance',
   'tour.filters': 'Filter and search results using these controls',
+  'tour.filters_content': 'Use filters to narrow down results and find specific information quickly',
+  'tour.filters_content_alt': 'Apply filters to refine your view and locate specific data',
   'tour.cards_grid': 'These cards display items. Use the actions to interact with items',
+  'tour.cards_grid_content': 'Browse through your data and take actions using the available options',
+  'tour.cards_grid_content_alt': 'Navigate through your content and manage items efficiently',
   ar: {
     // Deletion related labels (Arabic)
     delete_activity: 'حذف النشاط',
@@ -2682,6 +2689,19 @@ const DICT = {
     camera_constraints_not_supported: 'الكاميرا لا تدعم الإعدادات المطلوبة. حاول تبديل الكاميرات.',
     camera_access_failed: 'فشل الوصول إلى الكاميرا',
     invalid_qr_code_format: 'تنسيق رمز QR غير صالح',
+    
+    // Tour translations (Arabic)
+    'tour.mode_switcher': 'استخدم هذه علامات التبويب للتبديل بين أقسام لوحة التحكم',
+    'tour.mode_switcher_content': 'التبديل بين طرق عرض ووظائف لوحة التحكم المختلفة باستخدام علامات التبويب هذه',
+    'tour.stats': 'تعرض بطاقات الملخص هذه أعداد الأنشطة والتسجيلات والمزيد',
+    'tour.stats_content': 'عرض المقاييس والإحصائيات الرئيسية حول دوراتك وأنشطتك',
+    'tour.stats_content_alt': 'مراقبة المقاييس والإحصائيات المهمة في لمحة',
+    'tour.filters': 'تصفية نتائج البحث باستخدام عناصر التحكم هذه',
+    'tour.filters_content': 'استخدم عوامل التصفية لتضييق النتائج والعثور على معلومات محددة بسرعة',
+    'tour.filters_content_alt': 'تطبيق عوامل التصفية لتحسين عرضك وتحديد بيانات محددة',
+    'tour.cards_grid': 'تعرض هذه البطاقات العناصر. استخدم الإجراءات للتفاعل مع العناصر',
+    'tour.cards_grid_content': 'تصفح بياناتك واتخذ إجراءات باستخدام الخيارات المتاحة',
+    'tour.cards_grid_content_alt': 'التنقل عبر المحتوى الخاص بك وإدارة العناصر بكفاءة',
   },
 };
 

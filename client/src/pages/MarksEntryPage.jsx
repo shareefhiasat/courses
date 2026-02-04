@@ -874,6 +874,162 @@ const MarksEntryPage = () => {
         </Card>
       )}
 
+      {/* Edit Distribution - Moved to top */}
+      {editingDistribution && selectedSubject && (
+        <Card style={{ marginBottom: '1rem', background: '#fef3c7', border: '1px solid #fbbf24' }}>
+          <CardBody>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0 }}>Edit Marks Distribution</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingDistribution(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const total = (
+                (distributionForm.midTermExam || 0) +
+                (distributionForm.finalExam || 0) +
+                (distributionForm.homework || 0) +
+                (distributionForm.labsProjectResearch || 0) +
+                (distributionForm.quizzes || 0) +
+                (distributionForm.participation || 0) +
+                (distributionForm.attendance || 0)
+              );
+              if (Math.abs(total - 100) > 0.01) {
+                toast.error(t('total_must_be_100', { total: total.toFixed(1) }) || `Total must be 100%. Current total: ${total.toFixed(1)}%`);
+                return;
+              }
+              setLoading(true);
+              try {
+                const result = await setSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id, distributionForm);
+                if (result.success) {
+                  toast.success(t('marks_distribution_updated_successfully') || 'Marks distribution updated successfully');
+                  setEditingDistribution(false);
+                  loadMarksData();
+                } else {
+                  toast.error(result.error || t('failed_to_update_distribution') || 'Failed to update distribution');
+                }
+              } catch (error) {
+                toast.error(error.message);
+              } finally {
+                setLoading(false);
+              }
+            }} className="dashboard-form">
+              <div className="form-row">
+                <Input
+                  label="Mid-Term Exam (%)"
+                  type="number"
+                  value={distributionForm.midTermExam}
+                  onChange={(e) => setDistributionForm({ ...distributionForm, midTermExam: parseFloat(e.target.value) || 0 })}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                />
+                <Input
+                  label="Final Exam (%)"
+                  type="number"
+                  value={distributionForm.finalExam}
+                  onChange={(e) => setDistributionForm({ ...distributionForm, finalExam: parseFloat(e.target.value) || 0 })}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                />
+                <Input
+                  label="Homework (%)"
+                  type="number"
+                  value={distributionForm.homework}
+                  onChange={(e) => setDistributionForm({ ...distributionForm, homework: parseFloat(e.target.value) || 0 })}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                />
+                <Input
+                  label="Labs/Projects/Research (%)"
+                  type="number"
+                  value={distributionForm.labsProjectResearch}
+                  onChange={(e) => setDistributionForm({ ...distributionForm, labsProjectResearch: parseFloat(e.target.value) || 0 })}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                />
+                <Input
+                  label="Quizzes (%)"
+                  type="number"
+                  value={distributionForm.quizzes}
+                  onChange={(e) => setDistributionForm({ ...distributionForm, quizzes: parseFloat(e.target.value) || 0 })}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                />
+                <Input
+                  label="Participation (%)"
+                  type="number"
+                  value={distributionForm.participation}
+                  onChange={(e) => setDistributionForm({ ...distributionForm, participation: parseFloat(e.target.value) || 0 })}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                />
+                <Input
+                  label="Attendance (%)"
+                  type="number"
+                  value={distributionForm.attendance}
+                  onChange={(e) => setDistributionForm({ ...distributionForm, attendance: parseFloat(e.target.value) || 0 })}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                />
+              </div>
+              <div style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '8px', marginBottom: '0.75rem' }}>
+                <strong>Total: {(
+                  (distributionForm.midTermExam || 0) +
+                  (distributionForm.finalExam || 0) +
+                  (distributionForm.homework || 0) +
+                  (distributionForm.labsProjectResearch || 0) +
+                  (distributionForm.quizzes || 0) +
+                  (distributionForm.participation || 0) +
+                  (distributionForm.attendance || 0)
+                ).toFixed(1)}%</strong>
+                {Math.abs((
+                  (distributionForm.midTermExam || 0) +
+                  (distributionForm.finalExam || 0) +
+                  (distributionForm.homework || 0) +
+                  (distributionForm.labsProjectResearch || 0) +
+                  (distributionForm.quizzes || 0) +
+                  (distributionForm.participation || 0) +
+                  (distributionForm.attendance || 0)
+                ) - 100) > 0.01 && (
+                  <p style={{ color: '#dc2626', margin: '0.5rem 0 0 0', fontSize: '0.875rem' }}>
+                    Total must equal 100%
+                  </p>
+                )}
+              </div>
+              <div className="form-actions">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={loading || Math.abs((
+                    (distributionForm.midTermExam || 0) +
+                    (distributionForm.finalExam || 0) +
+                    (distributionForm.homework || 0) +
+                    (distributionForm.labsProjectResearch || 0) +
+                    (distributionForm.quizzes || 0) +
+                    (distributionForm.participation || 0) +
+                    (distributionForm.attendance || 0)
+                  ) - 100) > 0.01}
+                >
+                  {loading ? 'Saving...' : 'Save Distribution'}
+                </Button>
+              </div>
+            </form>
+          </CardBody>
+        </Card>
+      )}
+
       {/* Students Grid */}
       <Card>
         <CardBody>
@@ -1028,162 +1184,6 @@ const MarksEntryPage = () => {
             </div>
           </form>
         </Modal>
-      )}
-
-      {/* Edit Distribution */}
-      {editingDistribution && selectedSubject && (
-        <Card style={{ marginBottom: '1rem', background: '#fef3c7', border: '1px solid #fbbf24' }}>
-          <CardBody>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0 }}>Edit Marks Distribution</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditingDistribution(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              const total = (
-                (distributionForm.midTermExam || 0) +
-                (distributionForm.finalExam || 0) +
-                (distributionForm.homework || 0) +
-                (distributionForm.labsProjectResearch || 0) +
-                (distributionForm.quizzes || 0) +
-                (distributionForm.participation || 0) +
-                (distributionForm.attendance || 0)
-              );
-              if (Math.abs(total - 100) > 0.01) {
-                toast.error(t('total_must_be_100', { total: total.toFixed(1) }) || `Total must be 100%. Current total: ${total.toFixed(1)}%`);
-                return;
-              }
-              setLoading(true);
-              try {
-                const result = await setSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id, distributionForm);
-                if (result.success) {
-                  toast.success(t('marks_distribution_updated_successfully') || 'Marks distribution updated successfully');
-                  setEditingDistribution(false);
-                  loadMarksData();
-                } else {
-                  toast.error(result.error || t('failed_to_update_distribution') || 'Failed to update distribution');
-                }
-              } catch (error) {
-                toast.error(error.message);
-              } finally {
-                setLoading(false);
-              }
-            }} className="dashboard-form">
-              <div className="form-row">
-                <Input
-                  label="Mid-Term Exam (%)"
-                  type="number"
-                  value={distributionForm.midTermExam}
-                  onChange={(e) => setDistributionForm({ ...distributionForm, midTermExam: parseFloat(e.target.value) || 0 })}
-                  min={0}
-                  max={100}
-                  step={0.5}
-                />
-                <Input
-                  label="Final Exam (%)"
-                  type="number"
-                  value={distributionForm.finalExam}
-                  onChange={(e) => setDistributionForm({ ...distributionForm, finalExam: parseFloat(e.target.value) || 0 })}
-                  min={0}
-                  max={100}
-                  step={0.5}
-                />
-                <Input
-                  label="Homework (%)"
-                  type="number"
-                  value={distributionForm.homework}
-                  onChange={(e) => setDistributionForm({ ...distributionForm, homework: parseFloat(e.target.value) || 0 })}
-                  min={0}
-                  max={100}
-                  step={0.5}
-                />
-                <Input
-                  label="Labs/Projects/Research (%)"
-                  type="number"
-                  value={distributionForm.labsProjectResearch}
-                  onChange={(e) => setDistributionForm({ ...distributionForm, labsProjectResearch: parseFloat(e.target.value) || 0 })}
-                  min={0}
-                  max={100}
-                  step={0.5}
-                />
-                <Input
-                  label="Quizzes (%)"
-                  type="number"
-                  value={distributionForm.quizzes}
-                  onChange={(e) => setDistributionForm({ ...distributionForm, quizzes: parseFloat(e.target.value) || 0 })}
-                  min={0}
-                  max={100}
-                  step={0.5}
-                />
-                <Input
-                  label="Participation (%)"
-                  type="number"
-                  value={distributionForm.participation}
-                  onChange={(e) => setDistributionForm({ ...distributionForm, participation: parseFloat(e.target.value) || 0 })}
-                  min={0}
-                  max={100}
-                  step={0.5}
-                />
-                <Input
-                  label="Attendance (%)"
-                  type="number"
-                  value={distributionForm.attendance}
-                  onChange={(e) => setDistributionForm({ ...distributionForm, attendance: parseFloat(e.target.value) || 0 })}
-                  min={0}
-                  max={100}
-                  step={0.5}
-                />
-              </div>
-              <div style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '8px', marginBottom: '0.75rem' }}>
-                <strong>Total: {(
-                  (distributionForm.midTermExam || 0) +
-                  (distributionForm.finalExam || 0) +
-                  (distributionForm.homework || 0) +
-                  (distributionForm.labsProjectResearch || 0) +
-                  (distributionForm.quizzes || 0) +
-                  (distributionForm.participation || 0) +
-                  (distributionForm.attendance || 0)
-                ).toFixed(1)}%</strong>
-                {Math.abs((
-                  (distributionForm.midTermExam || 0) +
-                  (distributionForm.finalExam || 0) +
-                  (distributionForm.homework || 0) +
-                  (distributionForm.labsProjectResearch || 0) +
-                  (distributionForm.quizzes || 0) +
-                  (distributionForm.participation || 0) +
-                  (distributionForm.attendance || 0)
-                ) - 100) > 0.01 && (
-                  <p style={{ color: '#dc2626', margin: '0.5rem 0 0 0', fontSize: '0.875rem' }}>
-                    Total must equal 100%
-                  </p>
-                )}
-              </div>
-              <div className="form-actions">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={loading || Math.abs((
-                    (distributionForm.midTermExam || 0) +
-                    (distributionForm.finalExam || 0) +
-                    (distributionForm.homework || 0) +
-                    (distributionForm.labsProjectResearch || 0) +
-                    (distributionForm.quizzes || 0) +
-                    (distributionForm.participation || 0) +
-                    (distributionForm.attendance || 0)
-                  ) - 100) > 0.01}
-                >
-                  {loading ? 'Saving...' : 'Save Distribution'}
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
       )}
 
       {/* Side Window */}

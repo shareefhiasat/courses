@@ -55,7 +55,19 @@ const EmailTemplates = () => {
 
   return (
       <div>
-        {view === 'list' ? (
+        {(checking || hasTemplates === null) && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            minHeight: '200px',
+            padding: '2rem'
+          }}>
+            <Loading variant="overlay" message="Loading templates..." fancyVariant="dots" />
+          </div>
+        )}
+        
+        {!checking && hasTemplates !== null && view === 'list' ? (
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
                 <p style={{ color: '#666', fontSize: '0.95rem' }}>
@@ -77,7 +89,7 @@ const EmailTemplates = () => {
               />
             </div>
         ) : (
-            <EmailTemplateEditor
+            !checking && hasTemplates !== null && <EmailTemplateEditor
                 template={editingTemplate}
                 onSave={handleSave}
                 onCancel={handleCancel}
