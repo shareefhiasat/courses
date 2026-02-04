@@ -6,7 +6,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
-import { USER_ROLES } from '@constants/userRoles';
+import { USER_ROLES, getRoleColor, getRoleIcon, getRoleDisplayName } from '@constants/userRoles';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
@@ -19,16 +19,24 @@ import { getResources, addResource, updateResource, deleteResource } from '@fire
 import { addEmailLog, getEmailLogs } from '@firebaseServices/emailService';
 import { addActivityLog } from '@firebaseServices/activityService';
 import { getClasses, addClass, updateClass, deleteClass } from '@firebaseServices/classService';
-import { sendEmail, getSMTPConfig, updateSMTPConfig, deleteEmailLog } from '@firebaseServices/emailService';
+import { sendEmail, getSMTPConfig, updateSMTPConfig } from '@firebaseServices/emailService';
 import { getCourses, setCourse, deleteCourse } from '@firebaseServices/courseService';
-import { db } from '@firebaseServices/config';
 import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@firebaseServices/activityService';
 import { getAllowlist, updateAllowlist } from '@firebaseServices/configService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
-import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection } from '@ui';
+import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection, Badge } from '@ui';
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { RibbonTabs, DragGrid, EmailManager, SmartEmailComposer, UserDeletionModal, EmailTemplates, EmailLogs } from '@ui';
+import { 
+  getResourceTypeConfig, 
+  getResourceTypeOptions, 
+  getActivityLogTypeConfig,
+  getProgramScopeConfig,
+  COMMON_GRID_COLUMNS,
+  COMMON_ICONS,
+  getThemeColor
+} from '@constants/dashboardTypes.jsx';
 import ProgramsManagementPage from './ProgramsManagementPage';
 import SubjectsManagementPage from './SubjectsManagementPage';
 import MarksEntryPage from './MarksEntryPage';
@@ -44,7 +52,14 @@ import { logActivity, ACTIVITY_TYPES, getActivityLogOptions } from '@firebaseSer
 import { getUserDisplayName } from '@firebaseServices/userService';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';
-import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe, Tag, QrCode, KeyRound } from 'lucide-react';
+import { 
+  Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, 
+  AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, 
+  Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, 
+  Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, 
+  Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe, Tag, 
+  QrCode, KeyRound 
+} from 'lucide-react';
 import { formatDateTime } from '@utils/date';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
@@ -60,7 +75,7 @@ const DashboardPage = () => {
   
   // Memoized helper function for theme-aware filter icon colors
   const getFilterIconColor = useCallback(() => {
-    return theme === 'dark' ? '#9ca3af' : '#374151';
+    return getThemeColor('text.secondary', theme);
   }, [theme]);
   // Joyride tour state
   const [runTour, setRunTour] = useState(false);
@@ -487,6 +502,41 @@ const DashboardPage = () => {
       logger.error('Failed to open QR code:', error);
       toast?.showError('Failed to generate QR code');
     }
+  };
+
+  // Helper function to create role badges with semantic colors
+  const getRoleBadge = (role) => {
+    return (
+      <Badge color={getRoleColor(role)} size="sm">
+        {getRoleDisplayName(role, lang)}
+      </Badge>
+    );
+  };
+
+  // Helper function to get actual color values for icons
+  const getRoleIconColor = (role) => {
+    const colorMap = {
+      'success': '#16a34a',    // Green
+      'info': '#0ea5e9',       // Blue  
+      'primary': '#8b5cf6',    // Purple
+      'danger': '#dc2626',     // Red
+      'warning': '#f59e0b',    // Orange
+      'default': '#6c757d'     // Gray
+    };
+    const semanticColor = getRoleColor(role);
+    return colorMap[semanticColor] || colorMap.default;
+  };
+
+  // Helper function to get icon component by name
+  const getIconComponent = (iconName) => {
+    const iconMap = {
+      'User': User,
+      'BookOpen': BookOpen,
+      'Users': Users,
+      'Shield': Shield,
+      'Crown': Crown
+    };
+    return iconMap[iconName] || User;
   };
 
   // Data states
@@ -3289,19 +3339,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 <Select value={loginUserFilter} onChange={(e) => setLoginUserFilter(e.target.value)} options={[
                   { value: 'all', label: t('all_users'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
                   ...users.map(u => {
-                    const getRoleIcon = (role) => {
-                      switch(role) {
-                        case 'superadmin': return <Crown size={16} color="#f59e0b" />;
-                        case USER_ROLES.ADMIN: return <Shield size={16} color="#4f46e5" />;
-                        case USER_ROLES.INSTRUCTOR: return <BookOpen size={16} color="#0ea5e9" />;
-                        case USER_ROLES.HR: return <Users size={16} color="#8b5cf6" />;
-                        default: return <User size={16} color="#16a34a" />;
-                      }
-                    };
+                    // Get user's enrollment count
+                    const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
+                    const enrollmentCount = userEnrollments.length;
+                    const enrollmentText = enrollmentCount > 0 ? ` (${enrollmentCount} enrollments)` : '';
+                    
                     return {
                       value: u.email || u.docId,
-                      label: u.displayName ? `${u.displayName} (${u.email || u.docId})` : (u.email || u.docId),
-                      icon: getRoleIcon(u.role)
+                      label: u.displayName ? `${u.displayName} (${u.email || u.docId})${enrollmentText}` : (u.email || u.docId),
+                      icon: React.createElement(getIconComponent(getRoleIcon(u.role)), { 
+                        size: 16, 
+                        style: { color: getRoleIconColor(u.role) } 
+                      })
                     };
                   })
                 ]} style={{ minWidth: '200px', flex: '1' }} searchable size="small" />
@@ -3436,43 +3485,84 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 getRowId={(row) => row.docId || row.id}
                 columns={[
                   {
-                    field: 'type', headerName: t('type'), width: 200,
+                    field: 'type', 
+                    headerName: t('type_col'), 
+                    width: 200,
                     renderCell: (params) => {
                       const type = params.value || 'login';
-                      const typeMap = {
-                        'login': { icon: <LogIn size={16} color="var(--color-success, #16a34a)" />, text: 'Login' },
-                        'logout': { icon: <LogOut size={16} color="var(--color-warning, #f59e0b)" />, text: 'Logout' },
-                        'failed_login': { icon: <XCircle size={16} color="var(--color-danger, #dc2626)" />, text: 'Failed Login' },
-                        'password_reset': { icon: <Key size={16} color="var(--color-info, #0ea5e9)" />, text: 'Password Reset' }
-                      };
-                      const typeConfig = typeMap[type.toLowerCase()] || { icon: <Activity size={16} color="var(--text-secondary, #374151)" />, text: type };
+                      const config = getActivityLogTypeConfig(type);
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
-                          {typeConfig.icon} {typeConfig.text}
+                          {config.icon} {t(type) || config.label}
                         </span>
                       );
                     }
                   },
                   {
-                    field: 'when', headerName: t('when'), width: 180,
+                    field: 'timestamp', 
+                    headerName: t('when'), 
+                    width: 180,
                     valueGetter: (params) => params.value,
-                    renderCell: (params) => formatDateTime(params.value)
+                    renderCell: (params) => {
+                      const timestamp = params.value;
+                      if (!timestamp) return '—';
+                      // Handle both Firestore Timestamp and regular Date
+                      const date = timestamp?.seconds ? 
+                        new Date(timestamp.seconds * 1000) : 
+                        new Date(timestamp);
+                      return formatDateTime(date);
+                    }
                   },
                   {
-                    field: 'displayName', headerName: t('user_col'), flex: 1, minWidth: 150,
+                    field: 'userName', 
+                    headerName: t('user_col'), 
+                    flex: 1, 
+                    minWidth: 150,
                     renderCell: (params) => params.value || '—'
                   },
                   {
-                    field: 'email', headerName: t('email_col'), flex: 1, minWidth: 200,
+                    field: 'userEmail', 
+                    headerName: t('email_col'), 
+                    flex: 1, 
+                    minWidth: 200,
                     renderCell: (params) => params.value || '—'
                   },
                   {
-                    field: 'userAgent', headerName: t('user_agent_col'), flex: 2, minWidth: 300,
+                    field: 'userAgent', 
+                    headerName: t('user_agent_col'), 
+                    flex: 2, 
+                    minWidth: 300,
                     renderCell: (params) => (
                       <div style={{ maxWidth: 520, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {params.value || '—'}
                       </div>
                     )
+                  },
+                  {
+                    field: 'details',
+                    headerName: t('description_col'),
+                    flex: 1,
+                    minWidth: 200,
+                    renderCell: (params) => {
+                      const details = params.value || {};
+                      if (Object.keys(details).length === 0) return '—';
+                      
+                      // Show relevant details based on activity type
+                      const type = params.row.type;
+                      let detailText = '';
+                      
+                      if (type === 'login' && details.ip) {
+                        detailText = `IP: ${details.ip}`;
+                      } else if (type === 'logout' && details.sessionDuration) {
+                        detailText = `Session: ${details.sessionDuration}`;
+                      } else if (details.action) {
+                        detailText = details.action;
+                      } else if (details.message) {
+                        detailText = details.message;
+                      }
+                      
+                      return detailText || JSON.stringify(details);
+                    }
                   }
                 ]}
                 pageSize={20}
@@ -4212,7 +4302,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     options={[
                       { value: USER_ROLES.STUDENT, label: (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <User size={16} style={{ color: '#16a34a' }} />
+                          {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.STUDENT)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.STUDENT) } })}
                           {t('student') || 'Student'}
                         </span>
                       )}
@@ -4900,32 +4990,32 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   options={[
                     { value: USER_ROLES.STUDENT, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <User size={16} style={{ color: '#16a34a' }} />
+                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.STUDENT)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.STUDENT) } })}
                         {t('student') || 'Student'}
                       </span>
                     )},
                     { value: USER_ROLES.INSTRUCTOR, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <BookOpen size={16} style={{ color: '#0ea5e9' }} />
+                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.INSTRUCTOR)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.INSTRUCTOR) } })}
                         {t('instructor') || 'Instructor'}
                       </span>
                     )},
                     { value: USER_ROLES.HR, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Users size={16} style={{ color: '#8b5cf6' }} />
+                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.HR)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.HR) } })}
                         {t('hr') || 'HR'}
                       </span>
                     )},
                     { value: USER_ROLES.ADMIN, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Shield size={16} style={{ color: '#4f46e5' }} />
+                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.ADMIN)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.ADMIN) } })}
                         {t('admin') || 'Admin'}
                       </span>
                     )},
-                    { value: 'superadmin', label: (
+                    { value: USER_ROLES.SUPER_ADMIN, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Crown size={16} style={{ color: '#f59e0b' }} />
-                        Super Admin
+                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.SUPER_ADMIN)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.SUPER_ADMIN) } })}
+                        {t('super_admin') || 'Super Admin'}
                       </span>
                     )},
                   ]}
@@ -5529,11 +5619,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       placeholder={t('type') || 'Resource Type'}
                       value={resourceForm.type}
                       onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
-                      options={[
-                        { value: 'document', label: 'Document', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
-                        { value: 'link', label: 'Link', icon: <Link size={16} color="var(--text-secondary, #374151)" /> },
-                        { value: 'video', label: 'Video', icon: <Video size={16} color="var(--text-secondary, #374151)" /> }
-                      ]}
+                      options={getResourceTypeOptions(theme)}
                     />
                   </div>
                 </>
@@ -5766,15 +5852,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 {
                   field: 'type', headerName: t('type_col'), width: 140,
                   renderCell: (params) => {
-                    const typeMap = {
-                      'document': { icon: <FileText size={16} color="var(--color-primary, #4f46e5)" />, text: 'Document' },
-                      'link': { icon: <Link size={16} color="var(--color-info, #0ea5e9)" />, text: 'Link' },
-                      'video': { icon: <Video size={16} color="var(--color-danger, #dc2626)" />, text: 'Video' }
-                    };
-                    const typeConfig = typeMap[params.value] || { icon: <FileText size={16} color="var(--text-secondary, #374151)" />, text: params.value };
+                    const config = getResourceTypeConfig(params.value, theme);
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        {typeConfig.icon} {typeConfig.text}
+                        {config.icon} {config.label}
                       </span>
                     );
                   }

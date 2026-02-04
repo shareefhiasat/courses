@@ -32,6 +32,24 @@ export const ROLE_DISPLAY_NAMES_AR = {
   [USER_ROLES.STUDENT]: 'طالب'
 };
 
+// Role Color Mappings (semantic colors for UI consistency)
+export const ROLE_COLORS = {
+  [USER_ROLES.STUDENT]: 'success',    // Green - represents active learners
+  [USER_ROLES.INSTRUCTOR]: 'info',    // Blue - represents teachers/guides  
+  [USER_ROLES.HR]: 'primary',         // Purple/Indigo - represents support staff
+  [USER_ROLES.ADMIN]: 'danger',       // Red - represents administrative power
+  [USER_ROLES.SUPER_ADMIN]: 'warning' // Orange - represents highest level
+};
+
+// Role Icon Mappings (Lucide React icons)
+export const ROLE_ICONS = {
+  [USER_ROLES.STUDENT]: 'User',
+  [USER_ROLES.INSTRUCTOR]: 'BookOpen', 
+  [USER_ROLES.HR]: 'Users',
+  [USER_ROLES.ADMIN]: 'Shield',
+  [USER_ROLES.SUPER_ADMIN]: 'Crown'
+};
+
 // Role Permissions
 export const ROLE_PERMISSIONS = {
   [USER_ROLES.ADMIN]: [
@@ -152,4 +170,14 @@ export const hasHigherRole = (userRole, targetRole) => {
   const userLevel = ROLE_HIERARCHY[userRole] || 0;
   const targetLevel = ROLE_HIERARCHY[targetRole] || 0;
   return userLevel > targetLevel;
+};
+
+// Helper function to get role color
+export const getRoleColor = (role) => {
+  return ROLE_COLORS[role] || 'default';
+};
+
+// Helper function to get role icon name  
+export const getRoleIcon = (role) => {
+  return ROLE_ICONS[role] || 'User';
 };

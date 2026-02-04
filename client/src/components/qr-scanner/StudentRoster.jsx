@@ -1070,7 +1070,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  Present
+                  {t('present') || 'Present'}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1082,7 +1082,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  Late
+                  {t('late') || 'Late'}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1094,7 +1094,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  Absent
+                  {t('absent') || 'Absent'}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1106,7 +1106,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  Absent Excused
+                  {t('absent_excused') || 'Absent Excused'}
                 </th>
                 <th style={{
                   textAlign: 'center',
