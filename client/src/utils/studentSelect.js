@@ -1,5 +1,5 @@
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '@firebaseServices/config';
 import { getUserStatusSummary } from './userStatus';
 
 /**

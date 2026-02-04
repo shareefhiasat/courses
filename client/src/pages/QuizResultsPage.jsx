@@ -6,11 +6,11 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, orderBy, doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, Modal, Input, Checkbox } from '@ui';
-import { getPrograms, getSubjects } from '@firebaseServices/programs';
-import { getClasses } from '@firebaseServices/firestore';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getClasses } from '@firebaseServices/classService';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
-import { addNotification } from '@firebaseServices/notifications';
-import { sendEmail } from '@firebaseServices/firestore';
+import { addNotification } from '@firebaseServices/notificationService';
+import { sendEmail } from '@firebaseServices/emailService';
 import { Edit, Check, X, Mail, Send, CheckSquare } from 'lucide-react';
 import styles from './QuizResultsPage.module.css';
 

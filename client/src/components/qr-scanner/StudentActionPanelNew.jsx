@@ -14,13 +14,13 @@ import {
   BedIcon 
 } from '@utils/icons.jsx';
 import { useAuth } from '@contexts/AuthContext';
-import { markAttendance } from '@firebaseServices/attendance';
+import { markAttendance } from '@firebaseServices/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '@firebaseServices/userPreferences';
+import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '@firebaseServices/userPreferenceService';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { scanAttendance, simpleDeviceHash } from '@firebaseServices/attendance';
+import { scanAttendance, simpleDeviceHash } from '../firebase/attendance';
 import { Button, Select, Loading, DatePicker, useToast } from '@ui';
 import { Download } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -226,8 +226,8 @@ const StudentAttendancePage = () => {
       if (!user?.uid) return;
       try {
         const { doc, getDoc, collection, getDocs, query, where } = await import('firebase/firestore');
-        const { db } = await import('../firebase/config');
-        const { getEnrollments } = await import('../firebase/firestore');
+        const { db } = await import('@firebaseServices/config');
+        const { getEnrollments } = await import('@firebaseServices/enrollmentService');
         
         // Get user data including visibility preference
         const userSnap = await getDoc(doc(db, 'users', user.uid));
@@ -280,7 +280,7 @@ const StudentAttendancePage = () => {
       setHistLoading(true);
       try {
         const { collection, getDocs, query, where, orderBy, doc, getDoc } = await import('firebase/firestore');
-        const { db } = await import('../firebase/config');
+        const { db } = await import('@firebaseServices/config');
         
         // Get all attendance sessions
         const sessionsQuery = query(collection(db, 'attendanceSessions'), orderBy('createdAt', 'desc'));
@@ -408,7 +408,7 @@ const StudentAttendancePage = () => {
       try {
         setMessage(t('looking_up_session') || 'Looking up session...');
         const { collection, getDocs, query, where } = await import('firebase/firestore');
-        const { db } = await import('../firebase/config');
+        const { db } = await import('@firebaseServices/config');
         
         // Find active session with matching manual code
         const sessionsQuery = query(

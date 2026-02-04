@@ -4,7 +4,7 @@ import { db } from '@firebaseServices/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
-import { getPrograms, getSubjects } from '../firebase/programs';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';

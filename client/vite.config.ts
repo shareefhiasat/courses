@@ -14,7 +14,7 @@ export default defineConfig({
       '@contexts': path.resolve(__dirname, './src/contexts'),
       '@utils': path.resolve(__dirname, './src/utils'),
       '@hooks': path.resolve(__dirname, './src/hooks'),
-      '@firebaseServices': path.resolve(__dirname, './src/firebase'),
+      '@firebaseServices': path.resolve(__dirname, './src/firebaseServices'),
       '@constants': path.resolve(__dirname, './src/constants'),
     },
   },

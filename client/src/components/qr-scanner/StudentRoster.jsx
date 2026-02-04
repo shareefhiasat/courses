@@ -4,11 +4,11 @@ import { Input } from '@ui';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
-import { getAttendanceByStudent, deleteAttendance, quickMarkAttendance } from '@firebaseServices/attendance';
-import { getPenalties, deletePenalty } from '@firebaseServices/penalties';
-import { getParticipations, deleteParticipation } from '@firebaseServices/participations';
-import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviors';
-import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@firebaseServices/userPreferences';
+import { getAttendanceByStudent, deleteAttendance, rosterQuickAction } from '@firebaseServices/attendanceService';
+import { getPenalties, deletePenalty } from '@firebaseServices/penaltyService';
+import { getParticipations, deleteParticipation } from '@firebaseServices/participationService';
+import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviorService';
+import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@firebaseServices/userPreferenceService';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
@@ -565,15 +565,14 @@ const StudentRoster = React.memo(function StudentRoster({
     if (!student || !status || !selectedClassId) return;
     
     try {
-      // Use the streamlined quickMarkAttendance utility
-      const result = await quickMarkAttendance({
-        studentId: student.id,
-        classId: selectedClassId,
+      // Use the dedicated roster quick action method
+      const result = await rosterQuickAction(
+        student.id,
+        selectedClassId,
         status,
-        method: 'roster_quick_action',
-        notes: `Quick ${getAttendanceLabel(status, lang)}`,
-        user
-      });
+        user,
+        `Quick ${getAttendanceLabel(status, lang)}`
+      );
 
       if (result.success) {
         // Show success feedback

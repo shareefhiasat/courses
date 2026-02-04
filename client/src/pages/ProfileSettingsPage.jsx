@@ -5,7 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
-import { getUserProfile, getUserDisplayName } from '@firebaseServices/user';
+import { getUserProfile, getUserDisplayName } from '@firebaseServices/userService';
 import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown, Globe, Volume2, Vibrate, Smartphone, Bell, TestTube, Monitor, Users, BookOpen } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast, Loading } from '@ui';
 import { ToggleSwitch } from '@ui';

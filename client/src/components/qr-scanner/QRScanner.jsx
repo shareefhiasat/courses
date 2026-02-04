@@ -3,17 +3,16 @@ import logger from '../../utils/logger';
 import { Button } from './ui/button';
 import { CollapsibleSection, PerformedBy } from '@ui';
 import jsQR from 'jsqr';
-import { getAttendanceByClass, deleteAttendance } from '@firebaseServices/attendance';
-import { markAttendance, quickMarkAttendance } from '@firebaseServices/attendance';
+import { getAttendanceByClass, deleteAttendance, rosterQuickAction } from '@firebaseServices/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { USER_ROLES, isAdmin, isSuperAdmin, isStudent } from '@constants/userRoles';
-import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penalties';
-import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@firebaseServices/participations';
-import { createBehavior, getBehaviors, getBehaviorsByClassAndDate, deleteBehavior } from '@firebaseServices/behaviors';
-import { getPerformedByFields } from '@firebaseServices/user';
-import { getUsers } from '@firebaseServices/firestore';
-import { getUserByStudentNumber, getUserById } from '@firebase/userService';
-import { getTodayAttendanceStatus, isStudentMarkedToday } from '@firebase/attendanceService';
+import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penaltyService';
+import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@firebaseServices/participationService';
+import { createBehavior, getBehaviors, getBehaviorsByClassAndDate, deleteBehavior } from '@firebaseServices/behaviorService';
+import { getPerformedByFields } from '@firebaseServices/userService';
+import { getUsers } from '@firebaseServices/userService';
+import { getUserByStudentNumber, getUserById } from '@firebaseServices/userService';
+import { getTodayAttendanceStatus, isStudentMarkedToday } from '@firebaseServices/attendanceService';
 import { db } from '@firebaseServices/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { useAuth } from '@contexts/AuthContext';
@@ -1607,15 +1606,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     addDebugLog(`⚡ Quick marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
     
     try {
-      // Use the streamlined quickMarkAttendance utility
-      const result = await quickMarkAttendance({
-        studentId: student.id,
-        classId: selectedClassId,
+      // Use the dedicated roster quick action method
+      const result = await rosterQuickAction(
+        student.id,
+        selectedClassId,
         status,
-        method: 'quick_action',
-        notes: `Quick ${statusLabel}`,
-        user
-      });
+        user,
+        `Quick ${statusLabel}`
+      );
 
       if (result.success) {
         // Show success feedback

@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
-import { notifyQuizAvailable } from '@firebaseServices/quizNotifications';
-import { getEnrollments, getUsers, getUser } from '@firebaseServices/firestore';
-import { getAllQuizzes, getQuizzesByCreator, deleteQuiz, getQuiz, createQuiz, updateQuiz } from '@firebaseServices/quizzes';
+import { notifyQuizAvailable } from '@firebaseServices/notificationService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { getUsers, getUser } from '@firebaseServices/userService';
+import { getAllQuizzes, getQuizzesByCreator, deleteQuiz, getQuiz, createQuiz, updateQuiz } from '@firebaseServices/quizService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading, Badge } from '@ui';
 import { ToggleSwitch, LanguageToggle } from '@ui';

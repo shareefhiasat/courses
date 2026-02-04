@@ -8,8 +8,9 @@ import { db } from '@firebaseServices/config';
 import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, CollapsibleDashboardSection, Tabs } from '@ui';
 import { InfoTooltip } from '@ui';
 import { Info, FileText, BookOpen, Zap, Wrench, Filter, BarChart3 } from 'lucide-react';
-import { getPrograms, getSubjects } from '@firebaseServices/programs';
-import { getClasses, getActivities } from '@firebaseServices/firestore';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getClasses } from '@firebaseServices/classService';
+import { getActivities } from '@firebaseServices/activityService';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import styles from './QuizResultsPage.module.css';
 

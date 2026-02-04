@@ -30,10 +30,11 @@ import {
 } from '@utils/userStatus';
 import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
-import { getAttendanceByStudent, getAttendanceStats, getAbsences } from '@firebaseServices/attendance';
-import { getPenalties } from '@firebaseServices/penalties';
-import { getStudentMarks } from '@firebaseServices/grading';
-import { getSubjects, getPrograms } from '@firebaseServices/programs';
+import { getAttendanceByStudent, getAttendanceStats } from '@firebaseServices/attendanceService';
+import { getAbsences } from '../firebase/attendance';
+import { getPenalties } from '@firebaseServices/penaltyService';
+import { getStudentMarks } from '@firebaseServices/gradingService';
+import { getSubjects, getPrograms } from '@firebaseServices/programService';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';

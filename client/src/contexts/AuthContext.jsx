@@ -1,19 +1,22 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { onAuthChange } from '../firebase/auth';
+import { onAuthChange, signOutUser } from '@firebaseServices/authService';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
-import { getUserProfile } from '@firebaseServices/user';
-import { getAllowlist, ensureUserDoc, addLoginLog } from '../firebase/firestore';
-import { signOutUser } from '../firebase/auth';
-import { ActivityLogger } from '../firebase/activityLogger';
+import { getUserProfile } from '@utils/userUtils';
+import { getAllowlist } from '@firebaseServices/configService';
+import { ensureUserDoc } from '@firebaseServices/userService';
+import { addLoginLog } from '@firebaseServices/activityService';
+import { ActivityLogger } from '@firebaseServices/activityLogger';
 import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
 import { 
-  USER_ROLES,
-  isAdmin,
-  isSuperAdmin,
-  isHR,
-  isInstructor,
-  isStudent
+  USER_ROLES
+} from '@constants/userRoles';
+import { 
+  isAdmin as isAdminCheck,
+  isSuperAdmin as isSuperAdminCheck,
+  isHR as isHRCheck,
+  isInstructor as isInstructorCheck,
+  isStudent as isStudentCheck
 } from '@constants/userRoles';
 
 const AuthContext = createContext();
@@ -203,7 +206,7 @@ export const AuthProvider = ({ children }) => {
               if (admin && !token.claims.admin && import.meta.env.PROD) {
                 try {
                   const { getFunctions, httpsCallable } = await import('firebase/functions');
-                  const { app } = await import('../firebase/config');
+                  const { app } = await import('@firebaseServices/config');
                   const functions = getFunctions(app);
                   const ensureAdminClaim = httpsCallable(functions, 'ensureAdminClaim');
                   await ensureAdminClaim({ email });
@@ -226,11 +229,35 @@ export const AuthProvider = ({ children }) => {
         let profile = null;
         try {
           profile = await getUserProfile(firebaseUser);
+          console.log('🔧 AuthContext getUserProfile result:', profile);
           if (profile) {
-            adminFromDoc = isAdmin(profile.role) || profile.isAdmin === true;
-            superAdminFromDoc = isSuperAdmin(profile.role) || profile.isSuperAdmin === true;
-            hr = isHR(profile.role) || profile.isHR === true;
-            instructor = isInstructor(profile.role) || profile.isInstructor === true;
+            console.log('🔧 AuthContext full profile data:', profile);
+            console.log('🔧 AuthContext profile.role:', profile.role);
+            console.log('🔧 AuthContext profile.isAdmin:', profile.isAdmin);
+            console.log('🔧 AuthContext profile.isSuperAdmin:', profile.isSuperAdmin);
+            console.log('🔧 AuthContext profile.isHR:', profile.isHR);
+            console.log('🔧 AuthContext profile.isInstructor:', profile.isInstructor);
+            
+            adminFromDoc = isAdminCheck(profile.role) || profile.isAdmin === true;
+            superAdminFromDoc = isSuperAdminCheck(profile.role) || profile.isSuperAdmin === true;
+            hr = isHRCheck(profile.role) || profile.isHR === true;
+            instructor = isInstructorCheck(profile.role) || profile.isInstructor === true;
+            
+            console.log('🔧 AuthContext role detection debug:', {
+              profileRole: profile.role,
+              isSuperAdminRole: isSuperAdminCheck(profile.role),
+              profileIsSuperAdmin: profile.isSuperAdmin,
+              superAdminFromDoc,
+              'profile.role === USER_ROLES.SUPER_ADMIN': profile.role === USER_ROLES.SUPER_ADMIN,
+              'USER_ROLES.SUPER_ADMIN': USER_ROLES.SUPER_ADMIN
+            });
+            
+            console.log('🔧 AuthContext detected roles:', {
+              adminFromDoc,
+              superAdminFromDoc,
+              hr,
+              instructor
+            });
             
             // Load user enrollments for status check
             let enrollments = [];
@@ -255,15 +282,15 @@ export const AuthProvider = ({ children }) => {
             // Store full profile with display name and status
             profile = {
               uid: firebaseUser.uid,
-              email: userData.email || firebaseUser.email,
-              displayName: userData.displayName || userData.name || firebaseUser.displayName || userData.email?.split('@')[0],
-              name: userData.name || userData.displayName || firebaseUser.displayName,
-              role: userData.role,
-              studentNumber: userData.studentNumber,
-              photoURL: userData.photoURL || firebaseUser.photoURL,
+              email: profile.email || firebaseUser.email,
+              displayName: profile.displayName || profile.name || firebaseUser.displayName || profile.email?.split('@')[0],
+              name: profile.name || profile.displayName || firebaseUser.displayName,
+              role: profile.role,
+              studentNumber: profile.studentNumber,
+              photoURL: profile.photoURL || firebaseUser.photoURL,
               status: userStatus,
               statusSummary,
-              ...userData
+              ...profile
             };
             
             console.log('🔧 AuthContext final profile:', profile);
@@ -282,20 +309,41 @@ export const AuthProvider = ({ children }) => {
               }
             } catch {}
           }
-        } catch {}
+        } catch (error) {
+          console.error('🔧 AuthContext error in role detection:', error);
+          console.error('🔧 AuthContext error stack:', error?.stack);
+        }
 
         // If Firestore says admin, honor it (hot-fix for missing claims/allowlist)
         if (!admin && adminFromDoc) admin = true;
 
+        console.log('🔧 AuthContext before final assignment:', {
+          admin,
+          adminFromDoc,
+          superAdminFromDoc,
+          hr,
+          instructor,
+          'typeof superAdminFromDoc': typeof superAdminFromDoc
+        });
+
         setIsAdmin(!!admin);
-        setIsSuperAdmin(!!superAdminFromDoc || (!!admin && userRole === USER_ROLES.SUPER_ADMIN));
+        setIsSuperAdmin(!!superAdminFromDoc);
         setIsHR(hr);
         setIsInstructor(instructor);
         
-        if (admin) userRole = USER_ROLES.ADMIN;
+        if (superAdminFromDoc) userRole = USER_ROLES.SUPER_ADMIN;
+        else if (admin) userRole = USER_ROLES.ADMIN;
         else if (hr) userRole = USER_ROLES.HR;
         else if (instructor) userRole = USER_ROLES.INSTRUCTOR;
         else userRole = USER_ROLES.STUDENT;
+        
+        console.log('🔧 AuthContext final role assignment:', {
+          superAdminFromDoc,
+          admin,
+          hr,
+          instructor,
+          finalRole: userRole
+        });
         
         setRole(userRole);
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getStudentRank } from '@firebaseServices/firestore';
+import { getStudentRank, getRankConfig } from '@constants/sharedConfig';
 import { useLang } from '@contexts/LangContext';
 
 const RankDisplay = ({ totalPoints = 0, studentName = '', showProgress = true, compact = false }) => {

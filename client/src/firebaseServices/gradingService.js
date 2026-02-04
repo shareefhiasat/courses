@@ -13,8 +13,8 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./config";
-import { addNotification } from "./notifications";
-import { sendEmail } from "./firestore";
+import { addNotification } from "./notificationService";
+import { sendEmail } from '@firebaseServices/emailService';
 
 /**
  * GPA Grading Rules

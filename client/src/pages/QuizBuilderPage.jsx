@@ -8,10 +8,11 @@ import {
   CheckCircle, XCircle, HelpCircle, ListChecks, Repeat, Award
 } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { getQuiz, createQuiz, updateQuiz } from '../firebase/quizzes';
-import { notifyQuizAvailable } from '../firebase/quizNotifications';
-import { getEnrollments, getUsers } from '../firebase/firestore';
+import { db } from '@firebaseServices/config';
+import { getQuiz, createQuiz, updateQuiz } from '@firebaseServices/quizService';
+import { notifyQuizAvailable } from '@firebaseServices/notificationService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { getUsers } from '@firebaseServices/userService';
 import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading } from '../components/ui';
 import { ToggleSwitch } from '../components/shared';
 import { LanguageToggle } from '../components/shared';

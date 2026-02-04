@@ -15,7 +15,7 @@ const SeedDefaultTemplates = ({ onComplete }) => {
 
     try {
       const { collection, doc, setDoc, Timestamp } = await import('firebase/firestore');
-      const { db } = await import('../../../firebase/config');
+      const { db } = await import('@firebaseServices/config');
 
       for (let i = 0; i < defaultTemplates.length; i++) {
         const template = defaultTemplates[i];

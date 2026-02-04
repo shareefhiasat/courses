@@ -26,9 +26,11 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@firebaseServices/config';
-import { getClasses, getEnrollments, getUsers } from '@firebaseServices/firestore';
-import { getUserProfile } from '@firebaseServices/user';
-import { addNotification } from '@firebaseServices/notifications';
+import { getClasses } from '@firebaseServices/classService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { getUsers } from '@firebaseServices/userService';
+import { getUserProfile } from '@firebaseServices/userService';
+import { addNotification } from '@firebaseServices/notificationService';
 import { Loading, useToast, Input } from '@ui';
 import logger from '@utils/logger';
 import './ChatPage.css';
@@ -148,7 +150,7 @@ const ChatPage = memo(() => {
     let unsub = null;
     (async () => {
       const { onSnapshot, doc } = await import('firebase/firestore');
-      const { db } = await import('../firebase/config');
+      const { db } = await import('@firebaseServices/config');
       try {
         unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
           const data = snap.exists() ? snap.data() : {};
@@ -369,7 +371,7 @@ const ChatPage = memo(() => {
         (async () => {
           try {
             const { doc, getDoc } = await import('firebase/firestore');
-            const { db } = await import('../firebase/config');
+            const { db } = await import('@firebaseServices/config');
             const snap = await getDoc(doc(db, 'classes', dest));
             if (snap.exists()) setSelectedClassName((snap.data().name) || '');
           } catch {}
@@ -888,7 +890,7 @@ const ChatPage = memo(() => {
         // Sync membership flags onto users/{uid} for rules
         try {
           const { updateDoc, doc, arrayUnion } = await import('firebase/firestore');
-          const { db } = await import('../firebase/config');
+          const { db } = await import('@firebaseServices/config');
           for (const id of Array.from(ids)) {
             await updateDoc(doc(db,'users',user.uid), { enrolledClasses: arrayUnion(id) });
           }
@@ -934,7 +936,7 @@ const ChatPage = memo(() => {
         try {
           if (user?.uid && selectedClass) {
             const { updateDoc, doc, arrayUnion } = await import('firebase/firestore');
-            const { db } = await import('../firebase/config');
+            const { db } = await import('@firebaseServices/config');
             await updateDoc(doc(db, 'users', user.uid), { enrolledClasses: arrayUnion(selectedClass) });
           }
         } catch {}

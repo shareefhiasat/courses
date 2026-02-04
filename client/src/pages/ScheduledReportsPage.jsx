@@ -8,8 +8,8 @@ import {
   addScheduledReport, 
   updateScheduledReport, 
   deleteScheduledReport 
-} from '@firebaseServices/firestore';
-import { getEmailTemplates } from '@firebaseServices/firestore';
+} from '@firebaseServices/configService';
+import { getEmailTemplates } from '@firebaseServices/emailService';
 import { Loading, Button, Input, Select, Textarea, useToast, Card, CardBody } from '@ui';
 import { Container } from '@ui';
 import { ToggleSwitch, RibbonTabs } from '@ui';

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot, where, limit } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../components/ToastProvider';
+import { db } from '@firebaseServices/config';
+import { useAuth } from '@contexts/AuthContext';
+import { useToast } from '@ui';
 
 export const useRealTimeUpdates = () => {
   const { user } = useAuth();

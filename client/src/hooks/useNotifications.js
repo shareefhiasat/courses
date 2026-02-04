@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '@firebaseServices/config';
 import notificationManager from '../utils/notifications';
 
 export const useNotifications = () => {

@@ -10,7 +10,7 @@ import {
   deleteNotification,
   markNotificationRead,
   markAllNotificationsRead
-} from '@firebaseServices/notifications';
+} from '@firebaseServices/notificationService';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@contexts/ThemeContext';
@@ -23,8 +23,8 @@ import useNotifications from '@hooks/useNotifications';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
-import { getPrograms, getSubjects } from '@firebaseServices/programs';
-import { getClasses } from '@firebaseServices/firestore';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getClasses } from '@firebaseServices/classService';
 
 const NotificationsPage = () => {
   const { user } = useAuth();

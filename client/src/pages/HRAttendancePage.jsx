@@ -7,7 +7,7 @@ import { collection, getDocs, doc, updateDoc, query, where, orderBy, limit, getD
 import { FileDown, Search, Filter, Calendar, User, AlertCircle, Clock, CheckCircle, XCircle, Activity, Users, Heart } from 'lucide-react';
 import { Button, Select, Loading, DatePicker } from '@ui';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
-import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin, loading: authLoading } = useAuth();

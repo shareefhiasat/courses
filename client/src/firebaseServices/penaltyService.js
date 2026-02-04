@@ -13,7 +13,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./config";
-import { addNotification } from "./notifications";
+import { addNotification } from "./notificationService";
 import { RECORD_TYPES } from "@utils/sharedTypes";
 
 const toYmd = (tsOrDate) => {

@@ -7,7 +7,9 @@ import {
   where, 
   getDocs,
   serverTimestamp,
-  Timestamp 
+  Timestamp,
+  deleteDoc,
+  getDoc
 } from 'firebase/firestore';
 import { db } from './config';
 import { SUBMISSION_STATUS } from '@utils/sharedTypes';
@@ -107,18 +109,88 @@ export const getClassSubmissions = async (classId) => {
   }
 };
 
-// Grade submission (instructor only)
-export const gradeSubmission = async (submissionId, score, feedback = '') => {
+// Grade submission (instructor only) with auto-award points
+export const gradeSubmission = async (submissionId, score, feedback = '', gradedBy = null) => {
   try {
-    await updateDoc(doc(db, 'submissions', submissionId), {
+    const update = {
       score,
       feedback,
       gradedAt: serverTimestamp(),
-      status: SUBMISSION_STATUS.GRADED
-    });
+      status: SUBMISSION_STATUS.GRADED,
+      gradedBy
+    };
+
+    // Update submission
+    await updateDoc(doc(db, 'submissions', submissionId), update);
+
+    // Auto-award points based on score
+    if (score !== undefined) {
+      const submissionDoc = await getDoc(doc(db, 'submissions', submissionId));
+      if (submissionDoc.exists()) {
+        const submission = submissionDoc.data();
+        const scoreNum = Number(score);
+
+        // Award points based on performance
+        let pointsToAward = 0;
+        let category = "completion";
+
+        if (scoreNum >= 90) {
+          pointsToAward = 2; // Excellence
+          category = "excellence";
+        } else if (scoreNum >= 70) {
+          pointsToAward = 1; // Good work
+          category = "good_work";
+        } else if (scoreNum >= 50) {
+          pointsToAward = 1; // Completion
+          category = "completion";
+        }
+
+        // Award points if score is passing
+        if (pointsToAward > 0 && submission.userId) {
+          try {
+            // Import awardPoints function to avoid circular dependency
+            const { awardPoints } = await import('./participationService');
+            await awardPoints({
+              studentIds: [submission.userId],
+              points: pointsToAward,
+              category: category,
+              reason: `Activity graded: ${scoreNum}/100`,
+              awardedBy: gradedBy || "system",
+              classId: submission.classId || null,
+              activityId: submission.activityId || null,
+            });
+          } catch (pointsError) {
+            console.warn("Failed to award points for graded submission:", pointsError);
+          }
+        }
+      }
+    }
+
     return { success: true, message: 'Submission graded' };
   } catch (error) {
     console.error('Error grading submission:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get all submissions (admin function)
+export const getSubmissions = async () => {
+  try {
+    const qs = await getDocs(collection(db, "submissions"));
+    const items = [];
+    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Delete submission
+export const deleteSubmission = async (id) => {
+  try {
+    await deleteDoc(doc(db, "submissions", id));
+    return { success: true };
+  } catch (error) {
     return { success: false, error: error.message };
   }
 };

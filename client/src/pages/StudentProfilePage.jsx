@@ -5,7 +5,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { db } from '@firebaseServices/config';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
 import { Users, Calendar, TrendingUp, Award, Clock, Search, Trophy, Flame, Target, X, BookOpen, Filter } from 'lucide-react';
-import { getUserBadges, getUserStats, getBadgeDefinitions } from '@firebaseServices/badges';
+import { getUserBadges, getUserStats, getBadgeDefinitions } from '@firebaseServices/badgeService';
 import { CheckSmallIcon } from '@utils/icons.jsx';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Loading, Select } from '@ui';

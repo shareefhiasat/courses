@@ -34,10 +34,11 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { Button, Input, Card, CardBody, Loading, Select } from '@ui';
-import { markAttendance } from '@firebaseServices/attendance';
-import { getPerformedByFields } from '@firebaseServices/user';
-import { getClasses, getEnrollments } from '@firebaseServices/firestore';
-import { addNotification } from '@firebaseServices/notifications';
+import { markAttendance } from '@firebaseServices/attendanceService';
+import { getPerformedByFields } from '@firebaseServices/userService';
+import { getClasses } from '@firebaseServices/classService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { addNotification } from '@firebaseServices/notificationService';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';

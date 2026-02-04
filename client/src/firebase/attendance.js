@@ -1,9 +1,9 @@
 import { doc, setDoc, updateDoc, serverTimestamp, collection, addDoc, getDocs, query, where, getDoc, onSnapshot, deleteDoc, orderBy } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { db, functions } from './config';
-import { addNotification } from './notifications';
-import { sendEmail } from './firestore';
-import { getUserDisplayName } from './user';
+import { db, functions } from '@firebaseServices/config';
+import { addNotification } from '@firebaseServices/notificationService';
+import { sendEmail } from '@firebaseServices/emailService';
+import { getUserDisplayName } from '@firebaseServices/userService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 

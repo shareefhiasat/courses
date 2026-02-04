@@ -3,7 +3,7 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
-import { getPrograms, createProgram, updateProgram, deleteProgram } from '@firebaseServices/programs';
+import { getPrograms, createProgram, updateProgram, deleteProgram } from '@firebaseServices/programService';
 import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid } from '@ui';
 import { Edit, Trash } from 'lucide-react';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';

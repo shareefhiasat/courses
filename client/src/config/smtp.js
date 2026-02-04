@@ -11,7 +11,7 @@
  * for better testing, tracking, and single source of truth.
  */
 
-import { getSMTPConfig as getSMTPConfigFromFirestore } from '../firebase/firestore';
+import { getSMTPConfig as getSMTPConfigFromFirestore } from '@firebaseServices/emailService';
 
 /**
  * Get SMTP configuration with priority order

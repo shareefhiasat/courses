@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '@ui';
 import { Calendar, Clock, Plus, Trash2, Save, AlertCircle, Filter, GraduationCap, BookOpen, Users } from 'lucide-react';
 import styles from './ClassSchedulePage.module.css';

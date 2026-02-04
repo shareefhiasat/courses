@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, ExternalLink, Users, Trophy, AlertCircle } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
@@ -550,8 +551,8 @@ const StudentTableRow = ({
         </tr>
       )}
 
-      {/* Result Modal - Same as QR Scanner */}
-      {showResultModal && (
+      {/* Result Modal - Rendered outside table using Portal */}
+      {showResultModal && createPortal(
         <div style={{
           position: 'fixed',
           top: 0,
@@ -658,7 +659,8 @@ const StudentTableRow = ({
               OK
             </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </React.Fragment>
   );

@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import logger from '../utils/logger';
+import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useLang } from '../contexts/LangContext';
-import { Container, Card, CardBody, Button, Loading, Spinner } from '../components/ui';
+import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import { Container, Card, CardBody, Button, Loading, Spinner } from '@ui';
 import {
   Plus, Edit, Trash2, Play, Clock, Users, HelpCircle, ListChecks,
   CheckCircle, AlertCircle, Repeat, Award
 } from 'lucide-react';
-import { getAllQuizzes, getQuizzesByCreator, deleteQuiz } from '../firebase/quizzes';
-import { getUser } from '../firebase/firestore';
-import { db } from '../firebase/config';
+import { getAllQuizzes, getQuizzesByCreator, deleteQuiz } from '@firebaseServices/quizService';
+import { getUser } from '@firebaseServices/userService';
+import { db } from '@firebaseServices/config';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
-import { DeleteConfirmationModal } from '../components/shared';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { DeleteConfirmationModal } from '@ui';
 import styles from './QuizManagementPage.module.css';
 
 export default function QuizManagementPage() {

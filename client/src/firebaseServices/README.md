@@ -1,0 +1,61 @@
+# Firebase Services
+
+This directory contains all Firebase service files and utilities that are commonly imported throughout the application using the `@firebaseServices/` alias.
+
+## 📁 Structure
+
+### 🔧 Core Services
+- `config.js` - Firebase configuration and initialization
+- `firestore.js` - Core Firestore utilities and helpers
+- `activityLogger.js` - Activity logging service
+
+### 📊 Service Modules (Service.js naming convention)
+- `authService.js` - Authentication operations
+- `userService.js` - User management operations
+- `attendanceService.js` - Attendance tracking operations
+- `notificationService.js` - Notification management
+- `penaltyService.js` - Penalty tracking
+- `participationService.js` - Participation tracking
+- `behaviorService.js` - Behavior tracking
+- `programService.js` - Program management
+- `quizService.js` - Quiz operations
+- `submissionService.js` - Assignment submissions
+- `gradingService.js` - Grade management
+- `badgeService.js` - Badge system
+- `studentProgressService.js` - Student progress tracking
+- `userPreferenceService.js` - User preferences
+- `quizNotifications.js` - Quiz-specific notifications
+
+## 🎯 Usage
+
+All files in this directory can be imported using the `@firebaseServices/` alias:
+
+```javascript
+// Import services
+import { getUserById } from '@firebaseServices/userService';
+import { markAttendance } from '@firebaseServices/attendanceService';
+import { createQuiz } from '@firebaseServices/quizService';
+
+// Import utilities
+import { db } from '@firebaseServices/config';
+import { logActivity } from '@firebaseServices/activityLogger';
+```
+
+## 📋 Naming Convention
+
+- **Service files**: Use `Service.js` suffix (e.g., `userService.js`, `attendanceService.js`)
+- **Utility files**: Use descriptive names (e.g., `config.js`, `activityLogger.js`)
+- **Consistent imports**: All use the `@firebaseServices/` prefix
+
+## 🔗 Related Directories
+
+- `../firebase/` - Legacy Firebase files (attendance.js, dashboard.js, etc.)
+- `../constants/` - Application constants and enums
+- `../utils/` - General utility functions
+
+## 🚀 Benefits
+
+- **Clear organization**: All Firebase services in one dedicated folder
+- **Consistent aliasing**: `@firebaseServices/` matches folder name exactly
+- **Easy discovery**: Developers know where to find Firebase-related code
+- **Maintainable structure**: Logical grouping of related functionality

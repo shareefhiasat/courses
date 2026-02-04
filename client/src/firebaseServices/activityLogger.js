@@ -33,7 +33,7 @@ export async function logActivity(type, details = {}, userId = null) {
         userProfile.name ||
         userProfile.email?.split("@")[0] ||
         "Unknown",
-      userEmail: userProfile.email,
+      userEmail: userProfile.email || null,
       timestamp: serverTimestamp(),
       details,
       userAgent: navigator.userAgent,

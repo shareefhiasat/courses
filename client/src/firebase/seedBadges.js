@@ -1,5 +1,5 @@
 import { collection, doc, setDoc } from 'firebase/firestore';
-import { db } from './config';
+import { db } from '@firebaseServices/config';
 
 /**
  * Seed initial badge definitions into Firestore

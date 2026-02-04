@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
-import { signOutUser } from '@firebaseServices/auth';
+import { signOutUser } from '@firebaseServices/authService';
 import { NotificationBell } from '@ui';
 import { useLang } from '@contexts/LangContext';
-import { getUsers, updateUser } from '@firebaseServices/firestore';
-import { getUserDisplayName } from '@firebaseServices/user';
+import { getUsers } from '@firebaseServices/userService';
+import { updateUser } from '@firebaseServices/userService';
+import { getUserDisplayName } from '@firebaseServices/userService';
 import { db } from '@firebaseServices/config';
 import './Navbar.css';
 import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List, Info, Users, BookOpen, Shield } from 'lucide-react';

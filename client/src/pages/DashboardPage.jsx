@@ -10,22 +10,21 @@ import { USER_ROLES } from '@constants/userRoles';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
-  getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement,
-  getUsers, addUser, updateUser, deleteUser,
-  getClasses, addClass, updateClass, deleteClass,
-  getEnrollments, addEnrollment, deleteEnrollment,
-  getSubmissions, gradeSubmission, deleteSubmission,
-  getResources, addResource, updateResource, deleteResource,
-  addEmailLog, getEmailLogs, addActivityLog,
-  sendEmail,
-  getSMTPConfig,
-  updateSMTPConfig,
-  deleteEmailLog
-} from '@firebaseServices/firestore';
-import { getDoc, doc } from 'firebase/firestore';
+  getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement
+} from '@firebaseServices/activityService';
+import { getUsers, addUser, updateUser, deleteUser } from '@firebaseServices/userService';
+import { getEnrollments, addEnrollment, deleteEnrollment } from '@firebaseServices/enrollmentService';
+import { getSubmissions, gradeSubmission, deleteSubmission } from '@firebaseServices/submissionService';
+import { getResources, addResource, updateResource, deleteResource } from '@firebaseServices/activityService';
+import { addEmailLog, getEmailLogs } from '@firebaseServices/emailService';
+import { addActivityLog } from '@firebaseServices/activityService';
+import { getClasses, addClass, updateClass, deleteClass } from '@firebaseServices/classService';
+import { sendEmail, getSMTPConfig, updateSMTPConfig, deleteEmailLog } from '@firebaseServices/emailService';
+import { getCourses, setCourse, deleteCourse } from '@firebaseServices/courseService';
 import { db } from '@firebaseServices/config';
-import { getLoginLogs, getCourses, setCourse, deleteCourse, getAllowlist, updateAllowlist } from '@firebaseServices/firestore';
-import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notifications';
+import { getLoginLogs } from '@firebaseServices/activityService';
+import { getAllowlist, updateAllowlist } from '@firebaseServices/configService';
+import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
 import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection } from '@ui';
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
@@ -39,10 +38,10 @@ import HRPenaltiesPage from './HRPenaltiesPage';
 import InstructorParticipationPage from './InstructorParticipationPage';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import ScheduledReportsPage from './ScheduledReportsPage';
-import { getSubjects, getPrograms } from '@firebaseServices/programs';
-import { getAllQuizzes } from '@firebaseServices/quizzes';
+import { getSubjects, getPrograms } from '@firebaseServices/programService';
+import { getAllQuizzes } from '@firebaseServices/quizService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
-import { getUserDisplayName } from '@firebaseServices/user';
+import { getUserDisplayName } from '@firebaseServices/userService';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';
 import { FileSignature, Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe, Tag, QrCode, KeyRound } from 'lucide-react';
@@ -5288,7 +5287,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         style={{ color: params.row.disabled || params.row.isDisabled ? '#28a745' : '#dc2626' }}
                         onClick={async () => {
                           try {
-                            const { updateUser } = await import('../firebase/firestore');
+                            const { updateUser } = await import('@firebaseServices/userService');
                             const userId = params.row.docId || params.row.id;
                             const isCurrentlyDisabled = params.row.disabled || params.row.isDisabled;
                             const result = await updateUser(userId, {
@@ -6521,7 +6520,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             
             if (archiveUser) {
               // Archive user instead of deleting
-              const { updateUser } = await import('../firebase/firestore');
+              const { updateUser } = await import('@firebaseServices/userService');
               const { Timestamp } = await import('firebase/firestore');
               const result = await updateUser(userId, {
                 archived: true,

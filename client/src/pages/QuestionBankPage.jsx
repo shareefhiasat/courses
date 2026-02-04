@@ -44,7 +44,7 @@ import {
   searchQuestions,
   getAllTags,
   bulkImportQuestions
-} from '@firebaseServices/questionBank';
+} from '@firebaseServices/questionBankService';
 import { QUESTION_TYPES, QUESTION_TYPE_CONFIG } from '@utils/questionTypes';
 import { exportToCSV, importFromCSV } from '@utils/quizImportExport';
 import styles from './QuestionBankPage.module.css';

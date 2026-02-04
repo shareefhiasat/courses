@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import { doc, collection, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '@firebaseServices/config';
 import { 
   generateReferenceId, 
   validateReferenceId,

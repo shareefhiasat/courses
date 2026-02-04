@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '@firebaseServices/attendance';
+import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '../firebase/attendance';
 import QRCode from 'qrcode';
 import { db } from '@firebaseServices/config';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { Info, Users, Calendar, Download, ChevronDown, ChevronUp, Maximize2, Minimize2, PlayCircle, Square, Filter, GraduationCap, BookOpen, User } from 'lucide-react';
 import { Button, Select, Loading, YearSelect } from '@ui';
-import { getPrograms, getSubjects } from '@firebaseServices/programs';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import styles from './AttendancePage.module.css';
 
 const AttendancePageEnhanced = () => {

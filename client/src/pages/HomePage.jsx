@@ -4,10 +4,11 @@ import Joyride from 'react-joyride';
 import { Globe2, Code2, Monitor, Sigma, BookOpen, Award, HelpCircle, ClipboardList, Play, StarOff, Hourglass, Repeat, CheckCircle, Star, Pin, Clock, AlertCircle, FileText, Link2, Video, LayoutGrid, Plus } from 'lucide-react';
 import { useTheme } from '@contexts/ThemeContext';
 import { Tabs } from '@ui';
-import { getActivities, getAnnouncements, getCourses, getResources } from '@firebaseServices/firestore';
-import { getAllQuizzes } from '@firebaseServices/quizzes';
-import { getUserSubmissions } from '@firebaseServices/submissions';
-import { getUserProfile } from '@firebaseServices/user';
+import { getActivities, getAnnouncements, getResources } from '@firebaseServices/activityService';
+import { getCourses } from '@firebaseServices/courseService';
+import { getAllQuizzes } from '@firebaseServices/quizService';
+import { getUserSubmissions } from '@firebaseServices/submissionService';
+import { getUserProfile } from '@firebaseServices/userService';
 import { useAuth } from '@contexts/AuthContext';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -21,7 +22,7 @@ import logger from '@utils/logger';
 import './HomePage.css';
 
 const HomePage = memo(() => {
-  logger.componentMount('HomePage');
+  // logger.componentMount('HomePage');
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();

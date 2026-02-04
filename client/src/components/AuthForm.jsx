@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
-import { signIn, signUp, resetPassword } from '../firebase/auth';
+import { signIn, signUp, resetPassword } from '@firebaseServices/authService';
 import { useNavigate } from 'react-router-dom';
-import { getAllowlist } from '../firebase/firestore';
+import { getAllowlist } from '@firebaseServices/configService';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useColorTheme } from '../contexts/ColorThemeContext';
 import { useToast } from '@ui';
-import { logActivity, ACTIVITY_TYPES } from '../firebase/activityLogger';
+import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { Moon, Sun, Globe } from 'lucide-react';
 import { ToggleSwitch } from '@ui';
 import { usePostHog } from 'posthog-js/react';
@@ -278,7 +278,7 @@ const AuthForm = () => {
             // Send welcome email
             try {
               const { httpsCallable } = await import('firebase/functions');
-              const { functions } = await import('../firebase/config');
+              const { functions } = await import('@firebaseServices/config');
               const sendWelcomeEmail = httpsCallable(functions, 'sendWelcomeEmail');
               await sendWelcomeEmail({
                 email: email,

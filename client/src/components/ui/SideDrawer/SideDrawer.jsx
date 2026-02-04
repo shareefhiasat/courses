@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { signOutUser } from '@firebaseServices/auth';
+import { signOutUser } from '@firebaseServices/authService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';

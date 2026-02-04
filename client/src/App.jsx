@@ -50,6 +50,10 @@ import './App.css';
 import './styles/colors.css';
 import './styles/theme.css';
 
+// Import debugging utilities for browser console access
+import './utils/userRoleManager';
+import './utils/allowlistManager';
+
 // Track page views
 function PageTracker() {
   const location = useLocation();

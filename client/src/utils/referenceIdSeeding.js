@@ -1,5 +1,5 @@
 import { doc, getDoc, getDocs, collection, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '@firebaseServices/config';
 import { generateReferenceId, validateReferenceId } from '../utils/qrCode';
 
 /**

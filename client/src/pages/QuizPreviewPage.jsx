@@ -3,8 +3,8 @@ import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { getQuiz } from '@firebaseServices/quizzes';
-import { getUser } from '@firebaseServices/firestore';
+import { getQuiz } from '@firebaseServices/quizService';
+import { getUser } from '@firebaseServices/userService';
 import { Container, Card, CardBody, Button, Spinner, Badge, Loading, useToast } from '@ui';
 import {
   Clock, CheckCircle, HelpCircle, ListChecks, Play, Edit, Circle, Shuffle, Repeat, Award, ArrowLeft
