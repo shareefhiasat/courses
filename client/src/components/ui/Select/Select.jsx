@@ -332,7 +332,7 @@ const Select = forwardRef(({
             ref={dropdownRef}
             className={styles.dropdown}
             style={{
-              position: 'fixed',
+              position: 'absolute',
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
               width: `${dropdownPosition.width}px`,

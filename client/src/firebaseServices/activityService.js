@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./config";
 import { logActivity, ACTIVITY_TYPES } from './activityLogger';
+import { deleteCollection, deleteDocumentsByField } from './collectionManagementService';
 
 // Helper: Convert ISO string to Firestore Timestamp
 const convertDatesToTimestamps = (data) => {
@@ -234,32 +235,24 @@ export const getLoginLogs = async () => {
 };
 
 /**
- * Delete all login logs from the activityLogs collection
+ * Delete all login logs from the activityLogs collection with progress tracking
+ * @param {Function} onProgress - Progress callback (processed, total, percentage)
  * @returns {Promise<{success: boolean, deletedCount?: number, error?: string}>}
  */
-export const deleteAllLoginLogs = async () => {
-  try {
-    const q = query(collection(db, "activityLogs"));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      return { success: true, deletedCount: 0 };
-    }
+export const deleteAllLoginLogs = async (onProgress = null) => {
+  return await deleteCollection('activityLogs', onProgress, {
+    batchSize: 400,
+    delayBetweenBatches: 100,
+    maxRetries: 3
+  });
+};
 
-    // Use batched writes for better performance
-    const batch = writeBatch(db);
-    querySnapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-    
-    return { 
-      success: true, 
-      deletedCount: querySnapshot.size 
-    };
-  } catch (error) {
-    console.error("Error deleting all login logs:", error);
-    return { success: false, error: error.message };
-  }
+/**
+ * Delete login logs by type with progress tracking
+ * @param {string} logType - Type of logs to delete (e.g., 'login', 'logout', etc.)
+ * @param {Function} onProgress - Progress callback (processed, total, percentage)
+ * @returns {Promise<{success: boolean, deletedCount?: number, error?: string}>}
+ */
+export const deleteLoginLogsByType = async (logType, onProgress = null) => {
+  return await deleteDocumentsByField('activityLogs', 'type', logType, onProgress);
 };

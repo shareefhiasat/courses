@@ -22,7 +22,7 @@ import { getClasses, addClass, updateClass, deleteClass } from '@firebaseService
 import { sendEmail, getSMTPConfig, updateSMTPConfig, deleteEmailLog } from '@firebaseServices/emailService';
 import { getCourses, setCourse, deleteCourse } from '@firebaseServices/courseService';
 import { db } from '@firebaseServices/config';
-import { getLoginLogs, deleteAllLoginLogs } from '@firebaseServices/activityService';
+import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@firebaseServices/activityService';
 import { getAllowlist, updateAllowlist } from '@firebaseServices/configService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
 import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection } from '@ui';
@@ -3304,7 +3304,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       icon: getRoleIcon(u.role)
                     };
                   })
-                ]} style={{ minWidth: '200px', flex: '1' }} />
+                ]} style={{ minWidth: '200px', flex: '1' }} searchable size="small" />
                 <DateRangeSlider
                   fromDate={loginFrom ? (() => {
                     try {
@@ -3390,7 +3390,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         onConfirm: async () => {
                           setLoading(true);
                           try {
-                            const result = await deleteAllLoginLogs();
+                            // Add progress tracking
+                            const onProgress = (processed, total, percentage) => {
+                              toast?.showInfo(`Deleting logs: ${processed}/${total} (${percentage}%)`);
+                            };
+                            
+                            let result;
+                            if (activityTypeFilter === 'all') {
+                              result = await deleteAllLoginLogs(onProgress);
+                            } else {
+                              result = await deleteLoginLogsByType(activityTypeFilter, onProgress);
+                            }
+                            
                             if (result.success) {
                               toast?.showSuccess(`Successfully deleted ${result.deletedCount} ${description}`);
                               // Refresh the login logs data

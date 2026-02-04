@@ -18,6 +18,13 @@ import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarCha
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, Container, Loading } from '@ui';
 import { ToggleSwitch } from '@ui';
+import { 
+  NOTIFICATION_TYPES, 
+  NOTIFICATION_STATUS,
+  getNotificationIcon,
+  getNotificationTypeOptions,
+  getNotificationStatusOptions
+} from '@constants/notificationTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import useNotifications from '@hooks/useNotifications';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
@@ -127,7 +134,7 @@ const NotificationsPage = () => {
     }
 
     // Filter by absence type
-    if (filterAbsenceType !== 'all' && filterCategory === 'absence') {
+    if (filterAbsenceType !== 'all' && filterCategory === NOTIFICATION_TYPES.ABSENCE) {
       filtered = filtered.filter(n => n.metadata?.absenceType === filterAbsenceType);
     }
 
@@ -210,25 +217,6 @@ const NotificationsPage = () => {
 
   const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
   const archivedCount = notifications.filter(n => n.archived).length;
-
-  const getNotificationIcon = (type) => {
-    const iconProps = { size: 18 };
-    const colorClass = isDark ? 'text-white' : 'text-gray-700';
-    switch (type) {
-      case 'success': return <CheckCircle2 {...iconProps} className="text-green-600" />;
-      case 'warning': return <AlertTriangle {...iconProps} className="text-yellow-600" />;
-      case 'error': return <XCircle {...iconProps} className="text-red-600" />;
-      case 'announcement': return <Megaphone {...iconProps} className="text-purple-600" />;
-      case 'newsletter': return <Mail {...iconProps} className="text-purple-600" />;
-      case 'grade': return <BarChart3 {...iconProps} className="text-blue-600" />;
-      case 'activity': return <FileText {...iconProps} className="text-indigo-600" />;
-      case 'message': case 'chat': return <MessageCircle {...iconProps} className="text-pink-600" />;
-      case RECORD_TYPES.ATTENDANCE: return <UserCheck {...iconProps} className="text-blue-600" />;
-      case RECORD_TYPES.PENALTY: return <AlertTriangle {...iconProps} className="text-orange-600" />;
-      case 'absence': return <XCircle {...iconProps} className="text-red-600" />;
-      default: return <Info {...iconProps} className="text-gray-600" />;
-    }
-  };
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -470,12 +458,12 @@ const NotificationsPage = () => {
           <Select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            options={[
-              { value: 'all', label: 'All' },
-              { value: 'unread', label: `Unread (${unreadCount})` },
-              { value: 'read', label: 'Read' },
-              { value: 'archived', label: `Archived (${archivedCount})` }
-            ]}
+            options={getNotificationStatusOptions(t, lang).map(option => ({
+              ...option,
+              label: option.value === 'unread' ? `Unread (${unreadCount})` : 
+                     option.value === 'archived' ? `Archived (${archivedCount})` : 
+                     option.label
+            }))}
             size="small"
             fullWidth
           />
@@ -487,21 +475,7 @@ const NotificationsPage = () => {
               setFilterAttendanceStatus('all');
               setFilterAbsenceType('all');
             }}
-            options={[
-              { value: 'all', label: 'All Types' },
-              { value: 'activity', label: 'Activities' },
-              { value: 'message', label: 'Messages' },
-              { value: 'chat', label: 'Chats' },
-              { value: 'announcement', label: 'Announcements' },
-              { value: 'newsletter', label: 'Newsletter' },
-              { value: 'grade', label: 'Grades' },
-              { value: RECORD_TYPES.ATTENDANCE, label: 'Attendance' },
-              { value: 'absence', label: 'Absences' },
-              { value: RECORD_TYPES.PENALTY, label: 'Penalties' },
-              { value: 'success', label: 'Success' },
-              { value: 'warning', label: 'Warning' },
-              { value: 'error', label: 'Error' }
-            ]}
+            options={getNotificationTypeOptions(t, lang)}
             size="small"
             fullWidth
           />

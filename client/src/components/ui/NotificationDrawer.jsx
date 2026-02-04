@@ -13,6 +13,13 @@ import {
 } from '@firebaseServices/notificationService';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
+import { 
+  NOTIFICATION_TYPES, 
+  NOTIFICATION_STATUS,
+  getNotificationIcon,
+  getNotificationTypeOptions,
+  getNotificationStatusOptions
+} from '@constants/notificationTypes.jsx';
 import { useTheme } from '@contexts/ThemeContext';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
@@ -113,11 +120,11 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     let filtered = notifications;
 
     // Filter by read status
-    if (filterType === 'unread') {
+    if (filterType === NOTIFICATION_STATUS.UNREAD) {
       filtered = filtered.filter(n => !n.read && !n.archived);
-    } else if (filterType === 'read') {
+    } else if (filterType === NOTIFICATION_STATUS.READ) {
       filtered = filtered.filter(n => n.read && !n.archived);
-    } else if (filterType === 'archived') {
+    } else if (filterType === NOTIFICATION_STATUS.ARCHIVED) {
       filtered = filtered.filter(n => n.archived);
     } else if (!showArchived) {
       filtered = filtered.filter(n => !n.archived);
@@ -139,7 +146,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     }
 
     // Filter by absence type
-    if (filterAbsenceType !== 'all' && filterCategory === 'absence') {
+    if (filterAbsenceType !== 'all' && filterCategory === NOTIFICATION_TYPES.ABSENCE) {
       filtered = filtered.filter(n => n.metadata?.absenceType === filterAbsenceType);
     }
 
@@ -222,24 +229,6 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
 
   const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
   const archivedCount = notifications.filter(n => n.archived).length;
-
-  const getNotificationIcon = (type) => {
-    const iconProps = { size: 16 };
-    switch (type) {
-      case 'success': return <CheckCircle2 {...iconProps} className="text-green-600" />;
-      case 'warning': return <AlertTriangle {...iconProps} className="text-yellow-600" />;
-      case 'error': return <XCircle {...iconProps} className="text-red-600" />;
-      case 'announcement': return <Megaphone {...iconProps} className="text-purple-600" />;
-      case 'grade': return <BarChart3 {...iconProps} className="text-blue-600" />;
-      case 'activity': return <FileText {...iconProps} className="text-indigo-600" />;
-      case 'message': case 'chat': return <MessageCircle {...iconProps} className="text-pink-600" />;
-      case 'newsletter': return <Mail {...iconProps} className="text-purple-600" />;
-      case RECORD_TYPES.ATTENDANCE: return <UserCheck {...iconProps} className="text-blue-600" />;
-      case RECORD_TYPES.PENALTY: return <AlertTriangle {...iconProps} className="text-orange-600" />;
-      case 'absence': return <XCircle {...iconProps} className="text-red-600" />;
-      default: return <Info {...iconProps} className="text-gray-600" />;
-    }
-  };
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -496,12 +485,12 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
             <Select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'unread', label: `Unread (${unreadCount})` },
-                { value: 'read', label: 'Read' },
-                { value: 'archived', label: `Archived (${archivedCount})` }
-              ]}
+              options={getNotificationStatusOptions(t, lang).map(option => ({
+                ...option,
+                label: option.value === NOTIFICATION_STATUS.UNREAD ? `Unread (${unreadCount})` : 
+                       option.value === NOTIFICATION_STATUS.ARCHIVED ? `Archived (${archivedCount})` : 
+                       option.label
+              }))}
               size="small"
               style={{ flex: 1, minWidth: '90px', fontSize: '0.75rem' }}
             />
@@ -513,21 +502,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 setFilterAttendanceStatus('all');
                 setFilterAbsenceType('all');
               }}
-              options={[
-                { value: 'all', label: 'All Types' },
-                { value: 'activity', label: 'Activities' },
-                { value: 'message', label: 'Messages' },
-                { value: 'chat', label: 'Chats' },
-                { value: 'announcement', label: 'Announcements' },
-                { value: 'newsletter', label: 'Newsletter' },
-                { value: 'grade', label: 'Grades' },
-                { value: RECORD_TYPES.ATTENDANCE, label: 'Attendance' },
-                { value: 'absence', label: 'Absences' },
-                { value: RECORD_TYPES.PENALTY, label: 'Penalties' },
-                { value: 'success', label: 'Success' },
-                { value: 'warning', label: 'Warning' },
-                { value: 'error', label: 'Error' }
-              ]}
+              options={getNotificationTypeOptions(t, lang)}
               size="small"
               style={{ flex: 1, minWidth: '90px', fontSize: '0.75rem' }}
             />
@@ -560,7 +535,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 style={{ flex: 1, minWidth: '100px' }}
               />
             )}
-            {filterCategory === 'absence' && (
+            {filterCategory === NOTIFICATION_TYPES.ABSENCE && (
               <Select
                 value={filterAbsenceType}
                 onChange={(e) => setFilterAbsenceType(e.target.value)}
