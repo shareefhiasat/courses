@@ -12,7 +12,7 @@ import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDateOnly } from '@utils/timezone';
-import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes';
+import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes.jsx';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import styles from './ProgramsManagementPage.module.css';
 

@@ -184,6 +184,7 @@ export const getAllowlist = async () => {
       success: true,
       data: {
         allowedEmails: result.data.allowedEmails || [],
+        adminEmails: result.data.adminEmails || [],
         enabled: result.data.enabled || true,
         requireApproval: result.data.requireApproval || false
       }

@@ -11,7 +11,8 @@ import {
   where,
   orderBy,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  writeBatch
 } from "firebase/firestore";
 import { db } from "./config";
 import { logActivity, ACTIVITY_TYPES } from './activityLogger';
@@ -228,6 +229,37 @@ export const getLoginLogs = async () => {
     return { success: true, data: items };
   } catch (error) {
     console.error("Error getting login logs:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Delete all login logs from the activityLogs collection
+ * @returns {Promise<{success: boolean, deletedCount?: number, error?: string}>}
+ */
+export const deleteAllLoginLogs = async () => {
+  try {
+    const q = query(collection(db, "activityLogs"));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return { success: true, deletedCount: 0 };
+    }
+
+    // Use batched writes for better performance
+    const batch = writeBatch(db);
+    querySnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+    
+    return { 
+      success: true, 
+      deletedCount: querySnapshot.size 
+    };
+  } catch (error) {
+    console.error("Error deleting all login logs:", error);
     return { success: false, error: error.message };
   }
 };

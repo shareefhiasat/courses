@@ -4,62 +4,72 @@
  * Centralized constants for behavior types used throughout the application.
  */
 
+import { 
+  MessageSquare, 
+  Bed, 
+  Users, 
+  Smartphone, 
+  AlertTriangle, 
+  XCircle, 
+  HelpCircle 
+} from 'lucide-react';
+
 // Behavior Types (only negative behaviors)
 export const BEHAVIOR_TYPES = [
   { 
     id: 'talk_in_class', 
     label_ar: 'التحدث في الصف', 
     label_en: 'Talk in Class', 
-    icon: 'MessageSquare',
-    color: '#ef4444',
+    icon: <MessageSquare size={16} />,
+    color: '#fca5a5',
     points: -2
   },
   { 
     id: 'sleep', 
     label_ar: 'النوم', 
     label_en: 'Sleep', 
-    icon: 'Bed',
-    color: '#f59e0b',
+    icon: <Bed size={16} />,
+    color: '#fca5a5',
     points: -3
   },
   { 
     id: 'bathroom_requests', 
     label_ar: 'طلبات الحمام المتكررة', 
     label_en: 'Frequent Bathroom Requests', 
-    icon: 'Users',
-    color: '#f59e0b',
+    icon: <Users size={16} />,
+    color: '#fca5a5',
     points: -1
   },
   { 
     id: 'mobile_in_class', 
     label_ar: 'استخدام الهاتف', 
     label_en: 'Mobile Phone in Class', 
-    icon: 'Smartphone',
-    color: '#ef4444',
+    icon: <Smartphone size={16} />,
+    color: '#fca5a5',
     points: -2
   },
   { 
     id: 'disruptive', 
     label_ar: 'سلوك مشتت', 
     label_en: 'Disruptive Behavior', 
-    icon: 'AlertTriangle',
-    color: '#ef4444',
+    icon: <AlertTriangle size={16} />,
+    color: '#fca5a5',
     points: -3
   },
   { 
     id: 'inappropriate_language', 
     label_ar: 'لغة غير لائقة', 
     label_en: 'Inappropriate Language', 
-    icon: 'XCircle',
-    color: '#ef4444',
+    icon: <XCircle size={16} />,
+    color: '#fca5a5',
     points: -4
   },
   { 
     id: 'other', 
     label_ar: 'أخرى', 
     label_en: 'Other', 
-    icon: 'HelpCircle',
-    color: '#6b7280',
+    icon: <HelpCircle size={16} />,
+    color: '#fca5a5',
     points: 0
   }
 ];

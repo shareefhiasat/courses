@@ -11,14 +11,22 @@
  * 6. Other violations disrupting public order
  */
 
+import { 
+  AlertTriangle, 
+  Users, 
+  XCircle, 
+  FileX, 
+  HelpCircle 
+} from 'lucide-react';
+
 export const PENALTY_TYPES = [
   { 
     id: "cheating", 
     label_ar: "الغش", 
     label_en: "Cheating",
     points: 10,
-    icon: "AlertTriangle",
-    color: "#dc2626",
+    icon: <AlertTriangle size={16} />,
+    color: "#fed7aa",
     description_ar: "الغش في الاختبارات أو الواجبات باستخدام مواد غير مسموح بها",
     description_en: "Using unauthorized materials or methods during exams or assignments"
   },
@@ -27,8 +35,8 @@ export const PENALTY_TYPES = [
     label_ar: "غش",
     label_en: "Cheat",
     points: 5,
-    icon: "AlertTriangle",
-    color: "#dc2626",
+    icon: <AlertTriangle size={16} />,
+    color: "#fed7aa",
     description_ar: "محاولة الغش أو مساعدة الآخرين على الغش في الاختبارات",
     description_en: "Attempting to cheat or assisting others in cheating during exams"
   },
@@ -37,8 +45,8 @@ export const PENALTY_TYPES = [
     label_ar: "الانتحال", 
     label_en: "Impersonation",
     points: 15,
-    icon: "Users",
-    color: "#991b1b",
+    icon: <Users size={16} />,
+    color: "#fed7aa",
     description_ar: "انتحال شخصية طالب آخر أو السماح لشخص آخر بانتحال شخصيتك",
     description_en: "Pretending to be another student or allowing someone to take your place"
   },
@@ -47,8 +55,8 @@ export const PENALTY_TYPES = [
     label_ar: "تعطيل نظام الاختبار",
     label_en: "Exam System Disruption",
     points: 8,
-    icon: "XCircle",
-    color: "#dc2626",
+    icon: <XCircle size={16} />,
+    color: "#fed7aa",
     description_ar: "إثارة الفوضى أو تعطيل سير الاختبار بشكل متعمد",
     description_en: "Causing disruption or intentionally interfering with exam proceedings"
   },
@@ -57,8 +65,8 @@ export const PENALTY_TYPES = [
     label_ar: "التزوير في وثائق المدرسة",
     label_en: "Forgery in School Documents",
     points: 20,
-    icon: "FileX",
-    color: "#7f1d1d",
+    icon: <FileX size={16} />,
+    color: "#fed7aa",
     description_ar: "تزوير التوقيعات أو الوثائق المدرسية الرسمية",
     description_en: "Forging signatures or official school documents"
   },
@@ -67,8 +75,8 @@ export const PENALTY_TYPES = [
     label_ar: "مخالفات أخرى تعطل النظام العام",
     label_en: "Other Violations Disrupting Public Order",
     points: 5,
-    icon: "HelpCircle",
-    color: "#dc2626",
+    icon: <HelpCircle size={16} />,
+    color: "#fed7aa",
     description_ar: "أي مخالفات أخرى تؤثر على النظام العام للمدرسة",
     description_en: "Any other violations that disrupt the school's public order"
   },

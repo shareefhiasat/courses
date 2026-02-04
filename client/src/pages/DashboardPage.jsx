@@ -22,7 +22,7 @@ import { getClasses, addClass, updateClass, deleteClass } from '@firebaseService
 import { sendEmail, getSMTPConfig, updateSMTPConfig, deleteEmailLog } from '@firebaseServices/emailService';
 import { getCourses, setCourse, deleteCourse } from '@firebaseServices/courseService';
 import { db } from '@firebaseServices/config';
-import { getLoginLogs } from '@firebaseServices/activityService';
+import { getLoginLogs, deleteAllLoginLogs } from '@firebaseServices/activityService';
 import { getAllowlist, updateAllowlist } from '@firebaseServices/configService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
 import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection } from '@ui';
@@ -3379,10 +3379,37 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   </Button>
                   <Button 
                     onClick={() => {
-                      if (window.confirm('Are you sure you want to delete all logs? This action cannot be undone.')) {
-                        // TODO: Implement delete all logs functionality
-                        toast?.showInfo('Delete all logs functionality coming soon');
-                      }
+                      const isAllTypes = activityTypeFilter === 'all';
+                      const filterOption = getActivityLogOptions(t).find(opt => opt.value === activityTypeFilter);
+                      const description = isAllTypes ? 'all login logs' : `${filterOption?.label || activityTypeFilter} logs`;
+                      
+                      setDeleteModal({
+                        open: true,
+                        type: 'login_logs',
+                        item: { description, filterType: activityTypeFilter },
+                        onConfirm: async () => {
+                          setLoading(true);
+                          try {
+                            const result = await deleteAllLoginLogs();
+                            if (result.success) {
+                              toast?.showSuccess(`Successfully deleted ${result.deletedCount} ${description}`);
+                              // Refresh the login logs data
+                              const loginLogsRes = await getLoginLogs();
+                              if (loginLogsRes.success) {
+                                setLoginLogs(loginLogsRes.data);
+                              }
+                            } else {
+                              toast?.showError('Failed to delete login logs: ' + result.error);
+                            }
+                          } catch (error) {
+                            console.error('Error deleting login logs:', error);
+                            toast?.showError('An error occurred while deleting login logs');
+                          } finally {
+                            setLoading(false);
+                            setDeleteModal({ open: false });
+                          }
+                        }
+                      });
                     }} 
                     variant="danger" 
                     size="small" 
@@ -6499,13 +6526,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                      deleteModal.type === 'class' ? 'Delete Class' :
                      deleteModal.type === 'resource' ? 'Delete Resource' :
                      deleteModal.type === 'enrollment' ? 'Delete Enrollment' :
-                     deleteModal.type === 'category' ? 'Delete Category' : 'Confirm Deletion'}</h3>
+                     deleteModal.type === 'category' ? 'Delete Category' :
+                     deleteModal.type === 'login_logs' ? (deleteModal.item?.filterType === 'all' ? 'Delete All Logs' : `Delete ${deleteModal.item?.filterType} Logs`) : 'Confirm Deletion'}</h3>
               <p>{deleteModal.type === 'activity' ? 'Are you sure you want to delete this activity? This will also delete all related submissions.' :
                    deleteModal.type === 'announcement' ? 'Are you sure you want to delete this announcement?' :
                    deleteModal.type === 'class' ? 'Are you sure you want to delete this class? This will also delete all enrollments and related activities.' :
                    deleteModal.type === 'resource' ? 'Are you sure you want to delete this resource?' :
                    deleteModal.type === 'enrollment' ? 'Are you sure you want to delete this enrollment?' :
                    deleteModal.type === 'category' ? 'Are you sure you want to delete this category? Activities with this category will fallback to "General".' :
+                   deleteModal.type === 'login_logs' ? (deleteModal.item?.filterType === 'all' ? 
+                     'Are you sure you want to delete all login logs? This action cannot be undone and will permanently remove all login activity records.' :
+                     `Are you sure you want to delete all ${deleteModal.item?.description}? This action cannot be undone and will permanently remove these activity records.`) :
                    'Are you sure you want to delete this item? This action cannot be undone.'}</p>
               {deleteModal.warningMessage && (
                 <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{deleteModal.warningMessage}</p>

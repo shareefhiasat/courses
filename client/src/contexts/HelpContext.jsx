@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useLocation } from 'react-router-dom';
 import { useLang } from './LangContext';
 import { ABSENCE_TYPES } from '../constants/absenceTypes';
-import { PENALTY_TYPES } from '../constants/penaltyTypes';
-import { PARTICIPATION_TYPES } from '../constants/participationTypes';
+import { PENALTY_TYPES } from '../constants/penaltyTypes.jsx';
+import { PARTICIPATION_TYPES } from '../constants/participationTypes.jsx';
 
 const HelpContext = createContext();
 

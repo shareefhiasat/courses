@@ -23,9 +23,9 @@ import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';
 import { generateReferenceId } from '@utils/qrCode';
 import { getTypeColor } from '@utils/sharedTypes';
-import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes';
-import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes';
-import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
+import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes.jsx';
+import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes.jsx';
+import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
   QrCodeIcon,
