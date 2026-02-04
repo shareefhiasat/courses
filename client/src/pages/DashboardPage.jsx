@@ -24,7 +24,7 @@ import { getCourses, setCourse, deleteCourse } from '@firebaseServices/courseSer
 import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@firebaseServices/activityService';
 import { getAllowlist, updateAllowlist } from '@firebaseServices/configService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
-import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection, Badge } from '@ui';
+import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection, Badge, UserSelect } from '@ui';
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { RibbonTabs, DragGrid, EmailManager, SmartEmailComposer, UserDeletionModal, EmailTemplates, EmailLogs } from '@ui';
@@ -3336,24 +3336,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   onChange={(e) => setLoginSearch(e.target.value)}
                   style={{ minWidth: '200px', flex: '1' }}
                 />
-                <Select value={loginUserFilter} onChange={(e) => setLoginUserFilter(e.target.value)} options={[
-                  { value: 'all', label: t('all_users'), icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
-                  ...users.map(u => {
-                    // Get user's enrollment count
-                    const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
-                    const enrollmentCount = userEnrollments.length;
-                    const enrollmentText = enrollmentCount > 0 ? ` (${enrollmentCount} enrollments)` : '';
-                    
-                    return {
-                      value: u.email || u.docId,
-                      label: u.displayName ? `${u.displayName} (${u.email || u.docId})${enrollmentText}` : (u.email || u.docId),
-                      icon: React.createElement(getIconComponent(getRoleIcon(u.role)), { 
-                        size: 16, 
-                        style: { color: getRoleIconColor(u.role) } 
-                      })
-                    };
-                  })
-                ]} style={{ minWidth: '200px', flex: '1' }} searchable size="small" />
+                <UserSelect
+                  users={users}
+                  enrollments={enrollments}
+                  value={loginUserFilter}
+                  onChange={(e) => setLoginUserFilter(e.target.value)}
+                  placeholder={t('all_users') || 'All Users'}
+                  includeAll={true}
+                  showEnrollments={true}
+                  showStatus={true}
+                  searchable={true}
+                  size="small"
+                  style={{ minWidth: '200px', flex: '1' }}
+                />
                 <DateRangeSlider
                   fromDate={loginFrom ? (() => {
                     try {
@@ -3685,33 +3680,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         options={classFormSubjectOptions}
                         required
                       />
-                      <Select
-                        searchable
-                        placeholder={t('all_instructors') || 'All Instructors'}
+                      <UserSelect
+                        users={users}
+                        enrollments={enrollments}
                         value={classForm.ownerEmail}
                         onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
-                        options={[
-                          { value: '', label: t('all_instructors') || 'All Instructors', icon: <Filter size={16} color={getFilterIconColor()} /> },
-                          ...users.filter(user => user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.INSTRUCTOR).map(instructor => {
-                            const displayName = instructor.displayName || instructor.name || instructor.realName || '';
-                            const isInstructor = instructor.role === USER_ROLES.INSTRUCTOR;
-                            const isAdmin = instructor.role === USER_ROLES.ADMIN;
-                            return {
-                              value: instructor.email,
-                              label: displayName ? `${displayName} (${instructor.email})` : instructor.email,
-                              icon: isInstructor ? 
-                                <BookOpen size={16} color="#0ea5e9" /> : 
-                                <Shield size={16} color="#4f46e5" />
-                            };
-                          }),
-                          ...(allowlist?.adminEmails?.filter(email =>
-                            !users.some(u => u.email === email)
-                          ).map(email => ({
-                            value: email,
-                            label: `${email} (from allowlist)`,
-                            icon: <Shield size={16} color="#4f46e5" />
-                          })) || [])
-                        ]}
+                        placeholder={t('all_instructors') || 'All Instructors'}
+                        roleFilter={[USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR]}
+                        includeAll={true}
+                        showEnrollments={false}
+                        showStatus={true}
+                        useEmailAsValue={true}
+                        searchable={true}
                         required
                       />
                     </div>
@@ -4193,66 +4173,16 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               {/* User Info Tab */}
               {activeEnrollmentTab === 'user' && (
                 <div className="form-row wide-cols">
-                  <Select
-                    searchable
-                    placeholder={t('select_user')}
+                  <UserSelect
+                    users={users}
+                    enrollments={enrollments}
                     value={enrollmentForm.userId}
                     onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
-                    options={[
-                      { value: '', label: t('select_user') || 'Select User' },
-                      ...users
-                        .filter(u => u.role === USER_ROLES.STUDENT)
-                        .map(u => {
-                          // Get user enrollments count
-                          const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
-                          const enrollmentCount = userEnrollments.length;
-                          
-                          // Get status utilities
-                          const status = getUserStatus(u, userEnrollments);
-                          const statusSummary = getUserStatusSummary(u, userEnrollments);
-                          const iconProps = getStatusIconProps(status);
-                          const IconComponent = {
-                            'UserCheck': UserCheck,
-                            'UserX': UserX,
-                            'UserMinus': UserMinus,
-                            'AlertCircle': AlertTriangle,
-                            'Info': Info
-                          }[iconProps.name] || User;
-                          
-                          const isDisabled = status === USER_STATUS.DELETED;
-                          const statusLabel = statusSummary?.label || status;
-                          
-                          return {
-                            value: u.docId || u.id,
-                            displayLabel: u.displayName || u.realName || u.email || 'Unknown',
-                            label: (
-                              <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center',
-                                gap: 8,
-                                opacity: isDisabled ? 0.7 : 1
-                              }}>
-                                <IconComponent size={16} color={iconProps.color} />
-                                <span style={{ 
-                                  textDecoration: isDisabled ? 'line-through' : 'none',
-                                  flex: 1
-                                }}>
-                                  {u.displayName || u.realName || u.email || 'Unknown'}
-                                </span>
-                                <span style={{ 
-                                  fontSize: '0.8em',
-                                  color: '#9CA3AF',
-                                  marginLeft: 'auto'
-                                }}>
-                                  {statusLabel}
-                                  {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments') || 'enrollments'}`}
-                                </span>
-                              </div>
-                            ),
-                            disabled: isDisabled
-                          };
-                        })
-                    ]}
+                    placeholder={t('select_user') || 'Select User'}
+                    roleFilter={[USER_ROLES.STUDENT]}
+                    showEnrollments={true}
+                    showStatus={true}
+                    searchable={true}
                     required
                   />
                 </div>
@@ -4674,17 +4604,16 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 searchable
                 fullWidth
               />
-              <Select
-                searchable
+              <UserSelect
+                users={users}
+                enrollments={enrollments}
                 value={submissionStudentFilter}
                 onChange={(e) => setSubmissionStudentFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_students') || 'All Students', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
-                  ...users.map(u => ({
-                    value: u.docId || u.id,
-                    label: `${u.displayName || u.realName || 'Unknown'}${u.email ? ` (${u.email})` : ''}`
-                  }))
-                ]}
+                placeholder={t('all_students') || 'All Students'}
+                roleFilter={[USER_ROLES.STUDENT]}
+                includeAll={true}
+                showEnrollments={true}
+                showStatus={true}
                 fullWidth
               />
               <Select

@@ -1,0 +1,55 @@
+/* UserSelect Component Styles */
+
+.userSelect {
+  /* Base styles inherited from Select component */
+}
+
+.userOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  transition: background-color 0.2s ease;
+}
+
+.userOption:hover {
+  background-color: var(--hover-bg, #f3f4f6);
+}
+
+.userOption.disabled {
+  opacity: 0.7;
+}
+
+.userOption.disabled .userText {
+  text-decoration: line-through;
+}
+
+.userIcon {
+  flex-shrink: 0;
+}
+
+.userText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userMeta {
+  font-size: 0.8em;
+  color: #9CA3AF;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .userOption:hover {
+    background-color: var(--hover-bg-dark, #374151);
+  }
+  
+  .userMeta {
+    color: #6B7280;
+  }
+}
