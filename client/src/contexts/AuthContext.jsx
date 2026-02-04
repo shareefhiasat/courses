@@ -179,11 +179,11 @@ export const AuthProvider = ({ children }) => {
           try {
             const userProfile = await getUserProfile(firebaseUser);
             if (userProfile) {
-              console.log('🔧 AuthContext loaded user profile:', userProfile);
-              console.log('🔧 AuthContext userProfile.displayName:', userProfile.displayName);
-              console.log('🔧 AuthContext userProfile.realName:', userProfile.realName);
+              // console.log('🔧 AuthContext loaded user profile:', userProfile);
+              // console.log('🔧 AuthContext userProfile.displayName:', userProfile.displayName);
+              // console.log('🔧 AuthContext userProfile.realName:', userProfile.realName);
               userData.displayName = userProfile.displayName || userProfile.realName || userData.displayName;
-              console.log('🔧 AuthContext final userData.displayName:', userData.displayName);
+              // console.log('🔧 AuthContext final userData.displayName:', userData.displayName);
             } else {
               console.log('🔧 AuthContext user profile does not exist');
             }
@@ -229,35 +229,35 @@ export const AuthProvider = ({ children }) => {
         let profile = null;
         try {
           profile = await getUserProfile(firebaseUser);
-          console.log('🔧 AuthContext getUserProfile result:', profile);
+          // console.log('🔧 AuthContext getUserProfile result:', profile);
           if (profile) {
-            console.log('🔧 AuthContext full profile data:', profile);
-            console.log('🔧 AuthContext profile.role:', profile.role);
-            console.log('🔧 AuthContext profile.isAdmin:', profile.isAdmin);
-            console.log('🔧 AuthContext profile.isSuperAdmin:', profile.isSuperAdmin);
-            console.log('🔧 AuthContext profile.isHR:', profile.isHR);
-            console.log('🔧 AuthContext profile.isInstructor:', profile.isInstructor);
+            // console.log('🔧 AuthContext full profile data:', profile);
+            // console.log('🔧 AuthContext profile.role:', profile.role);
+            // console.log('🔧 AuthContext profile.isAdmin:', profile.isAdmin);
+            // console.log('🔧 AuthContext profile.isSuperAdmin:', profile.isSuperAdmin);
+            // console.log('🔧 AuthContext profile.isHR:', profile.isHR);
+            // console.log('🔧 AuthContext profile.isInstructor:', profile.isInstructor);
             
             adminFromDoc = isAdminCheck(profile.role) || profile.isAdmin === true;
             superAdminFromDoc = isSuperAdminCheck(profile.role) || profile.isSuperAdmin === true;
             hr = isHRCheck(profile.role) || profile.isHR === true;
             instructor = isInstructorCheck(profile.role) || profile.isInstructor === true;
             
-            console.log('🔧 AuthContext role detection debug:', {
-              profileRole: profile.role,
-              isSuperAdminRole: isSuperAdminCheck(profile.role),
-              profileIsSuperAdmin: profile.isSuperAdmin,
-              superAdminFromDoc,
-              'profile.role === USER_ROLES.SUPER_ADMIN': profile.role === USER_ROLES.SUPER_ADMIN,
-              'USER_ROLES.SUPER_ADMIN': USER_ROLES.SUPER_ADMIN
-            });
+            // console.log('🔧 AuthContext role detection debug:', {
+            //   profileRole: profile.role,
+            //   isSuperAdminRole: isSuperAdminCheck(profile.role),
+            //   profileIsSuperAdmin: profile.isSuperAdmin,
+            //   superAdminFromDoc,
+            //   'profile.role === USER_ROLES.SUPER_ADMIN': profile.role === USER_ROLES.SUPER_ADMIN,
+            //   'USER_ROLES.SUPER_ADMIN': USER_ROLES.SUPER_ADMIN
+            // });
             
-            console.log('🔧 AuthContext detected roles:', {
-              adminFromDoc,
-              superAdminFromDoc,
-              hr,
-              instructor
-            });
+            // console.log('🔧 AuthContext detected roles:', {
+            //   adminFromDoc,
+            //   superAdminFromDoc,
+            //   hr,
+            //   instructor
+            // });
             
             // Load user enrollments for status check
             let enrollments = [];
@@ -293,8 +293,8 @@ export const AuthProvider = ({ children }) => {
               ...profile
             };
             
-            console.log('🔧 AuthContext final profile:', profile);
-            console.log('🔧 AuthContext final profile.displayName:', profile.displayName);
+            // console.log('🔧 AuthContext final profile:', profile);
+            // console.log('🔧 AuthContext final profile.displayName:', profile.displayName);
             
             // Cache in sessionStorage
             sessionStorage.setItem('userProfile', JSON.stringify(profile));
@@ -317,14 +317,14 @@ export const AuthProvider = ({ children }) => {
         // If Firestore says admin, honor it (hot-fix for missing claims/allowlist)
         if (!admin && adminFromDoc) admin = true;
 
-        console.log('🔧 AuthContext before final assignment:', {
-          admin,
-          adminFromDoc,
-          superAdminFromDoc,
-          hr,
-          instructor,
-          'typeof superAdminFromDoc': typeof superAdminFromDoc
-        });
+        // console.log('🔧 AuthContext before final assignment:', {
+        //   admin,
+        //   adminFromDoc,
+        //   superAdminFromDoc,
+        //   hr,
+        //   instructor,
+        //   'typeof superAdminFromDoc': typeof superAdminFromDoc
+        // });
 
         setIsAdmin(!!admin);
         setIsSuperAdmin(!!superAdminFromDoc);
@@ -337,13 +337,13 @@ export const AuthProvider = ({ children }) => {
         else if (instructor) userRole = USER_ROLES.INSTRUCTOR;
         else userRole = USER_ROLES.STUDENT;
         
-        console.log('🔧 AuthContext final role assignment:', {
-          superAdminFromDoc,
-          admin,
-          hr,
-          instructor,
-          finalRole: userRole
-        });
+        // console.log('🔧 AuthContext final role assignment:', {
+        //   superAdminFromDoc,
+        //   admin,
+        //   hr,
+        //   instructor,
+        //   finalRole: userRole
+        // });
         
         setRole(userRole);
 

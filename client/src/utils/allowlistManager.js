@@ -153,10 +153,10 @@ if (typeof window !== 'undefined') {
     isEmailInAllowlist
   };
   
-  console.log('🔧 Allowlist utilities available in window.allowlistUtils');
-  console.log('🔧 Usage:');
-  console.log('  window.allowlistUtils.getAllowlistConfig()');
-  console.log('  window.allowlistUtils.addCurrentUserToAllowlist()');
-  console.log('  window.allowlistUtils.addToAdminAllowlist("email@example.com")');
-  console.log('  window.allowlistUtils.isEmailInAllowlist("email@example.com")');
+  // console.log('🔧 Allowlist utilities available in window.allowlistUtils');
+  // console.log('🔧 Usage:');
+  // console.log('  window.allowlistUtils.getAllowlistConfig()');
+  // console.log('  window.allowlistUtils.addCurrentUserToAllowlist()');
+  // console.log('  window.allowlistUtils.addToAdminAllowlist("email@example.com")');
+  // console.log('  window.allowlistUtils.isEmailInAllowlist("email@example.com")');
 }

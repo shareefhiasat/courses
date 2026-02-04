@@ -74,7 +74,7 @@ function PageTracker() {
         timestamp: new Date().toISOString()
       });
     } else {
-      console.log('🔍 PageTracker - PostHog not ready yet');
+      // console.log('🔍 PageTracker - PostHog not ready yet');
     }
   }, [location]);
   

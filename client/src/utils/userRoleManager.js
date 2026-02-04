@@ -152,10 +152,10 @@ if (typeof window !== 'undefined') {
     checkCurrentUserRole
   };
   
-  console.log('🔧 User role utilities available in window.userRoleUtils');
-  console.log('🔧 Usage:');
-  console.log('  window.userRoleUtils.checkCurrentUserRole()');
-  console.log('  window.userRoleUtils.makeCurrentUserSuperAdmin()');
-  console.log('  window.userRoleUtils.makeCurrentUserInstructor()');
-  console.log('  window.userRoleUtils.makeCurrentUserSuperAdminAndInstructor()');
+  // console.log('🔧 User role utilities available in window.userRoleUtils');
+  // console.log('🔧 Usage:');
+  // console.log('  window.userRoleUtils.checkCurrentUserRole()');
+  // console.log('  window.userRoleUtils.makeCurrentUserSuperAdmin()');
+  // console.log('  window.userRoleUtils.makeCurrentUserInstructor()');
+  // console.log('  window.userRoleUtils.makeCurrentUserSuperAdminAndInstructor()');
 }

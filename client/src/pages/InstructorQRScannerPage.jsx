@@ -336,12 +336,12 @@ const InstructorQRScannerPage = () => {
 
   // Load students when class or date changes
   useEffect(() => {
-    console.log('🔧 InstructorQRScannerPage useEffect - selectedClassId:', selectedClassId);
+    // console.log('🔧 InstructorQRScannerPage useEffect - selectedClassId:', selectedClassId);
     if (selectedClassId && selectedClassId !== 'all') {
-      console.log('🔧 InstructorQRScannerPage calling loadStudents for class:', selectedClassId);
+      // console.log('🔧 InstructorQRScannerPage calling loadStudents for class:', selectedClassId);
       loadStudents(selectedClassId, selectedDate);
     } else {
-      console.log('🔧 InstructorQRScannerPage clearing students - classId is all or empty');
+      // console.log('🔧 InstructorQRScannerPage clearing students - classId is all or empty');
       setStudents([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -496,7 +496,7 @@ const InstructorQRScannerPage = () => {
   // Memoized loadStudents function for performance
   const loadStudents = useCallback(async (classId, date) => {
     try {
-      console.log('🔧 loadStudents started for class:', classId, 'date:', date);
+      // console.log('🔧 loadStudents started for class:', classId, 'date:', date);
       logger.debug('[QR Scanner] Loading students for class:', classId, 'date:', date);
       setLoading(true);
 

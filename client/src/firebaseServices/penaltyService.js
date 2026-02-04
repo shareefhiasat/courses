@@ -31,11 +31,11 @@ const toYmd = (tsOrDate) => {
 
 export const getPenalties = async (studentId = null, subjectId = null) => {
   try {
-    console.log('🔧 getPenalties called with studentId:', studentId, 'subjectId:', subjectId);
+    // console.log('🔧 getPenalties called with studentId:', studentId, 'subjectId:', subjectId);
     
     let q;
     if (studentId && subjectId) {
-      console.log('🔧 Querying with studentId and subjectId');
+      // console.log('🔧 Querying with studentId and subjectId');
       q = query(
         collection(db, "penalties"),
         where("studentId", "==", studentId),
@@ -43,7 +43,7 @@ export const getPenalties = async (studentId = null, subjectId = null) => {
         orderBy("createdAt", "desc")
       );
     } else if (studentId) {
-      console.log('🔧 Querying with studentId only:', studentId);
+      // console.log('🔧 Querying with studentId only:', studentId);
       q = query(
         collection(db, "penalties"),
         where("studentId", "==", studentId)
@@ -57,25 +57,25 @@ export const getPenalties = async (studentId = null, subjectId = null) => {
         orderBy("createdAt", "desc")
       );
     } else {
-      console.log('🔧 Querying all penalties');
+      // console.log('🔧 Querying all penalties');
       q = query(collection(db, "penalties"), orderBy("createdAt", "desc"));
     }
     
     const qs = await getDocs(q);
-    console.log('🔧 Query returned', qs.docs.length, 'documents');
+    // console.log('🔧 Query returned', qs.docs.length, 'documents');
     
     const items = [];
     qs.forEach((d) => {
       const penalty = { docId: d.id, ...d.data() };
       items.push(penalty);
       // Debug log each penalty
-      console.log('🔧 getPenalties - found penalty:', {
-        id: penalty.docId,
-        studentId: penalty.studentId,
-        date: penalty.date,
-        type: penalty.type,
-        points: penalty.points
-      });
+      // console.log('🔧 getPenalties - found penalty:', {
+      //   id: penalty.docId,
+      //   studentId: penalty.studentId,
+      //   date: penalty.date,
+      //   type: penalty.type,
+      //   points: penalty.points
+      // });
     });
     
     // Sort client-side if we removed server-side orderBy
@@ -87,7 +87,7 @@ export const getPenalties = async (studentId = null, subjectId = null) => {
       });
     }
     
-    console.log('🔧 getPenalties - total penalties found:', items.length, 'for studentId:', studentId);
+    // console.log('🔧 getPenalties - total penalties found:', items.length, 'for studentId:', studentId);
     return { success: true, data: items };
   } catch (error) {
     console.error('🔧 Error in getPenalties:', error);
