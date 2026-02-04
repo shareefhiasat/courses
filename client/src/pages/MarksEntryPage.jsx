@@ -3,7 +3,7 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
-import { getSubjects, getPrograms } from '@firebaseServices/programs';
+import { getSubjects, getPrograms } from '@firebaseServices/programService';
 import { getSubjectMarksDistribution, setSubjectMarksDistribution, getStudentMarks, saveStudentMarks } from '@firebaseServices/grading';
 import { getUsers } from '@firebaseServices/userService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';

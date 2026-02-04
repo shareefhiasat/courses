@@ -5268,7 +5268,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         onClick={async () => {
                           try {
                             const { sendPasswordResetEmail } = await import('firebase/auth');
-                            const { auth } = await import('../firebase/config');
+                            const { auth } = await import('@firebaseServices/config');
                             await sendPasswordResetEmail(auth, params.row.email);
                             toast?.showSuccess(`Password reset email sent to ${params.row.email}`);
                           } catch (error) {
@@ -6454,7 +6454,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 }
                 try {
                   const { updatePassword } = await import('firebase/auth');
-                  const { auth } = await import('../firebase/config');
+                  const { auth } = await import('@firebaseServices/config');
                   if (auth.currentUser && auth.currentUser.uid === passwordUser.docId) {
                     await updatePassword(auth.currentUser, newPassword);
                     toast?.showSuccess('Password updated successfully!');
@@ -6659,7 +6659,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 try {
                   setSmtpTesting(true);
                   const { httpsCallable } = await import('firebase/functions');
-                  const { functions } = await import('../firebase/config');
+                  const { functions } = await import('@firebaseServices/config');
                   const testSMTP = httpsCallable(functions, 'testSMTP');
                   const result = await testSMTP({ to: testEmailAddress });
                   if (result.data.success) {

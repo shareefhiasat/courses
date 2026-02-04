@@ -1,4 +1,4 @@
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from './config';
 
 /**
@@ -279,23 +279,28 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
       };
     }
 
-    // Create attendance record
+    const today = new Date().toISOString().split('T')[0];
+
+    // Create complete attendance record (same structure as manual scan)
     const attendanceData = {
       studentId,
+      studentNumber: studentId, // Add studentNumber for consistency
       classId,
       status,
+      date: today,                    // ✅ Add missing date field
       method: 'roster_quick_action',
       notes: notes || `Quick ${status}`,
-      timestamp: serverTimestamp(),
-      performedBy: user?.uid || null,
-      performedByName: user?.displayName || user?.email || 'Unknown',
-      performedByEmail: user?.email || null
+      markedBy: user?.uid || null,
+      markedByName: user?.displayName || user?.email || 'Unknown',
+      markedByEmail: user?.email || null,
+      createdAt: serverTimestamp(),   // ✅ Add missing timestamps
+      updatedAt: serverTimestamp()
     };
 
-    const docRef = doc(db, 'attendance', `${classId}_${studentId}_${new Date().toISOString().split('T')[0]}`);
-    await setDoc(docRef, attendanceData);
+    // Use addDoc like manual scan for consistency
+    const newDocRef = await addDoc(collection(db, 'attendance'), attendanceData);
 
-    return { success: true, data: attendanceData };
+    return { success: true, data: { id: newDocRef.id, ...attendanceData } };
   } catch (error) {
     console.error('Error in roster quick action:', error);
     return { success: false, error: error.message };

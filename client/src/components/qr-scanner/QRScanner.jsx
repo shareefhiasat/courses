@@ -3,7 +3,7 @@ import logger from '../../utils/logger';
 import { Button } from './ui/button';
 import { CollapsibleSection, PerformedBy } from '@ui';
 import jsQR from 'jsqr';
-import { getAttendanceByClass, deleteAttendance, rosterQuickAction } from '@firebaseServices/attendanceService';
+import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@firebaseServices/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { USER_ROLES, isAdmin, isSuperAdmin, isStudent } from '@constants/userRoles';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penaltyService';
@@ -25,6 +25,7 @@ import { generateReferenceId } from '@utils/qrCode';
 import { getTypeColor } from '@utils/sharedTypes';
 import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participationTypes';
 import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes';
+import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
   QrCodeIcon,
