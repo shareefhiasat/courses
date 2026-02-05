@@ -2,6 +2,7 @@ import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'rea
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search, X, Filter } from 'lucide-react';
 import styles from './Select.module.css';
+import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 
 /**
  * Select Component
@@ -22,6 +23,7 @@ import styles from './Select.module.css';
  * @param {boolean} props.fullWidth - Whether select takes full width
  * @param {boolean} props.searchable - Enable search/autocomplete
  * @param {string} props.className - Additional CSS classes
+ * @param {'light'|'dark'} props.theme - Theme variant
  */
 const Select = forwardRef(({
   label,
@@ -37,6 +39,7 @@ const Select = forwardRef(({
   fullWidth = false,
   searchable = true,
   className = '',
+  theme = 'light',
   ...rest
 }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -45,6 +48,12 @@ const Select = forwardRef(({
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
+
+  // Get theme-aware styles
+  const themeStyles = getComponentStyles(theme, 'select', 'default', size);
+  
+  // Generate CSS variables for theme
+  const cssVariables = generateCSSVariables(theme);
 
   // Close dropdown when clicking outside
   const handleClickOutside = useCallback((event) => {

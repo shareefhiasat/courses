@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Accordion.module.css';
 
 /**
@@ -8,14 +9,15 @@ import styles from './Accordion.module.css';
  * Collapsible content sections.
  */
 const AccordionItem = ({ title, children, isOpen, onToggle }) => {
+  const { theme } = useTheme();
+  
   return (
     <div className={styles.item}>
       <button className={styles.header} onClick={onToggle}>
         <span className={styles.title}>{title}</span>
-        <ChevronDown
-          size={20}
-          className={`${styles.icon} ${isOpen ? styles.iconOpen : ''}`}
-        />
+        <span className={`${styles.icon} ${isOpen ? styles.iconOpen : ''}`}>
+          {getThemedIcon('ui', 'chevron_down', 20, theme)}
+        </span>
       </button>
       <div className={`${styles.content} ${isOpen ? styles.contentOpen : ''}`}>
         <div className={styles.contentInner}>{children}</div>

@@ -5,13 +5,15 @@ import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@firebaseServices/programService';
 import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid } from '@ui';
-import { Edit, Trash } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import styles from './ProgramsManagementPage.module.css';
 
 const ProgramsManagementPage = () => {
   const { isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const { t } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
   
   const [programs, setPrograms] = useState([]);
@@ -169,7 +171,7 @@ const ProgramsManagementPage = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> {t('editing_program', { programName: editingProgram.name_en, programCode: editingProgram.code || t('no_code') || 'No code' }) || `Editing Program: ${editingProgram.name_en} (${editingProgram.code || 'No code'})`}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_program', { programName: editingProgram.name_en, programCode: editingProgram.code || t('no_code') || 'No code' }) || `Editing Program: ${editingProgram.name_en} (${editingProgram.code || 'No code'})`}
         </div>
       )}
 
@@ -299,7 +301,7 @@ const ProgramsManagementPage = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      icon={<Edit size={16} />}
+                      icon={getThemedIcon('ui', 'edit', 16, theme)}
                       onClick={() => handleEdit(params.row)}
                     >
                       {t('edit') || 'Edit'}
@@ -307,7 +309,7 @@ const ProgramsManagementPage = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      icon={<Trash size={16} />}
+                      icon={getThemedIcon('ui', 'trash', 16, theme)}
                       onClick={() => handleDelete(params.row)}
                       style={{ color: '#dc2626' }}
                     >

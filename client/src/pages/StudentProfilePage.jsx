@@ -4,7 +4,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { db } from '@firebaseServices/config';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
-import { Users, Calendar, TrendingUp, Award, Clock, Search, Trophy, Flame, Target, X, BookOpen, Filter } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '@firebaseServices/badgeService';
 import { CheckSmallIcon } from '@utils/icons.jsx';
 import { useSearchParams } from 'react-router-dom';
@@ -15,7 +15,7 @@ import styles from './StudentProfilePage.module.css';
 const StudentProfilePage = () => {
   const { user, isAdmin, isHR, isInstructor } = useAuth();
   const { t } = useLang();
-  const { isDark } = useTheme();
+  const { theme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [targetUserId, setTargetUserId] = useState(searchParams.get('uid') || user?.uid);
   
@@ -53,21 +53,21 @@ const StudentProfilePage = () => {
   // Filter options for cascading dropdowns
   const programOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Programs', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
       .map(prog => {
         const value = prog.docId || prog.id;
         const label = prog.name || prog.name_en || prog.name_ar || value;
-        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validPrograms];
   }, [programs]);
 
   const subjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Subjects', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -79,14 +79,14 @@ const StudentProfilePage = () => {
       .map(sub => {
         const value = sub.docId || sub.id;
         const label = sub.name || sub.name_en || sub.name_ar || value;
-        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validSubjects];
   }, [subjects, filters.programId]);
 
   const classOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Classes', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validClasses = allClasses
       .filter(cls => {
@@ -103,46 +103,46 @@ const StudentProfilePage = () => {
       .map(cls => {
         const value = cls.docId || cls.id;
         const label = `${cls.name || cls.code || cls.id} - ${cls.term || ''} ${cls.year || ''}`;
-        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validClasses];
   }, [allClasses, filters.programId, filters.subjectId]);
 
   const yearOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Years', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: 'All Years', icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validYears = [...new Set(allClasses.map(c => c.year || c.academicYear).filter(Boolean))]
       .map(year => ({
         value: year,
         label: year,
-        icon: <BookOpen size={16} color="#374151" />
+        icon: getThemedIcon('ui', 'book_open', 16, theme)
       }));
     return [...opts, ...validYears];
   }, [allClasses]);
 
   const termOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Terms', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: 'All Terms', icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validTerms = [...new Set(allClasses.map(c => c.term || c.sessionTerm).filter(Boolean))]
       .map(term => ({
         value: term,
         label: term,
-        icon: <BookOpen size={16} color="#374151" />
+        icon: getThemedIcon('ui', 'book_open', 16, theme)
       }));
     return [...opts, ...validTerms];
   }, [allClasses]);
 
   const semesterOptions = useMemo(() => {
     const opts = [
-      { value: '', label: 'All Semesters', icon: <Filter size={16} color="#374151" /> }
+      { value: '', label: 'All Semesters', icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSemesters = [...new Set(allClasses.map(c => c.semester).filter(Boolean))]
       .map(semester => ({
         value: semester,
         label: semester,
-        icon: <BookOpen size={16} color="#374151" />
+        icon: getThemedIcon('ui', 'book_open', 16, theme)
       }));
     return [...opts, ...validSemesters];
   }, [allClasses]);
@@ -462,7 +462,7 @@ const StudentProfilePage = () => {
                     {studentData?.avatar ? (
                       <img src={studentData.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
                     ) : (
-                      <User size={40} className="text-white" />
+                      getThemedIcon('ui', 'user', 40, theme)
                     )}
                   </div>
                   <div>
@@ -486,7 +486,7 @@ const StudentProfilePage = () => {
                 {/* Search */}
                 {canViewOthers && (
                   <div className={styles.searchContainer}>
-                    <Search className={styles.searchIcon} size={20} />
+                    {getThemedIcon('ui', 'search', 20, theme)}
                     <input
                       type="text"
                       value={searchText}
@@ -537,7 +537,7 @@ const StudentProfilePage = () => {
                 onClick={() => setShowStudentList(!showStudentList)}
                 className={styles.toggleStudentListBtn}
               >
-                <User size={16} />
+                {getThemedIcon('ui', 'user', 16, theme)}
                 {showStudentList ? 'Hide Student List' : 'Show All Students'}
               </button>
             </div>

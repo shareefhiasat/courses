@@ -2,12 +2,10 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { db } from '@firebaseServices/config';
-import { collection, getDocs, doc, query, where, orderBy, getDoc } from 'firebase/firestore';
-import { Edit, Trash, AlertTriangle, XCircle, Clock, MessageSquare, Phone, Coffee, Users, Shield, Zap, User, TrendingDown, TrendingUp, Target, AlertCircle, UserCheck, UserX, UserMinus, Info } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
 import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody } from '@ui';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@firebaseServices/penaltyService';
-import { PENALTY_TYPES } from '@constants/penaltyTypes';
+import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
@@ -17,31 +15,34 @@ import { addNotification } from '@firebaseServices/notificationService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
+import { getThemedIcon } from '@constants/iconTypes';
+import { 
+  PAGE_STATES, 
+  FORM_STATES, 
+  MODAL_TYPES,
+  TYPE_ICONS,
+  getTypeIcon,
+  COMMON_GRID_COLUMNS,
+  VALIDATION_RULES,
+  COMMON_FILTERS,
+  PAGE_LAYOUTS,
+  getThemeStyles,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES
+} from '@constants/pageTypes';
 import styles from './ProgramsManagementPage.module.css';
-
-// Icon mapping for penalty types
-const PENALTY_TYPE_ICONS = {
-  cheating: <AlertTriangle size={16} color="#374151" />,
-  attempted_cheating: <XCircle size={16} color="#374151" />,
-  impersonation: <Shield size={16} color="#374151" />,
-  exam_disruption: <Zap size={16} color="#374151" />,
-  forgery: <AlertTriangle size={16} color="#374151" />,
-  repetitive_absence_with_excuse: <Clock size={16} color="#374151" />,
-  repetitive_absence_without_excuse: <XCircle size={16} color="#374151" />,
-  absent_no_excuse: <XCircle size={16} color="#374151" />,
-  absent_with_excuse: <Clock size={16} color="#374151" />,
-  late: <Clock size={16} color="#374151" />,
-  other: <AlertTriangle size={16} color="#374151" />
-};
 
 const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isHR, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
+  const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
+  const [formState, setFormState] = useState(FORM_STATES.IDLE);
+  const [loading, setLoading] = useState(false);
   const [penalties, setPenalties] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [editingPenalty, setEditingPenalty] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null });
+  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: MODAL_TYPES.DELETE });
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -624,8 +625,8 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             color: value > 0 ? '#22c55e' : value < 0 ? '#ef4444' : '#6b7280'
           }}>
             {value > 0 ? `+${value}` : value}
-            {value > 0 && <TrendingUp size={14} color="#22c55e" />}
-            {value < 0 && <TrendingDown size={14} color="#ef4444" />}
+            {value > 0 && getThemedIcon('ui', 'trending_up', 14, theme)}
+            {value < 0 && getThemedIcon('ui', 'trending_down', 14, theme)}
           </div>
         );
       }
@@ -703,7 +704,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <Button
             size="sm"
             variant="ghost"
-            icon={<User size={16} />}
+            icon={getThemedIcon('ui', 'user', 16, theme)}
             onClick={() => window.open(`/student-profile/${params.row.studentId}`, '_blank')}
             style={{ color: 'var(--attendance-accent, #800020)' }}
           >
@@ -712,7 +713,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <Button
             size="sm"
             variant="ghost"
-            icon={<Edit size={16} />}
+            icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
             Edit
@@ -720,7 +721,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <Button
             size="sm"
             variant="ghost"
-            icon={<Trash size={16} />}
+            icon={getThemedIcon('ui', 'trash', 16, theme)}
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
@@ -748,7 +749,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> Editing Penalty: {PENALTY_TYPES.find(pt => pt.id === editingPenalty.type)?.label_en || editingPenalty.type}
+          {getThemedIcon('ui', 'edit', 16, theme)} Editing Penalty: {PENALTY_TYPES.find(pt => pt.id === editingPenalty.type)?.label_en || editingPenalty.type}
         </div>
       )}
 
@@ -785,13 +786,15 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   const status = getUserStatus(u, userEnrollments);
                   const statusSummary = getUserStatusSummary(u, userEnrollments);
                   const iconProps = getStatusIconProps(status);
-                  const IconComponent = {
-                    'UserCheck': UserCheck,
-                    'UserX': UserX,
-                    'UserMinus': UserMinus,
-                    'AlertCircle': AlertTriangle,
-                    'Info': Info
-                  }[iconProps.name] || User;
+                  const IconComponent = () => {
+                    switch (iconProps.name) {
+                      case 'UserCheck': return getThemedIcon('user_status', 'active', 24, theme);
+                      case 'UserX': return getThemedIcon('user_status', 'deleted', 24, theme);
+                      case 'UserMinus': return getThemedIcon('user_status', 'archived', 24, theme);
+                      case 'AlertCircle': return getThemedIcon('user_status', 'no_enrollments', 24, theme);
+                      default: return getThemedIcon('ui', 'info', 24, theme);
+                    }
+                  };
                   
                   const isDisabled = status === USER_STATUS.DELETED;
                   const statusLabel = statusSummary?.label || status;
@@ -806,7 +809,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                         gap: 8,
                         opacity: isDisabled ? 0.7 : 1
                       }}>
-                        <IconComponent size={16} color={iconProps.color} />
+                        <IconComponent />
                         <span style={{ 
                           textDecoration: isDisabled ? 'line-through' : 'none',
                           flex: 1
@@ -972,7 +975,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <AlertCircle size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'alert_circle', 16, theme)}
           {penalties.length} Total
         </div>
         <div style={{ 
@@ -987,7 +990,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <Users size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'users', 16, theme)}
           {new Set(penalties.map(p => p.studentId)).size} Students
         </div>
         <div style={{ 
@@ -1002,7 +1005,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           fontWeight: '500',
           color: '#166534'
         }}>
-          <TrendingUp size={16} color="#166534" />
+          {getThemedIcon('ui', 'trending_up', 16, theme)}
           {penalties.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} Positive
         </div>
         <div style={{ 
@@ -1017,7 +1020,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <TrendingDown size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'trending_down', 16, theme)}
           {penalties.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} Negative
         </div>
       </div>

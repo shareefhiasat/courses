@@ -3,17 +3,13 @@ import logger from '@utils/logger';
 import { Input } from '@ui';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
-import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
-import { getAttendanceByStudent, deleteAttendance, rosterQuickAction } from '@firebaseServices/attendanceService';
-import { getPenalties, deletePenalty } from '@firebaseServices/penaltyService';
-import { getParticipations, deleteParticipation } from '@firebaseServices/participationService';
-import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviorService';
-import { getFavoriteStudents, addFavoriteStudent, removeFavoriteStudent } from '@firebaseServices/userPreferenceService';
 import { useAuth } from '@contexts/AuthContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
+import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { CheckSmallIcon, ClockSmallIcon } from '@utils/icons.jsx';
-import { ChevronRight, RefreshCw, Star, Download, Search, Filter } from 'lucide-react';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
@@ -22,6 +18,7 @@ import { getParticipationLabel } from '@constants/participationTypes';
 import { getBehaviorLabel } from '@constants/behaviorTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { getFavoriteStudents } from '@firebaseServices/userPreferenceService';
 import StudentHistory from '@ui/history';
 import StudentRosterHistory from '@ui/history/StudentRosterHistory';
 import DeleteModal from '@ui/history/DeleteModal';
@@ -53,6 +50,7 @@ const StudentRoster = React.memo(function StudentRoster({
   selectedDate
 }) {
   const {user} = useAuth();
+  const {theme} = useTheme();
   const {t, lang, isRTL} = useLang();
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -862,20 +860,20 @@ const StudentRoster = React.memo(function StudentRoster({
           {isMobile && (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <Button variant="ghost" size="icon" onClick={onFilter}>
-                <Filter style={{ width: '1rem', height: '1rem' }} />
+                {getThemedIcon('ui', 'filter', 16, theme)}
               </Button>
               <Button 
                 variant={showFavoritesOnly ? 'default' : 'ghost'} 
                 size="icon" 
                 onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
               >
-                <Star style={{ width: '1rem', height: '1rem', color: showFavoritesOnly ? '#f59e0b' : '#6b7280' }} fill={showFavoritesOnly ? 'currentColor' : 'none'} />
+                {getThemedIcon('ui', 'star', 16, theme)}
               </Button>
               <Button variant="ghost" size="icon" onClick={onDownload} title={t('export_csv')}>
-                <Download style={{ width: '1rem', height: '1rem' }} />
+                {getThemedIcon('ui', 'download', 16, theme)}
               </Button>
               <Button variant="ghost" size="icon" onClick={onRefresh} title={t('refresh')}>
-                <RefreshCw style={{ width: '1rem', height: '1rem' }} />
+                {getThemedIcon('ui', 'refresh', 16, theme)}
               </Button>
             </div>
           )}
@@ -888,7 +886,7 @@ const StudentRoster = React.memo(function StudentRoster({
           flexDirection: isMobile ? 'column' : 'row'
         }}>
           <div style={{ position: 'relative', width: isMobile ? '100%' : '16rem' }}>
-            <Search style={{
+            <div style={{
               position: 'absolute',
               [isRTL ? 'right' : 'left']: '0.75rem',
               top: '50%',
@@ -896,7 +894,9 @@ const StudentRoster = React.memo(function StudentRoster({
               width: '1rem',
               height: '1rem',
               color: 'var(--text-muted, #6b7280)'
-            }} />
+            }}>
+              {getThemedIcon('ui', 'search', 16, theme)}
+            </div>
             <Input
               placeholder={t('search_student')}
               value={searchQuery}
@@ -907,7 +907,7 @@ const StudentRoster = React.memo(function StudentRoster({
           {!isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <Button variant="ghost" size="icon" onClick={onFilter}>
-                <Filter style={{ width: '1rem', height: '1rem' }} />
+                {getThemedIcon('ui', 'filter', 16, theme)}
               </Button>
               <Button 
                 variant={showFavoritesOnly ? 'default' : 'ghost'} 
@@ -915,20 +915,13 @@ const StudentRoster = React.memo(function StudentRoster({
                 onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                 title={showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')}
               >
-                <Star 
-                  style={{ 
-                    width: '1rem', 
-                    height: '1rem', 
-                    color: showFavoritesOnly ? '#f59e0b' : '#6b7280'
-                  }} 
-                  fill={showFavoritesOnly ? 'currentColor' : 'none'} 
-                />
+                {getThemedIcon('ui', 'star', 16, theme)}
               </Button>
               <Button variant="ghost" size="icon" onClick={onDownload} title={t('export_csv')}>
-                <Download style={{ width: '1rem', height: '1rem' }} />
+                {getThemedIcon('ui', 'download', 16, theme)}
               </Button>
               <Button variant="ghost" size="icon" onClick={onRefresh} title={t('refresh')}>
-                <RefreshCw style={{ width: '1rem', height: '1rem' }} />
+                {getThemedIcon('ui', 'refresh', 16, theme)}
               </Button>
             </div>
           )}

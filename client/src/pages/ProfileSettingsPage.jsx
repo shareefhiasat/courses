@@ -6,7 +6,7 @@ import { Navigate } from 'react-router-dom';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { getUserProfile, getUserDisplayName } from '@firebaseServices/userService';
-import { User, Mail, Phone, Hash, Palette, Save, Settings, Shield, Crown, Globe, Volume2, Vibrate, Smartphone, Bell, TestTube, Monitor, Users, BookOpen } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast, Loading } from '@ui';
 import { ToggleSwitch } from '@ui';
 import styles from './ProfileSettingsPage.module.css';
@@ -19,6 +19,7 @@ import { ActivityLogger } from '@firebaseServices/activityLogger';
 const ProfileSettingsPage = () => {
   const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
   const { t, lang, toggleLang } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
   const { 
     settings: notificationSettings, 
@@ -197,7 +198,7 @@ const ProfileSettingsPage = () => {
         <Card>
           <CardBody>
             <div className={styles.cardHeader}>
-              <User size={24} />
+              {getThemedIcon('ui', 'user', 24, theme)}
               <h2>{t('personal_information') || 'Personal Information'}</h2>
             </div>
 
@@ -207,22 +208,22 @@ const ProfileSettingsPage = () => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
                 {isSuperAdmin && (
                   <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    <Crown size={14} /> Super Admin
+                    {getThemedIcon('user_role', 'super_admin', 14, theme)} Super Admin
                   </span>
                 )}
                 {isAdmin && !isSuperAdmin && (
                   <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    <Shield size={14} /> Admin
+                    {getThemedIcon('user_role', 'admin', 14, theme)} Admin
                   </span>
                 )}
                 {isInstructor && (
                   <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    <BookOpen size={14} /> Instructor
+                    {getThemedIcon('user_role', 'instructor', 14, theme)} Instructor
                   </span>
                 )}
                 {isHR && (
                   <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    <Users size={14} /> HR
+                    {getThemedIcon('user_role', 'hr', 14, theme)} HR
                   </span>
                 )}
                 {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
@@ -288,7 +289,7 @@ const ProfileSettingsPage = () => {
         <Card>
           <CardBody>
             <div className={styles.cardHeader}>
-              <Palette size={24} />
+              {getThemedIcon('ui', 'palette', 24, theme)}
               <h2>{t('appearance') || 'Appearance'}</h2>
             </div>
 
@@ -345,7 +346,7 @@ const ProfileSettingsPage = () => {
               }}>
                 {/* Language Toggle */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <Globe size={18} style={{ color: '#6b7280' }} />
+                  {getThemedIcon('ui', 'globe', 18, theme)}
                   <ToggleSwitch
                     checked={lang === 'ar'}
                     onChange={() => toggleLang()}
@@ -354,7 +355,7 @@ const ProfileSettingsPage = () => {
 
                 {/* OTP Login Toggle */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <Shield size={18} style={{ color: '#6b7280' }} />
+                  {getThemedIcon('ui', 'shield', 18, theme)}
                   <ToggleSwitch
                     checked={profileData.preferOTPLogin}
                     onChange={(checked) => handleChange('preferOTPLogin', checked)}
@@ -368,7 +369,7 @@ const ProfileSettingsPage = () => {
         <Card>
           <CardBody>
             <div className={styles.cardHeader}>
-              <Smartphone size={24} />
+              {getThemedIcon('ui', 'smartphone', 24, theme)}
               <h2>{t('notifications') || 'Notifications'}</h2>
             </div>
 
@@ -399,7 +400,7 @@ const ProfileSettingsPage = () => {
                     }}
                     disabled={notificationsInitializing}
                     loading={notificationsInitializing}
-                    icon={<Settings size={16} />}
+                    icon={getThemedIcon('ui', 'settings', 16, theme)}
                   >
                     {notificationsInitializing 
                       ? (t('requesting') || 'Requesting...') 
@@ -426,7 +427,7 @@ const ProfileSettingsPage = () => {
               }}>
                 {/* Sound Setting */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Volume2 size={18} style={{ color: '#6b7280' }} />
+                    {getThemedIcon('ui', 'volume2', 18, theme)}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <ToggleSwitch
                         checked={notificationSettings.soundEnabled}
@@ -450,7 +451,7 @@ const ProfileSettingsPage = () => {
                           }}
                           title={t('test_sound') || 'Test Sound'}
                         >
-                          <Volume2 size={16} />
+                          {getThemedIcon('ui', 'volume2', 16, theme)}
                         </Button>
                       )}
                     </div>
@@ -459,7 +460,7 @@ const ProfileSettingsPage = () => {
                 {/* Vibration Setting */}
                 {checkSupport().vibration && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Vibrate size={18} style={{ color: '#6b7280' }} />
+                    {getThemedIcon('ui', 'vibrate', 18, theme)}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <ToggleSwitch
                         checked={notificationSettings.vibrationEnabled}
@@ -483,7 +484,7 @@ const ProfileSettingsPage = () => {
                           }}
                           title={t('test_vibration') || 'Test Vibration'}
                         >
-                          <Vibrate size={16} />
+                          {getThemedIcon('ui', 'vibrate', 16, theme)}
                         </Button>
                       )}
                     </div>
@@ -493,7 +494,7 @@ const ProfileSettingsPage = () => {
                 {/* Browser Notifications Setting */}
                 {checkSupport().notification && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Bell size={18} style={{ color: '#6b7280' }} />
+                    {getThemedIcon('ui', 'bell', 18, theme)}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <ToggleSwitch
                         checked={notificationSettings.browserNotificationsEnabled}
@@ -512,7 +513,7 @@ const ProfileSettingsPage = () => {
                         onClick={handleTestBrowserNotification}
                         title={t('test_browser_notification') || 'Test Browser Notification'}
                       >
-                        <TestTube size={16} />
+                        {getThemedIcon('ui', 'test_tube', 16, theme)}
                       </Button>
                     </div>
                   </div>
@@ -531,14 +532,14 @@ const ProfileSettingsPage = () => {
                 <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span>{t('supported_features') || 'Supported Features'}</span>
                   <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                    {isMobile() ? <><Smartphone size={14} style={{ marginRight: '0.25rem' }} />Mobile</> : <><Monitor size={14} style={{ marginRight: '0.25rem' }} />Desktop</>}
+                    {isMobile() ? <>{getThemedIcon('ui', 'smartphone', 14, theme)} Mobile</> : <>{getThemedIcon('ui', 'monitor', 14, theme)} Desktop</>}
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
-                  <div><Volume2 size={16} style={{ marginRight: '0.5rem' }} />{t('audio_notifications') || 'Audio'}: {checkSupport().audio ? '✅' : '❌'}</div>
-                  <div><Vibrate size={16} style={{ marginRight: '0.5rem' }} />{t('vibration') || 'Vibration'}: {checkSupport().vibration ? '✅' : '❌'}</div>
-                  <div><Bell size={16} style={{ marginRight: '0.5rem' }} />{t('browser_notifications') || 'Browser'}: {checkSupport().notification ? '✅' : '❌'}</div>
-                  <div><Settings size={16} style={{ marginRight: '0.5rem' }} />{t('service_worker') || 'Service Worker'}: {checkSupport().serviceWorker ? '✅' : '❌'}</div>
+                  <div>{getThemedIcon('ui', 'volume2', 16, theme)}{t('audio_notifications') || 'Audio'}: {checkSupport().audio ? '✅' : '❌'}</div>
+                  <div>{getThemedIcon('ui', 'vibrate', 16, theme)}{t('vibration') || 'Vibration'}: {checkSupport().vibration ? '✅' : '❌'}</div>
+                  <div>{getThemedIcon('ui', 'bell', 16, theme)}{t('browser_notifications') || 'Browser'}: {checkSupport().notification ? '✅' : '❌'}</div>
+                  <div>{getThemedIcon('ui', 'settings', 16, theme)}{t('service_worker') || 'Service Worker'}: {checkSupport().serviceWorker ? '✅' : '❌'}</div>
                 </div>
               </div>
             </div>
@@ -549,7 +550,7 @@ const ProfileSettingsPage = () => {
           <Button
             variant="primary"
             size="lg"
-            icon={<Save size={20} />}
+            icon={getThemedIcon('ui', 'save', 20, theme)}
             onClick={handleSave}
             disabled={saving}
             loading={saving}

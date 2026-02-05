@@ -3,6 +3,8 @@ import { collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc } fr
 import { db } from '@firebaseServices/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
@@ -10,7 +12,7 @@ import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
 import AreaChart from './charts/AreaChart';
-import { Plus, X, Download, Filter, BarChart3, LineChart as LineIcon, PieChart as PieIcon, TrendingUp, Save, Trash2, GripVertical, Calendar } from 'lucide-react';
+import { Plus, X, Filter } from 'lucide-react';
 import { Select, YearSelect, Loading, DateRangeSlider } from './ui';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
@@ -43,6 +45,7 @@ function ChartSizer({ children }) {
  */
 export default function AdvancedAnalytics() {
   const { t } = useLang();
+  const { theme } = useTheme();
   const { user, isAdmin } = useAuth();
   const [userAccentColor, setUserAccentColor] = useState(null); // Start with null to avoid flash of wrong color
   
@@ -915,21 +918,21 @@ export default function AdvancedAnalytics() {
             onClick={exportData}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
-            <Download size={18} />
+            getThemedIcon('ui', 'download', 18, theme)
             Export
           </button>
           <button
             onClick={() => window.location.href = '/scheduled-reports'}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: accentColor, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
-            <Calendar size={18} />
+            getThemedIcon('ui', 'calendar', 18, theme)
             Schedule Report
           </button>
           <button
             onClick={() => setShowBuilder(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
-            <Plus size={18} />
+            getThemedIcon('ui', 'plus', 18, theme)
             Add Widget
           </button>
         </div>
@@ -1083,7 +1086,7 @@ export default function AdvancedAnalytics() {
               </div>
               {editLayout && (
                 <div className="drag-handle" style={{ cursor: 'grab', display: 'flex', alignItems: 'center', marginRight: 8, position: 'absolute', left: -32, top: '50%', transform: 'translateY(-50%)' }}>
-                  <GripVertical size={18} style={{ color: accentColor }} />
+                  getThemedIcon('ui', 'grip_vertical', 18, theme)
                 </div>
               )}
               <div className="widget-actions" style={{ display: 'flex', gap: 4, opacity: 0, transition: 'opacity 0.2s' }}>
@@ -1110,7 +1113,7 @@ export default function AdvancedAnalytics() {
                   style={{ padding: '0.35rem', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: 4, cursor: 'pointer' }}
                   title="Delete"
                 >
-                  <Trash2 size={14} />
+                  getThemedIcon('ui', 'trash2', 14, theme)
                 </button>
               </div>
             </div>
@@ -1163,10 +1166,10 @@ export default function AdvancedAnalytics() {
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Chart Type</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   {[
-                    { type: 'bar', icon: <BarChart3 size={20} />, label: 'Bar' },
-                    { type: 'line', icon: <LineIcon size={20} />, label: 'Line' },
-                    { type: 'pie', icon: <PieIcon size={20} />, label: 'Pie' },
-                    { type: 'area', icon: <TrendingUp size={20} />, label: 'Area' }
+                    { type: 'bar', icon: getThemedIcon('ui', 'bar_chart3', 20, theme), label: 'Bar' },
+                    { type: 'line', icon: getThemedIcon('ui', 'line_chart', 20, theme), label: 'Line' },
+                    { type: 'pie', icon: getThemedIcon('ui', 'pie_chart', 20, theme), label: 'Pie' },
+                    { type: 'area', icon: getThemedIcon('ui', 'trending_up', 20, theme), label: 'Area' }
                   ].map(({ type, icon, label }) => (
                     <button
                       key={type}
@@ -1324,7 +1327,7 @@ export default function AdvancedAnalytics() {
                 onClick={editingWidget ? updateWidget : addWidget}
                 style={{ padding: '0.75rem 1.5rem', background: accentColor, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
               >
-                <Save size={18} style={{ display: 'inline', marginRight: 8 }} />
+                getThemedIcon('ui', 'save', 18, theme)
                 {editingWidget ? 'Update' : 'Create'}
               </button>
             </div>
@@ -1339,7 +1342,7 @@ export default function AdvancedAnalytics() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ margin: 0, color: 'var(--text)' }}>📊 Drill-Down: {drillDownData.dataPoint.label}</h2>
               <button onClick={() => setShowDrillDown(false)} style={{ padding: '0.5rem', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>
-                <X size={20} />
+                getThemedIcon('ui', 'close', 20, theme)
               </button>
             </div>
             

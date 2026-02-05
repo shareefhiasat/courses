@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Modal.module.css';
 
 /**
@@ -33,6 +34,7 @@ const Modal = ({
   className = '',
   draggable = true,
 }) => {
+  const { theme } = useTheme();
   const modalRef = useRef(null);
   const headerRef = useRef(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -154,7 +156,7 @@ const Modal = ({
                 onClick={onClose}
                 aria-label="Close modal"
               >
-                <X size={20} />
+                {getThemedIcon('ui', 'close', 20, theme)}
               </button>
             )}
           </div>

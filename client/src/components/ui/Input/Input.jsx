@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import InfoTooltip from '../InfoTooltip/InfoTooltip';
 import styles from './Input.module.css';
+import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 
 /**
  * Input Component
@@ -22,6 +23,7 @@ import styles from './Input.module.css';
  * @param {'small'|'medium'|'large'} props.size - Input size
  * @param {boolean} props.fullWidth - Whether input takes full width
  * @param {string} props.className - Additional CSS classes
+ * @param {'light'|'dark'} props.theme - Theme variant
  */
 const Input = forwardRef(({
   label,
@@ -40,15 +42,25 @@ const Input = forwardRef(({
   size = 'medium',
   fullWidth = false,
   className = '',
+  theme = 'light',
   ...rest
 }, ref) => {
   const computedPrefix = prefix || icon;
+  
+  // Get theme-aware styles
+  const inputVariant = error ? 'error' : 'default';
+  const themeStyles = getComponentStyles(theme, 'input', inputVariant, size);
+  
   const wrapperClasses = [
     styles.inputWrapper,
+    styles[theme],
     fullWidth && styles.fullWidth,
     disabled && styles.disabledWrapper,
     className
   ].filter(Boolean).join(' ');
+
+  // Generate CSS variables for theme
+  const cssVariables = generateCSSVariables(theme);
 
   const inputClasses = [
     styles.input,

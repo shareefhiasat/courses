@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import Input from './Input';
-import { Mail, Lock, Search, User, Eye, EyeOff } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default {
   title: 'UI/Input',
   component: Input,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component: 'Enhanced Input component with theme support and icon integration.'
+      }
+    }
+  },
   argTypes: {
     size: {
       control: 'select',
@@ -15,6 +22,11 @@ export default {
       control: 'select',
       options: ['text', 'email', 'password', 'number', 'tel', 'url'],
     },
+    theme: {
+      control: 'select',
+      options: ['light', 'dark'],
+      description: 'Theme mode for the input',
+    }
   },
 };
 
@@ -78,7 +90,7 @@ export const WithPrefixIcon = {
     label: 'Email',
     type: 'email',
     placeholder: 'you@example.com',
-    prefix: <Mail size={16} />,
+    prefix: getThemedIcon('ui', 'mail', 16, theme),
   },
 };
 
@@ -87,7 +99,7 @@ export const WithSuffixIcon = {
   args: {
     label: 'Search',
     placeholder: 'Search...',
-    suffix: <Search size={16} />,
+    suffix: getThemedIcon('ui', 'search', 16, theme),
   },
 };
 
@@ -100,7 +112,7 @@ export const PasswordToggle = () => {
       label="Password"
       type={showPassword ? 'text' : 'password'}
       placeholder="Enter password"
-      prefix={<Lock size={16} />}
+      prefix={getThemedIcon('ui', 'lock', 16, theme)}
       suffix={
         <button
           type="button"
@@ -114,7 +126,7 @@ export const PasswordToggle = () => {
             pointerEvents: 'all',
           }}
         >
-          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          {showPassword ? getThemedIcon('ui', 'eye_off', 16, theme) : getThemedIcon('ui', 'eye', 16, theme)}
         </button>
       }
     />
@@ -152,7 +164,7 @@ export const LoginForm = () => {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@example.com"
-        prefix={<Mail size={16} />}
+        prefix={getThemedIcon('ui', 'mail', 16, theme)}
         required
         fullWidth
       />
@@ -162,7 +174,7 @@ export const LoginForm = () => {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Enter password"
-        prefix={<Lock size={16} />}
+        prefix={getThemedIcon('ui', 'lock', 16, theme)}
         required
         fullWidth
       />
@@ -179,7 +191,7 @@ export const SearchBar = () => {
       placeholder="Search activities..."
       value={search}
       onChange={(e) => setSearch(e.target.value)}
-      prefix={<Search size={16} />}
+      prefix={getThemedIcon('ui', 'search', 16, theme)}
       fullWidth
     />
   );
@@ -237,7 +249,7 @@ export const FormWithValidation = () => {
         value={formData.username}
         onChange={handleChange('username')}
         error={errors.username}
-        prefix={<User size={16} />}
+        prefix={getThemedIcon('ui', 'user', 16, theme)}
         required
         fullWidth
       />
@@ -247,7 +259,7 @@ export const FormWithValidation = () => {
         value={formData.email}
         onChange={handleChange('email')}
         error={errors.email}
-        prefix={<Mail size={16} />}
+        prefix={getThemedIcon('ui', 'mail', 16, theme)}
         required
         fullWidth
       />
@@ -264,3 +276,36 @@ export const FormWithValidation = () => {
     </div>
   );
 };
+
+// Dark Theme Examples
+export const DarkTheme = () => (
+  <div style={{ 
+    background: '#1f2937', 
+    padding: '2rem', 
+    borderRadius: '8px',
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '1rem' 
+  }}>
+    <Input 
+      theme="dark"
+      label="Email" 
+      type="email" 
+      placeholder="you@example.com"
+      prefix={getThemedIcon('ui', 'mail', 16, 'dark')}
+    />
+    <Input 
+      theme="dark"
+      label="Password" 
+      type="password" 
+      placeholder="Enter password"
+      prefix={getThemedIcon('ui', 'lock', 16, 'dark')}
+    />
+    <Input 
+      theme="dark"
+      label="Search" 
+      placeholder="Search..."
+      suffix={getThemedIcon('ui', 'search', 16, 'dark')}
+    />
+  </div>
+);

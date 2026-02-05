@@ -1,11 +1,18 @@
 import React from 'react';
 import { Card, CardHeader, CardBody, CardFooter, Button } from '@ui';
-import { Settings, MoreVertical } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default {
   title: 'UI/Card',
   component: Card,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component: 'Enhanced Card component with theme support and multiple elevation levels.'
+      }
+    }
+  },
   argTypes: {
     elevation: {
       control: 'select',
@@ -20,6 +27,11 @@ export default {
     hoverable: {
       control: 'boolean',
       description: 'Whether card has hover effect',
+    },
+    theme: {
+      control: 'select',
+      options: ['light', 'dark'],
+      description: 'Theme variant',
     },
   },
 };
@@ -44,7 +56,7 @@ export const WithSections = () => (
       subtitle="Manage your account settings"
       actions={
         <Button variant="ghost" size="small">
-          <Settings size={16} />
+          getThemedIcon('ui', 'settings', 16, theme)
         </Button>
       }
     />
@@ -109,6 +121,41 @@ export const Hoverable = {
   },
 };
 
+// Dark theme stories
+export const BasicDark = {
+  args: {
+    theme: 'dark',
+    children: (
+      <div>
+        <h3>Card Title (Dark)</h3>
+        <p>This is a basic card with dark theme.</p>
+      </div>
+    ),
+  },
+};
+
+export const WithSectionsDark = () => (
+  <Card theme="dark">
+    <CardHeader
+      title="User Profile (Dark)"
+      subtitle="Manage your account settings"
+      actions={
+        <Button variant="ghost" size="small" theme="dark">
+          getThemedIcon('ui', 'settings', 16, theme)
+        </Button>
+      }
+    />
+    <CardBody>
+      <p>This is the card body content in dark theme.</p>
+    </CardBody>
+    <CardFooter>
+      <Button variant="primary" size="small" theme="dark">
+        Save Changes
+      </Button>
+    </CardFooter>
+  </Card>
+);
+
 // Clickable Card
 export const Clickable = {
   args: {
@@ -130,7 +177,7 @@ export const ActivityCard = () => (
       subtitle="Due: Nov 20, 2025"
       actions={
         <Button variant="ghost" size="small">
-          <MoreVertical size={16} />
+          getThemedIcon('ui', 'more_vertical', 16, theme)
         </Button>
       }
     />

@@ -1,19 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import logger from '@utils/logger';
 import { Button, Input } from '@ui';
-import { X, Users, Zap, Grid, List, Star } from 'lucide-react';
-import { 
-  AlertCircleIcon, 
-  MessageSquareIcon, 
-  AlertTriangleIcon, 
-  CheckCircleIcon, 
-  ClockIcon, 
-  XCircleIcon, 
-  HeartIcon, 
-  HelpCircleIcon,
-  BedIcon 
-} from '@utils/icons.jsx';
 import { useAuth } from '@contexts/AuthContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { markAttendance } from '@firebaseServices/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
@@ -40,6 +30,7 @@ export default function StudentActionPanelNew({
   initialTab = RECORD_TYPES.PARTICIPATION // Default to participation tab
 }) {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const { t, lang, isRTL } = useLang();
   const { showSuccess, showError } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -406,7 +397,7 @@ export default function StudentActionPanelNew({
               </span>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose} title={t('close_panel')}>
-              <X style={{ width: '1.25rem', height: '1.25rem' }} />
+              {getThemedIcon('ui', 'close', 20, theme)}
             </Button>
           </div>
         </div>
@@ -432,7 +423,7 @@ export default function StudentActionPanelNew({
               boxShadow: activeTab === RECORD_TYPES.PARTICIPATION ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            <Users style={{ width: '14px', height: '14px' }} />
+            {getThemedIcon('ui', 'users', 14, theme)}
             {t('participation')}
           </button>
           <button
@@ -451,7 +442,7 @@ export default function StudentActionPanelNew({
               boxShadow: activeTab === RECORD_TYPES.BEHAVIOR ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            <Zap style={{ width: '14px', height: '14px' }} />
+            {getThemedIcon('ui', 'zap', 14, theme)}
             {t('behavior')}
           </button>
           <button
@@ -470,7 +461,7 @@ export default function StudentActionPanelNew({
               boxShadow: activeTab === RECORD_TYPES.PENALTY ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
-            <AlertCircleIcon style={{ width: '14px', height: '14px' }} />
+            {getThemedIcon('ui', 'alert_circle', 14, theme)}
             {t('penalty')}
           </button>
           <div style={{ position: 'absolute', right: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -491,7 +482,7 @@ export default function StudentActionPanelNew({
               }}
               title={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')}
             >
-              {viewMode === 'grid' ? <List style={{ width: '14px', height: '14px' }} /> : <Grid style={{ width: '14px', height: '14px' }} />}
+              {viewMode === 'grid' ? getThemedIcon('ui', 'list', 14, theme) : getThemedIcon('ui', 'layout_grid', 14, theme)}
             </button>
           </div>
         </div>
@@ -600,11 +591,7 @@ export default function StudentActionPanelNew({
                       padding: '0.125rem'
                     }}
                   >
-                    <Star 
-                      size={12} 
-                      fill={favoriteBehaviors.includes(option.id) ? '#fbbf24' : 'none'} 
-                      color={favoriteBehaviors.includes(option.id) ? '#fbbf24' : '#d1d5db'} 
-                    />
+                    {getThemedIcon('ui', 'star', 12, theme)}
                   </button>
                   
                   {/* Points Controls - Always show when selected */}

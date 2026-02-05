@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '@firebaseServices/attendanceService';
 import QRCode from 'qrcode';
 import { db } from '@firebaseServices/config';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
-import { Info, Users, Calendar, Download, ChevronDown, ChevronUp, Maximize2, Minimize2, PlayCircle, Square, Filter, GraduationCap, BookOpen, User } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, Loading, YearSelect } from '@ui';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import styles from './AttendancePage.module.css';
@@ -14,6 +15,7 @@ import styles from './AttendancePage.module.css';
 const AttendancePageEnhanced = () => {
   const { user, isAdmin, isInstructor, isHR } = useAuth();
   const { t } = useLang();
+  const { theme } = useTheme();
   const [classId, setClassId] = useState(() => {
     try { return localStorage.getItem('att_instructor_class') || ''; } catch { return ''; }
   });
@@ -311,7 +313,7 @@ const AttendancePageEnhanced = () => {
           animation: 'pulse 2s ease-in-out infinite'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <PlayCircle size={32} style={{ animation: 'blink 1.5s ease-in-out infinite' }} />
+            {getThemedIcon('ui', 'play_circle', 32, theme)}
             <div>
               <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.25rem' }}>
                 Session Active
@@ -338,7 +340,7 @@ const AttendancePageEnhanced = () => {
                 cursor: loading ? 'not-allowed' : 'pointer'
               }}
             >
-              <Square size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
+              {getThemedIcon('ui', 'square', 16, theme)}
               End Session
             </button>
           </div>
@@ -363,7 +365,7 @@ const AttendancePageEnhanced = () => {
           }}
         >
           <span>Class Selection</span>
-          {collapsedSections.class ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+          {collapsedSections.class ? getThemedIcon('ui', 'chevron_down', 20, theme) : getThemedIcon('ui', 'chevron_up', 20, theme)}
         </button>
         {!collapsedSections.class && (
           <div style={{ padding: '0 1rem 1rem 1rem' }}>
@@ -375,11 +377,11 @@ const AttendancePageEnhanced = () => {
               value={programFilter}
               onChange={(e) => setProgramFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
                   label: p.name_en || p.name_ar || p.code || p.docId,
-                  icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" />
+                  icon: getThemedIcon('ui', 'graduation_cap', 16, theme)
                 }))
               ]}
               fullWidth
@@ -392,13 +394,13 @@ const AttendancePageEnhanced = () => {
               value={subjectFilter}
               onChange={(e) => setSubjectFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...subjects
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
                     value: s.docId || s.id,
                     label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
-                    icon: <BookOpen size={16} color="var(--text-secondary, #374151)" />
+                    icon: getThemedIcon('ui', 'book_open', 16, theme)
                   }))
               ]}
               fullWidth
@@ -411,7 +413,7 @@ const AttendancePageEnhanced = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...filteredClasses
                   .filter(c => {
                     if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
@@ -424,7 +426,7 @@ const AttendancePageEnhanced = () => {
                   .map(c => ({
                     value: c.id || c.docId,
                     label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`,
-                    icon: <Users size={16} color="var(--text-secondary, #374151)" />
+                    icon: getThemedIcon('ui', 'users', 16, theme)
                   }))
               ]}
               fullWidth
@@ -464,8 +466,8 @@ const AttendancePageEnhanced = () => {
                 value={instructorFilter}
                 onChange={(e)=>setInstructorFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_instructors') || 'All Instructors', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
-                  ...instructors.map(inst => ({ value: inst, label: inst, icon: <User size={16} color="var(--text-secondary, #374151)" /> }))
+                  { value: 'all', label: t('all_instructors') || 'All Instructors', icon: getThemedIcon('ui', 'filter', 16, theme) },
+                  ...instructors.map(inst => ({ value: inst, label: inst, icon: getThemedIcon('ui', 'user', 16, theme) }))
                 ]}
                 fullWidth
               />
@@ -525,7 +527,7 @@ const AttendancePageEnhanced = () => {
             }}
           >
             <span>{t('attendance_settings') || 'Attendance Settings'}</span>
-            {collapsedSections.settings ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+            {collapsedSections.settings ? getThemedIcon('ui', 'chevron_down', 18, theme) : getThemedIcon('ui', 'chevron_up', 18, theme)}
           </button>
           {!collapsedSections.settings && (
             <div style={{ padding: '0 0.75rem 0.75rem 0.75rem' }}>
@@ -599,14 +601,14 @@ const AttendancePageEnhanced = () => {
                 style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel)', cursor: 'pointer', color: '#1f2937' }}
                 title={t('make_qr_smaller') || 'Make QR smaller'}
               >
-                <Minimize2 size={16} />
+                {getThemedIcon('ui', 'minimize2', 16, theme)}
               </button>
               <button
                 onClick={() => setQrSize(Math.min(500, qrSize + 40))}
                 style={{ padding: '0.25rem 0.5rem', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--panel)', cursor: 'pointer', color: '#1f2937' }}
                 title={t('make_qr_bigger') || 'Make QR bigger'}
               >
-                <Maximize2 size={16} />
+                {getThemedIcon('ui', 'maximize2', 16, theme)}
               </button>
             </div>
           )}
@@ -661,7 +663,7 @@ const AttendancePageEnhanced = () => {
                   </button>
                   <Button 
                     variant="secondary" 
-                    icon={<Download size={16} />}
+                    icon={getThemedIcon('ui', 'download', 16, theme)}
                     onClick={async()=>{
                       try {
                         const snap = await getDocs(collection(db, 'attendanceSessions', sessionId, 'marks'));
@@ -726,7 +728,7 @@ const AttendancePageEnhanced = () => {
       {/* Guidelines */}
       <div style={{ padding:'1rem', background:'#eff6ff', border:'1px solid #800020', borderRadius: 12 }}>
         <div style={{ fontWeight: 700, marginBottom: 12, display:'flex', alignItems:'center', gap:8, color:'#1e40af' }}>
-          <Info size={20} />
+          {getThemedIcon('ui', 'info', 20, theme)}
           <span>{t('how_to_use') || 'How to Use Attendance System'}</span>
         </div>
         <div style={{ fontSize:14, lineHeight:1.8, color:'#1e3a8a' }}>

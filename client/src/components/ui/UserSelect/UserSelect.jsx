@@ -6,6 +6,7 @@ import {
   UserCheck, UserX, UserMinus, AlertTriangle, Info,
   User, BookOpen, Users, Shield, Crown
 } from 'lucide-react';
+import { getThemeColor } from '@constants/dashboardTypes';
 
 /**
  * UserSelect Component
@@ -29,6 +30,7 @@ import {
  * @param {boolean} props.fullWidth - Take full width
  * @param {string} props.className - Additional CSS classes
  * @param {Object} props.style - Inline styles
+ * @param {'light'|'dark'} props.theme - Theme variant
  */
 const UserSelect = ({
   users = [],
@@ -46,6 +48,7 @@ const UserSelect = ({
   fullWidth = false,
   className = '',
   style = {},
+  theme = 'light',
   ...rest
 }) => {
   
@@ -148,6 +151,7 @@ const UserSelect = ({
       fullWidth={fullWidth}
       className={className}
       style={style}
+      theme={theme}
       {...rest}
     />
   );

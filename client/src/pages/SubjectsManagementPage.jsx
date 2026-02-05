@@ -7,13 +7,15 @@ import { getSubjects, createSubject, updateSubject, deleteSubject, getPrograms }
 import { getUsers } from '@firebaseServices/userService';
 import { getClasses } from '@firebaseServices/classService';
 import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid } from '@ui';
-import { Edit, Trash, Filter, BookOpen, FileText, Users } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import styles from './SubjectsManagementPage.module.css';
 
 const SubjectsManagementPage = () => {
   const { isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
   
   const [subjects, setSubjects] = useState([]);
@@ -232,7 +234,7 @@ const SubjectsManagementPage = () => {
           <Button
             variant="ghost"
             size="sm"
-            icon={<Edit size={16} />}
+            icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(subject)}
           >
             Edit
@@ -240,7 +242,7 @@ const SubjectsManagementPage = () => {
           <Button
             variant="ghost"
             size="sm"
-            icon={<Trash size={16} />}
+            icon={getThemedIcon('ui', 'trash', 16, theme)}
             onClick={() => handleDelete(subject)}
             style={{ color: '#dc2626' }}
           >
@@ -275,11 +277,11 @@ const SubjectsManagementPage = () => {
             onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
             placeholder={t('all_programs_select') || 'All Programs'}
             options={[
-              { value: '', label: t('all_programs_select') || 'All Programs', icon: <Filter size={16} color="#374151" /> },
+              { value: '', label: t('all_programs_select') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
               ...programs.map(p => ({
                 value: p.docId,
                 label: lang === 'ar' ? p.name_ar : p.name_en,
-                icon: <BookOpen size={16} color="#374151" />
+                icon: getThemedIcon('ui', 'book_open', 16, theme)
               }))
             ]}
             required
@@ -322,9 +324,9 @@ const SubjectsManagementPage = () => {
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             placeholder="All Types"
             options={[
-              { value: 'lecture', label: 'Lecture', icon: <FileText size={16} color="#374151" /> },
-              { value: 'lab', label: 'Lab', icon: <Users size={16} color="#374151" /> },
-              { value: 'mix', label: 'Mix (Lecture + Lab)', icon: <FileText size={16} color="#374151" /> }
+              { value: 'lecture', label: 'Lecture', icon: getThemedIcon('ui', 'file_text', 16, theme) },
+              { value: 'lab', label: 'Lab', icon: getThemedIcon('ui', 'users', 16, theme) },
+              { value: 'mix', label: 'Mix (Lecture + Lab)', icon: getThemedIcon('ui', 'file_text', 16, theme) }
             ]}
             required
           />
@@ -333,9 +335,9 @@ const SubjectsManagementPage = () => {
             onChange={(e) => setFormData({ ...formData, requirementType: e.target.value })}
             placeholder="All Requirements"
             options={[
-              { value: 'general_mandatory', label: 'General Mandatory', icon: <Filter size={16} color="#374151" /> },
-              { value: 'major_mandatory', label: 'Major Mandatory', icon: <BookOpen size={16} color="#374151" /> },
-              { value: 'major_optional', label: 'Major Optional', icon: <FileText size={16} color="#374151" /> }
+              { value: 'general_mandatory', label: 'General Mandatory', icon: getThemedIcon('ui', 'filter', 16, theme) },
+              { value: 'major_mandatory', label: 'Major Mandatory', icon: getThemedIcon('ui', 'book_open', 16, theme) },
+              { value: 'major_optional', label: 'Major Optional', icon: getThemedIcon('ui', 'file_text', 16, theme) }
             ]}
             required
           />
@@ -374,11 +376,11 @@ const SubjectsManagementPage = () => {
           onChange={(e) => setFilterProgram(e.target.value)}
           placeholder="All Programs"
           options={[
-            { value: 'all', label: 'All Programs', icon: <Filter size={16} color="#374151" /> },
+            { value: 'all', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
             ...programs.map(p => ({
               value: p.docId,
               label: lang === 'ar' ? p.name_ar : p.name_en,
-              icon: <BookOpen size={16} color="#374151" />
+              icon: getThemedIcon('ui', 'book_open', 16, theme)
             }))
           ]}
         />
@@ -440,7 +442,7 @@ const SubjectsManagementPage = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      icon={<Edit size={16} />}
+                      icon={getThemedIcon('ui', 'edit', 16, theme)}
                       onClick={() => handleEdit(params.row)}
                     >
                       Edit
@@ -448,7 +450,7 @@ const SubjectsManagementPage = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      icon={<Trash size={16} />}
+                      icon={getThemedIcon('ui', 'trash', 16, theme)}
                       onClick={() => handleDelete(params.row)}
                       style={{ color: '#dc2626' }}
                     >

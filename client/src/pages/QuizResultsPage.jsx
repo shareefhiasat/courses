@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, orderBy, doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -11,12 +12,13 @@ import { getClasses } from '@firebaseServices/classService';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { addNotification } from '@firebaseServices/notificationService';
 import { sendEmail } from '@firebaseServices/emailService';
-import { Edit, Check, X, Mail, Send, CheckSquare } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './QuizResultsPage.module.css';
 
 const QuizResultsPage = () => {
   const { user, isAdmin, isInstructor, isHR, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const toast = useToast();
   
@@ -470,16 +472,16 @@ const QuizResultsPage = () => {
               </Badge>
               {isOverridden && (
                 <Badge variant="outline" color="warning" size="small" title="Score overridden">
-                  <Edit size={10} />
+                  {getThemedIcon('ui', 'edit', 10, theme)}
                 </Badge>
               )}
               {isApproved ? (
                 <Badge variant="success" size="small" title="Approved">
-                  <Check size={10} />
+                  {getThemedIcon('ui', 'check', 10, theme)}
                 </Badge>
               ) : isReviewed ? (
                 <Badge variant="warning" size="small" title="Reviewed but not approved">
-                  <X size={10} />
+                  {getThemedIcon('ui', 'x', 10, theme)}
                 </Badge>
               ) : null}
             </div>
@@ -493,7 +495,7 @@ const QuizResultsPage = () => {
                 }}
                 title="Override score"
               >
-                <Edit size={12} />
+                {getThemedIcon('ui', 'edit', 12, theme)}
               </Button>
             )}
           </div>
@@ -537,7 +539,7 @@ const QuizResultsPage = () => {
                     onClick={() => handleApproveResult(row.id, true)}
                     title="Approve and notify student"
                   >
-                    <Check size={12} />
+                    {getThemedIcon('ui', 'check', 12, theme)}
                   </Button>
                 )}
                 <Button
@@ -546,7 +548,7 @@ const QuizResultsPage = () => {
                   onClick={() => handleSendNotification(row)}
                   title="Send notification"
                 >
-                  <Send size={12} />
+                  {getThemedIcon('ui', 'send', 12, theme)}
                 </Button>
               </>
             )}
@@ -987,7 +989,7 @@ const QuizResultsPage = () => {
                   variant="success"
                   onClick={() => setBulkActionModal({ open: true, action: 'approve' })}
                 >
-                  <CheckSquare size={14} style={{ marginRight: '0.5rem' }} />
+                  {getThemedIcon('ui', 'check_square', 14, theme)}
                   Approve Selected
                 </Button>
                 <Button
@@ -1001,7 +1003,7 @@ const QuizResultsPage = () => {
                     toast.success(`Sending notifications to ${selectedRows.length} student(s)...`);
                   }}
                 >
-                  <Send size={14} style={{ marginRight: '0.5rem' }} />
+                  {getThemedIcon('ui', 'send', 14, theme)}
                   Send Notifications
                 </Button>
                 <Button

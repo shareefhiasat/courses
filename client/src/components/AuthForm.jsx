@@ -7,9 +7,9 @@ import { getAllowlist } from '@firebaseServices/configService';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useColorTheme } from '../contexts/ColorThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { useToast } from '@ui';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
-import { Moon, Sun, Globe } from 'lucide-react';
 import { ToggleSwitch } from '@ui';
 import { usePostHog } from 'posthog-js/react';
 import './AuthForm.css';
@@ -396,7 +396,7 @@ const AuthForm = () => {
             onClick={toggleLang}
             aria-label={lang === 'en' ? 'Switch to Arabic' : 'التبديل إلى الإنجليزية'}
           >
-            <Globe size={16} />
+            getThemedIcon('ui', 'globe', 16, theme)
             {lang === 'en' ? 'AR' : 'EN'}
           </button>
           <button
@@ -405,7 +405,7 @@ const AuthForm = () => {
             onClick={toggleTheme}
             aria-label={theme === 'light' ? 'Enable dark mode' : 'Enable light mode'}
           >
-            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            {theme === 'light' ? getThemedIcon('ui', 'moon', 16, theme) : getThemedIcon('ui', 'sun', 16, theme)}
           </button>
         </div>
         

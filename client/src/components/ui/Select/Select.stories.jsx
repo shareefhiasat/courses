@@ -5,6 +5,30 @@ export default {
   title: 'UI/Select',
   component: Select,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component: 'Enhanced Select component with theme support and multiple variants.'
+      }
+    }
+  },
+  argTypes: {
+    theme: {
+      control: 'select',
+      options: ['light', 'dark'],
+      description: 'Theme mode for the select',
+    },
+    size: {
+      control: 'select',
+      options: ['small', 'medium', 'large'],
+      description: 'Size of the select',
+    },
+    variant: {
+      control: 'select',
+      options: ['outline', 'filled', 'ghost'],
+      description: 'Visual style variant',
+    }
+  }
 };
 
 const countries = [
@@ -265,5 +289,96 @@ export const FormWithValidation = () => {
         Submit
       </button>
     </form>
+  );
+};
+
+// Dark Theme Examples
+export const DarkTheme = () => (
+  <div style={{ 
+    background: '#1f2937', 
+    padding: '2rem', 
+    borderRadius: '8px',
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '1rem' 
+  }}>
+    <Select 
+      theme="dark"
+      label="Country" 
+      options={countries}
+      placeholder="Select a country"
+    />
+    <Select 
+      theme="dark"
+      label="Difficulty Level" 
+      options={difficulties}
+      placeholder="Choose your skill level"
+    />
+    <Select 
+      theme="dark"
+      label="Activity Type" 
+      options={activityTypes}
+      placeholder="Select activity type"
+    />
+  </div>
+);
+
+export const DarkThemeWithValidation = () => {
+  const [formData, setFormData] = useState({
+    country: '',
+    difficulty: '',
+    type: '',
+  });
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (field) => (value) => {
+    setFormData({ ...formData, [field]: value });
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: '' });
+    }
+  };
+
+  return (
+    <div style={{ 
+      background: '#1f2937', 
+      padding: '2rem', 
+      borderRadius: '8px',
+      maxWidth: '400px', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '1rem' 
+    }}>
+      <Select
+        theme="dark"
+        label="Country"
+        options={countries}
+        value={formData.country}
+        onChange={handleChange('country')}
+        error={errors.country}
+        required
+        fullWidth
+      />
+      <Select
+        theme="dark"
+        label="Difficulty Level"
+        options={difficulties}
+        value={formData.difficulty}
+        onChange={handleChange('difficulty')}
+        error={errors.difficulty}
+        helperText="Choose your skill level"
+        required
+        fullWidth
+      />
+      <Select
+        theme="dark"
+        label="Activity Type"
+        options={activityTypes}
+        value={formData.type}
+        onChange={handleChange('type')}
+        error={errors.type}
+        required
+        fullWidth
+      />
+    </div>
   );
 };

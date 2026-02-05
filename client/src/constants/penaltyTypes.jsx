@@ -82,6 +82,12 @@ export const PENALTY_TYPES = [
   },
 ];
 
+// Create PENALTY_TYPE_ICONS object for easy access to icons
+export const PENALTY_TYPE_ICONS = PENALTY_TYPES.reduce((acc, type) => {
+  acc[type.id] = type.icon;
+  return acc;
+}, {});
+
 // Helper functions
 export const getPenaltyTypeById = (id) => {
   return PENALTY_TYPES.find(type => type.id === id);

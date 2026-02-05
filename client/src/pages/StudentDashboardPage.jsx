@@ -14,10 +14,7 @@ import {
 } from '@ui';
 import { InfoTooltip } from '@ui';
 import { GENERAL_STATUS, TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
-import {
-  RefreshCw, CheckCircle, Sparkles, Plus as PlusIcon, Download, FileImage, FileText, LayoutGrid, LayoutList, Clock,
-  BarChart3, CalendarCheck, TrendingUp, Award, AlertTriangle, XCircle, User, UserCheck, UserX, UserMinus, Info
-} from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from '@constants/activityTypes';
 import { 
@@ -44,6 +41,7 @@ import { TYPE_CATEGORIES, getTypeLabel, getTypeIcon, getTypeColor } from '@utils
 
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const { user, userProfile, isAdmin, isInstructor, isHR, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -686,7 +684,7 @@ export default function StudentDashboardPage() {
                       value: '', 
                       label: (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <User size={16} />
+                          {getThemedIcon('ui', 'user', 16, theme)}
                           <span>{t('view_my_dashboard') || 'View My Dashboard'}</span>
                         </div>
                       ) 
@@ -694,13 +692,16 @@ export default function StudentDashboardPage() {
                     ...studentsList.map(student => {
                       const status = student.status || USER_STATUS.ACTIVE;
                       const iconProps = getStatusIconProps(status);
-                      const IconComponent = {
-                        'UserCheck': UserCheck,
-                        'UserX': UserX,
-                        'UserMinus': UserMinus,
-                        'AlertCircle': AlertTriangle,
-                        'Info': Info
-                      }[iconProps.name] || User;
+                      const getIconComponent = (iconName) => {
+                        const iconMap = {
+                          'UserCheck': () => getThemedIcon('user_status', 'active', 16, theme),
+                          'UserX': () => getThemedIcon('user_status', 'inactive', 16, theme),
+                          'UserMinus': () => getThemedIcon('user_status', 'suspended', 16, theme),
+                          'AlertCircle': () => getThemedIcon('ui', 'alert_triangle', 16, theme),
+                          'Info': () => getThemedIcon('ui', 'info', 16, theme)
+                        };
+                        return iconMap[iconName] || (() => getThemedIcon('ui', 'user', 16, theme));
+                      };
                       
                       const isDisabled = status === USER_STATUS.DELETED;
                       const statusLabel = student.statusSummary?.label || status;
@@ -714,7 +715,7 @@ export default function StudentDashboardPage() {
                             gap: 8,
                             opacity: isDisabled ? 0.7 : 1
                           }}>
-                            <IconComponent size={16} color={iconProps.color} />
+                            {getIconComponent(iconProps.name)()}
                             <span style={{ 
                               textDecoration: isDisabled ? 'line-through' : 'none',
                               flex: 1
@@ -822,7 +823,7 @@ export default function StudentDashboardPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsCompactView(!isCompactView)}
-                  icon={isCompactView ? <LayoutGrid size={16} /> : <LayoutList size={16} />}
+                  icon={isCompactView ? getThemedIcon('ui', 'layout_grid', 16, theme) : getThemedIcon('ui', 'layout_list', 16, theme)}
                   tooltip={isCompactView ? 'Switch to Full View' : 'Switch to Compact View'}
                   className={styles.actionButton}
                 >
@@ -833,7 +834,7 @@ export default function StudentDashboardPage() {
                   size="sm"
                   onClick={handleExportImage}
                   loading={exporting}
-                  icon={<FileImage size={16} />}
+                  icon={getThemedIcon('ui', 'file_image', 16, theme)}
                   tooltip="Export as Image"
                   className={styles.actionButton}
                 >
@@ -844,14 +845,14 @@ export default function StudentDashboardPage() {
                   size="sm"
                   onClick={handleExportPDF}
                   loading={exporting}
-                  icon={<FileText size={16} />}
+                  icon={getThemedIcon('ui', 'file_text', 16, theme)}
                   tooltip="Export as PDF"
                   className={styles.actionButton}
                 >
                   PDF
                 </Button>
                 <Button variant="outline" size="sm" onClick={loadDashboardData}>
-                  <RefreshCw size={16} /> {t('refresh') || 'Refresh'}
+                  {getThemedIcon('ui', 'refresh', 16, theme)} {t('refresh') || 'Refresh'}
                 </Button>
               </div>
             </div>
@@ -893,7 +894,7 @@ export default function StudentDashboardPage() {
                 <CardBody>
                   <div className={styles.statCardContent}>
                     <div className={styles.statIcon} style={{ background: config.gradient, borderRadius: borderRadius }}>
-                      <IconComponent size={20} />
+                      {getThemedIcon('ui', config.icon, 20, theme)}
                     </div>
                     <div className={styles.statInfo} style={{ position: 'relative', overflow: 'visible', flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
@@ -922,15 +923,15 @@ export default function StudentDashboardPage() {
             activeTab={viewMode}
             onTabChange={setViewMode}
             tabs={[
-              { value: 'overview', label: t('overview') || 'Overview', icon: <BarChart3 size={16} /> },
-              { value: 'tasks', label: t('my_tasks') || 'My Tasks', icon: <CheckCircle size={16} /> },
-              { value: 'attendance', label: t('attendance') || 'Attendance', icon: <CalendarCheck size={16} /> },
-              { value: 'performance', label: t('performance') || 'Performance', icon: <TrendingUp size={16} /> },
-              { value: 'marks', label: t('marks') || 'Marks', icon: <Award size={16} /> },
-              { value: 'penalties', label: t('penalties') || 'Penalties', icon: <AlertTriangle size={16} /> },
-              { value: 'participations', label: t('participations') || 'Participations', icon: <PlusIcon size={16} /> },
-              { value: 'behaviors', label: t('behaviors') || 'Behaviors', icon: <XCircle size={16} /> },
-              { value: 'absences', label: t('absences') || 'Absences', icon: <Clock size={16} /> }
+              { value: 'overview', label: t('overview') || 'Overview', icon: getThemedIcon('ui', 'bar_chart_3', 16, theme) },
+              { value: 'tasks', label: t('my_tasks') || 'My Tasks', icon: getThemedIcon('ui', 'check_circle', 16, theme) },
+              { value: 'attendance', label: t('attendance') || 'Attendance', icon: getThemedIcon('ui', 'calendar_check', 16, theme) },
+              { value: 'performance', label: t('performance') || 'Performance', icon: getThemedIcon('ui', 'trending_up', 16, theme) },
+              { value: 'marks', label: t('marks') || 'Marks', icon: getThemedIcon('ui', 'award', 16, theme) },
+              { value: 'penalties', label: t('penalties') || 'Penalties', icon: getThemedIcon('ui', 'alert_triangle', 16, theme) },
+              { value: 'participations', label: t('participations') || 'Participations', icon: getThemedIcon('ui', 'plus', 16, theme) },
+              { value: 'behaviors', label: t('behaviors') || 'Behaviors', icon: getThemedIcon('ui', 'x_circle', 16, theme) },
+              { value: 'absences', label: t('absences') || 'Absences', icon: getThemedIcon('ui', 'clock', 16, theme) }
             ]}
             size="lg"
           />
@@ -946,7 +947,7 @@ export default function StudentDashboardPage() {
                   <CardBody>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <AlertTriangle size={20} style={{ color: '#ef4444' }} />
+                        {getThemedIcon('ui', 'alert_triangle', 20, theme)}
                         {t('urgent_tasks') || 'Urgent Tasks'}
                       </h3>
                       <Badge variant="danger">{urgentTasks.length}</Badge>
@@ -978,13 +979,13 @@ export default function StudentDashboardPage() {
                 <CardBody>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <CalendarCheck size={20} style={{ color: '#10b981' }} />
+                      {getThemedIcon('ui', 'calendar_check', 20, theme)}
                       {t('recent_attendance') || 'Recent Attendance'}
                     </h3>
                   </div>
                   {attendance.length === 0 ? (
                     <EmptyState
-                      icon={CalendarCheck}
+                      icon={getThemedIcon('ui', 'calendar_check', 48, theme)}
                       title={t('no_attendance_records') || 'No attendance records yet'}
                       description={t('attendance_will_appear_here') || 'Your attendance will appear here once classes begin'}
                     />
@@ -1025,7 +1026,7 @@ export default function StudentDashboardPage() {
                 <CardBody>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <TrendingUp size={20} style={{ color: '#800020' }} />
+                      {getThemedIcon('ui', 'trending_up', 20, theme)}
                       {t('performance_summary') || 'Performance Summary'}
                     </h3>
                   </div>
@@ -1123,7 +1124,7 @@ export default function StudentDashboardPage() {
                               </div>
                               {task.deadline && (
                                 <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                                  <Clock size={14} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                                  {getThemedIcon('ui', 'clock', 14, theme)}
                                   Due: {task.deadline.toDate ? task.deadline.toDate().toLocaleString() : 'N/A'}
                                 </div>
                               )}
@@ -1158,7 +1159,7 @@ export default function StudentDashboardPage() {
                 <h2 style={{ margin: '0 0 1.5rem 0' }}>{t('attendance') || 'Attendance'}</h2>
                 {attendance.length === 0 ? (
                   <EmptyState
-                    icon={CalendarCheck}
+                    icon={getThemedIcon('ui', 'calendar_check', 48, theme)}
                     title={t('no_attendance_records') || 'No attendance records yet'}
                     description={t('attendance_will_appear_here') || 'Your attendance will appear here once classes begin'}
                   />
@@ -1218,7 +1219,7 @@ export default function StudentDashboardPage() {
                                     {record.className || 'Unknown Class'}
                                   </div>
                                   <div style={{ fontSize: '0.875rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <CalendarCheck size={14} />
+                                    {getThemedIcon('ui', 'calendar_check', 14, theme)}
                                     {date.toLocaleDateString()} • {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                                   </div>
                                 </div>
@@ -1378,10 +1379,10 @@ export default function StudentDashboardPage() {
                     activeTab={viewMode}
                     onTabChange={setViewMode}
                     tabs={[
-                      { value: 'penalties', label: t('penalties') || 'Penalties', icon: <AlertTriangle size={16} /> },
-                      { value: 'participations', label: t('participations') || 'Participations', icon: <PlusIcon size={16} /> },
-                      { value: 'behaviors', label: t('behaviors') || 'Behaviors', icon: <XCircle size={16} /> },
-                      { value: 'absences', label: t('absences') || 'Absences', icon: <Clock size={16} /> }
+                      { value: 'penalties', label: t('penalties') || 'Penalties', icon: getThemedIcon('ui', 'alert_triangle', 16, theme) },
+                      { value: 'participations', label: t('participations') || 'Participations', icon: getThemedIcon('ui', 'plus', 16, theme) },
+                      { value: 'behaviors', label: t('behaviors') || 'Behaviors', icon: getThemedIcon('ui', 'x_circle', 16, theme) },
+                      { value: 'absences', label: t('absences') || 'Absences', icon: getThemedIcon('ui', 'clock', 16, theme) }
                     ]}
                     size="lg"
                   />
@@ -1389,7 +1390,7 @@ export default function StudentDashboardPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      icon={<Download size={16} />}
+                      icon={getThemedIcon('ui', 'download', 16, theme)}
                       onClick={() => {
                         let data = [];
                         let filename = '';
@@ -1680,7 +1681,7 @@ export default function StudentDashboardPage() {
                       <EmptyState
                         title={t('no_absences') || 'No Absences'}
                         description={t('no_absences_description') || 'You have no recorded absences.'}
-                        icon={<CalendarCheck size={48} />}
+                        icon={getThemedIcon('ui', 'calendar_check', 48, theme)}
                       />
                     ) : (
                       <div style={{ display: 'grid', gap: '1rem' }}>

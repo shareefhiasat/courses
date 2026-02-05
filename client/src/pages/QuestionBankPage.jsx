@@ -8,6 +8,7 @@ import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import {
   Container,
   Card,
@@ -22,19 +23,7 @@ import {
   EmptyState,
   Loading
 } from '@ui';
-import {
-  Plus,
-  Search,
-  Filter,
-  Download,
-  Upload,
-  Edit2,
-  Trash2,
-  Copy,
-  Tag,
-  BookOpen,
-  TrendingUp
-} from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import {
   getAllQuestions,
   createQuestion,
@@ -51,6 +40,8 @@ import styles from './QuestionBankPage.module.css';
 
 export default function QuestionBankPage() {
   const { user, isAdmin, isInstructor } = useAuth();
+  const { t, lang } = useLang();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -239,7 +230,7 @@ export default function QuestionBankPage() {
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <BookOpen size={32} className={styles.headerIcon} />
+            {getThemedIcon('ui', 'book_open', 32, theme)}
             <div>
               <h1>Question Bank</h1>
               <p>{questions.length} questions in library</p>
@@ -248,7 +239,7 @@ export default function QuestionBankPage() {
           <div className={styles.headerRight}>
             <label htmlFor="import-file">
               <Button variant="outline" as="span">
-                <Upload size={16} />
+                {getThemedIcon('ui', 'upload', 16, theme)}
                 Import
               </Button>
             </label>
@@ -260,11 +251,11 @@ export default function QuestionBankPage() {
               style={{ display: 'none' }}
             />
             <Button variant="outline" onClick={handleExport}>
-              <Download size={16} />
+              {getThemedIcon('ui', 'download', 16, theme)}
               Export
             </Button>
             <Button variant="primary" onClick={handleCreateNew}>
-              <Plus size={16} />
+              {getThemedIcon('ui', 'plus', 16, theme)}
               New Question
             </Button>
           </div>
@@ -284,7 +275,7 @@ export default function QuestionBankPage() {
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
               >
-                <Filter size={16} />
+                {getThemedIcon('ui', 'filter', 16, theme)}
                 {t('filter')}
               </Button>
             </div>
@@ -368,7 +359,7 @@ export default function QuestionBankPage() {
         {/* Questions List */}
         {filteredQuestions.length === 0 ? (
           <EmptyState
-            icon={<Search size={48} />}
+            icon={getThemedIcon('ui', 'search', 48, theme)}
             title="No questions found"
             description="Try adjusting your search or filters"
           />
@@ -390,21 +381,21 @@ export default function QuestionBankPage() {
                           size="sm"
                           onClick={() => handleEdit(question)}
                         >
-                          <Edit2 size={16} />
+                          {getThemedIcon('ui', 'edit2', 16, theme)}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDuplicate(question.id)}
                         >
-                          <Copy size={16} />
+                          {getThemedIcon('ui', 'copy', 16, theme)}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(question.id)}
                         >
-                          <Trash2 size={16} />
+                          {getThemedIcon('ui', 'trash2', 16, theme)}
                         </Button>
                       </div>
                     </div>
@@ -415,7 +406,7 @@ export default function QuestionBankPage() {
                         <div className={styles.questionTags}>
                           {question.tags.map((tag) => (
                             <Badge key={tag} variant="outline" size="sm">
-                              <Tag size={12} />
+                              {getThemedIcon('ui', 'tag', 12, theme)}
                               {tag}
                             </Badge>
                           ))}
@@ -431,7 +422,7 @@ export default function QuestionBankPage() {
                         {t(question.difficulty)}
                       </Badge>
                       <span className={styles.usageCount}>
-                        <TrendingUp size={14} />
+                        {getThemedIcon('ui', 'trending_up', 14, theme)}
                         {t('used_times', { count: question.usageCount || 0 })}
                       </span>
                       <span className={styles.points}>{question.points || 1} {t('pts')}</span>

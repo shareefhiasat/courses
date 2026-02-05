@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './Button.module.css';
+import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 
 /**
  * Button Component
@@ -16,6 +17,7 @@ import styles from './Button.module.css';
  * @param {Function} props.onClick - Click handler
  * @param {string} props.className - Additional CSS classes
  * @param {string} props.type - Button type (button, submit, reset)
+ * @param {'light'|'dark'} props.theme - Theme variant
  */
 const Button = ({
   children,
@@ -27,18 +29,26 @@ const Button = ({
   onClick,
   className = '',
   type = 'button',
+  theme = 'light',
   ...rest
 }) => {
   const normalizedSize = size === 'sm' ? 'small' : size;
-
+  
+  // Get theme-aware styles
+  const themeStyles = getComponentStyles(theme, 'button', variant, normalizedSize);
+  
   const buttonClasses = [
     styles.button,
     styles[variant],
     styles[normalizedSize],
+    styles[theme],
     fullWidth && styles.fullWidth,
     loading && styles.loading,
     className
   ].filter(Boolean).join(' ');
+
+  // Generate CSS variables for theme
+  const cssVariables = generateCSSVariables(theme);
 
   return (
     <button

@@ -3,11 +3,9 @@ import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Container, Card, CardBody, Button, Loading, Spinner } from '@ui';
-import {
-  Plus, Edit, Trash2, Play, Clock, Users, HelpCircle, ListChecks,
-  CheckCircle, AlertCircle, Repeat, Award
-} from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { getAllQuizzes, getQuizzesByCreator, deleteQuiz } from '@firebaseServices/quizService';
 import { getUser } from '@firebaseServices/userService';
 import { db } from '@firebaseServices/config';
@@ -18,6 +16,7 @@ import styles from './QuizManagementPage.module.css';
 
 export default function QuizManagementPage() {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const { user, isAdmin, isInstructor, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
@@ -224,13 +223,13 @@ export default function QuizManagementPage() {
   const getQuizTypeIcon = (type) => {
     switch (type) {
       case 'multiple_choice':
-        return <ListChecks size={16} />;
+        return getThemedIcon('ui', 'list_checks', 16, theme);
       case 'single_choice':
-        return <CheckCircle size={16} />;
+        return getThemedIcon('ui', 'check_circle', 16, theme);
       case 'true_false':
-        return <HelpCircle size={16} />;
+        return getThemedIcon('ui', 'help_circle', 16, theme);
       default:
-        return <HelpCircle size={16} />;
+        return getThemedIcon('ui', 'help_circle', 16, theme);
     }
   };
 
@@ -285,7 +284,7 @@ export default function QuizManagementPage() {
 
     chips.push(
       <span key={`${quiz.id}-questions`} className={`${styles.metaChip} ${styles.infoChip}`}>
-        <span className={styles.metaChipIcon}><ListChecks size={14} /></span>
+        <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'list_checks', 14, theme)}</span>
         <span>{quiz.questionCount || 0} {quiz.questionCount === 1 ? 'question' : 'questions'}</span>
       </span>
     );
@@ -293,7 +292,7 @@ export default function QuizManagementPage() {
     if (quiz.estimatedTime) {
       chips.push(
         <span key={`${quiz.id}-time`} className={`${styles.metaChip} ${styles.infoChip}`}>
-          <span className={styles.metaChipIcon}><Clock size={14} /></span>
+          <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'clock', 14, theme)}</span>
           <span>{quiz.estimatedTime} min</span>
         </span>
       );
@@ -301,7 +300,7 @@ export default function QuizManagementPage() {
 
     chips.push(
       <span key={`${quiz.id}-difficulty`} className={`${styles.metaChip} ${getDifficultyChipClass(quiz.difficulty)}`}>
-        <span className={styles.metaChipIcon}><Award size={14} /></span>
+        <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'award', 14, theme)}</span>
         <span>{getDifficultyLabel(quiz.difficulty)}</span>
       </span>
     );
@@ -309,7 +308,7 @@ export default function QuizManagementPage() {
     if (quiz.allowRetake) {
       chips.push(
         <span key={`${quiz.id}-retake`} className={`${styles.metaChip} ${styles.retakeChip}`}>
-          <span className={styles.metaChipIcon}><Repeat size={14} /></span>
+          <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'repeat', 14, theme)}</span>
           <span>Retake allowed</span>
         </span>
       );
@@ -356,7 +355,7 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <ListChecks size={16} style={{ color: '#8b5cf6' }} />
+                    {getThemedIcon('ui', 'list_checks', 16, theme)}
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{quizzes.length}</h3>
@@ -370,7 +369,7 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <Users size={16} style={{ color: '#10b981' }} />
+                    {getThemedIcon('ui', 'users', 16, theme)}
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{totalAttempts}</h3>
@@ -384,7 +383,7 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <CheckCircle size={16} style={{ color: '#f59e0b' }} />
+                    {getThemedIcon('ui', 'check_circle', 16, theme)}
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{averageScore}%</h3>
@@ -398,7 +397,7 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <Clock size={16} style={{ color: '#6366f1' }} />
+                    {getThemedIcon('ui', 'clock', 16, theme)}
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>
@@ -414,7 +413,7 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    <HelpCircle size={16} style={{ color: '#ec4899' }} />
+                    {getThemedIcon('ui', 'help_circle', 16, theme)}
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>
@@ -432,7 +431,7 @@ export default function QuizManagementPage() {
         <div className={styles.quizzesSection}>
           {error && (
             <div className={styles.errorAlert}>
-              <AlertCircle size={20} style={{ color: '#ef4444', marginRight: 8 }} />
+              {getThemedIcon('ui', 'alert_circle', 20, theme)}
               <span>{error}</span>
             </div>
           )}
@@ -440,14 +439,14 @@ export default function QuizManagementPage() {
           {quizzes.length === 0 ? (
             <Card>
               <CardBody className={styles.emptyState}>
-                <HelpCircle size={48} style={{ color: '#d1d5db', marginBottom: 16 }} />
+                {getThemedIcon('ui', 'help_circle', 48, theme)}
                 <h3>No Quizzes Yet</h3>
                 <p>Create your first quiz to get started</p>
                 <Button
                   variant="primary"
                   onClick={() => navigate('/quiz-builder')}
                 >
-                  <Plus size={16} style={{ marginRight: 6 }} />
+                  {getThemedIcon('ui', 'plus', 16, theme)}
                   Create Quiz
                 </Button>
               </CardBody>
@@ -475,11 +474,11 @@ export default function QuizManagementPage() {
 
                         <div className={styles.quizStats}>
                           <div className={styles.statItem}>
-                            <Users size={14} style={{ color: '#64748b' }} />
+                            {getThemedIcon('ui', 'users', 14, theme)}
                             <span>{quiz.totalAttempts || 0} attempts</span>
                           </div>
                           <div className={styles.statItem}>
-                            <CheckCircle size={14} style={{ color: '#10b981' }} />
+                            {getThemedIcon('ui', 'check_circle', 14, theme)}
                             <span>{quiz.averageScore || 0}% avg score</span>
                           </div>
                         </div>
@@ -494,7 +493,7 @@ export default function QuizManagementPage() {
                           aria-label="Preview quiz"
                           onClick={() => handlePreview(quiz.id)}
                         >
-                          <Play size={16} />
+                          {getThemedIcon('ui', 'play', 16, theme)}
                         </Button>
                         <Button
                           variant="outline"
@@ -504,7 +503,7 @@ export default function QuizManagementPage() {
                           aria-label="Edit quiz"
                           onClick={() => handleEdit(quiz)}
                         >
-                          <Edit size={16} />
+                          {getThemedIcon('ui', 'edit', 16, theme)}
                         </Button>
                         <Button
                           variant="danger"
@@ -518,7 +517,7 @@ export default function QuizManagementPage() {
                           {deleting === quiz.id ? (
                             <Spinner size="sm" />
                           ) : (
-                            <Trash2 size={16} />
+                            {getThemedIcon('ui', 'trash2', 16, theme)}
                           )}
                         </Button>
                       </div>

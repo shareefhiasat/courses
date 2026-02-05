@@ -4,14 +4,16 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, query, where, orderBy, limit, getDoc } from 'firebase/firestore';
-import { FileDown, Search, Filter, Calendar, User, AlertCircle, Clock, CheckCircle, XCircle, Activity, Users, Heart } from 'lucide-react';
 import { Button, Select, Loading, DatePicker } from '@ui';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 
 const HRAttendancePage = () => {
   const { user, isHR, isAdmin, loading: authLoading } = useAuth();
   const { t } = useLang();
+  const { theme } = useTheme();
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [marks, setMarks] = useState([]);
@@ -378,7 +380,7 @@ const HRAttendancePage = () => {
   if (!isHR && !isAdmin) {
     return (
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <AlertCircle size={48} style={{ color: '#ef4444', marginBottom: '1rem' }} />
+        {getThemedIcon('ui', 'alert_triangle', 48, theme)}
         <h2>Access Denied</h2>
         <p>This page is only accessible to HR personnel.</p>
       </div>
@@ -550,12 +552,12 @@ const HRAttendancePage = () => {
                   <div style={{ fontSize: 10, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     {session.instructorName && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <User size={12} style={{ color: '#64748b' }} />
+                        {getThemedIcon('ui', 'user', 12, theme)}
                         {session.instructorName}
                       </span>
                     )}
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Calendar size={12} style={{ color: '#64748b' }} />
+                      {getThemedIcon('ui', 'calendar', 12, theme)}
                       {createdAt.toLocaleDateString('en-GB')} {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: session.status === 'open' ? '#10b981' : '#6b7280', fontWeight: 600 }}>
@@ -573,7 +575,7 @@ const HRAttendancePage = () => {
         <div style={{ flex: '2 1 400px', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
           {!selectedSession && (
             <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--muted)' }}>
-              <Search size={36} style={{ marginBottom: '0.75rem', opacity: 0.5 }} />
+              {getThemedIcon('ui', 'search', 36, theme)}
               <div style={{ fontSize: 13 }}>{t('select_session') || 'Select a session to view attendance details'}</div>
             </div>
           )}
@@ -586,7 +588,7 @@ const HRAttendancePage = () => {
                   </div>
                   {selectedSession.instructorName && (
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: '0.25rem' }}>
-                      <User size={12} style={{ marginRight: 4, color: '#64748b' }} />
+                      {getThemedIcon('ui', 'user', 12, theme)}
                       {selectedSession.instructorName}
                     </div>
                   )}
@@ -605,14 +607,14 @@ const HRAttendancePage = () => {
                     fontSize: '0.75rem',
                     color: marks.length > 0 ? '#10b981' : '#6b7280'
                   }}>
-                    <Users size={14} />
+                    {getThemedIcon('ui', 'users', 14, theme)}
                     <span>{marks.length} {t('scans') || 'scans'}</span>
                   </div>
                 </div>
                 <Button 
                   variant="success" 
                   size="small"
-                  icon={<FileDown size={14} />}
+                  icon={getThemedIcon('ui', 'download', 14, theme)}
                   onClick={() => exportSessionCSV(selectedSession.id)}
                 >
                   {t('export_csv') || 'Export CSV'}

@@ -10,12 +10,13 @@ import { Container, Card, CardBody, Spinner, Badge, Grid, ProgressBar, EmptyStat
 import { useLang } from '@contexts/LangContext';
 import { RankDisplay, RankHistory } from '@ui';
 import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
-import { Trophy, Target, BookOpen, Award } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ProgressPage.module.css';
 
 const ProgressPage = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const [progress, setProgress] = useState({});
   const [resourceProgress, setResourceProgress] = useState({});
   const [submissions, setSubmissions] = useState([]);
@@ -112,17 +113,17 @@ const ProgressPage = () => {
           <h1 className={styles.heroTitle}>{t('progress') || 'Progress'}</h1>
           <div className={styles.statsGrid}>
             <div className={styles.statItem}>
-              <Target size={32} className={styles.statIcon} />
+              {getThemedIcon('ui', 'target', 32, theme)}
               <div className={styles.statValue}>{activityCompletedCount}</div>
               <div className={styles.statLabel}>{t('activities_completed') || 'Activities Completed'}</div>
             </div>
             <div className={styles.statItem}>
-              <BookOpen size={32} className={styles.statIcon} />
+              {getThemedIcon('ui', 'book_open', 32, theme)}
               <div className={styles.statValue}>{resourceCompletedCount}</div>
               <div className={styles.statLabel}>{t('resources_completed') || 'Resources Completed'}</div>
             </div>
             <div className={styles.statItem}>
-              <Award size={32} className={styles.statIcon} />
+              {getThemedIcon('ui', 'award', 32, theme)}
               <div className={styles.statValue}>{totalScore}</div>
               <div className={styles.statLabel}>{t('total_score') || 'Total Score'}</div>
             </div>
@@ -169,7 +170,7 @@ const ProgressPage = () => {
       {/* Show message if no progress */}
       {activityCompletedCount === 0 && resourceCompletedCount === 0 ? (
         <EmptyState
-          icon={Trophy}
+          icon={getThemedIcon('ui', 'trophy', 48, theme)}
           title={t('no_progress_yet') || 'No progress yet'}
           description={t('start_completing') || 'Start completing activities to see your progress here'}
         />

@@ -1,11 +1,18 @@
 import React from 'react';
 import Button from './Button';
-import { Plus, Trash2, Download, Save } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default {
   title: 'UI/Button',
   component: Button,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component: 'Enhanced Button component with theme support and multiple variants.'
+      }
+    }
+  },
   argTypes: {
     variant: {
       control: 'select',
@@ -29,6 +36,11 @@ export default {
       control: 'boolean',
       description: 'Whether the button takes full width',
     },
+    theme: {
+      control: 'select',
+      options: ['light', 'dark'],
+      description: 'Theme variant',
+    },
   },
 };
 
@@ -45,6 +57,32 @@ export const Secondary = {
   args: {
     children: 'Secondary Button',
     variant: 'secondary',
+  },
+};
+
+// Dark theme stories
+export const PrimaryDark = {
+  args: {
+    children: 'Primary Button (Dark)',
+    variant: 'primary',
+    size: 'medium',
+    theme: 'dark',
+  },
+};
+
+export const SecondaryDark = {
+  args: {
+    children: 'Secondary Button (Dark)',
+    variant: 'secondary',
+    theme: 'dark',
+  },
+};
+
+export const OutlineDark = {
+  args: {
+    children: 'Outline Button (Dark)',
+    variant: 'outline',
+    theme: 'dark',
   },
 };
 
@@ -118,7 +156,7 @@ export const WithIconLeft = {
   args: {
     children: (
       <>
-        <Plus size={16} />
+        {getThemedIcon('ui', 'add', 16, theme)}
         Add Item
       </>
     ),
@@ -130,7 +168,7 @@ export const WithIconRight = {
     children: (
       <>
         Download
-        <Download size={16} />
+        {getThemedIcon('ui', 'download', 16, theme)}
       </>
     ),
   },
@@ -138,7 +176,7 @@ export const WithIconRight = {
 
 export const IconOnly = {
   args: {
-    children: <Trash2 size={16} />,
+    children: getThemedIcon('ui', 'trash', 16, theme),
     variant: 'danger',
     size: 'small',
   },
@@ -169,7 +207,7 @@ export const FormActions = () => (
   <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
     <Button variant="ghost">Cancel</Button>
     <Button variant="primary" type="submit">
-      <Save size={16} />
+      getThemedIcon('ui', 'save', 16, theme)
       Save Changes
     </Button>
   </div>
@@ -179,7 +217,7 @@ export const DeleteConfirmation = () => (
   <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
     <Button variant="outline">Cancel</Button>
     <Button variant="danger">
-      <Trash2 size={16} />
+      getThemedIcon('ui', 'trash', 16, theme)
       Delete
     </Button>
   </div>

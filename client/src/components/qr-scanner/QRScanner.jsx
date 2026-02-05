@@ -13,12 +13,11 @@ import { getPerformedByFields } from '@firebaseServices/userService';
 import { getUsers } from '@firebaseServices/userService';
 import { getUserByStudentNumber, getUserById } from '@firebaseServices/userService';
 import { getTodayAttendanceStatus, isStudentMarkedToday } from '@firebaseServices/attendanceService';
-import { db } from '@firebaseServices/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '../ui/Toast';
-import { RefreshCw, Activity } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';
 import { generateReferenceId } from '@utils/qrCode';
@@ -27,6 +26,20 @@ import { PARTICIPATION_TYPES, getParticipationColor } from '@constants/participa
 import { PENALTY_TYPES, getPenaltyColor } from '@constants/penaltyTypes.jsx';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import {
+  getActionConfig,
+  getActionButtonStyles,
+  getActivityTypeOptions,
+  getCameraConstraints,
+  getCameraErrorMessage,
+  isMobileDevice,
+  INITIAL_QR_SCANNER_STATE,
+  FEEDBACK_SOUNDS,
+  DEBUG_LOG_TYPES,
+  QR_SCANNER_VALIDATION,
+  getQRScannerThemeColor,
+  QR_SCANNER_ACTIONS
+} from '@constants/qrScannerTypes';
 import {
   QrCodeIcon,
   StopIcon,
@@ -97,10 +110,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Detect mobile device
   useEffect(() => {
-    const checkMobile = () => {
-      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    };
-    setIsMobile(checkMobile());
+    setIsMobile(isMobileDevice());
   }, []);
 
   // Get available cameras
@@ -140,31 +150,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }
 
       // Request camera access with appropriate constraints
-      const constraints = {
-        video: {
-          facingMode: cameraMode,
-          width: { ideal: isMobile ? 640 : 1280 }, // Lower resolution for mobile
-          height: { ideal: isMobile ? 480 : 720 }  // Lower resolution for mobile
-        }
-      };
+      const constraints = getCameraConstraints(isMobile, cameraMode);
 
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (permissionError) {
-        // Handle specific permission errors
-        let errorMessage = '';
-        if (permissionError.name === 'NotAllowedError') {
-          errorMessage = t('camera_permission_denied');
-        } else if (permissionError.name === 'NotFoundError') {
-          errorMessage = t('camera_not_found');
-        } else if (permissionError.name === 'NotReadableError') {
-          errorMessage = t('camera_already_in_use');
-        } else if (permissionError.name === 'OverconstrainedError') {
-          errorMessage = t('camera_constraints_not_supported');
-        } else {
-          errorMessage = `${t('camera_access_failed')}: ${permissionError.message}`;
-        }
+        // Handle specific permission errors using centralized error handling
+        const errorMessage = getCameraErrorMessage(permissionError, t);
 
         // Play error feedback
         playFeedbackSound('error');
@@ -2678,38 +2671,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           await handleMarkAttendance(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 'Marked absent (no excuse) manually');
                         }}
                         disabled={actionLoading}
-                        style={{
-                          padding: '0.875rem',
-                          border: 'none',
-                          background: actionLoading && currentAction === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? '#94a3b8' : getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE),
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          cursor: actionLoading ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.625rem',
-                          opacity: actionLoading ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                          boxShadow: `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE)}20`
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!actionLoading) {
-                            const color = getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
-                            e.target.style.background = color + 'dd';
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE)}40`;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!actionLoading) {
-                            e.target.style.background = getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE)}20`;
-                          }
-                        }}
+                        style={getActionButtonStyles(QR_SCANNER_ACTIONS.MARK_ABSENT_NO_EXCUSE, actionLoading)}
                     >
                       {actionLoading && currentAction === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? (
                           <>
@@ -3822,48 +3784,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       });
                     }
                   }}
-                  options={[
-                    // Attendance options
-                    ...Object.values(ATTENDANCE_STATUS).map(status => ({
-                      id: status,
-                      label_en: getAttendanceLabel(status, 'en'),
-                      label_ar: getAttendanceLabel(status, 'ar'),
-                      category: 'attendance',
-                      points: 0,
-                      icon: getAttendanceIcon(status),
-                      color: getAttendanceColor(status)
-                    })),
-                    // Behavior options
-                    ...BEHAVIOR_TYPES.map(behavior => ({
-                      id: behavior.id,
-                      label_en: behavior.label_en,
-                      label_ar: behavior.label_ar,
-                      category: 'behavior',
-                      points: behavior.points,
-                      icon: behavior.icon || 'AlertCircle',
-                      color: getBehaviorColor(behavior.id)
-                    })),
-                    // Participation options
-                    ...PARTICIPATION_TYPES.map(participation => ({
-                      id: participation.id,
-                      label_en: participation.label_en,
-                      label_ar: participation.label_ar,
-                      category: 'participation',
-                      points: participation.points,
-                      icon: participation.icon || 'MessageSquare',
-                      color: getParticipationColor(participation.id)
-                    })),
-                    // Penalty options
-                    ...PENALTY_TYPES.map(penalty => ({
-                      id: penalty.id,
-                      label_en: penalty.label_en,
-                      label_ar: penalty.label_ar,
-                      category: 'penalty',
-                      points: penalty.points,
-                      icon: penalty.icon || 'AlertTriangle',
-                      color: getPenaltyColor(penalty.id)
-                    }))
-                  ]}
+                  options={getActivityTypeOptions()}
               />
           )}
 

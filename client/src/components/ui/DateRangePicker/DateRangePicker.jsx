@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { format, parseISO, isValid } from 'date-fns';
-import { Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import Button from '../Button/Button';
 import styles from './DateRangePicker.module.css';
 
@@ -27,6 +28,8 @@ const DateRangePicker = ({
   clearable = true,
   numberOfMonths = 2,
 }) => {
+  const { theme } = useTheme();
+  
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef(null);
   
@@ -139,7 +142,7 @@ const DateRangePicker = ({
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
         >
-          <Calendar size={18} className={styles.calendarIcon} />
+          {getThemedIcon('ui', 'calendar', 18, theme)}
           <span className={styles.triggerText} data-empty={!hasValue}>
             {displayText()}
           </span>
@@ -154,7 +157,7 @@ const DateRangePicker = ({
               disabled={disabled}
               aria-label="Clear dates"
             >
-              <X size={14} />
+              {getThemedIcon('ui', 'close', 14, theme)}
             </button>
           )}
         </button>
@@ -173,8 +176,8 @@ const DateRangePicker = ({
                 maxDate={max ? new Date(max) : undefined}
                 className={styles.calendar}
                 components={{
-                  IconLeft: ({ ...props }) => <ChevronLeft size={16} {...props} />,
-                  IconRight: ({ ...props }) => <ChevronRight size={16} {...props} />,
+                  IconLeft: ({ ...props }) => getThemedIcon('ui', 'chevron_left', 16, theme),
+                  IconRight: ({ ...props }) => getThemedIcon('ui', 'chevron_right', 16, theme),
                 }}
                 classNames={{
                   months: styles.months,

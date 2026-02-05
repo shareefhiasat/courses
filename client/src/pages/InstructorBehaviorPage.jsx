@@ -2,9 +2,8 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { db } from '@firebaseServices/config';
-import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { Edit, Trash, MessageSquare, Bed, Users, Smartphone, AlertTriangle, Clock, XCircle, HelpCircle, User, AlertCircle, Crown, Shield, BookOpen, CheckCircle, TrendingUp, TrendingDown, Target, Zap, UserCheck, UserX, UserMinus, Info } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
@@ -14,16 +13,32 @@ import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes.jsx';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
+import { 
+  PAGE_STATES, 
+  FORM_STATES, 
+  MODAL_TYPES,
+  TYPE_ICONS,
+  getTypeIcon,
+  COMMON_GRID_COLUMNS,
+  VALIDATION_RULES,
+  COMMON_FILTERS,
+  PAGE_LAYOUTS,
+  getThemeStyles,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES
+} from '@constants/pageTypes';
 import styles from './ProgramsManagementPage.module.css';
 
 const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
+  const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
+  const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [behaviors, setBehaviors] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [editingBehavior, setEditingBehavior] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null });
+  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: MODAL_TYPES.DELETE });
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -736,13 +751,15 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                   const status = getUserStatus(u, userEnrollments);
                   const statusSummary = getUserStatusSummary(u, userEnrollments);
                   const iconProps = getStatusIconProps(status);
-                  const IconComponent = {
-                    'UserCheck': UserCheck,
-                    'UserX': UserX,
-                    'UserMinus': UserMinus,
-                    'AlertCircle': AlertTriangle,
-                    'Info': Info
-                  }[iconProps.name] || User;
+                  const IconComponent = () => {
+                    switch (iconProps.name) {
+                      case 'UserCheck': return getThemedIcon('user_status', 'active', 24, theme);
+                      case 'UserX': return getThemedIcon('user_status', 'inactive', 24, theme);
+                      case 'UserMinus': return getThemedIcon('user_status', 'suspended', 24, theme);
+                      case 'AlertCircle': return getThemedIcon('ui', 'alert_triangle', 24, theme);
+                      default: return getThemedIcon('ui', 'info', 24, theme);
+                    }
+                  };
                   
                   const isDisabled = status === USER_STATUS.DELETED;
                   const statusLabel = statusSummary?.label || status;
@@ -757,7 +774,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                         gap: 8,
                         opacity: isDisabled ? 0.7 : 1
                       }}>
-                        <IconComponent size={16} color={iconProps.color} />
+                        <IconComponent />
                         <span style={{ 
                           textDecoration: isDisabled ? 'line-through' : 'none',
                           flex: 1
@@ -791,31 +808,31 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                 let icon;
                 switch (bt.icon) {
                   case 'MessageSquare':
-                    icon = <MessageSquare size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'message_square', 16, theme);
                     break;
                   case 'Bed':
-                    icon = <Bed size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'bed', 16, theme);
                     break;
                   case 'Users':
-                    icon = <Users size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'users', 16, theme);
                     break;
                   case 'Smartphone':
-                    icon = <Smartphone size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'smartphone', 16, theme);
                     break;
                   case 'AlertTriangle':
-                    icon = <AlertTriangle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'alert_triangle', 16, theme);
                     break;
                   case 'Clock':
-                    icon = <Clock size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'clock', 16, theme);
                     break;
                   case 'XCircle':
-                    icon = <XCircle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'x_circle', 16, theme);
                     break;
                   case 'HelpCircle':
-                    icon = <HelpCircle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'help_circle', 16, theme);
                     break;
                   default:
-                    icon = <AlertTriangle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'alert_triangle', 16, theme);
                 }
                 return { value: bt.id, label: getBehaviorLabel(bt.id, lang), icon };
               })
@@ -931,31 +948,31 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                 let icon;
                 switch (bt.icon) {
                   case 'MessageSquare':
-                    icon = <MessageSquare size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'message_square', 16, theme);
                     break;
                   case 'Bed':
-                    icon = <Bed size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'bed', 16, theme);
                     break;
                   case 'Users':
-                    icon = <Users size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'users', 16, theme);
                     break;
                   case 'Smartphone':
-                    icon = <Smartphone size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'smartphone', 16, theme);
                     break;
                   case 'AlertTriangle':
-                    icon = <AlertTriangle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'alert_triangle', 16, theme);
                     break;
                   case 'Clock':
-                    icon = <Clock size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'clock', 16, theme);
                     break;
                   case 'XCircle':
-                    icon = <XCircle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'x_circle', 16, theme);
                     break;
                   case 'HelpCircle':
-                    icon = <HelpCircle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'help_circle', 16, theme);
                     break;
                   default:
-                    icon = <AlertTriangle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'alert_triangle', 16, theme);
                 }
                 return { value: bt.id, label: getBehaviorLabel(bt.id, lang), icon };
               })

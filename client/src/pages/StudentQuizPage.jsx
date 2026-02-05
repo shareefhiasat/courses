@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { getQuiz, submitQuiz } from '@firebaseServices/quizService';
 import { addActivityLog } from '@firebaseServices/activityService';
 import { ActivityLogger } from '@firebaseServices/activityLogger';
@@ -10,11 +11,7 @@ import { updateProgressAfterQuiz } from '@firebaseServices/studentProgressServic
 import { useTimeTracking } from '@hooks/useTimeTracking';
 import { randomizeQuestions, randomizeOptions } from '@utils/quizRandomization';
 import { Container, Card, CardBody, Button, Badge, ProgressBar, Loading, Spinner, useToast, Tooltip, Modal } from '@ui';
-import {
-  Play, Clock, Trophy, AlertCircle, CheckCircle, XCircle,
-  HelpCircle, ListChecks, ArrowLeft, ArrowRight, Flag, Save, RotateCcw, BookmarkCheck,
-  Calculator as CalcIcon, Edit3, BookOpen, ChevronLeft, ChevronRight, Circle, Shuffle, Repeat, Award
-} from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import Calculator from '@/components/quiz/Calculator';
 import ScratchPad from '@/components/quiz/ScratchPad';
 import FormulaSheet from '@/components/quiz/FormulaSheet';
@@ -31,6 +28,7 @@ const QUESTION_TYPES = {
 
 export default function StudentQuizPage() {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const { quizId } = useParams();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -650,13 +648,13 @@ export default function StudentQuizPage() {
   const getQuestionIcon = (type) => {
     switch (type) {
       case QUESTION_TYPES.MULTIPLE_CHOICE:
-        return <ListChecks size={20} />;
+        return getThemedIcon('ui', 'list_checks', 20, theme);
       case QUESTION_TYPES.SINGLE_CHOICE:
-        return <CheckCircle size={20} />;
+        return getThemedIcon('ui', 'check_circle', 20, theme);
       case QUESTION_TYPES.TRUE_FALSE:
-        return <HelpCircle size={20} />;
+        return getThemedIcon('ui', 'help_circle', 20, theme);
       default:
-        return <HelpCircle size={20} />;
+        return getThemedIcon('ui', 'help_circle', 20, theme);
     }
   };
 
@@ -689,7 +687,7 @@ export default function StudentQuizPage() {
         <Container maxWidth="md">
           <Card>
             <CardBody className={styles.errorContent}>
-              <AlertCircle size={48} style={{ color: '#ef4444', marginBottom: 16 }} />
+              {getThemedIcon('ui', 'alert_circle', 48, theme)}
               <h2>Error</h2>
               <p>{error}</p>
               <Button onClick={() => navigate('/activities')}>
@@ -730,21 +728,21 @@ export default function StudentQuizPage() {
                   <span style={{ marginLeft: '0.25rem' }}>{getQuestionTypeLabel(quiz.type)}</span>
                 </Badge>
                 <Badge variant="subtle" color="info" size="small">
-                  <ListChecks size={12} style={{ marginRight: '0.25rem' }} />
+                  {getThemedIcon('ui', 'list_checks', 12, theme)}
                   {quiz.questions.length} {quiz.questions.length === 1 ? 'question' : 'questions'}
                 </Badge>
                 <Badge variant="subtle" color="warning" size="small">
-                  <Award size={12} style={{ marginRight: '0.25rem' }} />
+                  {getThemedIcon('ui', 'award', 12, theme)}
                   {quiz.questions.reduce((sum, q) => sum + (q.points || 1), 0)} points
                 </Badge>
                 {quiz.settings?.timeLimit > 0 ? (
                   <Badge variant="outline" color="danger" size="small">
-                    <Clock size={12} style={{ marginRight: '0.25rem' }} />
+                    {getThemedIcon('ui', 'clock', 12, theme)}
                     {quiz.settings.timeLimit} min limit
                   </Badge>
                 ) : (
                   <Badge variant="subtle" color="info" size="small">
-                    <Clock size={12} style={{ marginRight: '0.25rem' }} />
+                    {getThemedIcon('ui', 'clock', 12, theme)}
                     {quiz.estimatedTime || 10} min
                   </Badge>
                 )}
@@ -753,19 +751,19 @@ export default function StudentQuizPage() {
                 </Badge>
                 {quiz.settings?.allowRetake && (
                   <Badge variant="outline" color="info" size="small">
-                    <Repeat size={12} style={{ marginRight: '0.25rem' }} />
+                    {getThemedIcon('ui', 'repeat', 12, theme)}
                     Retake allowed
                   </Badge>
                 )}
                 {quiz.settings?.randomizeOrder && (
                   <Badge variant="outline" color="primary" size="small">
-                    <Shuffle size={12} style={{ marginRight: '0.25rem' }} />
+                    {getThemedIcon('ui', 'shuffle', 12, theme)}
                     Shuffle questions
                   </Badge>
                 )}
                 {quiz.settings?.shuffleOptions && (
                   <Badge variant="outline" color="primary" size="small">
-                    <Shuffle size={12} style={{ marginRight: '0.25rem' }} />
+                    {getThemedIcon('ui', 'shuffle', 12, theme)}
                     Shuffle options
                   </Badge>
                 )}
@@ -802,7 +800,7 @@ export default function StudentQuizPage() {
                       style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', fontSize: '0.95rem', fontWeight: 600 }}
                       onClick={resumeQuiz}
                     >
-                      <Play size={16} />
+                      {getThemedIcon('ui', 'play', 16, theme)}
                       Continue Quiz
                     </Badge>
                   </>
@@ -813,7 +811,7 @@ export default function StudentQuizPage() {
                     style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', fontSize: '0.95rem', fontWeight: 600 }}
                     onClick={startQuiz}
                   >
-                    <Play size={16} />
+                    {getThemedIcon('ui', 'play', 16, theme)}
                     Start Quiz
                   </Badge>
                 )}
@@ -921,7 +919,7 @@ export default function StudentQuizPage() {
                     }}
                     className={styles.retakeButton}
                   >
-                    <Play size={16} />
+                    {getThemedIcon('ui', 'play', 16, theme)}
                     Retake Quiz
                     {quiz.difficulty && (
                       <Badge 
@@ -958,7 +956,7 @@ export default function StudentQuizPage() {
                 onClick={() => navigate('/activities')}
                 className={styles.iconButton}
               >
-                <ArrowLeft size={18} />
+                {getThemedIcon('ui', 'arrow_left', 18, theme)}
               </Button>
             </Tooltip>
             <Tooltip content="Save Progress">
@@ -968,16 +966,16 @@ export default function StudentQuizPage() {
                 onClick={saveProgress}
                 className={styles.iconButton}
               >
-                <Save size={18} />
+                {getThemedIcon('ui', 'save', 18, theme)}
               </Button>
             </Tooltip>
             <span className={styles.paletteProgress}>Answered: {answeredCount}/{totalQuestions}</span>
             <span className={styles.paletteTimer}>
-              <Clock size={14} /> {formatTime(elapsedTime)}
+              {getThemedIcon('ui', 'clock', 14, theme)} {formatTime(elapsedTime)}
             </span>
             {timeLeft > 0 && (
               <span className={styles.paletteTimer} style={{ color: timeLeft < 300 ? '#ef4444' : '#6b7280' }}>
-                <Clock size={14} /> {formatTime(timeLeft)}
+                {getThemedIcon('ui', 'clock', 14, theme)} {formatTime(timeLeft)}
               </span>
             )}
             {quiz?.settings?.timeLimit === 0 && lastSaved && (
@@ -1009,8 +1007,8 @@ export default function StudentQuizPage() {
           
           <div className={styles.paletteLegend}>
             <span><div className={styles.legendCurrent}>●</div> Current</span>
-            <span><CheckCircle size={14} /> Answered</span>
-            <span><Flag size={14} /> Marked</span>
+            <span>{getThemedIcon('ui', 'check_circle', 14, theme)} Answered</span>
+            <span>{getThemedIcon('ui', 'flag', 14, theme)} Marked</span>
           </div>
         </div>
 
@@ -1055,7 +1053,7 @@ export default function StudentQuizPage() {
                       title={markedForReview.has(currentQuestion.id) ? 'Unmark for review' : 'Mark for review'}
                       className={styles.iconMarkButton}
                     >
-                      <BookmarkCheck size={16} />
+                      {getThemedIcon('ui', 'bookmark_check', 16, theme)}
                     </Button>
                   </div>
                 </div>
@@ -1085,7 +1083,7 @@ export default function StudentQuizPage() {
                       >
                         <div className={styles.optionIndicator}>
                           {isSelected ? (
-                            <CheckCircle size={20} />
+                            getThemedIcon('ui', 'check_circle', 20, theme)
                           ) : (
                             <div className={styles.optionRadio} />
                           )}
@@ -1112,7 +1110,7 @@ export default function StudentQuizPage() {
                     disabled={currentQuestionIndex === 0}
                     className={styles.navIconBtn}
                   >
-                    <ChevronLeft size={20} />
+                    {getThemedIcon('ui', 'chevron_left', 20, theme)}
                   </Button>
                 </Tooltip>
                 <Tooltip content="Next Unanswered">
@@ -1123,7 +1121,7 @@ export default function StudentQuizPage() {
                     disabled={answeredCount === activeQuestions.length}
                     className={styles.navIconBtn}
                   >
-                    <Circle size={18} />
+                    {getThemedIcon('ui', 'circle', 18, theme)}
                   </Button>
                 </Tooltip>
                 <Tooltip content="Next Marked">
@@ -1134,7 +1132,7 @@ export default function StudentQuizPage() {
                     disabled={markedCount === 0}
                     className={styles.navIconBtn}
                   >
-                    <Flag size={18} />
+                    {getThemedIcon('ui', 'flag', 18, theme)}
                   </Button>
                 </Tooltip>
               </div>
@@ -1156,7 +1154,7 @@ export default function StudentQuizPage() {
                     disabled={currentQuestionIndex === activeQuestions.length - 1}
                     className={styles.navIconBtn}
                   >
-                    <ChevronRight size={20} />
+                    {getThemedIcon('ui', 'chevron_right', 20, theme)}
                   </Button>
                 </Tooltip>
                 <Tooltip content={currentQuestionIndex === activeQuestions.length - 1 ? "Submit Quiz" : "Skip to Submit"}>
@@ -1167,7 +1165,7 @@ export default function StudentQuizPage() {
                     disabled={isSubmitting || Object.keys(answers).length === 0}
                     className={styles.submitBtn}
                   >
-                    {isSubmitting ? <Spinner size="sm" /> : <CheckCircle size={20} />}
+                    {isSubmitting ? <Spinner size="sm" /> : getThemedIcon('ui', 'check_circle', 20, theme)}
                   </Button>
                 </Tooltip>
               </div>
@@ -1184,7 +1182,7 @@ export default function StudentQuizPage() {
               className={`${styles.fab} ${showCalculator ? styles.fabActive : ''}`}
               onClick={() => setShowCalculator(!showCalculator)}
             >
-              <CalcIcon size={20} />
+              {getThemedIcon('ui', 'calculator', 20, theme)}
             </button>
           </Tooltip>
         )}
@@ -1194,7 +1192,7 @@ export default function StudentQuizPage() {
             className={`${styles.fab} ${showScratchPad ? styles.fabActive : ''}`}
             onClick={() => setShowScratchPad(!showScratchPad)}
           >
-            <Edit3 size={20} />
+            {getThemedIcon('ui', 'edit3', 20, theme)}
           </button>
         </Tooltip>
         
@@ -1204,7 +1202,7 @@ export default function StudentQuizPage() {
               className={`${styles.fab} ${showFormulas ? styles.fabActive : ''}`}
               onClick={() => setShowFormulas(!showFormulas)}
             >
-              <BookOpen size={20} />
+              {getThemedIcon('ui', 'book_open', 20, theme)}
             </button>
           </Tooltip>
         )}
@@ -1254,14 +1252,14 @@ export default function StudentQuizPage() {
                 variant="outline"
                 onClick={startFresh}
               >
-                <RotateCcw size={16} style={{ marginRight: 6 }} />
+                {getThemedIcon('ui', 'rotate_ccw', 16, theme)}
                 Start Fresh
               </Button>
               <Button
                 variant="primary"
                 onClick={resumeQuiz}
               >
-                <Play size={16} style={{ marginRight: 6 }} />
+                {getThemedIcon('ui', 'play', 16, theme)}
                 Continue
               </Button>
             </div>

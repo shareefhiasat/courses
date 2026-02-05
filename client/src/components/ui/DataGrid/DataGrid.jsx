@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronUp, ChevronDown, Search, Filter, Download } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import Loading from '../Loading';
 import styles from './DataGrid.module.css';
 
@@ -22,6 +23,8 @@ const DataGrid = ({
   emptyMessage = 'No data available',
   className = '',
 }) => {
+  const { theme } = useTheme();
+  
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [filters, setFilters] = useState({});
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -130,7 +133,7 @@ const DataGrid = ({
       {/* Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.searchWrapper}>
-          <Search size={18} className={styles.searchIcon} />
+          {getThemedIcon('ui', 'search', 18, theme)}
           <input
             type="text"
             placeholder="Search..."
@@ -140,7 +143,7 @@ const DataGrid = ({
           />
         </div>
         <button className={styles.exportButton} onClick={handleExport}>
-          <Download size={18} />
+          {getThemedIcon('ui', 'download', 18, theme)}
           Export
         </button>
       </div>
@@ -172,9 +175,9 @@ const DataGrid = ({
                     {col.sortable && sortConfig.key === col.key && (
                       <span className={styles.sortIcon}>
                         {sortConfig.direction === 'asc' ? (
-                          <ChevronUp size={16} />
+                          getThemedIcon('ui', 'chevron_up', 16, theme)
                         ) : (
-                          <ChevronDown size={16} />
+                          getThemedIcon('ui', 'chevron_down', 16, theme)
                         )}
                       </span>
                     )}

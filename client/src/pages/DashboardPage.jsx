@@ -7,6 +7,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import { USER_ROLES, getRoleColor, getRoleIcon, getRoleDisplayName } from '@constants/userRoles';
+import { getThemedIcon } from '@constants/iconTypes';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
@@ -52,20 +53,6 @@ import { logActivity, ACTIVITY_TYPES, getActivityLogOptions } from '@firebaseSer
 import { getUserDisplayName } from '@firebaseServices/userService';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';
-import { 
-  Mail, BarChart3, Edit, Trash, RefreshCw, UserCheck, UserX, Lock, User, UserMinus, 
-  AlertTriangle, Info, LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, 
-  Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, XCircle, 
-  Users, GraduationCap, Target, FileText, Database, Bell, BellOff, Shield, Activity, 
-  Home, Search, Filter, ChevronDown, Link, Video, Zap, Crown, Archive, Globe, Tag, 
-  QrCode, KeyRound 
-} from 'lucide-react';
-import { formatDateTime } from '@utils/date';
-import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
-import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
-// DateTimePicker and ToggleSwitch replaced with UI library DatePicker and checkbox
-// import DateTimePicker from '../components/DateTimePicker';
-// import ToggleSwitch from '../components/ToggleSwitch';
 import { ToggleSwitch } from '@ui';
 
 const DashboardPage = () => {
@@ -809,7 +796,7 @@ const DashboardPage = () => {
   // Activity Form - Program Options
   const activityProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_programs'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: '', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
@@ -818,7 +805,7 @@ const DashboardPage = () => {
         const label = lang === 'ar' 
           ? (prog.name_ar || prog.name_en || value) 
           : (prog.name_en || prog.name_ar || value);
-        return { value, label, icon: <BookOpen size={16} color={getFilterIconColor()} /> };
+        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
@@ -826,7 +813,7 @@ const DashboardPage = () => {
   // Activity Form - Subject Options
   const activitySubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: '', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -841,7 +828,7 @@ const DashboardPage = () => {
         const label = lang === 'ar' 
           ? (sub.name_ar || sub.name_en || value) 
           : (sub.name_en || sub.name_ar || value);
-        return { value, label, icon: <FileText size={16} color={getFilterIconColor()} /> };
+        return { value, label, icon: getThemedIcon('ui', 'file_text', 16, theme) };
       });
     return [...opts, ...validSubjects];
   }, [subjects, activityForm.programId, lang, t]);
@@ -849,7 +836,7 @@ const DashboardPage = () => {
   // Activity Form - Class Options
   const activityClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_classes'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: '', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validClasses = classes
       .filter(cls => {
@@ -863,7 +850,7 @@ const DashboardPage = () => {
         const value = ensureString(cls.docId || cls.id);
         const name = lang === 'ar' ? (cls.name_ar || cls.name) : (cls.name || cls.name_ar);
         const label = `${name || 'Unnamed Class'}${cls.code ? ` (${cls.code})` : ''}`;
-        return { value, label, icon: <Users size={16} color={getFilterIconColor()} /> };
+        return { value, label, icon: getThemedIcon('ui', 'users', 16, theme) };
       });
     return [...opts, ...validClasses];
   }, [classes, activityForm.subjectId, lang, t]);
@@ -871,14 +858,14 @@ const DashboardPage = () => {
   // Enrollment Form - Program Options
   const enrollmentProgramOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_programs'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: '', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validPrograms = programs.map(p => {
       const value = ensureString(p.docId || p.id);
       const label = lang === 'ar' 
         ? (p.name_ar || p.name_en || p.code || value)
         : (p.name_en || p.name_ar || p.code || value);
-      return { value, label, icon: <BookOpen size={16} color={getFilterIconColor()} /> };
+      return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
     });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
@@ -886,7 +873,7 @@ const DashboardPage = () => {
   // Enrollment Form - Subject Options
   const enrollmentSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: '', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -900,7 +887,7 @@ const DashboardPage = () => {
         const label = lang === 'ar'
           ? (s.name_ar || s.name_en || s.code || value)
           : (s.name_en || s.name_ar || s.code || value);
-        return { value, label, icon: <FileText size={16} color={getFilterIconColor()} /> };
+        return { value, label, icon: getThemedIcon('ui', 'file_text', 16, theme) };
       });
     return [...opts, ...validSubjects];
   }, [subjects, enrollmentForm.programId, lang, t]);
@@ -908,7 +895,7 @@ const DashboardPage = () => {
   // Enrollment Form - Class Options
   const enrollmentClassOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_classes'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: '', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validClasses = classes
       .filter(c => {
@@ -932,7 +919,7 @@ const DashboardPage = () => {
           value: ensureString(c.docId || c.id),
           displayLabel: `${c.name}${codePart}${termPart}${yearPart}${semesterPart}`,
           label: `${c.name}${codePart}${termPart}${yearPart}${semesterPart}`,
-          icon: <Users size={16} color={getFilterIconColor()} />
+          icon: getThemedIcon('ui', 'users', 16, theme)
         };
       });
     return [...opts, ...validClasses];
@@ -941,7 +928,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Program Options
   const enrollmentFilterProgramOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_programs'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validPrograms = programs.map(p => {
       const value = ensureString(p.docId || p.id);
@@ -956,7 +943,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Subject Options
   const enrollmentFilterSubjectOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: 'all', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSubjects = subjects
       .filter(s => {
@@ -978,7 +965,7 @@ const DashboardPage = () => {
   // Enrollment Filters - Class Options
   const enrollmentFilterClassOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_classes'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: 'all', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validClasses = classes
       .filter(c => {
@@ -1009,7 +996,7 @@ const DashboardPage = () => {
   // Class Form - Subject Options
   const classFormSubjectOptions = useMemo(() => {
     const opts = [
-      { value: '', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> }
+      { value: '', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSubjects = subjects.map(subject => {
       const value = ensureString(subject.docId || subject.id);
@@ -1017,7 +1004,7 @@ const DashboardPage = () => {
         ? (subject.name_ar || subject.name_en || '')
         : (subject.name_en || subject.name_ar || '');
       const label = `${name}${subject.code ? ` (${subject.code})` : ''}`;
-      return { value, label, icon: <FileText size={16} color={getFilterIconColor()} /> };
+      return { value, label, icon: getThemedIcon('ui', 'file_text', 16, theme) };
     });
     return [...opts, ...validSubjects];
   }, [subjects, lang, t]);
@@ -1667,7 +1654,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         <CollapsibleDashboardSection
           sectionId="summary-cards"
           title={t('dashboard_statistics') || 'Dashboard Statistics'}
-          icon={<BarChart3 size={20} />}
+          icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
           color={theme === 'dark' ? '#818cf8' : '#6366f1'}
           defaultMode="full"
           data-tour="stats"
@@ -1683,11 +1670,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs'), icon: <Filter size={14} color={getFilterIconColor()} /> },
+                  { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 14, theme) },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId,
-                    icon: <BookOpen size={14} color={getFilterIconColor()} />
+                    icon: getThemedIcon('ui', 'book_open', 14, theme)
                   }))
                 ]}
                 style={{ minWidth: 140 }}
@@ -1709,11 +1696,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_programs'), icon: <Filter size={16} color={getFilterIconColor()} /> },
+                  { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.name_en || p.name_ar || p.code || p.docId,
-                    icon: <BookOpen size={16} color={getFilterIconColor()} />
+                    icon: getThemedIcon('ui', 'book_open', 16, theme)
                   }))
                 ]}
                 style={{ minWidth: 180 }}
@@ -1728,13 +1715,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setEnrollmentClassFilter('all');
                 }}
                 options={[
-                  { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color={getFilterIconColor()} /> },
+                  { value: 'all', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) },
                   ...subjects
                     .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
                     .map(s => ({
                       value: s.docId || s.id,
                       label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim(),
-                      icon: <FileText size={16} color={getFilterIconColor()} />
+                      icon: getThemedIcon('ui', 'file_text', 16, theme)
                     }))
                 ]}
                 style={{ minWidth: 180 }}
@@ -1746,7 +1733,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={enrollmentClassFilter}
                 onChange={(e) => setEnrollmentClassFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_classes'), icon: <Filter size={16} color={getFilterIconColor()} /> },
+                  { value: 'all', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) },
                   ...classes
                     .filter(c => {
                       if (enrollmentProgramFilter !== 'all') {
@@ -1765,7 +1752,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     .map(c => ({
                       value: c.id || c.docId,
                       label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`,
-                      icon: <Users size={16} color={getFilterIconColor()} />
+                      icon: getThemedIcon('ui', 'users', 16, theme)
                     }))
                 ]}
                 style={{ minWidth: 180 }}
@@ -2060,7 +2047,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   alignItems: 'center',
                   gap: '0.5rem'
                 }}>
-                  <Edit size={16} /> Editing Activity: {editingActivity.id} - {editingActivity.title_en}
+                  {getThemedIcon('ui', 'edit', 16, theme)} Editing Activity: {editingActivity.id} - {editingActivity.title_en}
                 </div>
               )}
 
@@ -2143,9 +2130,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {
                     id: 'activity-fields',
                     items: [
-                      { key: 'basic', label: 'Basic Info', icon: <FileText size={14} /> },
-                      { key: 'content', label: 'Content', icon: <Edit size={14} /> },
-                      { key: 'settings', label: 'Settings', icon: <Settings size={14} /> }
+                      { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'file_text', 14, theme) },
+                      { key: 'content', label: 'Content', icon: getThemedIcon('ui', 'edit', 14, theme) },
+                      { key: 'settings', label: 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
                     ]
                   }
                 ]}
@@ -2172,7 +2159,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           }}
                           options={activityProgramOptions}
                           style={{ width: '100%' }}
-                          icon={<Filter size={16} />}
+                          icon={getThemedIcon('ui', 'filter', 16, theme)}
                         />
                       </div>
                       <Select
@@ -2187,7 +2174,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         options={activitySubjectOptions}
                         style={{ width: '100%' }}
                         disabled={!activityForm.programId}
-                        icon={<Filter size={16} />}
+                        icon={getThemedIcon('ui', 'filter', 16, theme)}
                       />
                       <Select
                         searchable
@@ -2207,7 +2194,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       }).filter(o => !activityForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === activityForm.subjectId)}
                         style={{ width: '100%' }}
                         disabled={!activityForm.subjectId}
-                        icon={<Filter size={16} />}
+                        icon={getThemedIcon('ui', 'filter', 16, theme)}
                       />
                     </div>
                     <div className="form-row">
@@ -2246,10 +2233,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         value={activityForm.type}
                         onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })}
                         options={[
-                          { value: 'quiz', label: t('quiz') || 'Quiz', icon: <Target size={16} color="var(--text-secondary, #374151)" /> },
-                          { value: 'homework', label: t('homework') || 'Homework', icon: <FileText size={16} color="var(--text-secondary, #374151)" /> },
-                          { value: 'training', label: t('training') || 'Training', icon: <Award size={16} color="var(--text-secondary, #374151)" /> },
-                          { value: 'labandproject', label: 'Lab & Project', icon: <Zap size={16} color="var(--text-secondary, #374151)" /> }
+                          { value: 'quiz', label: t('quiz') || 'Quiz', icon: getThemedIcon('ui', 'target', 16, theme) },
+                          { value: 'homework', label: t('homework') || 'Homework', icon: getThemedIcon('ui', 'file_text', 16, theme) },
+                          { value: 'training', label: t('training') || 'Training', icon: getThemedIcon('ui', 'award', 16, theme) },
+                          { value: 'labandproject', label: 'Lab & Project', icon: getThemedIcon('ui', 'zap', 16, theme) }
                         ]}
                         style={{ width: '100%' }}
                       />
@@ -2266,16 +2253,15 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             setActivityForm({ ...activityForm, difficulty: e.target.value });
                           }}
                           options={[
-                            { value: 'beginner', label: t('beginner') || 'Beginner', icon: <BookOpen size={16} color="var(--text-secondary, #374151)" /> },
-                            { value: 'intermediate', label: t('intermediate') || 'Intermediate', icon: <Target size={16} color="var(--text-secondary, #374151)" /> },
-                            { value: 'advanced', label: t('advanced') || 'Advanced', icon: <Zap size={16} color="var(--text-secondary, #374151)" /> }
+                            { value: 'beginner', label: t('beginner') || 'Beginner', icon: getThemedIcon('ui', 'book_open', 16, theme) },
+                            { value: 'intermediate', label: t('intermediate') || 'Intermediate', icon: getThemedIcon('ui', 'target', 16, theme) },
+                            { value: 'advanced', label: t('advanced') || 'Advanced', icon: getThemedIcon('ui', 'zap', 16, theme) }
                           ]}
                           style={{ width: '100%' }}
                           disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
                         />
                         {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                          <Lock
-                            size={16}
+                          <div
                             style={{
                               position: 'absolute',
                               right: '32px',
@@ -2286,7 +2272,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                               zIndex: 10
                             }}
                             title="Locked - synced from quiz"
-                          />
+                          >
+                            {getThemedIcon('ui', 'lock', 16, theme)}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -2375,10 +2363,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
                         />
                         {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                          <Lock 
-                            size={16} 
+                          <span 
                             style={{ 
-                              position: 'absolute', 
+                              position: 'absolute',
                               right: '12px', 
                               top: '50%', 
                               transform: 'translateY(-50%)',
@@ -2387,7 +2374,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                               zIndex: 10
                             }} 
                             title="Locked - synced from quiz"
-                          />
+                          >
+                            {getThemedIcon('ui', 'lock', 16, theme)}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -2470,7 +2459,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             />
                             {!activityForm.overrideQuizSettings && (
                               <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <Lock size={12} /> Synced from quiz
+                                {getThemedIcon('ui', 'lock', 12, theme)} Synced from quiz
                               </span>
                             )}
                           </div>
@@ -2503,11 +2492,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
                         />
                         {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                          <Lock 
-                            size={14} 
+                          <span 
                             style={{ color: '#ef4444', flexShrink: 0 }} 
                             title="Locked - synced from quiz"
-                          />
+                          >
+                            {getThemedIcon('ui', 'lock', 14, theme)}
+                          </span>
                         )}
                       </div>
                       <ToggleSwitch
@@ -2662,7 +2652,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const programId = params.value || params.row?.programId || params.row?.program;
                       if (!programId) return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          <Archive size={16} color="var(--text-muted, #6b7280)" /> General
+                          {getThemedIcon('ui', 'archive', 16, theme)} General
                         </span>
                       );
                       const program = programs.find(p => (p.docId || p.id) === programId);
@@ -2670,7 +2660,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Target size={16} color="var(--color-primary, #4f46e5)" /> {programName}
+                          {getThemedIcon('ui', 'target', 16, theme)} {programName}
                         </span>
                       );
                     }
@@ -2687,7 +2677,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const subjectId = params.value || params.row?.subjectId || params.row?.subject;
                       if (!subjectId) return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          <BookOpen size={16} color="var(--text-muted, #6b7280)" /> General
+                          {getThemedIcon('ui', 'book_open', 16, theme)} General
                         </span>
                       );
                       const subject = subjects.find(s => (s.docId || s.id) === subjectId);
@@ -2695,7 +2685,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {subjectName}
+                          {getThemedIcon('ui', 'book_open', 16, theme)} {subjectName}
                         </span>
                       );
                     }
@@ -2707,14 +2697,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     renderCell: (params) => {
                       if (!params.value) return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          <Users size={16} color="var(--text-muted, #6b7280)" /> General
+                          {getThemedIcon('ui', 'users', 16, theme)} General
                         </span>
                       );
                       const classItem = classes.find(c => (c.docId || c.id) === params.value);
                       if (!classItem) return params.value;
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Users size={16} color="var(--color-secondary, #8b5cf6)" /> {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+                          {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
                         </span>
                       );
                     }
@@ -2732,11 +2722,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const type = params.value || params.row?.type;
                       if (!type) return '—';
                       const typeMap = {
-                        'quiz': { icon: <Target size={16} color="var(--text-secondary, #374151)" />, text: 'Quiz' },
-                        'homework': { icon: <Home size={16} color="var(--color-warning, #f59e0b)" />, text: 'Homework' },
-                        'training': { icon: <Target size={16} color="var(--color-success, #16a34a)" />, text: 'Training' }
+                        'quiz': { icon: getThemedIcon('ui', 'target', 16, theme), text: 'Quiz' },
+                        'homework': { icon: getThemedIcon('ui', 'home', 16, theme), text: 'Homework' },
+                        'training': { icon: getThemedIcon('ui', 'target', 16, theme), text: 'Training' }
                       };
-                      const typeConfig = typeMap[type] || { icon: <FileText size={16} color="var(--text-secondary, #374151)" />, text: type };
+                      const typeConfig = typeMap[type] || { icon: getThemedIcon('ui', 'file_text', 16, theme), text: type };
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           {typeConfig.icon} {typeConfig.text}
@@ -2752,11 +2742,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const difficulty = params.value;
                       if (!difficulty) return '—';
                       const difficultyMap = {
-                        'easy': { icon: <CheckCircle size={16} color="var(--color-success, #16a34a)" />, text: 'Easy' },
-                        'medium': { icon: <AlertTriangle size={16} color="var(--color-warning, #f59e0b)" />, text: 'Medium' },
-                        'hard': { icon: <XCircle size={16} color="var(--color-danger, #dc2626)" />, text: 'Hard' }
+                        'easy': { icon: getThemedIcon('ui', 'check_circle', 16, theme), text: 'Easy' },
+                        'medium': { icon: getThemedIcon('ui', 'alert_triangle', 16, theme), text: 'Medium' },
+                        'hard': { icon: getThemedIcon('ui', 'x_circle', 16, theme), text: 'Hard' }
                       };
-                      const difficultyConfig = difficultyMap[difficulty.toLowerCase()] || { icon: <Info size={16} color="var(--text-secondary, #374151)" />, text: difficulty };
+                      const difficultyConfig = difficultyMap[difficulty.toLowerCase()] || { icon: getThemedIcon('ui', 'info', 16, theme), text: difficulty };
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           {difficultyConfig.icon} {difficultyConfig.text}
@@ -2777,8 +2767,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     renderCell: (params) => (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                         {params.value ? 
-                          <><CheckCircle size={16} color="var(--color-success, #16a34a)" /> Yes</> : 
-                          <><XCircle size={16} color="var(--color-danger, #dc2626)" /> No</>
+                          <>{getThemedIcon('ui', 'check_circle', 16, theme)} Yes</> : 
+                          <>{getThemedIcon('ui', 'x_circle', 16, theme)} No</>
                         }
                       </span>
                     )
@@ -2843,8 +2833,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     renderCell: (params) => (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                         {params.value ? 
-                          <><Eye size={16} color="var(--color-success, #16a34a)" /> {t('yes') || 'Yes'}</> : 
-                          <><EyeOff size={16} color="var(--color-danger, #dc2626)" /> {t('no') || 'No'}</>
+                          <>{getThemedIcon('ui', 'eye', 16, theme)} {t('yes') || 'Yes'}</> : 
+                          <>{getThemedIcon('ui', 'eye_off', 16, theme)} {t('no') || 'No'}</>
                         }
                       </span>
                     )
@@ -2853,10 +2843,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
                     renderCell: (params) => (
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <Button size="sm" variant="ghost" className="editHover" icon={<Edit size={16} />} onClick={() => handleEditActivity(params.row)}>
+                        <Button size="sm" variant="ghost" className="editHover" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => handleEditActivity(params.row)}>
                           {t('edit') || 'Edit'}
                         </Button>
-                        <Button size="sm" variant="ghost" className="deleteHover" icon={<Trash size={16} />} style={{ color: '#dc2626' }} onClick={() => {
+                        <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
                           setDeleteModal({
                             open: true,
                             item: params.row,
@@ -2923,7 +2913,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   alignItems: 'center',
                   gap: '0.5rem'
                 }}>
-                  <Edit size={16} /> Editing Announcement: {editingAnnouncement.title}
+                  {getThemedIcon('ui', 'edit', 16, theme)} Editing Announcement: {editingAnnouncement.title}
                 </div>
               )}
 
@@ -2932,9 +2922,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {
                     id: 'announcement-fields',
                     items: [
-                      { key: 'basic', label: 'Basic Info', icon: <Bell size={14} /> },
-                      { key: 'content', label: 'Content', icon: <Edit size={14} /> },
-                      { key: 'email', label: 'Email Options', icon: <Mail size={14} /> }
+                      { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'bell', 14, theme) },
+                      { key: 'content', label: 'Content', icon: getThemedIcon('ui', 'edit', 14, theme) },
+                      { key: 'email', label: 'Email Options', icon: getThemedIcon('ui', 'mail', 14, theme) }
                     ]
                   }
                 ]}
@@ -3140,7 +3130,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Target size={16} color="var(--color-primary, #4f46e5)" /> {programName}
+                          {getThemedIcon('ui', 'target', 16, theme)} {programName}
                         </span>
                       );
                     }
@@ -3157,7 +3147,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {subjectName}
+                          {getThemedIcon('ui', 'book_open', 16, theme)} {subjectName}
                         </span>
                       );
                     }
@@ -3173,7 +3163,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       if (!classItem) return classId;
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Users size={16} color="var(--color-secondary, #8b5cf6)" /> {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+                          {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
                         </span>
                       );
                     }
@@ -3184,22 +3174,22 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                        const { programId, subjectId, classId } = params.row;
                        if (classId) return (
                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                           <Users size={16} color="var(--color-secondary, #8b5cf6)" /> Class
+                           {getThemedIcon('ui', 'users', 16, theme)} Class
                          </span>
                        );
                        if (subjectId) return (
                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                           <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> Subject
+                           {getThemedIcon('ui', 'book_open', 16, theme)} Subject
                          </span>
                        );
                        if (programId) return (
                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                           <Target size={16} color="var(--color-primary, #4f46e5)" /> Program
+                           {getThemedIcon('ui', 'target', 16, theme)} Program
                          </span>
                        );
                        return (
                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                           <Globe size={16} color="var(--color-success, #16a34a)" /> Global
+                           {getThemedIcon('ui', 'globe', 16, theme)} Global
                          </span>
                        );
                     }
@@ -3217,7 +3207,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
                     renderCell: (params) => (
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <Button size="sm" variant="ghost" className="editHover" icon={<Edit size={16} />} onClick={() => {
+                        <Button size="sm" variant="ghost" className="editHover" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => {
                           setEditingAnnouncement(params.row);
                           setAnnouncementForm({
                             title: params.row.title || '',
@@ -3231,7 +3221,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         }}>
                           Edit
                         </Button>
-                        <Button size="sm" variant="ghost" className="deleteHover" icon={<Trash size={16} />} style={{ color: '#dc2626' }} onClick={() => {
+                        <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
                           setDeleteModal({
                             open: true,
                             item: params.row,
@@ -3417,7 +3407,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     variant="outline" 
                     size="small" 
                     title={t('refresh') || 'Refresh'}
-                    icon={<RefreshCw size={16} />}
+                    icon={getThemedIcon('ui', 'refresh', 16, theme)}
                   >
                     Refresh
                   </Button>
@@ -3469,7 +3459,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     variant="danger" 
                     size="small" 
                     title="Delete All Logs"
-                    icon={<Trash size={16} />}
+                    icon={getThemedIcon('ui', 'trash', 16, theme)}
                   >
                     Delete All
                   </Button>
@@ -3585,7 +3575,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   alignItems: 'center',
                   gap: '0.5rem'
                 }}>
-                  <Edit size={16} /> Editing Class: {editingClass.name} ({editingClass.code || 'No code'})
+                  {getThemedIcon('ui', 'edit', 16, theme)} Editing Class: {editingClass.name} ({editingClass.code || 'No code'})
                 </div>
               )}
 
@@ -3594,9 +3584,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {
                     id: 'class-fields',
                     items: [
-                      { key: 'basic', label: 'Basic Info', icon: <Home size={14} /> },
-                      { key: 'academic', label: 'Academic Info', icon: <GraduationCap size={14} /> },
-                      { key: 'settings', label: 'Settings', icon: <Settings size={14} /> }
+                      { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'home', 14, theme) },
+                      { key: 'academic', label: 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) },
+                      { key: 'settings', label: 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
                     ]
                   }
                 ]}
@@ -3737,7 +3727,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 {/* Settings Tab */}
                 {activeClassFormTab === 'settings' && (
                   <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-                    <Settings size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                    {getThemedIcon('ui', 'settings', 48, theme)}
                     <p>Additional class settings can be added here in the future.</p>
                     <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Features like class capacity, schedule, enrollment restrictions, etc.</p>
                   </div>
@@ -3814,7 +3804,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   ]}
                   placeholder={t('all_programs') || 'All Programs'}
                   searchable
-                  icon={<Filter size={16} />}
+                  icon={getThemedIcon('ui', 'filter', 16, theme)}
                 />
                 <Select
                   value={classSubjectFilter || ''}
@@ -3828,7 +3818,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   ]}
                   placeholder={t('all_subjects') || 'All Subjects'}
                   searchable
-                  icon={<Filter size={16} />}
+                  icon={getThemedIcon('ui', 'filter', 16, theme)}
                 />
                 <Select
                   value={classFilter || ''}
@@ -3842,7 +3832,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   ]}
                   placeholder={t('all_classes') || 'All Classes'}
                   searchable
-                  icon={<Filter size={16} />}
+                  icon={getThemedIcon('ui', 'filter', 16, theme)}
                 />
               </div>
 
@@ -3883,7 +3873,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const subjectId = row.subjectId || params?.value;
                       if (!subjectId) return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          <BookOpen size={16} color="var(--text-muted, #6b7280)" /> —
+                          {getThemedIcon('ui', 'book_open', 16, theme)} —
                         </span>
                       );
                       const subject = subjects.find(s => (s.docId === subjectId) || (s.id === subjectId));
@@ -3891,7 +3881,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en;
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {subjectName || '—'}
+                          {getThemedIcon('ui', 'book_open', 16, theme)} {subjectName || '—'}
                         </span>
                       );
                     }
@@ -3904,12 +3894,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const term = params.value;
                       if (!term) return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          <Calendar size={16} color="var(--text-muted, #6b7280)" /> —
+                          {getThemedIcon('ui', 'calendar', 16, theme)} —
                         </span>
                       );
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Calendar size={16} color="var(--color-primary, #4f46e5)" /> {term}
+                          {getThemedIcon('ui', 'calendar', 16, theme)} {term}
                         </span>
                       );
                     }
@@ -3932,7 +3922,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const email = row.ownerEmail || params?.value;
                       if (!email) return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          <User size={16} color="var(--text-muted, #6b7280)" /> —
+                          {getThemedIcon('ui', 'user', 16, theme)} —
                         </span>
                       );
                       const owner = users.find(u => u.email === email);
@@ -3940,13 +3930,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         const displayName = owner.displayName || owner.name || owner.realName || '';
                         return (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <User size={16} color="var(--color-success, #16a34a)" /> {displayName ? `${displayName} (${email})` : email}
+                            {getThemedIcon('ui', 'user', 16, theme)} {displayName ? `${displayName} (${email})` : email}
                           </span>
                         );
                       }
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <User size={16} color="var(--text-secondary, #374151)" /> {email}
+                          {getThemedIcon('ui', 'user', 16, theme)} {email}
                         </span>
                       );
                     }
@@ -3955,7 +3945,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
                     renderCell: (params) => (
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <Button size="sm" variant="ghost" className="editHover" icon={<Edit size={16} />} onClick={() => {
+                        <Button size="sm" variant="ghost" className="editHover" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => {
                           setEditingClass(params.row);
                           setClassForm({
                             id: params.row.id,
@@ -3969,7 +3959,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         }}>
                           Edit
                         </Button>
-                        <Button size="sm" variant="ghost" className="deleteHover" icon={<Trash size={16} />} style={{ color: '#dc2626' }} onClick={() => {
+                        <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
                           const classItem = params.row;
                           const classEnrollments = enrollments.filter(e => e.classId === classItem.docId);
                           const relatedActivities = activities.filter(a => (a.classId || '') === classItem.docId);
@@ -4123,9 +4113,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 {
                   id: 'enrollment-fields',
                   items: [
-                    { key: 'user', label: 'User Info', icon: <User size={14} /> },
-                    { key: 'class', label: 'Class Info', icon: <Home size={14} /> },
-                    { key: 'role', label: 'Role', icon: <Shield size={14} /> }
+                    { key: 'user', label: 'User Info', icon: getThemedIcon('ui', 'user', 14, theme) },
+                    { key: 'class', label: 'Class Info', icon: getThemedIcon('ui', 'home', 14, theme) },
+                    { key: 'role', label: 'Role', icon: getThemedIcon('ui', 'shield', 14, theme) }
                   ]
                 }
               ]}
@@ -4317,7 +4307,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     if (!user) return params.value;
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <User size={16} color="var(--color-primary, #4f46e5)" /> {user.displayName || user.realName || '—'}{user.email ? ` (${user.email})` : ''}
+                        {getThemedIcon('ui', 'user', 16, theme)} {user.displayName || user.realName || '—'}{user.email ? ` (${user.email})` : ''}
                       </span>
                     );
                   }
@@ -4347,7 +4337,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     if (!programName && !params.value) {
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          <Target size={16} color="var(--text-muted, #6b7280)" /> N/A
+                          {getThemedIcon('ui', 'target', 16, theme)} N/A
                         </span>
                       );
                     }
@@ -4355,7 +4345,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const finalProgramName = programName || params.value || 'N/A';
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <Target size={16} color="var(--color-primary, #4f46e5)" /> {finalProgramName}
+                        {getThemedIcon('ui', 'target', 16, theme)} {finalProgramName}
                       </span>
                     );
                   }
@@ -4385,7 +4375,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     if (!subjectName && !params.value) {
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          <BookOpen size={16} color="var(--text-muted, #6b7280)" /> N/A
+                          {getThemedIcon('ui', 'book_open', 16, theme)} N/A
                         </span>
                       );
                     }
@@ -4393,7 +4383,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const finalSubjectName = subjectName || params.value || 'N/A';
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {finalSubjectName}
+                        {getThemedIcon('ui', 'book_open', 16, theme)} {finalSubjectName}
                       </span>
                     );
                   }
@@ -4406,7 +4396,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const codePart = classItem.code ? ` (${classItem.code})` : '';
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <Users size={16} color="var(--color-secondary, #8b5cf6)" /> {classItem.name}{codePart}
+                        {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{codePart}
                       </span>
                     );
                   }
@@ -4415,7 +4405,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'role', headerName: t('role_col'), width: 150,
                   renderCell: (params) => {
                     const roleMap = {
-                      [USER_ROLES.STUDENT]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><User size={16} color="var(--color-success, #16a34a)" /> Student</span>,
+                      [USER_ROLES.STUDENT]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{getThemedIcon('ui', 'user', 16, theme)} Student</span>,
                       'ta': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👨‍🏫 TA</span>,
                       [USER_ROLES.INSTRUCTOR]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👩‍🏫 Instructor</span>
                     };
@@ -4431,7 +4421,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
                   renderCell: (params) => (
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button size="sm" variant="ghost" className="deleteHover" icon={<Trash size={16} />} style={{ color: '#dc2626' }} onClick={() => {
+                      <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
                         const enrollment = params.row;
                         const user = users.find(u => (u.docId || u.id) === enrollment.userId);
                         const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
@@ -4598,7 +4588,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={activityFilter}
                 onChange={(e) => setActivityFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_activities') || 'All Activities', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'all', label: t('all_activities') || 'All Activities', icon: getThemedIcon('ui', 'filter', 16, theme) },
                   ...activities.map(a => ({ value: a.id || a.docId, label: a.title_en || a.title_ar || a.id }))
                 ]}
                 searchable
@@ -4620,7 +4610,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={submissionStatusFilter}
                 onChange={(e) => setSubmissionStatusFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_statuses') || 'All Status', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'all', label: t('all_statuses') || 'All Status', icon: getThemedIcon('ui', 'filter', 16, theme) },
                   { value: SUBMISSION_STATUS.PENDING, label: t('pending') || 'Pending' },
                   { value: 'graded', label: t('graded') || 'Graded' },
                   { value: 'late', label: t('late') || 'Late' }
@@ -4632,7 +4622,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 value={submissionScoreFilter}
                 onChange={(e) => setSubmissionScoreFilter(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_scores') || 'All Scores', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                  { value: 'all', label: t('all_scores') || 'All Scores', icon: getThemedIcon('ui', 'filter', 16, theme) },
                   { value: 'graded', label: t('graded_only') || 'Graded only' },
                   { value: 'not_graded', label: t('not_graded_only') || 'Not graded yet' }
                 ]}
@@ -4671,10 +4661,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'status', headerName: t('status_col'), width: 140,
                   renderCell: (params) => {
                     const statusMap = {
-                      [SUBMISSION_STATUS.SUBMITTED]: { icon: <FileText size={16} color="var(--text-secondary, #374151)" />, text: 'Submitted' },
-                      [SUBMISSION_STATUS.GRADED]: { icon: <CheckCircle size={16} color="var(--color-success, #16a34a)" />, text: 'Graded' },
-                      'late': { icon: <Clock size={16} color="var(--color-warning, #f59e0b)" />, text: 'Late' },
-                      [SUBMISSION_STATUS.PENDING]: { icon: <Clock size={16} color="var(--text-secondary, #374151)" />, text: 'Pending' }
+                      [SUBMISSION_STATUS.SUBMITTED]: { icon: getThemedIcon('ui', 'file_text', 16, theme), text: 'Submitted' },
+                      [SUBMISSION_STATUS.GRADED]: { icon: getThemedIcon('ui', 'check_circle', 16, theme), text: 'Graded' },
+                      'late': { icon: getThemedIcon('ui', 'clock', 16, theme), text: 'Late' },
+                      [SUBMISSION_STATUS.PENDING]: { icon: getThemedIcon('ui', 'clock', 16, theme), text: 'Pending' }
                     };
                     const status = statusMap[params.value] || statusMap[SUBMISSION_STATUS.SUBMITTED];
                     return (
@@ -4770,7 +4760,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                <Edit size={16} /> Editing User: {editingUser.displayName || editingUser.email}
+                {getThemedIcon('ui', 'edit', 16, theme)} Editing User: {editingUser.displayName || editingUser.email}
               </div>
             )}
 
@@ -4779,9 +4769,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 {
                   id: 'user-fields',
                   items: [
-                    { key: 'basic', label: 'Basic Info', icon: <User size={14} /> },
-                    { key: 'academic', label: 'Academic Info', icon: <GraduationCap size={14} /> },
-                    { key: 'role', label: 'Role & Access', icon: <Shield size={14} /> }
+                    { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'user', 14, theme) },
+                    { key: 'academic', label: 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) },
+                    { key: 'role', label: 'Role & Access', icon: getThemedIcon('ui', 'shield', 14, theme) }
                   ]
                 }
               ]}
@@ -5070,11 +5060,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   renderCell: (params) => {
                     const role = params.value || t('student');
                     const roleIcons = {
-                      'superadmin': <Crown size={16} color="#f59e0b" />,
-                      'admin': <Shield size={16} color="#4f46e5" />,
-                      'instructor': <BookOpen size={16} color="#0ea5e9" />,
-                      'hr': <Users size={16} color="#8b5cf6" />,
-                      'student': <User size={16} color="#16a34a" />
+                      'superadmin': getThemedIcon('ui', 'crown', 16, theme),
+                      'admin': getThemedIcon('ui', 'shield', 16, theme),
+                      'instructor': getThemedIcon('ui', 'book_open', 16, theme),
+                      'hr': getThemedIcon('ui', 'users', 16, theme),
+                      'student': getThemedIcon('ui', 'user', 16, theme)
                     };
                     const roleColors = {
                       'superadmin': '#f59e0b',
@@ -5111,19 +5101,19 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     if (isArchived) {
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
-                          <Archive size={16} color="var(--text-muted, #6b7280)" /> {t('status_archived')}
+                          {getThemedIcon('ui', 'archive', 16, theme)} {t('status_archived')}
                         </span>
                       );
                     } else if (isDisabled) {
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
-                          <UserX size={16} color="var(--color-danger, #dc2626)" /> {t('status_disabled')}
+                          {getThemedIcon('ui', 'user_x', 16, theme)} {t('status_disabled')}
                         </span>
                       );
                     } else {
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-success, #28a745)', fontWeight: 500 }}>
-                          <UserCheck size={16} color="var(--color-success, #28a745)" /> {t('status_active')}
+                          {getThemedIcon('ui', 'user_check', 16, theme)} {t('status_active')}
                         </span>
                       );
                     }
@@ -5172,7 +5162,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'actions', headerName: t('actions_col'), width: 280, sortable: false, filterable: false,
                   renderCell: (params) => (
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <Button size="sm" variant="ghost" icon={<Edit size={16} />} onClick={() => {
+                      <Button size="sm" variant="ghost" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => {
                         setEditingUser(params.row);
                         setUserForm({
                           email: params.row.email || '',
@@ -5200,7 +5190,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           }} 
                           title={t('impersonate_student') || 'View as Student'}
                         >
-                          <Eye size={16} />
+                          {getThemedIcon('ui', 'eye', 16, theme)}
                         </Button>
                       )}
                       {(params.row.role || 'student') === 'student' && (
@@ -5212,7 +5202,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           }}
                           title={t('view_qr_code') || 'View QR Code'}
                         >
-                          <QrCode size={16} />
+                          {getThemedIcon('ui', 'qr_code', 16, theme)}
                         </Button>
                       )}
                       <Button 
@@ -5231,12 +5221,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         }}
                         title={t('reset_password') || 'Reset Password'}
                       >
-                        <KeyRound size={16} />
+                        {getThemedIcon('ui', 'key_round', 16, theme)}
                       </Button>
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        icon={params.row.disabled || params.row.isDisabled ? <UserCheck size={16} /> : <UserX size={16} />}
+                        icon={params.row.disabled || params.row.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
                         style={{ color: params.row.disabled || params.row.isDisabled ? '#28a745' : '#dc2626' }}
                         onClick={async () => {
                           try {
@@ -5273,7 +5263,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        icon={<Trash size={16} />}
+                        icon={getThemedIcon('ui', 'trash', 16, theme)}
                         style={{ color: '#dc2626' }}
                         onClick={() => {
                           setUserToDelete(params.row);
@@ -5310,7 +5300,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                <Edit size={16} /> Editing Resource: {editingResource.title || editingResource.title_en}
+                {getThemedIcon('ui', 'edit', 16, theme)} Editing Resource: {editingResource.title || editingResource.title_en}
               </div>
             )}
 
@@ -5319,9 +5309,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 {
                   id: 'resource-fields',
                   items: [
-                    { key: 'basic', label: 'Basic Info', icon: <BookOpen size={14} /> },
-                    { key: 'content', label: 'Content', icon: <FileText size={14} /> },
-                    { key: 'settings', label: 'Settings', icon: <Settings size={14} /> }
+                    { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'book_open', 14, theme) },
+                    { key: 'content', label: 'Content', icon: getThemedIcon('ui', 'file_text', 14, theme) },
+                    { key: 'settings', label: 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
                   ]
                 }
               ]}
@@ -5799,7 +5789,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const courseId = params.value || params.row?.courseId;
                     if (!courseId) return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                        <Tag size={16} color="var(--text-muted, #6b7280)" /> —
+                        {getThemedIcon('ui', 'tag', 16, theme)} —
                       </span>
                     );
                     const course = courses.find(c => (c.docId || c.id) === courseId);
@@ -5807,7 +5797,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const courseName = lang === 'ar' ? (course.name_ar || course.name_en) : (course.name_en || course.name_ar);
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <Tag size={16} color="var(--color-secondary, #8b5cf6)" /> {courseName}
+                        {getThemedIcon('ui', 'tag', 16, theme)} {courseName}
                       </span>
                     );
                   }
@@ -5824,7 +5814,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const programId = params.value || params.row?.programId;
                     if (!programId) return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-success, #16a34a)' }}>
-                        <Globe size={16} color="var(--color-success, #16a34a)" /> Public
+                        {getThemedIcon('ui', 'globe', 16, theme)} Public
                       </span>
                     );
                     const program = programs.find(p => (p.docId || p.id) === programId);
@@ -5832,7 +5822,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <Target size={16} color="var(--color-primary, #4f46e5)" /> {programName}
+                        {getThemedIcon('ui', 'target', 16, theme)} {programName}
                       </span>
                     );
                   }
@@ -5849,7 +5839,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const subjectId = params.value || params.row?.subjectId;
                     if (!subjectId) return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                        <BookOpen size={16} color="var(--text-muted, #6b7280)" /> —
+                        {getThemedIcon('ui', 'book_open', 16, theme)} —
                       </span>
                     );
                     const subject = subjects.find(s => (s.docId || s.id) === subjectId);
@@ -5857,7 +5847,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <BookOpen size={16} color="var(--color-info, #0ea5e9)" /> {subjectName}
+                        {getThemedIcon('ui', 'book_open', 16, theme)} {subjectName}
                       </span>
                     );
                   }
@@ -5873,14 +5863,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   renderCell: (params) => {
                     if (!params.value) return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                        <Users size={16} color="var(--text-muted, #6b7280)" /> —
+                        {getThemedIcon('ui', 'users', 16, theme)} —
                       </span>
                     );
                     const classItem = classes.find(c => (c.docId || c.id) === params.value);
                     if (!classItem) return params.value;
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <Users size={16} color="var(--color-secondary, #8b5cf6)" /> {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+                        {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
                       </span>
                     );
                   }
@@ -5917,7 +5907,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
                     renderCell: (params) => (
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <Button size="sm" variant="ghost" className="editHover" icon={<Edit size={16} />} onClick={() => {
+                        <Button size="sm" variant="ghost" className="editHover" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => {
                           setEditingResource(params.row);
                           setResourceForm({
                             title: params.row.title || '',
@@ -5939,7 +5929,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         }}>
                           Edit
                         </Button>
-                        <Button size="sm" variant="ghost" className="deleteHover" icon={<Trash size={16} />} style={{ color: '#dc2626' }} onClick={() => {
+                        <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
                           setDeleteModal({
                             open: true,
                             item: params.row,
@@ -6010,7 +6000,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               alignItems: 'flex-start',
               gap: '0.75rem'
             }}>
-              <AlertTriangle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ flexShrink: 0, marginTop: '2px' }}>
+                {getThemedIcon('ui', 'alert_triangle', 20, theme)}
+              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#92400e' }}>
                   ⚠️ SMTP Configuration Deprecated
@@ -6239,7 +6231,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'order', headerName: 'Order', width: 100,
                   renderCell: (params) => (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Database size={16} color="var(--color-info, #0ea5e9)" /> {params.value ?? 0}
+                      {getThemedIcon('ui', 'database', 16, theme)} {params.value ?? 0}
                     </span>
                   )
                 },
@@ -6247,7 +6239,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   field: 'actions', headerName: 'Actions', width: 200, sortable: false, filterable: false,
                   renderCell: (params) => (
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <Button size="sm" variant="ghost" className="editHover" icon={<Edit size={16} />} onClick={() => {
+                      <Button size="sm" variant="ghost" className="editHover" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => {
                         setCourseForm({
                           id: params.row.docId,
                           name_en: params.row.name_en || '',
@@ -6258,7 +6250,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       }}>
                         {t('edit') || 'Edit'}
                       </Button>
-                      <Button size="sm" variant="ghost" className="deleteHover" icon={<Trash size={16} />} style={{ color: '#dc2626' }} onClick={() => {
+                      <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
                         setDeleteModal({
                           open: true,
                           item: params.row,

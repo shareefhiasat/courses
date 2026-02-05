@@ -2,9 +2,6 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { db } from '@firebaseServices/config';
-import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { Edit, Trash, MessageSquare, Award, FileText, Users, HelpCircle, Star, User, AlertCircle, Crown, Shield, BookOpen, GraduationCap, ThumbsUp, Minus, X, TrendingUp, TrendingDown, CheckCircle, Target, Zap, UserCheck, UserX, UserMinus, AlertTriangle, Info } from 'lucide-react';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
@@ -14,16 +11,31 @@ import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationTypeById } from '@constants/participationTypes';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
+import { 
+  PAGE_STATES, 
+  FORM_STATES, 
+  MODAL_TYPES,
+  TYPE_ICONS,
+  getTypeIcon,
+  COMMON_GRID_COLUMNS,
+  VALIDATION_RULES,
+  COMMON_FILTERS,
+  PAGE_LAYOUTS,
+  getThemeStyles,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES
+} from '@constants/pageTypes';
 import styles from './ProgramsManagementPage.module.css';
 
 const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const toast = useToast();
+  const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
+  const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [participations, setParticipations] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [editingParticipation, setEditingParticipation] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null });
+  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: MODAL_TYPES.DELETE });
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);

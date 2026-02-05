@@ -4,11 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Delete } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { ActivityLogger } from '@firebaseServices/activityLogger';
 import styles from './Calculator.module.css';
 
 const Calculator = ({ onClose }) => {
+  const { theme } = useTheme();
+  
   // Log activity when calculator opens
   useEffect(() => {
     ActivityLogger.calculatorOpened();
@@ -135,7 +138,7 @@ const Calculator = ({ onClose }) => {
       <div className={styles.header}>
         <h3>Calculator</h3>
         <button onClick={onClose} className={styles.closeBtn}>
-          <X size={18} />
+          {getThemedIcon('ui', 'close', 18, theme)}
         </button>
       </div>
 

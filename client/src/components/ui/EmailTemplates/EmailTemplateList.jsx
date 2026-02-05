@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { ToggleSwitch } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
-import { Megaphone, FileText, CheckCircle2, GraduationCap, BookOpen, MessageSquareText, Key, PartyPopper, Mail, Plus, Pencil, Send, Copy, Trash2, QrCode, BarChart3 } from 'lucide-react';
 import { Loading } from '@ui';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();
   const { t } = useLang();
+  const { theme } = useTheme();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -212,22 +214,21 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   );
 
   const getTypeIcon = (type) => {
-    const common = { size: 20 };
-    const icons = {
-      announcement: <Megaphone {...common} title="Announcement" />,
-      activity: <FileText {...common} title="Activity" />,
-      activity_complete: <CheckCircle2 {...common} title="Completion" />,
-      activity_graded: <FileText {...common} title="Grading" />,
-      enrollment: <GraduationCap {...common} title="Enrollment" />,
-      resource: <BookOpen {...common} title="Resource" />,
-      chat_digest: <MessageSquareText {...common} title="Chat Digest" />,
-      password_reset: <Key {...common} title="Password Reset" />,
-      welcome_signup: <PartyPopper {...common} title="Welcome" />,
-      qr_code: <QrCode {...common} title="QR Code" />,
-      student_summary: <BarChart3 {...common} title="Student Summary" />,
-      custom: <Mail {...common} title="Email" />
+    const iconMap = {
+      announcement: getThemedIcon('notification_type', 'announcement', 20, theme),
+      activity: getThemedIcon('notification_type', 'activity', 20, theme),
+      activity_complete: getThemedIcon('notification_type', 'activity_complete', 20, theme),
+      activity_graded: getThemedIcon('notification_type', 'activity_graded', 20, theme),
+      enrollment: getThemedIcon('notification_type', 'enrollment', 20, theme),
+      resource: getThemedIcon('notification_type', 'resource', 20, theme),
+      chat_digest: getThemedIcon('notification_type', 'chat_digest', 20, theme),
+      password_reset: getThemedIcon('notification_type', 'password_reset', 20, theme),
+      welcome_signup: getThemedIcon('notification_type', 'welcome_signup', 20, theme),
+      qr_code: getThemedIcon('notification_type', 'qr_code', 20, theme),
+      student_summary: getThemedIcon('notification_type', 'student_summary', 20, theme),
+      custom: getThemedIcon('notification_type', 'custom', 20, theme)
     };
-    return icons[type] || <Mail {...common} title="Email" />;
+    return iconMap[type] || getThemedIcon('notification_type', 'custom', 20, theme);
   };
 
   if (loading) {
@@ -354,7 +355,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Pencil size={14} /> {t('edit') || 'Edit'}</span>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{getThemedIcon('ui', 'edit', 14, theme)} {t('edit') || 'Edit'}</span>
                             </button>
                             <button
                                 onClick={async (e) => {
@@ -390,7 +391,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                             >
                               {testingEmail === template.id
                                   ? (t('sending') || 'Sending…')
-                                  : <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Send size={14} /> {t('test_email') || 'Test Email'}</span>}
+                                  : <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{getThemedIcon('ui', 'send', 14, theme)} {t('test_email') || 'Test Email'}</span>}
                             </button>
                             <button
                                 onClick={(e) => {
@@ -407,7 +408,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Copy size={14} /> {t('duplicate') || 'Duplicate'}</span>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{getThemedIcon('ui', 'copy', 14, theme)} {t('duplicate') || 'Duplicate'}</span>
                             </button>
                             <button
                                 onClick={(e) => {
@@ -424,7 +425,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><Trash2 size={14} /> {t('delete') || 'Delete'}</span>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{getThemedIcon('ui', 'trash', 14, theme)} {t('delete') || 'Delete'}</span>
                             </button>
                           </div>
                         </div>

@@ -21,9 +21,9 @@ import {
   getNotificationStatusOptions
 } from '@constants/notificationTypes.jsx';
 import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
-import { Bell, CheckCircle2, AlertTriangle, XCircle, Megaphone, FileText, BarChart3, Info, Search, Archive, Check, X, Filter, MoreVertical, Trash2, Eye, EyeOff, MessageCircle, Mail, UserCheck, ExternalLink, Volume2, Vibrate, TestTube } from 'lucide-react';
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, ToggleSwitch } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -434,7 +434,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                   justifyContent: 'center'
                 }}
               >
-                <ExternalLink size={18} />
+                {getThemedIcon('ui', 'external_link', 18, theme)}
               </button>
               <button
                 onClick={onClose}
@@ -450,7 +450,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                   justifyContent: 'center'
                 }}
               >
-                <X size={20} />
+                {getThemedIcon('ui', 'close', 20, theme)}
               </button>
             </div>
           </div>
@@ -458,13 +458,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
           {/* Search */}
           <div style={{ marginBottom: '0.75rem' }}>
             <div style={{ position: 'relative' }}>
-              <Search size={16} style={{
-                position: 'absolute',
-                left: '0.75rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: isDark ? '#9ca3af' : '#6b7280'
-              }} />
+              {getThemedIcon('ui', 'search', 16, theme)}
               <Input
                 type="text"
                 placeholder="Search notifications..."
@@ -649,7 +643,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Volume2 size={16} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                {getThemedIcon('ui', 'volume', 16, theme)}
                 <ToggleSwitch
                   label=""
                   checked={soundEnabled}
@@ -660,7 +654,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               </div>
               {checkSupport().vibration && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Vibrate size={16} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                  {getThemedIcon('ui', 'vibrate', 16, theme)}
                   <ToggleSwitch
                     label=""
                     checked={vibrationEnabled}
@@ -672,7 +666,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               )}
               {checkSupport().notification && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Bell size={16} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                  {getThemedIcon('ui', 'bell', 16, theme)}
                   <ToggleSwitch
                     label=""
                     checked={browserNotificationsEnabled}
@@ -687,7 +681,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                     title={t('test_browser_notification') || 'Test Browser Notification'}
                     style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}
                   >
-                    <TestTube size={14} />
+                    {getThemedIcon('ui', 'test', 14, theme)}
                   </Button>
                 </div>
               )}
@@ -719,7 +713,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               textAlign: 'center',
               color: isDark ? '#9ca3af' : '#6b7280'
             }}>
-              <Bell size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+              {getThemedIcon('ui', 'bell', 48, theme)}
               <p style={{ margin: 0, fontSize: '0.9rem' }}>
                 {searchTerm || filterType !== 'all' || filterCategory !== 'all'
                   ? 'No notifications match your filters'
@@ -832,7 +826,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                               e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                             }}
                           >
-                            <Eye size={14} />
+                            {getThemedIcon('ui', 'eye', 14, theme)}
                           </button>
                         ) : (
                           <button
@@ -858,7 +852,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                               e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                             }}
                           >
-                            <EyeOff size={14} />
+                            {getThemedIcon('ui', 'eye_off', 14, theme)}
                           </button>
                         )}
                         {!notification.archived ? (
@@ -885,7 +879,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                               e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                             }}
                           >
-                            <Archive size={14} />
+                            {getThemedIcon('ui', 'archive', 14, theme)}
                           </button>
                         ) : null}
                         <button
@@ -911,7 +905,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                             e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                           }}
                         >
-                          <Trash2 size={14} />
+                          {getThemedIcon('ui', 'trash', 14, theme)}
                         </button>
                       </div>
                     </div>

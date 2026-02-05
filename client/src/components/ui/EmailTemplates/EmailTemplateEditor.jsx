@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { Select } from '@ui';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { VariableHelper } from '@ui';
 import { Modal } from '@ui';
-import { Eye, Info, Copy } from 'lucide-react';
 import { formatDateTime } from '@utils/date';
 import { collection, doc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -12,6 +13,7 @@ import { db } from '@firebaseServices/config';
 const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   const toast = useToast();
   const { t } = useLang();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState({
@@ -400,7 +402,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                     fontWeight: 600
                   }}
               >
-                <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}><Eye size={16} /> {t('preview') || 'Preview'}</span>
+                <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>{getThemedIcon('ui', 'eye', 16, theme)} {t('preview') || 'Preview'}</span>
               </button>
               <button
                   onClick={onCancel}
@@ -423,7 +425,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: 12, padding: '1rem' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:'0.5rem', color:'#333' }}>
-              <Info size={18} /> <strong>{t('about_this_template') || 'About this template'}</strong>
+              {getThemedIcon('ui', 'info', 18, theme)} <strong>{t('about_this_template') || 'About this template'}</strong>
             </div>
             {(() => {
               const info = helpByType[formData.type] || helpByType.custom;
@@ -452,16 +454,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
                                 title={`Click to copy {{${v}}}`}
                             >
                               {`{{${v}}}`}
-                              <Copy
-                                  size={12}
-                                  style={{
-                                    position:'absolute',
-                                    right:4,
-                                    top:4,
-                                    opacity:0.5,
-                                    color:'#666'
-                                  }}
-                              />
+                              {getThemedIcon('ui', 'copy', 12, theme)}
                             </code>
                         ))}
                       </div>

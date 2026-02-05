@@ -4,8 +4,9 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Container, Card, CardBody, Button, Badge, Grid, ProgressBar, Loading } from '@ui';
-import { BarChart3, TrendingUp, Users, Calendar, Award, FileText, Download } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import styles from './AnalyticsPage.module.css';
 
@@ -20,7 +21,7 @@ const KPICard = ({ label, value, subtitle, icon: Icon, color = '#800020' }) => (
         </div>
         {Icon && (
           <div className={styles.kpiIcon} style={{ background: `${color}15` }}>
-            <Icon size={24} style={{ color }} />
+            {typeof Icon === 'function' ? Icon() : <Icon size={24} style={{ color }} />}
           </div>
         )}
       </div>
@@ -30,6 +31,7 @@ const KPICard = ({ label, value, subtitle, icon: Icon, color = '#800020' }) => (
 
 export default function AnalyticsPage() {
   const { t } = useLang();
+  const { theme } = useTheme();
   const { user, isAdmin, isInstructor, isHR } = useAuth();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -185,7 +187,7 @@ export default function AnalyticsPage() {
         </div>
         <Button
           onClick={exportCSV}
-          icon={<Download size={18} />}
+          icon={getThemedIcon('ui', 'download', 18, theme)}
           variant="primary"
         >
           {t('export_csv') || 'Export CSV'}
@@ -196,11 +198,11 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div className={styles.kpiGrid}>
-        <KPICard label={t('total_sessions') || 'Total Sessions'} value={attendanceStats.totalSessions} icon={Calendar} color="#800020" />
-        <KPICard label={t('total_students') || 'Total Students'} value={studentStats.total} icon={Users} color="#10b981" />
-        <KPICard label={t('attendance_rate') || 'Attendance Rate'} value={attendanceRate + '%'} subtitle={`${attendanceStats.present} / ${attendanceStats.totalMarks} ${t('present') || 'present'}`} icon={TrendingUp} color="#f59e0b" />
-        <KPICard label={t('avg_performance') || 'Avg Performance'} value={performanceStats.avgScore} subtitle={t('based_on_graded_submissions') || 'Based on graded submissions'} icon={Award} color="#8b5cf6" />
-        <KPICard label={t('total_submissions') || 'Total Submissions'} value={submissionStats.total} subtitle={`${submissionStats.graded} ${t('graded') || 'graded'}`} icon={FileText} color="#06b6d4" />
+        <KPICard label={t('total_sessions') || 'Total Sessions'} value={attendanceStats.totalSessions} icon={() => getThemedIcon('ui', 'calendar', 24, theme)} color="#800020" />
+        <KPICard label={t('total_students') || 'Total Students'} value={studentStats.total} icon={() => getThemedIcon('ui', 'users', 24, theme)} color="#10b981" />
+        <KPICard label={t('attendance_rate') || 'Attendance Rate'} value={attendanceRate + '%'} subtitle={`${attendanceStats.present} / ${attendanceStats.totalMarks} ${t('present') || 'present'}`} icon={() => getThemedIcon('ui', 'trending_up', 24, theme)} color="#f59e0b" />
+        <KPICard label={t('avg_performance') || 'Avg Performance'} value={performanceStats.avgScore} subtitle={t('based_on_graded_submissions') || 'Based on graded submissions'} icon={() => getThemedIcon('ui', 'award', 24, theme)} color="#8b5cf6" />
+        <KPICard label={t('total_submissions') || 'Total Submissions'} value={submissionStats.total} subtitle={`${submissionStats.graded} ${t('graded') || 'graded'}`} icon={() => getThemedIcon('ui', 'file_text', 24, theme)} color="#06b6d4" />
       </div>
 
       {/* Attendance Breakdown */}

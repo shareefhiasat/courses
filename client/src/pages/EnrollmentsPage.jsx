@@ -7,12 +7,14 @@ import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getUsers } from '@firebaseServices/userService';
 import { getUserProfile } from '@firebaseServices/userService';
 import { Container, Grid, Card, CardBody, Button, Spinner, EmptyState } from '@ui';
-import { MessageCircle, BookOpen } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './EnrollmentsPage.module.css';
 
 const EnrollmentsPage = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { t } = useLang();
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ const EnrollmentsPage = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    icon={<MessageCircle size={16} />}
+                    icon={getThemedIcon('ui', 'message_circle', 16, theme)}
                     onClick={() => navigate(`/chat?dest=${encodeURIComponent(cls.docId)}`)}
                   >
                     {t('open_chat') || 'Open Chat'}
@@ -96,7 +98,7 @@ const EnrollmentsPage = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    icon={<BookOpen size={16} />}
+                    icon={getThemedIcon('ui', 'book_open', 16, theme)}
                     onClick={() => navigate('/activities')}
                   >
                     {t('view_activities') || 'Activities'}

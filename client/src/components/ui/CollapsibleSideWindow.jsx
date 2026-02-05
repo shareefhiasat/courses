@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, ChevronUp, ChevronDown, Minimize2, Maximize2, Search } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { Input } from '@ui';
 
 const CollapsibleSideWindow = ({ 
@@ -12,6 +13,8 @@ const CollapsibleSideWindow = ({
   onSearch = null,
   initialFilters = {}
 }) => {
+  const { theme } = useTheme();
+  
   const [isMinimized, setIsMinimized] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,7 +113,7 @@ const CollapsibleSideWindow = ({
               onClose();
             }}
           >
-            <X size={14} />
+            {getThemedIcon('ui', 'close', 14, theme)}
           </button>
         </div>
       )}
@@ -140,21 +143,21 @@ const CollapsibleSideWindow = ({
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 title={isCollapsed ? 'Expand' : 'Collapse'}
               >
-                {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                {isCollapsed ? getThemedIcon('ui', 'chevron_down', 18, theme) : getThemedIcon('ui', 'chevron_up', 18, theme)}
               </button>
               <button
                 className="collapsible-side-window-header-button"
                 onClick={() => setIsMinimized(true)}
                 title="Minimize"
               >
-                <Minimize2 size={18} />
+                {getThemedIcon('ui', 'minimize', 18, theme)}
               </button>
               <button
                 className="collapsible-side-window-header-button"
                 onClick={onClose}
                 title="Close"
               >
-                <X size={18} />
+                {getThemedIcon('ui', 'close', 18, theme)}
               </button>
             </div>
           </div>
@@ -167,7 +170,7 @@ const CollapsibleSideWindow = ({
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={handleSearchChange}
-                    icon={<Search size={16} />}
+                    icon={getThemedIcon('ui', 'search', 16, theme)}
                     fullWidth
                   />
                 </div>

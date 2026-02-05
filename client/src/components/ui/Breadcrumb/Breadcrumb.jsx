@@ -1,5 +1,6 @@
 import React from 'react';
-import { ChevronRight, Home } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Breadcrumb.module.css';
 
 /**
@@ -9,10 +10,14 @@ import styles from './Breadcrumb.module.css';
  */
 const Breadcrumb = ({
   items,
-  separator = <ChevronRight size={16} />,
+  separator,
   showHome = true,
   className = '',
 }) => {
+  const { theme } = useTheme();
+  
+  // Use default separator if none provided
+  const separatorElement = separator || getThemedIcon('ui', 'chevron_right', 16, theme);
   return (
     <nav className={`${styles.breadcrumb} ${className}`} aria-label="Breadcrumb">
       <ol className={styles.list}>
@@ -20,12 +25,12 @@ const Breadcrumb = ({
           <>
             <li className={styles.item}>
               <a href="/" className={styles.link}>
-                <Home size={16} />
+                {getThemedIcon('ui', 'home', 16, theme)}
               </a>
             </li>
             {items.length > 0 && (
               <li className={styles.separator} aria-hidden="true">
-                {separator}
+                {separatorElement}
               </li>
             )}
           </>
@@ -46,7 +51,7 @@ const Breadcrumb = ({
             </li>
             {index < items.length - 1 && (
               <li className={styles.separator} aria-hidden="true">
-                {separator}
+                {separatorElement}
               </li>
             )}
           </React.Fragment>

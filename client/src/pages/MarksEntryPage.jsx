@@ -12,7 +12,8 @@ import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { MARK_TYPES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
-import { FileSpreadsheet, Save, Edit, Award, Eye, AlertCircle, Award as ParticipationIcon, Calendar, Info, Filter, GraduationCap, BookOpen, Users } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { CollapsibleSideWindow } from '@ui';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import InstructorParticipationPage from './InstructorParticipationPage';
@@ -22,6 +23,7 @@ import styles from './MarksEntryPage.module.css';
 const MarksEntryPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
   
   const [programs, setPrograms] = useState([]);
@@ -578,7 +580,7 @@ const MarksEntryPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              icon={<Calendar size={14} />}
+              icon={getThemedIcon('ui', 'calendar', 14, theme)}
               onClick={(e) => {
                 e.stopPropagation();
                 handleAttendanceClick();
@@ -642,7 +644,7 @@ const MarksEntryPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              icon={<Edit size={14} />}
+              icon={getThemedIcon('ui', 'edit', 14, theme)}
               onClick={() => handleEditMarks(student)}
               title="Edit Marks"
             >
@@ -651,7 +653,7 @@ const MarksEntryPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              icon={<AlertCircle size={14} />}
+              icon={getThemedIcon('ui', 'alert_triangle', 14, theme)}
               onClick={() => openSideWindow(RECORD_TYPES.BEHAVIOR, student, filters)}
               title={t('view_behavior') || 'View Behavior'}
             >
@@ -660,7 +662,7 @@ const MarksEntryPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              icon={<Award size={14} />}
+              icon={getThemedIcon('ui', 'award', 14, theme)}
               onClick={() => openSideWindow(RECORD_TYPES.PENALTY, student, filters)}
               title={t('view_penalties') || 'View Penalties'}
             >
@@ -669,7 +671,7 @@ const MarksEntryPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              icon={<ParticipationIcon size={14} />}
+              icon={getThemedIcon('ui', 'award', 14, theme)}
               onClick={() => openSideWindow(RECORD_TYPES.PARTICIPATION, student, filters)}
               title={t('view_participation') || 'View Participation'}
             >
@@ -678,7 +680,7 @@ const MarksEntryPage = () => {
             <Button
               variant="ghost"
               size="sm"
-              icon={<Eye size={14} />}
+              icon={getThemedIcon('ui', 'eye', 14, theme)}
               onClick={() => openSideWindow('sneakpeek', student, filters)}
               title={t('sneak_peek') || 'Sneak Peek'}
             >
@@ -756,7 +758,7 @@ const MarksEntryPage = () => {
       <Card style={{ marginBottom: '1rem', background: '#fef3c7', border: '1px solid #fbbf24' }}>
         <CardBody>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Info size={20} color="#f59e0b" />
+            {getThemedIcon('ui', 'info', 20, theme)}
             <span style={{ fontSize: '0.9rem', color: '#92400e' }}>
               <strong>Note:</strong> {t('note_marks_no_notifications') || 'Marks entered here will not send any notifications to students. This is for manual entry only.'}
             </span>
@@ -778,11 +780,11 @@ const MarksEntryPage = () => {
                 setClassFilter('all');
               }}
               options={[
-                { value: 'all', label: t('all_programs') || 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: t('all_programs') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
                   label: p.name_en || p.name_ar || p.code || p.docId,
-                  icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" />
+                  icon: getThemedIcon('ui', 'graduation_cap', 16, theme)
                 }))
               ]}
               fullWidth
@@ -796,13 +798,13 @@ const MarksEntryPage = () => {
                 setClassFilter('all');
               }}
               options={[
-                { value: 'all', label: t('all_subjects') || 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: t('all_subjects') || 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...subjects
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
                     value: s.docId || s.id,
                     label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
-                    icon: <BookOpen size={16} color="var(--text-secondary, #374151)" />
+                    icon: getThemedIcon('ui', 'book_open', 16, theme)
                   }))
               ]}
               fullWidth
@@ -813,11 +815,11 @@ const MarksEntryPage = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(getSelectValue(e))}
               options={[
-                { value: 'all', label: t('all_classes') || 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: t('all_classes') || 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...filteredClasses.map(c => ({
                   value: c.id || c.docId,
                   label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}${c.year ? ` ${c.year}` : ''}`,
-                  icon: <Users size={16} color="var(--text-secondary, #374151)" />
+                  icon: getThemedIcon('ui', 'users', 16, theme)
                 }))
               ]}
               fullWidth
@@ -1159,7 +1161,7 @@ const MarksEntryPage = () => {
             </div>
 
             <div className={styles.totalScore}>
-              <Award size={20} />
+              {getThemedIcon('ui', 'award', 20, theme)}
               <span>Calculated Total Score:</span>
               <strong>{calculateTotalScore().toFixed(2)}</strong>
               <span>/ 100</span>
@@ -1176,7 +1178,7 @@ const MarksEntryPage = () => {
               <Button
                 type="submit"
                 variant="primary"
-                icon={<Save size={18} />}
+                icon={getThemedIcon('ui', 'save', 18, theme)}
                 disabled={loading}
               >
                 {loading ? 'Saving...' : 'Save Marks'}

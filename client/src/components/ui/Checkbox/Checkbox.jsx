@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
-import { Check } from 'lucide-react';
+import { useTheme } from '../../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Checkbox.module.css';
 
 /**
@@ -30,6 +31,8 @@ const Checkbox = forwardRef(({
   id,
   ...rest
 }, ref) => {
+  const { theme } = useTheme();
+  
   const wrapperClasses = [
     styles.wrapper,
     disabled && styles.disabled,
@@ -59,7 +62,7 @@ const Checkbox = forwardRef(({
             {...rest}
           />
           <span className={checkmarkClasses}>
-            <Check size={14} className={styles.checkIcon} />
+            {getThemedIcon('ui', 'check', 14, theme)}
           </span>
         </div>
         {label && <span className={styles.label}>{label}</span>}

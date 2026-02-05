@@ -9,7 +9,7 @@ import { updateUser } from '@firebaseServices/userService';
 import { getUserDisplayName } from '@firebaseServices/userService';
 import { db } from '@firebaseServices/config';
 import './Navbar.css';
-import { Menu, Medal, Home as HomeIcon, User, Sun, Moon, ZoomIn, Ruler, Crown, HelpCircle, LayoutGrid, List, Info, Users, BookOpen, Shield } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { LanguageSwitcher } from '../index';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
@@ -163,7 +163,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 }}
                 aria-label="Menu"
               >
-                <Menu size={18} />
+                {getThemedIcon('ui', 'menu', 18, theme)}
               </button>
             )}
 
@@ -215,7 +215,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               onMouseLeave={(e) => e.target.style.background = '#ff9800'}
               title={t('exit_impersonation') || 'Exit Impersonation'}
             >
-              <User size={16} /> {t('viewing_as_student') || 'Viewing as Student'} <span style={{ marginLeft: '0.5rem' }}>✕</span>
+              {getThemedIcon('ui', 'user', 16, theme)} {t('viewing_as_student') || 'Viewing as Student'} <span style={{ marginLeft: '0.5rem' }}>✕</span>
             </button>
           )}
           
@@ -245,7 +245,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   title={t('help') || 'Help'}
                   aria-label={t('help') || 'Help'}
                 >
-                  <HelpCircle size={16} />
+                  {getThemedIcon('ui', 'help_circle', 16, theme)}
                 </button>
 
                 <button
@@ -280,7 +280,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  <Info size={18} />
+                  {getThemedIcon('ui', 'info', 18, theme)}
                 </button>
 
                 <button
@@ -300,7 +300,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {theme==='light'?<Moon size={16} />:<Sun size={16} />}
+                  {theme==='light'?getThemedIcon('ui', 'moon', 16, theme):getThemedIcon('ui', 'sun', 16, theme)}
                 </button>
                 <button
                   className="nav-icon-btn"
@@ -324,9 +324,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   {(() => {
                     try {
                       const current = localStorage.getItem('filterViewMode') || 'full';
-                      return current === 'full' ? <LayoutGrid size={16} /> : <List size={16} />;
+                      return current === 'full' ? getThemedIcon('ui', 'layout_grid', 16, theme) : getThemedIcon('ui', 'list', 16, theme);
                     } catch {
-                      return <LayoutGrid size={16} />;
+                      return getThemedIcon('ui', 'layout_grid', 16, theme);
                     }
                   })()}
                 </button>
@@ -379,22 +379,22 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <div style={{ position:'absolute', right:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {isSuperAdmin && (
                     <div title="Super Admin" style={{ background:'#f59e0b', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      <Crown size={10} />
+                      {getThemedIcon('ui', 'crown', 10, theme)}
                     </div>
                   )}
                   {isAdmin && !isSuperAdmin && (
                     <div title="Admin" style={{ background:'#4f46e5', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      <Shield size={10} />
+                      {getThemedIcon('ui', 'shield', 10, theme)}
                     </div>
                   )}
                   {isInstructor && (
                     <div title="Instructor" style={{ background:'#0ea5e9', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      <BookOpen size={10} />
+                      {getThemedIcon('ui', 'book_open', 10, theme)}
                     </div>
                   )}
                   {isHR && (
                     <div title="HR" style={{ background:'#8b5cf6', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      <Users size={10} />
+                      {getThemedIcon('ui', 'users', 10, theme)}
                     </div>
                   )}
                 </div>
@@ -405,22 +405,22 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems:'center' }}>
                         {isSuperAdmin && (
                           <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            <Crown size={14} /> Super Admin
+                            {getThemedIcon('ui', 'crown', 14, theme)} Super Admin
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
                           <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            <Shield size={14} /> Admin
+                            {getThemedIcon('ui', 'shield', 14, theme)} Admin
                           </span>
                         )}
                         {isInstructor && (
                           <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            <BookOpen size={14} /> Instructor
+                            {getThemedIcon('ui', 'book_open', 14, theme)} Instructor
                           </span>
                         )}
                         {isHR && (
                           <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            <Users size={14} /> HR
+                            {getThemedIcon('ui', 'users', 14, theme)} HR
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
@@ -438,7 +438,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             {user ? (
               <>
                 <NavLink to="/" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
-                  <span style={{ display: 'inline-flex', alignItems:'center' }}><HomeIcon size={18} /></span>
+                  <span style={{ display: 'inline-flex', alignItems:'center' }}>{getThemedIcon('ui', 'home', 18, theme)}</span>
                 </NavLink>
               {!isAdmin && (
                 <>
@@ -480,10 +480,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {lang==='en'?'AR':'EN'}
               </button>
               <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn" title={density==='compact'?'Normal View':'Compact View'}>
-                {density==='compact'?<ZoomIn size={16} />:<Ruler size={16} />}
+                {density==='compact'?getThemedIcon('ui', 'zoom_in', 16, theme):getThemedIcon('ui', 'ruler', 16, theme)}
               </button>
               <button onClick={()=>setTheme(t=>t==='light'?'dark':'light')} className="icon-btn" title={theme==='light'?'Dark':'Light'}>
-                {theme==='light'?<Moon size={16} />:<Sun size={16} />}
+                {theme==='light'?getThemedIcon('ui', 'moon', 16, theme):getThemedIcon('ui', 'sun', 16, theme)}
               </button>
               
               <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)} ref={menuRef}>

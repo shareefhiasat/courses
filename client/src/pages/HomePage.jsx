@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
-import { Globe2, Code2, Monitor, Sigma, BookOpen, Award, HelpCircle, ClipboardList, Play, StarOff, Hourglass, Repeat, CheckCircle, Star, Pin, Clock, AlertCircle, FileText, Link2, Video, LayoutGrid, Plus } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { Tabs } from '@ui';
 import { getActivities, getAnnouncements, getResources } from '@firebaseServices/activityService';
@@ -600,13 +600,13 @@ const HomePage = memo(() => {
               {
                 value: 'activities',
                 label: t('activities') || 'Activities',
-                icon: <ClipboardList size={16} />,
+                icon: getThemedIcon('ui', 'clipboard_list', 16, theme),
                 badge: mode === 'activities' ? filteredItems.length : undefined
               },
               {
                 value: 'resources',
                 label: t('resources') || 'Resources',
-                icon: <BookOpen size={16} />,
+                icon: getThemedIcon('ui', 'book_open', 16, theme),
                 badge: mode === 'resources' ? filteredItems.length : undefined
               }
             ]}
@@ -624,37 +624,37 @@ const HomePage = memo(() => {
                 {
                   value: 'all',
                   label: lang === 'en' ? 'All' : 'الكل',
-                  icon: <Globe2 size={16} />,
+                  icon: getThemedIcon('ui', 'globe2', 16, theme),
                   badge: activityType === 'all' ? filteredItems.length : undefined
                 },
                 {
                   value: 'quiz',
                   label: lang === 'en' ? 'Quiz' : 'اختبار',
-                  icon: <HelpCircle size={16} />,
+                  icon: getThemedIcon('ui', 'help_circle', 16, theme),
                   badge: activityType === 'quiz' ? filteredItems.length : undefined
                 },
                 {
                   value: 'homework',
                   label: lang === 'en' ? 'Homework' : 'واجب',
-                  icon: <ClipboardList size={16} />,
+                  icon: getThemedIcon('ui', 'clipboard_list', 16, theme),
                   badge: activityType === 'homework' ? filteredItems.length : undefined
                 },
                 {
                   value: 'training',
                   label: lang === 'en' ? 'Training' : 'تدريب',
-                  icon: <BookOpen size={16} />,
+                  icon: getThemedIcon('ui', 'book_open', 16, theme),
                   badge: activityType === 'training' ? filteredItems.length : undefined
                 },
                 {
                   value: 'lab',
                   label: lang === 'en' ? 'Lab' : 'معمل',
-                  icon: <Monitor size={16} />,
+                  icon: getThemedIcon('ui', 'monitor', 16, theme),
                   badge: activityType === 'lab' ? filteredItems.length : undefined
                 },
                 {
                   value: 'project',
                   label: lang === 'en' ? 'Project' : 'مشروع',
-                  icon: <Code2 size={16} />,
+                  icon: getThemedIcon('ui', 'code2', 16, theme),
                   badge: activityType === 'project' ? filteredItems.length : undefined
                 }
               ]}
@@ -673,7 +673,7 @@ const HomePage = memo(() => {
                 {
                   value: '',
                   label: lang === 'en' ? 'All' : 'الكل',
-                  icon: <Globe2 size={16} />,
+                  icon: getThemedIcon('ui', 'globe2', 16, theme),
                   badge: category === '' ? filteredItems.length : undefined
                 },
                 ...(courses.length ? courses : [
@@ -684,14 +684,10 @@ const HomePage = memo(() => {
                 ]).map(c => {
                   // Count activities that match current filters (not all activities)
                   const categoryActivities = filteredItems.filter(a => (a.course || 'general') === c.docId);
-                  const Icon = c.docId === 'programming' ? Code2
-                    : c.docId === 'computing' ? Monitor
-                    : c.docId === 'algorithm' ? Sigma
-                    : BookOpen;
                   return {
                     value: c.docId,
                     label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId),
-                    icon: <Icon size={16} />,
+                    icon: getThemedIcon('ui', c.icon?.toLowerCase() || 'folder', 16, theme),
                     badge: categoryActivities.length
                   };
                 })
@@ -737,55 +733,55 @@ const HomePage = memo(() => {
                 }}>
                 {stats.completed !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <CheckCircle size={14} style={{ color: '#16a34a' }} />
+                    {getThemedIcon('ui', 'check_circle', 14, theme)}
                     <span style={{ fontWeight: 700, color: '#16a34a' }}>{stats.completed}</span>
                   </div>
                 )}
                 {stats.pending !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Hourglass size={14} style={{ color: '#f59e0b' }} />
+                    {getThemedIcon('ui', 'hourglass', 14, theme)}
                     <span style={{ fontWeight: 700, color: '#f59e0b' }}>{stats.pending}</span>
                   </div>
                 )}
                 {stats.overdue !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={14} style={{ color: '#dc2626' }} />
+                    {getThemedIcon('ui', 'clock', 14, theme)}
                     <span style={{ fontWeight: 700, color: '#dc2626' }}>{stats.overdue}</span>
                   </div>
                 )}
                 {stats.required !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <AlertCircle size={14} style={{ color: '#b91c1c' }} />
+                    {getThemedIcon('ui', 'alert_circle', 14, theme)}
                     <span style={{ fontWeight: 700, color: '#b91c1c' }}>{stats.required}</span>
                   </div>
                 )}
                 {stats.optional !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <BookOpen size={14} style={{ color: '#f57c00' }} />
+                    {getThemedIcon('ui', 'book_open', 14, theme)}
                     <span style={{ fontWeight: 700, color: '#f57c00' }}>{stats.optional}</span>
                   </div>
                 )}
                 {stats.featured !== undefined && stats.featured > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('featured') || 'Featured'}>
-                    <Pin size={14} style={{ color: '#4f46e5' }} />
+                    {getThemedIcon('ui', 'pin', 14, theme)}
                     <span style={{ fontWeight: 700, color: '#4f46e5' }}>{stats.featured}</span>
                   </div>
                 )}
                 {stats.bookmarked !== undefined && stats.bookmarked > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('bookmarked') || 'Bookmarked'}>
-                    <Star size={14} style={{ color: '#f5c518' }} fill="#f5c518" />
+                    {getThemedIcon('ui', 'star', 14, theme)}
                     <span style={{ fontWeight: 700, color: '#f5c518' }}>{stats.bookmarked}</span>
                   </div>
                 )}
                 {stats.retakable !== undefined && stats.retakable > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('retake_allowed') || 'Retake Allowed'}>
-                    <Repeat size={14} style={{ color: '#0ea5e9' }} />
+                    {getThemedIcon('ui', 'repeat', 14, theme)}
                     <span style={{ fontWeight: 700, color: '#0ea5e9' }}>{stats.retakable}</span>
                   </div>
                 )}
                 {stats.total !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('total') || 'Total'}>
-                    <HelpCircle size={14} style={{ color: primaryColor }} />
+                    {getThemedIcon('ui', 'help_circle', 14, theme)}
                     <span style={{ fontWeight: 700, color: primaryColor }}>{stats.total}</span>
                   </div>
                 )}
@@ -839,7 +835,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  <CheckCircle size={14} />
+                  {getThemedIcon('ui', 'check_circle', 14, theme)}
                 </button>
                 
                 <button
@@ -860,7 +856,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  <Hourglass size={14} />
+                  {getThemedIcon('ui', 'hourglass', 14, theme)}
                 </button>
 
                 <button
@@ -880,7 +876,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  <AlertCircle size={14} />
+                  {getThemedIcon('ui', 'alert_circle', 14, theme)}
                 </button>
 
                 <button
@@ -901,7 +897,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  <BookOpen size={14} />
+                  {getThemedIcon('ui', 'book_open', 14, theme)}
                 </button>
 
                 <button
@@ -922,7 +918,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  <Clock size={14} />
+                  {getThemedIcon('ui', 'clock', 14, theme)}
                 </button>
               </>
             ) : (
@@ -944,7 +940,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  <CheckCircle size={12} />
+                  {getThemedIcon('ui', 'check_circle', 12, theme)}
                   {getStatusLabel(TASK_STATUS.COMPLETED, lang)}
                 </button>
                 
@@ -965,7 +961,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  <Hourglass size={12} />
+                  {getThemedIcon('ui', 'hourglass', 12, theme)}
                   {getStatusLabel(TASK_STATUS.NOT_STARTED, lang)}
                 </button>
 
@@ -986,7 +982,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  <AlertCircle size={12} />
+                  {getThemedIcon('ui', 'alert_circle', 12, theme)}
                   {t('required') || 'Required'}
                 </button>
 
@@ -1007,7 +1003,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  <BookOpen size={12} />
+                  {getThemedIcon('ui', 'book_open', 12, theme)}
                   {t('optional') || 'Optional'}
                 </button>
 
@@ -1028,7 +1024,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  <Clock size={12} />
+                  {getThemedIcon('ui', 'clock', 12, theme)}
                   {t('overdue') || 'Overdue'}
                 </button>
               </>
@@ -1056,7 +1052,7 @@ const HomePage = memo(() => {
                   gap: isMinified ? 0 : 4
                 }}
               >
-                <Globe2 size={12} />
+                {getThemedIcon('ui', 'globe2', 12, theme)}
                 <span>{t('all_levels') || 'All Levels'}</span>
               </button>
                   {[
@@ -1085,7 +1081,7 @@ const HomePage = memo(() => {
                     title={lv.label}
                     aria-label={lv.label}
                   >
-                    <Award size={12} />
+                    {getThemedIcon('ui', 'award', 12, theme)}
                     {!isMinified && <span>{lv.label}</span>}
                       </button>
                     );
@@ -1111,7 +1107,7 @@ const HomePage = memo(() => {
                     gap: isMinified ? 0 : 4
                   }}
                 >
-                  <Globe2 size={12} />
+                  {getThemedIcon('ui', 'globe2', 12, theme)}
                   {!isMinified && <span>{t('all_types') || 'All Types'}</span>}
                 </button>
                 <button
@@ -1129,7 +1125,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('video') || 'Video'}
                 >
-                  <Video size={12} />
+                  {getThemedIcon('ui', 'video', 12, theme)}
                   {!isMinified && <span>{t('video') || 'Video'}</span>}
                 </button>
                 <button
@@ -1147,7 +1143,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('link') || 'Link'}
                 >
-                  <Link2 size={12} />
+                  {getThemedIcon('ui', 'link2', 12, theme)}
                   {!isMinified && <span>{t('link') || 'Link'}</span>}
                 </button>
                 <button
@@ -1165,7 +1161,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('document') || 'Document'}
                 >
-                  <FileText size={12} />
+                  {getThemedIcon('ui', 'file_text', 12, theme)}
                   {!isMinified && <span>{t('document') || 'Document'}</span>}
                 </button>
               </div>
@@ -1233,7 +1229,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    {bookmarkFilter ? <Star size={14} fill="#f5c518" /> : <StarOff size={14} />}
+                    {bookmarkFilter ? getThemedIcon('ui', 'star', 14, theme) : getThemedIcon('ui', 'star_off', 14, theme)}
                   </button>
                   <button
                     onClick={() => setFeaturedFilter(v => !v)}
@@ -1252,7 +1248,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    <Pin size={14} />
+                    {getThemedIcon('ui', 'pin', 14, theme)}
                   </button>
                   <button
                     onClick={() => setRetakableFilter(v => !v)}
@@ -1271,7 +1267,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    <Repeat size={14} />
+                    {getThemedIcon('ui', 'repeat', 14, theme)}
                   </button>
                   <button
                     onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
@@ -1290,7 +1286,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    <CheckCircle size={14} />
+                    {getThemedIcon('ui', 'check_circle', 14, theme)}
                   </button>
                 </>
               ) : (
@@ -1311,7 +1307,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {bookmarkFilter ? <Star size={12} fill="#f5c518" /> : <StarOff size={12} />}
+                    {bookmarkFilter ? getThemedIcon('ui', 'star', 12, theme) : getThemedIcon('ui', 'star_off', 12, theme)}
                     {t('bookmarked') || 'Bookmarked'}
                   </button>
                   <button
@@ -1330,7 +1326,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    <Pin size={12} />
+                    {getThemedIcon('ui', 'pin', 12, theme)}
                     {t('featured') || 'Featured'}
                   </button>
                   <button
@@ -1349,7 +1345,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    <Repeat size={12} />
+                    {getThemedIcon('ui', 'repeat', 12, theme)}
                     {t('retake_allowed') || 'Retake'}
                   </button>
                   <button
@@ -1369,7 +1365,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    <CheckCircle size={12} />
+                    {getThemedIcon('ui', 'check_circle', 12, theme)}
                     {getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
                   </button>
                 </>

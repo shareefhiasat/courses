@@ -1,5 +1,7 @@
 import React from 'react';
+import { useTheme } from '../../../contexts/ThemeContext';
 import styles from './Card.module.css';
+import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
 
 /**
  * Card Component
@@ -13,6 +15,7 @@ import styles from './Card.module.css';
  * @param {boolean} props.hoverable - Whether card has hover effect
  * @param {Function} props.onClick - Click handler (makes card clickable)
  * @param {string} props.className - Additional CSS classes
+ * @param {'light'|'dark'} props.theme - Theme variant
  */
 const Card = ({
   children,
@@ -23,10 +26,18 @@ const Card = ({
   className = '',
   ...rest
 }) => {
+  const { theme } = useTheme();
+  
+  // Get theme-aware styles
+  const themeStyles = getComponentStyles(theme, 'card', 'default', padding);
+  
+  // Generate CSS variables for theme
+  const cssVariables = generateCSSVariables(theme);
   const cardClasses = [
     styles.card,
     styles[`elevation-${elevation}`],
     styles[`padding-${padding}`],
+    styles[theme],
     (hoverable || onClick) && styles.hoverable,
     onClick && styles.clickable,
     className
