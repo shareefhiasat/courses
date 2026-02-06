@@ -10,6 +10,7 @@ import Joyride from 'react-joyride';
 import { USER_ROLES, getRoleColor, getRoleIcon, getRoleDisplayName } from '@constants/userRoles';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
+import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
@@ -40,7 +41,6 @@ import {
   COMMON_ICONS,
   getThemeColor
 } from '@constants/dashboardTypes.jsx';
-import { formatQatarDate } from '@utils/timezone';
 import { generateStudentQRCode } from '@utils/qrCode';
 import ProgramsManagementPage from './ProgramsManagementPage';
 import SubjectsManagementPage from './SubjectsManagementPage';
@@ -3494,12 +3494,32 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     valueGetter: (params) => params.value,
                     renderCell: (params) => {
                       const timestamp = params.value;
+                      const activityType = params.row?.type;
+                      
                       if (!timestamp) return '—';
+                      
                       // Handle both Firestore Timestamp and regular Date
                       const date = timestamp?.seconds ? 
                         new Date(timestamp.seconds * 1000) : 
                         new Date(timestamp);
-                      return formatDateTime(date);
+                      
+                      // For penalty viewing activities, use Qatar timezone and log details
+                      if (activityType === 'penalty_viewed') {
+                        const qatarTimeAgo = getQatarTimeAgo(date);
+                        console.log('🔍 PENALTY VIEWING DISPLAY - Rendering timestamp:', {
+                          rawTimestamp: timestamp,
+                          convertedDate: date,
+                          convertedDateUTC: date.toISOString(),
+                          qatarTimeAgo,
+                          activityType,
+                          clientTime: new Date().toISOString(),
+                          clientTimeQatar: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' })
+                        });
+                        return qatarTimeAgo || formatQatarDate(date);
+                      }
+                      
+                      // Use Qatar timezone for other activities too
+                      return getQatarTimeAgo(date) || formatQatarDate(date);
                     }
                   },
                   {

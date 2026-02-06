@@ -282,7 +282,22 @@ export async function logActivity(type, details = {}, userId = null) {
       url: window.location.pathname,
     };
 
+    console.log('🔍 ACTIVITY LOGGER - Storing activity:', {
+      type,
+      userId: currentUser,
+      userName: activityData.userName,
+      userEmail: activityData.userEmail,
+      timestamp: 'serverTimestamp() - UTC',
+      details,
+      userAgent: navigator.userAgent,
+      url: window.location.pathname,
+      clientTime: new Date().toISOString(),
+      clientTimeQatar: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' })
+    });
+
     await addDoc(collection(db, "activityLogs"), activityData);
+    
+    console.log('✅ ACTIVITY LOGGER - Activity stored successfully in Firestore');
     return { success: true };
   } catch (error) {
     console.error("[Activity Logger] Error logging activity:", error);

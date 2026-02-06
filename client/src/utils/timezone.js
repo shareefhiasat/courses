@@ -84,6 +84,41 @@ export function formatQatarTimeOnly(date) {
 }
 
 /**
+ * Format date as relative time in Qatar timezone (e.g., "2 minutes ago")
+ * @param {Date|Timestamp|string|number} date - Date to format
+ * @returns {string} Relative time string
+ */
+export function getQatarTimeAgo(date) {
+  if (!date) return null;
+  
+  const qatarDate = toQatarTime(date);
+  if (!qatarDate) return null;
+  
+  const now = getQatarNow();
+  const seconds = Math.floor((now - qatarDate) / 1000);
+  
+  if (seconds < 60) return 'just now';
+  
+  const intervals = {
+    year: 31536000,
+    month: 2592000,
+    week: 604800,
+    day: 86400,
+    hour: 3600,
+    minute: 60
+  };
+  
+  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+    const interval = Math.floor(seconds / secondsInUnit);
+    if (interval >= 1) {
+      return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`;
+    }
+  }
+  
+  return 'just now';
+}
+
+/**
  * Get serverTimestamp for Firestore (saves as UTC)
  * This should be used for all createdAt/updatedAt fields
  * The date will be stored as UTC in Firestore, then converted to Qatar timezone for display

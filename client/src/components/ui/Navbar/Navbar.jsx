@@ -233,6 +233,29 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <NotificationBell />
 
                 <button
+                  className="nav-icon-btn"
+                  onClick={toggleLang}
+                  title={lang === 'en' ? 'العربية' : 'English'}
+                  aria-label={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+                  style={{
+                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: theme === 'light' ? 'var(--text-primary)' : '#fff',
+                    fontSize: '0.75rem',
+                    fontWeight: 600
+                  }}
+                >
+                  {lang === 'en' ? 'AR' : 'EN'}
+                </button>
+
+                <button
                   className="nav-icon-btn nav-help"
                   onClick={() => {
                     try {
@@ -401,7 +424,17 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {showDropdown && (
                   <div className="dropdown-menu" style={{ right: 0, top: 48, zIndex: 9999 }}>
                     <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
-                      <div className="user-email" style={{ fontWeight: 600, marginBottom: 8 }}>{displayName || user.email}</div>
+                      <div className="user-email" style={{ fontWeight: 600, marginBottom: 4 }}>{user.email}</div>
+                      {displayName && displayName !== user.email && (
+                        <div className="display-name" style={{ fontSize: '0.9rem', color: '#333', marginBottom: 4 }}>
+                          {t('display_name') || 'Display Name'}: {displayName}
+                        </div>
+                      )}
+                      {studentNumber && (
+                        <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
+                          {t('student_number') || 'Student Number'}: {studentNumber}
+                        </div>
+                      )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems:'center' }}>
                         {isSuperAdmin && (
                           <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>

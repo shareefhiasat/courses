@@ -22,11 +22,13 @@ import {
   // Action Icons
   Edit, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy,
   // File Icons
-  FileSignature, Archive, Globe, Tag, QrCode, KeyRound,
+  FileSignature, Archive, Globe, Tag, QrCode, KeyRound, Paperclip,
   // Behavior/Sleep Icons
   Bed,
   // Other Icons
   HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, LayoutDashboard, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, Download, BarChart3, LineChart, PieChart, Save, GripVertical,
+  // Reaction Icons
+  Smile, Frown, Mic,
   // Additional icons from dashboard and chat pages
   Upload, RotateCw, SkipForward, Shuffle, ChevronLeft, ChevronRight, RotateCcw, Bot, Heart,
   // Missing icons from HomePage
@@ -241,8 +243,12 @@ export const ICON_TYPES = {
     // Additional missing icons
     help_circle: <HelpCircle size={16} />,
     bar_chart: <BarChart3 size={16} />,
-    mic: <Phone size={16} />,
-    smile: <ThumbsUp size={16} />,
+    smile: <Smile size={16} />,
+    frown: <Frown size={16} />,
+    thumbs_up: <ThumbsUp size={16} />,
+    mic: <Mic size={16} />,
+    paperclip: <Paperclip size={16} />,
+    attachment: <Paperclip size={16} />,
     mail: <MessageSquare size={16} />,
     trash: <Trash size={16} />,
     user: <User size={16} />,

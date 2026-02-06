@@ -3,9 +3,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import EmojiPicker from 'emoji-picker-react';
 import { USER_ROLES } from '@constants/userRoles';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import {
   collection,
   query,
@@ -32,6 +31,7 @@ import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getUsers } from '@firebaseServices/userService';
 import { getUserProfile } from '@firebaseServices/userService';
 import { addNotification } from '@firebaseServices/notificationService';
+import { chatService } from '@firebaseServices/chatService';
 import { Loading, useToast, Input } from '@ui';
 import logger from '@utils/logger';
 import './ChatPage.css';
@@ -92,6 +92,10 @@ const ChatPage = memo(() => {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = parseInt(localStorage.getItem('chatSidebarWidth') || '0', 10);
     return Number.isFinite(saved) && saved >= 280 && saved <= 500 ? saved : 320;
+  });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('chatSidebarCollapsed') === 'true';
+    return saved;
   });
   const [selectedClassName, setSelectedClassName] = useState('');
   const resizingRef = useRef(false);
@@ -165,12 +169,9 @@ const ChatPage = memo(() => {
     if (!user?.uid) return;
     let unsub = null;
     (async () => {
-      const { onSnapshot, doc } = await import('firebase/firestore');
-      const { db } = await import('@firebaseServices/config');
       try {
-        unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-          const data = snap.exists() ? snap.data() : {};
-          if (data.messageColor) setMyMessageColor(data.messageColor);
+        unsub = chatService.subscribeToUserMessageColor(user.uid, (messageColor) => {
+          if (messageColor) setMyMessageColor(messageColor);
         });
       } catch {}
     })();
@@ -231,42 +232,12 @@ const ChatPage = memo(() => {
       const originalContent = (editingMsg.content || '').trim();
       const filteredContent = filterBadWords(originalContent);
       
-      const mref = doc(db, 'messages', editingMsg.id);
-      await updateDoc(mref, {
-        content: filteredContent,
-        messageType: 'text'
-      });
+      await chatService.editMessage(editingMsg.id, filteredContent);
 
       // Show warning if content was filtered
       if (originalContent !== filteredContent) {
         toast?.showWarning?.('Your message has been filtered for inappropriate content.');
       }
-
-      // If this edited message is the latest in its thread, refresh lastMessage preview
-      try {
-        const snap = await getDoc(mref);
-        if (snap.exists()) {
-          const m = snap.data();
-          const msgsRef = collection(db, 'messages');
-          if (m.type === 'class' && m.classId) {
-            const q = query(msgsRef, where('classId', '==', m.classId), orderBy('createdAt', 'desc'));
-            const qs = await getDocs(q);
-            if (!qs.empty && qs.docs[0].id === editingMsg.id) {
-              await updateDoc(doc(db, 'classes', m.classId), {
-                lastMessage: filteredContent
-              });
-            }
-          } else if (m.type === 'dm' && m.roomId) {
-            const q = query(msgsRef, where('type', '==', 'dm'), where('roomId', '==', m.roomId), orderBy('createdAt', 'desc'));
-            const qs = await getDocs(q);
-            if (!qs.empty && qs.docs[0].id === editingMsg.id) {
-              await updateDoc(doc(db, 'directRooms', m.roomId), {
-                lastMessage: filteredContent
-              });
-            }
-          }
-        }
-      } catch {}
 
       setEditingMsg(null);
       toast?.showSuccess(t('saved') || 'Saved');
@@ -307,7 +278,7 @@ const ChatPage = memo(() => {
     if (!showEmojiPicker && !reactionMenu) return;
     const onDoc = (e) => {
       // Only close if clicking outside the emoji picker or reaction menu
-      const emojiPicker = document.querySelector('.EmojiPickerReact');
+      const emojiPicker = document.querySelector('[data-emoji-picker="true"]');
       const reactionMenuEl = document.querySelector('[data-reaction-menu="true"]');
       
       // Don't close if clicking on emoji button
@@ -354,21 +325,15 @@ const ChatPage = memo(() => {
       else ids = safeClassMembers.map(m => m.docId).filter(Boolean);
       const recips = ids.filter(id => id && id !== user?.uid);
       const reads = {};
-      recips.forEach(uid => {
-        const uref = doc(db, 'users', uid);
-        const unsub = onSnapshot(uref, (snap) => {
-          const data = snap.data() || {};
-          const r = data.chatReads?.[key];
-          const d = r?.toDate?.() || (typeof r === 'string' ? new Date(r) : (r?.seconds ? new Date(r.seconds * 1000) : null));
-          if (d) {
-            reads[uid] = d;
-          } else {
-            delete reads[uid];
-          }
-          setMemberReads({ ...reads });
-        });
-        unsubs.push(unsub);
+      const unsub = chatService.subscribeToUserReadReceipts(recips, key, (uid, readTime) => {
+        if (readTime) {
+          reads[uid] = readTime;
+        } else {
+          delete reads[uid];
+        }
+        setMemberReads({ ...reads });
       });
+      unsubs.push(unsub);
     } catch {}
     return () => { try { unsubs.forEach(u => u()); } catch {} };
   }, [selectedClass, safeAllUsers, safeClassMembers, safeDirectRooms, user?.uid]);
@@ -386,10 +351,8 @@ const ChatPage = memo(() => {
       else {
         (async () => {
           try {
-            const { doc, getDoc } = await import('firebase/firestore');
-            const { db } = await import('@firebaseServices/config');
-            const snap = await getDoc(doc(db, 'classes', dest));
-            if (snap.exists()) setSelectedClassName((snap.data().name) || '');
+            const className = await chatService.getClassName(dest);
+            if (className) setSelectedClassName(className);
           } catch {}
         })();
       }
@@ -401,9 +364,8 @@ const ChatPage = memo(() => {
   useEffect(() => {
     const loadReads = async () => {
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        const data = snap.data() || {};
-        setChatReads(data.chatReads || {});
+        const reads = await chatService.getUserChatReads(user.uid);
+        setChatReads(reads);
       } catch {}
     };
     if (user) loadReads();
@@ -417,50 +379,22 @@ const ChatPage = memo(() => {
     // Global
     const globalKey = 'global';
     const globalReadAt = chatReads[globalKey];
-    const msgsRef = collection(db, 'messages');
-    const globalQ = query(msgsRef, where('type', '==', 'global'));
-    const globalUnsub = onSnapshot(globalQ, (snap) => {
-      let count = 0;
-      snap.forEach(d => {
-        const msg = d.data();
-        if (msg.senderId === user.uid) return; // don't count my own messages
-        const msgTime = msg.createdAt?.toDate() || new Date();
-        if (!globalReadAt || new Date(globalReadAt) < msgTime) count++;
-      });
-      setUnreadCounts(prev => ({ ...prev, [globalKey]: count }));
+    const globalUnsub = chatService.subscribeToUnreadCounts(chatReads, (chatKey, count) => {
+      setUnreadCounts(prev => ({ ...prev, [chatKey]: count }));
     });
 
     // Classes
     const classUnsubs = (safeClasses).map(cls => {
       const classKey = cls.docId;
-      const readAt = chatReads[classKey] || chatReads[`class:${classKey}`];
-      const cq = query(msgsRef, where('classId', '==', classKey));
-      return onSnapshot(cq, (snap) => {
-        let count = 0;
-        snap.forEach(d => {
-          const msg = d.data();
-          if (msg.senderId === user.uid) return;
-          const msgTime = msg.createdAt?.toDate() || new Date();
-          if (!readAt || new Date(readAt) < msgTime) count++;
-        });
-        setUnreadCounts(prev => ({ ...prev, [classKey]: count }));
+      return chatService.subscribeToClassUnreadCounts(classKey, chatReads, (chatKey, count) => {
+        setUnreadCounts(prev => ({ ...prev, [chatKey]: count }));
       });
     });
 
     // DMs
     const dmUnsubs = (safeDirectRooms).map(room => {
-      const dmKey = `dm:${room.id}`;
-      const readAt = chatReads[dmKey];
-      const dq = query(msgsRef, where('type', '==', 'dm'), where('roomId', '==', room.id));
-      return onSnapshot(dq, (snap) => {
-        let count = 0;
-        snap.forEach(d => {
-          const msg = d.data();
-          if (msg.senderId === user.uid) return;
-          const msgTime = msg.createdAt?.toDate() || new Date();
-          if (!readAt || new Date(readAt) < msgTime) count++;
-        });
-        setUnreadCounts(prev => ({ ...prev, [dmKey]: count }));
+      return chatService.subscribeToDMUnreadCounts(room, chatReads, (roomId, count) => {
+        setUnreadCounts(prev => ({ ...prev, [`dm:${roomId}`]: count }));
       });
     });
 
@@ -477,8 +411,8 @@ const ChatPage = memo(() => {
       if (!user || !selectedClass) return;
       try {
         const key = selectedClass === 'global' ? 'global' : selectedClass;
-        await setDoc(doc(db, 'users', user.uid), { chatReads: { ...(chatReads || {}), [key]: serverTimestamp() } }, { merge: true });
-        setChatReads(prev => ({ ...(prev || {}), [key]: new Date() }));
+        const newReadTime = await chatService.updateUserChatReads(user.uid, key);
+        setChatReads(prev => ({ ...(prev || {}), [key]: newReadTime }));
       } catch {}
     };
     window.addEventListener('focus', handleFocus);
@@ -488,11 +422,7 @@ const ChatPage = memo(() => {
   // Star/Unstar a DM room
   const toggleStar = async (room) => {
     try {
-      const roomRef = doc(db, 'directRooms', room.id);
-      const starred = (room.starBy || []).includes(user.uid);
-      await updateDoc(roomRef, {
-        starBy: starred ? arrayRemove(user.uid) : arrayUnion(user.uid)
-      });
+      await chatService.toggleStarRoom(room.id, user.uid);
     } catch (e) { /* noop */ }
   };
 
@@ -500,49 +430,18 @@ const ChatPage = memo(() => {
   const clearDMMessages = async (roomId, mode = 'all') => {
     // Only admins can clear all or others' messages
     if (!isAdmin && (mode === 'all' || mode === 'theirs')) {
-      toast?.showError('Only admins can clear these messages');
+      toast?.showError(t('only_admins_can_clear') || 'Only admins can clear these messages');
       return;
     }
     try {
-      const msgsRef = collection(db, 'messages');
-      const q = query(msgsRef, where('type', '==', 'dm'), where('roomId', '==', roomId));
-      const qs = await getDocs(q);
-      let deletedCount = 0;
-      
-      // Filter messages based on mode
-      for (const d of qs.docs) {
-        const m = d.data();
-        let shouldDelete = false;
-        
-        if (mode === 'all') {
-          shouldDelete = true;
-        } else if (mode === 'mine') {
-          shouldDelete = m.senderId === user.uid;
-        } else if (mode === 'theirs') {
-          shouldDelete = m.senderId !== user.uid;
-        }
-        
-        if (shouldDelete) {
-          try { if (m.voicePath) await deleteObject(ref(storage, m.voicePath)); } catch {}
-          try { if (m.filePath) await deleteObject(ref(storage, m.filePath)); } catch {}
-          try { await deleteDoc(doc(db, 'messages', d.id)); deletedCount++; } catch {}
-        }
-      }
-      
-      // Update room metadata if all messages cleared
-      if (mode === 'all' || deletedCount === qs.docs.length) {
-        await updateDoc(doc(db, 'directRooms', roomId), {
-          lastMessage: '',
-          lastMessageAt: null
-        });
-      }
+      const deletedCount = await chatService.clearChatMessages(roomId, mode, user.uid);
       
       setDmContextMenu(null);
-      const modeLabel = mode === 'all' ? 'All messages' : mode === 'mine' ? 'Your messages' : 'Their messages';
-      toast?.showSuccess(`${modeLabel} cleared`);
+      const modeLabel = mode === 'all' ? (t('all_messages') || 'All messages') : mode === 'mine' ? (t('your_messages') || 'Your messages') : (t('their_messages') || 'Their messages');
+      toast?.showSuccess(`${modeLabel} ${t('cleared') || 'cleared'}`);
     } catch (err) {
       logger.error('Clear messages failed:', err);
-      toast?.showError('Failed to clear messages');
+      toast?.showError(t('failed_to_clear_messages') || 'Failed to clear messages');
     }
   };
 
@@ -553,25 +452,13 @@ const ChatPage = memo(() => {
       const room = safeDirectRooms.find(r => `dm:${r.id}` === selectedClass);
       if (!room) return setShowDeleteDMConfirm(false);
       const roomId = room.id;
-      // fetch all messages for this room
-      const msgsRef = collection(db, 'messages');
-      const q = query(msgsRef, where('type', '==', 'dm'), where('roomId', '==', roomId));
-      const qs = await getDocs(q);
-      // best-effort delete message attachments then docs
-      for (const d of qs.docs) {
-        const m = d.data();
-        try { if (m.voicePath) await deleteObject(ref(storage, m.voicePath)); } catch {}
-        try { if (m.filePath) await deleteObject(ref(storage, m.filePath)); } catch {}
-        try { await deleteDoc(doc(db, 'messages', d.id)); } catch {}
-      }
-      // delete room itself
-      await deleteDoc(doc(db, 'directRooms', roomId));
+      await chatService.deleteDirectRoom(roomId);
       setShowDeleteDMConfirm(false);
       setSelectedClass('global');
-      toast?.showSuccess('Conversation deleted');
+      toast?.showSuccess(t('conversation_deleted') || 'Conversation deleted');
     } catch (err) {
       logger.error('Delete conversation failed:', err);
-      toast?.showError('Failed to delete conversation');
+      toast?.showError(t('failed_to_delete_conversation') || 'Failed to delete conversation');
     }
   };
 
@@ -584,17 +471,9 @@ const ChatPage = memo(() => {
     // Real-time subscription for classes
     const setupClassesSubscription = async () => {
       try {
-        const classesRef = collection(db, 'classes');
-        if (isAdmin) {
-          // Admin: subscribe to all classes
-          const unsub = onSnapshot(classesRef, (snap) => {
-            const all = [];
-            snap.forEach(d => all.push({ docId: d.id, ...d.data() }));
-            setClasses(all);
-          });
-          unsubs.push(unsub);
-        } else {
-          // Student: first get enrollments, then subscribe to enrolled classes
+        let ids = new Set();
+        if (!isAdmin) {
+          // Student: get enrolled classes
           const enrollmentsResult = await getEnrollments();
           const allEnr = enrollmentsResult.success ? (enrollmentsResult.data || []) : [];
           const byUid = allEnr.filter(e => e.userId === user.uid);
@@ -603,7 +482,7 @@ const ChatPage = memo(() => {
             const byEmail = allEnr.filter(e => (e.userEmail || e.email) === user.email);
             mine = byEmail;
           }
-          let ids = new Set(mine.map(e => e.classId));
+          ids = new Set(mine.map(e => e.classId));
           if (ids.size === 0) {
             try {
               const me = await getUserProfile(user);
@@ -611,34 +490,26 @@ const ChatPage = memo(() => {
               ids = new Set(enrolled);
             } catch {}
           }
-          
-          // Subscribe to all classes and filter on client side
-          const unsub = onSnapshot(classesRef, (snap) => {
-            const all = [];
-            snap.forEach(d => {
-              const data = { docId: d.id, ...d.data() };
-              if (ids.has(d.id)) all.push(data);
-            });
-            setClasses(all);
-            
-            // Auto-select first class for students if needed
-            if (!selectedClass || selectedClass === 'global') {
-              if (all.length > 0) {
-                setSelectedClass(all[0].docId);
-                setSelectedClassName(all[0].name || '');
-                loadClassMembers(all[0].docId);
-              }
-            }
-          });
-          unsubs.push(unsub);
-          
-          // Sync membership
-          try {
-            for (const id of Array.from(ids)) {
-              await updateDoc(doc(db,'users',user.uid), { enrolledClasses: arrayUnion(id) });
-            }
-          } catch {}
         }
+        
+        const unsub = chatService.subscribeToClasses((all) => {
+          setClasses(all);
+          
+          // Auto-select first class for students if needed
+          if (!selectedClass || selectedClass === 'global') {
+            if (all.length > 0) {
+              setSelectedClass(all[0].docId);
+              setSelectedClassName(all[0].name || '');
+              loadClassMembers(all[0].docId);
+            }
+          }
+        }, isAdmin, user.uid, ids);
+        unsubs.push(unsub);
+        
+        // Sync membership
+        try {
+          await chatService.syncUserEnrollments(user.uid, ids);
+        } catch {}
         setLoading(false);
       } catch (error) {
         logger.error('Error setting up classes subscription:', error);
@@ -650,9 +521,7 @@ const ChatPage = memo(() => {
     scrollToBottom();
     
     // subscribe to DM rooms
-    const roomsRef = collection(db, 'directRooms');
-    const rq = query(roomsRef, where('participants', 'array-contains', user.uid));
-    const unsub = onSnapshot(rq, (snap) => {
+    const unsub = chatService.subscribeToDirectRooms((snap) => {
       const rooms = [];
       snap.forEach(d => rooms.push({ id: d.id, ...d.data() }));
       setDirectRooms(rooms);
@@ -719,8 +588,8 @@ const ChatPage = memo(() => {
         if (entry && entry.isIntersecting && user && selectedClass) {
           try {
             const key = selectedClass === 'global' ? 'global' : selectedClass;
-            await setDoc(doc(db, 'users', user.uid), { chatReads: { ...(chatReads || {}), [key]: serverTimestamp() } }, { merge: true });
-            setChatReads(prev => ({ ...(prev || {}), [key]: new Date() }));
+            const newReadTime = await chatService.updateUserChatReads(user.uid, key);
+            setChatReads(prev => ({ ...(prev || {}), [key]: newReadTime }));
           } catch {}
         }
       }, { threshold: 0.5 });
@@ -769,6 +638,7 @@ const ChatPage = memo(() => {
 
   // Sidebar drag-resize
   const onDragStart = (e) => {
+    if (isSidebarCollapsed) return; // Prevent resizing when collapsed
     resizingRef.current = true;
     document.body.style.userSelect = 'none';
   };
@@ -804,59 +674,20 @@ const ChatPage = memo(() => {
       if (msg.filePath) {
         try { await deleteObject(ref(storage, msg.filePath)); } catch {}
       }
-      await deleteDoc(doc(db, 'messages', msg.id));
+      await chatService.deleteMessage(msg.id);
       
       // Update lastMessage for class if this was the last message
       if (msg.type === 'class' && msg.classId) {
         try {
-          // Get remaining messages for this class
-          const msgsRef = collection(db, 'messages');
-          const q = query(msgsRef, where('classId', '==', msg.classId), orderBy('createdAt', 'desc'));
-          const snap = await getDocs(q);
-          if (snap.empty) {
-            // No messages left, clear lastMessage
-            await updateDoc(doc(db, 'classes', msg.classId), {
-              lastMessage: '',
-              lastMessageAt: null
-            });
-          } else {
-            // Update to the new last message
-            const lastMsg = snap.docs[0].data();
-            const preview = lastMsg.messageType === 'text' ? lastMsg.content
-              : (lastMsg.messageType === 'voice' ? '[Voice Message]'
-                : (lastMsg.messageType === 'file' ? `[File: ${lastMsg.fileName}]` : 'Message'));
-            await updateDoc(doc(db, 'classes', msg.classId), {
-              lastMessage: preview,
-              lastMessageAt: lastMsg.createdAt
-            });
-          }
-        } catch (e) {
-          }
+          await chatService.updateLastMessageAfterDeletion(msg);
+        } catch (e) {}
       }
       
       // Update lastMessage for DM if this was the last message
       if (msg.type === 'dm' && msg.roomId) {
         try {
-          const msgsRef = collection(db, 'messages');
-          const q = query(msgsRef, where('type', '==', 'dm'), where('roomId', '==', msg.roomId), orderBy('createdAt', 'desc'));
-          const snap = await getDocs(q);
-          if (snap.empty) {
-            await updateDoc(doc(db, 'directRooms', msg.roomId), {
-              lastMessage: '',
-              lastMessageAt: null
-            });
-          } else {
-            const lastMsg = snap.docs[0].data();
-            const preview = lastMsg.messageType === 'text' ? lastMsg.content
-              : (lastMsg.messageType === 'voice' ? '[Voice Message]'
-                : (lastMsg.messageType === 'file' ? `[File: ${lastMsg.fileName}]` : 'Message'));
-            await updateDoc(doc(db, 'directRooms', msg.roomId), {
-              lastMessage: preview,
-              lastMessageAt: lastMsg.createdAt
-            });
-          }
-        } catch (e) {
-          }
+          await chatService.updateLastMessageAfterDeletion(msg);
+        } catch (e) {}
       }
       
       toast?.showSuccess('Message deleted');
@@ -905,11 +736,7 @@ const ChatPage = memo(() => {
         setClasses(mineClasses);
         // Sync membership flags onto users/{uid} for rules
         try {
-          const { updateDoc, doc, arrayUnion } = await import('firebase/firestore');
-          const { db } = await import('@firebaseServices/config');
-          for (const id of Array.from(ids)) {
-            await updateDoc(doc(db,'users',user.uid), { enrolledClasses: arrayUnion(id) });
-          }
+          await chatService.syncUserEnrollments(user.uid, ids);
         } catch {}
         // If no dest specified and nothing selected yet, auto-select first class for students
         try {
@@ -939,28 +766,28 @@ const ChatPage = memo(() => {
   };
 
   const loadMessages = () => {
-    const messagesRef = collection(db, 'messages');
-    let q;
+    let chatType, chatId;
+    
     if (selectedClass === 'global') {
-      q = query(messagesRef, where('type', '==', 'global'), orderBy('createdAt', 'asc'));
+      chatType = 'global';
+      chatId = 'global';
     } else if (selectedClass?.startsWith('dm:')) {
-      const roomId = selectedClass.slice(3);
-      q = query(messagesRef, where('type', '==', 'dm'), where('roomId', '==', roomId), orderBy('createdAt', 'asc'));
+      chatType = 'dm';
+      chatId = selectedClass.slice(3);
     } else {
       // Defensive: ensure users/{uid}.enrolledClasses contains selectedClass to satisfy rules
       (async () => {
         try {
           if (user?.uid && selectedClass) {
-            const { updateDoc, doc, arrayUnion } = await import('firebase/firestore');
-            const { db } = await import('@firebaseServices/config');
-            await updateDoc(doc(db, 'users', user.uid), { enrolledClasses: arrayUnion(selectedClass) });
+            await chatService.syncUserEnrollment(user.uid, selectedClass);
           }
         } catch {}
       })();
-      q = query(messagesRef, where('classId', '==', selectedClass), orderBy('createdAt', 'asc'));
+      chatType = 'class';
+      chatId = selectedClass;
     }
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = chatService.subscribeToMessages(chatType, chatId, (snapshot) => {
       const msgs = [];
       snapshot.forEach((doc) => {
         msgs.push({ id: doc.id, ...doc.data() });
@@ -973,8 +800,8 @@ const ChatPage = memo(() => {
       (async () => {
         try {
           const key = selectedClass === 'global' ? 'global' : selectedClass;
-          await setDoc(doc(db, 'users', user.uid), { chatReads: { ...(chatReads || {}), [key]: serverTimestamp() } }, { merge: true });
-          setChatReads(prev => ({ ...(prev || {}), [key]: new Date() }));
+          const newReadTime = await chatService.updateUserChatReads(user.uid, key);
+          setChatReads(prev => ({ ...(prev || {}), [key]: newReadTime }));
         } catch {}
       })();
     }, (error) => {
@@ -1030,8 +857,7 @@ const ChatPage = memo(() => {
       // Load user enrollments for status check
       let enrollments = [];
       try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', user.uid)));
-        enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        enrollments = await chatService.getUserEnrollments(user.uid);
       } catch (e) {
         }
       
@@ -1231,62 +1057,7 @@ const ChatPage = memo(() => {
         }
       }
       
-      const added = await addDoc(collection(db, 'messages'), messageData);
-      // If DM, update room last message metadata
-      if (messageData.type === 'dm' && messageData.roomId) {
-        try {
-          const preview = messageData.messageType === 'text' ? messageData.content
-            : (messageData.messageType === 'voice' ? '[Voice Message]'
-              : (messageData.messageType === 'file' ? `[File: ${messageData.fileName}]` : 'Message'));
-          await setDoc(doc(db, 'directRooms', messageData.roomId), {
-            lastMessage: preview,
-            lastMessageAt: serverTimestamp(),
-          }, { merge: true });
-          // Notify the other participant
-          const otherId = (directRooms.find(r => r.id === messageData.roomId)?.participants || []).find(p => p !== user.uid);
-          if (otherId) {
-            try {
-              await addNotification({
-                userId: otherId,
-                title: (profileName || user.displayName || user.email),
-                message: preview,
-                type: 'message',
-                data: { roomId: messageData.roomId, messageId: added.id }
-              });
-            } catch (notifError) {
-              }
-          }
-        } catch {}
-      }
-      // If class, update class last message metadata and notify class members (except sender)
-      if (messageData.type === 'class' && messageData.classId) {
-        try {
-          const preview = messageData.messageType === 'text' ? messageData.content
-            : (messageData.messageType === 'voice' ? '[Voice Message]'
-              : (messageData.messageType === 'file' ? `[File: ${messageData.fileName}]` : 'Message'));
-          await updateDoc(doc(db, 'classes', messageData.classId), {
-            lastMessage: preview,
-            lastMessageAt: serverTimestamp()
-          });
-          // Notify enrolled users
-          try {
-            const enr = await getEnrollments();
-            const targets = (enr.data || []).filter(e => e.classId === messageData.classId && e.userId !== user.uid);
-            for (const t of targets) {
-              try {
-                await addNotification({
-                  userId: t.userId,
-                  title: `💬 ${classes.find(c=>c.docId===messageData.classId)?.name || 'Class'}`,
-                  message: `${(profileName || user.displayName || user.email)}: ${preview.substring(0, 120)}`,
-                  type: 'chat',
-                  data: { classId: messageData.classId, messageId: added.id }
-                });
-              } catch (notifError) {
-                }
-            }
-          } catch {}
-        } catch {}
-      }
+      const added = await chatService.sendMessage(messageData);
 
       // If global, notify all users except sender
       if (messageData.type === 'global') {
@@ -1446,18 +1217,17 @@ const ChatPage = memo(() => {
     await loadClassMembers(classId);
   };
 
+  const toggleSidebar = () => {
+    const newCollapsed = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newCollapsed);
+    localStorage.setItem('chatSidebarCollapsed', newCollapsed.toString());
+  };
+
   // Create or open a DM room with another user
   const openDMWith = async (otherUser) => {
     if (!otherUser?.docId || otherUser.docId === user.uid) return;
-    const roomId = [user.uid, otherUser.docId].sort().join('_');
     try {
-      const roomRef = doc(db, 'directRooms', roomId);
-      // Avoid reading a non-existent doc (would fail due to rules). Create/merge optimistically.
-      await setDoc(roomRef, {
-        participants: [user.uid, otherUser.docId],
-        createdAt: serverTimestamp(),
-        lastMessage: null
-      }, { merge: true });
+      const roomId = await chatService.createDMRoom(user.uid, otherUser.docId);
       setSelectedClass(`dm:${roomId}`);
       setShowMembers(false);
     } catch (err) {
@@ -1481,12 +1251,15 @@ const ChatPage = memo(() => {
     }}>
       {/* Sidebar */}
       <div className="chat-sidebar" style={{
-        width: sidebarWidth,
+        width: isSidebarCollapsed ? 0 : sidebarWidth,
         background: 'var(--panel)',
-        borderRight: '1px solid var(--border)',
+        borderRight: isSidebarCollapsed ? 'none' : '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
-        position: 'relative'
+        position: 'relative',
+        transition: 'width 0.3s ease, border-right 0.3s ease',
+        minWidth: isSidebarCollapsed ? 0 : 280,
+        maxWidth: 500
       }}>
         {/* Header (hide title word to save space) */}
         {/* Header strip removed per user request */}
@@ -1585,7 +1358,7 @@ const ChatPage = memo(() => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                {getThemedIcon('ui', 'book_open', 24, theme)}
+                {getThemedIcon('ui', 'book_open', 16, theme)}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
                     <div style={{ fontWeight: '600', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.name}</div>
@@ -1628,6 +1401,11 @@ const ChatPage = memo(() => {
                       <div style={{ fontSize: '0.85rem', color: '#444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                         {getThemedIcon('ui', 'graduation_cap', 14, theme)}
                         <strong>{instructor.displayName || instructor.email}</strong>
+                        {instructor.studentNumber && (
+                          <span style={{ fontSize: '0.75rem', color: '#666', marginLeft: '0.25rem', fontWeight: 'normal' }}>
+                            ({instructor.studentNumber})
+                          </span>
+                        )}
                         {instructor.docId !== user.uid && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openDMWith(instructor); }}
@@ -1743,7 +1521,14 @@ const ChatPage = memo(() => {
                   })()}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: (!other || other.deleted) ? 0.6 : 1 }}>{label}</div>
+                      <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: (!other || other.deleted) ? 0.6 : 1 }}>
+                        {other?.displayName || other?.email || 'Conversation'}
+                        {other?.studentNumber && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
+                            ({other.studentNumber})
+                          </span>
+                        )}
+                      </div>
                       {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
@@ -1790,12 +1575,49 @@ const ChatPage = memo(() => {
             <label htmlFor="toggle-favorites" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('favorites_only') || 'Favorites only'}</label>
           </div>
         </div>
-        {/* Drag handle */}
-        <div
-          onMouseDown={onDragStart}
-          style={{ position:'absolute', right: -3, top:0, bottom:0, width:6, cursor:'col-resize' }}
-          aria-label={t('resize_sidebar') || 'Resize sidebar'}
-        />
+        {/* Toggle Button */}
+        <button
+          onClick={toggleSidebar}
+          style={{
+            position: 'absolute',
+            left: isSidebarCollapsed ? 12 : 'auto',
+            right: isSidebarCollapsed ? 'auto' : -3,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'var(--panel)',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            width: 24,
+            height: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 10,
+            transition: 'left 0.3s ease, right 0.3s ease, transform 0.2s ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+            e.currentTarget.style.background = 'var(--brand)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+            e.currentTarget.style.background = 'var(--panel)';
+          }}
+          title={isSidebarCollapsed ? (t('expand_sidebar') || 'Expand sidebar') : (t('collapse_sidebar') || 'Collapse sidebar')}
+        >
+          {getThemedIcon('ui', isSidebarCollapsed ? 'chevron_right' : 'chevron_left', 14, theme)}
+        </button>
+
+        {/* Drag handle (only show when not collapsed) */}
+        {!isSidebarCollapsed && (
+          <div
+            onMouseDown={onDragStart}
+            style={{ position:'absolute', right: -3, top:0, bottom:0, width:6, cursor:'col-resize' }}
+            aria-label={t('resize_sidebar') || 'Resize sidebar'}
+          />
+        )}
       </div>
 
       {/* Chat Area */}
@@ -1813,10 +1635,36 @@ const ChatPage = memo(() => {
             <h3 style={{ margin: 0 }}>
               {selectedClass === 'global' ? t('global_chat') :
                (selectedClass?.startsWith('dm:')
-                 ? (()=>{ const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); const otherId=(room?.participants||[]).find(p=>p!==user.uid); const other=allUsers.find(u=>u.docId===otherId); return other?.displayName || other?.email || 'Direct Message'; })()
+                 ? (()=>{ 
+                    const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+                    const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
+                    const other=allUsers.find(u=>u.docId===otherId); 
+                    return other?.email || 'Direct Message';
+                  })()
                  : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || 'Chat')
                )}
             </h3>
+            {/* Display name for DM conversations */}
+            {selectedClass?.startsWith('dm:') && (()=>{ 
+              const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+              const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
+              const other=allUsers.find(u=>u.docId===otherId); 
+              const displayName = other?.displayName;
+              const studentNumber = other?.studentNumber;
+              if (displayName) {
+                return (
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', fontWeight: 500 }}>
+                    {displayName}
+                    {studentNumber && (
+                      <span style={{ fontSize: '0.8rem', color: '#888', marginLeft: '0.25rem' }}>
+                        ({studentNumber})
+                      </span>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
               <span style={{
                 fontSize: '0.75rem',
@@ -2029,6 +1877,11 @@ const ChatPage = memo(() => {
                         gap: '0.25rem'
                       }}>
                         {msg.senderName}
+                        {senderUser?.studentNumber && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
+                            ({senderUser.studentNumber})
+                          </span>
+                        )}
                         {(senderUser?.deleted || senderUser?.disabled || senderUser?.isDisabled) && (
                           <span style={{
                             fontSize: '0.7rem',
@@ -2118,7 +1971,7 @@ const ChatPage = memo(() => {
                     ) : msg.messageType === 'poll' ? (
                       <div style={{ minWidth: 250 }}>
                         <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <BarChart3 size={20} style={{ color: getUserThemeColor() }} /> {msg.pollQuestion}
+                          {getThemedIcon('ui', 'bar_chart', 20, theme)} {msg.pollQuestion}
                         </div>
                         {msg.pollOptions?.map((option, idx) => {
                           const votes = msg.pollVotes?.[idx] || [];
@@ -2134,25 +1987,18 @@ const ChatPage = memo(() => {
                                   const msgRef = doc(db, 'messages', msg.id);
                                   // Initialize pollVotes if it doesn't exist
                                   const currentVotes = msg.pollVotes || {};
-                                  const updates = {};
-                                  
                                   // Remove user from all options
-                                  msg.pollOptions.forEach((_, i) => {
-                                    const currentOptionVotes = currentVotes[i] || [];
-                                    if (currentOptionVotes.includes(user.uid)) {
-                                      updates[`pollVotes.${i}`] = arrayRemove(user.uid);
-                                    }
-                                  });
-                                  
-                                  // Apply removals if any
-                                  if (Object.keys(updates).length > 0) {
-                                    await updateDoc(msgRef, updates);
-                                  }
+                                  await Promise.all(
+                                    msg.pollOptions.map(async (_, i) => {
+                                      const currentOptionVotes = currentVotes[i] || [];
+                                      if (currentOptionVotes.includes(user.uid)) {
+                                        await chatService.removePollVote(msgRef.id, user.uid, i);
+                                      }
+                                    })
+                                  );
                                   
                                   // Add to selected option
-                                  await updateDoc(msgRef, {
-                                    [`pollVotes.${idx}`]: arrayUnion(user.uid)
-                                  });
+                                  await chatService.votePoll(msgRef.id, user.uid, idx);
                                 } catch (err) {
                                   logger.error('Poll vote error:', err);
                                   toast?.showError('Failed to vote');
@@ -2250,49 +2096,138 @@ const ChatPage = memo(() => {
                         );
                       })()}
                     </div>
-                    {/* Emoji Reactions - Single per user */}
+                    {/* Icon/Emoji Reactions - Single per user */}
                     {msg.reactions && Object.keys(msg.reactions).length > 0 && (() => {
-                      // Determine top emojis (most reactions)
+                      // Determine top reactions (most reactions)
                       const counts = {};
-                      Object.values(msg.reactions || {}).forEach(emo => {
-                        const isEmoji = typeof emo === 'string' && emo.length <= 3 && !/^[A-Za-z0-9+/_=-]+$/.test(emo);
-                        if (!isEmoji) return;
-                        counts[emo] = (counts[emo] || 0) + 1;
+                      Object.values(msg.reactions || {}).forEach(reaction => {
+                        // Check if it's an emoji (old format) or reaction name (new format)
+                        const isEmoji = typeof reaction === 'string' && reaction.length <= 3 && !/^[A-Za-z0-9+/_=-]+$/.test(reaction);
+                        const isReactionName = ['ThumbsUp','Heart','Smile','Surprise','Frown','Pray'].includes(reaction);
+                        if (!isEmoji && !isReactionName) return;
+                        counts[reaction] = (counts[reaction] || 0) + 1;
                       });
                       const topList = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3);
                       if (topList.length === 0) return null;
+                      
+                      const getReactionDisplay = (reaction, color) => {
+                        // Check if it's a reaction name (new format)
+                        if (['ThumbsUp','Heart','Smile','Surprise','Frown','Pray'].includes(reaction)) {
+                          const getReactionIcon = (name, size, theme, iconColor) => {
+                            switch(name) {
+                              case 'ThumbsUp':
+                                return getColoredIcon('ui', 'thumbs_up', size, iconColor, theme);
+                              case 'Heart':
+                                return getColoredIcon('ui', 'heart', size, iconColor, theme);
+                              case 'Smile':
+                                return getColoredIcon('ui', 'smile', size, iconColor, theme);
+                              case 'Surprise':
+                                return getColoredIcon('ui', 'help_circle', size, iconColor, theme);
+                              case 'Frown':
+                                return getColoredIcon('ui', 'x_circle', size, iconColor, theme);
+                              case 'Pray':
+                                return getColoredIcon('ui', 'star', size, iconColor, theme);
+                              default:
+                                return getColoredIcon('ui', 'smile', size, iconColor, theme);
+                            }
+                          };
+                          return getReactionIcon(reaction, 14, theme, color);
+                        }
+                        // Return emoji as-is (old format)
+                        return reaction;
+                      };
+
+                      const getReactionColor = (reaction) => {
+                        // Define colors for each reaction type
+                        const reactionColors = {
+                          'ThumbsUp': '#3b82f6', // Blue
+                          'Heart': '#ef4444',   // Red
+                          'Smile': '#eab308',  // Yellow
+                          'Surprise': '#f97316', // Orange
+                          'Frown': '#6b7280',   // Gray
+                          'Pray': '#8b5cf6',    // Purple
+                        };
+                        
+                        // Check if it's a reaction name (new format)
+                        if (['ThumbsUp','Heart','Smile','Surprise','Frown','Pray'].includes(reaction)) {
+                          return reactionColors[reaction] || '#6b7280';
+                        }
+                        
+                        // For emojis, use a default color
+                        return '#6b7280';
+                      };
+
                       return (
-                        <div style={{ position:'absolute', left: isOwnMessage? -22 : 'auto', right: isOwnMessage? 'auto' : -22, top: '50%', transform:'translateY(-50%)', display:'flex', flexDirection:'column', gap:4 }}>
-                          {topList.map(([emo, n]) => {
-                            const active = msg.reactions[user.uid] === emo;
+                        <div style={{ 
+                          position:'absolute', 
+                          left: isOwnMessage? -22 : 'auto', 
+                          right: isOwnMessage? 'auto' : -22, 
+                          top: '50%', 
+                          transform:'translateY(-50%)', 
+                          display:'flex', 
+                          flexDirection:'row', 
+                          gap:6,
+                          padding: '4px',
+                          background: 'var(--panel)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 16,
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)'
+                        }}>
+                          {topList.map(([reaction, count]) => {
+                            const active = msg.reactions[user.uid] === reaction;
+                            const reactionColor = getReactionColor(reaction);
                             return (
-                              <button key={emo}
+                              <button key={reaction}
                                 onClick={async ()=>{
                                   try {
-                                    const msgRef = doc(db, 'messages', msg.id);
                                     if (active) {
-                                      await updateDoc(msgRef, { [`reactions.${user.uid}`]: deleteField() });
+                                      await chatService.removeReaction(msg.id, user.uid);
                                     } else {
-                                      await updateDoc(msgRef, { [`reactions.${user.uid}`]: emo });
+                                      await chatService.addReaction(msg.id, user.uid, reaction);
                                     }
                                   } catch {}
                                 }}
-                                title={`${n}`}
+                                title={`${count} ${count === 1 ? 'reaction' : 'reactions'}`}
                                 style={{ 
-                                  background:'linear-gradient(135deg, #ffffff, #f8f9fa)', 
-                                  border:'1px solid #e9ecef', 
-                                  borderRadius:16, 
+                                  background: active ? `${reactionColor}20` : 'transparent',
+                                  border: active ? `1px solid ${reactionColor}` : '1px solid var(--border)',
+                                  borderRadius:12, 
                                   padding:'4px 8px', 
-                                  fontSize:'1.1rem', 
+                                  fontSize:'0.85rem', 
                                   cursor:'pointer', 
-                                  boxShadow:'0 3px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)', 
-                                  opacity: active?1:0.85,
+                                  boxShadow:'0 2px 4px rgba(0,0,0,0.08)', 
+                                  opacity: active?1:0.9,
                                   transition:'all 0.2s ease',
-                                  fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
-                                  fontWeight: 400,
-                                  lineHeight: 1.2
+                                  display:'flex',
+                                  alignItems:'center',
+                                  gap:'4px',
+                                  color: 'var(--text)',
+                                  fontWeight: active ? '600' : '500',
+                                  minWidth: 'fit-content'
                                 }}
-                              >{emo} {n}</button>
+                                onMouseEnter={(e) => {
+                                  if (!active) {
+                                    e.currentTarget.style.background = `${reactionColor}10`;
+                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!active) {
+                                    e.currentTarget.style.background = 'transparent';
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                  }
+                                }}
+                              >
+                                {getReactionDisplay(reaction, reactionColor)}
+                                <span style={{ 
+                                  fontSize: '0.75rem', 
+                                  fontWeight: '600',
+                                  lineHeight: 1,
+                                  color: active ? reactionColor : 'var(--text-secondary)'
+                                }}>
+                                  {count}
+                                </span>
+                              </button>
                             );
                           })}
                         </div>
@@ -2352,44 +2287,64 @@ const ChatPage = memo(() => {
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {['ThumbsUp','Heart','Laugh','Surprise','Sad','Praying'].map((emojiName, index) => {
-                          const emojiIcons = ['👍','❤️','😂','😮','😢','🙏'];
-                          const emoji = emojiIcons[index];
+                        {['ThumbsUp','Heart','Smile','Surprise','Frown','Pray'].map((reactionName, index) => {
+                          const getReactionIcon = (name, size, theme) => {
+                            switch(name) {
+                              case 'ThumbsUp':
+                                return getThemedIcon('ui', 'thumbs_up', size, theme);
+                              case 'Heart':
+                                return getThemedIcon('ui', 'heart', size, theme);
+                              case 'Smile':
+                                return getThemedIcon('ui', 'smile', size, theme);
+                              case 'Surprise':
+                                return getThemedIcon('ui', 'help_circle', size, theme);
+                              case 'Frown':
+                                return getThemedIcon('ui', 'x_circle', size, theme);
+                              case 'Pray':
+                                return getThemedIcon('ui', 'star', size, theme);
+                              default:
+                                return getThemedIcon('ui', 'smile', size, theme);
+                            }
+                          };
                           return (
                             <button
-                            key={emoji}
+                            key={reactionName}
                             onClick={async () => {
                               try {
-                                const msgRef = doc(db, 'messages', reactionMenu.msgId);
-                                await updateDoc(msgRef, { [`reactions.${user.uid}`]: emoji });
+                                await chatService.addReaction(reactionMenu.msgId, user.uid, reactionName);
                                 setReactionMenu(null);
                               } catch {}
                             }}
                             style={{
                               background: 'transparent',
-                              border: 'none',
-                              fontSize: '1.8rem',
+                              border: '1px solid var(--border)',
+                              fontSize: '1rem',
                               cursor: 'pointer',
-                              padding: '0.4rem 0.5rem',
-                              borderRadius: 12,
-                              transition: 'all 0.15s ease',
-                              fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
-                              fontWeight: 400,
-                              lineHeight: 1.1,
-                              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                              padding: '0.5rem',
+                              borderRadius: '12px',
+                              transition: 'all 0.2s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text)',
+                              backgroundColor: 'var(--background-secondary)',
+                              backdropFilter: 'blur(8px)'
                             }}
                             onMouseEnter={(e) => { 
-                              e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; 
-                              e.currentTarget.style.transform = 'scale(1.12) translateY(-1px)'; 
-                              e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))';
+                              e.currentTarget.style.background = 'var(--background-hover)'; 
+                              e.currentTarget.style.transform = 'scale(1.1) translateY(-2px)'; 
+                              e.currentTarget.style.borderColor = 'var(--accent)';
+                              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
                             }} 
                             onMouseLeave={(e) => { 
-                              e.currentTarget.style.background = 'transparent'; 
+                              e.currentTarget.style.background = 'var(--background-secondary)'; 
                               e.currentTarget.style.transform = 'scale(1) translateY(0)'; 
-                              e.currentTarget.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))';
+                              e.currentTarget.style.borderColor = 'var(--border)';
+                              e.currentTarget.style.boxShadow = 'none';
                             }}
+                            title={reactionName}
                           >
-                            {emoji}
+                            {getReactionIcon(reactionName, 18, theme)}
                           </button>
                         );
                         })}
@@ -2768,58 +2723,77 @@ const ChatPage = memo(() => {
                   onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
                   onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
                 >
-                  <BarChart3 size={16} style={{ color: getUserThemeColor() }} />
+                  {getThemedIcon('ui', 'bar_chart', 16, theme)}
                 </button>
               </>
             )}
             {/* Debug: Test emoji picker visibility */}
             {/* Development debug removed */}
             
-            {/* Modern Emoji Picker */}
+            {/* Modern Compact Emoji Picker */}
             {showEmojiPicker && (
               <div
+                data-emoji-picker="true"
                 style={{
                   position: 'fixed',
                   bottom: '70px',
                   right: '20px',
                   zIndex: 9999,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  background: 'white',
-                  border: '1px solid #e0e0e0',
-                  padding: '4px'
+                  background: 'var(--panel)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  padding: '8px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  backdropFilter: 'blur(12px)'
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <EmojiPicker
-                  onEmojiClick={(emojiData) => {
-                    const emoji = emojiData.emoji;
-                    setNewMessage(prev => prev + emoji);
-                    messageInputRef.current?.focus();
-                    setShowEmojiPicker(false);
-                  }}
-                  theme="light"
-                  width={200}
-                  height={150}
-                  previewConfig={{
-                    showPreview: false
-                  }}
-                  searchPlaceholder="Search..."
-                  emojiStyle="native"
-                  categories={[
-                    "smileys_people",
-                    "animals_nature", 
-                    "food_drink",
-                    "travel_places",
-                    "activities",
-                    "objects",
-                    "symbols",
-                    "flags"
-                  ]}
-                  lazyLoadEmojis={true}
-                  skinTonesDisabled={true}
-                />
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, 1fr)',
+                  gap: '4px',
+                  width: '200px'
+                }}>
+                  {[
+                    '😀', '😂', '❤️', '👍', '😎',
+                    '🎉', '🔥', '✨', '🙏', '💯',
+                    '👏', '🤝', '💪', '🎯', '🌟',
+                    '💡', '🚀', '💎', '🏆', '📚'
+                  ].map((emoji, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setNewMessage(prev => prev + emoji);
+                        messageInputRef.current?.focus();
+                        setShowEmojiPicker(false);
+                      }}
+                      style={{
+                        fontSize: '1.5rem',
+                        padding: '8px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--text)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--background-hover)';
+                        e.currentTarget.style.transform = 'scale(1.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                      title={emoji}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             
@@ -2833,7 +2807,7 @@ const ChatPage = memo(() => {
                 cursor: 'pointer',
                 fontSize: '1.3rem'
               }} title={t('attach') || 'Attach'}>
-                {getThemedIcon('ui', 'paperclip', 20, theme)}
+                {getThemedIcon('ui', 'attachment', 20, theme)}
                 <input
                   type="file"
                   onChange={handleFileSelect}
@@ -3035,7 +3009,7 @@ const ChatPage = memo(() => {
         <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', padding:'2rem', borderRadius:16, minWidth:450, maxWidth:550, width:'90%', boxShadow:'0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }} onClick={(e)=>e.stopPropagation()}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.5rem' }}>
             <h3 style={{ margin:0, fontSize:'1.25rem', fontWeight:700, display:'flex', alignItems:'center', gap:'0.5rem' }}>
-              <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'1rem' }}><BarChart3 size={18} /></div>
+              <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'1rem' }}>{getThemedIcon('ui', 'bar_chart', 18, theme)}</div>
               {t('create_poll') || 'Create Poll'}
             </h3>
             <button onClick={()=>setShowPollModal(false)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'1.5rem', padding:0, width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
@@ -3124,7 +3098,7 @@ const ChatPage = memo(() => {
                     pollVotes: {},
                     createdAt: serverTimestamp()
                   };
-                  await addDoc(collection(db, 'messages'), pollData);
+                  await chatService.createPollMessage(pollData);
                   setShowPollModal(false);
                   setPollQuestion('');
                   setPollOptions(['','']);
@@ -3221,6 +3195,11 @@ const ChatPage = memo(() => {
                     <div>
                       <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                         {m.displayName || m.email}
+                        {m.studentNumber && (
+                          <span style={{ fontSize: '0.75rem', color: '#666', fontWeight: 'normal' }}>
+                            ({m.studentNumber})
+                          </span>
+                        )}
                         {m.role === USER_ROLES.ADMIN && (
                           <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Admin</span>
                         )}

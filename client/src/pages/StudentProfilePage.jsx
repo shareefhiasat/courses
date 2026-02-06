@@ -6,7 +6,6 @@ import { db } from '@firebaseServices/config';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '@firebaseServices/badgeService';
-import { CheckSmallIcon } from '@utils/icons.jsx';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Loading, Select } from '@ui';
 import { StudentQRCodeDisplay } from '@ui';
@@ -16,12 +15,9 @@ const StudentProfilePage = () => {
   const { user, isAdmin, isHR, isInstructor } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [searchParams, setSearchParams] = useSearchParams();
   const [targetUserId, setTargetUserId] = useState(searchParams.get('uid') || user?.uid);
-  
-  console.log('StudentProfilePage - targetUserId:', targetUserId);
-  console.log('StudentProfilePage - user:', user);
-  console.log('StudentProfilePage - isAdmin:', isAdmin);
   
   const [loading, setLoading] = useState(true);
   const [studentData, setStudentData] = useState(null);
@@ -439,7 +435,7 @@ const StudentProfilePage = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
         <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
-          <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          {getThemedIcon('ui', 'user', 64, theme)}
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
             Student Not Found
           </h2>
@@ -595,12 +591,12 @@ const StudentProfilePage = () => {
           <div className="mb-6">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
-                <Users className="w-6 h-6 text-purple-600" />
+                {getThemedIcon('ui', 'users', 24, theme)}
                 Students ({allStudents.length})
               </h2>
               {allStudents.length === 0 ? (
                 <div className="text-center py-12">
-                  <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  {getThemedIcon('ui', 'user', 64, theme)}
                   <p className="text-gray-600 dark:text-gray-400">No students found</p>
                 </div>
               ) : (
@@ -653,7 +649,7 @@ const StudentProfilePage = () => {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 hover:shadow-xl transition-shadow border border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                {getThemedIcon('ui', 'calendar', 20, theme)}
               </div>
             </div>
             <div className="text-xs uppercase font-semibold text-gray-500 dark:text-gray-400 mb-1">{t('total_sessions')}</div>
@@ -663,7 +659,7 @@ const StudentProfilePage = () => {
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl shadow-lg p-5 hover:shadow-xl transition-shadow border border-green-100 dark:border-green-800">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-xl flex items-center justify-center">
-                <CheckSmallIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                {getThemedIcon('ui', 'check_circle', 20, theme)}
               </div>
             </div>
             <div className="text-xs uppercase font-semibold text-green-700 dark:text-green-400 mb-1">{t('present_count')}</div>
@@ -673,7 +669,7 @@ const StudentProfilePage = () => {
           <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-2xl shadow-lg p-5 hover:shadow-xl transition-shadow border border-red-100 dark:border-red-800">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-red-100 dark:bg-red-800 rounded-xl flex items-center justify-center">
-                <X className="w-5 h-5 text-red-600 dark:text-red-400" />
+                {getThemedIcon('ui', 'x_circle', 20, theme)}
               </div>
             </div>
             <div className="text-xs uppercase font-semibold text-red-700 dark:text-red-400 mb-1">{t('absent_count')}</div>
@@ -683,7 +679,7 @@ const StudentProfilePage = () => {
           <div className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-2xl shadow-lg p-5 hover:shadow-xl transition-shadow border border-yellow-100 dark:border-yellow-800">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-800 rounded-xl flex items-center justify-center">
-                <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                {getThemedIcon('ui', 'clock', 20, theme)}
               </div>
             </div>
             <div className="text-xs uppercase font-semibold text-yellow-700 dark:text-yellow-400 mb-1">{t('late_count')}</div>
@@ -693,7 +689,7 @@ const StudentProfilePage = () => {
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl shadow-lg p-5 hover:shadow-xl transition-shadow border border-blue-100 dark:border-blue-800">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-xl flex items-center justify-center">
-                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                {getThemedIcon('ui', 'file_text', 20, theme)}
               </div>
             </div>
             <div className="text-xs uppercase font-semibold text-blue-700 dark:text-blue-400 mb-1">{t('leave_count')}</div>
@@ -703,7 +699,7 @@ const StudentProfilePage = () => {
           <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-2xl shadow-lg p-5 hover:shadow-xl transition-shadow border border-purple-100 dark:border-purple-800">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                {getThemedIcon('ui', 'trending_up', 20, theme)}
               </div>
             </div>
             <div className="text-xs uppercase font-semibold text-purple-700 dark:text-purple-400 mb-1">{t('attendance_rate')}</div>
@@ -726,7 +722,7 @@ const StudentProfilePage = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-6 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900 dark:to-blue-900 rounded-xl flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              {getThemedIcon('ui', 'calendar', 24, theme)}
             </div>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
               {t('attendance_summary')}
@@ -746,7 +742,7 @@ const StudentProfilePage = () => {
                   <div key={idx} className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:shadow-lg transition-all">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-xl flex items-center justify-center">
-                        <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        {getThemedIcon('ui', 'award', 20, theme)}
                       </div>
                       <h3 className="font-bold text-xl text-gray-800 dark:text-white">
                         {classData.className}
@@ -803,7 +799,7 @@ const StudentProfilePage = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-6 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+              {getThemedIcon('ui', 'trending_up', 24, theme)}
             </div>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
               {t('performance_summary')}
@@ -814,7 +810,7 @@ const StudentProfilePage = () => {
             {/* Homework */}
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-5 h-5 text-blue-600" />
+                {getThemedIcon('ui', 'file_text', 20, theme)}
                 <h3 className="font-semibold text-lg text-gray-800 dark:text-white">
                   {t('homework_performance')}
                 </h3>
@@ -838,7 +834,7 @@ const StudentProfilePage = () => {
             {/* Quiz */}
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Award className="w-5 h-5 text-green-600" />
+                {getThemedIcon('ui', 'award', 20, theme)}
                 <h3 className="font-semibold text-lg text-gray-800 dark:text-white">
                   {t('quiz_performance')}
                 </h3>
@@ -862,7 +858,7 @@ const StudentProfilePage = () => {
             {/* Training/Activities */}
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Clock className="w-5 h-5 text-purple-600" />
+                {getThemedIcon('ui', 'clock', 20, theme)}
                 <h3 className="font-semibold text-lg text-gray-800 dark:text-white">
                   {t('activity_performance')}
                 </h3>
@@ -889,7 +885,7 @@ const StudentProfilePage = () => {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mt-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <Trophy className="w-6 h-6 text-yellow-500" />
+              {getThemedIcon('ui', 'trophy', 24, theme)}
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                 {t('badges_achievements') || 'Badges & Achievements'}
               </h2>
@@ -928,7 +924,7 @@ const StudentProfilePage = () => {
 
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-5 h-5 text-green-500" />
+                  {getThemedIcon('ui', 'target', 20, theme)}
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t('avg_score') || 'Avg Score'}
                   </span>
@@ -940,7 +936,7 @@ const StudentProfilePage = () => {
 
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
                 <div className="flex items-center gap-2 mb-2">
-                  <Award className="w-5 h-5 text-purple-500" />
+                  {getThemedIcon('ui', 'award', 20, theme)}
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t('perfect_scores') || 'Perfect Scores'}
                   </span>
@@ -1029,7 +1025,7 @@ const StudentProfilePage = () => {
                   {/* Earned Checkmark */}
                   {isEarned && (
                     <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                      <CheckSmallIcon className="w-4 h-4 text-white" />
+                      {getThemedIcon('ui', 'check', 16, theme)}
                     </div>
                   )}
 
@@ -1047,7 +1043,7 @@ const StudentProfilePage = () => {
           {/* No Badges Message */}
           {allBadges.length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <Trophy className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              {getThemedIcon('ui', 'trophy', 64, theme)}
               <p>{t('no_badges_available') || 'No badges available yet'}</p>
             </div>
           )}

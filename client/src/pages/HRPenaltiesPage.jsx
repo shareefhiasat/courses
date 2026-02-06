@@ -122,8 +122,22 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     loadData();
     // Log page view
     try {
+      console.log('🔍 PENALTY VIEWING LOG - About to log activity:', {
+        timestamp: new Date(),
+        timestampUTC: new Date().toISOString(),
+        userTime: new Date().toLocaleString(),
+        qatarTime: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' }),
+        userId: user?.uid,
+        userEmail: user?.email,
+        activityType: ACTIVITY_TYPES.PENALTY_VIEWED
+      });
+      
       logActivity(ACTIVITY_TYPES.PENALTY_VIEWED, {});
-    } catch (e) { }
+      
+      console.log('✅ PENALTY VIEWING LOG - Activity logged successfully');
+    } catch (e) {
+      console.error('❌ PENALTY VIEWING LOG - Error logging activity:', e);
+    }
   }, [isHR, isAdmin, isSuperAdmin]);
 
   useEffect(() => {
