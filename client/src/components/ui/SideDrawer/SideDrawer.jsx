@@ -1071,7 +1071,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
               display: 'flex',
               justifyContent: collapsed ? 'center' : 'space-between',
               alignItems: 'center',
-              gap: collapsed ? '0.5rem' : '0'
+              gap: collapsed ? '0.75rem' : '0.5rem'
             }}>
               {/* Language Toggle */}
               <button
@@ -1079,7 +1079,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   toggleLang();
                   if (!collapsed) onClose();
                 }}
-                title={collapsed ? (lang === 'en' ? 'العربية' : 'English') : ''}
+                title={collapsed ? (t('switch_language') || (lang === 'en' ? 'العربية' : 'English')) : ''}
                 style={{
                   ...langButtonStyle,
                   margin: '0',

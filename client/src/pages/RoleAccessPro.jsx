@@ -3,10 +3,10 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { db } from '@firebaseServices/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Shield, Settings2, Save, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '@ui';
 import { USER_ROLES } from '@constants/userRoles';
 import { getAllLocalizedScreens } from '@constants/screenDefinitions';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './RoleAccessPro.module.css';
 
 export default function RoleAccessPro() {
@@ -133,7 +133,7 @@ export default function RoleAccessPro() {
       <Container maxWidth="md" className={styles.accessDenied}>
         <Card>
           <CardBody className={styles.accessDeniedContent}>
-            <Shield size={56} className={styles.accessDeniedIcon} />
+            {getThemedIcon('ui', 'shield', 56, theme)}
             <h2>Access Denied</h2>
             <p>Only admins can access this page.</p>
           </CardBody>
@@ -161,7 +161,7 @@ export default function RoleAccessPro() {
         <CardBody>
           <div className={styles.header}>
             <div className={styles.headerContent} style={{ display: 'none' }}>
-              <Settings2 size={32} className={styles.headerIcon} />
+              {getThemedIcon('ui', 'settings', 32, theme)}
               {/* Title removed per user request */}
             </div>
             
@@ -217,7 +217,7 @@ export default function RoleAccessPro() {
                   style={{ cursor: 'pointer', userSelect: 'none' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {expandedGroups[group] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                    {expandedGroups[group] ? getThemedIcon('ui', 'chevron_down', 18, theme) : getThemedIcon('ui', 'chevron_right', 18, theme)}
                     <h3>{group}</h3>
                   </div>
                   <Badge variant="subtle" color="default" style={{ color: '#000' }}>{items.length} screens</Badge>
@@ -291,7 +291,7 @@ export default function RoleAccessPro() {
 
           <div className={styles.saveBar}>
             <div className={styles.saveBarContent}>
-              <Save size={16} />
+              {getThemedIcon('ui', 'save', 16, theme)}
               <span>{t('make_sure_to_save_changes') || 'Make sure to save your changes'}</span>
             </div>
             <Button

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Card, CardBody, Container } from '@ui';
-import { ArrowLeft, Download, Share2, Maximize2, RotateCw, X } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
+import { getThemedIcon } from '@constants/iconTypes';
 import QRCode from 'qrcode';
 
 const QRCodeDisplayPage = () => {
@@ -260,7 +260,7 @@ const QRCodeDisplayPage = () => {
               onClick={() => navigate(-1)}
               className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              {getThemedIcon('ui', 'arrow_left', 16, theme)}
             </Button>
             
             <div className="flex items-center space-x-2">
@@ -271,7 +271,7 @@ const QRCodeDisplayPage = () => {
                 title={`${t('rotate') || 'Rotate'} (R)`}
                 className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <RotateCw className="w-4 h-4" />
+                {getThemedIcon('ui', 'rotate_cw', 16, theme)}
               </Button>
               <Button
                 variant="outline"
@@ -280,7 +280,7 @@ const QRCodeDisplayPage = () => {
                 title={`${t('fullscreen') || 'Fullscreen'} (F)`}
                 className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <Maximize2 className="w-4 h-4" />
+                {getThemedIcon('ui', 'maximize', 16, theme)}
               </Button>
               <Button
                 variant="outline"
@@ -289,7 +289,7 @@ const QRCodeDisplayPage = () => {
                 title={`${t('download') || 'Download'} (D)`}
                 className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <Download className="w-4 h-4" />
+                {getThemedIcon('ui', 'download', 16, theme)}
               </Button>
               <Button
                 variant="outline"
@@ -298,7 +298,7 @@ const QRCodeDisplayPage = () => {
                 title={`${t('share') || 'Share'} (S)`}
                 className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <Share2 className="w-4 h-4" />
+                {getThemedIcon('ui', 'share', 16, theme)}
               </Button>
             </div>
           </div>

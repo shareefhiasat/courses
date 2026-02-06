@@ -8,7 +8,6 @@ import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '@ui';
 import { FancyLoading } from '@ui';
-import { UserX, UserCheck, Search, Shield, AlertCircle } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ManageEnrollmentsPage.module.css';
 
@@ -326,7 +325,7 @@ const ManageEnrollmentsPage = () => {
   if (!isAdmin && !isInstructor) {
     return (
       <Container maxWidth="md" className={styles.accessDenied}>
-        <Shield size={48} className={styles.accessDeniedIcon} />
+        {getThemedIcon('ui', 'shield', 48, theme)}
         <h2>{t('access_denied') || 'Access Denied'}</h2>
         <p>{t('page_only_accessible_instructors_admins') || 'This page is only accessible to instructors and admins.'}</p>
       </Container>
@@ -565,7 +564,7 @@ const ManageEnrollmentsPage = () => {
                       color: '#495057'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: '600', color: '#343a40' }}>
-                        <AlertCircle size={16} style={{ color: '#8b5cf6' }} />
+                        {getThemedIcon('ui', 'alert_circle', 16, theme)}
                         <span>Disabling Students</span>
                       </div>
                       <div style={{ lineHeight: '1.4' }}>
@@ -631,7 +630,7 @@ const ManageEnrollmentsPage = () => {
                         onClick={() => toggleStudentAccess(student.id, student.isDisabled)}
                         variant={student.isDisabled ? 'primary' : 'danger'}
                         size="sm"
-                        icon={student.isDisabled ? <UserCheck size={16} /> : <UserX size={16} />}
+                        icon={student.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
                       >
                         {student.isDisabled ? (t('enable') || 'Enable') : (t('disable') || 'Disable')}
                       </Button>

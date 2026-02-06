@@ -3,7 +3,6 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { TrendingUp, TrendingDown, User, Edit, Trash, Target, Users } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
@@ -591,8 +590,8 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             color: value > 0 ? '#22c55e' : value < 0 ? '#ef4444' : '#6b7280'
           }}>
             {value > 0 && '+'}{value}
-            {value > 0 && <TrendingUp size={14} color="#22c55e" />}
-            {value < 0 && <TrendingDown size={14} color="#ef4444" />}
+            {value > 0 && getThemedIcon('ui', 'trending_up', 14, theme)}
+            {value < 0 && getThemedIcon('ui', 'trending_down', 14, theme)}
           </div>
         );
       }
@@ -670,7 +669,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           <Button
             size="sm"
             variant="ghost"
-            icon={<User size={16} />}
+            icon={getThemedIcon('ui', 'user', 16, theme)}
             onClick={() => window.open(`/student-profile/${params.row.studentId}`, '_blank')}
             style={{ color: 'var(--attendance-accent, #800020)' }}
           >
@@ -679,7 +678,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           <Button
             size="sm"
             variant="ghost"
-            icon={<Edit size={16} />}
+            icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
             Edit
@@ -687,7 +686,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           <Button
             size="sm"
             variant="ghost"
-            icon={<Trash size={16} />}
+            icon={getThemedIcon('ui', 'trash', 16, theme)}
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
@@ -711,7 +710,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> Editing Behavior: {getBehaviorLabel(editingBehavior.type, lang) || editingBehavior.type}
+          {getThemedIcon('ui', 'edit', 16, theme)} Editing Behavior: {getBehaviorLabel(editingBehavior.type, lang) || editingBehavior.type}
         </div>
       )}
 
@@ -999,7 +998,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <Target size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'target', 16, theme)}
           {behaviors.length} Total
         </div>
         <div style={{ 
@@ -1014,7 +1013,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <Users size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'users', 16, theme)}
           {new Set(behaviors.map(b => b.studentId)).size} Students
         </div>
         <div style={{ 
@@ -1029,7 +1028,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           fontWeight: '500',
           color: '#166534'
         }}>
-          <TrendingUp size={16} color="#166534" />
+          {getThemedIcon('ui', 'trending_up', 16, theme)}
           {behaviors.filter(b => (b.points || 0) > 0).reduce((sum, b) => sum + (b.points || 0), 0)} Positive
         </div>
         <div style={{ 
@@ -1044,7 +1043,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <TrendingDown size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'trending_down', 16, theme)}
           {behaviors.filter(b => (b.points || 0) < 0).reduce((sum, b) => sum + (b.points || 0), 0)} Negative
         </div>
       </div>

@@ -3,7 +3,6 @@ import logger from '@utils/logger';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { useAuth } from '@contexts/AuthContext';
-import { Volume2, Vibrate, Bell, Search, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { 
   subscribeToNotifications,
   archiveNotification,
@@ -13,9 +12,9 @@ import {
   markAllNotificationsRead
 } from '@firebaseServices/notificationService';
 import { useLang } from '@contexts/LangContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, Container, Loading } from '@ui';
 import { ToggleSwitch } from '@ui';
@@ -385,7 +384,7 @@ const NotificationsPage = () => {
             </div>
             {checkSupport().vibration && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Vibrate size={18} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                {getThemedIcon('ui', 'vibrate', 18, theme)}
                 <ToggleSwitch
                   label=""
                   checked={vibrationEnabled}
@@ -397,7 +396,7 @@ const NotificationsPage = () => {
             )}
             {checkSupport().notification && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Bell size={18} style={{ color: isDark ? '#9ca3af' : '#6b7280' }} />
+                {getThemedIcon('ui', 'bell', 18, theme)}
                 <ToggleSwitch
                   label=""
                   checked={browserNotificationsEnabled}
@@ -412,7 +411,7 @@ const NotificationsPage = () => {
                   title={t('test_browser_notification') || 'Test Browser Notification'}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                 >
-                  <TestTube size={16} />
+                  {getThemedIcon('ui', 'test_tube', 16, theme)}
                 </Button>
               </div>
             )}
@@ -432,13 +431,7 @@ const NotificationsPage = () => {
         {/* Search */}
         <div style={{ marginBottom: '1rem' }}>
           <div style={{ position: 'relative' }}>
-            <Search size={18} style={{
-              position: 'absolute',
-              left: '1rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: isDark ? '#9ca3af' : '#6b7280'
-            }} />
+            {getThemedIcon('ui', 'search', 18, theme)}
             <Input
               type="text"
               placeholder={t('search_notifications') || 'Search notifications...'}
@@ -631,7 +624,7 @@ const NotificationsPage = () => {
             borderRadius: '12px',
             color: isDark ? '#9ca3af' : '#6b7280'
           }}>
-            <Bell size={64} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+            {getThemedIcon('ui', 'bell', 64, theme)}
             <p style={{ margin: 0, fontSize: '1rem', fontWeight: 500 }}>
               {searchTerm || filterType !== 'all' || filterCategory !== 'all'
                 ? 'No notifications match your filters'
@@ -745,7 +738,7 @@ const NotificationsPage = () => {
                           e.currentTarget.style.background = 'transparent';
                         }}
                       >
-                        <Eye size={16} />
+                        {getThemedIcon('ui', 'eye', 16, theme)}
                       </button>
                     ) : (
                       <button
@@ -772,7 +765,7 @@ const NotificationsPage = () => {
                           e.currentTarget.style.background = 'transparent';
                         }}
                       >
-                        <EyeOff size={16} />
+                        {getThemedIcon('ui', 'eye_off', 16, theme)}
                       </button>
                     )}
                     {!notification.archived ? (
@@ -800,7 +793,7 @@ const NotificationsPage = () => {
                           e.currentTarget.style.background = 'transparent';
                         }}
                       >
-                        <Archive size={16} />
+                        {getThemedIcon('ui', 'archive', 16, theme)}
                       </button>
                     ) : null}
                     <button
@@ -829,7 +822,7 @@ const NotificationsPage = () => {
                         e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
                       }}
                     >
-                      <Trash2 size={16} />
+                      {getThemedIcon('ui', 'trash2', 16, theme)}
                     </button>
                   </div>
                 </div>

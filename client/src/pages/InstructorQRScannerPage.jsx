@@ -23,7 +23,6 @@ import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Select, DatePicker, Button, Loading, Card, CardBody } from '@ui';
 import { FancyLoading } from '@ui';
-import { FileText, Users, Filter } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
@@ -252,7 +251,7 @@ const InstructorQRScannerPage = () => {
   // Memoized options for dropdowns - following DashboardPage pattern
   const programOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_programs'), icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validPrograms = programs
       .filter(prog => prog.docId || prog.id)
@@ -266,7 +265,7 @@ const InstructorQRScannerPage = () => {
 
   const subjectOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_subjects'), icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validSubjects = subjects
       .filter(sub => {
@@ -279,14 +278,14 @@ const InstructorQRScannerPage = () => {
       .map(sub => {
         const value = sub.docId || sub.id;
         const label = lang === 'ar' ? (sub.name_ar || sub.name_en || sub.name || sub.code || value) : (sub.name_en || sub.name || sub.code || value);
-        return { value, label, icon: <FileText size={16} color="#374151" /> };
+        return { value, label, icon: getThemedIcon('ui', 'file_text', 16, theme) };
       });
     return [...opts, ...validSubjects];
   }, [subjects, selectedProgramId, t, lang]);
 
   const classOptions = useMemo(() => {
     const opts = [
-      { value: 'all', label: t('all_classes'), icon: <Filter size={16} color="#374151" /> }
+      { value: 'all', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) }
     ];
     const validClasses = classes
       .filter(cls => {
@@ -300,7 +299,7 @@ const InstructorQRScannerPage = () => {
         const value = cls.docId || cls.id;
         const name = lang === 'ar' ? (cls.name_ar || cls.name) : (cls.name || cls.name_ar || t('unnamed_class'));
         const label = `${name}${cls.code ? ` (${cls.code})` : ''}`;
-        return { value, label, icon: <Users size={16} color="#374151" /> };
+        return { value, label, icon: getThemedIcon('ui', 'users', 16, theme) };
       });
     return [...opts, ...validClasses];
   }, [classes, selectedSubjectId, t, lang]);

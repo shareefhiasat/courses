@@ -5,7 +5,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import EmojiPicker from 'emoji-picker-react';
 import { USER_ROLES } from '@constants/userRoles';
-import { MessageSquare, BarChart3, Book, GraduationCap, Upload, Download, Users, Paperclip } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import {
   collection,
   query,
@@ -40,7 +40,6 @@ import { formatDateTime, formatDate } from '@utils/date';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { canParticipate } from '@utils/userStatus';
 import { filterBadWords, containsBadWords } from '@utils/badWordFilter';
-import { getThemedIcon } from '@constants/iconTypes';
 import { 
   getRoleConfig,
   isFileTypeAllowedForRole,
@@ -1586,7 +1585,7 @@ const ChatPage = memo(() => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Book size={24} style={{ color: getUserThemeColor() }} />
+                {getThemedIcon('ui', 'book_open', 24, theme)}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
                     <div style={{ fontWeight: '600', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.name}</div>
@@ -1627,7 +1626,7 @@ const ChatPage = memo(() => {
                     if (!instructor) return null;
                     return (
                       <div style={{ fontSize: '0.85rem', color: '#444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <GraduationCap size={14} style={{ color: getUserThemeColor() }} />
+                        {getThemedIcon('ui', 'graduation_cap', 14, theme)}
                         <strong>{instructor.displayName || instructor.email}</strong>
                         {instructor.docId !== user.uid && (
                           <button
@@ -1772,7 +1771,7 @@ const ChatPage = memo(() => {
                         }}
                         title={archivedRooms[room.id] ? (t('unarchive') || 'Unarchive') : (t('archive') || 'Archive')}
                         style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'#666', fontSize:'0.9rem', lineHeight:1 }}
-                      >{archivedRooms[room.id] ? <Upload size={14} /> : <Download size={14} />}</button>
+                      >{archivedRooms[room.id] ? getThemedIcon('ui', 'upload', 14, theme) : getThemedIcon('ui', 'download', 14, theme)}</button>
                     </div>
                   </div>
                 </div>
@@ -1890,7 +1889,7 @@ const ChatPage = memo(() => {
           
           {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && (
             <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: '#666', cursor: 'pointer', textDecoration: 'underline' }}>
-              <Users size={16} style={{ marginRight: '4px', color: getUserThemeColor() }} /> {classMembers.length} {t('members')}
+              {getThemedIcon('ui', 'users', 16, theme)} {classMembers.length} {t('members')}
             </div>
           )}
         </div>
@@ -1928,7 +1927,7 @@ const ChatPage = memo(() => {
                   padding: '3rem',
                   color: '#999'
                 }}>
-                  <p style={{ fontSize: '3rem', margin: 0 }}><MessageSquare size={42} /></p>
+                  <p style={{ fontSize: '3rem', margin: 0 }}>{getThemedIcon('ui', 'message_square', 42, theme)}</p>
                   <p style={{ color: 'var(--muted)' }}>{t('no_messages')}</p>
                 </div>
               );
@@ -2099,7 +2098,7 @@ const ChatPage = memo(() => {
                         } else {
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <Paperclip size={16} style={{ color: '#666' }} />
+                              {getThemedIcon('ui', 'paperclip', 16, theme)}
                               <a
                                 href={msg.fileUrl}
                                 target="_blank"
@@ -2530,7 +2529,7 @@ const ChatPage = memo(() => {
             title={t('jump_to_bottom') || 'Jump to bottom'}
             style={{ position:'fixed', right: 24, bottom: 110, background:'#fff', border:'1px solid var(--border)', borderRadius: 20, padding:'8px 10px', boxShadow:'0 4px 12px rgba(0,0,0,0.15)', cursor:'pointer', zIndex: 20 }}
           >
-            <Download size={16} style={{ color: '#666' }} />
+            {getThemedIcon('ui', 'download', 16, theme)}
           </button>
         )}
         {/* Bottom search removed - now under top header */}
@@ -2834,7 +2833,7 @@ const ChatPage = memo(() => {
                 cursor: 'pointer',
                 fontSize: '1.3rem'
               }} title={t('attach') || 'Attach'}>
-                <Paperclip size={20} style={{ color: getUserThemeColor() }} />
+                {getThemedIcon('ui', 'paperclip', 20, theme)}
                 <input
                   type="file"
                   onChange={handleFileSelect}
@@ -3025,7 +3024,7 @@ const ChatPage = memo(() => {
             transition: 'background 0.2s'
           }}
         >
-          <Download size={16} style={{ marginRight: 8 }} /> Clear Their Messages
+          {getThemedIcon('ui', 'download', 16, theme)} Clear Their Messages
         </button>)}
       </div>
     )}
