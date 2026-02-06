@@ -326,40 +326,40 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { path: '/quiz-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
         { path: '/?mode=quizzes', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
         { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
-        { path: '/?mode=homework', icon: <FileText size={18} />, label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
+        { path: '/?mode=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
       ]
     },
     classes: {
       label: t('classes') || 'CLASSES',
       items: [
         { path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('my_enrollments') || 'My Enrollments' },
-        { path: '/class-schedules', icon: <Calendar size={18} />, label: t('schedules') || 'Schedules' },
+        { path: '/class-schedules', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('schedules') || 'Schedules' },
       ]
     },
     attendance: {
       label: t('attendance') || 'ATTENDANCE',
       items: [
-        { path: '/my-attendance', icon: <QrCode size={18} />, label: (t('my_attendance') || 'My Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/my-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('my_attendance') || 'My Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     community: {
       label: t('community') || 'COMMUNITY',
       items: [
-        { path: '/chat', icon: <MessageSquare size={18} />, label: (t('chat') || 'Chat').charAt(0).toUpperCase() + (t('chat') || 'Chat').slice(1) },
+        { path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: (t('chat') || 'Chat').charAt(0).toUpperCase() + (t('chat') || 'Chat').slice(1) },
         { path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('resources') || 'Resources').charAt(0).toUpperCase() + (t('resources') || 'Resources').slice(1) },
       ]
     },
     tools: {
       label: t('tools') || 'TOOLS',
       items: [
-        { key: 'timerControl', icon: <TimerIcon size={18} />, label: (t('timer') || 'Timer').charAt(0).toUpperCase() + (t('timer') || 'Timer').slice(1) }
+        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: (t('timer') || 'Timer').charAt(0).toUpperCase() + (t('timer') || 'Timer').slice(1) }
       ]
     },
     settings: {
       label: t('settings') || 'SETTINGS',
       items: [
-        { path: '/notifications', icon: <Bell size={18} />, label: (t('notifications') || 'Notifications').charAt(0).toUpperCase() + (t('notifications') || 'Notifications').slice(1) },
-        { path: '/profile', icon: <Settings size={18} />, label: (t('settings') || 'Settings').charAt(0).toUpperCase() + (t('settings') || 'Settings').slice(1) },
+        { path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: (t('notifications') || 'Notifications').charAt(0).toUpperCase() + (t('notifications') || 'Notifications').slice(1) },
+        { path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: (t('settings') || 'Settings').charAt(0).toUpperCase() + (t('settings') || 'Settings').slice(1) },
       ]
     }
   };
@@ -388,32 +388,32 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('programs') || 'Programs' },
         { path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('subjects') || 'Subjects' },
-        { path: '/dashboard', hash: '#classes', icon: <Calendar size={18} />, label: t('classes') || 'Classes' },
-        { path: '/dashboard', hash: '#enrollments', icon: <Users size={18} />, label: t('enrollments') || 'Enrollments' },
-        { path: '/dashboard', hash: '#marks', icon: <Award size={18} />, label: t('marks_entry') || 'Marks Entry' },
-        { path: '/dashboard', hash: '#class-schedule', icon: <Calendar size={18} />, label: t('class_schedules') || 'Class Schedule' },
+        { path: '/dashboard', hash: '#classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('classes') || 'Classes' },
+        { path: '/dashboard', hash: '#enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: t('enrollments') || 'Enrollments' },
+        { path: '/dashboard', hash: '#marks', icon: getThemedIcon('ui', 'award', 18, theme), label: t('marks_entry') || 'Marks Entry' },
+        { path: '/dashboard', hash: '#class-schedule', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('class_schedules') || 'Class Schedule' },
         { path: '/review-results?mode=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
-        { path: '/review-results?mode=homework', icon: <FileText size={18} />, label: t('homework_results') || 'Homework Results' },
+        { path: '/review-results?mode=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: t('homework_results') || 'Homework Results' },
         { path: '/review-results?mode=training', icon: getThemedIcon('ui', 'activity', 18, theme), label: t('training_results') || 'Training Results' },
-        { path: '/review-results?mode=labandproject', icon: <ClipboardList size={18} />, label: t('lab_results') || 'Lab Results' },
-        { path: '/hr-penalties', icon: <AlertTriangle size={18} />, label: t('hr_penalties') || 'HR Penalties' },
-        { path: '/instructor-participation', icon: <Award size={18} />, label: t('participation') || 'Participation' },
-        { path: '/instructor-behavior', icon: <AlertCircle size={18} />, label: t('behavior') || 'Behavior' },
+        { path: '/review-results?mode=labandproject', icon: getThemedIcon('ui', 'clipboard_list', 18, theme), label: t('lab_results') || 'Lab Results' },
+        { path: '/hr-penalties', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: t('hr_penalties') || 'HR Penalties' },
+        { path: '/instructor-participation', icon: getThemedIcon('ui', 'award', 18, theme), label: t('participation') || 'Participation' },
+        { path: '/instructor-behavior', icon: getThemedIcon('ui', 'alert_circle', 18, theme), label: t('behavior') || 'Behavior' },
       ]
     } : null,
     classes: {
       label: t('classes') || 'CLASSES',
       items: [
-        { path: '/class-schedules', icon: <Calendar size={18} />, label: t('schedules') || 'Schedules' },
-        { path: '/manage-enrollments', icon: <Users size={18} />, label: t('manage_enrollments') || 'Manage Enrollments' },
+        { path: '/class-schedules', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('schedules') || 'Schedules' },
+        { path: '/manage-enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: t('manage_enrollments') || 'Manage Enrollments' },
       ]
     },
     attendance: {
       label: t('attendance') || 'ATTENDANCE',
       items: [
-        { path: '/attendance', icon: <QrCode size={18} />, label: (t('attendance') || 'Attendance').charAt(0).toUpperCase() + (t('attendance') || 'Attendance').slice(1) },
-        { path: '/qr-scanner', icon: <QrCode size={18} />, label: t('qr_class') || 'QR Class' },
-        { path: '/hr-attendance', icon: <QrCode size={18} />, label: (t('hr_attendance') || 'HR Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('attendance') || 'Attendance').charAt(0).toUpperCase() + (t('attendance') || 'Attendance').slice(1) },
+        { path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: t('qr_class') || 'QR Class' },
+        { path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('hr_attendance') || 'HR Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     analytics: {
@@ -426,28 +426,28 @@ const SideDrawer = ({ isOpen, onClose }) => {
     communication: {
       label: t('communication') || 'COMMUNICATION',
       items: [
-        { path: '/scheduled-reports', icon: <Calendar size={18} />, label: t('scheduling') || 'Scheduling' },
+        { path: '/scheduled-reports', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('scheduling') || 'Scheduling' },
       ]
     },
     community: {
       label: t('community') || 'COMMUNITY',
       items: [
-        { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
+        { path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: t('chat') || 'Chat' },
         { path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('resources') || 'Resources' },
       ]
     },
     tools: {
       label: t('tools') || 'TOOLS',
       items: [
-        { key: 'timerControl', icon: <TimerIcon size={18} />, label: t('timer') || 'Timer' }
+        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     },
     settings: {
       label: t('workspace_settings') || 'WORKSPACE SETTINGS',
       items: [
-        { path: '/notifications', icon: <Bell size={18} />, label: t('notifications') || 'Notifications' },
-        { path: '/student-profile', icon: <UserIcon size={18} />, label: t('student_profile') || 'Student Profile' },
-        { path: '/profile', icon: <Settings size={18} />, label: t('settings') || 'Settings' }
+        { path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: t('notifications') || 'Notifications' },
+        { path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: t('student_profile') || 'Student Profile' },
+        { path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: t('settings') || 'Settings' }
       ]
     }
   };
@@ -456,24 +456,24 @@ const SideDrawer = ({ isOpen, onClose }) => {
     main: {
       label: 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: 'Home' },
-        { path: '/hr-attendance', icon: <QrCode size={18} />, label: t('hr_attendance') || 'HR Attendance' },
+        { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: 'Home' },
+        { path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: t('hr_attendance') || 'HR Attendance' },
         { path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('analytics') || 'Analytics' },
       ]
     },
     community: {
       label: 'COMMUNITY',
       items: [
-        { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
+        { path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: t('chat') || 'Chat' },
       ]
     },
     settings: {
       label: 'SETTINGS',
       items: [
-        { path: '/notifications', icon: <Bell size={18} />, label: t('notifications') || 'Notifications' },
-        { path: '/student-profile', icon: <UserIcon size={18} />, label: t('student_profile') || 'Student Profile' },
-        { path: '/profile', icon: <Settings size={18} />, label: t('settings') || 'Settings' },
-        { key: 'timerControl', icon: <TimerIcon size={18} />, label: t('timer') || 'Timer' }
+        { path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: t('notifications') || 'Notifications' },
+        { path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: t('student_profile') || 'Student Profile' },
+        { path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: t('settings') || 'Settings' },
+        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     }
   };
@@ -500,7 +500,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       };
       // Add Role Access only for SuperAdmin
       if (isSuperAdmin) {
-        links.main.items.push({ path: '/role-access-pro', icon: <Shield size={18} />, label: t('role_access') || 'Role Access' });
+        links.main.items.push({ path: '/role-access-pro', icon: getThemedIcon('ui', 'shield', 18, theme), label: t('role_access') || 'Role Access' });
       }
     } else if (isHR) {
       links = {
@@ -790,7 +790,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        <X size={14} />
+                        {getThemedIcon('ui', 'x', 14, theme)}
                       </button>
                     </>
                   );

@@ -10,7 +10,7 @@ import {
   // Activity Icons
   TrendingUp, TrendingDown, Target, Activity, Zap,
   // Academic Icons
-  BookOpen, GraduationCap, Award, FileText, Database, Trophy,
+  BookOpen, GraduationCap, Award, FileText, Database, Trophy, Gamepad2,
   // Communication Icons
   MessageSquare, Bell, BellOff, Send, Phone,
   // Navigation Icons
@@ -26,7 +26,7 @@ import {
   // Behavior/Sleep Icons
   Bed,
   // Other Icons
-  HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, Download, BarChart3, LineChart, PieChart, Save, GripVertical,
+  HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, LayoutDashboard, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, Download, BarChart3, LineChart, PieChart, Save, GripVertical,
   // Additional icons from dashboard and chat pages
   Upload, RotateCw, SkipForward, Shuffle, ChevronLeft, ChevronRight, RotateCcw, Bot, Heart,
   // Missing icons from HomePage
@@ -265,7 +265,11 @@ export const ICON_TYPES = {
     hourglass: <Hourglass size={16} />,
     repeat: <Repeat size={16} />,
     // Additional globe variant
-    globe2: <Globe size={16} />
+    globe2: <Globe size={16} />,
+    // Missing icons that were causing errors
+    layout_dashboard: <LayoutDashboard size={16} />,
+    gamepad2: <Gamepad2 size={16} />,
+    timer: <Clock size={16} />
   }
 };
 

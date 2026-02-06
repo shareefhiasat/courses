@@ -28,7 +28,7 @@ export {
 } from './filterConfig.js';
 
 // Dashboard Types
-export {
+import {
   RESOURCE_TYPES,
   getResourceTypeConfig,
   getResourceTypeOptions,
@@ -42,8 +42,22 @@ export {
   COMMON_ICONS
 } from './dashboardTypes.jsx';
 
-// QR Scanner Types
 export {
+  RESOURCE_TYPES,
+  getResourceTypeConfig,
+  getResourceTypeOptions,
+  ACTIVITY_LOG_TYPE_CONFIG,
+  getActivityLogTypeConfig,
+  PROGRAM_SCOPE_TYPES,
+  getProgramScopeConfig,
+  DASHBOARD_GRID_COLUMNS,
+  DARK_MODE_COLORS,
+  getThemeColor,
+  COMMON_ICONS
+};
+
+// QR Scanner Types
+import {
   QR_SCANNER_ACTIONS,
   getActionConfig,
   getActionButtonStyles,
@@ -58,8 +72,23 @@ export {
   getQRScannerThemeColor
 } from './qrScannerTypes.jsx';
 
-// Page Types
 export {
+  QR_SCANNER_ACTIONS,
+  getActionConfig,
+  getActionButtonStyles,
+  getActivityTypeOptions,
+  getCameraConstraints,
+  getCameraErrorMessage,
+  isMobileDevice,
+  INITIAL_QR_SCANNER_STATE,
+  FEEDBACK_SOUNDS,
+  DEBUG_LOG_TYPES,
+  QR_SCANNER_VALIDATION,
+  getQRScannerThemeColor
+};
+
+// Page Types
+import {
   PAGE_STATES,
   FORM_STATES,
   MODAL_TYPES,
@@ -73,8 +102,22 @@ export {
   SUCCESS_MESSAGES
 } from './pageTypes.jsx';
 
-// UI Theme
 export {
+  PAGE_STATES,
+  FORM_STATES,
+  MODAL_TYPES,
+  TYPE_ICONS,
+  COMMON_GRID_COLUMNS,
+  VALIDATION_RULES,
+  COMMON_FILTERS,
+  PAGE_LAYOUTS,
+  getThemeStyles,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES
+};
+
+// UI Theme
+import {
   UI_THEMES,
   COMPONENT_SIZES,
   COMPONENT_VARIANTS,
@@ -86,17 +129,37 @@ export {
   useUITheme
 } from './uiTheme.jsx';
 
+export {
+  UI_THEMES,
+  COMPONENT_SIZES,
+  COMPONENT_VARIANTS,
+  getTheme,
+  getColor,
+  getComponentStyles,
+  generateCSSVariables,
+  isDarkMode,
+  useUITheme
+};
+
 // Re-export commonly used constants from other files
-export { USER_ROLES } from './userRoles.js';
-export { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from './attendanceTypes.js';
-export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions } from './notificationTypes.jsx';
-export { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById } from './participationTypes.jsx';
-export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } from './penaltyTypes.jsx';
-export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
-export { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS } from '../utils/sharedTypes.js';
+import { USER_ROLES } from './userRoles.js';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from './attendanceTypes.js';
+import { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions } from './notificationTypes.jsx';
+import { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById } from './participationTypes.jsx';
+import { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } from './penaltyTypes.jsx';
+import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
+import { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS } from '../utils/sharedTypes.js';
+
+export { USER_ROLES };
+export { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel };
+export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions };
+export { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById };
+export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById };
+export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById };
+export { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS };
 
 // Global Role Configuration System - Comprehensive role-based limitations
-export {
+import {
   ROLE_CONFIGURATIONS,
   getRoleConfig,
   hasPermission,
@@ -109,8 +172,21 @@ export {
   DEFAULT_CHAT_LIMITATIONS
 } from './roleConfigurations.js';
 
-// Chat Limitations - Legacy exports for backward compatibility
 export {
+  ROLE_CONFIGURATIONS,
+  getRoleConfig,
+  hasPermission,
+  getRoleLimit,
+  isFileTypeAllowedForRole,
+  getAllRolePermissions,
+  getHigherPrivilegeRole,
+  canManageRole,
+  CHAT_LIMITATIONS,
+  DEFAULT_CHAT_LIMITATIONS
+};
+
+// Chat Limitations - Legacy exports for backward compatibility
+import {
   getChatLimitations,
   isFileTypeAllowed,
   isFileSizeAllowed,
@@ -121,8 +197,19 @@ export {
   getVoiceRecordingProgress
 } from './chatLimitations.js';
 
-// Role Configuration Usage Examples
 export {
+  getChatLimitations,
+  isFileTypeAllowed,
+  isFileSizeAllowed,
+  getMaxFileSizeDisplay,
+  getMaxVoiceTimeDisplay,
+  validateFileUpload,
+  isVoiceTimeAllowed,
+  getVoiceRecordingProgress
+};
+
+// Role Configuration Usage Examples
+import {
   canUserUploadFile,
   canUserCreateQuiz,
   getUserChatLimits,
@@ -137,10 +224,26 @@ export {
   getVoiceRecordingLimits
 } from './roleConfigExamples.js';
 
+export {
+  canUserUploadFile,
+  canUserCreateQuiz,
+  getUserChatLimits,
+  canUserModerateChat,
+  getDashboardPermissions,
+  validateFileUploadForRole,
+  canUserManageOtherUser,
+  getHighestRole,
+  getAccessibleFeatures,
+  getProgressLimits,
+  getUserStorageInfo,
+  getVoiceRecordingLimits
+};
+
 // Utility Functions
 import { formatDateTime } from '@utils/date';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
-export { formatDateTime, formatQatarDate, formatQatarDateOnly, generateReferenceId, generateStudentQRCode } from '../utils/qrCode.js';
+import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
+export { formatDateTime, formatQatarDate, formatQatarDateOnly, generateReferenceId, generateStudentQRCode };
 
 // Default export containing all constants
 export default {
