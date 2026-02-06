@@ -369,7 +369,7 @@ const UnifiedCard = memo(({
                 gap: 4,
                 fontWeight: 600
               }}>
-            getThemedIcon('ui', 'clock', 12, theme) {item.estimatedTime} {t('min') || 'min'}
+            {getThemedIcon('ui', 'clock', 12, theme)} {item.estimatedTime} {t('min') || 'min'}
           </span>
           )}
 
@@ -387,7 +387,7 @@ const UnifiedCard = memo(({
                 gap: isMinified ? 0 : 6,
                 fontWeight: 600
               }}>
-            getThemedIcon('ui', 'book_open', 14, theme)
+            {getThemedIcon('ui', 'book_open', 14, theme)}
                 {!isMinified && <span>{t('optional') || 'Optional'}</span>}
           </span>
           )}
@@ -406,7 +406,7 @@ const UnifiedCard = memo(({
                 gap: isMinified ? 0 : 6,
                 fontWeight: 600
               }}>
-            getThemedIcon('ui', 'alert_circle', 14, theme)
+            {getThemedIcon('ui', 'alert_circle', 14, theme)}
                 {!isMinified && <span>{t('required') || 'Required'}</span>}
           </span>
           )}
@@ -433,7 +433,7 @@ const UnifiedCard = memo(({
                 gap: 6,
                 color: '#16a34a'
               }} title={t('completed_at') || 'Completed at'}>
-                getThemedIcon('ui', 'check_circle', 14, theme)
+                {getThemedIcon('ui', 'check_circle', 14, theme)}
                 <span>{formatDate(completedAt)}</span>
               </div>
           )}
@@ -444,7 +444,7 @@ const UnifiedCard = memo(({
                 gap: 6,
                 color: '#dc2626'
               }} title={t('due_date') || 'Due date'}>
-                getThemedIcon('ui', 'calendar', 14, theme)
+                {getThemedIcon('ui', 'calendar', 14, theme)}
                 <span><strong>{t('due') || 'Due'}:</strong> {formatDate(dueDate)}</span>
               </div>
           )}

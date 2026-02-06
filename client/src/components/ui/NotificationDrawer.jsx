@@ -34,7 +34,7 @@ import useNotifications from '@hooks/useNotifications';
 
 const NotificationDrawer = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { 
@@ -42,7 +42,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     updateSetting,
     triggerNotification,
     checkSupport,
-    isMobile
+    isMobile: isMobileFunc
   } = useNotifications();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);

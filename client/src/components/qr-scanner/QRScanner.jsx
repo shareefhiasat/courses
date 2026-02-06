@@ -16,7 +16,7 @@ import { getTodayAttendanceStatus, isStudentMarkedToday } from '@firebaseService
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { useToast } from '../ui/Toast';
+import { useToast } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';

@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { TrendingUp, TrendingDown, User, Edit, Trash, MessageSquare, Award, FileText, Users, Star, Minus, X, Target } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
@@ -31,6 +32,7 @@ import styles from './ProgramsManagementPage.module.css';
 const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
@@ -140,7 +142,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   };
 
   const loadParticipations = async () => {
-    setLoading(true);
+    setPageState(PAGE_STATES.LOADING);
     try {
       const snap = await getDocs(query(collection(db, 'participations'), orderBy('createdAt', 'desc')));
       let data = snap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
@@ -277,7 +279,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       logger.error('Failed to load participations:', error);
       toast.error(t('failed_to_save_participation') + ': ' + error.message);
     } finally {
-      setLoading(false);
+      setPageState(PAGE_STATES.IDLE);
     }
   };
 
@@ -395,7 +397,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   const confirmDelete = async () => {
     if (!deleteModal.item) return;
     
-    setLoading(true);
+    setPageState(PAGE_STATES.LOADING);
     try {
       await deleteDoc(doc(db, 'participations', deleteModal.item.id));
       // Log activity
@@ -413,7 +415,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
     } catch (error) {
       toast.error('Failed to delete participation: ' + error.message);
     } finally {
-      setLoading(false);
+      setPageState(PAGE_STATES.IDLE);
       setDeleteModal({ open: false, item: null });
     }
   };
@@ -721,7 +723,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           <Button
             size="sm"
             variant="ghost"
-            icon={<User size={16} />}
+            icon={getThemedIcon('ui', 'user', 16, theme)}
             onClick={() => window.open(`/student-profile/${params.row.studentId}`, '_blank')}
             style={{ color: 'var(--attendance-accent, #800020)' }}
           >
@@ -730,7 +732,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           <Button
             size="sm"
             variant="ghost"
-            icon={<Edit size={16} />}
+            icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
             Edit
@@ -738,7 +740,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           <Button
             size="sm"
             variant="ghost"
-            icon={<Trash size={16} />}
+            icon={getThemedIcon('ui', 'trash', 16, theme)}
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
@@ -1116,7 +1118,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           exportFileName="participations"
           showExportButton
           exportLabel="Export"
-          loadingOverlayMessage={loading ? "Loading participations..." : undefined}
+          loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? "Loading participations..." : undefined}
           fancyVariant="dots"
         />
       </div>

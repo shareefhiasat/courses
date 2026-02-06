@@ -9,7 +9,7 @@ import { updateUser } from '@firebaseServices/userService';
 import { getUserDisplayName } from '@firebaseServices/userService';
 import { db } from '@firebaseServices/config';
 import './Navbar.css';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
 import { LanguageSwitcher } from '../index';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
@@ -163,7 +163,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 }}
                 aria-label="Menu"
               >
-                {getThemedIcon('ui', 'menu', 18, theme)}
+                {getWhiteIcon('ui', 'menu', 18)}
               </button>
             )}
 
@@ -245,7 +245,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   title={t('help') || 'Help'}
                   aria-label={t('help') || 'Help'}
                 >
-                  {getThemedIcon('ui', 'help_circle', 16, theme)}
+                  {getWhiteIcon('ui', 'help_circle', 16)}
                 </button>
 
                 <button
@@ -405,22 +405,22 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems:'center' }}>
                         {isSuperAdmin && (
                           <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getThemedIcon('ui', 'crown', 14, theme)} Super Admin
+                            {getIconWithColor('ui', 'crown', 14, '#f59e0b')} Super Admin
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
                           <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getThemedIcon('ui', 'shield', 14, theme)} Admin
+                            {getIconWithColor('ui', 'shield', 14, '#4f46e5')} Admin
                           </span>
                         )}
                         {isInstructor && (
                           <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getThemedIcon('ui', 'book_open', 14, theme)} Instructor
+                            {getIconWithColor('ui', 'book_open', 14, '#0ea5e9')} Instructor
                           </span>
                         )}
                         {isHR && (
                           <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getThemedIcon('ui', 'users', 14, theme)} HR
+                            {getIconWithColor('ui', 'users', 14, '#8b5cf6')} HR
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (

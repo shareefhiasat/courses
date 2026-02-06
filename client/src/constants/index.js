@@ -15,7 +15,8 @@ export {
   getNotificationIcon,
   getActivityIcon,
   getUserStatusIcon,
-  getUserRoleIcon
+  getUserRoleIcon,
+  DASHBOARD_COLORS
 } from './iconTypes.jsx';
 
 // Filter Configuration - Centralized filter system
@@ -94,9 +95,22 @@ export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } f
 export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
 export { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS } from '../utils/sharedTypes.js';
 
-// Chat Limitations - Role-based chat restrictions
+// Global Role Configuration System - Comprehensive role-based limitations
 export {
+  ROLE_CONFIGURATIONS,
+  getRoleConfig,
+  hasPermission,
+  getRoleLimit,
+  isFileTypeAllowedForRole,
+  getAllRolePermissions,
+  getHigherPrivilegeRole,
+  canManageRole,
   CHAT_LIMITATIONS,
+  DEFAULT_CHAT_LIMITATIONS
+} from './roleConfigurations.js';
+
+// Chat Limitations - Legacy exports for backward compatibility
+export {
   getChatLimitations,
   isFileTypeAllowed,
   isFileSizeAllowed,
@@ -104,14 +118,29 @@ export {
   getMaxVoiceTimeDisplay,
   validateFileUpload,
   isVoiceTimeAllowed,
-  getVoiceRecordingProgress,
-  DEFAULT_CHAT_LIMITATIONS
+  getVoiceRecordingProgress
 } from './chatLimitations.js';
 
+// Role Configuration Usage Examples
+export {
+  canUserUploadFile,
+  canUserCreateQuiz,
+  getUserChatLimits,
+  canUserModerateChat,
+  getDashboardPermissions,
+  validateFileUploadForRole,
+  canUserManageOtherUser,
+  getHighestRole,
+  getAccessibleFeatures,
+  getProgressLimits,
+  getUserStorageInfo,
+  getVoiceRecordingLimits
+} from './roleConfigExamples.js';
+
 // Utility Functions
-export { formatDateTime } from '../utils/date.js';
-export { formatQatarDate, formatQatarDateOnly } from '../utils/timezone.js';
-export { generateReferenceId, generateStudentQRCode } from '../utils/qrCode.js';
+import { formatDateTime } from '@utils/date';
+import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+export { formatDateTime, formatQatarDate, formatQatarDateOnly, generateReferenceId, generateStudentQRCode } from '../utils/qrCode.js';
 
 // Default export containing all constants
 export default {
@@ -199,7 +228,5 @@ export default {
   generateReferenceId,
   generateStudentQRCode,
   
-  // Theme utilities
-  DARK_MODE_COLORS,
-  getThemeColor
+  // Theme utilities - DARK_MODE_COLORS exported from dashboardTypes.jsx
 };

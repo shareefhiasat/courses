@@ -1,28 +1,23 @@
 import React from 'react';
-import { Button, Badge, ProgressBar } from '../ui';
+import { Button, Badge, ProgressBar } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import {
-  CheckCircle, Clock, AlertCircle, XCircle,
-  FileQuestion, FileArchive, Award,
-  Eye, RefreshCw, Play
-} from 'lucide-react';
 import styles from '../../pages/StudentDashboardPage.module.css';
 
 export default function TaskCard({ task, navigate }) {
   const { theme } = useTheme();
   
   const statusConfig = {
-    completed: { color: 'success', icon: CheckCircle, label: 'Completed' },
-    pending: { color: 'default', icon: Clock, label: 'Pending' },
-    urgent: { color: 'warning', icon: AlertCircle, label: 'Due Soon' },
-    overdue: { color: 'danger', icon: XCircle, label: 'Overdue' }
+    completed: { color: 'success', icon: getThemedIcon('ui', 'check_circle', 14, theme), label: 'Completed' },
+    pending: { color: 'default', icon: getThemedIcon('ui', 'clock', 14, theme), label: 'Pending' },
+    urgent: { color: 'warning', icon: getThemedIcon('ui', 'alert_triangle', 14, theme), label: 'Due Soon' },
+    overdue: { color: 'danger', icon: getThemedIcon('ui', 'x_circle', 14, theme), label: 'Overdue' }
   };
 
   const typeConfig = {
-    quiz: { icon: FileQuestion, label: 'Quiz', color: '#667eea' },
+    quiz: { icon: getThemedIcon('ui', 'file_text', 18, theme), label: 'Quiz', color: '#667eea' },
     homework: { icon: getThemedIcon('ui', 'book_open', 18, theme), label: 'Homework', color: '#f59e0b' },
-    resource: { icon: FileArchive, label: 'Resource', color: '#10b981' }
+    resource: { icon: getThemedIcon('ui', 'archive', 18, theme), label: 'Resource', color: '#10b981' }
   };
 
   const status = statusConfig[task.status] || statusConfig.pending;
@@ -34,11 +29,11 @@ export default function TaskCard({ task, navigate }) {
     <div className={styles.taskCard}>
       <div className={styles.taskCardHeader}>
         <div className={styles.taskType}>
-          <TypeIcon size={18} style={{ color: type.color }} />
+          {TypeIcon}
           <span>{type.label}</span>
         </div>
         <Badge variant={status.color} size="sm">
-          <StatusIcon size={14} />
+          {StatusIcon}
           {status.label}
         </Badge>
       </div>
@@ -49,7 +44,7 @@ export default function TaskCard({ task, navigate }) {
         <span className={styles.className}>{task.className}</span>
         {task.deadline && (
           <span className={styles.deadline}>
-            <Clock size={14} />
+            {getThemedIcon('ui', 'clock', 14, theme)}
             {new Date(task.deadline.toDate()).toLocaleDateString('en-GB')}
           </span>
         )}
@@ -57,7 +52,7 @@ export default function TaskCard({ task, navigate }) {
 
       {task.isGraded && (
         <div className={styles.taskScore}>
-          <Award size={16} />
+          {getThemedIcon('ui', 'award', 16, theme)}
           <span className={styles.score}>{task.score}%</span>
           <ProgressBar 
             value={task.score} 
@@ -76,7 +71,7 @@ export default function TaskCard({ task, navigate }) {
               variant="outline"
               onClick={() => navigate(`/quiz-results?id=${task.id}`)}
             >
-              <Eye size={14} /> View Results
+              {getThemedIcon('ui', 'eye', 14, theme)} View Results
             </Button>
             {task.allowRetake && task.score < 70 && (
               <Button 
@@ -84,7 +79,7 @@ export default function TaskCard({ task, navigate }) {
                 variant="primary"
                 onClick={() => navigate(`/quiz/${task.id}?retake=true`)}
               >
-                <RefreshCw size={14} /> Retake
+                {getThemedIcon('ui', 'refresh', 14, theme)} Retake
               </Button>
             )}
           </>
@@ -94,7 +89,7 @@ export default function TaskCard({ task, navigate }) {
             variant="primary"
             onClick={() => navigate(task.type === 'quiz' ? `/quiz/${task.id}` : `/activity/${task.id}`)}
           >
-            <Play size={14} /> {task.type === 'quiz' ? 'Start Quiz' : 'View Details'}
+            {getThemedIcon('ui', 'play', 14, theme)} {task.type === 'quiz' ? 'Start Quiz' : 'View Details'}
           </Button>
         )}
       </div>

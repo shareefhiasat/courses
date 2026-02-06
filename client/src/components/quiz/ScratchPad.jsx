@@ -4,11 +4,12 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Trash2, Download, Pen, Eraser } from 'lucide-react';
-import { Button } from '../ui';
+import { getThemedIcon } from '@constants/iconTypes';
+import { useTheme } from '@contexts/ThemeContext';
 import styles from './ScratchPad.module.css';
 
 const ScratchPad = ({ onClose, quizId, questionId }) => {
+  const { theme } = useTheme();
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState('#000000');
@@ -115,7 +116,7 @@ const ScratchPad = ({ onClose, quizId, questionId }) => {
       <div className={styles.header}>
         <h3>Scratch Pad</h3>
         <button onClick={onClose} className={styles.closeBtn}>
-          <X size={18} />
+          {getThemedIcon('ui', 'close', 18, theme)}
         </button>
       </div>
 
@@ -126,14 +127,14 @@ const ScratchPad = ({ onClose, quizId, questionId }) => {
             className={`${styles.toolBtn} ${tool === 'pen' ? styles.active : ''}`}
             title="Pen"
           >
-            <Pen size={18} />
+            {getThemedIcon('ui', 'edit', 18, theme)}
           </button>
           <button
             onClick={() => setTool('eraser')}
             className={`${styles.toolBtn} ${tool === 'eraser' ? styles.active : ''}`}
             title="Eraser"
           >
-            <Eraser size={18} />
+            {getThemedIcon('ui', 'delete', 18, theme)}
           </button>
         </div>
 
@@ -160,10 +161,10 @@ const ScratchPad = ({ onClose, quizId, questionId }) => {
 
         <div className={styles.actions}>
           <button onClick={clearCanvas} className={styles.actionBtn} title="Clear">
-            <Trash2 size={18} />
+            {getThemedIcon('ui', 'trash2', 18, theme)}
           </button>
           <button onClick={downloadImage} className={styles.actionBtn} title="Download">
-            <Download size={18} />
+            {getThemedIcon('ui', 'download', 18, theme)}
           </button>
         </div>
       </div>

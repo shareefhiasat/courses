@@ -396,7 +396,7 @@ const AuthForm = () => {
             onClick={toggleLang}
             aria-label={lang === 'en' ? 'Switch to Arabic' : 'التبديل إلى الإنجليزية'}
           >
-            getThemedIcon('ui', 'globe', 16, theme)
+            {getThemedIcon('ui', 'globe', 16, theme)}
             {lang === 'en' ? 'AR' : 'EN'}
           </button>
           <button

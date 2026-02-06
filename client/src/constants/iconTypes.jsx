@@ -26,7 +26,11 @@ import {
   // Behavior/Sleep Icons
   Bed,
   // Other Icons
-  HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, Download, BarChart3, LineChart, PieChart, Save, GripVertical
+  HelpCircle, Star, StarOff, ThumbsUp, Moon, LayoutGrid, ZoomIn, Menu, Sun, Ruler, Pin, ClipboardList, Check, Play, Download, BarChart3, LineChart, PieChart, Save, GripVertical,
+  // Additional icons from dashboard and chat pages
+  Upload, RotateCw, SkipForward, Shuffle, ChevronLeft, ChevronRight, RotateCcw, Bot, Heart,
+  // Missing icons from HomePage
+  Monitor, Code, Folder, Hourglass, Repeat
 } from 'lucide-react';
 
 // Centralized Icon Configuration
@@ -243,8 +247,87 @@ export const ICON_TYPES = {
     trash: <Trash size={16} />,
     user: <User size={16} />,
     key_round: <KeyRound size={16} />,
-    copy: <Copy size={16} />
+    copy: <Copy size={16} />,
+    // Additional icons from dashboard and chat pages
+    upload: <Upload size={16} />,
+    rotate_cw: <RotateCw size={16} />,
+    skip_forward: <SkipForward size={16} />,
+    shuffle: <Shuffle size={16} />,
+    chevron_left: <ChevronLeft size={16} />,
+    chevron_right: <ChevronRight size={16} />,
+    rotate_ccw: <RotateCcw size={16} />,
+    bot: <Bot size={16} />,
+    heart: <Heart size={16} />,
+    // Missing icons from HomePage
+    monitor: <Monitor size={16} />,
+    code2: <Code size={16} />,
+    folder: <Folder size={16} />,
+    hourglass: <Hourglass size={16} />,
+    repeat: <Repeat size={16} />,
+    // Additional globe variant
+    globe2: <Globe size={16} />
   }
+};
+
+// Color Constants for Dashboard and Chat
+export const DASHBOARD_COLORS = {
+  // Status colors
+  success: '#16a34a',
+  info: '#0ea5e9', 
+  primary: '#8b5cf6',
+  danger: '#dc2626',
+  warning: '#f59e0b',
+  default: '#6c757d',
+  
+  // Role colors
+  superadmin: '#f59e0b',
+  admin: '#4f46e5', 
+  instructor: '#0ea5e9',
+  hr: '#8b5cf6',
+  student: '#16a34a',
+  
+  // UI colors
+  brand: '#800020',
+  text: {
+    primary: '#111827',
+    secondary: '#374151',
+    muted: '#6b7280'
+  },
+  background: {
+    primary: '#ffffff',
+    secondary: '#f8fafc',
+    tertiary: '#f1f5f9'
+  },
+  border: {
+    primary: '#e5e7eb',
+    secondary: '#d1d5db'
+  }
+};
+
+// Dark mode colors
+export const DARK_MODE_COLORS = {
+  text: {
+    primary: '#ffffff',
+    secondary: '#9ca3af', 
+    muted: '#6b7280'
+  },
+  background: {
+    primary: '#111827',
+    secondary: '#1f2937',
+    tertiary: '#374151'
+  },
+  border: {
+    primary: '#374151',
+    secondary: '#4b5563'
+  }
+};
+
+// Theme color utility function
+export const getThemeColor = (colorKey, theme = 'light') => {
+  if (theme === 'dark') {
+    return DARK_MODE_COLORS[colorKey] || colorKey;
+  }
+  return DASHBOARD_COLORS[colorKey] || colorKey;
 };
 
 // Icon Utility Functions
@@ -345,11 +428,17 @@ export const getThemedIcon = (category, type, size = 16, theme = 'light') => {
   return getIconWithColor(category, type, size, color);
 };
 
+// White icon utility for navbar
+export const getWhiteIcon = (category, type, size = 16) => {
+  return getIconWithColor(category, type, size, '#ffffff');
+};
+
 export default {
   ICON_TYPES,
   getIcon,
   getIconWithColor,
   getThemedIcon,
+  getWhiteIcon,
   getTypeIcon,
   getAttendanceIcon,
   getBehaviorIcon,

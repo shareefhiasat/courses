@@ -42,12 +42,13 @@ import { canParticipate } from '@utils/userStatus';
 import { filterBadWords, containsBadWords } from '@utils/badWordFilter';
 import { getThemedIcon } from '@constants/iconTypes';
 import { 
-  getChatLimitations, 
-  validateFileUpload, 
-  isVoiceTimeAllowed, 
-  getMaxVoiceTimeDisplay,
-  getMaxFileSizeDisplay 
-} from '@constants/chatLimitations';
+  getRoleConfig,
+  isFileTypeAllowedForRole,
+  getRoleLimit,
+  validateFileUploadForRole,
+  canUserUploadFile,
+  getVoiceRecordingLimits
+} from '@constants';
 
 const ChatPage = memo(() => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -57,6 +58,14 @@ const ChatPage = memo(() => {
   const location = useLocation();
   
   logger.componentMount('ChatPage');
+  
+  // Helper function to format voice time display
+  const getMaxVoiceTimeDisplay = (role) => {
+    const voiceLimits = getVoiceRecordingLimits(role);
+    const maxTime = voiceLimits.maxRecordingTime;
+    const minutes = Math.floor(maxTime / 60);
+    return `${minutes} minutes`;
+  };
   
   // State
   const [loading, setLoading] = useState(true);
@@ -1322,10 +1331,20 @@ const ChatPage = memo(() => {
     
     // Get user's role-based limitations
     const userRole = user?.role || USER_ROLES.STUDENT;
-    const validation = validateFileUpload(userRole, file);
+    const canUpload = canUserUploadFile(userRole, file.size, file.type);
     
+    if (!canUpload) {
+      const maxSize = getRoleLimit(userRole, 'chat', 'maxFileSize');
+      const maxSizeMB = maxSize / (1024 * 1024);
+      toast?.showError(`File too large. Maximum size: ${maxSizeMB}MB`);
+      e.target.value = '';
+      return;
+    }
+    
+    // Additional validation using the new system
+    const validation = validateFileUploadForRole(userRole, [file]);
     if (!validation.isValid) {
-      toast?.showError(validation.message);
+      toast?.showError(validation.errors.join(', '));
       e.target.value = '';
       return;
     }
@@ -1343,7 +1362,9 @@ const ChatPage = memo(() => {
       setImagePreview(null);
     }
     
-    toast?.showSuccess?.(`File "${file.name}" attached (Max: ${getMaxFileSizeDisplay(userRole)})`);
+    const maxSize = getRoleLimit(userRole, 'chat', 'maxFileSize');
+    const maxSizeMB = maxSize / (1024 * 1024);
+    toast?.showSuccess?.(`File "${file.name}" attached (Max: ${maxSizeMB}MB)`);
   };
 
   const startRecording = async () => {
@@ -1352,8 +1373,8 @@ const ChatPage = memo(() => {
       
       // Get user's role-based voice recording limitations
       const userRole = user?.role || USER_ROLES.STUDENT;
-      const limitations = getChatLimitations(userRole);
-      const maxRecordingTime = limitations.maxVoiceRecordingTime;
+      const voiceLimits = getVoiceRecordingLimits(userRole);
+      const maxRecordingTime = voiceLimits.maxRecordingTime;
       
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;

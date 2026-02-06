@@ -4,7 +4,7 @@ import { useLang } from '@contexts/LangContext';
 import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { formatDateTime } from '@utils/date';
-import { AdvancedDataGrid, Loading, Select, Input, Badge } from '../../ui';
+import { AdvancedDataGrid, Loading, Select, Input, Badge } from '@ui';
 import { 
   getEmailTypeIcon, 
   getEmailStatusOptions, 

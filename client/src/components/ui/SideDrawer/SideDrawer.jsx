@@ -8,11 +8,7 @@ import { signOutUser } from '@firebaseServices/authService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';
-import {
-  Home, ClipboardList, BarChart3, Trophy, MessageSquare,
-  Users, Settings, LogOut, Languages, LayoutDashboard,
-  X, QrCode, User as UserIcon, Theater, Bell, ExternalLink, Activity, Timer as TimerIcon, Pin, PinOff, Sun, Moon, Shield, UserX, Calendar, Gamepad2, ListChecks, ChevronDown, ChevronRight, ChevronLeft, GripVertical, Award, AlertTriangle, AlertCircle, FileText
-} from 'lucide-react';
+import { Timer as TimerIcon } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
 
@@ -46,6 +42,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     } catch { return true; }
   });
   const [userAccentColor, setUserAccentColor] = useState(DEFAULT_ACCENT);
+  const [navigationConfirmation, setNavigationConfirmation] = useState(null);
   
   // Load user's accent color
   useEffect(() => {
@@ -142,6 +139,43 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const handleLogout = async () => {
     await signOutUser(user);
     navigate('/login');
+  };
+
+  const confirmNavigation = (path, hash = null, label) => {
+    // Check if there are any unsaved changes or incomplete tasks
+    // For now, we'll add a simple confirmation for navigation
+    // In a real app, you would check for actual unsaved changes
+    setNavigationConfirmation({ path, hash, label });
+  };
+
+  const proceedNavigation = () => {
+    if (navigationConfirmation) {
+      const { path, hash } = navigationConfirmation;
+      if (hash) {
+        navigate(`${path}${hash}`);
+        // Map hash to tab for dashboard
+        const hashToTabMap = {
+          '#programs': 'programs',
+          '#subjects': 'subjects',
+          '#classes': 'classes',
+          '#enrollments': 'manage-enrollments',
+          '#marks': 'marks',
+          '#class-schedule': 'class-schedule'
+        };
+        if (path === '/dashboard' && hashToTabMap[hash]) {
+          localStorage.setItem('dashboardActiveTab', hashToTabMap[hash]);
+          window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab: hashToTabMap[hash] } }));
+        }
+      } else {
+        navigate(path);
+      }
+      setNavigationConfirmation(null);
+      if (!collapsed && !autoHide && !stickyMode) onClose();
+    }
+  };
+
+  const cancelNavigation = () => {
+    setNavigationConfirmation(null);
   };
 
   const handleStopImpersonation = () => {
@@ -277,52 +311,52 @@ const SideDrawer = ({ isOpen, onClose }) => {
   // Student: Class-centric view with enrollments and schedules
   const studentLinks = {
     main: {
-      label: 'MAIN',
+      label: t('main') || 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: 'Home' },
-        { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Student' },
-        { path: '/student-dashboard', icon: <BarChart3 size={18} />, label: 'Progress' },
-        { path: '/?mode=activities', icon: <Activity size={18} />, label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
-        { path: '/?mode=quizzes', icon: <Gamepad2 size={18} />, label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
+        { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: t('home') || 'Home' },
+        { path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('student_dashboard') || 'Student Dashboard' },
+        { path: '/student-dashboard', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('progress') || 'Progress' },
+        { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
+        { path: '/?mode=quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
       ]
     },
     quiz: {
-      label: 'QUIZ',
+      label: t('quiz') || 'QUIZ',
       items: [
-        { path: '/quiz-results', icon: <ListChecks size={18} />, label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
-        { path: '/?mode=quizzes', icon: <ListChecks size={18} />, label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
-        { path: '/?mode=activities', icon: <Activity size={18} />, label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
+        { path: '/quiz-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quiz_results') || 'Quiz Results').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
+        { path: '/?mode=quizzes', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
+        { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').charAt(0).toUpperCase() + (t('activities') || 'Activities').slice(1) },
         { path: '/?mode=homework', icon: <FileText size={18} />, label: (t('homework') || 'Homework').charAt(0).toUpperCase() + (t('homework') || 'Homework').slice(1) },
       ]
     },
     classes: {
-      label: 'CLASSES',
+      label: t('classes') || 'CLASSES',
       items: [
-        { path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: 'My Enrollments' },
+        { path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('my_enrollments') || 'My Enrollments' },
         { path: '/class-schedules', icon: <Calendar size={18} />, label: t('schedules') || 'Schedules' },
       ]
     },
     attendance: {
-      label: 'ATTENDANCE',
+      label: t('attendance') || 'ATTENDANCE',
       items: [
         { path: '/my-attendance', icon: <QrCode size={18} />, label: (t('my_attendance') || 'My Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     community: {
-      label: 'COMMUNITY',
+      label: t('community') || 'COMMUNITY',
       items: [
         { path: '/chat', icon: <MessageSquare size={18} />, label: (t('chat') || 'Chat').charAt(0).toUpperCase() + (t('chat') || 'Chat').slice(1) },
         { path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('resources') || 'Resources').charAt(0).toUpperCase() + (t('resources') || 'Resources').slice(1) },
       ]
     },
     tools: {
-      label: 'TOOLS',
+      label: t('tools') || 'TOOLS',
       items: [
         { key: 'timerControl', icon: <TimerIcon size={18} />, label: (t('timer') || 'Timer').charAt(0).toUpperCase() + (t('timer') || 'Timer').slice(1) }
       ]
     },
     settings: {
-      label: 'SETTINGS',
+      label: t('settings') || 'SETTINGS',
       items: [
         { path: '/notifications', icon: <Bell size={18} />, label: (t('notifications') || 'Notifications').charAt(0).toUpperCase() + (t('notifications') || 'Notifications').slice(1) },
         { path: '/profile', icon: <Settings size={18} />, label: (t('settings') || 'Settings').charAt(0).toUpperCase() + (t('settings') || 'Settings').slice(1) },
@@ -333,83 +367,83 @@ const SideDrawer = ({ isOpen, onClose }) => {
   // Admin & SuperAdmin: Full management view
   const adminLinks = {
     main: {
-      label: 'MAIN',
+      label: t('main') || 'MAIN',
       items: [
-        { path: '/', icon: <Home size={18} />, label: 'Home' },
-        { path: '/dashboard', icon: <LayoutDashboard size={18} />, label: t('dashboard') || 'Dashboard' },
-        { path: '/student-dashboard', icon: <LayoutDashboard size={18} />, label: 'Student' },
-        { path: '/?mode=activities', icon: <Activity size={18} />, label: t('activities') || 'Activities' },
+        { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: t('home') || 'Home' },
+        { path: '/dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('dashboard') || 'Dashboard' },
+        { path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('student_dashboard') || 'Student Dashboard' },
+        { path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: t('activities') || 'Activities' },
         // Role Access only visible for SuperAdmin (conditionally added below)
       ]
     },
     quiz: {
-      label: 'QUIZ',
+      label: t('quiz') || 'QUIZ',
       items: [
-        { path: '/quizzes', icon: <Gamepad2 size={18} />, label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
-        { path: '/quiz-results', icon: <ListChecks size={18} />, label: 'Quiz Results' },
+        { path: '/quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quizzes') || 'Quizzes').charAt(0).toUpperCase() + (t('quizzes') || 'Quizzes').slice(1) },
+        { path: '/quiz-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
       ]
     },
     academic: isSuperAdmin || isInstructor || isAdmin ? {
-      label: 'ACADEMIC',
+      label: t('academic') || 'ACADEMIC',
       items: [
-        { path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: 'Programs' },
-        { path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: 'Subjects' },
+        { path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('programs') || 'Programs' },
+        { path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('subjects') || 'Subjects' },
         { path: '/dashboard', hash: '#classes', icon: <Calendar size={18} />, label: t('classes') || 'Classes' },
         { path: '/dashboard', hash: '#enrollments', icon: <Users size={18} />, label: t('enrollments') || 'Enrollments' },
-        { path: '/dashboard', hash: '#marks', icon: <Award size={18} />, label: 'Marks Entry' },
+        { path: '/dashboard', hash: '#marks', icon: <Award size={18} />, label: t('marks_entry') || 'Marks Entry' },
         { path: '/dashboard', hash: '#class-schedule', icon: <Calendar size={18} />, label: t('class_schedules') || 'Class Schedule' },
-        { path: '/review-results?mode=quiz', icon: <ListChecks size={18} />, label: 'Review Quiz Results' },
-        { path: '/review-results?mode=homework', icon: <FileText size={18} />, label: 'Review Homework Results' },
-        { path: '/review-results?mode=training', icon: <Activity size={18} />, label: 'Review Training Results' },
-        { path: '/review-results?mode=labandproject', icon: <ClipboardList size={18} />, label: 'Review Lab Results' },
-        { path: '/hr-penalties', icon: <AlertTriangle size={18} />, label: 'HR Penalties' },
-        { path: '/instructor-participation', icon: <Award size={18} />, label: 'Participation' },
-        { path: '/instructor-behavior', icon: <AlertCircle size={18} />, label: 'Behavior' },
+        { path: '/review-results?mode=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: t('quiz_results') || 'Quiz Results' },
+        { path: '/review-results?mode=homework', icon: <FileText size={18} />, label: t('homework_results') || 'Homework Results' },
+        { path: '/review-results?mode=training', icon: getThemedIcon('ui', 'activity', 18, theme), label: t('training_results') || 'Training Results' },
+        { path: '/review-results?mode=labandproject', icon: <ClipboardList size={18} />, label: t('lab_results') || 'Lab Results' },
+        { path: '/hr-penalties', icon: <AlertTriangle size={18} />, label: t('hr_penalties') || 'HR Penalties' },
+        { path: '/instructor-participation', icon: <Award size={18} />, label: t('participation') || 'Participation' },
+        { path: '/instructor-behavior', icon: <AlertCircle size={18} />, label: t('behavior') || 'Behavior' },
       ]
     } : null,
     classes: {
-      label: 'CLASSES',
+      label: t('classes') || 'CLASSES',
       items: [
         { path: '/class-schedules', icon: <Calendar size={18} />, label: t('schedules') || 'Schedules' },
         { path: '/manage-enrollments', icon: <Users size={18} />, label: t('manage_enrollments') || 'Manage Enrollments' },
       ]
     },
     attendance: {
-      label: 'ATTENDANCE',
+      label: t('attendance') || 'ATTENDANCE',
       items: [
         { path: '/attendance', icon: <QrCode size={18} />, label: (t('attendance') || 'Attendance').charAt(0).toUpperCase() + (t('attendance') || 'Attendance').slice(1) },
-        { path: '/qr-scanner', icon: <QrCode size={18} />, label: 'QR Attendance' },
+        { path: '/qr-scanner', icon: <QrCode size={18} />, label: t('qr_class') || 'QR Class' },
         { path: '/hr-attendance', icon: <QrCode size={18} />, label: (t('hr_attendance') || 'HR Attendance').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') },
       ]
     },
     analytics: {
-      label: 'ANALYTICS',
+      label: t('analytics') || 'ANALYTICS',
       items: [
-        { path: '/analytics', icon: <BarChart3 size={18} />, label: 'Dashboards' },
-        { path: '/advanced-analytics', icon: <BarChart3 size={18} />, label: 'Advanced' },
+        { path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('dashboards') || 'Dashboards' },
+        { path: '/advanced-analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('advanced') || 'Advanced' },
       ]
     },
     communication: {
-      label: 'COMMUNICATION',
+      label: t('communication') || 'COMMUNICATION',
       items: [
-        { path: '/scheduled-reports', icon: <Calendar size={18} />, label: 'Scheduling' },
+        { path: '/scheduled-reports', icon: <Calendar size={18} />, label: t('scheduling') || 'Scheduling' },
       ]
     },
     community: {
-      label: 'COMMUNITY',
+      label: t('community') || 'COMMUNITY',
       items: [
         { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
         { path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('resources') || 'Resources' },
       ]
     },
     tools: {
-      label: 'TOOLS',
+      label: t('tools') || 'TOOLS',
       items: [
         { key: 'timerControl', icon: <TimerIcon size={18} />, label: t('timer') || 'Timer' }
       ]
     },
     settings: {
-      label: 'WORKSPACE SETTINGS',
+      label: t('workspace_settings') || 'WORKSPACE SETTINGS',
       items: [
         { path: '/notifications', icon: <Bell size={18} />, label: t('notifications') || 'Notifications' },
         { path: '/student-profile', icon: <UserIcon size={18} />, label: t('student_profile') || 'Student Profile' },
@@ -424,7 +458,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       items: [
         { path: '/', icon: <Home size={18} />, label: 'Home' },
         { path: '/hr-attendance', icon: <QrCode size={18} />, label: t('hr_attendance') || 'HR Attendance' },
-        { path: '/analytics', icon: <BarChart3 size={18} />, label: t('analytics') || 'Analytics' },
+        { path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('analytics') || 'Analytics' },
       ]
     },
     community: {
@@ -900,31 +934,26 @@ const SideDrawer = ({ isOpen, onClose }) => {
                             border: 'none', cursor:'pointer', flex:1
                           }}
                         >
-                          <span style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{link.icon}</span>
+                          <span style={{ 
+                            width: '20px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            color: theme==='light' ? '#6b7280' : '#9ca3af'
+                          }}>
+                            {React.cloneElement(link.icon, { 
+                              size: 18, 
+                              color: theme==='light' ? '#6b7280' : '#9ca3af'
+                            })}
+                          </span>
                           <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{link.label}</span>
                         </button>
                       ) : (
                         <Link
                           to={link.hash ? `${link.path}${link.hash}` : link.path}
                           onClick={(e) => { 
-                            if (link.hash) {
-                              e.preventDefault();
-                              navigate(`${link.path}${link.hash}`);
-                              // Map hash to tab for dashboard
-                              const hashToTabMap = {
-                                '#programs': 'programs',
-                                '#subjects': 'subjects',
-                                '#classes': 'classes',
-                                '#enrollments': 'manage-enrollments',
-                                '#marks': 'marks',
-                                '#class-schedule': 'class-schedule'
-                              };
-                              if (link.path === '/dashboard' && hashToTabMap[link.hash]) {
-                                localStorage.setItem('dashboardActiveTab', hashToTabMap[link.hash]);
-                                window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab: hashToTabMap[link.hash] } }));
-                              }
-                            }
-                            if (!collapsed && !autoHide && !stickyMode) onClose(); 
+                            e.preventDefault();
+                            confirmNavigation(link.path, link.hash, link.label);
                           }}
                           title={link.label}
                           style={{
@@ -957,7 +986,22 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           }
                           }}
                         >
-                          <span style={{ width: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{link.icon}</span>
+                          <span style={{ 
+                            width: '20px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            color: isActive(link.path, link.hash)
+                              ? userAccentColor
+                              : (theme==='light' ? '#6b7280' : '#9ca3af')
+                          }}>
+                            {React.cloneElement(link.icon, { 
+                              size: 18, 
+                              color: isActive(link.path, link.hash)
+                                ? userAccentColor
+                                : (theme==='light' ? '#6b7280' : '#9ca3af')
+                            })}
+                          </span>
                           {(!collapsed && (!autoHide || isHovering)) && <span style={{ display:'inline-flex', alignItems:'center', gap:6, whiteSpace: 'nowrap' }}>{link.label}</span>}
                         </Link>
                       )}
@@ -1058,7 +1102,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}><LogOut size={16} /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>{getThemedIcon('ui', 'log_out', 16, theme)}</span>
                 {!collapsed && <span>{t('logout') || 'Logout'}</span>}
               </button>
             </div>
