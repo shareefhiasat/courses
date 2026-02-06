@@ -488,6 +488,8 @@ const deriveIconColor = (chipColor) => {
   if (chipColor === '#fbbf24') return '#f59e0b'; // Yellow chip -> darker yellow icon
   if (chipColor === '#f5c518') return '#f5c518'; // Gold chip -> same gold icon
   if (chipColor === '#0ea5e9') return '#0ea5e9'; // Sky blue chip -> same sky blue icon
+  if (chipColor === '#166534') return '#166534'; // Dark green chip -> same dark green icon
+  if (chipColor === '#c2410c') return '#c2410c'; // Dark orange chip -> same dark orange icon
   
   // Default to white for dark themes, dark for light themes
   return '#ffffff';
@@ -508,5 +510,6 @@ export default {
   getNotificationIcon,
   getActivityIcon,
   getUserStatusIcon,
-  getUserRoleIcon
+  getUserRoleIcon,
+  deriveIconColor
 };

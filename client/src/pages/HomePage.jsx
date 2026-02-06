@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
-import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
+import iconTypes from '@constants/iconTypes';
+const { getThemedIcon, getColoredIcon, deriveIconColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
 import { Tabs } from '@ui';
 import { getActivities, getAnnouncements, getResources } from '@firebaseServices/activityService';
@@ -1056,9 +1057,9 @@ const HomePage = memo(() => {
                 <span>{t('all_levels') || 'All Levels'}</span>
               </button>
                   {[
-                    { id: 'beginner', label: t('beginner') || 'Beginner', bg: '#e8f5e9', fg: '#2e7d32' },
-                    { id: 'intermediate', label: t('intermediate') || 'Intermediate', bg: '#fff7ed', fg: '#b45309' },
-                    { id: 'advanced', label: t('advanced') || 'Advanced', bg: '#fee2e2', fg: '#b91c1c' }
+                    { id: 'beginner', label: t('beginner') || 'Beginner', bg: '#dcfce7', fg: '#166534' },
+                    { id: 'intermediate', label: t('intermediate') || 'Intermediate', bg: '#fed7aa', fg: '#c2410c' },
+                    { id: 'advanced', label: t('advanced') || 'Advanced', bg: '#fecaca', fg: '#dc2626' }
                   ].map(lv => {
                     const active = difficultyFilter === lv.id;
                     return (
@@ -1081,9 +1082,9 @@ const HomePage = memo(() => {
                     title={lv.label}
                     aria-label={lv.label}
                   >
-                    {getColoredIcon('ui', 'award', 12, lv.fg, theme)}
+                    {getColoredIcon('ui', 'award', 12, active ? '#fff' : deriveIconColor(lv.fg), theme)}
                     {!isMinified && <span>{lv.label}</span>}
-                      </button>
+                  </button>
                     );
                   })}
                 </div>
@@ -1248,7 +1249,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    {getColoredIcon('ui', 'pin', 14, '#4f46e5', theme)}
+                    {getColoredIcon('ui', 'pin', 14, deriveIconColor('#4f46e5'), theme)}
                   </button>
                   <button
                     onClick={() => setRetakableFilter(v => !v)}
@@ -1267,7 +1268,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    {getColoredIcon('ui', 'repeat', 14, '#0ea5e9', theme)}
+                    {getColoredIcon('ui', 'repeat', 14, deriveIconColor('#0ea5e9'), theme)}
                   </button>
                   <button
                     onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
@@ -1286,7 +1287,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    {getThemedIcon('ui', 'check_circle', 14, theme)}
+                    {getColoredIcon('ui', 'check_circle', 14, deriveIconColor('#16a34a'), theme)}
                   </button>
                 </>
               ) : (
@@ -1307,7 +1308,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {bookmarkFilter ? getColoredIcon('ui', 'star', 12, '#f5c518', theme) : getThemedIcon('ui', 'star_off', 12, theme)}
+                    {bookmarkFilter ? getColoredIcon('ui', 'star', 12, '#fff', theme) : getThemedIcon('ui', 'star_off', 12, theme)}
                     {t('bookmarked') || 'Bookmarked'}
                   </button>
                   <button
@@ -1326,7 +1327,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {getColoredIcon('ui', 'pin', 12, '#4f46e5', theme)}
+                    {getColoredIcon('ui', 'pin', 12, '#fff', theme)}
                     {t('featured') || 'Featured'}
                   </button>
                   <button
@@ -1345,7 +1346,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {getColoredIcon('ui', 'repeat', 12, '#0ea5e9', theme)}
+                    {getColoredIcon('ui', 'repeat', 12, '#fff', theme)}
                     {t('retake_allowed') || 'Retake'}
                   </button>
                   <button
@@ -1365,7 +1366,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {getThemedIcon('ui', 'check_circle', 12, theme)}
+                    {getColoredIcon('ui', 'check_circle', 12, '#fff', theme)}
                     {getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
                   </button>
                 </>
