@@ -3,7 +3,7 @@ import {
   Edit, Trash, MessageSquare, AlertTriangle, Clock, XCircle, Shield, Zap, 
   UserCheck, UserX, UserMinus, Info, TrendingUp, TrendingDown, Target, 
   Award, Star, ThumbsUp, Minus, Bed, Users, Smartphone, HelpCircle, 
-  User, AlertCircle, Crown, BookOpen, GraduationCap, FileText, Phone, Coffee
+  User, AlertCircle, Crown, GraduationCap, FileText, Phone, Coffee
 } from 'lucide-react';
 import { ICON_TYPES, getIcon, getThemedIcon } from './iconTypes.jsx';
 

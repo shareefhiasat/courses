@@ -40,6 +40,13 @@ import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { canParticipate } from '@utils/userStatus';
 import { filterBadWords, containsBadWords } from '@utils/badWordFilter';
 import { getThemedIcon } from '@constants/iconTypes';
+import { 
+  getChatLimitations, 
+  validateFileUpload, 
+  isVoiceTimeAllowed, 
+  getMaxVoiceTimeDisplay,
+  getMaxFileSizeDisplay 
+} from '@constants/chatLimitations';
 
 const ChatPage = memo(() => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -1312,13 +1319,12 @@ const ChatPage = memo(() => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Check file size (10MB for videos/audio, 5MB for others)
-    const isVideo = file.type.startsWith('video/');
-    const isAudio = file.type.startsWith('audio/');
-    const isImage = file.type.startsWith('image/');
-    const maxSize = (isVideo || isAudio) ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast?.showError(`File size must be less than ${(isVideo || isAudio) ? '10MB' : '5MB'}`);
+    // Get user's role-based limitations
+    const userRole = user?.role || USER_ROLES.STUDENT;
+    const validation = validateFileUpload(userRole, file);
+    
+    if (!validation.isValid) {
+      toast?.showError(validation.message);
       e.target.value = '';
       return;
     }
@@ -1326,7 +1332,7 @@ const ChatPage = memo(() => {
     setAttachedFile(file);
     
     // Create image preview if it's an image
-    if (isImage) {
+    if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target.result);
@@ -1336,12 +1342,17 @@ const ChatPage = memo(() => {
       setImagePreview(null);
     }
     
-    toast?.showSuccess?.(`File "${file.name}" attached`);
+    toast?.showSuccess?.(`File "${file.name}" attached (Max: ${getMaxFileSizeDisplay(userRole)})`);
   };
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Get user's role-based voice recording limitations
+      const userRole = user?.role || USER_ROLES.STUDENT;
+      const limitations = getChatLimitations(userRole);
+      const maxRecordingTime = limitations.maxVoiceRecordingTime;
       
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -1363,14 +1374,14 @@ const ChatPage = memo(() => {
       setIsRecording(true);
       setRecordingTime(0);
       
-      // Start timer with 60-second limit
+      // Start timer with role-based limit
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime(prev => {
           const newTime = prev + 1;
-          // Auto-stop at 60 seconds (1 minute)
-          if (newTime >= 60) {
+          // Auto-stop at role-based time limit
+          if (newTime >= maxRecordingTime) {
             stopRecording();
-            toast?.showInfo('Maximum recording time reached (1 minute)');
+            toast?.showInfo(`Maximum recording time reached (${getMaxVoiceTimeDisplay(userRole)})`);
           }
           return newTime;
         });
@@ -2585,7 +2596,7 @@ const ChatPage = memo(() => {
                   Voice Message Ready
                 </span>
                 <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
-                  {formatTime(recordingTime)}
+                  {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || USER_ROLES.STUDENT)}
                 </span>
               </div>
               <button
@@ -2656,7 +2667,7 @@ const ChatPage = memo(() => {
                     Recording
                   </span>
                   <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
-                    {formatTime(recordingTime)}
+                    {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || USER_ROLES.STUDENT)}
                   </span>
                 </div>
               </div>
@@ -2885,7 +2896,7 @@ const ChatPage = memo(() => {
                     animation: 'pulse 1.4s infinite ease-in-out 0.4s'
                   }}></span>
                   <span style={{ fontSize: '9px', marginLeft: '2px' }}>
-                    {formatTime(recordingTime)}
+                    {formatTime(recordingTime)}/{getMaxVoiceTimeDisplay(user?.role || USER_ROLES.STUDENT).replace(' minutes', 'm')}
                   </span>
                 </div>
               )}

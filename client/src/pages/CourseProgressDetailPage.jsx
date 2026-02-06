@@ -3,18 +3,21 @@ import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Container, Card, CardBody, Button, Badge, Tabs } from '@ui';
 import StatCard from '@ui/StatCard/StatCard';
 import ProgressWidget from '@ui/ProgressWidget/ProgressWidget';
 import Leaderboard from '@ui/Leaderboard/Leaderboard';
+import { getThemedIcon } from '@constants/iconTypes';
 import {
-  BookOpen, Clock, Trophy, Target, Calendar, Users, Play,
+  Clock, Trophy, Target, Calendar, Users, Play,
   CheckCircle, Lock, ChevronDown, ChevronUp, User, Award
 } from 'lucide-react';
 import styles from './CourseProgressDetailPage.module.css';
 
 export default function CourseProgressDetailPage() {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { courseId } = useParams();
@@ -437,7 +440,7 @@ export default function CourseProgressDetailPage() {
                       </div>
                       <div className={styles.activityItem}>
                         <div className={styles.activityIcon}>
-                          <BookOpen size={16} style={{ color: '#8b5cf6' }} />
+                          {getThemedIcon('ui', 'book_open', 16, theme)}
                         </div>
                         <div className={styles.activityContent}>
                           <p className={styles.activityTitle}>Started "Integration Techniques"</p>

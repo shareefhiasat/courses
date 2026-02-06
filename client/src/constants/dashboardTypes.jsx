@@ -1,9 +1,10 @@
 import React from 'react';
+import { getThemedIcon } from '@constants/iconTypes';
 import {
   FileText, Link, Video, Database, Globe, Mail, BarChart3, Edit, Trash, 
   RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, 
   LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, 
-  Eye, EyeOff, Bookmark, Award, Calendar, BookOpen, PenTool, CheckCircle, 
+  Eye, EyeOff, Bookmark, Award, Calendar, PenTool, CheckCircle, 
   XCircle, Users, GraduationCap, Target, Bell, BellOff, Shield, Activity, 
   Home, Search, Filter, ChevronDown, Zap, Crown, Archive, Tag, QrCode, KeyRound
 } from 'lucide-react';
@@ -97,7 +98,7 @@ export const PROGRAM_SCOPE_TYPES = {
   PROGRAM_SPECIFIC: 'program'
 };
 
-export const getProgramScopeConfig = (scope) => {
+export const getProgramScopeConfig = (scope, theme = 'light') => {
   const configs = {
     [PROGRAM_SCOPE_TYPES.GLOBAL]: {
       icon: <Globe size={16} color="#16a34a" />,
@@ -110,7 +111,7 @@ export const getProgramScopeConfig = (scope) => {
       label: 'Public'
     },
     [PROGRAM_SCOPE_TYPES.PROGRAM_SPECIFIC]: {
-      icon: <BookOpen size={16} color="#4f46e5" />,
+      icon: getThemedIcon('ui', 'book_open', 16, theme),
       color: '#4f46e5',
       label: 'Program Specific'
     }
@@ -272,7 +273,7 @@ const getRoleIcon = (role) => {
   const roleIcons = {
     superadmin: <Crown size={16} />,
     admin: <Shield size={16} />,
-    instructor: <BookOpen size={16} />,
+    instructor: getThemedIcon('ui', 'book_open', 16, 'light'),
     hr: <Users size={16} />,
     student: <User size={16} />
   };

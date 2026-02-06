@@ -6,7 +6,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
-import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '@ui';
+import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading, FilterSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ClassSchedulePage.module.css';
 
@@ -287,82 +287,48 @@ const ClassSchedulePage = () => {
         <div style={{ padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
           <div style={{ fontWeight: 600, marginBottom: 8, fontSize: '0.9rem' }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
           <div style={{ display: 'grid', gap: 6, marginBottom: 8 }}>
-            <Select
-              searchable
-              value={programFilter}
-              onChange={(e) => setProgramFilter(e.target.value)}
-              options={[
-                { value: 'all', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...programs.map(p => ({
-                  value: p.docId || p.id,
-                  label: p.name_en || p.name_ar || p.code || p.docId,
-                  icon: getThemedIcon('ui', 'graduation_cap', 16, theme)
-                }))
-              ]}
-              fullWidth
-              placeholder="Filter by Program"
-            />
-            <Select
-              searchable
-              value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
-              options={[
-                { value: 'all', label: 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...subjects
-                  .filter(s => programFilter === 'all' || s.programId === programFilter)
-                  .map(s => ({
-                    value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
-                    icon: getThemedIcon('ui', 'book_open', 16, theme)
-                  }))
-              ]}
-              fullWidth
-              placeholder="Filter by Subject"
-            />
-            <Select
-              searchable
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              options={[
-                { value: 'all', label: 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...classes
-                  .filter(c => {
-                    if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
-                    if (programFilter !== 'all') {
-                      const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                      if (!subject || subject.programId !== programFilter) return false;
-                    }
-                    return true;
-                  })
-                  .map(c => ({
-                    value: c.id || c.docId,
-                    label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`,
-                    icon: getThemedIcon('ui', 'users', 16, theme)
-                  }))
-              ]}
-              fullWidth
-              placeholder="Filter by Class"
-            />
-            <Select
-              value={yearFilter}
-              onChange={(e) => setYearFilter(e.target.value)}
-              options={[
-                { value: 'all', label: t('all_years') || 'All years' },
-                ...availableYears.map(year => ({ value: year, label: year }))
-              ]}
-              fullWidth
-              placeholder={t('filter_year') || 'Filter by year'}
-            />
-            <Select
-              value={termFilter}
-              onChange={(e) => setTermFilter(e.target.value)}
-              options={[
-                { value: 'all', label: t('all_terms') || 'All terms' },
-                ...availableTerms.map(term => ({ value: term, label: term }))
-              ]}
-              fullWidth
-              placeholder={t('filter_term') || 'Filter by term'}
-            />
+            <FilterSelect
+          filterKey="programs"
+          value={programFilter}
+          onChange={setProgramFilter}
+          data={programs}
+          additionalPlaceholderText={t('all_programs') || 'All Programs'}
+        />
+            <FilterSelect
+          filterKey="subjects"
+          value={subjectFilter}
+          onChange={setSubjectFilter}
+          data={subjects.filter(s => programFilter === 'all' || s.programId === programFilter)}
+          additionalPlaceholderText={t('all_subjects') || 'All Subjects'}
+        />
+            <FilterSelect
+          filterKey="classes"
+          value={classFilter}
+          onChange={setClassFilter}
+          data={classes.filter(c => {
+            if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
+            if (programFilter !== 'all') {
+              const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+              if (!subject || subject.programId !== programFilter) return false;
+            }
+            return true;
+          })}
+          additionalPlaceholderText={t('all_classes') || 'All Classes'}
+        />
+            <FilterSelect
+          filterKey="years"
+          value={yearFilter}
+          onChange={setYearFilter}
+          data={availableYears}
+          additionalPlaceholderText={t('all_years') || 'All years'}
+        />
+            <FilterSelect
+          filterKey="terms"
+          value={termFilter}
+          onChange={setTermFilter}
+          data={availableTerms}
+          additionalPlaceholderText={t('all_terms') || 'All terms'}
+        />
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
             {filteredClasses.map((cls, index) => {
@@ -485,15 +451,12 @@ const ClassSchedulePage = () => {
                 </div>
                 <div>
                   <label style={{ display: 'none' }}>{t('duration') || 'Duration (minutes)'}</label>
-                  <Select
-                    searchable
+                  <FilterSelect
+                    filterKey="duration"
                     value={schedule.duration}
-                    onChange={(e) => setSchedule({ ...schedule, duration: parseInt(e.target.value) })}
-                    options={durationOptions.map(dur => ({
-                      value: dur,
-                      label: `${dur} min (${(dur / 60).toFixed(1)} hrs)`
-                    }))}
-                    fullWidth
+                    onChange={(value) => setSchedule({ ...schedule, duration: parseInt(value) })}
+                    data={durationOptions}
+                    additionalPlaceholderText={t('select_duration') || 'Select Duration'}
                   />
                 </div>
               </div>

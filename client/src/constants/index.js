@@ -95,6 +95,20 @@ export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } f
 export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
 export { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS } from '../utils/sharedTypes.jsx';
 
+// Chat Limitations - Role-based chat restrictions
+export {
+  CHAT_LIMITATIONS,
+  getChatLimitations,
+  isFileTypeAllowed,
+  isFileSizeAllowed,
+  getMaxFileSizeDisplay,
+  getMaxVoiceTimeDisplay,
+  validateFileUpload,
+  isVoiceTimeAllowed,
+  getVoiceRecordingProgress,
+  DEFAULT_CHAT_LIMITATIONS
+} from './chatLimitations.js';
+
 // Utility Functions
 export { formatDateTime } from '../utils/date.js';
 export { formatQatarDate, formatQatarDateOnly } from '../utils/timezone.js';

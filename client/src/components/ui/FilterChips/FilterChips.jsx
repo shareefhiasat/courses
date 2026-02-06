@@ -1,5 +1,7 @@
 import React from 'react';
-import { Award, BookOpen, ClipboardList, HelpCircle, Star, StarOff, Pin, Repeat, CheckCircle, Hourglass } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
+import { Award, ClipboardList, HelpCircle, Star, StarOff, Pin, Repeat, CheckCircle, Hourglass } from 'lucide-react';
 
 /**
  * Reusable filter chips component
@@ -9,6 +11,8 @@ import { Award, BookOpen, ClipboardList, HelpCircle, Star, StarOff, Pin, Repeat,
  * @param {Function} props.t - Translation function
  */
 export default function FilterChips({ filters = [], variant = 'custom', t = (key) => key }) {
+  const { theme } = useTheme();
+  
   const getDefaultStyles = (filter) => {
     if (variant === 'type') {
       const typeStyles = {
@@ -53,7 +57,7 @@ export default function FilterChips({ filters = [], variant = 'custom', t = (key
     if (filter.icon) return filter.icon;
     
     if (variant === 'type') {
-      if (filter.id === 'training') return <BookOpen size={14} />;
+      if (filter.id === 'training') return getThemedIcon('ui', 'book_open', 14, theme);
       if (filter.id === 'homework') return <ClipboardList size={14} />;
       if (filter.id === 'quiz') return <HelpCircle size={14} />;
     }

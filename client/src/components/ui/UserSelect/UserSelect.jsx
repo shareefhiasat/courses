@@ -2,10 +2,7 @@ import React from 'react';
 import { Select } from '@ui';
 import { USER_ROLES } from '@constants/userRoles';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
-import { 
-  UserCheck, UserX, UserMinus, AlertTriangle, Info,
-  User, BookOpen, Users, Shield, Crown
-} from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants/dashboardTypes';
 
 /**
@@ -52,18 +49,21 @@ const UserSelect = ({
   ...rest
 }) => {
   
-  // Icon component mapping
-  const IconComponents = {
-    'UserCheck': UserCheck,
-    'UserX': UserX,
-    'UserMinus': UserMinus,
-    'AlertCircle': AlertTriangle,
-    'Info': Info,
-    'User': User,
-    'BookOpen': BookOpen,
-    'Users': Users,
-    'Shield': Shield,
-    'Crown': Crown
+  // Icon component mapping using centralized system
+  const getIconComponent = (iconName) => {
+    const iconMap = {
+      'UserCheck': getThemedIcon('user_status', 'active', 16, theme),
+      'UserX': getThemedIcon('user_status', 'inactive', 16, theme),
+      'UserMinus': getThemedIcon('user_status', 'suspended', 16, theme),
+      'AlertCircle': getThemedIcon('ui', 'alert_triangle', 16, theme),
+      'Info': getThemedIcon('ui', 'info', 16, theme),
+      'User': getThemedIcon('ui', 'user', 16, theme),
+      'BookOpen': getThemedIcon('ui', 'book_open', 16, theme),
+      'Users': getThemedIcon('ui', 'users', 16, theme),
+      'Shield': getThemedIcon('ui', 'shield', 16, theme),
+      'Crown': getThemedIcon('ui', 'crown', 16, theme)
+    };
+    return iconMap[iconName] || getThemedIcon('ui', 'user', 16, theme);
   };
 
   // Filter users by role if specified
@@ -81,7 +81,7 @@ const UserSelect = ({
         value: 'all',
         label: (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <User size={16} color="#9CA3AF" />
+            {getIconComponent('User')}
             <span>All Users</span>
           </div>
         )
@@ -98,7 +98,7 @@ const UserSelect = ({
       const status = getUserStatus(u, userEnrollments);
       const statusSummary = getUserStatusSummary(u, userEnrollments);
       const iconProps = getStatusIconProps(status);
-      const IconComponent = IconComponents[iconProps.name] || User;
+      const IconComponent = getIconComponent(iconProps.name);
       
       const isDisabled = status === USER_STATUS.DELETED;
       const statusLabel = statusSummary?.label || status;

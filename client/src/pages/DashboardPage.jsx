@@ -518,13 +518,13 @@ const DashboardPage = () => {
   // Helper function to get icon component by name
   const getIconComponent = (iconName) => {
     const iconMap = {
-      'User': User,
-      'BookOpen': BookOpen,
-      'Users': Users,
-      'Shield': Shield,
-      'Crown': Crown
+      'User': getThemedIcon('ui', 'user', 16, theme),
+      'BookOpen': getThemedIcon('ui', 'book_open', 16, theme),
+      'Users': getThemedIcon('ui', 'users', 16, theme),
+      'Shield': getThemedIcon('ui', 'shield', 16, theme),
+      'Crown': getThemedIcon('ui', 'crown', 16, theme)
     };
-    return iconMap[iconName] || User;
+    return iconMap[iconName] || getThemedIcon('ui', 'user', 16, theme);
   };
 
   // Data states

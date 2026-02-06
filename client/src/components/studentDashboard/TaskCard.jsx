@@ -1,13 +1,17 @@
 import React from 'react';
 import { Button, Badge, ProgressBar } from '../ui';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 import {
   CheckCircle, Clock, AlertCircle, XCircle,
-  BookOpen, FileQuestion, FileArchive, Award,
+  FileQuestion, FileArchive, Award,
   Eye, RefreshCw, Play
 } from 'lucide-react';
 import styles from '../../pages/StudentDashboardPage.module.css';
 
 export default function TaskCard({ task, navigate }) {
+  const { theme } = useTheme();
+  
   const statusConfig = {
     completed: { color: 'success', icon: CheckCircle, label: 'Completed' },
     pending: { color: 'default', icon: Clock, label: 'Pending' },
@@ -17,7 +21,7 @@ export default function TaskCard({ task, navigate }) {
 
   const typeConfig = {
     quiz: { icon: FileQuestion, label: 'Quiz', color: '#667eea' },
-    homework: { icon: BookOpen, label: 'Homework', color: '#f59e0b' },
+    homework: { icon: getThemedIcon('ui', 'book_open', 18, theme), label: 'Homework', color: '#f59e0b' },
     resource: { icon: FileArchive, label: 'Resource', color: '#10b981' }
   };
 

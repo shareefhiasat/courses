@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { getUsers } from '@firebaseServices/userService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
@@ -22,7 +23,8 @@ import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Select, DatePicker, Button, Loading, Card, CardBody } from '@ui';
 import { FancyLoading } from '@ui';
-import { BookOpen, FileText, Users, Filter } from 'lucide-react';
+import { FileText, Users, Filter } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionPanel from '@/components/qr-scanner/StudentActionPanel';
@@ -34,6 +36,7 @@ import eventBus, { EVENTS } from '@utils/eventBus';
 const InstructorQRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { t, lang, isRTL } = useLang();
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   // Helper functions to save selections to localStorage
@@ -256,7 +259,7 @@ const InstructorQRScannerPage = () => {
       .map(prog => {
         const value = prog.docId || prog.id;
         const label = lang === 'ar' ? (prog.name_ar || prog.name_en || prog.name || prog.code || value) : (prog.name_en || prog.name || prog.code || value);
-        return { value, label, icon: <BookOpen size={16} color="#374151" /> };
+        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
       });
     return [...opts, ...validPrograms];
   }, [programs, t, lang]);

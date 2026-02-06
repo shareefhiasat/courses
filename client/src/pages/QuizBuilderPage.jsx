@@ -3,8 +3,10 @@ import logger from '../utils/logger';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import {
+  Plus, Save, Eye, Trash2, GripVertical, Clock, Copy, Play,
+  CheckCircle, XCircle, HelpCircle, ListChecks, Repeat, Award
+} from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { getQuiz, createQuiz, updateQuiz } from '@firebaseServices/quizService';
@@ -32,19 +34,19 @@ const DIFFICULTY_LABELS = {
 const QUESTION_TYPE_INFO = {
   [QUESTION_TYPES.MULTIPLE_CHOICE]: {
     name: 'Multiple Choice',
-    icon: getThemedIcon('ui', 'list_checks', 20, theme),
+    icon: <ListChecks size={20} />,
     description: 'Select one or more correct answers',
     color: 'var(--color-primary, #6366f1)'
   },
   [QUESTION_TYPES.SINGLE_CHOICE]: {
     name: 'Single Choice',
-    icon: getThemedIcon('ui', 'check_circle', 20, theme),
+    icon: <CheckCircle size={20} />,
     description: 'Select only one correct answer',
     color: '#0ea5e9'
   },
   [QUESTION_TYPES.TRUE_FALSE]: {
     name: 'True/False',
-    icon: getThemedIcon('ui', 'help_circle', 20, theme),
+    icon: <HelpCircle size={20} />,
     description: 'Simple true or false question',
     color: '#f59e0b'
   }
@@ -77,7 +79,6 @@ function getDefaultOptions(type = QUESTION_TYPES.MULTIPLE_CHOICE) {
 
 export default function QuizBuilderPage() {
   const { t, lang } = useLang();
-  const { theme } = useTheme();
   const { user, isAdmin, isInstructor } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -222,21 +223,21 @@ export default function QuizBuilderPage() {
 
     chips.push(
       <span key="questions" className={`${styles.metaChip} ${styles.infoChip}`}>
-        <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'list_checks', 14, theme)}</span>
+        <span className={styles.metaChipIcon}><ListChecks size={14} /></span>
         <span>{questionCount} {questionCount === 1 ? (t('question') || 'question') : (t('questions') || 'questions')}</span>
       </span>
     );
 
     chips.push(
       <span key="time" className={`${styles.metaChip} ${styles.infoChip}`}>
-        <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'clock', 14, theme)}</span>
+        <span className={styles.metaChipIcon}><Clock size={14} /></span>
         <span>{estimatedTime} min</span>
       </span>
     );
 
     chips.push(
       <span key="difficulty" className={`${styles.metaChip} ${getDifficultyChipClass(quizData.difficulty)}`}>
-        <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'award', 14, theme)}</span>
+        <span className={styles.metaChipIcon}><Award size={14} /></span>
         <span>{getDifficultyLabel(quizData.difficulty)}</span>
       </span>
     );
@@ -244,7 +245,7 @@ export default function QuizBuilderPage() {
     if (quizData.settings?.allowRetake) {
       chips.push(
         <span key="retake" className={`${styles.metaChip} ${styles.retakeChip}`}>
-          <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'repeat', 14, theme)}</span>
+          <span className={styles.metaChipIcon}><Repeat size={14} /></span>
           <span>{t('retake_allowed') || 'Retake allowed'}</span>
         </span>
       );
@@ -520,13 +521,13 @@ export default function QuizBuilderPage() {
   const getQuestionIcon = (type) => {
     switch (type) {
       case QUESTION_TYPES.MULTIPLE_CHOICE:
-        return getThemedIcon('ui', 'list_checks', 16, theme);
+        return <ListChecks size={16} />;
       case QUESTION_TYPES.SINGLE_CHOICE:
-        return getThemedIcon('ui', 'check_circle', 16, theme);
+        return <CheckCircle size={16} />;
       case QUESTION_TYPES.TRUE_FALSE:
-        return getThemedIcon('ui', 'help_circle', 16, theme);
+        return <HelpCircle size={16} />;
       default:
-        return getThemedIcon('ui', 'help_circle', 16, theme);
+        return <HelpCircle size={16} />;
     }
   };
 
@@ -579,7 +580,7 @@ export default function QuizBuilderPage() {
                     disabled={saving}
                     aria-label="Save quiz"
                   >
-                    {saving ? <Spinner size="sm" /> : getThemedIcon('ui', 'save', 16, theme)}
+                    {saving ? <Spinner size="sm" /> : <Save size={16} />}
                   </Button>
                 </div>
               </div>
@@ -587,7 +588,7 @@ export default function QuizBuilderPage() {
               <div className={styles.previewContent}>
                 {questionCount === 0 ? (
                   <div className={styles.emptyPreview}>
-                    {getThemedIcon('ui', 'help_circle', 48, theme)}
+                    <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
                     <h3>No Questions to Preview</h3>
                     <p>Add some questions to see how your quiz will look</p>
                     <Button variant="outline" onClick={() => setStep('build')}>
@@ -623,7 +624,7 @@ export default function QuizBuilderPage() {
                               >
                                 <div className={styles.optionIndicator}>
                                   {option.correct ? (
-                                    {getThemedIcon('ui', 'check_circle', 20, theme)}
+                                    <CheckCircle size={20} style={{ color: '#10b981' }} />
                                   ) : (
                                     <div className={styles.optionRadio} />
                                   )}
@@ -773,7 +774,7 @@ export default function QuizBuilderPage() {
               onClick={() => setStep('preview')}
               disabled={questionCount === 0}
             >
-              {getThemedIcon('ui', 'eye', 16, theme)}
+              <Eye size={16} />
             </Button>
             <Button
               variant="primary"
@@ -782,7 +783,7 @@ export default function QuizBuilderPage() {
               disabled={saving}
               aria-label="Save quiz"
             >
-              {saving ? <Spinner size="sm" /> : getThemedIcon('ui', 'save', 16, theme)}
+              {saving ? <Spinner size="sm" /> : <Save size={16} />}
             </Button>
           </div>
         </div>
@@ -798,7 +799,7 @@ export default function QuizBuilderPage() {
                 onClick={addQuestion}
                 title="Add question"
               >
-                {getThemedIcon('ui', 'plus', 14, theme)}
+                <Plus size={14} />
               </Button>
             </div>
             <div className={styles.questionsList}>
@@ -862,12 +863,12 @@ export default function QuizBuilderPage() {
                     }}
                   >
                     {!quizData.settings?.randomizeOrder && (
-                      {getThemedIcon('ui', 'grip_vertical', 14, theme)}
+                      <GripVertical size={14} className={styles.dragHandle} style={{ color: '#94a3b8', cursor: 'grab' }} />
                     )}
                     <span className={styles.questionNumber}>Q{index + 1}</span>
                     <span className={styles.questionType}>
                       <span className={styles.questionTypeIcon}>
-                        {QUESTION_TYPE_INFO[question.type]?.icon || getThemedIcon('ui', 'help_circle', 14, theme)}
+                        {QUESTION_TYPE_INFO[question.type]?.icon || <HelpCircle size={14} />}
                       </span>
                       <span className={styles.questionPreview}>
                         {(() => {
@@ -888,7 +889,7 @@ export default function QuizBuilderPage() {
                       }}
                       aria-label={`Delete question ${index + 1}`}
                     >
-                      {getThemedIcon('ui', 'trash2', 14, theme)}
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 );
@@ -983,7 +984,7 @@ export default function QuizBuilderPage() {
                               onClick={() => addOption(activeQuestionIndex)}
                               title="Add option"
                             >
-                              {getThemedIcon('ui', 'plus', 14, theme)}
+                              <Plus size={14} />
                             </Button>
                           )}
                         </div>
@@ -1003,7 +1004,7 @@ export default function QuizBuilderPage() {
                                   }
                                 }}
                               >
-                                {option.correct ? getThemedIcon('ui', 'check_circle', 16, theme) : getThemedIcon('ui', 'x_circle', 16, theme)}
+                                {option.correct ? <CheckCircle size={16} /> : <XCircle size={16} />}
                               </button>
                               <div style={{ flex: 1 }}>
                                 <RichTextEditor
@@ -1039,7 +1040,7 @@ export default function QuizBuilderPage() {
                                     }
                                   }}
                                 >
-                                  {getThemedIcon('ui', 'trash2', 14, theme)}
+                                  <Trash2 size={14} />
                                 </button>
                               )}
                             </div>
@@ -1138,11 +1139,11 @@ export default function QuizBuilderPage() {
             ) : (
               <Card>
                 <CardBody className={styles.emptyEditor}>
-                  {getThemedIcon('ui', 'help_circle', 48, theme)}
+                  <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
                   <h3>No Questions Yet</h3>
                   <p>{t('add_first_question') || 'Add your first question'} to get started</p>
                   <Button variant="primary" onClick={addQuestion}>
-                    {getThemedIcon('ui', 'plus', 16, theme)}
+                    <Plus size={16} style={{ marginRight: 6 }} />
                     Add Question
                   </Button>
                 </CardBody>
@@ -1180,7 +1181,7 @@ export default function QuizBuilderPage() {
                     onClick={saveQuiz}
                     disabled={saving}
                   >
-                    {saving ? <Spinner size="sm" /> : getThemedIcon('ui', 'save', 16, theme)}
+                    {saving ? <Spinner size="sm" /> : <Save size={16} style={{ marginRight: 6 }} />}
                     {saving ? 'Saving...' : 'Save Quiz'}
                   </Button>
                 </div>
@@ -1189,7 +1190,7 @@ export default function QuizBuilderPage() {
               <div className={styles.previewContent}>
                 {quizData.questions.length === 0 ? (
                   <div className={styles.emptyPreview}>
-                    {getThemedIcon('ui', 'help_circle', 48, theme)}
+                    <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
                     <h3>No Questions to Preview</h3>
                     <p>Add some questions to see how your quiz will look</p>
                     <Button variant="outline" onClick={() => setStep('build')}>
@@ -1225,7 +1226,7 @@ export default function QuizBuilderPage() {
                               >
                                 <div className={styles.optionIndicator}>
                                   {option.correct ? (
-                                    {getThemedIcon('ui', 'check_circle', 20, theme)}
+                                    <CheckCircle size={20} style={{ color: '#10b981' }} />
                                   ) : (
                                     <div className={styles.optionRadio} />
                                   )}

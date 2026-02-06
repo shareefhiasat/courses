@@ -3,9 +3,11 @@ import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { useTheme } from '@contexts/ThemeContext';
 import { Container, Card, CardBody, Button, Loading, Spinner } from '@ui';
-import { getThemedIcon } from '@constants/iconTypes';
+import {
+  Plus, Edit, Trash2, Play, Clock, Users, HelpCircle, ListChecks,
+  CheckCircle, AlertCircle, Repeat, Award
+} from 'lucide-react';
 import { getAllQuizzes, getQuizzesByCreator, deleteQuiz } from '@firebaseServices/quizService';
 import { getUser } from '@firebaseServices/userService';
 import { db } from '@firebaseServices/config';
@@ -16,7 +18,6 @@ import styles from './QuizManagementPage.module.css';
 
 export default function QuizManagementPage() {
   const { t, lang } = useLang();
-  const { theme } = useTheme();
   const { user, isAdmin, isInstructor, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
@@ -31,7 +32,7 @@ export default function QuizManagementPage() {
       loadQuizzes();
     } else if (!authLoading && !user) {
       setLoading(false);
-      setError('Please log in to view quizzes');
+      setError(t('please_log_in_to_view_quizzes') || 'Please log in to view quizzes');
     }
   }, [authLoading, user, loadQuizzes]);
 
@@ -49,14 +50,14 @@ export default function QuizManagementPage() {
     const questionsArray = Array.isArray(quiz.questions) ? quiz.questions : [];
 
     // Load creator name (display only a clean name, never raw email)
-    let creatorName = 'Unknown';
+    let creatorName = t('unknown') || 'Unknown';
     if (quiz.createdBy) {
       try {
         const userResult = await getUser(quiz.createdBy);
         if (userResult.success && userResult.data) {
           const { displayName, name, email } = userResult.data;
           const emailName = email ? email.split('@')[0] : '';
-          creatorName = displayName || name || emailName || 'Unknown';
+          creatorName = displayName || name || emailName || (t('unknown') || 'Unknown');
         }
       } catch (err) {
         logger.warn('Failed to load creator name:', err);
@@ -65,7 +66,7 @@ export default function QuizManagementPage() {
 
     return {
       id: quiz.id,
-      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || 'Untitled Quiz'),
+      title: lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || (t('untitled_quiz') || 'Untitled Quiz')) : (quiz.title_en || quiz.title_ar || quiz.title || (t('untitled_quiz') || 'Untitled Quiz')),
       description: lang === 'ar' ? (quiz.description_ar || quiz.description_en || quiz.description || '') : (quiz.description_en || quiz.description_ar || quiz.description || ''),
       type: quiz.type || 'multiple_choice',
       difficulty: (quiz.difficulty || settings.difficulty || 'general').toLowerCase(),
@@ -96,7 +97,7 @@ export default function QuizManagementPage() {
       }
 
       if (!response?.success) {
-        throw new Error(response?.error || 'Failed to load quizzes');
+        throw new Error(response?.error || (t('failed_to_load_quizzes') || 'Failed to load quizzes'));
       }
 
       const quizzesWithCreators = await Promise.all(
@@ -115,8 +116,8 @@ export default function QuizManagementPage() {
     } catch (error) {
       logger.error('Error loading quizzes:', error);
       const message = String(error?.message || '').toLowerCase().includes('permission')
-        ? 'You do not have permission to view quizzes yet.'
-        : (error?.message || 'Failed to load quizzes');
+        ? (t('no_permission_quizzes') || 'You do not have permission to view quizzes yet.')
+        : (error?.message || (t('failed_to_load_quizzes') || 'Failed to load quizzes'));
       setError(message);
     } finally {
       setLoading(false);
@@ -223,39 +224,39 @@ export default function QuizManagementPage() {
   const getQuizTypeIcon = (type) => {
     switch (type) {
       case 'multiple_choice':
-        return getThemedIcon('ui', 'list_checks', 16, theme);
+        return <ListChecks size={16} />;
       case 'single_choice':
-        return getThemedIcon('ui', 'check_circle', 16, theme);
+        return <CheckCircle size={16} />;
       case 'true_false':
-        return getThemedIcon('ui', 'help_circle', 16, theme);
+        return <HelpCircle size={16} />;
       default:
-        return getThemedIcon('ui', 'help_circle', 16, theme);
+        return <HelpCircle size={16} />;
     }
   };
 
   const getQuizTypeLabel = (type) => {
     switch (type) {
       case 'multiple_choice':
-        return 'Multiple Choice';
+        return t('multiple_choice') || 'Multiple Choice';
       case 'single_choice':
-        return 'Single Choice';
+        return t('single_choice') || 'Single Choice';
       case 'true_false':
-        return 'True/False';
+        return t('true_false') || 'True/False';
       default:
-        return 'Quiz';
+        return t('quiz') || 'Quiz';
     }
   };
 
   const getDifficultyLabel = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
       case 'beginner':
-        return 'Beginner';
+        return t('beginner') || 'Beginner';
       case 'intermediate':
-        return 'Intermediate';
+        return t('intermediate') || 'Intermediate';
       case 'advanced':
-        return 'Advanced';
+        return t('advanced') || 'Advanced';
       default:
-        return 'General';
+        return t('general') || 'General';
     }
   };
 
@@ -284,23 +285,23 @@ export default function QuizManagementPage() {
 
     chips.push(
       <span key={`${quiz.id}-questions`} className={`${styles.metaChip} ${styles.infoChip}`}>
-        <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'list_checks', 14, theme)}</span>
-        <span>{quiz.questionCount || 0} {quiz.questionCount === 1 ? 'question' : 'questions'}</span>
+        <span className={styles.metaChipIcon}><ListChecks size={14} /></span>
+        <span>{quiz.questionCount || 0} {quiz.questionCount === 1 ? (t('question') || 'question') : (t('questions') || 'questions')}</span>
       </span>
     );
 
     if (quiz.estimatedTime) {
       chips.push(
         <span key={`${quiz.id}-time`} className={`${styles.metaChip} ${styles.infoChip}`}>
-          <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'clock', 14, theme)}</span>
-          <span>{quiz.estimatedTime} min</span>
+          <span className={styles.metaChipIcon}><Clock size={14} /></span>
+          <span>{quiz.estimatedTime} {t('min') || 'min'}</span>
         </span>
       );
     }
 
     chips.push(
       <span key={`${quiz.id}-difficulty`} className={`${styles.metaChip} ${getDifficultyChipClass(quiz.difficulty)}`}>
-        <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'award', 14, theme)}</span>
+        <span className={styles.metaChipIcon}><Award size={14} /></span>
         <span>{getDifficultyLabel(quiz.difficulty)}</span>
       </span>
     );
@@ -308,8 +309,8 @@ export default function QuizManagementPage() {
     if (quiz.allowRetake) {
       chips.push(
         <span key={`${quiz.id}-retake`} className={`${styles.metaChip} ${styles.retakeChip}`}>
-          <span className={styles.metaChipIcon}>{getThemedIcon('ui', 'repeat', 14, theme)}</span>
-          <span>Retake allowed</span>
+          <span className={styles.metaChipIcon}><Repeat size={14} /></span>
+          <span>{t('retake_allowed') || 'Retake allowed'}</span>
         </span>
       );
     }
@@ -324,9 +325,9 @@ export default function QuizManagementPage() {
   const formatCreatedInfo = (quiz) => {
     // Always show only the creator name (no email, no date stamp)
     if (quiz.creatorName && quiz.creatorName !== 'Unknown') {
-      return `Created by ${quiz.creatorName}`;
+      return (t('created_by') || 'Created by') + ` ${quiz.creatorName}`;
     }
-    return 'Created automatically';
+    return (t('created_automatically') || 'Created automatically');
   };
 
   const totalAttempts = quizzes.reduce((sum, quiz) => sum + (quiz.totalAttempts || 0), 0);
@@ -355,11 +356,11 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    {getThemedIcon('ui', 'list_checks', 16, theme)}
+                    <ListChecks size={16} style={{ color: '#8b5cf6' }} />
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{quizzes.length}</h3>
-                    <p className={styles.statLabel}>Total Quizzes</p>
+                    <p className={styles.statLabel}>{t('total_quizzes') || 'Total Quizzes'}</p>
                   </div>
                 </div>
               </CardBody>
@@ -369,11 +370,11 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    {getThemedIcon('ui', 'users', 16, theme)}
+                    <Users size={16} style={{ color: '#10b981' }} />
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{totalAttempts}</h3>
-                    <p className={styles.statLabel}>Total Attempts</p>
+                    <p className={styles.statLabel}>{t('total_attempts') || 'Total Attempts'}</p>
                   </div>
                 </div>
               </CardBody>
@@ -383,11 +384,11 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    {getThemedIcon('ui', 'check_circle', 16, theme)}
+                    <CheckCircle size={16} style={{ color: '#f59e0b' }} />
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{averageScore}%</h3>
-                    <p className={styles.statLabel}>Average Score</p>
+                    <p className={styles.statLabel}>{t('average_score') || 'Average Score'}</p>
                   </div>
                 </div>
               </CardBody>
@@ -397,13 +398,13 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    {getThemedIcon('ui', 'clock', 16, theme)}
+                    <Clock size={16} style={{ color: '#6366f1' }} />
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>
                       {quizzes.reduce((sum, q) => sum + (q.estimatedTime || 0), 0)}
                     </h3>
-                    <p className={styles.statLabel}>Total Minutes</p>
+                    <p className={styles.statLabel}>{t('total_minutes') || 'Total Minutes'}</p>
                   </div>
                 </div>
               </CardBody>
@@ -413,13 +414,13 @@ export default function QuizManagementPage() {
               <CardBody>
                 <div className={styles.statContent}>
                   <div className={styles.statIcon}>
-                    {getThemedIcon('ui', 'help_circle', 16, theme)}
+                    <HelpCircle size={16} style={{ color: '#ec4899' }} />
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>
                       {quizzes.reduce((sum, q) => sum + (q.questionCount || 0), 0)}
                     </h3>
-                    <p className={styles.statLabel}>Total Questions</p>
+                    <p className={styles.statLabel}>{t('total_questions') || 'Total Questions'}</p>
                   </div>
                 </div>
               </CardBody>
@@ -431,7 +432,7 @@ export default function QuizManagementPage() {
         <div className={styles.quizzesSection}>
           {error && (
             <div className={styles.errorAlert}>
-              {getThemedIcon('ui', 'alert_circle', 20, theme)}
+              <AlertCircle size={20} style={{ color: '#ef4444', marginRight: 8 }} />
               <span>{error}</span>
             </div>
           )}
@@ -439,15 +440,15 @@ export default function QuizManagementPage() {
           {quizzes.length === 0 ? (
             <Card>
               <CardBody className={styles.emptyState}>
-                {getThemedIcon('ui', 'help_circle', 48, theme)}
-                <h3>No Quizzes Yet</h3>
-                <p>Create your first quiz to get started</p>
+                <HelpCircle size={48} style={{ color: '#d1d5db', marginBottom: 16 }} />
+                <h3>{t('no_quizzes_yet') || 'No Quizzes Yet'}</h3>
+                <p>{t('create_first_quiz_to_get_started') || 'Create your first quiz to get started'}</p>
                 <Button
                   variant="primary"
                   onClick={() => navigate('/quiz-builder')}
                 >
-                  {getThemedIcon('ui', 'plus', 16, theme)}
-                  Create Quiz
+                  <Plus size={16} style={{ marginRight: 6 }} />
+                  {t('create_quiz') || 'Create Quiz'}
                 </Button>
               </CardBody>
             </Card>
@@ -461,8 +462,8 @@ export default function QuizManagementPage() {
                         {renderMetaChips(quiz)}
                         <h3 className={styles.quizTitle}>
                           {lang === 'ar' 
-                            ? (quiz.title_ar || quiz.title_en || quiz.title || 'Untitled Quiz')
-                            : (quiz.title_en || quiz.title_ar || quiz.title || 'Untitled Quiz')}
+                            ? (quiz.title_ar || quiz.title_en || quiz.title || (t('untitled_quiz') || 'Untitled Quiz'))
+                            : (quiz.title_en || quiz.title_ar || quiz.title || (t('untitled_quiz') || 'Untitled Quiz'))}
                         </h3>
                         {(quiz.description_en || quiz.description_ar || quiz.description) && (
                           <p className={styles.quizDescription}>
@@ -474,12 +475,12 @@ export default function QuizManagementPage() {
 
                         <div className={styles.quizStats}>
                           <div className={styles.statItem}>
-                            {getThemedIcon('ui', 'users', 14, theme)}
-                            <span>{quiz.totalAttempts || 0} attempts</span>
+                            <Users size={14} style={{ color: '#64748b' }} />
+                            <span>{quiz.totalAttempts || 0} {t('attempts') || 'attempts'}</span>
                           </div>
                           <div className={styles.statItem}>
-                            {getThemedIcon('ui', 'check_circle', 14, theme)}
-                            <span>{quiz.averageScore || 0}% avg score</span>
+                            <CheckCircle size={14} style={{ color: '#10b981' }} />
+                            <span>{quiz.averageScore || 0}% {t('avg_score') || 'avg score'}</span>
                           </div>
                         </div>
                       </div>
@@ -489,21 +490,21 @@ export default function QuizManagementPage() {
                           variant="outline"
                           size="sm"
                           className={styles.iconButton}
-                          title="Preview quiz"
-                          aria-label="Preview quiz"
+                          title={t('preview_quiz') || 'Preview quiz'}
+                          aria-label={t('preview_quiz') || 'Preview quiz'}
                           onClick={() => handlePreview(quiz.id)}
                         >
-                          {getThemedIcon('ui', 'play', 16, theme)}
+                          <Play size={16} />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           className={styles.iconButton}
-                          title="Edit quiz"
-                          aria-label="Edit quiz"
+                          title={t('edit_quiz') || 'Edit quiz'}
+                          aria-label={t('edit_quiz') || 'Edit quiz'}
                           onClick={() => handleEdit(quiz)}
                         >
-                          {getThemedIcon('ui', 'edit', 16, theme)}
+                          <Edit size={16} />
                         </Button>
                         <Button
                           variant="danger"
@@ -511,13 +512,13 @@ export default function QuizManagementPage() {
                           className={styles.iconButton}
                           onClick={() => handleDelete(quiz.id)}
                           disabled={deleting === quiz.id}
-                          title="Delete quiz"
-                          aria-label="Delete quiz"
+                          title={t('delete_quiz') || 'Delete quiz'}
+                          aria-label={t('delete_quiz') || 'Delete quiz'}
                         >
                           {deleting === quiz.id ? (
                             <Spinner size="sm" />
                           ) : (
-                            {getThemedIcon('ui', 'trash2', 16, theme)}
+                            <Trash2 size={16} />
                           )}
                         </Button>
                       </div>
@@ -541,8 +542,8 @@ export default function QuizManagementPage() {
         open={deleteModal.open}
         onClose={() => setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null })}
         onConfirm={deleteModal.onConfirm || (() => {})}
-        title="Delete Quiz"
-        message="Are you sure you want to delete this quiz? This action cannot be undone."
+        title={t('delete_quiz') || 'Delete Quiz'}
+        message={t('delete_quiz_confirmation') || 'Are you sure you want to delete this quiz? This action cannot be undone.'}
         itemName={deleteModal.item?._displayName || deleteModal.item?.title || deleteModal.item?.name || deleteModal.item?.id}
         relatedData={deleteModal.relatedData}
         warningMessage={deleteModal.warningMessage}

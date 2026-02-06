@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Clock, Award, TrendingUp } from 'lucide-react';
+import { Clock, Award, TrendingUp } from 'lucide-react';
 import ProgressBar from '../ProgressBar';
 import styles from './ProgressWidget.module.css';
 

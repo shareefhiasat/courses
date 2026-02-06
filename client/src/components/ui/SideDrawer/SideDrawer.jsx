@@ -10,9 +10,10 @@ import { db } from '@firebaseServices/config';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';
 import {
   Home, ClipboardList, BarChart3, Trophy, MessageSquare,
-  BookOpen, Users, Settings, LogOut, Languages, LayoutDashboard,
+  Users, Settings, LogOut, Languages, LayoutDashboard,
   X, QrCode, User as UserIcon, Theater, Bell, ExternalLink, Activity, Timer as TimerIcon, Pin, PinOff, Sun, Moon, Shield, UserX, Calendar, Gamepad2, ListChecks, ChevronDown, ChevronRight, ChevronLeft, GripVertical, Award, AlertTriangle, AlertCircle, FileText
 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
 
 const SideDrawer = ({ isOpen, onClose }) => {
@@ -297,7 +298,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     classes: {
       label: 'CLASSES',
       items: [
-        { path: '/my-enrollments', icon: <BookOpen size={18} />, label: 'My Enrollments' },
+        { path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: 'My Enrollments' },
         { path: '/class-schedules', icon: <Calendar size={18} />, label: t('schedules') || 'Schedules' },
       ]
     },
@@ -311,7 +312,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: 'COMMUNITY',
       items: [
         { path: '/chat', icon: <MessageSquare size={18} />, label: (t('chat') || 'Chat').charAt(0).toUpperCase() + (t('chat') || 'Chat').slice(1) },
-        { path: '/?mode=resources', icon: <BookOpen size={18} />, label: (t('resources') || 'Resources').charAt(0).toUpperCase() + (t('resources') || 'Resources').slice(1) },
+        { path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('resources') || 'Resources').charAt(0).toUpperCase() + (t('resources') || 'Resources').slice(1) },
       ]
     },
     tools: {
@@ -351,8 +352,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
     academic: isSuperAdmin || isInstructor || isAdmin ? {
       label: 'ACADEMIC',
       items: [
-        { path: '/dashboard', hash: '#programs', icon: <BookOpen size={18} />, label: 'Programs' },
-        { path: '/dashboard', hash: '#subjects', icon: <BookOpen size={18} />, label: 'Subjects' },
+        { path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: 'Programs' },
+        { path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: 'Subjects' },
         { path: '/dashboard', hash: '#classes', icon: <Calendar size={18} />, label: t('classes') || 'Classes' },
         { path: '/dashboard', hash: '#enrollments', icon: <Users size={18} />, label: t('enrollments') || 'Enrollments' },
         { path: '/dashboard', hash: '#marks', icon: <Award size={18} />, label: 'Marks Entry' },
@@ -398,7 +399,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: 'COMMUNITY',
       items: [
         { path: '/chat', icon: <MessageSquare size={18} />, label: t('chat') || 'Chat' },
-        { path: '/?mode=resources', icon: <BookOpen size={18} />, label: t('resources') || 'Resources' },
+        { path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: t('resources') || 'Resources' },
       ]
     },
     tools: {

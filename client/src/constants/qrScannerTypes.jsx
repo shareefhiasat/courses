@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   UserCheck, UserX, Clock, AlertTriangle, Heart, Shield, 
-  MessageSquare, Award, BookOpen, Zap
+  MessageSquare, Award, Zap
 } from 'lucide-react';
 import { ATTENDANCE_STATUS } from './attendanceTypes';
 import { PARTICIPATION_TYPES } from './participationTypes.jsx';

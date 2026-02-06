@@ -5,7 +5,6 @@ import {
   CheckCircle2, 
   XCircle, 
   GraduationCap, 
-  BookOpen, 
   MessageSquareText, 
   Mailbox, 
   Send, 
@@ -16,6 +15,7 @@ import {
   ListFilter,
   Eye 
 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 // Email Type Configuration
 export const EMAIL_TYPES = {
@@ -50,7 +50,7 @@ export const getEmailTypeIcon = (type, size = 16) => {
     [EMAIL_TYPES.ACTIVITY_COMPLETE]: <CheckCircle2 size={size} title="Completion" />,
     [EMAIL_TYPES.ACTIVITY_GRADED]: <FileText size={size} title="Grading" />,
     [EMAIL_TYPES.ENROLLMENT]: <GraduationCap size={size} title="Enrollment" />,
-    [EMAIL_TYPES.RESOURCE]: <BookOpen size={size} title="Resource" />,
+    [EMAIL_TYPES.RESOURCE]: getThemedIcon('ui', 'book_open', size, 'light'),
     [EMAIL_TYPES.CHAT_DIGEST]: <MessageSquareText size={size} title="Chat Digest" />,
     [EMAIL_TYPES.CUSTOM]: <Mail size={size} title="Email" />
   };
@@ -79,7 +79,7 @@ export const getEmailTypeOptions = () => [
   { value: EMAIL_TYPES.ACTIVITY_GRADED, label: 'Grading', icon: <FileText size={16} title="Grading" /> },
   { value: EMAIL_TYPES.ACTIVITY_COMPLETE, label: 'Completions', icon: <CheckCircle2 size={16} title="Completion" /> },
   { value: EMAIL_TYPES.ENROLLMENT, label: 'Enrollments', icon: <GraduationCap size={16} title="Enrollment" /> },
-  { value: EMAIL_TYPES.RESOURCE, label: 'Resources', icon: <BookOpen size={16} title="Resource" /> },
+  { value: EMAIL_TYPES.RESOURCE, label: 'Resources', icon: getThemedIcon('ui', 'book_open', 16, 'light') },
   { value: EMAIL_TYPES.CHAT_DIGEST, label: 'Chat Digest', icon: <MessageSquareText size={16} title="Chat Digest" /> }
 ];
 

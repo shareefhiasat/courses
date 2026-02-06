@@ -60,6 +60,39 @@ export const FILTER_CONFIGS = {
     dependencies: []
   },
 
+  // Year filters
+  years: {
+    allOption: {
+      value: 'all',
+      label: 'all_years',
+      icon: 'calendar'
+    },
+    placeholder: 'select_year',
+    dependencies: []
+  },
+
+  // Term filters
+  terms: {
+    allOption: {
+      value: 'all',
+      label: 'all_terms',
+      icon: 'calendar'
+    },
+    placeholder: 'select_term',
+    dependencies: []
+  },
+
+  // Duration filters
+  duration: {
+    allOption: {
+      value: 60,
+      label: 'default_duration',
+      icon: 'clock'
+    },
+    placeholder: 'select_duration',
+    dependencies: []
+  },
+
   // Retake settings
   retake: {
     allOption: {

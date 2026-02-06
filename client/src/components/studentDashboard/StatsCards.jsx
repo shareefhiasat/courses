@@ -1,16 +1,20 @@
 import React from 'react';
 import { Card, CardBody, ProgressBar } from '../ui';
-import { BookOpen, Target, Trophy, CalendarCheck } from 'lucide-react';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
+import { Target, Trophy, CalendarCheck } from 'lucide-react';
 import styles from '../../pages/StudentDashboardPage_NEW.module.css';
 
 export default function StatsCards({ stats, attendanceStats }) {
+  const { theme } = useTheme();
+  
   return (
     <div className={styles.statsGrid}>
       <Card className={styles.statCard}>
         <CardBody>
           <div className={styles.statCardContent}>
             <div className={styles.statIcon} style={{ background: 'linear-gradient(135deg, #800020 0%, #600018 100%)' }}>
-              <BookOpen size={24} />
+              {getThemedIcon('ui', 'book_open', 24, theme)}
             </div>
             <div className={styles.statInfo}>
               <div className={styles.statValue}>{stats.enrolledClasses}</div>

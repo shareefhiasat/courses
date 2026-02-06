@@ -37,6 +37,7 @@ export { default as Textarea } from './Textarea/Textarea';
 export { default as NumberInput } from './NumberInput/NumberInput';
 export { default as YearSelect } from './YearSelect/YearSelect';
 export { default as RichTextEditor } from './RichTextEditor/RichTextEditor';
+export { default as FilterSelect } from './FilterSelect/FilterSelect';
 
 // Navigation & Interaction
 export { default as Dropdown } from './Dropdown';

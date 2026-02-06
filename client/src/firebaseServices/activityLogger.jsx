@@ -129,7 +129,6 @@ import {
   Edit,
   PenTool, 
   Award, 
-  BookOpen, 
   Bookmark, 
   Eye, 
   MessageSquare, 
@@ -141,6 +140,7 @@ import {
   GraduationCap, 
   BarChart3 
 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export const getActivityLogOptions = (t) => [
   { value: 'all', label: t('all_activity_types') || 'All Activity Types', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
@@ -173,7 +173,7 @@ export const getActivityLogOptions = (t) => [
   { value: ACTIVITY_LOG_TYPES.SUBMISSION_GRADED, label: t('submission_graded') || 'Submission Graded', icon: <Award size={16} color="var(--text-secondary, #374151)" /> },
   
   // Resources CRUD
-  { value: ACTIVITY_LOG_TYPES.RESOURCE_CREATED, label: t('resource_created') || 'Resource Created', icon: <BookOpen size={16} color="var(--text-secondary, #374151)" /> },
+  { value: ACTIVITY_LOG_TYPES.RESOURCE_CREATED, label: t('resource_created') || 'Resource Created', icon: getThemedIcon('ui', 'book_open', 16, 'light') },
   { value: ACTIVITY_LOG_TYPES.RESOURCE_UPDATED, label: t('resource_updated') || 'Resource Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.RESOURCE_DELETED, label: t('resource_deleted') || 'Resource Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.RESOURCE_COMPLETED, label: t('resource_completed') || 'Resource Completed', icon: <CheckCircle size={16} color="var(--text-secondary, #374151)" /> },
@@ -215,7 +215,7 @@ export const getActivityLogOptions = (t) => [
   { value: ACTIVITY_LOG_TYPES.CLASS_VIEWED, label: t('class_viewed') || 'Class Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },
   
   // Subject CRUD
-  { value: ACTIVITY_LOG_TYPES.SUBJECT_CREATED, label: t('subject_created') || 'Subject Created', icon: <BookOpen size={16} color="var(--text-secondary, #374151)" /> },
+  { value: ACTIVITY_LOG_TYPES.SUBJECT_CREATED, label: t('subject_created') || 'Subject Created', icon: getThemedIcon('ui', 'book_open', 16, 'light') },
   { value: ACTIVITY_LOG_TYPES.SUBJECT_UPDATED, label: t('subject_updated') || 'Subject Updated', icon: <Edit size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.SUBJECT_DELETED, label: t('subject_deleted') || 'Subject Deleted', icon: <Trash size={16} color="var(--text-secondary, #374151)" /> },
   { value: ACTIVITY_LOG_TYPES.SUBJECT_VIEWED, label: t('subject_viewed') || 'Subject Viewed', icon: <Eye size={16} color="var(--text-secondary, #374151)" /> },

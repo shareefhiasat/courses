@@ -3,9 +3,11 @@ import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Container, Card, CardBody, Button, Badge, Spinner } from '@ui';
+import { getThemedIcon } from '@constants/iconTypes';
 import {
-  BookOpen, Clock, Users, Calendar, TrendingUp, Award,
+  Clock, Users, Calendar, TrendingUp, Award,
   ChevronRight, Play, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { ENROLLMENT_STATUS, getStatusLabel, getStatusColor } from '@utils/sharedTypes';
@@ -13,6 +15,7 @@ import styles from './MyEnrollmentsPage.module.css';
 
 export default function MyEnrollmentsPage() {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -240,7 +243,7 @@ export default function MyEnrollmentsPage() {
           {filteredEnrollments.length === 0 ? (
             <Card>
               <CardBody className={styles.emptyState}>
-                <BookOpen size={48} style={{ color: '#ccc', marginBottom: 16 }} />
+                {getThemedIcon('ui', 'book_open', 48, theme)}
                 <h3>No Enrollments Found</h3>
                 <p>You don't have any {filter !== 'all' ? filter : ''} enrollments yet.</p>
               </CardBody>
