@@ -10,7 +10,7 @@ import {
   // Activity Icons
   TrendingUp, TrendingDown, Target, Activity, Zap,
   // Academic Icons
-  BookOpen, GraduationCap, Award, FileText, Database,
+  BookOpen, GraduationCap, Award, FileText, Database, Trophy,
   // Communication Icons
   MessageSquare, Bell, BellOff, Send, Phone,
   // Navigation Icons
@@ -205,7 +205,27 @@ export const ICON_TYPES = {
     trash2: <Trash2 size={16} />,
     grip_vertical: <GripVertical size={16} />,
     zap: <Zap size={16} />,
-    list: <List size={16} />
+    list: <List size={16} />,
+    // Additional UI icons needed by the application
+    award: <Award size={16} />,
+    trophy: <Trophy size={16} />,
+    activity: <Activity size={16} />,
+    file_text: <FileText size={16} />,
+    calendar_check: <Calendar size={16} />,
+    message_square: <MessageSquare size={16} />,
+    user_check: <UserCheck size={16} />,
+    alert_triangle: <AlertTriangle size={16} />,
+    trending_down: <TrendingDown size={16} />,
+    bar_chart_3: <BarChart3 size={16} />,
+    graduation_cap: <GraduationCap size={16} />,
+    book: <BookOpen size={16} />,
+    school: <Home size={16} />,
+    file_check: <FileText size={16} />,
+    list_checks: <List size={16} />,
+    file_bar_chart_2: <BarChart3 size={16} />,
+    // Additional missing icons
+    help_circle: <HelpCircle size={16} />,
+    bar_chart: <BarChart3 size={16} />
   }
 };
 

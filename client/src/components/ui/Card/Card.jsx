@@ -88,7 +88,7 @@ export const CardHeader = ({
 export const CardBody = ({ children, className = '' }) => {
   return (
     <div className={`${styles.cardBody} ${className}`}>
-      {children}
+      {/*{children}*/}
     </div>
   );
 };

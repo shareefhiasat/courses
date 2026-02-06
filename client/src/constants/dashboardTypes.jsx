@@ -270,7 +270,7 @@ export const COMMON_ICONS = {
     success: <CheckCircle size={16} />,
     error: <XCircle size={16} />,
     warning: <AlertTriangle size={16} />,
-    info: <Info size={16} />
+    info: <AlertTriangle size={16} />
   },
   navigation: {
     home: <Home size={16} />,
