@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { Tabs } from '@ui';
 import { getActivities, getAnnouncements, getResources } from '@firebaseServices/activityService';
@@ -763,19 +763,19 @@ const HomePage = memo(() => {
                 )}
                 {stats.featured !== undefined && stats.featured > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('featured') || 'Featured'}>
-                    {getThemedIcon('ui', 'pin', 14, theme)}
+                    {getColoredIcon('ui', 'pin', 14, '#4f46e5', theme)}
                     <span style={{ fontWeight: 700, color: '#4f46e5' }}>{stats.featured}</span>
                   </div>
                 )}
                 {stats.bookmarked !== undefined && stats.bookmarked > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('bookmarked') || 'Bookmarked'}>
-                    {getThemedIcon('ui', 'star', 14, theme)}
+                    {getColoredIcon('ui', 'star', 14, '#f5c518', theme)}
                     <span style={{ fontWeight: 700, color: '#f5c518' }}>{stats.bookmarked}</span>
                   </div>
                 )}
                 {stats.retakable !== undefined && stats.retakable > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title={t('retake_allowed') || 'Retake Allowed'}>
-                    {getThemedIcon('ui', 'repeat', 14, theme)}
+                    {getColoredIcon('ui', 'repeat', 14, '#0ea5e9', theme)}
                     <span style={{ fontWeight: 700, color: '#0ea5e9' }}>{stats.retakable}</span>
                   </div>
                 )}
@@ -835,7 +835,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getThemedIcon('ui', 'check_circle', 14, theme)}
+                  {getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)}
                 </button>
                 
                 <button
@@ -856,7 +856,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getThemedIcon('ui', 'hourglass', 14, theme)}
+                  {getColoredIcon('ui', 'hourglass', 14, '#f59e0b', theme)}
                 </button>
 
                 <button
@@ -876,7 +876,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getThemedIcon('ui', 'alert_circle', 14, theme)}
+                  {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}
                 </button>
 
                 <button
@@ -897,7 +897,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getThemedIcon('ui', 'book_open', 14, theme)}
+                  {getColoredIcon('ui', 'book_open', 14, '#f57c00', theme)}
                 </button>
 
                 <button
@@ -918,7 +918,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getThemedIcon('ui', 'clock', 14, theme)}
+                  {getColoredIcon('ui', 'clock', 14, '#dc2626', theme)}
                 </button>
               </>
             ) : (
@@ -940,7 +940,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getThemedIcon('ui', 'check_circle', 12, theme)}
+                  {getColoredIcon('ui', 'check_circle', 12, '#16a34a', theme)}
                   {getStatusLabel(TASK_STATUS.COMPLETED, lang)}
                 </button>
                 
@@ -961,7 +961,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getThemedIcon('ui', 'hourglass', 12, theme)}
+                  {getColoredIcon('ui', 'hourglass', 12, '#f59e0b', theme)}
                   {getStatusLabel(TASK_STATUS.NOT_STARTED, lang)}
                 </button>
 
@@ -982,7 +982,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getThemedIcon('ui', 'alert_circle', 12, theme)}
+                  {getColoredIcon('ui', 'alert_circle', 12, '#b91c1c', theme)}
                   {t('required') || 'Required'}
                 </button>
 
@@ -1003,7 +1003,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getThemedIcon('ui', 'book_open', 12, theme)}
+                  {getColoredIcon('ui', 'book_open', 12, '#f57c00', theme)}
                   {t('optional') || 'Optional'}
                 </button>
 
@@ -1024,7 +1024,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getThemedIcon('ui', 'clock', 12, theme)}
+                  {getColoredIcon('ui', 'clock', 12, '#dc2626', theme)}
                   {t('overdue') || 'Overdue'}
                 </button>
               </>
@@ -1052,7 +1052,7 @@ const HomePage = memo(() => {
                   gap: isMinified ? 0 : 4
                 }}
               >
-                {getThemedIcon('ui', 'globe2', 12, theme)}
+                {getColoredIcon('ui', 'globe2', 12, primaryColor, theme)}
                 <span>{t('all_levels') || 'All Levels'}</span>
               </button>
                   {[
@@ -1081,7 +1081,7 @@ const HomePage = memo(() => {
                     title={lv.label}
                     aria-label={lv.label}
                   >
-                    {getThemedIcon('ui', 'award', 12, theme)}
+                    {getColoredIcon('ui', 'award', 12, lv.fg, theme)}
                     {!isMinified && <span>{lv.label}</span>}
                       </button>
                     );
@@ -1107,7 +1107,7 @@ const HomePage = memo(() => {
                     gap: isMinified ? 0 : 4
                   }}
                 >
-                  {getThemedIcon('ui', 'globe2', 12, theme)}
+                  {getColoredIcon('ui', 'globe2', 12, primaryColor, theme)}
                   {!isMinified && <span>{t('all_types') || 'All Types'}</span>}
                 </button>
                 <button
@@ -1125,7 +1125,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('video') || 'Video'}
                 >
-                  {getThemedIcon('ui', 'video', 12, theme)}
+                  {getColoredIcon('ui', 'video', 12, primaryColor, theme)}
                   {!isMinified && <span>{t('video') || 'Video'}</span>}
                 </button>
                 <button
@@ -1143,7 +1143,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('link') || 'Link'}
                 >
-                  {getThemedIcon('ui', 'link2', 12, theme)}
+                  {getColoredIcon('ui', 'link2', 12, primaryColor, theme)}
                   {!isMinified && <span>{t('link') || 'Link'}</span>}
                 </button>
                 <button
@@ -1161,7 +1161,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('document') || 'Document'}
                 >
-                  {getThemedIcon('ui', 'file_text', 12, theme)}
+                  {getColoredIcon('ui', 'file_text', 12, primaryColor, theme)}
                   {!isMinified && <span>{t('document') || 'Document'}</span>}
                 </button>
               </div>
@@ -1248,7 +1248,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    {getThemedIcon('ui', 'pin', 14, theme)}
+                    {getColoredIcon('ui', 'pin', 14, '#4f46e5', theme)}
                   </button>
                   <button
                     onClick={() => setRetakableFilter(v => !v)}
@@ -1267,7 +1267,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    {getThemedIcon('ui', 'repeat', 14, theme)}
+                    {getColoredIcon('ui', 'repeat', 14, '#0ea5e9', theme)}
                   </button>
                   <button
                     onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
@@ -1307,7 +1307,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {bookmarkFilter ? getThemedIcon('ui', 'star', 12, theme) : getThemedIcon('ui', 'star_off', 12, theme)}
+                    {bookmarkFilter ? getColoredIcon('ui', 'star', 12, '#f5c518', theme) : getThemedIcon('ui', 'star_off', 12, theme)}
                     {t('bookmarked') || 'Bookmarked'}
                   </button>
                   <button
@@ -1326,7 +1326,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {getThemedIcon('ui', 'pin', 12, theme)}
+                    {getColoredIcon('ui', 'pin', 12, '#4f46e5', theme)}
                     {t('featured') || 'Featured'}
                   </button>
                   <button
@@ -1345,7 +1345,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {getThemedIcon('ui', 'repeat', 12, theme)}
+                    {getColoredIcon('ui', 'repeat', 12, '#0ea5e9', theme)}
                     {t('retake_allowed') || 'Retake'}
                   </button>
                   <button
@@ -1476,99 +1476,83 @@ const HomePage = memo(() => {
         steps={[
           {
             target: '[data-tour="mode-switcher"]',
-            content: lang === 'ar' 
-              ? 'استخدم هذه التبويبات للتبديل بين الأنشطة والموارد والاختبارات'
-              : 'Use these tabs to switch between Activities, Resources, and Quizzes',
+            content: t('joyride_tour_mode_switcher') || 'Use these tabs to switch between Activities, Resources, and Quizzes',
             disableBeacon: true,
             placement: 'bottom'
           },
           {
             target: '[data-tour="stats"]',
-            content: lang === 'ar'
-              ? 'هذه الإحصائيات تعرض عدد العناصر المكتملة والمعلقة والمطلوبة والمميزة والمؤرشفة'
-              : 'These statistics show counts for completed, pending, required, featured, and bookmarked items',
+            content: t('joyride_tour_stats') || 'These statistics show counts for completed, pending, required, featured, and bookmarked items',
             disableBeacon: true,
             placement: 'bottom'
           },
           {
             target: '[data-tour="search"]',
-            content: lang === 'ar'
-              ? 'استخدم هذا الحقل للبحث في العناوين والأوصاف'
-              : 'Use this field to search in titles and descriptions',
+            content: t('joyride_tour_search') || 'Use this field to search in titles and descriptions',
             disableBeacon: true,
             placement: 'bottom'
           },
           {
             target: '[data-tour="filters"]',
-            content: lang === 'ar'
-              ? 'استخدم هذه المرشحات للبحث وتصفية العناصر حسب النوع والمستوى والحالة'
-              : 'Use these filters to search and filter items by type, level, and status',
+            content: t('joyride_tour_filters') || 'Use these filters to search and filter items by type, level, and status',
             disableBeacon: true,
             placement: 'top'
           },
           {
             target: '[data-tour="status-filters"]',
-            content: lang === 'ar'
-              ? 'استخدم هذه المرشحات للعثور على العناصر المكتملة أو المعلقة أو المطلوبة أو المؤرشفة'
-              : 'Use these filters to find completed, pending, required, or bookmarked items',
+            content: t('joyride_tour_status_filters') || 'Use these filters to find completed, pending, required, or bookmarked items',
             disableBeacon: true,
             placement: 'top'
           },
           {
             target: '[data-tour="difficulty-filters"]',
-            content: lang === 'ar'
-              ? 'اختر مستوى الصعوبة: مبتدئ، متوسط، أو متقدم'
-              : 'Select difficulty level: Beginner, Intermediate, or Advanced',
+            content: t('joyride_tour_difficulty_filters') || 'Select difficulty level: Beginner, Intermediate, or Advanced',
             disableBeacon: true,
             placement: 'top'
           },
           ...(mode === 'activities' ? [{
             target: '[data-tour="mode-switcher"]',
-            content: lang === 'ar'
-              ? 'استخدم هذه التبويبات للتبديل بين الأنشطة والموارد'
-              : 'Use these tabs to switch between Activities and Resources',
+            content: t('joyride_tour_mode_switcher') || 'Use these tabs to switch between Activities and Resources',
             disableBeacon: true,
             placement: 'bottom'
           }, {
             target: '[data-tour="activity-type-tabs"]',
-            content: lang === 'ar'
-              ? 'اختر نوع النشاط: الكل، اختبار، واجب، تدريب، معمل، أو مشروع'
-              : 'Select activity type: All, Quiz, Homework, Training, Lab, or Project',
+            content: t('joyride_tour_activity_type_tabs') || 'Select activity type: All, Quiz, Homework, Training, Lab, or Project',
             disableBeacon: true,
             placement: 'bottom'
           }, {
             target: '[data-tour="category-tabs"]',
-            content: lang === 'ar'
-              ? 'اختر الفئة: الكل، برمجة، حوسبة، خوارزميات، أو عام'
-              : 'Select category: All, Programming, Computing, Algorithm, or General',
+            content: t('joyride_tour_category_tabs') || 'Select category: All, Programming, Computing, Algorithm, or General',
             disableBeacon: true,
             placement: 'bottom'
           }] : []),
           ...(mode === 'activities' && activityType === 'quiz' ? [{
             target: '[data-tour="class-filter"]',
-            content: lang === 'ar'
-              ? 'اختر الفصل لعرض الاختبارات المرتبطة به'
-              : 'Select a class to view quizzes associated with it',
+            content: t('joyride_tour_class_filter') || 'Select a class to view quizzes associated with it',
             disableBeacon: true,
             placement: 'top',
             disableScrolling: false
           }] : []),
+          ...(mode === 'resources' ? [{
+            target: '[data-tour="resource-type-filters"]',
+            content: t('joyride_tour_resource_type_filters') || 'Select resource type: All, Video, Link, or Document',
+            disableBeacon: true,
+            placement: 'top'
+          }] : []),
           {
             target: '[data-tour="cards-grid"]',
-            content: lang === 'ar'
-              ? 'هذه هي البطاقات التي تعرض العناصر. يمكنك النقر على الأزرار للبدء أو الإكمال أو الإضافة إلى المفضلة'
-              : 'These are the cards displaying items. You can click buttons to start, complete, or bookmark',
+            content: t('joyride_tour_cards_grid') || 'These are the cards displaying items. You can click buttons to start, complete, or bookmark',
             disableBeacon: true,
             placement: 'top',
             disableScrolling: false
           }
         ]}
         locale={{
-          back: lang === 'ar' ? 'السابق' : 'Back',
-          close: lang === 'ar' ? 'إغلاق' : 'Close',
-          last: lang === 'ar' ? 'إنهاء' : 'Finish',
-          next: lang === 'ar' ? 'التالي' : 'Next',
-          skip: lang === 'ar' ? 'تخطي' : 'Skip'
+          back: t('joyride_back') || 'Back',
+          close: t('joyride_close') || 'Close',
+          last: t('joyride_last') || 'Finish',
+          next: t('joyride_next') || 'Next',
+          skip: t('joyride_skip') || 'Skip'
         }}
         styles={{
           options: {

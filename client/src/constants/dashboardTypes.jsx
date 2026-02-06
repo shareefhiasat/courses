@@ -94,32 +94,52 @@ export const getResourceTypeOptions = (theme = 'light') => [
 ];
 
 // Activity Log Types with Icons and Colors
-export const ACTIVITY_LOG_TYPE_CONFIG = {
-  login: {
-    icon: <LogIn size={16} color="#16a34a" />,
-    color: '#16a34a',
-    label: 'Login'
-  },
-  logout: {
-    icon: <LogOut size={16} color="#f59e0b" />,
-    color: '#f59e0b', 
-    label: 'Logout'
-  },
-  failed_login: {
-    icon: <XCircle size={16} color="#dc2626" />,
-    color: '#dc2626',
-    label: 'Failed Login'
-  },
-  password_reset: {
-    icon: <Key size={16} color="#0ea5e9" />,
-    color: '#0ea5e9',
-    label: 'Password Reset'
-  }
-};
-
-export const getActivityLogTypeConfig = (type) => {
-  return ACTIVITY_LOG_TYPE_CONFIG[type.toLowerCase()] || {
-    icon: <Activity size={16} color="#374151" />,
+export const getActivityLogTypeConfig = (type, theme = 'light') => {
+  const configs = {
+    login: {
+      icon: getColoredIcon('activity_type', 'login', 16, '#16a34a', theme),
+      color: '#16a34a',
+      label: 'Login'
+    },
+    logout: {
+      icon: getColoredIcon('activity_type', 'logout', 16, '#f59e0b', theme),
+      color: '#f59e0b', 
+      label: 'Logout'
+    },
+    failed_login: {
+      icon: getColoredIcon('activity_type', 'failed_login', 16, '#dc2626', theme),
+      color: '#dc2626',
+      label: 'Failed Login'
+    },
+    password_reset: {
+      icon: getColoredIcon('activity_type', 'password_reset', 16, '#0ea5e9', theme),
+      color: '#0ea5e9',
+      label: 'Password Reset'
+    },
+    penalty_viewed: {
+      icon: getColoredIcon('activity_type', 'penalty_viewed', 16, '#8b5cf6', theme),
+      color: '#8b5cf6',
+      label: 'Penalty Viewed'
+    },
+    penalty_created: {
+      icon: getColoredIcon('activity_type', 'penalty_created', 16, '#dc2626', theme),
+      color: '#dc2626',
+      label: 'Penalty Created'
+    },
+    penalty_updated: {
+      icon: getColoredIcon('activity_type', 'penalty_updated', 16, '#f59e0b', theme),
+      color: '#f59e0b',
+      label: 'Penalty Updated'
+    },
+    penalty_deleted: {
+      icon: getColoredIcon('activity_type', 'penalty_deleted', 16, '#ef4444', theme),
+      color: '#ef4444',
+      label: 'Penalty Deleted'
+    }
+  };
+  
+  return configs[type.toLowerCase()] || {
+    icon: getColoredIcon('activity_type', 'activity', 16, '#374151', theme),
     color: '#374151',
     label: type
   };

@@ -1460,6 +1460,30 @@ const DICT = {
     camera_constraints_not_supported: 'Camera does not support the required settings. Try switching cameras.',
     camera_access_failed: 'Camera access failed',
     invalid_qr_code_format: 'Invalid QR code format',
+    
+    // Joyride Tour - Home Page
+    joyride_tour_mode_switcher: 'Use these tabs to switch between Activities, Resources, and Quizzes',
+    joyride_tour_stats: 'These statistics show counts for completed, pending, required, featured, and bookmarked items',
+    joyride_tour_search: 'Use this field to search in titles and descriptions',
+    joyride_tour_filters: 'Use these filters to search and filter items by type, level, and status',
+    joyride_tour_status_filters: 'Use these filters to find completed, pending, required, or bookmarked items',
+    joyride_tour_difficulty_filters: 'Select difficulty level: Beginner, Intermediate, or Advanced',
+    joyride_tour_activity_type_tabs: 'Select activity type: All, Quiz, Homework, Training, Lab, or Project',
+    joyride_tour_category_tabs: 'Select category: All, Programming, Computing, Algorithm, or General',
+    joyride_tour_class_filter: 'Select a class to view quizzes associated with it',
+    joyride_tour_resource_type_filters: 'Select resource type: All, Video, Link, or Document',
+    joyride_tour_cards_grid: 'These are the cards displaying items. You can click buttons to start, complete, or bookmark',
+    
+    // Joyride UI Labels
+    joyride_back: 'Back',
+    joyride_close: 'Close',
+    joyride_last: 'Finish',
+    joyride_next: 'Next',
+    joyride_skip: 'Skip',
+    
+    // Navbar collapse
+    expand_navbar: 'Expand navbar',
+    collapse_navbar: 'Collapse navbar',
   },
   // Visualization / Tour localizations for dashboard (dot-notation keys added for t())
   'tour.mode_switcher': 'Use these tabs to switch between dashboard sections',
@@ -2852,6 +2876,30 @@ const DICT = {
     camera_constraints_not_supported: 'الكاميرا لا تدعم الإعدادات المطلوبة. حاول تبديل الكاميرات.',
     camera_access_failed: 'فشل الوصول إلى الكاميرا',
     invalid_qr_code_format: 'تنسيق رمز QR غير صالح',
+    
+    // Joyride Tour - Home Page
+    joyride_tour_mode_switcher: 'استخدم هذه التبويبات للتبديل بين الأنشطة والموارد والاختبارات',
+    joyride_tour_stats: 'هذه الإحصائيات تعرض عدد العناصر المكتملة والمعلقة والمطلوبة والمميزة والمؤرشفة',
+    joyride_tour_search: 'استخدم هذا الحقل للبحث في العناوين والأوصاف',
+    joyride_tour_filters: 'استخدم هذه المرشحات للبحث وتصفية العناصر حسب النوع والمستوى والحالة',
+    joyride_tour_status_filters: 'استخدم هذه المرشحات للعثور على العناصر المكتملة أو المعلقة أو المطلوبة أو المؤرشفة',
+    joyride_tour_difficulty_filters: 'اختر مستوى الصعوبة: مبتدئ، متوسط، أو متقدم',
+    joyride_tour_activity_type_tabs: 'اختر نوع النشاط: الكل، اختبار، واجب، تدريب، معمل، أو مشروع',
+    joyride_tour_category_tabs: 'اختر الفئة: الكل، برمجة، حوسبة، خوارزميات، أو عام',
+    joyride_tour_class_filter: 'اختر الفصل لعرض الاختبارات المرتبطة به',
+    joyride_tour_resource_type_filters: 'اختر نوع المورد: الكل، فيديو، رابط، أو مستند',
+    joyride_tour_cards_grid: 'هذه هي البطاقات التي تعرض العناصر. يمكنك النقر على الأزرار للبدء أو الإكمال أو الإضافة إلى المفضلة',
+    
+    // Joyride UI Labels
+    joyride_back: 'السابق',
+    joyride_close: 'إغلاق',
+    joyride_last: 'إنهاء',
+    joyride_next: 'التالي',
+    joyride_skip: 'تخطي',
+    
+    // Navbar collapse
+    expand_navbar: 'توسيع شريط التنقل',
+    collapse_navbar: 'طي شريط التنقل',
     
     // Tour translations (Arabic)
     'tour.mode_switcher': 'استخدم هذه علامات التبويب للتبديل بين أقسام لوحة التحكم',

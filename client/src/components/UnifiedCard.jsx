@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Button } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
+import { getThemedIcon, getWhiteIcon, getIconWithColor, getColoredIcon } from '@constants/iconTypes';
 
 /**
  * Unified card component for activities, quizzes, resources, and home page items
@@ -72,17 +72,17 @@ const UnifiedCard = memo(({
 
   const getTypeIcon = () => {
     if (flavor === 'quiz') {
-      return getThemedIcon('ui', 'help', 14, theme);
+      return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
     }
     if (flavor === 'resource') {
-      if (item.type === 'video') return getThemedIcon('ui', 'video', 14, theme);
-      if (item.type === 'link') return getThemedIcon('ui', 'link', 14, theme);
-      return getThemedIcon('ui', 'file', 14, theme);
+      if (item.type === 'video') return getColoredIcon('ui', 'video', 14, primaryColor, theme);
+      if (item.type === 'link') return getColoredIcon('ui', 'link', 14, primaryColor, theme);
+      return getColoredIcon('ui', 'file', 14, primaryColor, theme);
     }
     const type = item.type || 'training';
-    if (type === 'quiz') return getThemedIcon('ui', 'help', 14, theme);
-    if (type === 'homework') return getThemedIcon('ui', 'clipboard_list', 14, theme);
-    return getThemedIcon('ui', 'book_open', 14, theme);
+    if (type === 'quiz') return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
+    if (type === 'homework') return getColoredIcon('ui', 'clipboard_list', 14, '#f57c00', theme);
+    return getColoredIcon('ui', 'book_open', 14, primaryColor, theme);
   };
 
   const getTypeLabel = () => {
@@ -284,7 +284,7 @@ const UnifiedCard = memo(({
                   gap: 4,
                   fontWeight: 600
                 }}>
-              {getThemedIcon('ui', 'award', 12, theme)}
+              {getColoredIcon('ui', 'award', 12, fg, theme)}
               <span>{getLevelLabel()}</span>
             </span>
             );
@@ -351,7 +351,7 @@ const UnifiedCard = memo(({
                 alignItems: 'center',
                 gap: 6
               }}>
-            <HelpCircle size={14} /> {item.questions.length} {t('questions') || 'questions'}
+            {getColoredIcon('ui', 'help_circle', 14, '#7c3aed', theme)} {item.questions.length} {t('questions') || 'questions'}
           </span>
           )}
 
@@ -369,7 +369,7 @@ const UnifiedCard = memo(({
                 gap: 4,
                 fontWeight: 600
               }}>
-            {getThemedIcon('ui', 'clock', 12, theme)} {item.estimatedTime} {t('min') || 'min'}
+            {getColoredIcon('ui', 'clock', 12, '#d97706', theme)} {item.estimatedTime} {t('min') || 'min'}
           </span>
           )}
 
@@ -387,7 +387,7 @@ const UnifiedCard = memo(({
                 gap: isMinified ? 0 : 6,
                 fontWeight: 600
               }}>
-            {getThemedIcon('ui', 'book_open', 14, theme)}
+            {getColoredIcon('ui', 'book_open', 14, '#f57c00', theme)}
                 {!isMinified && <span>{t('optional') || 'Optional'}</span>}
           </span>
           )}
@@ -406,7 +406,7 @@ const UnifiedCard = memo(({
                 gap: isMinified ? 0 : 6,
                 fontWeight: 600
               }}>
-            {getThemedIcon('ui', 'alert_circle', 14, theme)}
+            {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}
                 {!isMinified && <span>{t('required') || 'Required'}</span>}
           </span>
           )}
@@ -433,7 +433,7 @@ const UnifiedCard = memo(({
                 gap: 6,
                 color: '#16a34a'
               }} title={t('completed_at') || 'Completed at'}>
-                {getThemedIcon('ui', 'check_circle', 14, theme)}
+                {getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)}
                 <span>{formatDate(completedAt)}</span>
               </div>
           )}
@@ -444,7 +444,7 @@ const UnifiedCard = memo(({
                 gap: 6,
                 color: '#dc2626'
               }} title={t('due_date') || 'Due date'}>
-                {getThemedIcon('ui', 'calendar', 14, theme)}
+                {getColoredIcon('ui', 'calendar', 14, '#dc2626', theme)}
                 <span><strong>{t('due') || 'Due'}:</strong> {formatDate(dueDate)}</span>
               </div>
           )}
@@ -469,7 +469,7 @@ const UnifiedCard = memo(({
                   aria-label={t('start') || 'Start'}
                   title={t('start') || 'Start'}
               >
-                {getThemedIcon('ui', 'play', 14, theme)}
+                {getColoredIcon('ui', 'play', 14, '#16a34a', theme)}
               </Button>
           )}
 
@@ -491,9 +491,9 @@ const UnifiedCard = memo(({
                   title={isCompleted ? t('completed') || 'Completed' : t('mark_complete') || 'Mark complete'}
               >
                 {isCompleted ? (
-                    getThemedIcon('ui', 'check_circle', 14, theme)
+                    getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)
                 ) : (
-                    getThemedIcon('ui', 'check', 14, theme)
+                    getColoredIcon('ui', 'check', 14, '#3b82f6', theme)
                 )}
               </Button>
           )}

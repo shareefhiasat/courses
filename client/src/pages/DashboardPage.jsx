@@ -3479,7 +3479,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     width: 200,
                     renderCell: (params) => {
                       const type = params.value || 'login';
-                      const config = getActivityLogTypeConfig(type);
+                      const config = getActivityLogTypeConfig(type, theme);
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                           {config.icon} {t(type) || config.label}

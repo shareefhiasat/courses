@@ -7,6 +7,7 @@ import { useLang } from '@contexts/LangContext';
 import { getUsers } from '@firebaseServices/userService';
 import { updateUser } from '@firebaseServices/userService';
 import { getUserDisplayName } from '@firebaseServices/userService';
+import { getUserProfile } from '@firebaseServices/userService';
 import { db } from '@firebaseServices/config';
 import './Navbar.css';
 import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
@@ -45,6 +46,15 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const [density, setDensity] = useState(() => {
     try { return localStorage.getItem('density') || 'compact'; } catch { return 'compact'; }
   });
+  const [isSideDrawerCollapsed, setIsSideDrawerCollapsed] = useState(() => {
+    try { return localStorage.getItem('sideDrawerCollapsed') === 'true'; } catch { return false; }
+  });
+  const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(() => {
+    try { return localStorage.getItem('navbarCollapsed') === 'true'; } catch { return false; }
+  });
+  const [isMobile, setIsMobile] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth <= 768 : false;
+  });
   const menuRef = useRef(null);
 
   // theme is managed by ThemeProvider
@@ -54,6 +64,16 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     const openProfileHandler = () => setShowProfile(true);
     window.addEventListener('openProfile', openProfileHandler);
     return () => window.removeEventListener('openProfile', openProfileHandler);
+  }, []);
+
+  // Handle mobile responsiveness
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
 
@@ -82,6 +102,26 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const toggleSideDrawer = () => {
+    const newCollapsed = !isSideDrawerCollapsed;
+    setIsSideDrawerCollapsed(newCollapsed);
+    localStorage.setItem('sideDrawerCollapsed', newCollapsed.toString());
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('sideDrawer:toggle', { 
+      detail: { collapsed: newCollapsed } 
+    }));
+  };
+
+  const toggleNavbar = () => {
+    const newCollapsed = !isNavbarCollapsed;
+    setIsNavbarCollapsed(newCollapsed);
+    localStorage.setItem('navbarCollapsed', newCollapsed.toString());
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('navbar:toggle', { 
+      detail: { collapsed: newCollapsed } 
+    }));
   };
 
   const openProfile = async () => {
@@ -140,8 +180,21 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
   return (
     <>
-      <nav className="navbar" style={{ padding: '0.35rem 0' }}>
-        <div className="navbar-container">
+      <nav 
+        className="navbar" 
+        style={{ 
+          padding: '0.35rem 0',
+          transition: 'all 0.3s ease',
+          height: isNavbarCollapsed ? '0' : 'auto',
+          overflow: isNavbarCollapsed ? 'hidden' : 'visible',
+          opacity: isNavbarCollapsed ? 0 : 1
+        }}
+      >
+        <div className="navbar-container" style={{
+          maxWidth: '100vw',
+          overflow: 'hidden',
+          padding: isMobile ? '0 4px' : '0 8px'
+        }}>
           {/* Hamburger Menu */}
           {!hideHamburger && (
             <button
@@ -149,17 +202,17 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               className="navbar-hamburger"
                 style={{
                   background: 'transparent',
-                  border: '2px solid #D4AF37',
+                  border: isMobile ? '1.5px solid #D4AF37' : '2px solid #D4AF37',
                   color: '#D4AF37',
-                  fontSize: '1.1rem',
+                  fontSize: isMobile ? '0.9rem' : '1.1rem',
                   cursor: 'pointer',
-                  padding: '0.35rem 0.6rem',
+                  padding: isMobile ? '0.25rem 0.4rem' : '0.35rem 0.6rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderRadius: 10,
-                  marginRight: lang === 'ar' ? 0 : '0.75rem',
-                  marginLeft: lang === 'ar' ? '0.75rem' : 0
+                  marginRight: lang === 'ar' ? 0 : (isMobile ? '0.25rem' : '0.5rem'),
+                  marginLeft: lang === 'ar' ? (isMobile ? '0.25rem' : '0.5rem') : 0
                 }}
                 aria-label="Menu"
               >
@@ -355,34 +408,57 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </button>
               </div>
 
-              {/* Profile Avatar with Super Admin badge and dropdown */}
-              <div ref={menuRef} style={{ position: 'relative' }}>
-                <div 
-                  onClick={() => setShowDropdown(v=>!v)}
+              {/* Profile Avatar with Super Admin badge and dropdown and navbar toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '8px' }}>
+                {/* Navbar toggle chevron */}
+                <button
+                  className="nav-icon-btn"
+                  onClick={toggleNavbar}
+                  title={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
+                  aria-label={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
                   style={{
-                    width: '40px',
-                    height: '40px',
+                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
-                    background: primaryColor && primaryColor !== ACCENT_FALLBACK
-                      ? `linear-gradient(135deg, ${primaryColor}, ${adjustColor(primaryColor, 10)})` 
-                      : 'rgba(255,255,255,0.3)',
+                    width: isMobile ? '28px' : '32px',
+                    height: isMobile ? '28px' : '32px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.25rem',
-                    fontWeight: 700,
-                    color: primaryColor && primaryColor !== ACCENT_FALLBACK ? '#fff' : '#2E3B4E',
                     cursor: 'pointer',
-                    border: '2px solid rgba(255,255,255,0.6)',
-                    transition: 'transform 0.2s, background 0.3s',
-                    overflow: 'hidden',
-                    position: 'relative'
+                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                  aria-haspopup="menu"
-                  aria-expanded={showDropdown}
                 >
+                  {getThemedIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', isMobile ? 14 : 16, theme)}
+                </button>
+
+                <div ref={menuRef} style={{ position: 'relative' }}>
+                  <div 
+                    onClick={() => setShowDropdown(v=>!v)}
+                    style={{
+                      width: isMobile ? '32px' : '40px',
+                      height: isMobile ? '32px' : '40px',
+                      borderRadius: '50%',
+                      background: primaryColor && primaryColor !== ACCENT_FALLBACK
+                        ? `linear-gradient(135deg, ${primaryColor}, ${adjustColor(primaryColor, 10)})` 
+                        : 'rgba(255,255,255,0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: isMobile ? '1rem' : '1.25rem',
+                      fontWeight: 700,
+                      color: primaryColor && primaryColor !== ACCENT_FALLBACK ? '#fff' : '#2E3B4E',
+                      cursor: 'pointer',
+                      border: isMobile ? '1.5px solid rgba(255,255,255,0.6)' : '2px solid rgba(255,255,255,0.6)',
+                      transition: 'transform 0.2s, background 0.3s',
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    aria-haspopup="menu"
+                    aria-expanded={showDropdown}
+                  >
                   {(!primaryColor || primaryColor === ACCENT_FALLBACK) && (
                     <div style={{
                       position: 'absolute',
@@ -399,25 +475,73 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   </span>
                 </div>
                 {/* Multiple role badges stacked on the right side */}
-                <div style={{ position:'absolute', right:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ 
+                  position:'absolute', 
+                  right: isMobile ? -6 : -8, 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: isMobile ? '1px' : '2px' 
+                }}>
                   {isSuperAdmin && (
-                    <div title="Super Admin" style={{ background:'#f59e0b', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'crown', 10, theme)}
+                    <div title="Super Admin" style={{ 
+                      background:'#f59e0b', 
+                      color:'#fff', 
+                      borderRadius:'50%', 
+                      width: isMobile ? 14 : 18, 
+                      height: isMobile ? 14 : 18, 
+                      display:'flex', 
+                      alignItems:'center', 
+                      justifyContent:'center', 
+                      boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' 
+                    }}>
+                      {getThemedIcon('ui', 'crown', isMobile ? 8 : 10, theme)}
                     </div>
                   )}
                   {isAdmin && !isSuperAdmin && (
-                    <div title="Admin" style={{ background:'#4f46e5', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'shield', 10, theme)}
+                    <div title="Admin" style={{ 
+                      background:'#4f46e5', 
+                      color:'#fff', 
+                      borderRadius:'50%', 
+                      width: isMobile ? 14 : 18, 
+                      height: isMobile ? 14 : 18, 
+                      display:'flex', 
+                      alignItems:'center', 
+                      justifyContent:'center', 
+                      boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' 
+                    }}>
+                      {getThemedIcon('ui', 'shield', isMobile ? 8 : 10, theme)}
                     </div>
                   )}
                   {isInstructor && (
-                    <div title="Instructor" style={{ background:'#0ea5e9', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'book_open', 10, theme)}
+                    <div title="Instructor" style={{ 
+                      background:'#0ea5e9', 
+                      color:'#fff', 
+                      borderRadius:'50%', 
+                      width: isMobile ? 14 : 18, 
+                      height: isMobile ? 14 : 18, 
+                      display:'flex', 
+                      alignItems:'center', 
+                      justifyContent:'center', 
+                      boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' 
+                    }}>
+                      {getThemedIcon('ui', 'book_open', isMobile ? 8 : 10, theme)}
                     </div>
                   )}
                   {isHR && (
-                    <div title="HR" style={{ background:'#8b5cf6', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'users', 10, theme)}
+                    <div title="HR" style={{ 
+                      background:'#8b5cf6', 
+                      color:'#fff', 
+                      borderRadius:'50%', 
+                      width: isMobile ? 14 : 18, 
+                      height: isMobile ? 14 : 18, 
+                      display:'flex', 
+                      alignItems:'center', 
+                      justifyContent:'center', 
+                      boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' 
+                    }}>
+                      {getThemedIcon('ui', 'users', isMobile ? 8 : 10, theme)}
                     </div>
                   )}
                 </div>
@@ -463,6 +587,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     </div>
                   </div>
                 )}
+              </div>
               </div>
             </div>
           )}
@@ -632,6 +757,49 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
         </div>
       )}
       </nav>
+      
+      {/* Floating restore button when navbar is collapsed */}
+      {isNavbarCollapsed && (
+        <button
+          onClick={toggleNavbar}
+          title={t('expand_navbar') || 'Expand navbar'}
+          aria-label={t('expand_navbar') || 'Expand navbar'}
+          style={{
+            position: 'fixed',
+            top: isMobile ? '15px' : '20px',
+            right: isMobile ? '15px' : '20px',
+            zIndex: 1000,
+            background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.8)',
+            border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '50%',
+            width: isMobile ? '40px' : '48px',
+            height: isMobile ? '40px' : '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: theme === 'light' ? 'var(--text-primary)' : '#fff',
+            boxShadow: theme === 'light' 
+              ? '0 4px 6px rgba(0, 0, 0, 0.1)' 
+              : '0 4px 6px rgba(0, 0, 0, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1)';
+            e.currentTarget.style.boxShadow = theme === 'light' 
+              ? '0 6px 12px rgba(0, 0, 0, 0.15)' 
+              : '0 6px 12px rgba(0, 0, 0, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = theme === 'light' 
+              ? '0 4px 6px rgba(0, 0, 0, 0.1)' 
+              : '0 4px 6px rgba(0, 0, 0, 0.3)';
+          }}
+        >
+          {getThemedIcon('ui', 'chevron_down', isMobile ? 18 : 20, theme)}
+        </button>
+      )}
     </>
   );
 };

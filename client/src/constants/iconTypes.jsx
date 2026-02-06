@@ -14,7 +14,7 @@ import {
   // Communication Icons
   MessageSquare, Bell, BellOff, Send, Phone,
   // Navigation Icons
-  Home, Search, Filter, ChevronDown, Link, Video, List, ExternalLink,
+  Home, Search, Filter, ChevronDown, ChevronUp, Link, Video, List, ExternalLink,
   // Time Icons
   Clock, Calendar,
   // UI Icons
@@ -121,7 +121,12 @@ export const ICON_TYPES = {
     delete2: <Trash2 size={16} />,
     class_create: <BookOpen size={16} />,
     class_update: <Edit size={16} />,
-    class_delete: <Trash size={16} />
+    class_delete: <Trash size={16} />,
+    penalty_viewed: <Eye size={16} />,
+    penalty_created: <AlertTriangle size={16} />,
+    penalty_updated: <Edit size={16} />,
+    penalty_deleted: <Trash2 size={16} />,
+    activity: <Activity size={16} />
   },
   
   // Notification Type Icons
@@ -281,6 +286,7 @@ export const ICON_TYPES = {
     languages: <Globe size={16} />,
     alert_circle: <AlertCircle size={16} />,
     chevron_down: <ChevronDown size={16} />,
+    chevron_up: <ChevronUp size={16} />,
     x: <X size={16} />,
     // Open tab icon for sticky mode
     open_tab: <LayoutGrid size={16} />,
@@ -471,11 +477,17 @@ const deriveIconColor = (chipColor) => {
   // If chip is orange/green/red, derive a complementary color
   if (chipColor === '#f59e0b') return '#d97706'; // Orange chip -> darker orange icon
   if (chipColor === '#22c55e') return '#16a34a'; // Green chip -> darker green icon
+  if (chipColor === '#16a34a') return '#16a34a'; // Dark green chip -> same dark green icon
   if (chipColor === '#ef4444') return '#dc2626'; // Red chip -> darker red icon
+  if (chipColor === '#b91c1c') return '#b91c1c'; // Dark red chip -> same dark red icon
+  if (chipColor === '#dc2626') return '#dc2626'; // Darker red chip -> same darker red icon
+  if (chipColor === '#f57c00') return '#f57c00'; // Orange chip -> same orange icon
   if (chipColor === '#3b82f6') return '#2563eb'; // Blue chip -> darker blue icon
   if (chipColor === '#8b5cf6') return '#7c3aed'; // Purple chip -> darker purple icon
   if (chipColor === '#f97316') return '#ea580c'; // Light red chip -> darker red icon
   if (chipColor === '#fbbf24') return '#f59e0b'; // Yellow chip -> darker yellow icon
+  if (chipColor === '#f5c518') return '#f5c518'; // Gold chip -> same gold icon
+  if (chipColor === '#0ea5e9') return '#0ea5e9'; // Sky blue chip -> same sky blue icon
   
   // Default to white for dark themes, dark for light themes
   return '#ffffff';
