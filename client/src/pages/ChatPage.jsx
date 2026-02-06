@@ -39,7 +39,7 @@ import { formatDateTime, formatDate } from '@utils/date';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { canParticipate } from '@utils/userStatus';
 import { filterBadWords, containsBadWords } from '@utils/badWordFilter';
-import { MessageSquareText, Send, Mic, Square, Smile, Search, X, Plus, BarChart3, Book, GraduationCap, Download, Upload, Globe, Users, Paperclip, Edit, Info, Share, Copy, Trash2 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 
 const ChatPage = memo(() => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -1435,9 +1435,9 @@ const ChatPage = memo(() => {
   };
 
   // Avoid redirect on refresh while auth is still resolving
-  if (authLoading) return <Loading variant="overlay" fullscreen fancyVariant="dots" message="Authenticating..." />;
+  if (authLoading) return <Loading variant="overlay" fullscreen fancyVariant="dots" message={t('authenticating') || 'Authenticating...'} />;
   if (!user) return <Navigate to="/login" />;
-  if (loading || !messages) return <Loading variant="overlay" fullscreen fancyVariant="dots" message="Loading chat..." />;
+  if (loading || !messages) return <Loading variant="overlay" fullscreen fancyVariant="dots" message={t('loading_chat') || 'Loading chat...'} />;
 
   return (
     <>
@@ -1516,17 +1516,17 @@ const ChatPage = memo(() => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Globe size={24} style={{ color: getUserThemeColor() }} />
+                {getThemedIcon('ui', 'globe', 24, theme)}
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <div style={{ fontWeight: '600', flex:1 }}>{t('global_chat')}</div>
                     {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#666' }}>All users</div>
+                  <div style={{ fontSize: '0.8rem', color: '#666' }}>{t('all_users') || 'All users'}</div>
                   {/* <div style={{ display:'flex', gap:8, marginTop:6 }}>
                     <Input
                       type="text"
-                      placeholder="Search messages or courses..."
+                      placeholder={t('search_messages_or_courses') || 'Search messages or courses...'}
                       value={globalChatSearch || ''}
                       onChange={(e) => setGlobalChatSearch(e.target.value)}
                       style={{ flex: 1, padding: '6px 10px', fontSize: '0.9rem' }}
@@ -1579,9 +1579,9 @@ const ChatPage = memo(() => {
                           await setDoc(doc(db,'users',user.uid), { archivedClasses: next }, { merge: true });
                         } catch {}
                       }}
-                      title={archivedClasses[cls.docId] ? 'Unarchive' : 'Archive'}
+                      title={archivedClasses[cls.docId] ? (t('unarchive') || 'Unarchive') : (t('archive') || 'Archive')}
                       style={{ background:'transparent', border:'none', cursor:'pointer', color:'#888' }}
-                    >{archivedClasses[cls.docId] ? <Upload size={16} /> : <Download size={16} />}</button>
+                    >{archivedClasses[cls.docId] ? getThemedIcon('ui', 'upload', 16, theme) : getThemedIcon('ui', 'download', 16, theme)}</button>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#666', display:'flex', justifyContent:'space-between', gap:8 }}>
                     <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.lastMessage || `${cls.term} - ${cls.code}`}</span>
@@ -1621,14 +1621,14 @@ const ChatPage = memo(() => {
           {isAdmin && (
             <input
               type="text"
-              placeholder="Search DMs..."
+              placeholder={t('search_dms') || 'Search DMs...'}
               value={dmSearch}
               onChange={(e) => setDmSearch(e.target.value)}
               style={{ margin: '0.5rem 1rem', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: '0.85rem', width: 'calc(100% - 2rem)' }}
             />
           )}
           {directRooms.length === 0 && (
-            <div style={{ padding: '0.4rem 0.6rem', color: 'var(--muted)' }}>No conversations</div>
+            <div style={{ padding: '0.4rem 0.6rem', color: 'var(--muted)' }}>{t('no_conversations') || 'No conversations'}</div>
           )}
           {(() => {
             if (archivedRooms === null) return []; // Return empty array instead of null
@@ -1724,7 +1724,7 @@ const ChatPage = memo(() => {
                     <div style={{ display:'flex', gap:8, marginTop:6 }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
-                        title={(room.starBy || []).includes(user.uid) ? 'Unfavorite' : 'Favorite'}
+                        title={(room.starBy || []).includes(user.uid) ? (t('unfavorite') || 'Unfavorite') : (t('favorite') || 'Favorite')}
                         style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'#666', fontSize:'0.9rem', lineHeight:1 }}
                       >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
                       <button
@@ -1737,7 +1737,7 @@ const ChatPage = memo(() => {
                             await setDoc(doc(db,'users',user.uid), { archivedRooms: next }, { merge: true });
                           } catch {}
                         }}
-                        title={archivedRooms[room.id] ? 'Unarchive' : 'Archive'}
+                        title={archivedRooms[room.id] ? (t('unarchive') || 'Unarchive') : (t('archive') || 'Archive')}
                         style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'#666', fontSize:'0.9rem', lineHeight:1 }}
                       >{archivedRooms[room.id] ? <Upload size={14} /> : <Download size={14} />}</button>
                     </div>
@@ -1751,18 +1751,18 @@ const ChatPage = memo(() => {
         <div style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', flexDirection:'column', gap:6 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <input id="toggle-archived" type="checkbox" checked={showArchived} onChange={(e)=>setShowArchived(e.target.checked)} />
-            <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>Show archived</label>
+            <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('show_archived') || 'Show archived'}</label>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <input id="toggle-favorites" type="checkbox" checked={showFavoritesOnly} onChange={(e)=>setShowFavoritesOnly(e.target.checked)} />
-            <label htmlFor="toggle-favorites" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>Favorites only</label>
+            <label htmlFor="toggle-favorites" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('favorites_only') || 'Favorites only'}</label>
           </div>
         </div>
         {/* Drag handle */}
         <div
           onMouseDown={onDragStart}
           style={{ position:'absolute', right: -3, top:0, bottom:0, width:6, cursor:'col-resize' }}
-          aria-label="Resize sidebar"
+          aria-label={t('resize_sidebar') || 'Resize sidebar'}
         />
       </div>
 
@@ -1822,7 +1822,7 @@ const ChatPage = memo(() => {
                 onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
                 onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
               >
-                <Search size={16} />
+                {getThemedIcon('ui', 'search', 16, theme)}
               </button>
             </div>
             {/* Search input - collapsible */}
@@ -2009,7 +2009,7 @@ const ChatPage = memo(() => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             lineHeight: 1
-                          }} title={senderUser?.deleted ? 'Deleted User' : 'Disabled User'}>✕</span>
+                          }} title={senderUser?.deleted ? (t('deleted_user') || 'Deleted User') : (t('disabled_user') || 'Disabled User')}>✕</span>
                         )}
                       </div>
                     )}
@@ -2056,7 +2056,7 @@ const ChatPage = memo(() => {
                                 preload="metadata"
                               >
                                 <source src={msg.fileUrl} type={`video/${fileType}`} />
-                                Your browser doesn't support video playback.
+                                {t('browser_no_video_support') || 'Your browser doesn\'t support video playback.'}
                               </video>
                               <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
                                 {fileName} • {(msg.fileSize ? Math.ceil(msg.fileSize/1024) : 0)} KB
@@ -2272,7 +2272,7 @@ const ChatPage = memo(() => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setReactionMenu({ msgId: msg.id, x: rect.left, y: rect.bottom + 4 }); 
                       }}
-                      title="React"
+                      title={t('react') || 'React'}
                       style={{ 
                         position:'absolute', 
                         bottom: -12, 
@@ -2294,7 +2294,7 @@ const ChatPage = memo(() => {
                       onMouseEnter={(e)=>e.currentTarget.style.transform='scale(1.05)'}
                       onMouseLeave={(e)=>e.currentTarget.style.transform='scale(1)'}
                     >
-                      <span aria-hidden="true" style={{ display:'inline-block', transform:'translateY(1px)' }}><Smile size={16} style={{ color: getUserThemeColor() }} /></span>
+                      <span aria-hidden="true" style={{ display:'inline-block', transform:'translateY(1px)' }}>{getThemedIcon('ui', 'smile', 16, theme)}</span>
                     </button>
 
                     {/* Anchored Reaction Menu (sticky to this message) */}
@@ -2367,7 +2367,7 @@ const ChatPage = memo(() => {
                       <button
                         onMouseDown={(e)=>e.stopPropagation()}
                         onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId===msg.id?null:msg.id); }}
-                        title="More"
+                        title={t('more') || 'More'}
                         style={{ position:'absolute', top:4, right:4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:'1rem', padding:'2px 4px', lineHeight:1 }}
                       >⋮</button>
                     )}
@@ -2383,7 +2383,7 @@ const ChatPage = memo(() => {
                             onMouseLeave={(e)=>e.target.style.background='transparent'}
                             style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--text)', transition:'background 0.2s' }}
                           >
-                            <Edit size={14} />
+                            {getThemedIcon('ui', 'edit', 14, theme)}
                             {t('edit')||'Edit'}
                           </button>
                         )}
@@ -2431,7 +2431,7 @@ const ChatPage = memo(() => {
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
-                          <Info size={14} />
+                          {getThemedIcon('ui', 'info', 14, theme)}
                           {t('info')||'Info'}
                         </button>
                         <button
@@ -2448,7 +2448,7 @@ const ChatPage = memo(() => {
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
-                          <Share size={14} />
+                          {getThemedIcon('ui', 'share', 14, theme)}
                           {t('share')||'Share'}
                         </button>
                         <button
@@ -2466,7 +2466,7 @@ const ChatPage = memo(() => {
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
-                          <Copy size={14} />
+                          {getThemedIcon('ui', 'copy', 14, theme)}
                           {t('copy')||'Copy'}
                         </button>
                         {(isOwnMessage || isAdmin) && (
@@ -2476,7 +2476,7 @@ const ChatPage = memo(() => {
                             onMouseLeave={(e)=>e.target.style.background='transparent'}
                             style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#dc3545', transition:'background 0.2s' }}
                           >
-                            <Trash2 size={14} />
+                            {getThemedIcon('ui', 'trash2', 14, theme)}
                             {t('delete')||'Delete'}
                           </button>
                         )}
@@ -2524,7 +2524,7 @@ const ChatPage = memo(() => {
                 {imagePreview ? (
                   <img 
                     src={imagePreview} 
-                    alt="Preview" 
+                    alt={t('preview') || 'Preview'} 
                     style={{
                       width: 40,
                       height: 40,
@@ -2580,7 +2580,7 @@ const ChatPage = memo(() => {
               marginBottom: '0.5rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Mic size={14} />
+                {getThemedIcon('ui', 'mic', 14, theme)}
                 <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
                   Voice Message Ready
                 </span>
@@ -2701,11 +2701,11 @@ const ChatPage = memo(() => {
                 height: 32,
                 transition: 'all 0.2s'
               }}
-              title="Emoji"
+              title={t('emoji') || 'Emoji'}
               onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
               onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
             >
-              <Smile size={16} style={{ color: getUserThemeColor() }} />
+              {getThemedIcon('ui', 'smile', 16, theme)}
             </button>
             
             {/* Compact Action Buttons */}
@@ -2730,7 +2730,7 @@ const ChatPage = memo(() => {
                     height: 32,
                     transition: 'all 0.2s'
                   }}
-                  title="Create Poll"
+                  title={t('create_poll') || 'Create Poll'}
                   onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
                   onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
                 >
@@ -2900,11 +2900,11 @@ const ChatPage = memo(() => {
                   animation: 'spin 1s linear infinite'
                 }} />
               ) : (newMessage.trim() || audioBlob || attachedFile) ? (
-                <Send size={18} />
+                getThemedIcon('ui', 'send', 18, theme)
               ) : isRecording ? (
-                <Square size={18} />
+                getThemedIcon('ui', 'square', 18, theme)
               ) : (
-                <Mic size={18} />
+                getThemedIcon('ui', 'mic', 18, theme)
               )}
             </button>
           </form>
@@ -3058,7 +3058,7 @@ const ChatPage = memo(() => {
             onMouseOver={(e)=>{e.target.style.background='var(--brand)'; e.target.style.color='white';}}
             onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--brand)';}}
           >
-            <Plus size={18} />
+            {getThemedIcon('ui', 'plus', 18, theme)}
             {t('add_option') || 'Add Option'}
           </button>
           

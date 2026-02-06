@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Clock, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLang } from '../../contexts/LangContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function MultipleChoiceGame({ questions, settings, onComplete }) {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -121,7 +123,7 @@ export default function MultipleChoiceGame({ questions, settings, onComplete }) 
     const percentage = (score / questions.reduce((sum, q) => sum + (q.points || 1), 0)) * 100;
     return (
       <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-        <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
+        {getThemedIcon('ui', 'trophy', 64, theme)}
         <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('quiz_complete') || 'Quiz Complete!'}</h1>
         <div className="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-4">
           {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
@@ -177,7 +179,7 @@ export default function MultipleChoiceGame({ questions, settings, onComplete }) 
         </div>
         {settings?.timeLimit > 0 && (
           <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold ${timeLeft < 60 ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}>
-            <Clock size={18} />
+            {getThemedIcon('ui', 'clock', 18, theme)}
             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </div>
         )}
@@ -243,8 +245,8 @@ export default function MultipleChoiceGame({ questions, settings, onComplete }) 
                   />
                 )}
                 <span className="flex-1 text-lg font-medium text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{option.text}</span>
-                {showCorrect && <Check size={24} className="text-green-500" />}
-                {showWrong && <X size={24} className="text-red-500" />}
+                {showCorrect && getThemedIcon('ui', 'check_circle', 24, theme)}
+                {showWrong && getThemedIcon('ui', 'x_circle', 24, theme)}
               </button>
             );
           })}
@@ -258,7 +260,7 @@ export default function MultipleChoiceGame({ questions, settings, onComplete }) 
           disabled={currentIndex === 0 || showFeedback}
           className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
-          <ChevronLeft size={20} />
+          {getThemedIcon('ui', 'chevron_left', 20, theme)}
           {t('previous') || 'Previous'}
         </button>
 
@@ -269,7 +271,7 @@ export default function MultipleChoiceGame({ questions, settings, onComplete }) 
             className={`px-8 py-3 rounded-xl font-bold text-white shadow-lg transition-all flex items-center gap-2 ${!selectedAnswer ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-indigo-500/30 hover:scale-105'}`}
           >
             {currentIndex === totalQuestions - 1 ? (t('finish_quiz') || 'Finish Quiz') : (t('next_question') || 'Next Question')}
-            {currentIndex !== totalQuestions - 1 && <ChevronRight size={20} />}
+            {currentIndex !== totalQuestions - 1 && getThemedIcon('ui', 'chevron_right', 20, theme)}
           </button>
         )}
       </div>

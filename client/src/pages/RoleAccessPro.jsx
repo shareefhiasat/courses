@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Shield, Settings2, Save, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '@ui';
 import { USER_ROLES } from '@constants/userRoles';
+import { getAllLocalizedScreens } from '@constants/screenDefinitions';
 import styles from './RoleAccessPro.module.css';
 
 export default function RoleAccessPro() {
@@ -23,51 +24,8 @@ export default function RoleAccessPro() {
 
   const roles = [USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR, USER_ROLES.HR, USER_ROLES.STUDENT];
 
-  const screens = [
-    // MAIN
-    { id: 'home', name: 'Home', group: 'MAIN', description: 'Main landing page with activities and announcements' },
-    { id: 'dashboard', name: 'Dashboard', group: 'MAIN', description: 'Admin dashboard for system overview' },
-    { id: 'studentDashboard', name: 'Student Dashboard', group: 'MAIN', description: 'Student dashboard with progress and stats' },
-    { id: 'studentProfile', name: 'Student Profile', group: 'MAIN', description: 'View and manage student profiles' },
-    { id: 'activities', name: 'Activities', group: 'MAIN', description: 'Browse and complete learning activities' },
-    { id: 'resources', name: 'Resources', group: 'MAIN', description: 'Access learning resources and materials' },
-    // QUIZ
-    { id: 'quizzes', name: 'Quizzes', group: 'QUIZ', description: 'Manage and take quizzes' },
-    { id: 'quizManagement', name: 'Quiz Management', group: 'QUIZ', description: 'Manage and organize quizzes' },
-    { id: 'quizBuilder', name: 'Quiz Builder', group: 'QUIZ', description: 'Create and edit quizzes' },
-    { id: 'quizResults', name: 'Quiz Results', group: 'QUIZ', description: 'View quiz results and analytics' },
-    { id: 'reviewResults', name: 'Review Results', group: 'QUIZ', description: 'Review and evaluate quiz, homework, training, and lab & project results' },
-    // CLASSES
-    { id: 'classSchedules', name: 'Class Schedule', group: 'CLASSES', description: 'View class schedules and timetables' },
-    { id: 'manageEnrollments', name: 'Manage Enrollments', group: 'CLASSES', description: 'Manage student enrollments in classes' },
-    { id: 'myEnrollments', name: 'My Enrollments', group: 'CLASSES', description: 'View your enrolled classes' },
-    { id: 'enrollments', name: 'Enrollments', group: 'CLASSES', description: 'Manage student enrollments' },
-    // ACADEMIC
-    { id: 'programs', name: 'Programs', group: 'ACADEMIC', description: 'Manage academic programs' },
-    { id: 'subjects', name: 'Subjects', group: 'ACADEMIC', description: 'Manage subjects within programs' },
-    { id: 'classes', name: 'Classes', group: 'ACADEMIC', description: 'Manage classes for subjects' },
-    { id: 'marksEntry', name: 'Marks Entry', group: 'ACADEMIC', description: 'Enter and manage student marks' },
-    { id: 'courseProgress', name: 'Course Progress', group: 'ACADEMIC', description: 'View detailed course progress' },
-    // ATTENDANCE
-    { id: 'attendance', name: 'Attendance (Instructor)', group: 'ATTENDANCE', description: 'Take attendance for classes' },
-    { id: 'hrAttendance', name: 'HR Attendance', group: 'ATTENDANCE', description: 'HR attendance tracking and management' },
-    { id: 'myAttendance', name: 'My Attendance (Student)', group: 'ATTENDANCE', description: 'View your attendance records' },
-    { id: 'hrPenalties', name: 'HR Penalties', group: 'ATTENDANCE', description: 'HR penalties management' },
-    { id: 'instructorParticipation', name: 'Instructor Participation', group: 'ATTENDANCE', description: 'Track student participation (+1 points)' },
-    { id: 'instructorBehavior', name: 'Instructor Behavior', group: 'ATTENDANCE', description: 'Track student behavior (-1 points)' },
-    // ANALYTICS
-    { id: 'analytics', name: 'Analytics', group: 'ANALYTICS', description: 'View system analytics and reports' },
-    { id: 'advancedAnalytics', name: 'Advanced Analytics', group: 'ANALYTICS', description: 'Advanced analytics with custom widgets' },
-    // COMMUNICATION
-    { id: 'chat', name: 'Chat', group: 'COMMUNICATION', description: 'Communicate with students and instructors' },
-    { id: 'scheduledReports', name: 'Scheduled Reports', group: 'COMMUNICATION', description: 'Schedule automated reports to be sent via email' },
-    { id: 'smtpConfig', name: 'SMTP Config', group: 'COMMUNICATION', description: 'Configure SMTP settings for emails' },
-    // COMMUNITY
-    { id: 'notifications', name: 'Notifications', group: 'COMMUNITY', description: 'Manage your notifications' },
-    // WORKSPACE SETTINGS
-    { id: 'profile', name: 'Profile Settings', group: 'SETTINGS', description: 'Manage your profile and preferences' },
-    { id: 'roleAccess', name: 'Role Access', group: 'SETTINGS', description: 'Manage role-based access control' },
-  ];
+  // Get localized screens from centralized definitions
+  const screens = getAllLocalizedScreens(t);
 
   const defaultRoleScreens = {
     admin: { 
@@ -196,7 +154,7 @@ export default function RoleAccessPro() {
           fontSize: '0.875rem',
           color: 'var(--color-primary, #800020)'
         }}>
-          <strong>Super Admin Note:</strong> Super admins bypass all role restrictions and have access to all screens regardless of these settings.
+          <strong>{t('super_admin_note') || 'Super Admin Note'}:</strong> {t('super_admin_bypass_note') || 'Super admins bypass all role restrictions and have access to all screens regardless of these settings.'}
         </div>
       )}
       <Card>
@@ -211,7 +169,7 @@ export default function RoleAccessPro() {
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search screens..."
+                placeholder={t('search_screens') || 'Search screens...'}
                 className={styles.searchInput}
               />
               
@@ -334,7 +292,7 @@ export default function RoleAccessPro() {
           <div className={styles.saveBar}>
             <div className={styles.saveBarContent}>
               <Save size={16} />
-              <span>Make sure to save your changes</span>
+              <span>{t('make_sure_to_save_changes') || 'Make sure to save your changes'}</span>
             </div>
             <Button
               variant="primary"

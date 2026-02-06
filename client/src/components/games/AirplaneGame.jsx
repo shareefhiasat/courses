@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, Trophy } from 'lucide-react';
 import { useLang } from '../../contexts/LangContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function AirplaneGame({ questions, settings, onComplete }) {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
@@ -134,7 +136,7 @@ export default function AirplaneGame({ questions, settings, onComplete }) {
     const percentage = (score / questions.reduce((sum, q) => sum + (q.points || 1), 0)) * 100;
     return (
       <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-        <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
+        {getThemedIcon('ui', 'trophy', 64, theme)}
         <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">
           {lives > 0 ? (t('mission_complete') || 'Mission Complete!') : (t('game_over') || 'Game Over')}
         </h1>

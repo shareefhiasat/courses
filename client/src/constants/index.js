@@ -18,6 +18,14 @@ export {
   getUserRoleIcon
 } from './iconTypes.jsx';
 
+// Filter Configuration - Centralized filter system
+export {
+  FILTER_CONFIGS,
+  getFilterConfig,
+  generateFilterOptions,
+  getFilterPlaceholder
+} from './filterConfig.js';
+
 // Dashboard Types
 export {
   RESOURCE_TYPES,

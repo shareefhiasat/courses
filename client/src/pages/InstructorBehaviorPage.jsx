@@ -10,6 +10,8 @@ import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { getBehaviors, createBehavior, updateBehavior, deleteBehavior } from '@firebaseServices/behaviorService';
+import { getUserById } from '@firebaseServices/userService';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes.jsx';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
@@ -63,9 +65,9 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     }
     
     try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      const result = await getUserById(userId);
+      if (result.success) {
+        const userData = result.data;
         setUserCache(prev => ({ ...prev, [userId]: userData }));
         return userData;
       }
@@ -148,8 +150,12 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
   const loadBehaviors = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(collection(db, 'behaviors'), orderBy('createdAt', 'desc')));
-      let data = snap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
+      const result = await getBehaviors();
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
+      let data = result.data.map(d => ({ id: d.id, docId: d.id, ...d }));
       
       // Enrich with student, class, subject info
       const enriched = await Promise.all(data.map(async (behavior, idx) => {
@@ -167,67 +173,56 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           
           if (enrichedBehavior.studentId) {
             try {
-              const studentDoc = await getDoc(doc(db, 'users', enrichedBehavior.studentId));
-              if (studentDoc.exists()) {
-                const studentData = studentDoc.data();
+              const studentData = await fetchUser(enrichedBehavior.studentId);
+              if (studentData) {
                 enrichedBehavior.studentName = studentData.displayName || studentData.email || 'N/A';
                 enrichedBehavior.studentEmail = studentData.email;
-                } else {
-                }
-            } catch (err) {
               }
-          } else {
+            } catch (err) {
             }
+          }
           
           if (enrichedBehavior.classId) {
             try {
-              const classDoc = await getDoc(doc(db, 'classes', enrichedBehavior.classId));
-              if (classDoc.exists()) {
-                const classData = classDoc.data();
+              const classData = await fetchClass(enrichedBehavior.classId);
+              if (classData) {
                 enrichedBehavior.className = classData.name || classData.code || 'N/A';
                 enrichedBehavior.classTerm = classData.term;
                 // If subjectId is missing, try to get it from class
                 if (!enrichedBehavior.subjectId && classData.subjectId) {
                   enrichedBehavior.subjectId = classData.subjectId;
-                  }
-                } else {
                 }
-            } catch (err) {
               }
-          } else {
+            } catch (err) {
             }
+          }
           
           // Load subject from behavior or class
           const subjectIdToLoad = enrichedBehavior.subjectId;
           if (subjectIdToLoad) {
             try {
-              const subjectDoc = await getDoc(doc(db, 'subjects', subjectIdToLoad));
-              if (subjectDoc.exists()) {
-                const subjectData = subjectDoc.data();
+              const subjectData = await fetchSubject(subjectIdToLoad);
+              if (subjectData) {
                 enrichedBehavior.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-                } else {
-                }
-            } catch (err) {
               }
-          } else {
+            } catch (err) {
             }
+          }
           
           if (enrichedBehavior.createdBy) {
             try {
-              const instructorDoc = await getDoc(doc(db, 'users', enrichedBehavior.createdBy));
-              if (instructorDoc.exists()) {
-                const instructorData = instructorDoc.data();
+              const instructorData = await fetchUser(enrichedBehavior.createdBy);
+              if (instructorData) {
                 enrichedBehavior.instructorName = instructorData.displayName || instructorData.email;
               }
             } catch (err) {
-              }
+            }
           }
         } catch (err) {
           logger.error('Failed to enrich behavior:', enrichedBehavior.id || enrichedBehavior.docId, err);
         }
         return enrichedBehavior;
       }));
-      
       
       // Apply filters (same logic as participations)
       let filtered = enriched;
@@ -266,9 +261,11 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       
       // Create a new array to ensure React detects the change
       setBehaviors([...filtered]);
+      setPageState(PAGE_STATES.LOADED);
     } catch (error) {
       logger.error('Failed to load behaviors:', error);
-      toast.error(t('failed_to_save_behavior') + ': ' + error.message);
+      toast.error(t('failed_to_load_behaviors') + ': ' + error.message);
+      setPageState(PAGE_STATES.ERROR);
     } finally {
       setLoading(false);
     }
@@ -285,9 +282,8 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
 
     setSaving(true);
     try {
-      const classDoc = await getDoc(doc(db, 'classes', formData.classId));
-      const classData = classDoc.exists() ? classDoc.data() : {};
-      const subjectId = formData.subjectId || classData.subjectId;
+      const classData = await fetchClass(formData.classId);
+      const subjectId = formData.subjectId || classData?.subjectId;
       
       const behaviorData = {
         studentId: formData.studentId,
@@ -298,17 +294,21 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         points: parseInt(formData.points) || 0,
         comment: formData.comment.trim(),
         createdBy: user.uid,
-        ...(editingBehavior ? {
-          updatedAt: Timestamp.now(),
-          updatedBy: user.uid
-        } : {
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        })
+        performedBy: user.uid,
+        performedByName: user.displayName || user.email,
+        performedByEmail: user.email
       };
 
       if (editingBehavior) {
-        await updateDoc(doc(db, 'behaviors', editingBehavior.id), behaviorData);
+        const result = await updateBehavior(editingBehavior.id, {
+          ...behaviorData,
+          updatedBy: user.uid
+        });
+        
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        
         // Log activity
         try {
           await logActivity(ACTIVITY_TYPES.BEHAVIOR_UPDATED, {
@@ -321,34 +321,31 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         } catch (e) { }
         toast.success(t('behavior_updated'));
       } else {
-        const docRef = await addDoc(collection(db, 'behaviors'), behaviorData);
+        const studentData = await fetchUser(formData.studentId);
+        const result = await createBehavior({
+          ...behaviorData,
+          studentInfo: studentData ? {
+            displayName: studentData.displayName || studentData.email,
+            email: studentData.email
+          } : null,
+          className: classData?.name || classData?.code || 'Class',
+          sendNotification: true
+        });
+        
+        if (!result.success) {
+          throw new Error(result.error);
+        }
         
         // Log activity
         try {
           await logActivity(ACTIVITY_TYPES.BEHAVIOR_CREATED, {
-            behaviorId: docRef.id,
+            behaviorId: result.id,
             studentId: formData.studentId,
             classId: formData.classId,
             subjectId: subjectId,
             type: formData.type
           });
         } catch (e) { }
-        
-        // Send notification to student
-        const behaviorType = { label_en: getBehaviorLabel(formData.type, 'en') || formData.type };
-        await addNotification({
-          userId: formData.studentId,
-          title: '⚠️ Behavior Recorded',
-          message: t('behavior_notification', { type: behaviorType.label_en || formData.type, description: formData.description }),
-          type: 'behavior',
-          metadata: {
-            behaviorId: docRef.id,
-            type: formData.type,
-            classId: formData.classId,
-            subjectId: subjectId
-          },
-          data: { behaviorId: docRef.id, classId: formData.classId, subjectId: subjectId }
-        });
         toast.success(t('behavior_recorded'));
       }
 
@@ -385,7 +382,12 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'behaviors', deleteModal.item.id));
+      const result = await deleteBehavior(deleteModal.item.id);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      
       // Log activity
       try {
         await logActivity(ACTIVITY_TYPES.BEHAVIOR_DELETED, {

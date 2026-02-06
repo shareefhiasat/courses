@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, CollapsibleDashboardSection, Tabs } from '@ui';
 import { InfoTooltip } from '@ui';
-import { Info, FileText, BookOpen, Zap, Wrench, Filter, BarChart3 } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
 import { getActivities } from '@firebaseServices/activityService';
@@ -17,6 +18,7 @@ import styles from './QuizResultsPage.module.css';
 const ReviewResultsPage = () => {
   const { user, isAdmin, isInstructor, isHR, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const toast = useToast();
@@ -435,8 +437,9 @@ const ReviewResultsPage = () => {
           return row.studentEmail;
         }
         return 'N/A';
-      }
+      },
     },
+    
     {
       field: 'activityTitle',
       headerName: 'Activity',
@@ -449,14 +452,17 @@ const ReviewResultsPage = () => {
           return activityTitle;
         }
         return 'N/A';
-      }
+      },
     },
+    
     {
       field: 'activityId',
       headerName: 'Activity ID',
       width: 150,
       valueGetter: (params) => params?.row?.activityId || 'N/A'
+    
     },
+    
     {
       field: 'programName',
       headerName: 'Program',
@@ -470,7 +476,9 @@ const ReviewResultsPage = () => {
         }
         return 'N/A';
       }
+    
     },
+    
     {
       field: 'subjectName',
       headerName: 'Subject',
@@ -484,7 +492,9 @@ const ReviewResultsPage = () => {
         }
         return 'N/A';
       }
+    
     },
+    
     {
       field: 'className',
       headerName: 'Class',
@@ -498,7 +508,9 @@ const ReviewResultsPage = () => {
         }
         return 'N/A';
       }
+    
     },
+    
     {
       field: 'score',
       headerName: 'Score',
@@ -516,7 +528,9 @@ const ReviewResultsPage = () => {
           </div>
         );
       }
+    
     },
+    
     {
       field: 'submittedAt',
       headerName: 'Submitted',
@@ -525,7 +539,9 @@ const ReviewResultsPage = () => {
         const date = params.row.submittedAt?.toDate ? params.row.submittedAt.toDate() : new Date(params.row.submittedAt || 0);
         return date.toLocaleString('en-GB');
       }
+    
     },
+    
     {
       field: 'actions',
       headerName: 'Actions',
@@ -651,23 +667,29 @@ const ReviewResultsPage = () => {
             tabs={[
               {
                 value: 'quiz',
-                label: 'Quiz',
-                icon: <FileText size={16} />
-              },
-              {
-                value: 'homework',
-                label: 'Homework',
-                icon: <BookOpen size={16} />
-              },
-              {
-                value: 'training',
-                label: 'Training',
-                icon: <Zap size={16} />
-              },
-              {
-                value: 'labandproject',
-                label: 'Lab & Project',
-                icon: <Wrench size={16} />
+                label: t('quiz') || 'Quiz',
+                icon: getThemedIcon('ui', 'file_text', 16, theme)
+              
+            },
+            
+            {
+              value: 'homework',
+                label: t('homework') || 'Homework',
+                icon: getThemedIcon('ui', 'book_open', 16, theme)
+              
+            },
+            
+            {
+              value: 'training',
+                label: t('training') || 'Training',
+                icon: getThemedIcon('ui', 'zap', 16, theme)
+              
+            },
+            
+            {
+              value: 'labandproject',
+                label: t('lab_and_project') || 'Lab & Project',
+                icon: getThemedIcon('ui', 'wrench', 16, theme)
               }
             ]}
             activeTab={mode}
@@ -678,55 +700,20 @@ const ReviewResultsPage = () => {
         {/* Filters - Collapsible */}
         <CollapsibleDashboardSection
           sectionId="review-filters"
-          title="Filters"
-          icon={<Filter size={20} />}
+          title={t('filters') || 'Filters'}
+          icon={getThemedIcon('ui', 'filter', 20, theme)}
           color="#6366f1"
           defaultMode="full"
         >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-              <Select
-                searchable
-                value={selectedProgram}
-                onChange={(e) => {
-                  setSelectedProgram(e.target.value);
-                  setSelectedSubject('all');
-                  setSelectedClass('all');
-                }}
-                options={[
-                  { value: 'all', label: 'All Programs', icon: <Filter size={14} /> },
-                  ...programs.map(p => ({
-                    value: p.docId || p.id,
-                    label: p.name_en || p.name_ar || p.code || p.docId
-                  }))
-                ]}
-                placeholder="Select Program (All Programs)"
-                fullWidth
-              />
-              <Select
-                searchable
-                value={selectedSubject}
-                onChange={(e) => {
-                  setSelectedSubject(e.target.value);
-                  setSelectedClass('all');
-                }}
-                options={[
-                  { value: 'all', label: 'All Subjects', icon: <Filter size={14} /> },
-                  ...subjects
-                    .filter(s => selectedProgram === 'all' || s.programId === selectedProgram)
-                    .map(s => ({
-                      value: s.docId || s.id,
-                      label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim()
-                    }))
-                ]}
-                placeholder="Select Subject (All Subjects)"
-                fullWidth
-              />
-              <Select
+              <div>Select Program placeholder</div>,
+              <div>Select Subject placeholder</div>
+              {/* <Select
                 searchable
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Classes', icon: <Filter size={14} /> },
+                  { value: 'all', label: t('all_classes') || 'All Classes' },
                   ...classes
                     .filter(c => {
                       if (selectedProgram !== 'all') {
@@ -743,15 +730,15 @@ const ReviewResultsPage = () => {
                       label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`
                     }))
                 ]}
-                placeholder="Select Class (All Classes)"
-                fullWidth
-              />
+                placeholder={`${t('select_class') || 'Select Class'} (${t('all_classes') || 'All Classes'})`,
+                fullWidth,
+              /> */}
               <Select
                 searchable
                 value={selectedActivity}
                 onChange={(e) => setSelectedActivity(e.target.value)}
                 options={[
-                  { value: 'all', label: `All ${modeLabels[mode]}s`, icon: <Filter size={14} /> },
+                  { value: 'all', label: t('all_activities', { mode: modeLabels[mode] }) || `All ${modeLabels[mode]}s`, icon: getThemedIcon('ui', 'filter', 14, theme) },
                   ...filteredActivities.map(a => ({
                     value: a.id || a.docId,
                     label: a.title_en || a.title_ar || a.title || a.id
@@ -778,9 +765,9 @@ const ReviewResultsPage = () => {
                 value={filterRetake}
                 onChange={(e) => setFilterRetake(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Retake Settings', icon: <Filter size={14} /> },
-                  { value: 'yes', label: 'Retake Allowed' },
-                  { value: 'no', label: 'No Retake' }
+                  { value: 'all', label: t('all_retake_settings') || 'All Retake Settings', icon: getThemedIcon('ui', 'filter', 14, theme) },
+                  { value: 'yes', label: t('retake_allowed') || 'Retake Allowed' },
+                  { value: 'no', label: t('no_retake') || 'No Retake' }
                 ]}
                 placeholder="Retake Setting (All)"
                 fullWidth
@@ -789,10 +776,10 @@ const ReviewResultsPage = () => {
                 value={filterDifficulty}
                 onChange={(e) => setFilterDifficulty(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Difficulties', icon: <Filter size={14} /> },
-                  { value: 'beginner', label: 'Beginner' },
-                  { value: 'intermediate', label: 'Intermediate' },
-                  { value: 'advanced', label: 'Advanced' }
+                  { value: 'all', label: t('all_difficulties') || 'All Difficulties', icon: getThemedIcon('ui', 'filter', 14, theme) },
+                  { value: 'beginner', label: t('beginner') || 'Beginner' },
+                  { value: 'intermediate', label: t('intermediate') || 'Intermediate' },
+                  { value: 'advanced', label: t('advanced') || 'Advanced' }
                 ]}
                 placeholder="Difficulty Level (All)"
                 fullWidth
@@ -801,9 +788,9 @@ const ReviewResultsPage = () => {
                 value={filterHasImage}
                 onChange={(e) => setFilterHasImage(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Image Settings', icon: <Filter size={14} /> },
-                  { value: 'yes', label: 'Has Image' },
-                  { value: 'no', label: 'No Image' }
+                  { value: 'all', label: t('all_image_settings') || 'All Image Settings', icon: getThemedIcon('ui', 'filter', 14, theme) },
+                  { value: 'yes', label: t('has_image') || 'Has Image' },
+                  { value: 'no', label: t('no_image') || 'No Image' }
                 ]}
                 placeholder="Image Setting (All)"
                 fullWidth
@@ -812,9 +799,9 @@ const ReviewResultsPage = () => {
                 value={filterIsOptional}
                 onChange={(e) => setFilterIsOptional(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Status Types', icon: <Filter size={14} /> },
-                  { value: 'yes', label: 'Optional' },
-                  { value: 'no', label: 'Required' }
+                  { value: 'all', label: t('all_status_types') || 'All Status Types', icon: getThemedIcon('ui', 'filter', 14, theme) },
+                  { value: 'yes', label: t('optional') || 'Optional' },
+                  { value: 'no', label: t('required') || 'Required' }
                 ]}
                 placeholder="Status Type (All)"
                 fullWidth
@@ -823,9 +810,9 @@ const ReviewResultsPage = () => {
                 value={filterIsFeatured}
                 onChange={(e) => setFilterIsFeatured(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Featured Settings', icon: <Filter size={14} /> },
-                  { value: 'yes', label: 'Featured' },
-                  { value: 'no', label: 'Not Featured' }
+                  { value: 'all', label: t('all_featured_settings') || 'All Featured Settings', icon: getThemedIcon('ui', 'filter', 14, theme) },
+                  { value: 'yes', label: t('featured') || 'Featured' },
+                  { value: 'no', label: t('not_featured') || 'Not Featured' }
                 ]}
                 placeholder="Featured Setting (All)"
                 fullWidth
@@ -834,9 +821,9 @@ const ReviewResultsPage = () => {
                 value={filterRequiresSubmission}
                 onChange={(e) => setFilterRequiresSubmission(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Submission Settings', icon: <Filter size={14} /> },
-                  { value: 'yes', label: 'Requires Submission' },
-                  { value: 'no', label: 'No Submission' }
+                  { value: 'all', label: t('all_submission_settings') || 'All Submission Settings', icon: getThemedIcon('ui', 'filter', 14, theme) },
+                  { value: 'yes', label: t('requires_submission') || 'Requires Submission' },
+                  { value: 'no', label: t('no_submission') || 'No Submission' }
                 ]}
                 placeholder="Submission Setting (All)"
                 fullWidth
@@ -859,8 +846,8 @@ const ReviewResultsPage = () => {
         {/* Statistics Cards - Collapsible */}
         <CollapsibleDashboardSection
           sectionId="review-statistics"
-          title="Statistics"
-          icon={<BarChart3 size={20} />}
+          title={t('statistics') || 'Statistics'}
+          icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
           color="#10b981"
           defaultMode="full"
         >
@@ -878,11 +865,13 @@ const ReviewResultsPage = () => {
               suffix: '%',
               tooltip: `Average score across all ${mode} submissions${isInstructor && !isAdmin ? ' from your students' : ''}. Calculated as the mean percentage score.`
             },
-            { 
-              type: 'passed', 
-              value: stats.passed || 0, 
+            {
+              type: 'passed',
+              value: stats.passed || 0,
               suffix: '',
-              tooltip: `Number of ${mode} submissions with score ≥ 60%${isInstructor && !isAdmin ? ' from your students' : ''}. Passing threshold is 60%.`
+              tooltip: `Number of ${mode} submissions with score ≥ 60%${isInstructor
+              && !isAdmin ? ' from your students'
+                  : ''}. Passing threshold is 60%.`
             },
             { 
               type: 'failed', 
@@ -927,7 +916,7 @@ const ReviewResultsPage = () => {
               tooltip: `Number of unique ${mode} activities${isInstructor && !isAdmin ? ' in your classes' : ''}. Each activity is counted once.`
             }
           ].map((stat, idx) => {
-            const config = getCardConfig(stat.type, t);
+            const config = getCardConfig(stat.type, t, theme);
             const IconComponent = config.icon;
             const borderRadius = getShapeRadius(config.shape);
             

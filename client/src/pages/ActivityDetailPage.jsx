@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Container, Card, CardBody, Button, Badge, Spinner, Modal } from '@ui';
 import { QRCodeGenerator } from '@ui';
-import { CalendarDays, Repeat, Play, ExternalLink, QrCode } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
 import styles from './ActivityDetailPage.module.css';
 
@@ -13,6 +14,7 @@ export default function ActivityDetailPage() {
   const { activityId } = useParams();
   const navigate = useNavigate();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState(null);
   const [showQR, setShowQR] = useState(false);
@@ -69,19 +71,19 @@ export default function ActivityDetailPage() {
               <div className={styles.meta}>
                 {activity.createdAt && (
                   <Badge variant="subtle" color="default">
-                    <CalendarDays size={14} />
+                    {getThemedIcon('ui', 'calendar', 14, theme)}
                     {t('created') || 'Created'}: {formatDateTime(activity.createdAt)}
                   </Badge>
                 )}
                 {activity.dueDate && (
                   <Badge variant="subtle" color="warning">
-                    <CalendarDays size={14} />
+                    {getThemedIcon('ui', 'calendar', 14, theme)}
                     {t('due_date_label')}: {formatDateTime(activity.dueDate)}
                   </Badge>
                 )}
                 {activity.allowRetake && (
                   <Badge variant="subtle" color="info">
-                    <Repeat size={14} />
+                    {getThemedIcon('ui', 'repeat', 14, theme)}
                     {t('retake_allowed') || 'Retake Allowed'}
                   </Badge>
                 )}
@@ -91,7 +93,7 @@ export default function ActivityDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                icon={<QrCode size={16} />}
+                icon={getThemedIcon('ui', 'qr_code', 16, theme)}
                 onClick={() => setShowQR(true)}
               >
                 {t('share') || 'Share'}
@@ -103,7 +105,7 @@ export default function ActivityDetailPage() {
             {activity.quizId ? (
               <Button
                 variant="primary"
-                icon={<Play size={16} />}
+                icon={getThemedIcon('ui', 'play', 16, theme)}
                 onClick={() => navigate(`/quiz/${activity.quizId}`)}
               >
                 {t('start_quiz') || 'Start Quiz'}
@@ -111,7 +113,7 @@ export default function ActivityDetailPage() {
             ) : activity.url ? (
               <Button
                 variant="primary"
-                icon={<ExternalLink size={16} />}
+                icon={getThemedIcon('ui', 'external_link', 16, theme)}
                 onClick={() => window.open(activity.url, '_blank')}
               >
                 {t('open') || 'Open'}

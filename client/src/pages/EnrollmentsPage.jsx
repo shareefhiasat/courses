@@ -73,7 +73,7 @@ const EnrollmentsPage = () => {
       ) : myClasses.length === 0 ? (
         <EmptyState
           title={t('no_classes_enrolled') || 'No classes found'}
-          description="You are not enrolled in any classes yet."
+          description={t('not_enrolled_any_classes') || 'You are not enrolled in any classes yet.'}
         />
       ) : (
         <Grid cols={3} gap="lg" className={styles.grid}>

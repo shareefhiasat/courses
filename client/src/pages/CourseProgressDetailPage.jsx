@@ -264,11 +264,11 @@ export default function CourseProgressDetailPage() {
   }
 
   const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'chapters', label: 'Chapters' },
-    { id: 'assignments', label: 'Assignments' },
-    { id: 'quizzes', label: 'Quizzes' },
-    { id: 'leaderboard', label: 'Leaderboard' }
+    { id: 'overview', label: t('overview') || 'Overview' },
+    { id: 'chapters', label: t('chapters') || 'Chapters' },
+    { id: 'assignments', label: t('assignments') || 'Assignments' },
+    { id: 'quizzes', label: t('quizzes') || 'Quizzes' },
+    { id: 'leaderboard', label: t('leaderboard') || 'Leaderboard' }
   ];
 
   return (
@@ -294,11 +294,11 @@ export default function CourseProgressDetailPage() {
                 </div>
                 <div className={styles.enrollment}>
                   <Users size={16} style={{ color: '#64748b' }} />
-                  <span>{courseData.enrolledStudents} students</span>
+                  <span>{courseData.enrolledStudents} {t('students') || 'students'}</span>
                 </div>
                 <div className={styles.enrollmentDate}>
                   <Calendar size={16} style={{ color: '#64748b' }} />
-                  <span>Enrolled {courseData.enrolledAt.toLocaleDateString()}</span>
+                  <span>{t('enrolled') || 'Enrolled'} {courseData.enrolledAt.toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
@@ -308,7 +308,7 @@ export default function CourseProgressDetailPage() {
                 variant="outline"
                 onClick={() => navigate('/courses')}
               >
-                Back to Courses
+                {t('back_to_courses') || 'Back to Courses'}
               </Button>
               <Button
                 variant="primary"
@@ -320,7 +320,7 @@ export default function CourseProgressDetailPage() {
                 }}
               >
                 <Play size={16} style={{ marginRight: 6 }} />
-                Continue Learning
+                {t('continue_learning') || 'Continue Learning'}
               </Button>
             </div>
           </div>
@@ -330,7 +330,7 @@ export default function CourseProgressDetailPage() {
         <div className={styles.courseStats}>
           <div className={styles.statsGrid}>
             <StatCard
-              title="Overall Progress"
+              title={t('overall_progress') || 'Overall Progress'}
               value={`${courseData.overallProgress}%`}
               icon={<Trophy size={24} />}
               color="success"
@@ -338,22 +338,22 @@ export default function CourseProgressDetailPage() {
               trendValue="+5% this week"
             />
             <StatCard
-              title="Completed Lessons"
+              title={t('completed_lessons') || 'Completed Lessons'}
               value={`${courseData.completedLessons}/${courseData.totalLessons}`}
               icon={<CheckCircle size={24} />}
               color="primary"
-              subtitle={`${courseData.totalLessons - courseData.completedLessons} remaining`}
+              subtitle={`${courseData.totalLessons - courseData.completedLessons} ${t('remaining') || 'remaining'}`}
             />
             <StatCard
-              title="Time Spent"
+              title={t('time_spent') || 'Time Spent'}
               value={`${courseData.spentHours}h`}
               icon={<Clock size={24} />}
               color="info"
               trend="up"
-              trendValue={`${calculateTimeRemaining()}h remaining`}
+              trendValue={`${calculateTimeRemaining()}h ${t('remaining') || 'remaining'}`}
             />
             <StatCard
-              title="Current Streak"
+              title={t('current_streak') || 'Current Streak'}
               value="7 days"
               icon={<Award size={24} />}
               color="warning"

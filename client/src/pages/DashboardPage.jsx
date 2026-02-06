@@ -8,6 +8,7 @@ import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import { USER_ROLES, getRoleColor, getRoleIcon, getRoleDisplayName } from '@constants/userRoles';
 import { getThemedIcon } from '@constants/iconTypes';
+import { formatDateTime } from '@utils/date';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,

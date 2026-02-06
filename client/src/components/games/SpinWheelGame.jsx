@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RotateCw, Trophy } from 'lucide-react';
 import { useLang } from '../../contexts/LangContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function SpinWheelGame({ questions, settings, onComplete }) {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -69,7 +71,7 @@ export default function SpinWheelGame({ questions, settings, onComplete }) {
     const percentage = (score / questions.reduce((sum, q) => sum + (q.points || 1), 0)) * 100;
     return (
       <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-        <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
+        {getThemedIcon('ui', 'trophy', 64, theme)}
         <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('all_answered') || 'All Questions Answered!'}</h1>
         <div className="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-4">
           {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
@@ -201,7 +203,7 @@ export default function SpinWheelGame({ questions, settings, onComplete }) {
         disabled={spinning}
         className={`px-12 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-indigo-500/30 inline-flex items-center gap-2 transition-all ${spinning ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
       >
-        <RotateCw size={20} className={spinning ? 'animate-spin' : ''} />
+        {getThemedIcon('ui', 'rotate_cw', 20, theme)}
         {spinning ? (t('spinning') || 'Spinning...') : (t('spin_it') || 'Spin It!')}
       </button>
     </div>

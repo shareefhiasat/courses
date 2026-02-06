@@ -9,6 +9,7 @@ import logger from '@utils/logger';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { 
   Container, Button, Select, Tabs, useToast, Loading, Card, CardBody, Badge, EmptyState
 } from '@ui';
@@ -824,10 +825,10 @@ export default function StudentDashboardPage() {
                   size="sm"
                   onClick={() => setIsCompactView(!isCompactView)}
                   icon={isCompactView ? getThemedIcon('ui', 'layout_grid', 16, theme) : getThemedIcon('ui', 'layout_list', 16, theme)}
-                  tooltip={isCompactView ? 'Switch to Full View' : 'Switch to Compact View'}
+                  tooltip={isCompactView ? (t('switch_to_full_view') || 'Switch to Full View') : (t('switch_to_compact_view') || 'Switch to Compact View')}
                   className={styles.actionButton}
                 >
-                  {isCompactView ? 'Full View' : 'Compact'}
+                  {isCompactView ? (t('full_view') || 'Full View') : (t('compact') || 'Compact')}
                 </Button>
                 <Button 
                   variant="ghost"
@@ -835,10 +836,10 @@ export default function StudentDashboardPage() {
                   onClick={handleExportImage}
                   loading={exporting}
                   icon={getThemedIcon('ui', 'file_image', 16, theme)}
-                  tooltip="Export as Image"
+                  tooltip={t('export_as_image') || 'Export as Image'}
                   className={styles.actionButton}
                 >
-                  Image
+                  {t('image') || 'Image'}
                 </Button>
                 <Button 
                   variant="ghost"
@@ -846,10 +847,10 @@ export default function StudentDashboardPage() {
                   onClick={handleExportPDF}
                   loading={exporting}
                   icon={getThemedIcon('ui', 'file_text', 16, theme)}
-                  tooltip="Export as PDF"
+                  tooltip={t('export_as_pdf') || 'Export as PDF'}
                   className={styles.actionButton}
                 >
-                  PDF
+                  {t('pdf') || 'PDF'}
                 </Button>
                 <Button variant="outline" size="sm" onClick={loadDashboardData}>
                   {getThemedIcon('ui', 'refresh', 16, theme)} {t('refresh') || 'Refresh'}
@@ -873,7 +874,7 @@ export default function StudentDashboardPage() {
               { type: 'net-participation', value: stats.participationScore || stats.netParticipation || 0, suffix: '', subtext: `${stats.totalParticipations || 0} + / ${stats.totalBehaviors || 0} -` }
             ] : [])
           ].map((stat, idx) => {
-            const config = getCardConfig(stat.type, t);
+            const config = getCardConfig(stat.type, t, theme);
             const IconComponent = config.icon;
             const borderRadius = getShapeRadius(config.shape);
             

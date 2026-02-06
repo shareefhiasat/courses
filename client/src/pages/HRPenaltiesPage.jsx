@@ -8,11 +8,12 @@ import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@fire
 import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { getPrograms, getSubjects } from '@firebaseServices/programService';
-import { getClasses } from '@firebaseServices/classService';
+import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
+import { getClasses, getClassById } from '@firebaseServices/classService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { getUserById } from '@firebaseServices/userService';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -68,9 +69,9 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
     
     try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      const result = await getUserById(userId);
+      if (result.success) {
+        const userData = result.data;
         setUserCache(prev => ({ ...prev, [userId]: userData }));
         return userData;
       }
@@ -79,6 +80,36 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
     return null;
   }, [userCache]);
+
+  // Function to fetch class data on demand and cache it
+  const fetchClass = useCallback(async (classId) => {
+    if (!classId) return null;
+    
+    try {
+      const result = await getClassById(classId);
+      if (result.success) {
+        return result.data;
+      }
+    } catch (err) {
+      logger.error('Failed to fetch class:', classId, err);
+    }
+    return null;
+  }, []);
+
+  // Function to fetch subject data on demand and cache it
+  const fetchSubject = useCallback(async (subjectId) => {
+    if (!subjectId) return null;
+    
+    try {
+      const result = await getSubject(subjectId);
+      if (result.success) {
+        return result.data;
+      }
+    } catch (err) {
+      logger.error('Failed to fetch subject:', subjectId, err);
+    }
+    return null;
+  }, []);
 
   // Filters
   const [programFilter, setProgramFilter] = useState('all');
@@ -177,50 +208,41 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           
           if (enrichedPenalty.studentId) {
             try {
-              const studentDoc = await getDoc(doc(db, 'users', enrichedPenalty.studentId));
-              if (studentDoc.exists()) {
-                const studentData = studentDoc.data();
+              const studentData = await fetchUser(enrichedPenalty.studentId);
+              if (studentData) {
                 enrichedPenalty.studentName = studentData.displayName || studentData.email || 'N/A';
                 enrichedPenalty.studentEmail = studentData.email;
-                } else {
-                }
-            } catch (err) {
               }
-          } else {
+            } catch (err) {
             }
+          }
           
           if (enrichedPenalty.classId) {
             try {
-              const classDoc = await getDoc(doc(db, 'classes', enrichedPenalty.classId));
-              if (classDoc.exists()) {
-                const classData = classDoc.data();
+              const classData = await fetchClass(enrichedPenalty.classId);
+              if (classData) {
                 enrichedPenalty.className = classData.name || classData.code || 'N/A';
                 enrichedPenalty.classTerm = classData.term;
                 // If subjectId is missing, try to get it from class
                 if (!enrichedPenalty.subjectId && classData.subjectId) {
                   enrichedPenalty.subjectId = classData.subjectId;
-                  }
-                } else {
                 }
-            } catch (err) {
               }
-          } else {
+            } catch (err) {
             }
+          }
           
           // Load subject from penalty or class
           const subjectIdToLoad = enrichedPenalty.subjectId;
           if (subjectIdToLoad) {
             try {
-              const subjectDoc = await getDoc(doc(db, 'subjects', subjectIdToLoad));
-              if (subjectDoc.exists()) {
-                const subjectData = subjectDoc.data();
+              const subjectData = await fetchSubject(subjectIdToLoad);
+              if (subjectData) {
                 enrichedPenalty.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-                } else {
-                }
-            } catch (err) {
               }
-          } else {
+            } catch (err) {
             }
+          }
           
           } catch (err) {
           logger.error('Failed to enrich penalty:', enrichedPenalty.id || enrichedPenalty.docId, err);
@@ -286,9 +308,8 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     setSaving(true);
     try {
       // Get class to find subjectId
-      const classDoc = await getDoc(doc(db, 'classes', formData.classId));
-      const classData = classDoc.exists() ? classDoc.data() : {};
-      const subjectId = formData.subjectId || classData.subjectId;
+      const classData = await fetchClass(formData.classId);
+      const subjectId = formData.subjectId || classData?.subjectId;
       
       const penaltyData = {
         studentId: formData.studentId,

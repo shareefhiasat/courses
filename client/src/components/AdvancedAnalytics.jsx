@@ -12,7 +12,7 @@ import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
 import AreaChart from './charts/AreaChart';
-import { Plus, X, Filter } from 'lucide-react';
+// Removed direct Lucide imports - using getThemedIcon instead
 import { Select, YearSelect, Loading, DateRangeSlider } from './ui';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
@@ -246,7 +246,7 @@ export default function AdvancedAnalytics() {
     setWidgetUpdatedAt((m)=> ({ ...m, [id]: Date.now() }));
     setRecentlyRefreshed((m)=> ({ ...m, [id]: true }));
     setTimeout(()=> setRecentlyRefreshed((m)=> ({ ...m, [id]: false })), 1200);
-    pushToast('Data up to date');
+    pushToast(t('data_up_to_date') || 'Data up to date');
   };
 
   const loadSavedWidgets = () => {
@@ -257,9 +257,9 @@ export default function AdvancedAnalytics() {
       } else {
         // Default widgets
         setWidgets([
-          { id: 'w1', title: 'Submissions by Status', chartType: 'pie', dataSource: 'submissions', groupBy: 'status', aggregation: 'count' },
-          { id: 'w2', title: 'Activity Types', chartType: 'bar', dataSource: 'activities', groupBy: 'type', aggregation: 'count' },
-          { id: 'w3', title: 'User Activity Trend', chartType: 'line', dataSource: 'activityLogs', groupBy: 'date', aggregation: 'count', dateRange: 'last30' }
+          { id: 'w1', title: t('submissions_by_status') || 'Submissions by Status', chartType: 'pie', dataSource: 'submissions', groupBy: 'status', aggregation: 'count' },
+          { id: 'w2', title: t('activity_types') || 'Activity Types', chartType: 'bar', dataSource: 'activities', groupBy: 'type', aggregation: 'count' },
+          { id: 'w3', title: t('user_activity_trend') || 'User Activity Trend', chartType: 'line', dataSource: 'activityLogs', groupBy: 'date', aggregation: 'count', dateRange: 'last30' }
         ]);
       }
     } catch (e) {
@@ -904,36 +904,36 @@ export default function AdvancedAnalytics() {
             />
           </div>
           {autoRefreshMs > 0 && (
-            <div style={{ width: 160, height: 6, background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }} title="Next auto refresh">
+            <div style={{ width: 160, height: 6, background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }} title={t('next_auto_refresh') || 'Next auto refresh'}>
               <div style={{ height: '100%', width: `${Math.min(100, ((nowTick - lastUpdatedAt) % autoRefreshMs) / autoRefreshMs * 100)}%`, background: accentColor, transition: 'width 0.25s linear' }} />
             </div>
           )}
           <button onClick={()=>loadAllData()} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: '#800020', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
-            ⟳ Refresh
+            {(t('refresh') || 'Refresh')}
           </button>
           <button onClick={()=>setEditLayout(v=>!v)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.55rem 1rem', background: editLayout ? '#ef4444' : '#f97316', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
-            {editLayout ? 'Exit Edit Layout' : 'Edit Layout'}
+            {editLayout ? (t('exit_edit_layout') || 'Exit Edit Layout') : (t('edit_layout') || 'Edit Layout')}
           </button>
           <button
             onClick={exportData}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
             getThemedIcon('ui', 'download', 18, theme)
-            Export
+            {(t('export') || 'Export')}
           </button>
           <button
             onClick={() => window.location.href = '/scheduled-reports'}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: accentColor, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
             getThemedIcon('ui', 'calendar', 18, theme)
-            Schedule Report
+            {(t('schedule_report') || 'Schedule Report')}
           </button>
           <button
             onClick={() => setShowBuilder(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 1.5rem', background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
             getThemedIcon('ui', 'plus', 18, theme)
-            Add Widget
+            {(t('add_widget') || 'Add Widget')}
           </button>
         </div>
       </div>
@@ -941,7 +941,7 @@ export default function AdvancedAnalytics() {
       {/* Permissions banners (non-blocking) */}
       {Object.keys(permErrors).length > 0 && (
         <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: 8, border: '1px solid #F59E0B', background: 'rgba(245, 158, 11, 0.1)', color: '#92400e' }}>
-          <strong>Some data could not be loaded due to permissions:</strong>
+          <strong>{t('some_data_not_loaded_permissions') || 'Some data could not be loaded due to permissions:'}</strong>
           <div style={{ marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {Object.entries(permErrors).map(([key]) => (
               <span key={key} style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)' }}>{key}</span>
@@ -1104,14 +1104,14 @@ export default function AdvancedAnalytics() {
                     setShowBuilder(true);
                   }}
                   style={{ padding: '0.35rem', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', fontSize: '0.85rem' }}
-                  title="Edit"
+                  title={t('edit') || 'Edit'}
                 >
                   ✏️
                 </button>
                 <button
                   onClick={() => deleteWidget(widget.id)}
                   style={{ padding: '0.35rem', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: 4, cursor: 'pointer' }}
-                  title="Delete"
+                  title={t('delete') || 'Delete'}
                 >
                   getThemedIcon('ui', 'trash2', 14, theme)
                 </button>
@@ -1148,28 +1148,28 @@ export default function AdvancedAnalytics() {
       {showBuilder && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => { setShowBuilder(false); setEditingWidget(null); resetBuilder(); }}>
           <div style={{ background: 'var(--panel)', color: 'var(--text)', padding: '2rem', borderRadius: 16, minWidth: 600, maxWidth: '90vw', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0, color: 'var(--text)' }}>{editingWidget ? 'Edit Widget' : 'Create New Widget'}</h2>
+            <h2 style={{ marginTop: 0, color: 'var(--text)' }}>{editingWidget ? (t('edit_widget') || 'Edit Widget') : (t('create_new_widget') || 'Create New Widget')}</h2>
             
             <div style={{ display: 'grid', gap: 16 }}>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Title</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('title') || 'Title'}</label>
                 <input
                   type="text"
                   value={widgetConfig.title}
                   onChange={(e) => setWidgetConfig({ ...widgetConfig, title: e.target.value })}
-                  placeholder="e.g., Submissions by Status"
+                  placeholder={t('widget_title_placeholder') || 'e.g., Submissions by Status'}
                   style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Chart Type</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('chart_type') || 'Chart Type'}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                   {[
-                    { type: 'bar', icon: getThemedIcon('ui', 'bar_chart3', 20, theme), label: 'Bar' },
-                    { type: 'line', icon: getThemedIcon('ui', 'line_chart', 20, theme), label: 'Line' },
-                    { type: 'pie', icon: getThemedIcon('ui', 'pie_chart', 20, theme), label: 'Pie' },
-                    { type: 'area', icon: getThemedIcon('ui', 'trending_up', 20, theme), label: 'Area' }
+                    { type: 'bar', icon: getThemedIcon('ui', 'bar_chart3', 20, theme), label: t('bar') || 'Bar' },
+                    { type: 'line', icon: getThemedIcon('ui', 'line_chart', 20, theme), label: t('line') || 'Line' },
+                    { type: 'pie', icon: getThemedIcon('ui', 'pie_chart', 20, theme), label: t('pie') || 'Pie' },
+                    { type: 'area', icon: getThemedIcon('ui', 'trending_up', 20, theme), label: t('area') || 'Area' }
                   ].map(({ type, icon, label }) => (
                     <button
                       key={type}
@@ -1194,7 +1194,7 @@ export default function AdvancedAnalytics() {
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Data Source</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('data_source') || 'Data Source'}</label>
                 <select
                   value={widgetConfig.dataSource}
                   onChange={(e) => setWidgetConfig({ ...widgetConfig, dataSource: e.target.value })}
@@ -1226,7 +1226,7 @@ export default function AdvancedAnalytics() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Group By</label>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('group_by') || 'Group By'}</label>
                   <select
                     value={widgetConfig.groupBy}
                     onChange={(e) => setWidgetConfig({ ...widgetConfig, groupBy: e.target.value })}
@@ -1252,7 +1252,7 @@ export default function AdvancedAnalytics() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Aggregation</label>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('aggregation') || 'Aggregation'}</label>
                   <select
                     value={widgetConfig.aggregation}
                     onChange={(e) => setWidgetConfig({ ...widgetConfig, aggregation: e.target.value })}
@@ -1269,26 +1269,26 @@ export default function AdvancedAnalytics() {
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Date Range</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('date_range') || 'Date Range'}</label>
                 <select
                   value={widgetConfig.dateRange}
                   onChange={(e) => setWidgetConfig({ ...widgetConfig, dateRange: e.target.value, customDateFrom: '', customDateTo: '' })}
                   style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)', marginBottom: widgetConfig.dateRange === 'custom' ? 12 : 0 }}
                 >
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="last7">Last 7 Days</option>
-                  <option value="last30">Last 30 Days</option>
-                  <option value="last90">Last 90 Days</option>
-                  <option value="custom">Custom Range</option>
+                  <option value="all">{t('all_time') || 'All Time'}</option>
+                  <option value="today">{t('today') || 'Today'}</option>
+                  <option value="last7">{t('last_7_days') || 'Last 7 Days'}</option>
+                  <option value="last30">{t('last_30_days') || 'Last 30 Days'}</option>
+                  <option value="last90">{t('last_90_days') || 'Last 90 Days'}</option>
+                  <option value="custom">{t('custom_range') || 'Custom Range'}</option>
                 </select>
                 {widgetConfig.dateRange === 'custom' && (
                   <DateRangeSlider
                     fromDate={widgetConfig.customDateFrom}
                     toDate={widgetConfig.customDateTo}
                     onChange={({ fromDate, toDate }) => setWidgetConfig({ ...widgetConfig, customDateFrom: fromDate, customDateTo: toDate })}
-                    placeholderFrom="From Date"
-                    placeholderTo="To Date"
+                    placeholderFrom={t('from_date') || 'From Date'}
+                    placeholderTo={t('to_date') || 'To Date'}
                     fullWidth
                   />
                 )}
@@ -1301,7 +1301,7 @@ export default function AdvancedAnalytics() {
                     checked={widgetConfig.comparisonMode}
                     onChange={(e) => setWidgetConfig({ ...widgetConfig, comparisonMode: e.target.checked })}
                   />
-                  Comparison Mode
+                  {t('comparison_mode') || 'Comparison Mode'}
                 </label>
                 {widgetConfig.comparisonMode && (
                   <select
@@ -1309,8 +1309,8 @@ export default function AdvancedAnalytics() {
                     onChange={(e) => setWidgetConfig({ ...widgetConfig, comparisonPeriod: e.target.value })}
                     style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--input-bg)', color: 'var(--text)' }}
                   >
-                    <option value="previous">vs Previous Period</option>
-                    <option value="lastYear">vs Last Year</option>
+                    <option value="previous">{t('vs_previous_period') || 'vs Previous Period'}</option>
+                    <option value="lastYear">{t('vs_last_year') || 'vs Last Year'}</option>
                   </select>
                 )}
               </div>
@@ -1321,14 +1321,14 @@ export default function AdvancedAnalytics() {
                 onClick={() => { setShowBuilder(false); setEditingWidget(null); resetBuilder(); }}
                 style={{ padding: '0.75rem 1.5rem', background: '#6b7280', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
               >
-                Cancel
+                {(t('cancel') || 'Cancel')}
               </button>
               <button
                 onClick={editingWidget ? updateWidget : addWidget}
                 style={{ padding: '0.75rem 1.5rem', background: accentColor, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
               >
                 getThemedIcon('ui', 'save', 18, theme)
-                {editingWidget ? 'Update' : 'Create'}
+                {editingWidget ? (t('update') || 'Update') : (t('create') || 'Create')}
               </button>
             </div>
           </div>
@@ -1340,14 +1340,14 @@ export default function AdvancedAnalytics() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowDrillDown(false)}>
           <div style={{ background: 'var(--panel)', color: 'var(--text)', padding: '2rem', borderRadius: 16, minWidth: 700, maxWidth: '90vw', maxHeight: '90vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0, color: 'var(--text)' }}>📊 Drill-Down: {drillDownData.dataPoint.label}</h2>
+              <h2 style={{ margin: 0, color: 'var(--text)' }}>{t('drill_down') || 'Drill-Down'}: {drillDownData.dataPoint.label}</h2>
               <button onClick={() => setShowDrillDown(false)} style={{ padding: '0.5rem', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>
                 getThemedIcon('ui', 'close', 20, theme)
               </button>
             </div>
             
             <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(102,126,234,0.1)', borderRadius: 8 }}>
-              <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>Showing {drillDownData.items.length} items for <strong>{drillDownData.dataPoint.label}</strong></p>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>{t('showing_items_for') || 'Showing'} {drillDownData.items.length} {t('items_for') || 'items for'} <strong>{drillDownData.dataPoint.label}</strong></p>
             </div>
 
             <div style={{ maxHeight: 400, overflow: 'auto' }}>

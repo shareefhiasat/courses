@@ -155,7 +155,7 @@ const ProfileSettingsPage = () => {
       <Loading 
         variant="overlay" 
         fullscreen 
-        message="Loading profile..." 
+        message={t('loading_profile') || 'Loading profile...'} 
         fancyVariant="dots" 
       />
     );
@@ -322,7 +322,7 @@ const ProfileSettingsPage = () => {
                         </div>
                         <div className={styles.hexInputWrapper}>
                           <Input
-                            label="HEX"
+                            label={t('hex') || 'HEX'}
                             value={customColorInput}
                             onChange={(e) => handleCustomColorInput(e.target.value)}
                             placeholder="#667EEA"

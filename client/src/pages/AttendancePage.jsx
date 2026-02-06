@@ -153,8 +153,8 @@ const AttendancePageEnhanced = () => {
   }, [sessionId]);
 
   const startSession = async () => {
-    if (!user) { setErr('Please sign in'); return; }
-    if (!classId) { setErr('Please select a class'); return; }
+    if (!user) { setErr(t('please_sign_in') || 'Please sign in'); return; }
+    if (!classId) { setErr(t('please_select_a_class') || 'Please select a class'); return; }
     setLoading(true);
     try {
       setErr('');
@@ -166,7 +166,7 @@ const AttendancePageEnhanced = () => {
       setSessionId(id);
       setSessionStartTime(Date.now());
     } catch(e) {
-      setErr(e?.message || 'Failed to start session');
+      setErr(e?.message || (t('failed_to_start_session') || 'Failed to start session'));
     } finally {
       setLoading(false);
     }
@@ -272,7 +272,7 @@ const AttendancePageEnhanced = () => {
       setCfg(v => ({ ...v, lateMode: newLateMode }));
       await setDoc(doc(db, 'attendanceSessions', sessionId), { lateMode: newLateMode }, { merge: true });
     } catch(e) {
-      setErr(e?.message || 'Failed to toggle late mode');
+      setErr(e?.message || (t('failed_to_toggle_late_mode') || 'Failed to toggle late mode'));
     }
   };
 
@@ -316,16 +316,16 @@ const AttendancePageEnhanced = () => {
             {getThemedIcon('ui', 'play_circle', 32, theme)}
             <div>
               <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.25rem' }}>
-                Session Active
+                {t('session_active') || 'Session Active'}
               </div>
               <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                Duration: {durationDisplay} • {attendanceCount} scanned
+                {t('duration') || 'Duration'}: {durationDisplay} • {attendanceCount} {t('scanned') || 'scanned'}
               </div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.2)', borderRadius: 8, fontWeight: 600 }}>
-              {attendanceCount} Students
+              {attendanceCount} {t('students') || 'Students'}
             </div>
             <button
               onClick={endSession}
@@ -341,7 +341,7 @@ const AttendancePageEnhanced = () => {
               }}
             >
               {getThemedIcon('ui', 'square', 16, theme)}
-              End Session
+              {t('end_session') || 'End Session'}
             </button>
           </div>
         </div>
@@ -364,7 +364,7 @@ const AttendancePageEnhanced = () => {
             fontSize: '1rem'
           }}
         >
-          <span>Class Selection</span>
+          <span>{t('class_selection') || 'Class Selection'}</span>
           {collapsedSections.class ? getThemedIcon('ui', 'chevron_down', 20, theme) : getThemedIcon('ui', 'chevron_up', 20, theme)}
         </button>
         {!collapsedSections.class && (
@@ -377,7 +377,7 @@ const AttendancePageEnhanced = () => {
               value={programFilter}
               onChange={(e) => setProgramFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
+                { value: 'all', label: t('all_programs') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
                   label: p.name_en || p.name_ar || p.code || p.docId,
@@ -394,7 +394,7 @@ const AttendancePageEnhanced = () => {
               value={subjectFilter}
               onChange={(e) => setSubjectFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) },
+                { value: 'all', label: t('all_subjects') || 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...subjects
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
@@ -413,7 +413,7 @@ const AttendancePageEnhanced = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) },
+                { value: 'all', label: t('all_classes') || 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...filteredClasses
                   .filter(c => {
                     if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
@@ -629,11 +629,11 @@ const AttendancePageEnhanced = () => {
             />
             {sessionId && manualCode && (
               <div style={{ marginTop:12, padding:'1rem', background:'#fff', border:'2px solid #800020', borderRadius:8, textAlign:'center' }}>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', marginBottom:6 }}>MANUAL CODE</div>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', marginBottom:6 }}>{t('manual_code') || 'MANUAL CODE'}</div>
                 <div style={{ fontSize:32, fontWeight:700, letterSpacing:'0.2em', color:'#800020', fontFamily:'monospace' }}>{manualCode}</div>
-                <div style={{ fontSize:10, color:'var(--muted)', marginTop:6 }}>Rotates every {cfg.rotationSeconds}s</div>
+                <div style={{ fontSize:10, color:'var(--muted)', marginTop:6 }}>{t('rotates_every') || 'Rotates every'} {cfg.rotationSeconds}s</div>
                 <div style={{ fontSize:9, color:'var(--muted)', marginTop:8, padding:'4px 8px', background:'#f3f4f6', borderRadius:4, fontFamily:'monospace' }}>
-                  Session: {sessionId.slice(0,8)}...
+                  {t('session') || 'Session'}: {sessionId.slice(0,8)}...
                 </div>
               </div>
             )}
@@ -732,13 +732,13 @@ const AttendancePageEnhanced = () => {
           <span>{t('how_to_use') || 'How to Use Attendance System'}</span>
         </div>
         <div style={{ fontSize:14, lineHeight:1.8, color:'#1e3a8a' }}>
-          <p style={{ margin:'0 0 8px 0' }}><strong>1. Start Session:</strong> Select a class and click "Start Session" to generate a live QR code.</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>2. Students Scan:</strong> Students open /my-attendance page and scan the QR code with their camera or paste the link manually.</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>3. QR Rotation:</strong> The QR code token rotates every {cfg.rotationSeconds} seconds for security. Students must scan during the active session.</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>4. Strict Device Binding:</strong> When enabled, each student can only scan from one device per session to prevent sharing.</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>5. Late Mode:</strong> After ending the session, you can enable "Late Mode" to allow late arrivals to scan with a "late" status.</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>6. Export:</strong> Click "Export CSV" to download attendance records for the session.</p>
-          <p style={{ margin:'0 0 8px 0' }}><strong>7. Cost:</strong> QR rotation uses Firestore writes (~1 write per rotation). With 30s rotation and 15min session, that's ~30 writes per session. Very minimal cost.</p>
+          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_start_session') || '1. Start Session:'}</strong> {t('start_session_desc') || 'Select a class and click "Start Session" to generate a live QR code.'}</p>
+          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_students_scan') || '2. Students Scan:'}</strong> {t('students_scan_desc') || 'Students open /my-attendance page and scan the QR code with their camera or paste the link manually.'}</p>
+          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_qr_rotation') || '3. QR Rotation:'}</strong> {t('qr_rotation_desc') || 'The QR code token rotates every'} {cfg.rotationSeconds} {t('seconds_for_security') || 'seconds for security. Students must scan during the active session.'}</p>
+          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_strict_device_binding') || '4. Strict Device Binding:'}</strong> {t('strict_device_binding_desc') || 'When enabled, each student can only scan from one device per session to prevent sharing.'}</p>
+          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_late_mode') || '5. Late Mode:'}</strong> {t('late_mode_desc') || 'After ending the session, you can enable "Late Mode" to allow late arrivals to scan with a "late" status.'}</p>
+          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_export') || '6. Export:'}</strong> {t('export_desc') || 'Click "Export CSV" to download attendance records for the session.'}</p>
+          <p style={{ margin:'0 0 8px 0' }}><strong>{t('step_cost') || '7. Cost:'}</strong> {t('cost_desc') || 'QR rotation uses Firestore writes (~1 write per rotation). With 30s rotation and 15min session, that\'s ~30 writes per session. Very minimal cost.'}</p>
         </div>
       </div>
     </div>

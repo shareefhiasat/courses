@@ -125,16 +125,16 @@ export default function StudentActionPanelNew({
     }
     
     const iconMap = {
-      MessageSquare: <MessageSquareIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      AlertCircleIcon: <AlertCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      AlertTriangle: <AlertTriangleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      CheckCircle: <CheckCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      Clock: <ClockIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      XCircle: <XCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      Heart: <HeartIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      HelpCircle: <HelpCircleIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      Users: <Users style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
-      Bed: <BedIcon style={{ width: style.width || 16, height: style.height || 16, color: finalColor }} />,
+      MessageSquare: getThemedIcon('ui', 'message_square', style.width || 16, theme),
+      AlertCircleIcon: getThemedIcon('ui', 'alert_circle', style.width || 16, theme),
+      AlertTriangle: getThemedIcon('ui', 'alert_triangle', style.width || 16, theme),
+      CheckCircle: getThemedIcon('ui', 'check_circle', style.width || 16, theme),
+      Clock: getThemedIcon('ui', 'clock', style.width || 16, theme),
+      XCircle: getThemedIcon('ui', 'x_circle', style.width || 16, theme),
+      Heart: getThemedIcon('ui', 'heart', style.width || 16, theme),
+      HelpCircle: getThemedIcon('ui', 'help_circle', style.width || 16, theme),
+      Users: getThemedIcon('ui', 'users', style.width || 16, theme),
+      Bed: getThemedIcon('ui', 'bed', style.width || 16, theme),
     };
     
     return iconMap[finalIconName] || iconMap.AlertCircleIcon;

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Shuffle, Check, X, Trophy, SkipForward } from 'lucide-react';
 import { useLang } from '../../contexts/LangContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 
 export default function AnagramGame({ questions, settings, onComplete }) {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -117,7 +119,7 @@ export default function AnagramGame({ questions, settings, onComplete }) {
     return (
       <div className="max-w-2xl mx-auto p-8 text-center">
         <div className="flex justify-center mb-6">
-          <Trophy size={64} className="text-yellow-500" />
+          {getThemedIcon('ui', 'trophy', 64, theme)}
         </div>
         <h1 className="text-3xl font-extrabold mb-6 text-slate-900 dark:text-white">
           {t('gameCompleted', 'All Words Unscrambled!')}
@@ -234,12 +236,12 @@ export default function AnagramGame({ questions, settings, onComplete }) {
           <div className="flex flex-col items-center gap-2">
             {feedback === 'correct' ? (
               <>
-                <Check size={40} className="mb-1" />
+                {getThemedIcon('ui', 'check_circle', 40, theme)}
                 <div className="text-2xl font-bold">{t('correct', 'Correct!')}</div>
               </>
             ) : (
               <>
-                <X size={40} className="mb-1" />
+                {getThemedIcon('ui', 'x_circle', 40, theme)}
                 <div className="text-xl font-bold">{t('wrong', 'Wrong!')}</div>
                 <div className="text-lg opacity-90">{t('answerWas', 'The answer was')}: {correctAnswer}</div>
               </>
@@ -255,7 +257,7 @@ export default function AnagramGame({ questions, settings, onComplete }) {
           disabled={feedback !== null}
           className="px-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Shuffle size={20} />
+          {getThemedIcon('ui', 'shuffle', 20, theme)}
           {t('shuffle', 'Shuffle')}
         </button>
         <button
@@ -266,7 +268,7 @@ export default function AnagramGame({ questions, settings, onComplete }) {
               : 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200 dark:shadow-none'
             }`}
         >
-          <SkipForward size={20} />
+          {getThemedIcon('ui', 'skip_forward', 20, theme)}
           {t('skip', 'Skip')} ({skips})
         </button>
         <button
@@ -277,7 +279,7 @@ export default function AnagramGame({ questions, settings, onComplete }) {
               : 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200 dark:shadow-none hover:scale-105'
             }`}
         >
-          <Check size={20} />
+          {getThemedIcon('ui', 'check_circle', 20, theme)}
           {t('submit', 'Submit Answer')}
         </button>
       </div>

@@ -564,7 +564,7 @@ const QuizResultsPage = () => {
     
     const newScore = parseFloat(overrideScore);
     if (isNaN(newScore) || newScore < 0) {
-      toast.error('Please enter a valid score');
+      toast.error(t('please_enter_valid_score') || 'Please enter a valid score');
       return;
     }
 
@@ -584,7 +584,7 @@ const QuizResultsPage = () => {
           : r
       ));
 
-      toast.success('Score overridden successfully');
+      toast.success(t('score_overridden_successfully') || 'Score overridden successfully');
       setEditingResult(null);
       setOverrideScore('');
     } catch (error) {
@@ -739,7 +739,7 @@ const QuizResultsPage = () => {
           }
         }
 
-        toast.success(`Approved ${count} result(s) successfully`);
+        toast.success(t('approved_results_successfully', { count }) || `Approved ${count} result(s) successfully`);
         setSelectedRows([]);
         setBulkActionModal({ open: false, action: null });
       }
@@ -834,7 +834,7 @@ const QuizResultsPage = () => {
   if (loading && quizResults.length === 0) {
     return (
       <Container>
-        <Loading message="Loading quiz results..." fancyVariant="dots" />
+        <Loading message={t('loading_quiz_results') || 'Loading quiz results...'} fancyVariant="dots" />
       </Container>
     );
   }
@@ -857,7 +857,7 @@ const QuizResultsPage = () => {
             { type: 'unique-students', value: stats.uniqueStudents, suffix: '' },
             { type: 'unique-quizzes', value: stats.totalQuizzes, suffix: '' }
           ].map((stat, idx) => {
-            const config = getCardConfig(stat.type, t);
+            const config = getCardConfig(stat.type, t, theme);
             const IconComponent = config.icon;
             const borderRadius = getShapeRadius(config.shape);
             
@@ -964,7 +964,7 @@ const QuizResultsPage = () => {
                 value={selectedStudent}
                 onChange={(e) => setSelectedStudent(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Students' },
+                  { value: 'all', label: t('all_students') || 'All Students' },
                   ...students.map(s => ({
                     value: s.id || s.docId,
                     label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`

@@ -2,16 +2,18 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '@ui';
-import { Calendar, Clock, Plus, Trash2, Save, AlertCircle, Filter, GraduationCap, BookOpen, Users } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ClassSchedulePage.module.css';
 
 const ClassSchedulePage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
   const { t } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -290,11 +292,11 @@ const ClassSchedulePage = () => {
               value={programFilter}
               onChange={(e) => setProgramFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Programs', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...programs.map(p => ({
                   value: p.docId || p.id,
                   label: p.name_en || p.name_ar || p.code || p.docId,
-                  icon: <GraduationCap size={16} color="var(--text-secondary, #374151)" />
+                  icon: getThemedIcon('ui', 'graduation_cap', 16, theme)
                 }))
               ]}
               fullWidth
@@ -305,13 +307,13 @@ const ClassSchedulePage = () => {
               value={subjectFilter}
               onChange={(e) => setSubjectFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Subjects', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...subjects
                   .filter(s => programFilter === 'all' || s.programId === programFilter)
                   .map(s => ({
                     value: s.docId || s.id,
                     label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
-                    icon: <BookOpen size={16} color="var(--text-secondary, #374151)" />
+                    icon: getThemedIcon('ui', 'book_open', 16, theme)
                   }))
               ]}
               fullWidth
@@ -322,7 +324,7 @@ const ClassSchedulePage = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Classes', icon: <Filter size={16} color="var(--text-secondary, #374151)" /> },
+                { value: 'all', label: 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) },
                 ...classes
                   .filter(c => {
                     if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
@@ -335,7 +337,7 @@ const ClassSchedulePage = () => {
                   .map(c => ({
                     value: c.id || c.docId,
                     label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`,
-                    icon: <Users size={16} color="var(--text-secondary, #374151)" />
+                    icon: getThemedIcon('ui', 'users', 16, theme)
                   }))
               ]}
               fullWidth
@@ -395,7 +397,7 @@ const ClassSchedulePage = () => {
         <div style={{ padding: '1.5rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
           {!selectedClass ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
-              <Calendar size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+              {getThemedIcon('ui', 'calendar', 48, theme)}
               <div>{t('select_class') || 'Select a class to configure schedule'}</div>
             </div>
           ) : (
@@ -471,7 +473,7 @@ const ClassSchedulePage = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div>
                   <label style={{ display: 'none' }}>
-                    <Clock size={16} style={{ display: 'inline', marginRight: 6 }} />
+                    {getThemedIcon('ui', 'clock', 16, theme)}
                     {t('start_time') || 'Start Time'}
                   </label>
                   <input
@@ -507,7 +509,7 @@ const ClassSchedulePage = () => {
                     style={{ flex: 1, padding: '0.5rem', border: '1px solid #f59e0b', borderRadius: 6, fontSize: 13 }}
                   />
                   <button onClick={addHoliday} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: 6, background: '#f59e0b', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Plus size={16} /> Add
+                    {getThemedIcon('ui', 'plus', 16, theme)} Add
                   </button>
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -515,7 +517,7 @@ const ClassSchedulePage = () => {
                     <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', background: 'white', border: '1px solid #f59e0b', borderRadius: 6 }}>
                       <span style={{ fontSize: 13 }}>{new Date(date).toLocaleDateString('en-GB')}</span>
                       <button onClick={() => removeHoliday(date)} style={{ padding: '0.25rem', border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>
-                        <Trash2 size={14} />
+                        {getThemedIcon('ui', 'trash2', 14, theme)}
                       </button>
                     </div>
                   ))}
@@ -534,7 +536,7 @@ const ClassSchedulePage = () => {
                     style={{ flex: 1, padding: '0.5rem', border: '1px solid #ef4444', borderRadius: 6, fontSize: 13 }}
                   />
                   <button onClick={addAbsent} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: 6, background: '#ef4444', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Plus size={16} /> Add
+                    {getThemedIcon('ui', 'plus', 16, theme)} Add
                   </button>
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -542,7 +544,7 @@ const ClassSchedulePage = () => {
                     <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', background: 'white', border: '1px solid #ef4444', borderRadius: 6 }}>
                       <span style={{ fontSize: 13 }}>{new Date(date).toLocaleDateString('en-GB')}</span>
                       <button onClick={() => removeAbsent(date)} style={{ padding: '0.25rem', border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}>
-                        <Trash2 size={14} />
+                        {getThemedIcon('ui', 'trash2', 14, theme)}
                       </button>
                     </div>
                   ))}
@@ -570,7 +572,7 @@ const ClassSchedulePage = () => {
                   gap: 8
                 }}
               >
-                <Save size={20} />
+                {getThemedIcon('ui', 'save', 20, theme)}
                 {saving ? 'Saving...' : 'Save Schedule'}
               </button>
             </>

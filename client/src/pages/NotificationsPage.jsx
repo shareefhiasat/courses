@@ -351,7 +351,7 @@ const NotificationsPage = () => {
       <Loading 
         variant="overlay" 
         fullscreen 
-        message="Loading notifications..." 
+        message={t('loading_notifications') || 'Loading notifications...'} 
         fancyVariant="dots" 
       />
     );
@@ -440,7 +440,7 @@ const NotificationsPage = () => {
             }} />
             <Input
               type="text"
-              placeholder="Search notifications..."
+              placeholder={t('search_notifications') || 'Search notifications...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -484,7 +484,7 @@ const NotificationsPage = () => {
               value={filterPenaltyType}
               onChange={(e) => setFilterPenaltyType(e.target.value)}
               options={[
-                { value: 'all', label: 'All Penalty Types' },
+                { value: 'all', label: t('all_penalty_types') || 'All Penalty Types' },
                 ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: pt.label_en }))
               ]}
               size="small"
@@ -513,7 +513,7 @@ const NotificationsPage = () => {
               value={filterAbsenceType}
               onChange={(e) => setFilterAbsenceType(e.target.value)}
               options={[
-                { value: 'all', label: 'All Absence Types' },
+                { value: 'all', label: t('all_absence_types') || 'All Absence Types' },
                 ...ABSENCE_TYPES.map(at => ({ value: at.id, label: at.label_en }))
               ]}
               size="small"
@@ -607,7 +607,7 @@ const NotificationsPage = () => {
             value={filterSemester}
             onChange={(e) => setFilterSemester(e.target.value)}
             options={[
-              { value: 'all', label: 'All Semesters' },
+              { value: 'all', label: t('all_semesters') || 'All Semesters' },
               ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
             ]}
             size="small"
@@ -725,7 +725,7 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleMarkAsRead(notification.id);
                         }}
-                        title="Mark as read"
+                        title={t('mark_as_read') || 'Mark as read'}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -752,7 +752,7 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleMarkAsUnread(notification.id);
                         }}
-                        title="Mark as unread"
+                        title={t('mark_as_unread') || 'Mark as unread'}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -780,7 +780,7 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleArchive(notification.id);
                         }}
-                        title="Archive"
+                        title={t('archive') || 'Archive'}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -807,7 +807,7 @@ const NotificationsPage = () => {
                         e.stopPropagation();
                         handleDelete(notification.id);
                       }}
-                      title="Delete"
+                      title={t('delete') || 'Delete'}
                       style={{
                         background: 'transparent',
                         border: 'none',

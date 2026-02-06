@@ -3,87 +3,7 @@
  * Provides consistent icons, colors, shapes, and localized labels across the application
  */
 
-import {
-  BookOpen,
-  Target,
-  Trophy,
-  CalendarCheck,
-  Zap,
-  AlertTriangle,
-  TrendingUp,
-  BarChart3,
-  Users,
-  Award,
-  CheckCircle2,
-  XCircle,
-  TrendingDown,
-  Activity,
-  FileText,
-  HeartPulse,
-  GraduationCap,
-  School,
-  BookMarked,
-  ClipboardList,
-  ListChecks,
-  LayoutDashboard,
-  Home,
-  MessageSquare,
-  Settings,
-  QrCode,
-  Calendar,
-  Book,
-  AlertCircle,
-  UserCheck,
-  UserX,
-  Clock,
-  Star,
-  FileCheck,
-  FileClock,
-  FileSearch,
-  FileBarChart2,
-  FileSpreadsheet,
-  FilePieChart,
-  FileDigit,
-  FileKey2,
-  FileQuestion,
-  FileWarning,
-  FileInput,
-  FileOutput,
-  FilePenLine,
-  FilePlus2,
-  FileMinus2,
-  FileX2,
-  FileCheck2,
-  FileHeart,
-  FileArchive,
-  FileCode2,
-  FileJson,
-  FileText as FileTextIcon,
-  FileVideo,
-  FileAudio,
-  FileImage,
-  FileSpreadsheet as FileSpreadsheetIcon,
-  FilePieChart as FilePieChartIcon,
-  FileBarChart2 as FileBarChart2Icon,
-  FileDigit as FileDigitIcon,
-  FileKey2 as FileKey2Icon,
-  FileQuestion as FileQuestionIcon,
-  FileWarning as FileWarningIcon,
-  FileInput as FileInputIcon,
-  FileOutput as FileOutputIcon,
-  FilePenLine as FilePenLineIcon,
-  FilePlus2 as FilePlus2Icon,
-  FileMinus2 as FileMinus2Icon,
-  FileX2 as FileX2Icon,
-  FileCheck2 as FileCheck2Icon,
-  FileHeart as FileHeartIcon,
-  FileArchive as FileArchiveIcon,
-  FileCode2 as FileCode2Icon,
-  FileJson as FileJsonIcon,
-  FileVideo as FileVideoIcon,
-  FileAudio as FileAudioIcon,
-  FileImage as FileImageIcon
-} from "lucide-react";
+import { getThemedIcon } from '@constants/iconTypes';
 
 /**
  * Get theme-aware color for icons
@@ -118,6 +38,66 @@ const getThemeAwareBgColor = (defaultColor, theme = 'light') => {
  * @param {string} theme - Current theme ('light' or 'dark')
  * @returns {Object} Card configuration with icon, bg, iconColor, shape, label
  */
+
+// Icon mapping using centralized getThemedIcon system
+const getThemedCardIcon = (type, theme = 'light') => {
+  const iconMap = {
+    // Academic
+    "enrolled-classes": getThemedIcon('ui', 'book_open', 24, theme),
+    programs: getThemedIcon('ui', 'graduation_cap', 24, theme),
+    subjects: getThemedIcon('ui', 'book', 24, theme),
+    classes: getThemedIcon('ui', 'school', 24, theme),
+    enrollments: getThemedIcon('ui', 'user_check', 24, theme),
+    users: getThemedIcon('ui', 'users', 24, theme),
+    submissions: getThemedIcon('ui', 'file_check', 24, theme),
+    quizzes: getThemedIcon('ui', 'list_checks', 24, theme),
+    announcements: getThemedIcon('ui', 'message_square', 24, theme),
+    resources: getThemedIcon('ui', 'file_text', 24, theme),
+
+    // Performance & Achievement
+    "average-grade": getThemedIcon('ui', 'award', 24, theme),
+    "average-score": getThemedIcon('ui', 'bar_chart_3', 24, theme),
+    "total-results": getThemedIcon('ui', 'file_bar_chart_2', 24, theme),
+    passed: getThemedIcon('ui', 'check_circle', 24, theme),
+    excellent: getThemedIcon('ui', 'award', 24, theme),
+    good: getThemedIcon('ui', 'trending_up', 24, theme),
+    award: getThemedIcon('ui', 'award', 24, theme),
+    trophy: getThemedIcon('ui', 'trophy', 24, theme),
+
+    // Tasks & Activities
+    "tasks-completed": getThemedIcon('ui', 'target', 24, theme),
+    tasks: getThemedIcon('ui', 'clipboard_list', 24, theme),
+    activities: getThemedIcon('ui', 'activity', 24, theme),
+    homework: getThemedIcon('ui', 'file_text', 24, theme),
+
+    // Attendance
+    attendance: getThemedIcon('ui', 'calendar_check', 24, theme),
+    "attendance-rate": getThemedIcon('ui', 'calendar_check', 24, theme),
+
+    // Participation
+    participation: getThemedIcon('ui', 'message_square', 24, theme),
+    "active-students": getThemedIcon('ui', 'user_check', 24, theme),
+
+    // Negative metrics
+    penalties: getThemedIcon('ui', 'alert_triangle', 24, theme),
+    penalty: getThemedIcon('ui', 'alert_triangle', 24, theme),
+    behaviors: getThemedIcon('ui', 'trending_down', 24, theme),
+    behavior: getThemedIcon('ui', 'trending_down', 24, theme),
+    failed: getThemedIcon('ui', 'x_circle', 24, theme),
+    "needs-improvement": getThemedIcon('ui', 'trending_down', 24, theme),
+
+    // Statistics
+    "pass-rate": getThemedIcon('ui', 'target', 24, theme),
+    "unique-students": getThemedIcon('ui', 'users', 24, theme),
+    "unique-quizzes": getThemedIcon('ui', 'target', 24, theme),
+
+    // Default
+    default: getThemedIcon('ui', 'bar_chart_3', 24, theme),
+  };
+
+  return iconMap[type] || iconMap.default;
+};
+
 export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
   const configMap = {
     // Academic
@@ -477,9 +457,10 @@ failed: {
 
   const config = configMap[type] || configMap["default"];
   
-  // Apply theme-aware colors
+  // Apply theme-aware colors and return themed icon
   return {
     ...config,
+    icon: getThemedCardIcon(type, theme),
     iconColor: getThemeAwareColor(config.iconColor, theme),
     bg: getThemeAwareBgColor(config.iconColor, theme)
   };
