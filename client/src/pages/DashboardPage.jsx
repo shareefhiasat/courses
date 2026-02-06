@@ -518,16 +518,16 @@ const DashboardPage = () => {
     return colorMap[semanticColor] || colorMap.default;
   };
 
-  // Helper function to get icon component by name
-  const getIconComponent = (iconName) => {
-    const iconMap = {
-      'User': getThemedIcon('ui', 'user', 16, theme),
-      'BookOpen': getThemedIcon('ui', 'book_open', 16, theme),
-      'Users': getThemedIcon('ui', 'users', 16, theme),
-      'Shield': getThemedIcon('ui', 'shield', 16, theme),
-      'Crown': getThemedIcon('ui', 'crown', 16, theme)
+  // Helper function to get role icon using getThemedIcon
+  const getRoleIconThemed = (role) => {
+    const roleIconMap = {
+      [USER_ROLES.STUDENT]: getThemedIcon('ui', 'user', 16, theme),
+      [USER_ROLES.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 16, theme),
+      [USER_ROLES.HR]: getThemedIcon('ui', 'users', 16, theme),
+      [USER_ROLES.ADMIN]: getThemedIcon('ui', 'shield', 16, theme),
+      [USER_ROLES.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 16, theme)
     };
-    return iconMap[iconName] || getThemedIcon('ui', 'user', 16, theme);
+    return roleIconMap[role] || getThemedIcon('ui', 'user', 16, theme);
   };
 
   // Data states
@@ -4226,7 +4226,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     options={[
                       { value: USER_ROLES.STUDENT, label: (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.STUDENT)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.STUDENT) } })}
+                          <span style={{ color: getRoleIconColor(USER_ROLES.STUDENT) }}>
+                            {getRoleIconThemed(USER_ROLES.STUDENT)}
+                          </span>
                           {t('student') || 'Student'}
                         </span>
                       )}
@@ -4913,31 +4915,41 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   options={[
                     { value: USER_ROLES.STUDENT, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.STUDENT)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.STUDENT) } })}
+                        <span style={{ color: getRoleIconColor(USER_ROLES.STUDENT) }}>
+                          {getRoleIconThemed(USER_ROLES.STUDENT)}
+                        </span>
                         {t('student') || 'Student'}
                       </span>
                     )},
                     { value: USER_ROLES.INSTRUCTOR, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.INSTRUCTOR)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.INSTRUCTOR) } })}
+                        <span style={{ color: getRoleIconColor(USER_ROLES.INSTRUCTOR) }}>
+                          {getRoleIconThemed(USER_ROLES.INSTRUCTOR)}
+                        </span>
                         {t('instructor') || 'Instructor'}
                       </span>
                     )},
                     { value: USER_ROLES.HR, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.HR)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.HR) } })}
+                        <span style={{ color: getRoleIconColor(USER_ROLES.HR) }}>
+                          {getRoleIconThemed(USER_ROLES.HR)}
+                        </span>
                         {t('hr') || 'HR'}
                       </span>
                     )},
                     { value: USER_ROLES.ADMIN, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.ADMIN)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.ADMIN) } })}
+                        <span style={{ color: getRoleIconColor(USER_ROLES.ADMIN) }}>
+                          {getRoleIconThemed(USER_ROLES.ADMIN)}
+                        </span>
                         {t('admin') || 'Admin'}
                       </span>
                     )},
                     { value: USER_ROLES.SUPER_ADMIN, label: (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {React.createElement(getIconComponent(getRoleIcon(USER_ROLES.SUPER_ADMIN)), { size: 16, style: { color: getRoleIconColor(USER_ROLES.SUPER_ADMIN) } })}
+                        <span style={{ color: getRoleIconColor(USER_ROLES.SUPER_ADMIN) }}>
+                          {getRoleIconThemed(USER_ROLES.SUPER_ADMIN)}
+                        </span>
                         {t('super_admin') || 'Super Admin'}
                       </span>
                     )},

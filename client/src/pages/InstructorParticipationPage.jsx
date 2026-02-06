@@ -5,12 +5,15 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
-import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
+import { getClassById } from '@firebaseServices/classService';
 import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDateOnly } from '@utils/timezone';
+import { db } from '@firebaseServices/config';
+import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationTypeById } from '@constants/participationTypes';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { 
@@ -63,9 +66,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
     }
     
     try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      const userResult = await getUserById(userId);
+      if (userResult.success) {
+        const userData = userResult.data;
         setUserCache(prev => ({ ...prev, [userId]: userData }));
         return userData;
       }
@@ -98,18 +101,18 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
     }
     (async () => {
       try {
-        const enrollmentsSnap = await getDocs(query(
-          collection(db, 'enrollments'),
-          where('classId', '==', formData.classId)
-        ));
-        const enrollmentIds = enrollmentsSnap.docs.map(d => d.data().userId).filter(Boolean);
+        const enrollmentsResult = await getEnrollmentsByClass(formData.classId);
+        const enrollmentIds = enrollmentsResult.success 
+          ? enrollmentsResult.data.map(e => e.userId).filter(Boolean)
+          : [];
         if (enrollmentIds.length === 0) {
           setStudents([]);
           return;
         }
         const studentsData = await Promise.all(
           enrollmentIds.map(async (studentId) => {
-            const studentDoc = await getDoc(doc(db, 'users', studentId));
+            const userResult = await getUserById(studentId);
+            const studentDoc = userResult.success ? { exists: true, data: userResult.data } : { exists: false };
             if (studentDoc.exists()) {
               const data = studentDoc.data();
               return { id: studentId, ...data, displayName: data.displayName || data.email };
@@ -163,9 +166,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           
           if (enrichedParticipation.studentId) {
             try {
-              const studentDoc = await getDoc(doc(db, 'users', enrichedParticipation.studentId));
-              if (studentDoc.exists()) {
-                const studentData = studentDoc.data();
+              const userResult = await getUserById(enrichedParticipation.studentId);
+              if (userResult.success) {
+                const studentData = userResult.data;
                 // console.log('InstructorParticipationPage: Student data from Firebase:', studentData);
                 // console.log('InstructorParticipationPage: displayName:', studentData.displayName, 'email:', studentData.email);
                 enrichedParticipation.studentName = studentData.displayName || studentData.email || 'N/A';
@@ -180,9 +183,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           
           if (enrichedParticipation.classId) {
             try {
-              const classDoc = await getDoc(doc(db, 'classes', enrichedParticipation.classId));
-              if (classDoc.exists()) {
-                const classData = classDoc.data();
+              const classResult = await getClassById(enrichedParticipation.classId);
+              if (classResult.success) {
+                const classData = classResult.data;
                 enrichedParticipation.className = classData.name || classData.code || 'N/A';
                 enrichedParticipation.classTerm = classData.term;
                 // If subjectId is missing, try to get it from class
@@ -201,9 +204,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           const subjectIdToLoad = enrichedParticipation.subjectId;
           if (subjectIdToLoad) {
             try {
-              const subjectDoc = await getDoc(doc(db, 'subjects', subjectIdToLoad));
-              if (subjectDoc.exists()) {
-                const subjectData = subjectDoc.data();
+              const subjectResult = await getSubject(subjectIdToLoad);
+              if (subjectResult.success) {
+                const subjectData = subjectResult.data;
                 enrichedParticipation.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
                 } else {
                 }
@@ -220,9 +223,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         try {
           if (enrichedParticipation.createdBy) {
             try {
-              const instructorDoc = await getDoc(doc(db, 'users', enrichedParticipation.createdBy));
-              if (instructorDoc.exists()) {
-                const instructorData = instructorDoc.data();
+              const instructorResult = await getUserById(enrichedParticipation.createdBy);
+              if (instructorResult.success) {
+                const instructorData = instructorResult.data;
                 enrichedParticipation.instructorName = instructorData.displayName || instructorData.email;
               }
             } catch (err) {
@@ -294,8 +297,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
 
     setSaving(true);
     try {
-      const classDoc = await getDoc(doc(db, 'classes', formData.classId));
-      const classData = classDoc.exists() ? classDoc.data() : {};
+      const classResult = await getClassById(formData.classId);
+      const classData = classResult.success ? classResult.data : {};
       const subjectId = formData.subjectId || classData.subjectId;
       
       const participationData = {
@@ -485,8 +488,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
               logger.debug('User Debug - Found realName from cache:', cachedUser.realName);
             } else if (cachedUser?.displayName) {
               studentName = cachedUser.displayName;
-              console.log('User Debug - Found displayName from cache:', cachedUser.displayName);
-            }
+                          }
           } else if (studentId) {
             // Fetch user data asynchronously (non-blocking)
             fetchUser(studentId);
@@ -615,8 +617,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             color: value > 0 ? '#22c55e' : value < 0 ? '#ef4444' : '#6b7280'
           }}>
             {value > 0 && '+'}{value}
-            {value > 0 && <TrendingUp size={14} color="#22c55e" />}
-            {value < 0 && <TrendingDown size={14} color="#ef4444" />}
+            {value > 0 && getThemedIcon('ui', 'trending_up', 14, theme)}
+            {value < 0 && getThemedIcon('ui', 'trending_down', 14, theme)}
           </div>
         );
       }
@@ -668,7 +670,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             row = foundRow;
           }
         }
-        
+
         logger.debug('Date Debug - rowId:', rowId);
         logger.debug('Date Debug - Row data:', row);
         logger.debug('Date Debug - createdAt:', row.createdAt);
@@ -699,8 +701,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           logger.debug('Date Debug - Using new Date():', date);
         }
 
-        console.log('Date Debug - Final date:', date, 'isValid:', !isNaN(date.getTime()));
-
+        
         if (isNaN(date.getTime())) {
           logger.debug('Date Debug - Invalid date, returning "Invalid Date"');
           logger.debug('=== END DATE DEBUG ===');
@@ -764,7 +765,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> Editing Participation: {getParticipationLabel(editingParticipation.type, lang) || editingParticipation.type}
+          {getThemedIcon('ui', 'edit', 16, theme)} Editing Participation: {getParticipationLabel(editingParticipation.type, lang) || editingParticipation.type}
         </div>
       )}
 
@@ -807,13 +808,14 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                   const status = getUserStatus(u, userEnrollments);
                   const statusSummary = getUserStatusSummary(u, userEnrollments);
                   const iconProps = getStatusIconProps(status);
-                  const IconComponent = {
-                    'UserCheck': UserCheck,
-                    'UserX': UserX,
-                    'UserMinus': UserMinus,
-                    'AlertCircle': AlertTriangle,
-                    'Info': Info
-                  }[iconProps.name] || User;
+                  const iconMap = {
+                    'UserCheck': 'user_check',
+                    'UserX': 'user_x',
+                    'UserMinus': 'user_minus',
+                    'AlertCircle': 'alert_circle',
+                    'Info': 'info'
+                  };
+                  const iconName = iconMap[iconProps.name] || 'user';
                   
                   const isDisabled = status === USER_STATUS.DELETED;
                   const statusLabel = statusSummary?.label || status;
@@ -828,7 +830,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                         gap: 8,
                         opacity: isDisabled ? 0.7 : 1
                       }}>
-                        <IconComponent size={16} color={iconProps.color} />
+                        {getThemedIcon('user_status', iconName, 16, theme)}
                         <span style={{ 
                           textDecoration: isDisabled ? 'line-through' : 'none',
                           flex: 1
@@ -862,34 +864,34 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                 let icon;
                 switch (pt.icon) {
                   case 'MessageSquare':
-                    icon = <MessageSquare size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'message_square', 16, theme);
                     break;
                   case 'Award':
-                    icon = <Award size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'award', 16, theme);
                     break;
                   case 'FileText':
-                    icon = <FileText size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'file_text', 16, theme);
                     break;
                   case 'Users':
-                    icon = <Users size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'users', 16, theme);
                     break;
                   case 'HelpCircle':
-                    icon = <HelpCircle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'help_circle', 16, theme);
                     break;
                   case 'Star':
-                    icon = <Star size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'star', 16, theme);
                     break;
                   case 'ThumbsUp':
-                    icon = <ThumbsUp size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'thumbs_up', 16, theme);
                     break;
                   case 'Minus':
-                    icon = <Minus size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'minus', 16, theme);
                     break;
                   case 'X':
-                    icon = <X size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'x', 16, theme);
                     break;
                   default:
-                    icon = <Star size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'star', 16, theme);
                 }
                 return { value: pt.id, label: getParticipationLabel(pt.id, lang), icon };
               })
@@ -1004,34 +1006,34 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                 let icon;
                 switch (pt.icon) {
                   case 'MessageSquare':
-                    icon = <MessageSquare size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'message_square', 16, theme);
                     break;
                   case 'Award':
-                    icon = <Award size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'award', 16, theme);
                     break;
                   case 'FileText':
-                    icon = <FileText size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'file_text', 16, theme);
                     break;
                   case 'Users':
-                    icon = <Users size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'users', 16, theme);
                     break;
                   case 'HelpCircle':
-                    icon = <HelpCircle size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'help_circle', 16, theme);
                     break;
                   case 'Star':
-                    icon = <Star size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'star', 16, theme);
                     break;
                   case 'ThumbsUp':
-                    icon = <ThumbsUp size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'thumbs_up', 16, theme);
                     break;
                   case 'Minus':
-                    icon = <Minus size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'minus', 16, theme);
                     break;
                   case 'X':
-                    icon = <X size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'x', 16, theme);
                     break;
                   default:
-                    icon = <Star size={16} color="#374151" />;
+                    icon = getThemedIcon('ui', 'star', 16, theme);
                 }
                 return { value: pt.id, label: getParticipationLabel(pt.id, lang), icon };
               })
@@ -1055,7 +1057,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <Target size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'target', 16, theme)}
           {participations.length} Total
         </div>
         <div style={{ 
@@ -1070,7 +1072,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <Users size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'users', 16, theme)}
           {new Set(participations.map(p => p.studentId)).size} Students
         </div>
         <div style={{ 
@@ -1085,7 +1087,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           fontWeight: '500',
           color: '#166534'
         }}>
-          <TrendingUp size={16} color="#166534" />
+          {getThemedIcon('ui', 'trending_up', 16, theme)}
           {participations.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} Positive
         </div>
         <div style={{ 
@@ -1100,7 +1102,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           fontWeight: '500',
           color: '#991b1b'
         }}>
-          <TrendingDown size={16} color="#991b1b" />
+          {getThemedIcon('ui', 'trending_down', 16, theme)}
           {participations.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} Negative
         </div>
       </div>

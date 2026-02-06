@@ -14,7 +14,7 @@ import {
   // Communication Icons
   MessageSquare, Bell, BellOff, Send, Phone,
   // Navigation Icons
-  Home, Search, Filter, ChevronDown, Link, Video, List,
+  Home, Search, Filter, ChevronDown, Link, Video, List, ExternalLink,
   // Time Icons
   Clock, Calendar,
   // UI Icons
@@ -269,7 +269,19 @@ export const ICON_TYPES = {
     // Missing icons that were causing errors
     layout_dashboard: <LayoutDashboard size={16} />,
     gamepad2: <Gamepad2 size={16} />,
-    timer: <Clock size={16} />
+    timer: <Clock size={16} />,
+    // Additional missing icons
+    log_out: <LogOut size={16} />,
+    languages: <Globe size={16} />,
+    alert_circle: <AlertCircle size={16} />,
+    chevron_down: <ChevronDown size={16} />,
+    x: <X size={16} />,
+    // Open tab icon for sticky mode
+    open_tab: <LayoutGrid size={16} />,
+    // Open new tab icon
+    open_new_tab: <ExternalLink size={16} />,
+    // External link icon
+    external_link: <ExternalLink size={16} />
   }
 };
 

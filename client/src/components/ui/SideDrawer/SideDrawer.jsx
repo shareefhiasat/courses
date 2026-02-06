@@ -8,7 +8,6 @@ import { signOutUser } from '@firebaseServices/authService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';
-import { Timer as TimerIcon } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
 
@@ -568,8 +567,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   cursor: 'pointer'
                 }}
               >
-                {lang==='ar' ? <ChevronRight size={14} /> : <ChevronDown size={0} />}
-                {lang==='ar' ? null : <ChevronRight size={14} />}
+                {lang==='ar' ? getThemedIcon('ui', 'chevron_right', 14, theme) : getThemedIcon('ui', 'chevron_down', 0, theme)}
+                {lang==='ar' ? null : getThemedIcon('ui', 'chevron_right', 14, theme)}
               </button>
             </div>
           )}
@@ -631,7 +630,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   cursor: 'pointer', zIndex: 1003
                 }}
               >
-                {lang==='ar' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                {lang==='ar' ? getThemedIcon('ui', 'chevron_left', 16, theme) : getThemedIcon('ui', 'chevron_right', 16, theme)}
               </button>
             )}
             {/* Resizer */}
@@ -658,15 +657,15 @@ const SideDrawer = ({ isOpen, onClose }) => {
 
             {/* Header */}
             <div style={{
-              padding: '1.25rem',
+              padding: '0.75rem',
               borderBottom: '1px solid rgba(255,255,255,0.08)',
               background: 'rgba(0,0,0,0.15)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
                   <div style={{
-                    width: '42px',
-                    height: '42px',
+                    width: '32px',
+                    height: '32px',
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
                     display: 'flex',
@@ -709,7 +708,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {theme==='light' ? <Moon size={14} /> : <Sun size={14} />}
+                        {theme==='light' ? getThemedIcon('ui', 'moon', 14, theme) : getThemedIcon('ui', 'sun', 14, theme)}
                       </button>
                       <button
                         onClick={() => {
@@ -731,7 +730,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                        {collapsed ? getThemedIcon('ui', 'chevron_right', 14, theme) : getThemedIcon('ui', 'chevron_left', 14, theme)}
                       </button>
                       <button
                         onClick={() => setAutoHide(v=>!v)}
@@ -748,7 +747,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        <Theater size={14} />
+                        {getThemedIcon('ui', 'help_circle', 14, theme)}
                       </button>
                       <button
                         onClick={() => setStickyMode(v => !v)}
@@ -765,7 +764,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {stickyMode ? <PinOff size={14} /> : <Pin size={14} />}
+                        {stickyMode ? getThemedIcon('ui', 'pin', 14, theme) : getThemedIcon('ui', 'open_tab', 14, theme)}
                       </button>
                       <button
                         onClick={onClose}
@@ -811,7 +810,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       onMouseEnter={onQuickActionEnter}
                       onMouseLeave={onQuickActionLeave}
                     >
-                      <TimerIcon size={18} />
+                      {getThemedIcon('ui', 'timer', 18, theme)}
                     </button>
                   )}
                   {pinnedLinks.map((p) => {
@@ -851,7 +850,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   color: 'white'
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: '0.5rem', display:'flex', alignItems:'center', gap:6 }}>
-                    <Theater size={16} /> {t('impersonating') || 'Impersonating'}
+                    {getThemedIcon('ui', 'help_circle', 16, theme)} {t('impersonating') || 'Impersonating'}
                   </div>
                   <button
                     onClick={handleStopImpersonation}
@@ -907,7 +906,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       }}
                     >
                       <span>{group.label}</span>
-                      {expandedSections[groupKey] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      {expandedSections[groupKey] ? getThemedIcon('ui', 'chevron_down', 14, theme) : getThemedIcon('ui', 'chevron_right', 14, theme)}
                     </button>
                   )}
                   
@@ -951,10 +950,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       ) : (
                         <Link
                           to={link.hash ? `${link.path}${link.hash}` : link.path}
-                          onClick={(e) => { 
-                            e.preventDefault();
-                            confirmNavigation(link.path, link.hash, link.label);
-                          }}
+                          onClick={onClose}
                           title={link.label}
                           style={{
                           display: 'flex',
@@ -1023,7 +1019,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        <ExternalLink size={14} />
+                        {getThemedIcon('ui', 'external_link', 14, theme)}
                       </button>)}
                       {!collapsed && density === 'compact' && (() => {
                         const pinned = link.key==='timerControl' ? pinTimer : isPinned(link.path);
@@ -1051,7 +1047,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                               cursor: 'pointer'
                             }}
                           >
-                            {pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                            {pinned ? getThemedIcon('ui', 'pin_off', 14, theme) : getThemedIcon('ui', 'pin', 14, theme)}
                           </button>
                         );
                       })()}
@@ -1087,7 +1083,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}><Languages size={16} /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>{getThemedIcon('ui', 'languages', 16, theme)}</span>
                 {!collapsed && <span>{lang === 'en' ? 'العربية' : 'English'}</span>}
               </button>
 
