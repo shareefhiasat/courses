@@ -3,7 +3,7 @@
  * Provides consistent icons, colors, shapes, and localized labels across the application
  */
 
-import { getThemedIcon } from '@constants/iconTypes';
+import {getThemedIcon} from '@constants/iconTypes';
 
 /**
  * Get theme-aware color for icons
@@ -14,7 +14,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 const getThemeAwareColor = (defaultColor, theme = 'light') => {
   // All icons should be the same color as the navbar - unified purple
   const navbarPurple = '#8b5cf6'; // Same purple as navbar
-  
+
   return navbarPurple;
 };
 
@@ -26,8 +26,9 @@ const getThemeAwareColor = (defaultColor, theme = 'light') => {
  */
 const getThemeAwareBgColor = (defaultColor, theme = 'light') => {
   // All card backgrounds should use the same purple as the navbar
-  const navbarPurpleBg = theme === 'dark' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)';
-  
+  const navbarPurpleBg = theme === 'dark' ? 'rgba(139, 92, 246, 0.15)'
+      : 'rgba(139, 92, 246, 0.1)';
+
   return navbarPurpleBg;
 };
 
@@ -99,372 +100,321 @@ const getThemedCardIcon = (type, theme = 'light') => {
 };
 
 export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
-  const configMap = {
-    // Academic
-    "enrolled-classes": {
-      icon: BookOpen,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("enrolled_classes") || "Enrolled Classes",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    programs: {
-      icon: GraduationCap,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("programs") || "Programs",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    subjects: {
-      icon: Book,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("subjects") || "Subjects",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    classes: {
-      icon: School,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("classes") || "Classes",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    enrollments: {
-      icon: UserCheck,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("enrollments") || "Enrollments",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    users: {
-      icon: Users,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("users") || "Users",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    submissions: {
-      icon: FileCheck,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("submissions") || "Submissions",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    quizzes: {
-      icon: ListChecks,
-      bg: "rgba(236, 72, 153, 0.1)",
-      iconColor: "#ec4899",
-      shape: "rounded",
-      label: t("quizzes") || "Quizzes",
-      gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
-    },
-    announcements: {
-      icon: MessageSquare,
-      bg: "rgba(107, 114, 128, 0.1)",
-      iconColor: "#6b7280",
-      shape: "rounded",
-      label: t("announcements") || "Announcements",
-      gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
-    },
-    resources: {
-      icon: FileText,
-      bg: "rgba(107, 114, 128, 0.1)",
-      iconColor: "#6b7280",
-      shape: "rounded",
-      label: t("resources") || "Resources",
-      gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
-    },
+      const configMap = {
+        // Academic
+        "enrolled-classes": {
+          icon: getThemedIcon('ui', 'book_open', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("enrolled_classes") || "Enrolled Classes",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        programs: {
+          icon: getThemedIcon('ui', 'graduation_cap', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("programs") || "Programs",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        subjects: {
+          icon: getThemedIcon('ui', 'book', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("subjects") || "Subjects",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        classes: {
+          icon: getThemedIcon('ui', 'school', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("classes") || "Classes",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        enrollments: {
+          icon: getThemedIcon('ui', 'user_check', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("enrollments") || "Enrollments",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        users: {
+          icon: getThemedIcon('ui', 'users', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("users") || "Users",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        submissions: {
+          icon: getThemedIcon('ui', 'file_check', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("submissions") || "Submissions",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        quizzes: {
+          icon: getThemedIcon('ui', 'list_checks', 24, theme),
+          bg: "rgba(236, 72, 153, 0.1)",
+          iconColor: "#ec4899",
+          shape: "rounded",
+          label: t("quizzes") || "Quizzes",
+          gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+        },
+        announcements: {
+          icon: getThemedIcon('ui', 'message_square', 24, theme),
+          bg: "rgba(107, 114, 128, 0.1)",
+          iconColor: "#6b7280",
+          shape: "rounded",
+          label: t("announcements") || "Announcements",
+          gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
+        },
+        resources: {
+          icon: getThemedIcon('ui', 'file_text', 24, theme),
+          bg: "rgba(107, 114, 128, 0.1)",
+          iconColor: "#6b7280",
+          shape: "rounded",
+          label: t("resources") || "Resources",
+          gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
+        },
 
-    // Performance & Achievement
-    "average-grade": {
-      icon: Award,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("average_grade") || "Average Grade",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    "average-score": {
-      icon: BarChart3,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("average_score") || "Average Score",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    "total-results": {
-      icon: FileBarChart2,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("total_results") || "Total Results",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    passed: {
-      icon: CheckCircle2,
-      bg: "rgba(16, 185, 129, 0.1)",
-      iconColor: "#10b981",
-      shape: "rounded",
-      label: t("passed") || "Passed",
-      gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-    },
-    excellent: {
-      icon: Award,
-      bg: "rgba(16, 185, 129, 0.1)",
-      iconColor: "#10b981",
-      shape: "rounded",
-      label: t("excellent") || "Excellent (90%+)",
-      gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-    },
-    good: {
-      icon: TrendingUp,
-      bg: "rgba(245, 158, 11, 0.1)",
-      iconColor: "#f59e0b",
-      shape: "rounded",
-      label: t("good") || "Good (70-89%)",
-      gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-    },
-    award: {
-      icon: Award,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("award") || "Award",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
-    trophy: {
-      icon: Trophy,
-      bg: "rgba(128, 0, 32, 0.1)",
-      iconColor: "#800020",
-      shape: "rounded",
-      label: t("trophy") || "Trophy",
-      gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
-    },
+        // Performance & Achievement
+        "average-grade": {
+          icon: getThemedIcon('ui', 'award', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("average_grade") || "Average Grade",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        "average-score": {
+          icon: getThemedIcon('ui', 'bar_chart_3', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("average_score") || "Average Score",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        "total-results": {
+          icon: getThemedIcon('ui', 'file_bar_chart_2', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("total_results") || "Total Results",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        passed: {
+          icon: getThemedIcon('ui', 'check_circle', 24, theme),
+          bg: "rgba(16, 185, 129, 0.1)",
+          iconColor: "#10b981",
+          shape: "rounded",
+          label: t("passed") || "Passed",
+          gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        },
+        excellent: {
+          icon: getThemedIcon('ui', 'award', 24, theme),
+          bg: "rgba(16, 185, 129, 0.1)",
+          iconColor: "#10b981",
+          shape: "rounded",
+          label: t("excellent") || "Excellent (90%+)",
+          gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        },
+        good: {
+          icon: getThemedIcon('ui', 'trending_up', 24, theme),
+          bg: "rgba(245, 158, 11, 0.1)",
+          iconColor: "#f59e0b",
+          shape: "rounded",
+          label: t("good") || "Good (70-89%)",
+          gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        },
+        award: {
+          icon: getThemedIcon('ui', 'award', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("award") || "Award",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
+        trophy: {
+          icon: getThemedIcon('ui', 'trophy', 24, theme),
+          bg: "rgba(128, 0, 32, 0.1)",
+          iconColor: "#800020",
+          shape: "rounded",
+          label: t("trophy") || "Trophy",
+          gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
+        },
 
-    // Tasks & Activities
-    "tasks-completed": {
-      icon: Target,
-      bg: "rgba(236, 72, 153, 0.1)",
-      iconColor: "#ec4899",
-      shape: "rounded",
-      label: t("tasks_completed") || "Tasks Completed",
-      gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
-    },
-    tasks: {
-      icon: ClipboardList,
-      bg: "rgba(236, 72, 153, 0.1)",
-      iconColor: "#ec4899",
-      shape: "rounded",
-      label: t("tasks") || "Tasks",
-      gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
-    },
-    activities: {
-      icon: Activity,
-      bg: "rgba(236, 72, 153, 0.1)",
-      iconColor: "#ec4899",
-      shape: "rounded",
-      label: t("activities") || "Activities",
-      gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
-    },
-    homework: {
-      icon: FileText,
-      bg: "rgba(236, 72, 153, 0.1)",
-      iconColor: "#ec4899",
-      shape: "rounded",
-      label: t("homework") || "Homework",
-      gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
-    },
-    quizzes: {
-      icon: ListChecks,
-      bg: "rgba(236, 72, 153, 0.1)",
-      iconColor: "#ec4899",
-      shape: "rounded",
-      label: t("quizzes") || "Quizzes",
-      gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
-    },
-
-    // Attendance
-    attendance: {
-      icon: CalendarCheck,
-      bg: "rgba(245, 158, 11, 0.1)",
-      iconColor: "#f59e0b",
-      shape: "rounded",
-      label: t("attendance") || "Attendance",
-      gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-    },
-    "attendance-rate": {
-      icon: CalendarCheck,
-      bg: "rgba(245, 158, 11, 0.1)",
-      iconColor: "#f59e0b",
-      shape: "rounded",
-
+        // Tasks & Activities
+        "tasks-completed": {
+          icon: getThemedIcon('ui', 'target', 24, theme),
+          bg: "rgba(236, 72, 153, 0.1)",
+          iconColor: "#ec4899",
+          shape: "rounded",
+          label: t("tasks_completed") || "Tasks Completed",
+          gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+        },
+        tasks: {
+          icon: getThemedIcon('ui', 'clipboard_list', 24, theme),
+          bg: "rgba(236, 72, 153, 0.1)",
+          iconColor: "#ec4899",
+          shape: "rounded",
+          label: t("tasks") || "Tasks",
+          gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+        },
+        activities: {
+          icon: getThemedIcon('ui', 'activity', 24, theme),
+          bg: "rgba(236, 72, 153, 0.1)",
+          iconColor: "#ec4899",
+          shape: "rounded",
+          label: t("activities") || "Activities",
+          gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+        },
+        homework: {
+          icon: getThemedIcon('ui', 'file_text', 24, theme),
+          bg: "rgba(236, 72, 153, 0.1)",
+          iconColor: "#ec4899",
+          shape: "rounded",
+          label: t("homework") || "Homework",
+          gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+        },
+        // Attendance
+        attendance: {
+          icon: getThemedIcon('ui', 'calendar_check', 24, theme),
+          bg: "rgba(245, 158, 11, 0.1)",
+          iconColor: "#f59e0b",
+          shape: "rounded",
+          label: t("attendance") || "Attendance",
+          gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        },
+        "attendance-rate": {
+          icon: getThemedIcon('ui', 'calendar_check', 24, theme),
+          bg: "rgba(245, 158, 11, 0.1)",
+          iconColor: "#f59e0b",
+          shape: "rounded",
+          label: t("attendance") || "Attendance",
+          gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        },
 // Participation
-participation: {
-  icon: MessageSquare,
-  bg: "rgba(99, 102, 241, 0.1)",
-  iconColor: "#6366f1",
-  shape: "rounded",
-  label: t("participation") || "Participation",
-  gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-},
-"active-students": {
-  icon: UserCheck,
-  bg: "rgba(99, 102, 241, 0.1)",
-  iconColor: "#6366f1",
-  shape: "rounded",
-  label: t("active_students") || "Active Students",
-  gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-},
+        participation: {
+          icon: getThemedIcon('ui', 'message_square', 24, theme),
+          bg: "rgba(99, 102, 241, 0.1)",
+          iconColor: "#6366f1",
+          shape: "rounded",
+          label: t("participation") || "Participation",
+          gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+        },
+        "active-students": {
+          icon: getThemedIcon('ui', 'user_check', 24, theme),
+          bg: "rgba(99, 102, 241, 0.1)",
+          iconColor: "#6366f1",
+          shape: "rounded",
+          label: t("active_students") || "Active Students",
+          gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+        },
 
 // Negative metrics
-penalties: {
-  icon: AlertTriangle,
-  bg: "rgba(239, 68, 68, 0.1)",
-  iconColor: "#ef4444",
-  shape: "rounded",
-  label: t("penalties") || "Penalties",
-  gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-},
-penalty: {
-  icon: AlertTriangle,
-  bg: "rgba(239, 68, 68, 0.1)",
-  iconColor: "#ef4444",
-  shape: "rounded",
-  label: t("penalty") || "Penalty",
-  gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-},
-behaviors: {
-  icon: TrendingDown,
-  bg: "rgba(245, 158, 11, 0.1)",
-  iconColor: "#f59e0b",
-  shape: "rounded",
-  label: t("behaviors") || "Behaviors",
-  gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-},
-behavior: {
-  icon: TrendingDown,
-  bg: "rgba(245, 158, 11, 0.1)",
-  iconColor: "#f59e0b",
-  shape: "rounded",
-  label: t("behavior") || "Behavior",
-  gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-},
-failed: {
-  icon: XCircle,
-  bg: "rgba(239, 68, 68, 0.1)",
-  iconColor: "#ef4444",
-  shape: "rounded",
-  label: t("failed") || "Failed",
-  gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-},
-"needs-improvement": {
-  icon: TrendingDown,
-  bg: "rgba(239, 68, 68, 0.1)",
-  iconColor: "#ef4444",
-  shape: "rounded",
-  label: t("needs_improvement") || "Needs Improvement",
-  gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-},
-      iconColor: "#ef4444",
-      shape: "rounded",
-      label: t("penalties") || "Penalties",
-      gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-    },
-    penalty: {
-      icon: AlertTriangle,
-      bg: "rgba(239, 68, 68, 0.1)",
-      iconColor: "#ef4444",
-      shape: "rounded",
-      label: t("penalty") || "Penalty",
-      gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-    },
-    behaviors: {
-      icon: TrendingDown,
-      bg: "rgba(245, 158, 11, 0.1)",
-      iconColor: "#f59e0b",
-      shape: "rounded",
-      label: t("behaviors") || "Behaviors",
-      gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-    },
-    behavior: {
-      icon: TrendingDown,
-      bg: "rgba(245, 158, 11, 0.1)",
-      iconColor: "#f59e0b",
-      shape: "rounded",
-      label: t("behavior") || "Behavior",
-      gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-    },
-    failed: {
-      icon: XCircle,
-      bg: "rgba(239, 68, 68, 0.1)",
-      iconColor: "#ef4444",
-      shape: "rounded",
-      label: t("failed") || "Failed",
-      gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-    },
-    "needs-improvement": {
-      icon: TrendingDown,
-      bg: "rgba(239, 68, 68, 0.1)",
-      iconColor: "#ef4444",
-      shape: "rounded",
-      label: t("needs_improvement") || "Needs Improvement",
-      gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-    },
+        penalties: {
+          icon: getThemedIcon('ui', 'alert_triangle', 24, theme),
+          bg: "rgba(239, 68, 68, 0.1)",
+          iconColor: "#ef4444",
+          shape: "rounded",
+          label: t("penalties") || "Penalties",
+          gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        },
+        behaviors: {
+          icon: getThemedIcon('ui', 'trending_down', 24, theme),
+          bg: "rgba(245, 158, 11, 0.1)",
+          iconColor: "#f59e0b",
+          shape: "rounded",
+          label: t("behaviors") || "Behaviors",
+          gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        },
+        behavior: {
+          icon: getThemedIcon('ui', 'trending_down', 24, theme),
+          bg: "rgba(245, 158, 11, 0.1)",
+          iconColor: "#f59e0b",
+          shape: "rounded",
+          label: t("behavior") || "Behavior",
+          gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        },
+        penalty: {
+          icon: getThemedIcon('ui', 'alert_triangle', 24, theme),
+          bg: "rgba(239, 68, 68, 0.1)",
+          iconColor: "#ef4444",
+          shape: "rounded",
+          label: t("penalty") || "Penalty",
+          gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        },
+        failed: {
+          icon: getThemedIcon('ui', 'x_circle', 24, theme),
+          bg: "rgba(239, 68, 68, 0.1)",
+          iconColor: "#ef4444",
+          shape: "rounded",
+          label: t("failed") || "Failed",
+          gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        },
+        "needs-improvement": {
+          icon: getThemedIcon('ui', 'trending_down', 24, theme),
+          bg: "rgba(239, 68, 68, 0.1)",
+          iconColor: "#ef4444",
+          shape: "rounded",
+          label: t("needs_improvement") || "Needs Improvement",
+          gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        },
+        // Statistics
+        "pass-rate": {
+          icon: getThemedIcon('ui', 'target', 24, theme),
+          bg: "rgba(139, 92, 246, 0.1)",
+          iconColor: "#8b5cf6",
+          shape: "rounded",
+          label: t("pass_rate") || "Pass Rate",
+          gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+        },
+        "unique-students": {
+          icon: getThemedIcon('ui', 'users', 24, theme),
+          bg: "rgba(139, 92, 246, 0.1)",
+          iconColor: "#8b5cf6",
+          shape: "rounded",
+          label: t("unique_students") || "Unique Students",
+          gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+        }
+        ,
+        "unique-quizzes": {
+          icon: getThemedIcon('ui', 'target', 24, theme),
+          bg: "rgba(139, 92, 246, 0.1)",
+          iconColor: "#8b5cf6",
+          shape: "rounded",
+          label: t("unique_quizzes") || "Unique Quizzes",
+          gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+        },
+        // Default
+        default:
+            {
+              icon: getThemedIcon('ui', 'bar_chart_3', 24, theme),
+              bg: "rgba(107, 114, 128, 0.1)",
+              iconColor: "#6b7280",
+              shape: "rounded",
+              label: t("metric") || "Metric",
+              gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
+            },
+      };
 
-    // Statistics
-    "pass-rate": {
-      icon: Target,
-      bg: "rgba(139, 92, 246, 0.1)",
-      iconColor: "#8b5cf6",
-      shape: "rounded",
-      label: t("pass_rate") || "Pass Rate",
-      gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-    },
-    "unique-students": {
-      icon: Users,
-      bg: "rgba(139, 92, 246, 0.1)",
-      iconColor: "#8b5cf6",
-      shape: "rounded",
-      label: t("unique_students") || "Unique Students",
-      gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-    },
-    "unique-quizzes": {
-      icon: Target,
-      bg: "rgba(139, 92, 246, 0.1)",
-      iconColor: "#8b5cf6",
-      shape: "rounded",
-      label: t("unique_quizzes") || "Unique Quizzes",
-      gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
-    },
+      const config = configMap[type] || configMap["default"];
 
-    // Default
-    default: {
-      icon: BarChart3,
-      bg: "rgba(107, 114, 128, 0.1)",
-      iconColor: "#6b7280",
-      shape: "rounded",
-      label: t("metric") || "Metric",
-      gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
-    },
-  };
-
-  const config = configMap[type] || configMap["default"];
-  
-  // Apply theme-aware colors and return themed icon
-  return {
-    ...config,
-    icon: getThemedCardIcon(type, theme),
-    iconColor: getThemeAwareColor(config.iconColor, theme),
-    bg: getThemeAwareBgColor(config.iconColor, theme)
-  };
-};
+// Apply theme-aware colors and return themed icon
+      return {
+        ...config,
+        icon: getThemedCardIcon(type, theme),
+        iconColor: getThemeAwareColor(config.iconColor, theme),
+        bg: getThemeAwareBgColor(config.iconColor, theme)
+      };
+    }
+;
 
 /**
  * Get border radius based on shape
