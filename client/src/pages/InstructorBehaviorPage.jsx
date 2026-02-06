@@ -149,7 +149,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
   };
 
   const loadBehaviors = async () => {
-    setLoading(true);
+    setPageState(PAGE_STATES.LOADING);
     try {
       const result = await getBehaviors();
       if (!result.success) {
@@ -268,7 +268,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       toast.error(t('failed_to_load_behaviors') + ': ' + error.message);
       setPageState(PAGE_STATES.ERROR);
     } finally {
-      setLoading(false);
+      setPageState(PAGE_STATES.IDLE);
     }
   };
 
@@ -381,7 +381,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
   const confirmDelete = async () => {
     if (!deleteModal.item) return;
     
-    setLoading(true);
+    setPageState(PAGE_STATES.LOADING);
     try {
       const result = await deleteBehavior(deleteModal.item.id);
       
@@ -404,7 +404,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     } catch (error) {
       toast.error('Failed to delete behavior: ' + error.message);
     } finally {
-      setLoading(false);
+      setPageState(PAGE_STATES.IDLE);
       setDeleteModal({ open: false, item: null });
     }
   };
@@ -1060,7 +1060,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           exportFileName="behaviors"
           showExportButton
           exportLabel="Export"
-          loadingOverlayMessage={loading ? "Loading behaviors..." : undefined}
+          loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? "Loading behaviors..." : undefined}
           fancyVariant="dots"
         />
       </div>

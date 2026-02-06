@@ -20,7 +20,7 @@ import {
   // UI Icons
   Settings, Key, Eye, EyeOff, Lock, LogIn, LogOut,
   // Action Icons
-  Edit, Trash, Trash2, RefreshCw, Plus, Minus, X,
+  Edit, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy,
   // File Icons
   FileSignature, Archive, Globe, Tag, QrCode, KeyRound,
   // Behavior/Sleep Icons
@@ -131,7 +131,18 @@ export const ICON_TYPES = {
     newsletter: <FileText size={16} />,
     attendance: <CheckCircle size={16} />,
     absence: <XCircle size={16} />,
-    penalty: <AlertTriangle size={16} />
+    penalty: <AlertTriangle size={16} />,
+    // Additional notification types
+    activity_complete: <CheckCircle size={16} />,
+    activity_graded: <Award size={16} />,
+    enrollment: <Users size={16} />,
+    resource: <FileText size={16} />,
+    chat_digest: <MessageSquare size={16} />,
+    password_reset: <Key size={16} />,
+    welcome_signup: <UserPlus size={16} />,
+    qr_code: <QrCode size={16} />,
+    student_summary: <Users size={16} />,
+    custom: <Settings size={16} />
   },
   
   // General UI Icons
@@ -225,7 +236,14 @@ export const ICON_TYPES = {
     file_bar_chart_2: <BarChart3 size={16} />,
     // Additional missing icons
     help_circle: <HelpCircle size={16} />,
-    bar_chart: <BarChart3 size={16} />
+    bar_chart: <BarChart3 size={16} />,
+    mic: <Phone size={16} />,
+    smile: <ThumbsUp size={16} />,
+    mail: <MessageSquare size={16} />,
+    trash: <Trash size={16} />,
+    user: <User size={16} />,
+    key_round: <KeyRound size={16} />,
+    copy: <Copy size={16} />
   }
 };
 
