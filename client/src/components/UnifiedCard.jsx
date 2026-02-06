@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Button } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
 
 /**
  * Unified card component for activities, quizzes, resources, and home page items
@@ -194,7 +194,7 @@ const UnifiedCard = memo(({
                 }}
             >
               {isBookmarked ? (
-                  getThemedIcon('ui', 'star', 18, theme)
+                  getIconWithColor('ui', 'star', 18, '#fbbf24') // Gold color for bookmarked
               ) : (
                   getThemedIcon('ui', 'star_off', 18, theme)
               )}

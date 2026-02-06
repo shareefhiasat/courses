@@ -449,12 +449,39 @@ export const getWhiteIcon = (category, type, size = 16) => {
   return getIconWithColor(category, type, size, '#ffffff');
 };
 
+// Colored icon utility - derives color from chip color
+export const getColoredIcon = (category, type, size = 16, chipColor = null, theme = 'light') => {
+  if (!chipColor) {
+    return getThemedIcon(category, type, size, theme);
+  }
+  
+  // Derive icon color from chip color
+  const derivedColor = deriveIconColor(chipColor);
+  return getIconWithColor(category, type, size, derivedColor);
+};
+
+// Derive icon color from chip color
+const deriveIconColor = (chipColor) => {
+  // If chip is orange/green/red, derive a complementary color
+  if (chipColor === '#f59e0b') return '#d97706'; // Orange chip -> darker orange icon
+  if (chipColor === '#22c55e') return '#16a34a'; // Green chip -> darker green icon
+  if (chipColor === '#ef4444') return '#dc2626'; // Red chip -> darker red icon
+  if (chipColor === '#3b82f6') return '#2563eb'; // Blue chip -> darker blue icon
+  if (chipColor === '#8b5cf6') return '#7c3aed'; // Purple chip -> darker purple icon
+  if (chipColor === '#f97316') return '#ea580c'; // Light red chip -> darker red icon
+  if (chipColor === '#fbbf24') return '#f59e0b'; // Yellow chip -> darker yellow icon
+  
+  // Default to white for dark themes, dark for light themes
+  return '#ffffff';
+};
+
 export default {
   ICON_TYPES,
   getIcon,
   getIconWithColor,
   getThemedIcon,
   getWhiteIcon,
+  getColoredIcon,
   getTypeIcon,
   getAttendanceIcon,
   getBehaviorIcon,

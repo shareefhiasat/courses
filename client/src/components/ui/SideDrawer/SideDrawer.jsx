@@ -1067,7 +1067,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
             <div style={{
               padding: '0.85rem',
               borderTop: '1px solid rgba(255,255,255,0.08)',
-              background: 'rgba(0,0,0,0.15)'
+              background: 'rgba(0,0,0,0.15)',
+              display: 'flex',
+              justifyContent: collapsed ? 'center' : 'space-between',
+              alignItems: 'center',
+              gap: collapsed ? '0.5rem' : '0'
             }}>
               {/* Language Toggle */}
               <button
@@ -1078,7 +1082,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 title={collapsed ? (lang === 'en' ? 'العربية' : 'English') : ''}
                 style={{
                   ...langButtonStyle,
-                  margin: collapsed ? '0 auto 0.6rem auto' : '0 0 0.6rem 0'
+                  margin: '0',
+                  flex: collapsed ? '1' : 'auto'
                 }}
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
@@ -1093,7 +1098,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 title={collapsed ? (t('logout') || 'Logout') : ''}
                 style={{
                   ...logoutButtonStyle,
-                  margin: collapsed ? '0 auto' : '0'
+                  margin: '0',
+                  flex: collapsed ? '1' : 'auto'
                 }}
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
