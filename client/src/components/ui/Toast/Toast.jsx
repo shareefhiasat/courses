@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './Toast.module.css';
 
 const ToastContext = createContext();
@@ -76,7 +77,7 @@ const Toast = ({ id, message, type, onClose }) => {
     success: <CheckCircle size={20} />,
     error: <AlertCircle size={20} />,
     warning: <AlertTriangle size={20} />,
-    info: <Info size={20} />,
+    info: getThemedIcon('ui', 'info', 20, 'light'),
   };
 
   return (

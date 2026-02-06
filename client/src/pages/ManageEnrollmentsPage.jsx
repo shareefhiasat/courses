@@ -8,7 +8,8 @@ import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '@ui';
 import { FancyLoading } from '@ui';
-import { UserX, UserCheck, Search, Shield, AlertCircle, Info } from 'lucide-react';
+import { UserX, UserCheck, Search, Shield, AlertCircle } from 'lucide-react';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ManageEnrollmentsPage.module.css';
 
 const ManageEnrollmentsPage = () => {
@@ -544,7 +545,7 @@ const ManageEnrollmentsPage = () => {
                     }}
                     title="Click to see info about disabling students"
                   >
-                    <Info size={14} style={{ color: '#6c757d' }} />
+                    {getThemedIcon('ui', 'info', 14, theme)}
                   </button>
                   
                   {showInfoTooltip && (

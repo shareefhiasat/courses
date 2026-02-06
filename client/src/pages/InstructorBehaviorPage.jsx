@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { TrendingUp, TrendingDown, User, Edit, Trash, Target, Users } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { TrendingUp, TrendingDown, User, Edit, Trash, MessageSquare, Award, FileText, Users, Star, Minus, X, Target } from 'lucide-react';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';

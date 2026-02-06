@@ -5,6 +5,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import EmojiPicker from 'emoji-picker-react';
 import { USER_ROLES } from '@constants/userRoles';
+import { MessageSquare, BarChart3, Book, GraduationCap, Upload, Download, Users, Paperclip } from 'lucide-react';
 import {
   collection,
   query,
@@ -1906,7 +1907,7 @@ const ChatPage = memo(() => {
                   padding: '3rem',
                   color: '#999'
                 }}>
-                  <p style={{ fontSize: '3rem', margin: 0 }}><MessageSquareText size={42} /></p>
+                  <p style={{ fontSize: '3rem', margin: 0 }}><MessageSquare size={42} /></p>
                   <p style={{ color: 'var(--muted)' }}>{t('no_messages')}</p>
                 </div>
               );
@@ -2096,7 +2097,9 @@ const ChatPage = memo(() => {
                       })()
                     ) : msg.messageType === 'poll' ? (
                       <div style={{ minWidth: 250 }}>
-                        <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BarChart3 size={20} style={{ color: getUserThemeColor() }} /> {msg.pollQuestion}</div>
+                        <div style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <BarChart3 size={20} style={{ color: getUserThemeColor() }} /> {msg.pollQuestion}
+                        </div>
                         {msg.pollOptions?.map((option, idx) => {
                           const votes = msg.pollVotes?.[idx] || [];
                           const totalVotes = Object.values(msg.pollVotes || {}).flat().length;

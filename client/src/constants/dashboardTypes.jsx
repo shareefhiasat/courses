@@ -1,12 +1,12 @@
 import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import {
-  FileText, Link, Video, Database, Globe, Mail, BarChart3, Edit, Trash, 
+  FileText, Link, Video, Globe, Edit, Trash, 
   RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, 
-  LogIn, LogOut, UserPlus, Clock, Settings, Key, Send, MessageSquare, 
-  Eye, EyeOff, Bookmark, Award, Calendar, PenTool, CheckCircle, 
-  XCircle, Users, GraduationCap, Target, Bell, BellOff, Shield, Activity, 
-  Home, Search, Filter, ChevronDown, Zap, Crown, Archive, Tag, QrCode, KeyRound
+  LogIn, LogOut, UserPlus, Settings, Key, 
+  Eye, EyeOff, CheckCircle, 
+  XCircle, Users, Shield, Activity, 
+  Home, Search, Filter, ChevronDown, Crown, KeyRound
 } from 'lucide-react';
 
 // Resource Types with Icons and Colors
@@ -17,6 +17,40 @@ export const RESOURCE_TYPES = {
 };
 
 export const getResourceTypeConfig = (type, theme = 'light') => {
+  // Common Icon Sets with theme awareness
+  const COMMON_ICONS = {
+    actions: {
+      edit: <Edit size={16} />,
+      delete: <Trash size={16} />,
+      refresh: <RefreshCw size={16} />,
+      view: <Eye size={16} />,
+      hide: <EyeOff size={16} />,
+      lock: <Lock size={16} />,
+      unlock: <KeyRound size={16} />
+    },
+    status: {
+      success: <CheckCircle size={16} />,
+      error: <XCircle size={16} />,
+      warning: <AlertTriangle size={16} />,
+      info: getThemedIcon('ui', 'info', 16, theme)
+    },
+    navigation: {
+      home: <Home size={16} />,
+      settings: <Settings size={16} />,
+      search: <Search size={16} />,
+      filter: <Filter size={16} />,
+      back: <ChevronDown size={16} />
+    },
+    users: {
+      user: <User size={16} />,
+      users: <Users size={16} />,
+      userPlus: <UserPlus size={16} />,
+      userCheck: <UserCheck size={16} />,
+      userX: <UserX size={16} />,
+      userMinus: <UserMinus size={16} />
+    }
+  };
+
   const configs = {
     [RESOURCE_TYPES.DOCUMENT]: {
       icon: <FileText size={16} color={theme === 'dark' ? '#9ca3af' : '#374151'} />,
@@ -221,7 +255,7 @@ export const getThemeColor = (colorKey, theme = 'light') => {
   return colorKey;
 };
 
-// Common Icon Sets
+// Common Icon Sets (exported for backward compatibility)
 export const COMMON_ICONS = {
   actions: {
     edit: <Edit size={16} />,
@@ -290,4 +324,18 @@ const getRoleDisplayName = (role) => {
     student: 'Student'
   };
   return roleNames[role] || role;
+};
+
+export default {
+  RESOURCE_TYPES,
+  getResourceTypeConfig,
+  getResourceTypeOptions,
+  getActivityLogTypeConfig,
+  getProgramScopeConfig,
+  COMMON_GRID_COLUMNS,
+  COMMON_ICONS,
+  getThemeColor,
+  getRoleColor,
+  getRoleIcon,
+  getRoleDisplayName
 };

@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { useAuth } from '@contexts/AuthContext';
+import { Volume2, Vibrate, Bell, Search, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { 
   subscribeToNotifications,
   archiveNotification,

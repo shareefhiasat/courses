@@ -63,7 +63,6 @@ export {
   FORM_STATES,
   MODAL_TYPES,
   TYPE_ICONS,
-  getTypeIcon,
   COMMON_GRID_COLUMNS,
   VALIDATION_RULES,
   COMMON_FILTERS,
@@ -87,13 +86,13 @@ export {
 } from './uiTheme.jsx';
 
 // Re-export commonly used constants from other files
-export { USER_ROLES } from './userRoles.jsx';
-export { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from './attendanceTypes.jsx';
-export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationIcon, getNotificationTypeOptions, getNotificationStatusOptions } from './notificationTypes.jsx';
+export { USER_ROLES } from './userRoles.js';
+export { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from './attendanceTypes.js';
+export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions } from './notificationTypes.jsx';
 export { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById } from './participationTypes.jsx';
 export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } from './penaltyTypes.jsx';
-export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
-export { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS } from '../utils/sharedTypes.jsx';
+export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
+export { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS } from '../utils/sharedTypes.js';
 
 // Chat Limitations - Role-based chat restrictions
 export {
@@ -144,7 +143,6 @@ export default {
   FORM_STATES,
   MODAL_TYPES,
   TYPE_ICONS,
-  getTypeIcon,
   COMMON_GRID_COLUMNS,
   VALIDATION_RULES,
   COMMON_FILTERS,
@@ -168,12 +166,10 @@ export default {
   USER_ROLES,
   ATTENDANCE_STATUS,
   ATTENDANCE_STATUS_LABELS,
-  getAttendanceIcon,
   getAttendanceColor,
   getAttendanceLabel,
   NOTIFICATION_TYPES,
   NOTIFICATION_STATUS,
-  getNotificationIcon,
   getNotificationTypeOptions,
   getNotificationStatusOptions,
   PARTICIPATION_TYPES,
@@ -186,7 +182,6 @@ export default {
   getPenaltyTypeById,
   BEHAVIOR_TYPES,
   getBehaviorLabel,
-  getBehaviorIcon,
   getBehaviorColor,
   getBehaviorTypeById,
   RECORD_TYPES,

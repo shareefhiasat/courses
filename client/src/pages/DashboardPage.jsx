@@ -39,6 +39,8 @@ import {
   COMMON_ICONS,
   getThemeColor
 } from '@constants/dashboardTypes.jsx';
+import { formatQatarDate } from '@utils/timezone';
+import { generateStudentQRCode } from '@utils/qrCode';
 import ProgramsManagementPage from './ProgramsManagementPage';
 import SubjectsManagementPage from './SubjectsManagementPage';
 import MarksEntryPage from './MarksEntryPage';
