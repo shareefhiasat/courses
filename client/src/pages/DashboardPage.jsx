@@ -1985,7 +1985,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                           flexShrink: 0,
                           marginTop: '0.1rem'
                         }}>
-                          <IconComponent size={16} style={{ color: config.iconColor }} />
+                          {React.cloneElement(IconComponent, { size: 16, style: { color: config.iconColor } })}
                         </div>
                         <div style={{ 
                           flex: 1, 
