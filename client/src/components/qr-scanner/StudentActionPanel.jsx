@@ -23,6 +23,7 @@ import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, FileIcon, HeartIcon, HelpCircleIcon, UserIcon, UserPlusIcon, ZapIcon} from "@utils/icons.jsx";
+import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
 
 export default function StudentActionPanel({
   student,

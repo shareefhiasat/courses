@@ -65,6 +65,7 @@ import {
   AlertCircleIcon,
   HelpCircleIcon
 } from '@utils/icons.jsx';
+import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
 
 export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, loading = false, students = [], onMinimizeChange }) {
   const { user } = useAuth();
@@ -1224,7 +1225,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               || activityLabel
               || 'Behavior';
         } else if (record.status) {
-          finalLabel = getLocalizedAttendanceLabel(record.status, t, lang) || record.status || 'Attendance';
+          // For attendance records, check if we should show method label instead of notes
+          if (record.method && shouldShowMethodLabel(record.method, activityLabel)) {
+            // Use localized method label instead of notes
+            finalLabel = getAttendanceMethodLabel(record.method, t, lang) || getLocalizedAttendanceLabel(record.status, t, lang) || record.status || 'Attendance';
+          } else {
+            // Use original attendance status label
+            finalLabel = getLocalizedAttendanceLabel(record.status, t, lang) || record.status || 'Attendance';
+          }
         }
 
         const computedType = (record.category === RECORD_TYPES.PENALTY || record.penaltyType)
