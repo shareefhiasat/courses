@@ -37,6 +37,7 @@ import AnnouncementsPage from './AnnouncementsPage';
 import ResourcesPage from './ResourcesPage';
 import ClassesPage from './ClassesPage';
 import UsersPage from './UsersPage';
+import LoginActivityPage from './LoginActivityPage';
 import { 
   getResourceTypeConfig, 
   getResourceTypeOptions, 
@@ -532,48 +533,6 @@ const DashboardPage = () => {
   const [showUserDeletionModal, setShowUserDeletionModal] = useState(false);
   // Delete confirmation modal
   const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null });
-  // Derived: filtered activity logs
-  const filteredLoginLogs = () => {
-    const q = (loginSearch || '').trim().toLowerCase();
-    let list = loginLogs.slice();
-    // Filter by activity type
-    if (activityTypeFilter !== 'all') {
-      list = list.filter(l => l.type === activityTypeFilter);
-    }
-    if (q) {
-      list = list.filter(l =>
-        (l.email || '').toLowerCase().includes(q) ||
-        (l.displayName || '').toLowerCase().includes(q) ||
-        (l.userAgent || '').toLowerCase().includes(q) ||
-        (l.type || '').toLowerCase().includes(q)
-      );
-    }
-    if (loginUserFilter !== 'all') {
-      list = list.filter(l => (l.email || l.userId) === loginUserFilter);
-    }
-    const parseDDMM = (s) => {
-      try {
-        const [dd, mm, yyyy] = (s || '').split('/');
-        if (!dd || !mm || !yyyy) return NaN;
-        return new Date(`${yyyy}-${mm}-${dd}T00:00:00`).getTime();
-      } catch { return NaN; }
-    };
-    if (loginFrom) {
-      const fromDate = parseDDMM(loginFrom);
-      list = list.filter(l => {
-        const logDate = l.when?.seconds ? l.when.seconds * 1000 : new Date(l.when).getTime();
-        return logDate >= fromDate;
-      });
-    }
-    if (loginTo) {
-      const toDate = parseDDMM(loginTo);
-      list = list.filter(l => {
-        const logDate = l.when?.seconds ? l.when.seconds * 1000 : new Date(l.when).getTime();
-        return logDate <= toDate;
-      });
-    }
-    return list;
-  };
   const filteredSubmissions = useMemo(() => {
     return submissions.filter((s) => {
       if (activityFilter !== 'all' && s.activityId !== activityFilter) return false;
@@ -2809,260 +2768,33 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             <ScheduledReportsPage />
           )}
           {activeTab === 'login' && (
-            <div className="login-activity-tab">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '0.5rem 0 1rem', flexWrap: 'wrap', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                <Select value={activityTypeFilter} onChange={(e) => setActivityTypeFilter(e.target.value)} options={getActivityLogOptions(t)} style={{ minWidth: '200px', flex: '1' }} />
-                <Input
-                  type="text"
-                  placeholder={t('search_by_email_name_ua')}
-                  value={loginSearch}
-                  onChange={(e) => setLoginSearch(e.target.value)}
-                  style={{ minWidth: '200px', flex: '1' }}
-                />
-                <UserSelect
-                  users={users}
-                  enrollments={enrollments}
-                  value={loginUserFilter}
-                  onChange={(e) => setLoginUserFilter(e.target.value)}
-                  placeholder={t('all_users') || 'All Users'}
-                  includeAll={true}
-                  showEnrollments={true}
-                  showStatus={true}
-                  searchable={true}
-                  size="small"
-                  style={{ minWidth: '200px', flex: '1' }}
-                />
-                <DateRangeSlider
-                  fromDate={loginFrom ? (() => {
-                    try {
-                      if (loginFrom.includes('/')) {
-                        const [dd, mm, yyyy] = loginFrom.split('/');
-                        return `${yyyy}-${mm}-${dd}`;
-                      }
-                      return loginFrom;
-                    } catch {
-                      return '';
-                    }
-                  })() : ''}
-                  toDate={loginTo ? (() => {
-                    try {
-                      if (loginTo.includes('/')) {
-                        const [dd, mm, yyyy] = loginTo.split('/');
-                        return `${yyyy}-${mm}-${dd}`;
-                      }
-                      return loginTo;
-                    } catch {
-                      return '';
-                    }
-                  })() : ''}
-                  onChange={({ fromDate, toDate }) => {
-                    if (fromDate) {
-                      const date = new Date(fromDate);
-                      setLoginFrom(`${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`);
-                    } else {
-                      setLoginFrom('');
-                    }
-                    if (toDate) {
-                      const date = new Date(toDate);
-                      setLoginTo(`${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`);
-                    } else {
-                      setLoginTo('');
-                    }
-                  }}
-                  placeholderFrom={t('from') || 'From'}
-                  placeholderTo={t('to') || 'To'}
-                  style={{ minWidth: '250px', flex: '1' }}
-                />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  <Select
-                    value={activityAutoRefreshMs}
-                    onChange={(e) => setActivityAutoRefreshMs(Number(e.target.value))}
-                    options={[
-                      { value: 0, label: 'Off' },
-                      { value: 10000, label: '10 sec' },
-                      { value: 30000, label: '30 sec' },
-                      { value: 60000, label: '1 min' },
-                      { value: 300000, label: '5 min' }
-                    ]}
-                    size="small"
-                    style={{ minWidth: '150px' }}
-                  />
-                  {activityAutoRefreshMs > 0 && (
-                    <div style={{ width: 120, height: 6, background: '#e5e7eb', borderRadius: 999, overflow: 'hidden' }} title="Next auto refresh">
-                      <div style={{ height: '100%', width: `${Math.min(100, ((activityNowTick - activityLastUpdatedAt) % activityAutoRefreshMs) / activityAutoRefreshMs * 100)}%`, background: '#10b981', transition: 'width 0.25s linear' }} />
-                    </div>
-                  )}
-                  <Button 
-                    onClick={() => {
-                      loadData();
-                      setActivityLastUpdatedAt(Date.now());
-                    }} 
-                    variant="outline" 
-                    size="small" 
-                    title={t('refresh') || 'Refresh'}
-                    icon={getThemedIcon('ui', 'refresh', 16, theme)}
-                  >
-                    Refresh
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      const isAllTypes = activityTypeFilter === 'all';
-                      const filterOption = getActivityLogOptions(t).find(opt => opt.value === activityTypeFilter);
-                      const description = isAllTypes ? 'all login logs' : `${filterOption?.label || activityTypeFilter} logs`;
-                      setDeleteModal({
-                        open: true,
-                        type: 'login_logs',
-                        item: { description, filterType: activityTypeFilter },
-                        onConfirm: async () => {
-                          setLoading(true);
-                          try {
-                            // Add progress tracking
-                            const onProgress = (processed, total, percentage) => {
-                              toast?.showInfo(`Deleting logs: ${processed}/${total} (${percentage}%)`);
-                            };
-                            let result;
-                            if (activityTypeFilter === 'all') {
-                              result = await deleteAllLoginLogs(onProgress);
-                            } else {
-                              result = await deleteLoginLogsByType(activityTypeFilter, onProgress);
-                            }
-                            if (result.success) {
-                              toast?.showSuccess(`Successfully deleted ${result.deletedCount} ${description}`);
-                              // Refresh the login logs data
-                              const loginLogsRes = await getLoginLogs();
-                              if (loginLogsRes.success) {
-                                setLoginLogs(loginLogsRes.data);
-                              }
-                            } else {
-                              toast?.showError('Failed to delete login logs: ' + result.error);
-                            }
-                          } catch (error) {
-                            console.error('Error deleting login logs:', error);
-                            toast?.showError('An error occurred while deleting login logs');
-                          } finally {
-                            setLoading(false);
-                            setDeleteModal({ open: false });
-                          }
-                        }
-                      });
-                    }} 
-                    variant="danger" 
-                    size="small" 
-                    title="Delete All Logs"
-                    icon={getThemedIcon('ui', 'trash', 16, theme)}
-                  >
-                    Delete All
-                  </Button>
-                </div>
-              </div>
-              <AdvancedDataGrid
-                rows={filteredLoginLogs().slice(0, 500)}
-                getRowId={(row) => row.docId || row.id}
-                columns={[
-                  {
-                    field: 'type', 
-                    headerName: t('type_col'), 
-                    width: 200,
-                    renderCell: (params) => {
-                      const type = params.value || 'login';
-                      const config = getActivityLogTypeConfig(type, theme);
-                      return (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
-                          {config.icon} {t(type) || config.label}
-                        </span>
-                      );
-                    }
-                  },
-                  {
-                    field: 'timestamp', 
-                    headerName: t('when'), 
-                    width: 180,
-                    valueGetter: (params) => params.value,
-                    renderCell: (params) => {
-                      const timestamp = params.value;
-                      const activityType = params.row?.type;
-                      if (!timestamp) return '—';
-                      // Handle both Firestore Timestamp and regular Date
-                      const date = timestamp?.seconds ? 
-                        new Date(timestamp.seconds * 1000) : 
-                        new Date(timestamp);
-                      // For penalty viewing activities, use Qatar timezone and log details
-                      if (activityType === 'penalty_viewed') {
-                        const qatarTimeAgo = getQatarTimeAgo(date);
-                        console.log('🔍 PENALTY VIEWING DISPLAY - Rendering timestamp:', {
-                          rawTimestamp: timestamp,
-                          convertedDate: date,
-                          convertedDateUTC: date.toISOString(),
-                          qatarTimeAgo,
-                          activityType,
-                          clientTime: new Date().toISOString(),
-                          clientTimeQatar: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' })
-                        });
-                        return qatarTimeAgo || formatQatarDate(date);
-                      }
-                      // Use Qatar timezone for other activities too
-                      return getQatarTimeAgo(date) || formatQatarDate(date);
-                    }
-                  },
-                  {
-                    field: 'userName', 
-                    headerName: t('user_col'), 
-                    flex: 1, 
-                    minWidth: 150,
-                    renderCell: (params) => params.value || '—'
-                  },
-                  {
-                    field: 'userEmail', 
-                    headerName: t('email_col'), 
-                    flex: 1, 
-                    minWidth: 200,
-                    renderCell: (params) => params.value || '—'
-                  },
-                  {
-                    field: 'userAgent', 
-                    headerName: t('user_agent_col'), 
-                    flex: 2, 
-                    minWidth: 300,
-                    renderCell: (params) => (
-                      <div style={{ maxWidth: 520, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {params.value || '—'}
-                      </div>
-                    )
-                  },
-                  {
-                    field: 'details',
-                    headerName: t('description_col'),
-                    flex: 1,
-                    minWidth: 200,
-                    renderCell: (params) => {
-                      const details = params.value || {};
-                      if (Object.keys(details).length === 0) return '—';
-                      // Show relevant details based on activity type
-                      const type = params.row.type;
-                      let detailText = '';
-                      if (type === 'login' && details.ip) {
-                        detailText = `IP: ${details.ip}`;
-                      } else if (type === 'logout' && details.sessionDuration) {
-                        detailText = `Session: ${details.sessionDuration}`;
-                      } else if (details.action) {
-                        detailText = details.action;
-                      } else if (details.message) {
-                        detailText = details.message;
-                      }
-                      return detailText || JSON.stringify(details);
-                    }
-                  }
-                ]}
-                pageSize={20}
-                pageSizeOptions={[10, 20, 50, 100]}
-                checkboxSelection
-                exportFileName="login-activity"
-                showExportButton
-                exportLabel={t('export') || 'Export'}
-                loadingOverlayMessage={loading ? "Loading login activity..." : undefined}
-                fancyVariant="dots"
-              />
-            </div>
+            <LoginActivityPage
+              loginLogs={loginLogs}
+              setLoginLogs={setLoginLogs}
+              activityTypeFilter={activityTypeFilter}
+              setActivityTypeFilter={setActivityTypeFilter}
+              loginSearch={loginSearch}
+              setLoginSearch={setLoginSearch}
+              loginUserFilter={loginUserFilter}
+              setLoginUserFilter={setLoginUserFilter}
+              loginFrom={loginFrom}
+              setLoginFrom={setLoginFrom}
+              loginTo={loginTo}
+              setLoginTo={setLoginTo}
+              activityAutoRefreshMs={activityAutoRefreshMs}
+              setActivityAutoRefreshMs={setActivityAutoRefreshMs}
+              activityNowTick={activityNowTick}
+              activityLastUpdatedAt={activityLastUpdatedAt}
+              setActivityLastUpdatedAt={setActivityLastUpdatedAt}
+              users={users}
+              enrollments={enrollments}
+              deleteModal={deleteModal}
+              setDeleteModal={setDeleteModal}
+              loading={loading}
+              setLoading={setLoading}
+              loadData={loadData}
+              theme={theme}
+            />
           )}
           {activeTab === 'classes' && (
             <ClassesPage
