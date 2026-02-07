@@ -743,6 +743,7 @@ const DICT = {
     send_email_notification: 'Send email notification',
     progress: 'Progress',
     // Navigation
+    home: 'Home',
     main: 'MAIN',
     student_dashboard: 'Student Dashboard',
     schedules: 'Schedules',
@@ -2133,6 +2134,24 @@ const DICT = {
     fill_required_fields_behavior: 'يرجى ملء جميع الحقول المطلوبة (الطالب، الفصل، النوع، الوصف)',
     fill_required_fields_participation: 'يرجى ملء جميع الحقول المطلوبة (الطالب، الفصل، النوع)',
     fill_required_fields_penalty: 'يرجى ملء جميع الحقول المطلوبة (الطالب، الفصل، النوع، الوصف)',
+    
+    // Additional missing Arabic translations
+    view_behavior: 'عرض السلوك',
+    view_penalties: 'عرض العقوبات', 
+    view_participation: 'عرض المشاركة',
+    sneak_peek: 'نظرة سريعة',
+    behavior: 'السلوك',
+    penalties: 'العقوبات',
+    participation: 'المشاركة',
+    mid_term_exam: 'اختبار منتصف الفصل',
+    final_exam: 'اختبار نهائي',
+    homework: 'واجب',
+    labs_project_research: 'مختبرات/أبحاث المشاريع',
+    quizzes: 'اختبارات',
+    attendance: 'الحضور',
+    edit_marks: 'تعديل الدرجات',
+    marks_distribution: 'توزيع الدرجات',
+    edit_marks_distribution: 'تعديل توزيع الدرجات',
     select_student: 'اختيار الطالب *',
     select_class: 'اختيار الفصل *',
     select_behavior_type: 'اختيار نوع السلوك *',
@@ -2910,7 +2929,8 @@ const DICT = {
     no_categories_yet: 'لا توجد فئات بعد. انقر أدناه لإضافة الافتراضيات:',
     add_default_categories: 'إضافة الفئات الافتراضية',
     // Navigation
-    main: 'الرئيسي',
+    home: 'الرئيسية',
+    main: 'الرئيسية',
     student_dashboard: 'لوحة تحكم الطالب',
     schedules: 'الجداول',
     quiz_results: 'نتائج الاختبارات',
@@ -3576,7 +3596,7 @@ const DICT = {
     student_id_card: 'بطاقة هوية الطالب',
     
     // Attendance Methods
-    attendance_method_roster_quick_action: 'إجراء سريع من السجل',
+    attendance_method_roster_quick_action: 'إجراء سجل سريع',
     attendance_method_manual_instructor: 'إدخال يدوي',
     attendance_method_manual: 'يدوي',
     attendance_method_qr_scan: 'مسح QR',

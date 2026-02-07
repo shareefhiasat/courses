@@ -63,6 +63,7 @@ import InstructorParticipationPage from './InstructorParticipationPage';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import AnalyticsDashboardPage from './AnalyticsDashboardPage';
 import AllowlistPage from './AllowlistPage';
+import EmailTemplatesPage from './EmailTemplatesPage';
 import { getSubjects, getPrograms } from '@firebaseServices/programService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
 import { logActivity, ACTIVITY_TYPES, getActivityLogOptions } from '@firebaseServices/activityLogger.jsx';
@@ -2307,12 +2308,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             theme={theme}
           />
         )}
-        {activeTab === 'emailTemplates' && (
-          <div className="email-templates-tab">
-            <FancyLoading />
-            <EmailTemplates />
-          </div>
-        )}
+        {activeTab === 'emailTemplates' && <EmailTemplatesPage />}
         {activeTab === 'emailLogs' && <EmailLogsPage />}
         {activeTab === 'allowlist' && (
           <AllowlistPage
