@@ -28,7 +28,7 @@ import { getCourses, setCourse, deleteCourse } from '@firebaseServices/courseSer
 import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@firebaseServices/activityService';
 import { getAllowlist, updateAllowlist } from '@firebaseServices/configService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
-import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, CollapsibleDashboardSection, Badge, UserSelect } from '@ui';
+import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, Badge, UserSelect } from '@ui';
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { RibbonTabs, DragGrid, EmailManager, SmartEmailComposer, UserDeletionModal, EmailTemplates, EmailLogs } from '@ui';
@@ -61,7 +61,7 @@ import ManageEnrollmentsPage from './ManageEnrollmentsPage';
 import HRPenaltiesPage from './HRPenaltiesPage';
 import InstructorParticipationPage from './InstructorParticipationPage';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
-import ScheduledReportsPage from './ScheduledReportsPage';
+import AnalyticsDashboardPage from './AnalyticsDashboardPage';
 import { getSubjects, getPrograms } from '@firebaseServices/programService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
 import { logActivity, ACTIVITY_TYPES, getActivityLogOptions } from '@firebaseServices/activityLogger.jsx';
@@ -1485,39 +1485,29 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
     />
   </div>
         {/* Summary Cards with Filters */}
-        <CollapsibleDashboardSection
-          sectionId="summary-cards"
-          title={t('dashboard_statistics') || 'Dashboard Statistics'}
-          icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
-          color={theme === 'dark' ? '#818cf8' : '#6366f1'}
-          defaultMode="full"
-          data-tour="stats"
-          compactContent={
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <Select
-                size="small"
-                searchable
-                value={enrollmentProgramFilter}
-                onChange={(e) => {
-                  setEnrollmentProgramFilter(e.target.value);
-                  setEnrollmentSubjectFilter('all');
-                  setEnrollmentClassFilter('all');
-                }}
-                options={[
-                  { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 14, theme) },
-                  ...programs.map(p => ({
-                    value: p.docId || p.id,
-                    label: p.name_en || p.name_ar || p.code || p.docId,
-                    icon: getThemedIcon('ui', 'book_open', 14, theme)
-                  }))
-                ]}
-                style={{ minWidth: 140 }}
-                placeholder={t('all_programs')}
-              />
-            </div>
-          }
-        >
-          <div style={{ marginBottom: '1rem' }}>
+        <AnalyticsDashboardPage
+          programs={programs}
+          subjects={subjects}
+          classes={classes}
+          enrollments={enrollments}
+          activities={activities}
+          users={users}
+          submissions={submissions}
+          quizzes={quizzes}
+          announcements={announcements}
+          resources={resources}
+          enrollmentProgramFilter={enrollmentProgramFilter}
+          enrollmentSubjectFilter={enrollmentSubjectFilter}
+          enrollmentClassFilter={enrollmentClassFilter}
+          setEnrollmentProgramFilter={setEnrollmentProgramFilter}
+          setEnrollmentSubjectFilter={setEnrollmentSubjectFilter}
+          setEnrollmentClassFilter={setEnrollmentClassFilter}
+          user={user}
+          isSuperAdmin={isSuperAdmin}
+          isAdmin={isAdmin}
+          isInstructor={isInstructor}
+        />
+        <div className="tab-content">
             {/* Filters */}
             <div data-tour="filters" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <Select
@@ -1850,7 +1840,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               })}
             </div>
           </div>
-        </CollapsibleDashboardSection>
         <div className="tab-content">
            {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />}
     <div className="tab-header">

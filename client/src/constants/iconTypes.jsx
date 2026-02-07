@@ -91,7 +91,8 @@ export const ICON_TYPES = {
     plagiarism: <AlertTriangle size={16} />,
     disruptive_behavior: <AlertTriangle size={16} />,
     late_submission: <Clock size={16} />,
-    missing_deadline: <Target size={16} />
+    missing_deadline: <Target size={16} />,
+    eye: <Eye size={16} />
   },
   
   // Participation Type Icons
@@ -282,8 +283,9 @@ export const ICON_TYPES = {
     gamepad2: <Gamepad2 size={16} />,
     timer: <Clock size={16} />,
     // Additional missing icons
-    log_out: <LogOut size={16} />,
-    languages: <Globe size={16} />,
+    log_in: <LogIn size={16} />,
+    stop: <X size={16} />,
+    api: <Globe size={16} />,
     alert_circle: <AlertCircle size={16} />,
     chevron_down: <ChevronDown size={16} />,
     chevron_up: <ChevronUp size={16} />,
