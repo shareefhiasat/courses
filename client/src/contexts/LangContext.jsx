@@ -744,6 +744,9 @@ const DICT = {
     progress: 'Progress',
     // Navigation
     main: 'MAIN',
+    student_dashboard: 'Student Dashboard',
+    schedules: 'Schedules',
+    quiz_results: 'Quiz Results',
     community: 'COMMUNITY',
     dashboard: 'Dashboard',
     see_how_you_rank: 'See how you rank among your peers',
@@ -1712,6 +1715,18 @@ const DICT = {
     enrollments: 'Enrollments',
     quick_actions: 'Quick Actions',
     mark_attendance: 'Mark Attendance',
+    
+    // Attendance Method Labels
+    attendance_method_roster_quick_action: 'Roster Quick Action',
+    attendance_method_manual_instructor: 'Manual Entry',
+    attendance_method_manual: 'Manual',
+    attendance_method_qr_scan: 'QR Scan',
+    attendance_method_qr_scan_auto: 'QR Scan (Auto)',
+    attendance_method_qr_scan_manual: 'QR Scan (Manual)',
+    attendance_method_batch_import: 'Batch Import',
+    attendance_method_api_import: 'API Import',
+    attendance_method_bulk_update: 'Bulk Update',
+    
     // QR Scanner specific labels
     scan_description: 'Scan student QR codes or search manually to mark attendance and view profiles',
     search_by: 'Search by name, email, or reference ID...',
@@ -1887,30 +1902,6 @@ const DICT = {
     // Navbar collapse
     expand_navbar: 'Expand navbar',
     collapse_navbar: 'Collapse navbar',
-
-    // Notification Drawer
-    notifications: 'Notifications',
-    search_notifications: 'Search notifications...',
-    all_penalty_types: 'All Penalty Types',
-    all_statuses: 'All Statuses',
-    all_absence_types: 'All Absence Types',
-    all_programs: 'All Programs',
-    all_subjects: 'All Subjects',
-    all_classes: 'All Classes',
-    all_years: 'All Years',
-    all_semesters: 'All Semesters',
-    mark_all_read: 'Mark all read',
-    delete_notification_confirm: 'Delete this notification?',
-    test_notification: 'Test Notification',
-    test_notification_message: 'This is a test browser notification!',
-    no_notifications_match_filters: 'No notifications match your filters',
-    no_notifications_yet: 'No notifications yet',
-    present: 'Present',
-    late: 'Late',
-    absent_no_excuse: 'Absent (No Excuse)',
-    absent_with_excuse: 'Absent (With Excuse)',
-    excused_leave: 'Excused Leave',
-    human_case: 'Human Case',
   },
   // Visualization / Tour localizations for dashboard (dot-notation keys added for t())
   'tour.mode_switcher': 'Use these tabs to switch between dashboard sections',
@@ -2920,6 +2911,9 @@ const DICT = {
     add_default_categories: 'إضافة الفئات الافتراضية',
     // Navigation
     main: 'الرئيسي',
+    student_dashboard: 'لوحة تحكم الطالب',
+    schedules: 'الجداول',
+    quiz_results: 'نتائج الاختبارات',
     community: 'المجتمع',
     dashboard: 'لوحة التحكم',
     leaderboard: 'لوحة المتصدرين',
@@ -3755,30 +3749,6 @@ const DICT = {
     // Navbar collapse
     expand_navbar: 'توسيع شريط التنقل',
     collapse_navbar: 'طي شريط التنقل',
-    
-    // Notification Drawer
-    notifications: 'الإشعارات',
-    search_notifications: 'البحث في الإشعارات...',
-    all_penalty_types: 'جميع أنواع العقوبات',
-    all_statuses: 'جميع الحالات',
-    all_absence_types: 'جميع أنواع الغياب',
-    all_programs: 'جميع البرامج',
-    all_subjects: 'جميع المواد',
-    all_classes: 'جميع الفصول',
-    all_years: 'جميع السنوات',
-    all_semesters: 'جميع الفصول الدراسية',
-    mark_all_read: 'تحديد الكل كمقروء',
-    delete_notification_confirm: 'حذف هذا الإشعار؟',
-    test_notification: 'إشعار اختباري',
-    test_notification_message: 'هذا إشعار اختباري من المتصفح!',
-    no_notifications_match_filters: 'لا توجد إشعارات تطابق عوامل التصفية',
-    no_notifications_yet: 'لا توجد إشعارات حتى الآن',
-    present: 'حاضر',
-    late: 'متأخر',
-    absent_no_excuse: 'غائب (بدون عذر)',
-    absent_with_excuse: 'غائب (مع عذر)',
-    excused_leave: 'إجازة معتمدة',
-    human_case: 'حالة إنسانية',
     
     // Tour translations (Arabic)
     'tour.mode_switcher': 'استخدم هذه علامات التبويب للتبديل بين أقسام لوحة التحكم',

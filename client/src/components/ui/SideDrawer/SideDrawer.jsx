@@ -237,7 +237,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     border: 'none',
     cursor: 'pointer',
     fontWeight: 600,
-    fontSize: collapsed ? '0.85rem' : '0.95rem',
+    fontSize: collapsed ? '0.75rem' : '0.85rem',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -764,7 +764,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         onMouseEnter={onHeaderButtonEnter}
                         onMouseLeave={onHeaderButtonLeave}
                       >
-                        {stickyMode ? getThemedIcon('ui', 'pin', 14, theme) : getThemedIcon('ui', 'open_tab', 14, theme)}
+                        {stickyMode ? getThemedIcon('ui', 'pin', 12, theme) : getThemedIcon('ui', 'open_tab', 12, theme)}
                       </button>
                       <button
                         onClick={onClose}
@@ -891,7 +891,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         background: 'transparent',
                         border: 'none',
                         color: theme==='light' ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.5)',
-                        fontSize: '0.7rem',
+                        fontSize: '0.65rem',
                         textTransform: 'uppercase',
                         letterSpacing: '1.2px',
                         fontWeight: 600,
@@ -968,7 +968,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                             : 'transparent',
                           transition: 'all 0.2s',
                           fontWeight: isActive(link.path, link.hash) ? 600 : 400,
-                          fontSize: '0.95rem',
+                          fontSize: '0.85rem',
                           flex: 1
                           }}
                           onMouseEnter={(e) => {
@@ -1019,7 +1019,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        {getThemedIcon('ui', 'external_link', 14, theme)}
+                        {getThemedIcon('ui', 'external_link', 12, theme)}
                       </button>)}
                       {!collapsed && density === 'compact' && (() => {
                         const pinned = link.key==='timerControl' ? pinTimer : isPinned(link.path);
@@ -1047,7 +1047,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                               cursor: 'pointer'
                             }}
                           >
-                            {pinned ? getThemedIcon('ui', 'pin_off', 14, theme) : getThemedIcon('ui', 'pin', 14, theme)}
+                            {pinned ? getThemedIcon('ui', 'pin_off', 12, theme) : getThemedIcon('ui', 'pin', 12, theme)}
                           </button>
                         );
                       })()}
