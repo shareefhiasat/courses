@@ -490,6 +490,12 @@ const deriveIconColor = (chipColor) => {
   if (chipColor === '#0ea5e9') return '#0ea5e9'; // Sky blue chip -> same sky blue icon
   if (chipColor === '#166534') return '#166534'; // Dark green chip -> same dark green icon
   if (chipColor === '#c2410c') return '#c2410c'; // Dark orange chip -> same dark orange icon
+  if (chipColor === '#4f46e5') return '#4f46e5'; // Indigo chip -> same indigo icon
+  if (chipColor === '#4F46E5FF') return '#4f46e5'; // Indigo chip with alpha -> same indigo icon
+  if (chipColor === '#d97706') return '#d97706'; // Orange chip -> same orange icon
+  if (chipColor === '#b45309') return '#b45309'; // Amber chip -> same amber icon
+  if (chipColor === '#2e7d32') return '#2e7d32'; // Green chip -> same green icon
+  if (chipColor === '#1976d2') return '#1976d2'; // Blue chip -> same blue icon
   
   // Default to white for dark themes, dark for light themes
   return '#ffffff';

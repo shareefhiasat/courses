@@ -7,6 +7,7 @@ import { useLang } from '@contexts/LangContext';
 import { getUsers } from '@firebaseServices/userService';
 import { updateUser } from '@firebaseServices/userService';
 import { getUserDisplayName } from '@firebaseServices/userService';
+import { getUserById } from '@firebaseServices/userService';
 import { db } from '@firebaseServices/config';
 import './Navbar.css';
 import { getThemedIcon, getWhiteIcon, getIconWithColor } from '@constants/iconTypes';
@@ -45,6 +46,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const [density, setDensity] = useState(() => {
     try { return localStorage.getItem('density') || 'compact'; } catch { return 'compact'; }
   });
+  const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(() => {
+    try { return localStorage.getItem('navbarCollapsed') === 'true'; } catch { return false; }
+  });
   const menuRef = useRef(null);
 
   // theme is managed by ThemeProvider
@@ -81,6 +85,32 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
+    }
+  };
+
+  const toggleNavbar = () => {
+    const newCollapsed = !isNavbarCollapsed;
+    setIsNavbarCollapsed(newCollapsed);
+    localStorage.setItem('navbarCollapsed', newCollapsed.toString());
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('navbar:toggle', { 
+      detail: { collapsed: newCollapsed } 
+    }));
+  };
+
+  const isMobile = window.innerWidth < 768;
+
+  const getUserProfile = async (user) => {
+    if (!user) return null;
+    try {
+      const result = await getUserById(user.uid);
+      if (result.success) {
+        return result.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
     }
   };
 
@@ -140,7 +170,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
   return (
     <>
-      <nav className="navbar" style={{ padding: '0.35rem 0' }}>
+      <nav className="navbar" style={{ 
+        padding: '0.35rem 0',
+        display: isNavbarCollapsed ? 'none' : 'block'
+      }}>
         <div className="navbar-container">
           {/* Hamburger Menu */}
           {!hideHamburger && (
@@ -166,6 +199,30 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {getWhiteIcon('ui', 'menu', 18)}
               </button>
             )}
+
+          {/* Collapse/Expand Navbar Button */}
+          <button
+            onClick={toggleNavbar}
+            className="navbar-collapse-btn"
+            style={{
+              background: 'transparent',
+              border: '2px solid #D4AF37',
+              color: '#D4AF37',
+              cursor: 'pointer',
+              padding: '0.35rem 0.6rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 10,
+              marginRight: lang === 'ar' ? 0 : '0.75rem',
+              marginLeft: lang === 'ar' ? '0.75rem' : 0,
+              transition: 'transform 0.2s ease'
+            }}
+            title={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
+            aria-label={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
+          >
+            {getWhiteIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', 18)}
+          </button>
 
           {/* Brand */}
           <div className="navbar-brand" style={{ 
@@ -632,6 +689,49 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
         </div>
       )}
       </nav>
+
+      {/* Floating restore button when navbar is collapsed */}
+      {isNavbarCollapsed && (
+        <button
+          onClick={toggleNavbar}
+          title={t('expand_navbar') || 'Expand navbar'}
+          aria-label={t('expand_navbar') || 'Expand navbar'}
+          style={{
+            position: 'fixed',
+            top: isMobile ? '15px' : '20px',
+            right: isMobile ? '15px' : '20px',
+            zIndex: 1000,
+            background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.8)',
+            border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '50%',
+            width: isMobile ? '40px' : '48px',
+            height: isMobile ? '40px' : '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: theme === 'light' ? 'var(--text-primary)' : '#fff',
+            boxShadow: theme === 'light' 
+              ? '0 4px 6px rgba(0, 0, 0, 0.1)' 
+              : '0 4px 6px rgba(0, 0, 0, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1)';
+            e.currentTarget.style.boxShadow = theme === 'light' 
+              ? '0 6px 12px rgba(0, 0, 0, 0.15)' 
+              : '0 6px 12px rgba(0, 0, 0, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = theme === 'light' 
+              ? '0 4px 6px rgba(0, 0, 0, 0.1)' 
+              : '0 4px 6px rgba(0, 0, 0, 0.3)';
+          }}
+        >
+          {getThemedIcon('ui', 'chevron_down', isMobile ? 18 : 20, theme)}
+        </button>
+      )}
     </>
   );
 };

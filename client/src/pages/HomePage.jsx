@@ -1073,7 +1073,7 @@ const HomePage = memo(() => {
                   gap: isMinified ? 0 : 4
                 }}
               >
-                {getColoredIcon('ui', 'globe2', 12, primaryColor, theme)}
+                {difficultyFilter === 'all' ? getColoredIcon('ui', 'globe2', 12, '#fff', theme) : getThemedIcon('ui', 'globe2', 12, theme)}
                 <span>{t('all_levels') || 'All Levels'}</span>
               </button>
                   {[
@@ -1128,7 +1128,7 @@ const HomePage = memo(() => {
                     gap: isMinified ? 0 : 4
                   }}
                 >
-                  {getColoredIcon('ui', 'globe2', 12, primaryColor, theme)}
+                  {getColoredIcon('ui', 'globe2', 12, resourceTypeFilter === 'all' ? '#fff' : primaryColor, theme)}
                   {!isMinified && <span>{t('all_types') || 'All Types'}</span>}
                 </button>
                 <button
@@ -1146,7 +1146,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('video') || 'Video'}
                 >
-                  {getColoredIcon('ui', 'video', 12, primaryColor, theme)}
+                  {getColoredIcon('ui', 'video', 12, resourceTypeFilter === 'video' ? '#fff' : primaryColor, theme)}
                   {!isMinified && <span>{t('video') || 'Video'}</span>}
                 </button>
                 <button
@@ -1164,7 +1164,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('link') || 'Link'}
                 >
-                  {getColoredIcon('ui', 'link2', 12, primaryColor, theme)}
+                  {getColoredIcon('ui', 'link2', 12, resourceTypeFilter === 'link' ? '#fff' : primaryColor, theme)}
                   {!isMinified && <span>{t('link') || 'Link'}</span>}
                 </button>
                 <button
@@ -1182,7 +1182,7 @@ const HomePage = memo(() => {
                   }}
                   title={t('document') || 'Document'}
                 >
-                  {getColoredIcon('ui', 'file_text', 12, primaryColor, theme)}
+                  {getColoredIcon('ui', 'file_text', 12, resourceTypeFilter === 'document' ? '#fff' : primaryColor, theme)}
                   {!isMinified && <span>{t('document') || 'Document'}</span>}
                 </button>
               </div>
@@ -1288,7 +1288,7 @@ const HomePage = memo(() => {
                       padding: 0
                     }}
                   >
-                    {getColoredIcon('ui', 'repeat', 14, deriveIconColor('#0ea5e9'), theme)}
+                    {getColoredIcon('ui', 'repeat', 14, '#0ea5e9', theme)}
                   </button>
                   <button
                     onClick={() => setGradedFilter(p => p === 'graded' ? 'all' : 'graded')}
@@ -1328,7 +1328,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {bookmarkFilter ? getColoredIcon('ui', 'star', 12, '#fff', theme) : getThemedIcon('ui', 'star_off', 12, theme)}
+                    {bookmarkFilter ? getColoredIcon('ui', 'star', 12, '#fff', theme) : getColoredIcon('ui', 'star_off', 12, '#f5c518', theme)}
                     {t('bookmarked') || 'Bookmarked'}
                   </button>
                   <button
@@ -1347,7 +1347,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {getColoredIcon('ui', 'pin', 12, '#fff', theme)}
+                    {featuredFilter ? getColoredIcon('ui', 'pin', 12, '#fff', theme) : getColoredIcon('ui', 'pin', 12, '#4f46e5', theme)}
                     {t('featured') || 'Featured'}
                   </button>
                   <button
@@ -1366,7 +1366,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {getColoredIcon('ui', 'repeat', 12, '#fff', theme)}
+                    {retakableFilter ? getColoredIcon('ui', 'repeat', 12, '#fff', theme) : getColoredIcon('ui', 'repeat', 12, '#0ea5e9', theme)}
                     {t('retake_allowed') || 'Retake'}
                   </button>
                   <button
@@ -1386,7 +1386,7 @@ const HomePage = memo(() => {
                       cursor: 'pointer'
                     }}
                   >
-                    {getColoredIcon('ui', 'check_circle', 12, '#fff', theme)}
+                    {gradedFilter === 'graded' ? getColoredIcon('ui', 'check_circle', 12, '#fff', theme) : getColoredIcon('ui', 'check_circle', 12, '#16a34a', theme)}
                     {getStatusLabel(SUBMISSION_STATUS.GRADED, lang)}
                   </button>
                 </>
