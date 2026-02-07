@@ -681,7 +681,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
-            Edit
+            {t('edit_behavior') || 'Edit'}
           </Button>
           <Button
             size="sm"
@@ -690,7 +690,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
-            Delete
+            {t('delete_behavior') || 'Delete'}
           </Button>
         </div>
       )
@@ -872,7 +872,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingBehavior ? 'Update' : 'Save'}
+            {editingBehavior ? (t('update_behavior') || 'Update') : (t('save_behavior') || 'Save')}
           </Button>
           {editingBehavior && (
             <Button 
@@ -883,7 +883,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                 resetForm();
               }}
             >
-              Cancel Edit
+              {t('cancel') || 'Cancel'} {t('edit_behavior') || 'Edit'}
             </Button>
           )}
         </div>
@@ -1079,14 +1079,14 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         }}>
           <Card style={{ maxWidth: '400px', margin: '1rem' }}>
             <CardBody>
-              <h3>Delete Behavior</h3>
-              <p>Are you sure you want to delete this behavior record?</p>
+              <h3>{t('delete_behavior') || 'Delete Behavior'}</h3>
+              <p>{t('delete_behavior_confirmation') || 'Are you sure you want to delete this behavior record?'}</p>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
-                  Cancel
+                  {t('cancel') || 'Cancel'}
                 </Button>
                 <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
-                  Delete
+                  {t('delete_behavior') || 'Delete'}
                 </Button>
               </div>
             </CardBody>

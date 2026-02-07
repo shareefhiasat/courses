@@ -3,13 +3,13 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
-import { Edit } from 'lucide-react';
-import { getSubjects, createSubject, updateSubject, deleteSubject, getPrograms } from '@firebaseServices/programService';
+import { getThemedIcon } from '@constants/iconTypes';
 import { getUsers } from '@firebaseServices/userService';
 import { getClasses } from '@firebaseServices/classService';
+import { getPrograms } from '@firebaseServices/programService';
+import { getSubjects, createSubject, updateSubject, deleteSubject } from '@firebaseServices/subjectService';
 import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import styles from './SubjectsManagementPage.module.css';
 
@@ -172,7 +172,7 @@ const SubjectsManagementPage = () => {
   };
 
   if (authLoading) {
-    return <Loading variant="overlay" message="Loading..." fancyVariant="dots" />;
+    return <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
 
   if (!isAdmin && !isSuperAdmin && !isInstructor) {
@@ -229,7 +229,7 @@ const SubjectsManagementPage = () => {
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: t('actions') || 'Actions',
       render: (_, subject) => (
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button
@@ -267,7 +267,7 @@ const SubjectsManagementPage = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          <Edit size={16} /> {t('editing_subject', { subjectName: editingSubject.name_en, subjectCode: editingSubject.code || t('no_code') || 'No code' }) || `Editing Subject: ${editingSubject.name_en} (${editingSubject.code || 'No code'})`}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_subject', { subjectName: editingSubject.name_en, subjectCode: editingSubject.code || t('no_code') || 'No code' }) || `Editing Subject: ${editingSubject.name_en} (${editingSubject.code || 'No code'})`}
         </div>
       )}
 
@@ -323,7 +323,7 @@ const SubjectsManagementPage = () => {
           <Select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            placeholder="All Types"
+            placeholder={t('all_types') || 'All Types'}
             options={[
               { value: 'lecture', label: t('lecture') || 'Lecture', icon: getThemedIcon('ui', 'file_text', 16, theme) },
               { value: 'lab', label: t('lab') || 'Lab', icon: getThemedIcon('ui', 'users', 16, theme) },
@@ -334,7 +334,7 @@ const SubjectsManagementPage = () => {
           <Select
             value={formData.requirementType}
             onChange={(e) => setFormData({ ...formData, requirementType: e.target.value })}
-            placeholder="All Requirements"
+            placeholder={t('all_requirements') || 'All Requirements'}
             options={[
               { value: 'general_mandatory', label: t('general_mandatory') || 'General Mandatory', icon: getThemedIcon('ui', 'filter', 16, theme) },
               { value: 'major_mandatory', label: t('major_mandatory') || 'Major Mandatory', icon: getThemedIcon('ui', 'book_open', 16, theme) },
@@ -345,11 +345,11 @@ const SubjectsManagementPage = () => {
           <NumberInput
             value={formData.hoursPerWeek}
             onChange={(e) => setFormData({ ...formData, hoursPerWeek: Number.parseFloat(e.target.value) || 3 })}
-            placeholder="Hours Per Week"
+            placeholder={t('hours_per_week_placeholder') || 'Hours Per Week'}
             min={1}
             max={20}
             step={0.5}
-            helperTextInfo="Weekly contact hours"
+            helperTextInfo={t('weekly_contact_hours') || 'Weekly contact hours'}
           />
         </div>
         <div className="form-actions">
@@ -365,7 +365,7 @@ const SubjectsManagementPage = () => {
                 resetForm();
               }}
             >
-              Cancel Edit
+              {t('cancel_edit') || 'Cancel Edit'}
             </Button>
           )}
         </div>
@@ -375,9 +375,9 @@ const SubjectsManagementPage = () => {
         <Select
           value={filterProgram}
           onChange={(e) => setFilterProgram(e.target.value)}
-          placeholder="All Programs"
+          placeholder={t('all_programs') || 'All Programs'}
           options={[
-            { value: 'all', label: 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
+            { value: 'all', label: t('all_programs') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
             ...programs.map(p => ({
               value: p.docId,
               label: lang === 'ar' ? p.name_ar : p.name_en,
@@ -466,8 +466,8 @@ const SubjectsManagementPage = () => {
             checkboxSelection
             exportFileName="subjects"
             showExportButton
-            exportLabel="Export"
-            loadingOverlayMessage={loading ? "Loading subjects..." : undefined}
+            exportLabel={t('export') || 'Export'}
+            loadingOverlayMessage={loading ? (t('loading_subjects') || "Loading subjects...") : undefined}
             fancyVariant="dots"
         />
       </div>

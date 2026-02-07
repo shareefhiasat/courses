@@ -459,7 +459,7 @@ const MarksEntryPage = () => {
   }, [toast, t]);
 
   if (authLoading) {
-    return <Loading variant="overlay" message="Loading..." fancyVariant="dots" />;
+    return <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
 
   if (!isAdmin && !isSuperAdmin && !isInstructor) {
@@ -469,7 +469,7 @@ const MarksEntryPage = () => {
   const columns = useMemo(() => [
     {
       field: 'displayName',
-      headerName: 'Student',
+      headerName: t('student') || 'Student',
       flex: 1,
       minWidth: 180,
       valueGetter: (params) => {
@@ -503,13 +503,13 @@ const MarksEntryPage = () => {
     },
     {
       field: 'email',
-      headerName: 'Email',
+      headerName: t('email') || 'Email',
       flex: 1,
       minWidth: 200
     },
     {
       field: 'midTerm',
-      headerName: `Mid-Term (${marksDistribution?.midTermExam || 20}%)`,
+      headerName: `${t('mid_term_exam') || 'Mid-Term'} (${marksDistribution?.midTermExam || 20}%)`,
       width: 140,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -519,7 +519,7 @@ const MarksEntryPage = () => {
     },
     {
       field: 'final',
-      headerName: `Final (${marksDistribution?.finalExam || 40}%)`,
+      headerName: `${t('final_exam') || 'Final'} (${marksDistribution?.finalExam || 40}%)`,
       width: 120,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -529,7 +529,7 @@ const MarksEntryPage = () => {
     },
     {
       field: 'homework',
-      headerName: `Homework (${marksDistribution?.homework || 5}%)`,
+      headerName: `${t('homework') || 'Homework'} (${marksDistribution?.homework || 5}%)`,
       width: 140,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -539,7 +539,7 @@ const MarksEntryPage = () => {
     },
     {
       field: 'labs',
-      headerName: `Labs/Projects (${marksDistribution?.labsProjectResearch || 10}%)`,
+      headerName: `${t('labs_projects') || 'Labs/Projects'} (${marksDistribution?.labsProjectResearch || 10}%)`,
       width: 150,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -549,7 +549,7 @@ const MarksEntryPage = () => {
     },
     {
       field: 'quizzes',
-      headerName: `Quizzes (${marksDistribution?.quizzes || 5}%)`,
+      headerName: `${t('quizzes') || 'Quizzes'} (${marksDistribution?.quizzes || 5}%)`,
       width: 120,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -559,7 +559,7 @@ const MarksEntryPage = () => {
     },
     {
       field: RECORD_TYPES.PARTICIPATION,
-      headerName: `Participation (${marksDistribution?.participation || 10}%)`,
+      headerName: `${t('participation') || 'Participation'} (${marksDistribution?.participation || 10}%)`,
       width: 140,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -569,7 +569,7 @@ const MarksEntryPage = () => {
     },
     {
       field: RECORD_TYPES.ATTENDANCE,
-      headerName: `Attendance (${marksDistribution?.attendance || 10}%)`,
+      headerName: `${t('attendance') || 'Attendance'} (${marksDistribution?.attendance || 10}%)`,
       width: 140,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -585,7 +585,7 @@ const MarksEntryPage = () => {
                 e.stopPropagation();
                 handleAttendanceClick();
               }}
-              title="View Attendance (Coming Soon)"
+              title={t('view_attendance_coming_soon') || 'View Attendance (Coming Soon)'}
             />
           </div>
         );
@@ -593,7 +593,7 @@ const MarksEntryPage = () => {
     },
     {
       field: 'total',
-      headerName: 'Total',
+      headerName: t('total') || 'Total',
       width: 100,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -603,7 +603,7 @@ const MarksEntryPage = () => {
     },
     {
       field: 'grade',
-      headerName: 'Grade',
+      headerName: t('grade') || 'Grade',
       width: 100,
       renderCell: (params) => {
         const studentId = params.row.uid || params.row.docId;
@@ -612,14 +612,14 @@ const MarksEntryPage = () => {
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontWeight: 700 }}>{marks.grade}</span>
-            {marks.isRetake && <span style={{ fontSize: '0.75rem', color: '#f59e0b' }}>(Retake)</span>}
+            {marks.isRetake && <span style={{ fontSize: '0.75rem', color: '#f59e0b' }}>({t('retake') || 'Retake'})</span>}
           </div>
         );
       }
     },
     {
       field: 'actions',
-      headerName: 'Actions',
+      headerName: t('actions') || 'Actions',
       width: 300,
       sortable: false,
       filterable: false,
@@ -646,9 +646,9 @@ const MarksEntryPage = () => {
               size="sm"
               icon={getThemedIcon('ui', 'edit', 14, theme)}
               onClick={() => handleEditMarks(student)}
-              title="Edit Marks"
+              title={t('edit_marks') || 'Edit Marks'}
             >
-              Edit
+              {t('edit') || 'Edit'}
             </Button>
             <Button
               variant="ghost"
@@ -723,23 +723,23 @@ const MarksEntryPage = () => {
       case 'sneakpeek':
         return (
           <div style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>Student Overview</h3>
+            <h3 style={{ marginTop: 0 }}>{t('student_overview') || 'Student Overview'}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <strong>Name:</strong> {sideWindowStudent.displayName || sideWindowStudent.email}
+                <strong>{t('name') || 'Name'}:</strong> {sideWindowStudent.displayName || sideWindowStudent.email}
               </div>
               <div>
-                <strong>Email:</strong> {sideWindowStudent.email}
+                <strong>{t('email') || 'Email'}:</strong> {sideWindowStudent.email}
               </div>
               {(() => {
                 const studentId = sideWindowStudent.uid || sideWindowStudent.docId;
                 const marks = studentMarks[studentId];
                 return marks && (
                   <div>
-                    <strong>Current Marks:</strong>
+                    <strong>{t('current_marks') || 'Current Marks'}:</strong>
                     <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <div>Total Score: {marks.totalScore?.toFixed(2) || 0}</div>
-                      <div>Grade: {marks.grade || 'N/A'}</div>
+                      <div>{t('total_score') || 'Total Score'}: {marks.totalScore?.toFixed(2) || 0}</div>
+                      <div>{t('grade') || 'Grade'}: {marks.grade || 'N/A'}</div>
                     </div>
                   </div>
                 );
@@ -851,18 +851,18 @@ const MarksEntryPage = () => {
                   setEditingDistribution(true);
                 }}
               >
-                Configure
+                {t('configure') || 'Configure'}
               </Button>
             </div>
             <div className={styles.distributionGrid}>
-              <div>Mid-Term: {marksDistribution.midTermExam}%</div>
-              <div>Final: {marksDistribution.finalExam}%</div>
-              <div>Homework: {marksDistribution.homework}%</div>
-              <div>Labs/Projects: {marksDistribution.labsProjectResearch}%</div>
-              <div>Quizzes: {marksDistribution.quizzes}%</div>
-              <div>Participation: {marksDistribution.participation}%</div>
-              <div>Attendance: {marksDistribution.attendance}%</div>
-              <div style={{ fontWeight: 600 }}>Total: {(
+              <div>{t('mid_term') || 'Mid-Term'}: {marksDistribution.midTermExam}%</div>
+              <div>{t('final') || 'Final'}: {marksDistribution.finalExam}%</div>
+              <div>{t('homework') || 'Homework'}: {marksDistribution.homework}%</div>
+              <div>{t('labs_projects_research') || 'Labs/Projects/Research'}: {marksDistribution.labsProjectResearch}%</div>
+              <div>{t('quizzes') || 'Quizzes'}: {marksDistribution.quizzes}%</div>
+              <div>{t('participation') || 'Participation'}: {marksDistribution.participation}%</div>
+              <div>{t('attendance') || 'Attendance'}: {marksDistribution.attendance}%</div>
+              <div style={{ fontWeight: 600 }}>{t('total') || 'Total'}: {(
                 (marksDistribution.midTermExam || 0) +
                 (marksDistribution.finalExam || 0) +
                 (marksDistribution.homework || 0) +
@@ -881,13 +881,13 @@ const MarksEntryPage = () => {
         <Card style={{ marginBottom: '1rem', background: '#fef3c7', border: '1px solid #fbbf24' }}>
           <CardBody>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0 }}>Edit Marks Distribution</h3>
+              <h3 style={{ margin: 0 }}>{t('edit_marks_distribution') || 'Edit Marks Distribution'}</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setEditingDistribution(false)}
               >
-                Cancel
+                {t('cancel') || 'Cancel'}
               </Button>
             </div>
             <form onSubmit={async (e) => {
@@ -923,7 +923,7 @@ const MarksEntryPage = () => {
             }} className="dashboard-form">
               <div className="form-row">
                 <Input
-                  label="Mid-Term Exam (%)"
+                  label={`${t('mid_term_exam') || 'Mid-Term Exam'} (%)`}
                   type="number"
                   value={distributionForm.midTermExam}
                   onChange={(e) => setDistributionForm({ ...distributionForm, midTermExam: parseFloat(e.target.value) || 0 })}
@@ -932,7 +932,7 @@ const MarksEntryPage = () => {
                   step={0.5}
                 />
                 <Input
-                  label="Final Exam (%)"
+                  label={`${t('final_exam') || 'Final Exam'} (%)`}
                   type="number"
                   value={distributionForm.finalExam}
                   onChange={(e) => setDistributionForm({ ...distributionForm, finalExam: parseFloat(e.target.value) || 0 })}
@@ -941,7 +941,7 @@ const MarksEntryPage = () => {
                   step={0.5}
                 />
                 <Input
-                  label="Homework (%)"
+                  label={`${t('homework') || 'Homework'} (%)`}
                   type="number"
                   value={distributionForm.homework}
                   onChange={(e) => setDistributionForm({ ...distributionForm, homework: parseFloat(e.target.value) || 0 })}
@@ -950,7 +950,7 @@ const MarksEntryPage = () => {
                   step={0.5}
                 />
                 <Input
-                  label="Labs/Projects/Research (%)"
+                  label={`${t('labs_projects_research') || 'Labs/Projects/Research'} (%)`}
                   type="number"
                   value={distributionForm.labsProjectResearch}
                   onChange={(e) => setDistributionForm({ ...distributionForm, labsProjectResearch: parseFloat(e.target.value) || 0 })}
@@ -959,7 +959,7 @@ const MarksEntryPage = () => {
                   step={0.5}
                 />
                 <Input
-                  label="Quizzes (%)"
+                  label={`${t('quizzes') || 'Quizzes'} (%)`}
                   type="number"
                   value={distributionForm.quizzes}
                   onChange={(e) => setDistributionForm({ ...distributionForm, quizzes: parseFloat(e.target.value) || 0 })}
@@ -968,7 +968,7 @@ const MarksEntryPage = () => {
                   step={0.5}
                 />
                 <Input
-                  label="Participation (%)"
+                  label={`${t('participation') || 'Participation'} (%)`}
                   type="number"
                   value={distributionForm.participation}
                   onChange={(e) => setDistributionForm({ ...distributionForm, participation: parseFloat(e.target.value) || 0 })}
@@ -977,7 +977,7 @@ const MarksEntryPage = () => {
                   step={0.5}
                 />
                 <Input
-                  label="Attendance (%)"
+                  label={`${t('attendance') || 'Attendance'} (%)`}
                   type="number"
                   value={distributionForm.attendance}
                   onChange={(e) => setDistributionForm({ ...distributionForm, attendance: parseFloat(e.target.value) || 0 })}
@@ -987,7 +987,7 @@ const MarksEntryPage = () => {
                 />
               </div>
               <div style={{ padding: '0.75rem', background: 'var(--background)', borderRadius: '8px', marginBottom: '0.75rem' }}>
-                <strong>Total: {(
+                <strong>{t('total') || 'Total'}: {(
                   (distributionForm.midTermExam || 0) +
                   (distributionForm.finalExam || 0) +
                   (distributionForm.homework || 0) +
@@ -1006,7 +1006,7 @@ const MarksEntryPage = () => {
                   (distributionForm.attendance || 0)
                 ) - 100) > 0.01 && (
                   <p style={{ color: '#dc2626', margin: '0.5rem 0 0 0', fontSize: '0.875rem' }}>
-                    Total must equal 100%
+                    {t('total_must_equal_100') || 'Total must equal 100%'}
                   </p>
                 )}
               </div>
@@ -1024,7 +1024,7 @@ const MarksEntryPage = () => {
                     (distributionForm.attendance || 0)
                   ) - 100) > 0.01}
                 >
-                  {loading ? 'Saving...' : 'Save Distribution'}
+                  {loading ? (t('saving') || 'Saving...') : (t('save_distribution') || 'Save Distribution')}
                 </Button>
               </div>
             </form>
@@ -1045,8 +1045,8 @@ const MarksEntryPage = () => {
                     autoHeight
                     showExportButton
                     exportFileName="marks"
-                    exportLabel="Export"
-                    loadingOverlayMessage={loading ? "Loading student marks..." : undefined}
+                    exportLabel={t('export') || 'Export'}
+                    loadingOverlayMessage={loading ? (t('loading_student_marks') || "Loading student marks...") : undefined}
                     fancyVariant="dots"
                     // Add row selection and other props
                     checkboxSelection={false}
@@ -1060,7 +1060,7 @@ const MarksEntryPage = () => {
                     components={{
                       NoRowsOverlay: () => (
                           <div style={{ padding: '16px' }}>
-                            No students found
+                            {t('no_students_found') || 'No students found'}
                           </div>
                       ),
                     }}
@@ -1075,12 +1075,12 @@ const MarksEntryPage = () => {
                 />
             ) : (
               <div className={styles.emptyState}>
-                No students enrolled in this class.
+                {t('no_students_enrolled') || 'No students enrolled in this class.'}
               </div>
             )
           ) : (
             <div className={styles.emptyState}>
-              Please select a program, subject, and class to view and enter marks.
+              {t('select_program_subject_class') || 'Please select a program, subject, and class to view and enter marks.'}
             </div>
           )}
         </CardBody>
@@ -1091,12 +1091,12 @@ const MarksEntryPage = () => {
         <Modal
           isOpen={showModal}
           onClose={handleCloseModal}
-          title={`Enter Marks: ${editingStudent.displayName || editingStudent.email}`}
+          title={`${t('enter_marks') || 'Enter Marks'}: ${editingStudent.displayName || editingStudent.email}`}
         >
           <form onSubmit={handleSubmit} className={`${styles.form} dashboard-form`}>
             <div className={`${styles.marksGrid} form-row`}>
               <Input
-                label={`Mid-Term Exam (${marksDistribution.midTermExam}%)`}
+                label={`${t('mid_term_exam') || 'Mid-Term Exam'} (${marksDistribution.midTermExam}%)`}
                 type="number"
                 value={formData.midTermExam}
                 onChange={(e) => setFormData({ ...formData, midTermExam: parseFloat(e.target.value) || 0 })}
@@ -1105,7 +1105,7 @@ const MarksEntryPage = () => {
                 step={0.5}
               />
               <Input
-                label={`Final Exam (${marksDistribution.finalExam}%)`}
+                label={`${t('final_exam') || 'Final Exam'} (${marksDistribution.finalExam}%)`}
                 type="number"
                 value={formData.finalExam}
                 onChange={(e) => setFormData({ ...formData, finalExam: parseFloat(e.target.value) || 0 })}
@@ -1114,7 +1114,7 @@ const MarksEntryPage = () => {
                 step={0.5}
               />
               <Input
-                label={`Homework (${marksDistribution.homework}%)`}
+                label={`${t('homework') || 'Homework'} (${marksDistribution.homework}%)`}
                 type="number"
                 value={formData.homework}
                 onChange={(e) => setFormData({ ...formData, homework: parseFloat(e.target.value) || 0 })}
@@ -1123,7 +1123,7 @@ const MarksEntryPage = () => {
                 step={0.5}
               />
               <Input
-                label={`Labs/Projects (${marksDistribution.labsProjectResearch}%)`}
+                label={`${t('labs_projects') || 'Labs/Projects'} (${marksDistribution.labsProjectResearch}%)`}
                 type="number"
                 value={formData.labsProjectResearch}
                 onChange={(e) => setFormData({ ...formData, labsProjectResearch: parseFloat(e.target.value) || 0 })}
@@ -1132,7 +1132,7 @@ const MarksEntryPage = () => {
                 step={0.5}
               />
               <Input
-                label={`Quizzes (${marksDistribution.quizzes}%)`}
+                label={`${t('quizzes') || 'Quizzes'} (${marksDistribution.quizzes}%)`}
                 type="number"
                 value={formData.quizzes}
                 onChange={(e) => setFormData({ ...formData, quizzes: parseFloat(e.target.value) || 0 })}
@@ -1141,7 +1141,7 @@ const MarksEntryPage = () => {
                 step={0.5}
               />
               <Input
-                label={`Participation (${marksDistribution.participation}%)`}
+                label={`${t('participation') || 'Participation'} (${marksDistribution.participation}%)`}
                 type="number"
                 value={formData.participation}
                 onChange={(e) => setFormData({ ...formData, participation: parseFloat(e.target.value) || 0 })}
@@ -1150,7 +1150,7 @@ const MarksEntryPage = () => {
                 step={0.5}
               />
               <Input
-                label={`Attendance (${marksDistribution.attendance}%)`}
+                label={`${t('attendance') || 'Attendance'} (${marksDistribution.attendance}%)`}
                 type="number"
                 value={formData.attendance}
                 onChange={(e) => setFormData({ ...formData, attendance: parseFloat(e.target.value) || 0 })}
@@ -1162,7 +1162,7 @@ const MarksEntryPage = () => {
 
             <div className={styles.totalScore}>
               {getThemedIcon('ui', 'award', 20, theme)}
-              <span>Calculated Total Score:</span>
+              <span>{t('calculated_total_score') || 'Calculated Total Score'}:</span>
               <strong>{calculateTotalScore().toFixed(2)}</strong>
               <span>/ 100</span>
             </div>
@@ -1173,7 +1173,7 @@ const MarksEntryPage = () => {
                 variant="ghost"
                 onClick={handleCloseModal}
               >
-                Cancel
+                {t('cancel') || 'Cancel'}
               </Button>
               <Button
                 type="submit"
@@ -1181,7 +1181,7 @@ const MarksEntryPage = () => {
                 icon={getThemedIcon('ui', 'save', 18, theme)}
                 disabled={loading}
               >
-                {loading ? 'Saving...' : 'Save Marks'}
+                {loading ? (t('saving') || 'Saving...') : (t('save_marks') || 'Save Marks')}
               </Button>
             </div>
           </form>
@@ -1192,10 +1192,10 @@ const MarksEntryPage = () => {
       <CollapsibleSideWindow
         isOpen={sideWindowOpen}
         onClose={closeSideWindow}
-        title={sideWindowContent === RECORD_TYPES.BEHAVIOR ? 'Behavior' :
-              sideWindowContent === RECORD_TYPES.PENALTY ? 'Penalties' :
-              sideWindowContent === RECORD_TYPES.PARTICIPATION ? 'Participation' : 'Student Overview'}
-        studentName={sideWindowStudent?.displayName || sideWindowStudent?.email || 'Student'}
+        title={sideWindowContent === RECORD_TYPES.BEHAVIOR ? (t('behavior') || 'Behavior') :
+              sideWindowContent === RECORD_TYPES.PENALTY ? (t('penalties') || 'Penalties') :
+              sideWindowContent === RECORD_TYPES.PARTICIPATION ? (t('participation') || 'Participation') : (t('student_overview') || 'Student Overview')}
+        studentName={sideWindowStudent?.displayName || sideWindowStudent?.email || (t('student') || 'Student')}
         searchable={false}
         initialFilters={sideWindowFilters}
         onSearch={(query, filters) => {

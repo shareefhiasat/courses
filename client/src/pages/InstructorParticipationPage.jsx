@@ -736,7 +736,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
-            Edit
+            {t('edit_participation') || 'Edit'}
           </Button>
           <Button
             size="sm"
@@ -745,7 +745,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
-            Delete
+            {t('delete_participation') || 'Delete'}
           </Button>
         </div>
       )
@@ -928,7 +928,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingParticipation ? 'Update' : 'Save'}
+            {editingParticipation ? (t('update_participation') || 'Update') : (t('save_participation') || 'Save')}
           </Button>
           {editingParticipation && (
             <Button 
@@ -939,7 +939,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                 resetForm();
               }}
             >
-              Cancel Edit
+              {t('cancel') || 'Cancel'} {t('edit_participation') || 'Edit'}
             </Button>
           )}
         </div>
@@ -1140,14 +1140,14 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         }}>
           <Card style={{ maxWidth: '400px', margin: '1rem' }}>
             <CardBody>
-              <h3>Delete Participation</h3>
-              <p>Are you sure you want to delete this participation record?</p>
+              <h3>{t('delete_participation') || 'Delete Participation'}</h3>
+              <p>{t('delete_participation_confirmation') || 'Are you sure you want to delete this participation record?'}</p>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
-                  Cancel
+                  {t('cancel') || 'Cancel'}
                 </Button>
                 <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
-                  Delete
+                  {t('delete_participation') || 'Delete'}
                 </Button>
               </div>
             </CardBody>

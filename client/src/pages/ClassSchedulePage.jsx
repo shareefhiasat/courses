@@ -262,8 +262,8 @@ const ClassSchedulePage = () => {
   if (!isAdmin && !isInstructor) {
     return (
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '2rem', textAlign: 'center' }}>
-        <h2>Access Denied</h2>
-        <p>This page is only accessible to instructors and admins.</p>
+        <h2>{t('access_denied') || 'Access Denied'}</h2>
+        <p>{t('instructor_admin_only') || 'This page is only accessible to instructors and admins.'}</p>
       </div>
     );
   }
@@ -274,7 +274,7 @@ const ClassSchedulePage = () => {
       <Loading 
         variant="overlay" 
         fullscreen 
-        message="Loading class schedules..." 
+        message={t('loading_class_schedules') || 'Loading class schedules...'} 
         fancyVariant="dots" 
       />
     );

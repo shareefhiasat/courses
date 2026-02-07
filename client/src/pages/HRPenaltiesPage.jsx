@@ -468,7 +468,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   };
 
   if (!isHR && !isAdmin && !isSuperAdmin) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Access Denied</div>;
+    return <div style={{ padding: '2rem', textAlign: 'center' }}>{t('access_denied') || 'Access Denied'}</div>;
   }
 
   const filteredClasses = classes.filter(c => {
@@ -495,7 +495,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const columns = [
     {
       field: 'studentName',
-      headerName: 'User',
+      headerName: t('user') || 'User',
       flex: 1,
       minWidth: 200,
       renderCell: (params) => {
@@ -592,7 +592,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'className',
-      headerName: 'Class',
+      headerName: t('class') || 'Class',
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -615,7 +615,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'subjectName',
-      headerName: 'Subject',
+      headerName: t('subject') || 'Subject',
       flex: 1,
       minWidth: 120,
       valueGetter: (params) => {
@@ -635,7 +635,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'type',
-      headerName: 'Type',
+      headerName: t('type') || 'Type',
       width: 180,
       renderCell: (params) => {
         const penaltyType = PENALTY_TYPES.find(pt => pt.id === params.value);
@@ -644,7 +644,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'points',
-      headerName: 'Points',
+      headerName: t('points') || 'Points',
       width: 100,
       valueGetter: (params) => {
         return Number(params.value) || 0;
@@ -668,14 +668,14 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'comment',
-      headerName: 'Comment',
+      headerName: t('comment') || 'Comment',
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => params.value || '—'
     },
     {
       field: 'createdAt',
-      headerName: 'Date',
+      headerName: t('date') || 'Date',
       width: 150,
       valueGetter: (params) => {
         // Debug logging for date investigation
@@ -730,7 +730,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     ...(hideActions ? [] : [{
       field: 'actions',
-      headerName: 'Actions',
+      headerName: t('actions') || 'Actions',
       width: 200,
       sortable: false,
       filterable: false,
@@ -743,7 +743,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onClick={() => window.open(`/student-profile/${params.row.studentId}`, '_blank')}
             style={{ color: 'var(--attendance-accent, #800020)' }}
           >
-            Profile
+            {t('profile') || 'Profile'}
           </Button>
           <Button
             size="sm"
@@ -751,7 +751,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
-            Edit
+            {t('edit') || 'Edit'}
           </Button>
           <Button
             size="sm"
@@ -760,7 +760,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
-            Delete
+            {t('delete') || 'Delete'}
           </Button>
         </div>
       )
@@ -784,7 +784,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} Editing Penalty: {PENALTY_TYPES.find(pt => pt.id === editingPenalty.type)?.label_en || editingPenalty.type}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_penalty', { penaltyType: PENALTY_TYPES.find(pt => pt.id === editingPenalty.type)?.label_en || editingPenalty.type }) || `Editing Penalty: ${PENALTY_TYPES.find(pt => pt.id === editingPenalty.type)?.label_en || editingPenalty.type}`}
         </div>
       )}
 
@@ -796,7 +796,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             value={formData.classId}
             onChange={(e) => setFormData({ ...formData, classId: e.target.value, studentId: '' })}
             options={[
-              { value: '', label: 'Select Class' },
+              { value: '', label: t('select_class') || 'Select Class' },
               ...filteredClasses.map(c => ({
                 value: c.id || c.docId,
                 label: `${c.name || c.code || c.id}${c.term ? ` (${c.term}${c.year ? ` ${c.year}` : ''}${c.semester ? ` ${c.semester}` : ''})` : ''}`
@@ -836,7 +836,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   
                   return {
                     value: u.docId || u.id,
-                    displayLabel: u.displayName || u.realName || u.email || 'Unknown',
+                    displayLabel: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown'),
                     label: (
                       <div style={{ 
                         display: 'flex', 
@@ -849,7 +849,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                           textDecoration: isDisabled ? 'line-through' : 'none',
                           flex: 1
                         }}>
-                          {u.displayName || u.realName || u.email || 'Unknown'}
+                          {u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')}
                         </span>
                         <span style={{ 
                           fontSize: '0.8em',
@@ -873,7 +873,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             options={[
-              { value: '', label: 'Select Type' },
+              { value: '', label: t('select_type') || 'Select Type' },
               ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
             ]}
             placeholder={t('select_penalty_type')}
@@ -891,7 +891,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <Textarea
             value={formData.comment}
             onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-            placeholder="Comment (optional)"
+            placeholder={t('comment_optional') || 'Comment (optional)'}
             rows={3}
           />
         </div>
@@ -909,13 +909,13 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               value: i - 10,
               label: `${i - 10 > 0 ? '+' : ''}${i - 10}`
             }))}
-            placeholder="Points"
+            placeholder={t('points') || 'Points'}
             searchable={false}
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingPenalty ? 'Update' : 'Save'}
+            {editingPenalty ? (t('update') || 'Update') : (t('save') || 'Save')}
           </Button>
           {editingPenalty && (
             <Button 
@@ -926,7 +926,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 resetForm();
               }}
             >
-              Cancel Edit
+              {t('cancel_edit') || 'Cancel Edit'}
             </Button>
           )}
         </div>
@@ -945,13 +945,13 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               setClassFilter('all');
             }}
             options={[
-              { value: 'all', label: 'All Programs' },
+              { value: 'all', label: t('all_programs') || 'All Programs' },
               ...programs.map(p => ({
                 value: p.docId || p.id,
                 label: p.name_en || p.name_ar || p.code || p.docId
               }))
             ]}
-            placeholder="Program"
+            placeholder={t('program') || 'Program'}
           />
           <Select
             searchable
@@ -961,7 +961,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               setClassFilter('all');
             }}
             options={[
-              { value: 'all', label: 'All Subjects' },
+              { value: 'all', label: t('all_subjects') || 'All Subjects' },
               ...subjects
                 .filter(s => programFilter === 'all' || s.programId === programFilter)
                 .map(s => ({
@@ -969,29 +969,29 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim()
                 }))
             ]}
-            placeholder="Subject"
+            placeholder={t('subject') || 'Subject'}
           />
           <Select
             searchable
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
             options={[
-              { value: 'all', label: 'All Classes' },
+              { value: 'all', label: t('all_classes') || 'All Classes' },
               ...filteredClasses.map(c => ({
                 value: c.id || c.docId,
                 label: `${c.name || c.code || c.id}${c.term ? ` (${c.term}${c.year ? ` ${c.year}` : ''}${c.semester ? ` ${c.semester}` : ''})` : ''}`
               }))
             ]}
-            placeholder="Class"
+            placeholder={t('class') || 'Class'}
           />
           <Select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             options={[
-              { value: 'all', label: 'All Types' },
+              { value: 'all', label: t('all_types') || 'All Types' },
               ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
             ]}
-            placeholder="Type"
+            placeholder={t('type') || 'Type'}
           />
         </div>
       </div>
@@ -1011,7 +1011,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'alert_circle', 16, theme)}
-          {penalties.length} Total
+          {t('total') || 'Total'} {penalties.length}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1026,7 +1026,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'users', 16, theme)}
-          {new Set(penalties.map(p => p.studentId)).size} Students
+          {new Set(penalties.map(p => p.studentId)).size} {t('students') || 'Students'}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1041,7 +1041,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#166534'
         }}>
           {getThemedIcon('ui', 'trending_up', 16, theme)}
-          {penalties.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} Positive
+          {penalties.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('positive') || 'Positive'}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1056,7 +1056,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'trending_down', 16, theme)}
-          {penalties.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} Negative
+          {penalties.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('negative') || 'Negative'}
         </div>
       </div>
 
@@ -1070,8 +1070,8 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           disableRowSelectionOnClick
           exportFileName="penalties"
           showExportButton
-          exportLabel="Export"
-          loadingOverlayMessage={loading ? "Loading penalties..." : undefined}
+          exportLabel={t('export') || 'Export'}
+          loadingOverlayMessage={loading ? (t('loading_penalties') || "Loading penalties...") : undefined}
           fancyVariant="dots"
         />
       </div>
@@ -1091,14 +1091,14 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         }}>
           <Card style={{ maxWidth: '400px', margin: '1rem' }}>
             <CardBody>
-              <h3>Delete Penalty</h3>
-              <p>Are you sure you want to delete this penalty? A notification will be sent to the student.</p>
+              <h3>{t('delete_penalty') || 'Delete Penalty'}</h3>
+              <p>{t('delete_penalty_confirmation') || 'Are you sure you want to delete this penalty? A notification will be sent to the student.'}</p>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
-                  Cancel
+                  {t('cancel') || 'Cancel'}
                 </Button>
                 <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
-                  Delete
+                  {t('delete') || 'Delete'}
                 </Button>
               </div>
             </CardBody>

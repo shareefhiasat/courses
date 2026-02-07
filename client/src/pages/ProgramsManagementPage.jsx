@@ -151,7 +151,7 @@ const ProgramsManagementPage = () => {
 
 
   if (authLoading) {
-    return <Loading variant="overlay" message="Loading..." fancyVariant="dots" />;
+    return <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
 
   if (!isAdmin && !isSuperAdmin) {
@@ -246,7 +246,7 @@ const ProgramsManagementPage = () => {
                 resetForm();
               }}
             >
-              {t('cancel') || 'Cancel'} Edit
+              {t('cancel') || 'Cancel'}
             </Button>
           )}
         </div>
@@ -324,8 +324,8 @@ const ProgramsManagementPage = () => {
             checkboxSelection
             exportFileName="programs"
             showExportButton
-            exportLabel="Export"
-            loadingOverlayMessage={loading ? "Loading programs..." : undefined}
+            exportLabel={t('export') || 'Export'}
+            loadingOverlayMessage={loading ? (t('loading_programs') || "Loading programs...") : undefined}
             fancyVariant="dots"
         />
       </div>
