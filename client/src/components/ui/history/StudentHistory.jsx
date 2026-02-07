@@ -5,6 +5,7 @@ import { HistoryEntry } from './HistoryEntry';
 import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon } from '@utils/icons.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
+import { formatLocalizedDate } from '@utils/date';
 
 const StudentHistory = React.memo(({ 
   groupedLogs, 
@@ -24,13 +25,7 @@ const StudentHistory = React.memo(({
   console.log('🔧 StudentHistory activeFilters:', activeFilters);
   
   return groupedLogs.map((dayGroup, dayIndex) => {
-    const dateObj = new Date(dayGroup.date);
-    const dateStr = dateObj.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-    
+    const dateStr = formatLocalizedDate(dayGroup.date, t);
     const isDayExpanded = expandedDays.has(dayGroup.date);
     const filteredCounts = {
       attendance: activeFilters.attendance ? dayGroup.attendance.length : 0,

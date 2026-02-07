@@ -737,7 +737,7 @@ export default function StudentDashboardPage() {
                       };
                     })
                   ]}
-                  placeholder={t('select_user') || "Select User"}
+                  placeholder={t('select_user') || 'Select User'}
                   style={{ minWidth: 250 }}
                 />
               )}

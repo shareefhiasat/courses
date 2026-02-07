@@ -462,7 +462,7 @@ const DashboardPage = () => {
     try {
       const studentNumber = user.studentNumber;
       if (!studentNumber) {
-        toast?.showError('Student number is required to generate QR code');
+        toast?.showError(t('student_number_required_qr') || 'Student number is required to generate QR code');
         return;
       }
       
@@ -481,7 +481,7 @@ const DashboardPage = () => {
           </head>
           <body>
             <div class="card">
-              <img src="${qrDataUrl}" alt="QR Code" />
+              <img src="${qrDataUrl}" alt="${t('qr_code') || 'QR Code'}" />
               <h1>${user.displayName || user.name}</h1>
               <p>${user.email || ''}</p>
               <div class="ref">${studentNumber}</div>
@@ -491,7 +491,7 @@ const DashboardPage = () => {
       `);
     } catch (error) {
       logger.error('Failed to open QR code:', error);
-      toast?.showError('Failed to generate QR code');
+      toast?.showError(t('failed_to_generate_qr') || 'Failed to generate QR code');
     }
   };
 
@@ -5630,17 +5630,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     onChange={(checked) => setResourceForm({ ...resourceForm, optional: checked })}
                   />
                   <ToggleSwitch
-                    label="Featured Resource"
+                    label={t('featured_resource') || 'Featured Resource'}
                     checked={resourceForm.featured}
                     onChange={(checked) => setResourceForm({ ...resourceForm, featured: checked })}
                   />
                   <ToggleSwitch
-                    label="Send email notification"
+                    label={t('send_email_notification') || 'Send email notification'}
                     checked={resourceEmailOptions.sendEmail}
                     onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, sendEmail: checked })}
                   />
                   <ToggleSwitch
-                    label="Create announcement (bell notification)"
+                    label={t('create_announcement') || 'Create announcement (bell notification)'}
                     checked={resourceEmailOptions.createAnnouncement}
                     onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, createAnnouncement: checked })}
                   />
@@ -6241,7 +6241,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       setEditingCourse(null);
                     }}
                   >
-                    Cancel
+                    {t('cancel') || 'Cancel'}
                   </Button>
                 )}
               </div>
@@ -6462,7 +6462,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       setNewPassword('');
                     }}
                   >
-                    Cancel
+                    {t('cancel') || 'Cancel'}
                   </Button>
                   <Button type="submit" variant="primary">
                     Set Password
@@ -6592,7 +6592,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               )}
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null })}>
-                  Cancel
+                  {t('cancel') || 'Cancel'}
                 </Button>
                 <Button variant="primary" onClick={deleteModal.onConfirm || (() => {})} loading={loading} style={{ backgroundColor: '#dc2626' }}>
                   Delete
@@ -6607,18 +6607,18 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       <Modal
         isOpen={testEmailDialogOpen}
         onClose={() => setTestEmailDialogOpen(false)}
-        title="Test Email Configuration"
+        title={t('test_email_configuration') || 'Test Email Configuration'}
       >
         <div style={{ padding: '1rem' }}>
           <p style={{ marginBottom: '1rem', color: 'var(--text-muted, #666)' }}>
-            Send a test email to verify your SMTP configuration is working correctly.
+            {t('send_test_email_description') || 'Send a test email to verify your SMTP configuration is working correctly.'}
           </p>
           <Input
-            label="Email Address"
+            label={t('email_address') || 'Email Address'}
             type="email"
             value={testEmailAddress}
             onChange={(e) => setTestEmailAddress(e.target.value)}
-            placeholder="Enter email address to send test to"
+            placeholder={t('enter_email_address_test') || 'Enter email address to send test to'}
             fullWidth
             style={{ marginBottom: '1rem' }}
           />
@@ -6627,7 +6627,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               variant="outline"
               onClick={() => setTestEmailDialogOpen(false)}
             >
-              Cancel
+              {t('cancel') || 'Cancel'}
             </Button>
             <Button
               variant="success"

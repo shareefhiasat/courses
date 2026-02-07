@@ -9,6 +9,9 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getAttendanceByStudent, rosterQuickAction } from '@firebaseServices/attendanceService';
+import { getPenalties } from '@firebaseServices/penaltyService';
+import { getParticipations } from '@firebaseServices/participationService';
+import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviorService';
 import { CheckSmallIcon, ClockSmallIcon } from '@utils/icons.jsx';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
@@ -19,6 +22,7 @@ import { getBehaviorLabel } from '@constants/behaviorTypes';
 import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getFavoriteStudents } from '@firebaseServices/userPreferenceService';
+import { getUserProfile } from '@firebaseServices/userService';
 import StudentHistory from '@ui/history';
 import StudentRosterHistory from '@ui/history/StudentRosterHistory';
 import DeleteModal from '@ui/history/DeleteModal';
@@ -132,11 +136,10 @@ const StudentRoster = React.memo(function StudentRoster({
             comment: record.reason || record.notes || '',
             color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
             status: record.status,  // ← Clean: only the status field
-            // Add user information
-            markedBy: record.markedBy,
-            performedBy: record.performedBy,
-            performedByName: record.performedByName,
-            performedByEmail: record.performedByEmail
+            // Add user information - map markedBy fields to performedBy fields for consistency
+            performedBy: record.markedBy,
+            performedByName: record.markedByName || record.performedByName,
+            performedByEmail: record.markedByEmail || record.performedByEmail
           };
 
           logger.debug('Processing attendance record:', {
@@ -145,9 +148,13 @@ const StudentRoster = React.memo(function StudentRoster({
             category: record.category,
             delta: record.delta,
             markedBy: record.markedBy,
+            markedByName: record.markedByName,
+            markedByEmail: record.markedByEmail,
             performedBy: record.performedBy,
+            performedByName: record.performedByName,
             resultingType: logEntry.type,
-            resultingLabel: logEntry.label
+            resultingLabel: logEntry.label,
+            finalPerformedByName: logEntry.performedByName
           });
 
           return logEntry;
@@ -563,12 +570,34 @@ const StudentRoster = React.memo(function StudentRoster({
     if (!student || !status || !selectedClassId) return;
     
     try {
+      // Get user profile to get proper display name
+      const userProfile = await getUserProfile(user);
+      const displayName = userProfile?.displayName || userProfile?.name || user?.displayName || user?.email || 'Unknown';
+      
+      // Debug: Log user objects to see what data is available
+      console.log('🔧 User objects:', {
+        authUser: {
+          uid: user?.uid,
+          displayName: user?.displayName,
+          email: user?.email,
+          photoURL: user?.photoURL
+        },
+        userProfile: userProfile,
+        finalDisplayName: displayName
+      });
+      
+      // Create enhanced user object with proper display name
+      const enhancedUser = {
+        ...user,
+        displayName: displayName
+      };
+      
       // Use the dedicated roster quick action method
       const result = await rosterQuickAction(
         student.id,
         selectedClassId,
         status,
-        user,
+        enhancedUser,
         `Quick ${getAttendanceLabel(status, lang)}`
       );
 
@@ -1002,7 +1031,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     userSelect: 'none'
                   }}
                 >
-                  {t('todays_attendance') || "Today's Attendance"} {getSortIcon(RECORD_TYPES.ATTENDANCE)}
+                  {t('todays_attendance') || "TODAY"} {getSortIcon(RECORD_TYPES.ATTENDANCE)}
                 </th>
                 <th 
                   onClick={() => onSort('participation')}
@@ -1111,7 +1140,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  Excused Leave
+                  {t('excused_leave') || 'Excused Leave'}
                 </th>
                 <th style={{
                   textAlign: 'center',
@@ -1123,7 +1152,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   letterSpacing: '0.05em',
                   width: '80px'
                 }}>
-                  Humanitarian
+                  {t('human') || 'Human'}
                 </th>
                 <th style={{
                   textAlign: 'center',

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatLocalizedDate } from '@utils/date';
 
 export const HistoryDayHeader = ({ 
   dateStr, 

@@ -351,7 +351,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     tools: {
       label: t('tools') || 'TOOLS',
       items: [
-        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: (t('timer') || 'Timer').charAt(0).toUpperCase() + (t('timer') || 'Timer').slice(1) }
+        { key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: t('timer') || 'Timer' }
       ]
     },
     settings: {
@@ -550,7 +550,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
             >
               <button
                 onClick={() => setIsHovering(true)}
-                title={t('expand') || 'Expand Drawer'}
+                title={t('expand') || 'Expand'}
                 style={{
                   position: 'absolute',
                   top: 12,

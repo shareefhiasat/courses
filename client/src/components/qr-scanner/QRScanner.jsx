@@ -148,6 +148,28 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera API not available in this browser. Please try using a modern browser like Chrome, Firefox, or Safari.');
       }
+      
+      // Debug: Log attendance status processing
+      logger.debug('[QR Scanner] Processing attendance record #' + index + ':', {
+        studentId,
+        studentName,
+        status: record.status,
+        category: record.category,
+        delta: recordPoints,
+        date: record.date
+      });
+      
+      // Check if status is defined
+      if (!record.status) {
+        logger.warn('[QR Scanner] Attendance record has no status:', record);
+        return;
+      }
+      
+      // Check if status exists in constants
+      if (!ATTENDANCE_STATUS[record.status]) {
+        logger.warn('[QR Scanner] Unknown attendance status:', record.status);
+        return;
+      }
 
       // Request camera access with appropriate constraints
       const constraints = getCameraConstraints(isMobile, cameraMode);
