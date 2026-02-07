@@ -36,6 +36,7 @@ import CategoriesPage from './CategoriesPage';
 import AnnouncementsPage from './AnnouncementsPage';
 import ResourcesPage from './ResourcesPage';
 import ClassesPage from './ClassesPage';
+import UsersPage from './UsersPage';
 import { 
   getResourceTypeConfig, 
   getResourceTypeOptions, 
@@ -62,12 +63,10 @@ import { getUserDisplayName } from '@firebaseServices/userService';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';
 import { ToggleSwitch } from '@ui';
-
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();
   const { lang, setLang, t } = useLang();
   const { theme } = useTheme();
-  
   // Memoized helper function for theme-aware filter icon colors
   const getFilterIconColor = useCallback(() => {
     return getThemeColor('text.secondary', theme);
@@ -87,7 +86,6 @@ const DashboardPage = () => {
       }
     }
   }, [lang]);
-
   // Build localized tour steps when language changes
   useEffect(() => {
     const steps = [
@@ -128,7 +126,6 @@ const DashboardPage = () => {
   };
   // Joyride dashboard tour state
   const tourSeenKey = `dashboardHelpSeen_${lang}`;
-
   // Build tour steps localization (based on current language)
   useEffect(() => {
     const steps = [
@@ -159,7 +156,6 @@ const DashboardPage = () => {
     ];
     setTourSteps(steps);
   }, [lang]);
-
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('dashboardActiveTab') || 'activities';
     return saved === 'courses' ? 'categories' : saved;
@@ -203,36 +199,29 @@ const DashboardPage = () => {
   const [activityAutoRefreshMs, setActivityAutoRefreshMs] = useState(0);
   const [activityLastUpdatedAt, setActivityLastUpdatedAt] = useState(Date.now());
   const [activityNowTick, setActivityNowTick] = useState(Date.now());
-
   const handleTabChange = useCallback((tab, { source = 'user', shouldEmit = true } = {}) => {
     if (!tab) {
       return;
     }
-
     // Check if this tab has a path (external navigation)
     const tabItem = ribbonCategories
       .flatMap(cat => cat.items)
       .find(item => item.key === tab);
-
     if (tabItem?.path) {
       navigate(tabItem.path);
       return;
     }
-
     setActiveTab(tab);
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
-
     // Tabs that should update the URL with query parameters
     const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'emailLogs', 'scheduled-reports', 'categories', 'login'];
-
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
       const newSearch = `?${searchParams.toString()}`;
       const nextUrl = `${location.pathname}${newSearch}`;
       const currentUrl = `${location.pathname}${location.search}`;
-
       if (currentUrl !== nextUrl) {
           logger.debug('URL changed', {
           nextUrl,
@@ -251,7 +240,6 @@ const DashboardPage = () => {
         'marks': '#marks',
         'classschedule': '#classschedule'
       };
-
       if (tabToHashMap[tab]) {
         const hashTarget = `${location.pathname}${tabToHashMap[tab]}`;
         navigate(hashTarget, { replace: true, state: { __source: 'dashboard-tab-hash', __from: source } });
@@ -259,7 +247,6 @@ const DashboardPage = () => {
         navigate(location.pathname, { replace: true, state: { __source: 'dashboard-tab-clear', __from: source } });
       }
     }
-
     if (shouldEmit) {
       window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab, source: 'dashboard-page' } }));
     } else {
@@ -269,33 +256,26 @@ const DashboardPage = () => {
       });
     }
   }, [navigate, location, t]);
-
   const latestHandleTabChange = useRef(handleTabChange);
   useEffect(() => {
     latestHandleTabChange.current = handleTabChange;
   }, [handleTabChange]);
-
   // Listen for external tab change events (from sidebar/other modules)
   useEffect(() => {
     const handleTabChangeEvent = (e) => {
       const eventTab = e.detail?.tab;
       const eventSource = e.detail?.source || 'external';
-
       if (!eventTab) {
         return;
       }
-
       if (eventSource === 'dashboard-page') {
         return;
       }
-
       latestHandleTabChange.current?.(eventTab, { source: `event:${eventSource}`, shouldEmit: false });
     };
-
     window.addEventListener('dashboard-tab-change', handleTabChangeEvent);
     return () => window.removeEventListener('dashboard-tab-change', handleTabChangeEvent);
   }, [latestHandleTabChange]);
-
   const categories = [
     { id: 'content', label: t('content') },
     { id: 'users', label: t('users') },
@@ -303,7 +283,6 @@ const DashboardPage = () => {
     { id: 'communication', label: t('communication') },
     { id: 'settings', label: t('settings') },
   ];
-
   const ribbonCategories = [
     {
       id: 'content',
@@ -358,8 +337,6 @@ const DashboardPage = () => {
       ]
     }
   ];
-
-
   // Initialize tour steps (localization-aware)
   useEffect(() => {
     const steps = [
@@ -390,7 +367,6 @@ const DashboardPage = () => {
     ];
     setTourSteps(steps);
   }, [lang]);
-
   // Auto-start on demand via app event in HomePage (optional)
   useEffect(() => {
     const start = () => setRunTour(true);
@@ -401,16 +377,12 @@ const DashboardPage = () => {
       window.removeEventListener('app:help', start);
     };
   }, []);
-
-
-  
   // Progress ticker for Activity auto refresh bar
   useEffect(() => {
     if (!activityAutoRefreshMs || activeTab !== 'login') return;
     const id = setInterval(() => setActivityNowTick(Date.now()), 250);
     return () => clearInterval(id);
   }, [activityAutoRefreshMs, activeTab]);
-
   // Validation functions
   const validateActivityForm = () => {
     const errors = {};
@@ -420,16 +392,13 @@ const DashboardPage = () => {
     if (activityForm.type !== 'quiz' && (!activityForm.url || !activityForm.url.trim())) {
       errors.url = 'URL is required';
     }
-
     // Check if ID already exists (for new activities)
     if (!editingActivity && activities.some(a => a.id === activityForm.id)) {
       errors.id = 'Activity ID already exists';
     }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
   // Edit handlers
   const handleEditActivity = useCallback((activity) => {
     setEditingActivity(activity);
@@ -449,7 +418,6 @@ const DashboardPage = () => {
     };
     setActivityForm(formData);
   }, []);
-
   const handleCancelEdit = useCallback(() => {
     setEditingActivity(null);
     setActivityForm({
@@ -460,7 +428,6 @@ const DashboardPage = () => {
     });
     setFormErrors({});
   }, []);
-
   // QR Code generation function for users
   const openQRCodeInNewTab = async (user) => {
     try {
@@ -469,9 +436,7 @@ const DashboardPage = () => {
         toast?.showError(t('student_number_required_qr') || 'Student number is required to generate QR code');
         return;
       }
-      
       const qrDataUrl = await generateStudentQRCode(studentNumber, { width: 512, margin: 4 });
-      
       const newTab = window.open();
       newTab.document.write(`
         <html>
@@ -498,7 +463,6 @@ const DashboardPage = () => {
       toast?.showError(t('failed_to_generate_qr') || 'Failed to generate QR code');
     }
   };
-
   // Helper function to create role badges with semantic colors
   const getRoleBadge = (role) => {
     return (
@@ -507,7 +471,6 @@ const DashboardPage = () => {
       </Badge>
     );
   };
-
   // Helper function to get actual color values for icons
   const getRoleIconColor = (role) => {
     const colorMap = {
@@ -521,7 +484,6 @@ const DashboardPage = () => {
     const semanticColor = getRoleColor(role);
     return colorMap[semanticColor] || colorMap.default;
   };
-
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
     const roleIconMap = {
@@ -533,7 +495,6 @@ const DashboardPage = () => {
     };
     return roleIconMap[role] || getThemedIcon('ui', 'user', 16, theme);
   };
-
   // Data states
   const [activities, setActivities] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -571,17 +532,14 @@ const DashboardPage = () => {
   const [showUserDeletionModal, setShowUserDeletionModal] = useState(false);
   // Delete confirmation modal
   const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null });
-
   // Derived: filtered activity logs
   const filteredLoginLogs = () => {
     const q = (loginSearch || '').trim().toLowerCase();
     let list = loginLogs.slice();
-
     // Filter by activity type
     if (activityTypeFilter !== 'all') {
       list = list.filter(l => l.type === activityTypeFilter);
     }
-
     if (q) {
       list = list.filter(l =>
         (l.email || '').toLowerCase().includes(q) ||
@@ -616,12 +574,10 @@ const DashboardPage = () => {
     }
     return list;
   };
-
   const filteredSubmissions = useMemo(() => {
     return submissions.filter((s) => {
       if (activityFilter !== 'all' && s.activityId !== activityFilter) return false;
       if (submissionStudentFilter !== 'all' && s.userId !== submissionStudentFilter) return false;
-
       if (submissionStatusFilter !== 'all') {
         const status = s.status || SUBMISSION_STATUS.SUBMITTED;
         if (submissionStatusFilter === 'pending') {
@@ -632,23 +588,18 @@ const DashboardPage = () => {
           if (status !== 'late') return false;
         }
       }
-
       if (submissionScoreFilter === 'graded' && (s.score === null || s.score === undefined)) return false;
       if (submissionScoreFilter === 'not_graded' && (s.score !== null && s.score !== undefined)) return false;
-
       return true;
     });
   }, [submissions, activityFilter, submissionStudentFilter, submissionStatusFilter, submissionScoreFilter]);
-
   // Filter announcements by date
   const filteredAnnouncements = announcements.filter(announcement => {
     if (announcementFilter === 'all') return true;
-
     const createdAt = announcement.createdAt?.seconds ?
       new Date(announcement.createdAt.seconds * 1000) :
       new Date(announcement.createdAt);
     const now = new Date();
-
     switch (announcementFilter) {
       case 'today':
         const isToday = createdAt.toDateString() === now.toDateString();
@@ -666,7 +617,6 @@ const DashboardPage = () => {
         return true;
     }
   });
-
   // Form states
   const [activityForm, setActivityForm] = useState({
     id: '',
@@ -692,7 +642,6 @@ const DashboardPage = () => {
     requiresSubmission: false,
     overrideQuizSettings: false
   });
-
   const [emailOptions, setEmailOptions] = useState({
     sendEmail: false,
     createAnnouncement: false,
@@ -701,7 +650,6 @@ const DashboardPage = () => {
   const [gradingModalOpen, setGradingModalOpen] = useState(false);
   const [gradingSubmission, setGradingSubmission] = useState(null);
   const [gradingScore, setGradingScore] = useState('');
-
   const [announcementForm, setAnnouncementForm] = useState({
     title: '',
     content: '',
@@ -713,7 +661,6 @@ const DashboardPage = () => {
   });
   const [announcementEmailOptions, setAnnouncementEmailOptions] = useState({ sendEmail: false, lang: 'both' });
   const [resourceEmailOptions, setResourceEmailOptions] = useState({ sendEmail: false, createAnnouncement: false });
-
   const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
   const [subjects, setSubjects] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -724,7 +671,6 @@ const DashboardPage = () => {
     programId: '', 
     subjectId: '' 
   });
-  
   // Enrollment form change handlers (normalize both raw values and events)
   const handleEnrollmentProgramChange = (eventOrValue) => {
     const value = eventOrValue && eventOrValue.target ? eventOrValue.target.value : eventOrValue;
@@ -736,7 +682,6 @@ const DashboardPage = () => {
       classId: ''
     }));
   };
-
   const handleEnrollmentSubjectChange = (eventOrValue) => {
     const value = eventOrValue && eventOrValue.target ? eventOrValue.target.value : eventOrValue;
     const newSubjectId = value != null ? String(value) : '';
@@ -760,7 +705,6 @@ const DashboardPage = () => {
   const [activeAnnouncementFormTab, setActiveAnnouncementFormTab] = useState('basic');
   const [activeClassFormTab, setActiveClassFormTab] = useState('basic');
   const [activeResourceFormTab, setActiveResourceFormTab] = useState('basic');
-
   const [resourceForm, setResourceForm] = useState({
     title: '',
     description: '',
@@ -774,14 +718,12 @@ const DashboardPage = () => {
     classId: '',
     courseId: ''
   });
-
   // ========== MEMOIZED DROPDOWN OPTIONS ==========
   // Helper function to ensure value is always a string
   const ensureString = (val) => {
     if (val === null || val === undefined) return '';
     return String(val);
   };
-
   // Helper function to handle dropdown changes
   const handleDropdownChange = (setter, field, resetFields = []) => (e) => {
     // Handle both event objects and direct values
@@ -791,16 +733,13 @@ const DashboardPage = () => {
         ...prev, 
         [field]: value || ''
       };
-      
       // Reset dependent fields if needed
       resetFields.forEach(f => { 
         update[f] = ''; 
       });
-      
       return update;
     });
   };
-
   // Activity Form - Program Options
   const activityProgramOptions = useMemo(() => {
     const opts = [
@@ -817,7 +756,6 @@ const DashboardPage = () => {
       });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
-
   // Activity Form - Subject Options
   const activitySubjectOptions = useMemo(() => {
     const opts = [
@@ -840,7 +778,6 @@ const DashboardPage = () => {
       });
     return [...opts, ...validSubjects];
   }, [subjects, activityForm.programId, lang, t]);
-
   // Activity Form - Class Options
   const activityClassOptions = useMemo(() => {
     const opts = [
@@ -862,7 +799,6 @@ const DashboardPage = () => {
       });
     return [...opts, ...validClasses];
   }, [classes, activityForm.subjectId, lang, t]);
-
   // Enrollment Form - Program Options
   const enrollmentProgramOptions = useMemo(() => {
     const opts = [
@@ -877,7 +813,6 @@ const DashboardPage = () => {
     });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
-
   // Enrollment Form - Subject Options
   const enrollmentSubjectOptions = useMemo(() => {
     const opts = [
@@ -899,7 +834,6 @@ const DashboardPage = () => {
       });
     return [...opts, ...validSubjects];
   }, [subjects, enrollmentForm.programId, lang, t]);
-
   // Enrollment Form - Class Options
   const enrollmentClassOptions = useMemo(() => {
     const opts = [
@@ -932,7 +866,6 @@ const DashboardPage = () => {
       });
     return [...opts, ...validClasses];
   }, [classes, enrollmentForm.subjectId, enrollmentForm.programId, subjects, t]);
-
   // Enrollment Filters - Program Options
   const enrollmentFilterProgramOptions = useMemo(() => {
     const opts = [
@@ -947,7 +880,6 @@ const DashboardPage = () => {
     });
     return [...opts, ...validPrograms];
   }, [programs, lang, t]);
-
   // Enrollment Filters - Subject Options
   const enrollmentFilterSubjectOptions = useMemo(() => {
     const opts = [
@@ -969,7 +901,6 @@ const DashboardPage = () => {
       });
     return [...opts, ...validSubjects];
   }, [subjects, enrollmentProgramFilter, lang, t]);
-
   // Enrollment Filters - Class Options
   const enrollmentFilterClassOptions = useMemo(() => {
     const opts = [
@@ -1000,7 +931,6 @@ const DashboardPage = () => {
       });
     return [...opts, ...validClasses];
   }, [classes, enrollmentSubjectFilter, enrollmentProgramFilter, subjects, t]);
-
   // Class Form - Subject Options
   const classFormSubjectOptions = useMemo(() => {
     const opts = [
@@ -1016,25 +946,20 @@ const DashboardPage = () => {
     });
     return [...opts, ...validSubjects];
   }, [subjects, lang, t]);
-
   // Debug logging for dropdown state changes
   useEffect(() => {
     }, [activityForm.programId, activityForm.subjectId, activityForm.classId, activityProgramOptions.length, activitySubjectOptions.length, activityClassOptions.length]);
-
   // Debug logging for enrollment form state
   useEffect(() => {
     }, [enrollmentForm.programId, enrollmentForm.subjectId, enrollmentForm.classId, 
       enrollmentProgramOptions.length, enrollmentSubjectOptions.length, enrollmentClassOptions.length]);
-
   // Listen for URL changes (hash or search params) from sidebar or direct navigation
   const [hashProcessed, setHashProcessed] = useState(false);
-
   useEffect(() => {
     // First check for tab in query parameters
     if (location.search) {
       const searchParams = new URLSearchParams(location.search);
       const tabFromUrl = searchParams.get('tab');
-      
       if (tabFromUrl && tabFromUrl !== activeTab) {
         setActiveTab(tabFromUrl);
         localStorage.setItem('dashboardActiveTab', tabFromUrl);
@@ -1042,7 +967,6 @@ const DashboardPage = () => {
         return;
       }
     }
-    
     // Then check for hash navigation (legacy support)
     if (location.hash && !hashProcessed) {
       const hash = location.hash.substring(1); // Remove #
@@ -1054,7 +978,6 @@ const DashboardPage = () => {
         'marks': 'marks',
         'classschedule': 'classschedule'
       };
-      
       const tab = hashToTabMap[hash];
       if (tab && tab !== activeTab) {
         setActiveTab(tab);
@@ -1066,18 +989,15 @@ const DashboardPage = () => {
       setHashProcessed(false);
     }
   }, [location.hash]);
-
   useEffect(() => {
     if (!authLoading && (!user || !(isAdmin || isSuperAdmin || isInstructor))) {
       navigate('/');
       return;
     }
-
     if (user && (isAdmin || isSuperAdmin || isInstructor)) {
       loadData();
     }
   }, [user, isAdmin, isSuperAdmin, isInstructor, authLoading, navigate]);
-
   const loadData = async () => {
     setLoading(true);
     try {
@@ -1102,7 +1022,6 @@ const DashboardPage = () => {
         getSubjects(),
         getPrograms()
       ]);
-
       if (activitiesRes.success) {
         logger.debug('Dashboard Debug - Raw activities data:', activitiesRes.data);
         logger.debug('Dashboard Debug - First activity sample:', activitiesRes.data[0]);
@@ -1121,14 +1040,12 @@ const DashboardPage = () => {
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
-      
       // Enrich enrollments with program and subject names (like HR Penalties)
       if (enrollmentsRes.success) {
         const enrollmentsData = enrollmentsRes.data || [];
         const classesData = classesRes.data || [];
         const subjectsData = subjectsRes.data || [];
         const programsData = programsRes.data || [];
-        
         const enrichedEnrollments = await Promise.all(enrollmentsData.map(async (enrollment) => {
           const enriched = {
             ...enrollment,
@@ -1137,38 +1054,31 @@ const DashboardPage = () => {
             programName: 'N/A',
             subjectName: 'N/A'
           };
-          
           // Get classId
           const classId = enrollment.classId || enrollment.classDocId;
           if (!classId) {
             return enriched;
           }
-          
           // Find class
           const classItem = classesData.find(c => {
             const cId = c.docId || c.id;
             return String(cId) === String(classId);
           });
-          
           if (!classItem) {
             return enriched;
           }
-          
           // Get subjectId from class
           const subjectId = classItem.subjectId || enrollment.subjectId;
           if (!subjectId) {
             return enriched;
           }
-          
           // Find subject
           const subject = subjectsData.find(s => {
             const sId = s.docId || s.id;
             return String(sId) === String(subjectId);
           });
-          
           if (subject) {
             enriched.subjectName = subject.name_en || subject.name || subject.code || 'N/A';
-            
             // Get programId from subject
             const programId = subject.programId;
             if (programId) {
@@ -1177,19 +1087,15 @@ const DashboardPage = () => {
                 const pId = p.docId || p.id;
                 return String(pId) === String(programId);
               });
-              
               if (program) {
                 enriched.programName = program.name_en || program.name || program.code || 'N/A';
               }
             }
           }
-          
           return enriched;
         }));
-        
         setEnrollments(enrichedEnrollments);
       }
-      
       if (submissionsRes.success) setSubmissions(submissionsRes.data);
       if (resourcesRes.success) setResources(resourcesRes.data);
       if (loginLogsRes.success) setLoginLogs(loginLogsRes.data);
@@ -1201,7 +1107,6 @@ const DashboardPage = () => {
       setLoading(false);
     }
   };
-
   // Auto-refresh for Activity tab
   useEffect(() => {
     if (!activityAutoRefreshMs || activeTab !== 'login') return;
@@ -1211,12 +1116,10 @@ const DashboardPage = () => {
     }, activityAutoRefreshMs);
     return () => clearInterval(id);
   }, [activityAutoRefreshMs, activeTab]);
-
   // Validation functions for deletion
   const validateUserDeletion = async (user) => {
     const userEnrollments = enrollments.filter(e => e.userId === user.docId);
     const userSubmissions = submissions.filter(s => s.userId === user.docId);
-
     if (userEnrollments.length > 0 || userSubmissions.length > 0) {
       return {
         canDelete: false,
@@ -1224,15 +1127,12 @@ const DashboardPage = () => {
         message: `Cannot delete user. This user has ${userEnrollments.length} enrollment(s) and ${userSubmissions.length} submission(s) that must be deleted first.`
       };
     }
-
     return { canDelete: true };
   };
-
   const validateClassDeletion = async (classItem) => {
     const effectiveId = classItem.docId || classItem.id;
     const classEnrollments = enrollments.filter(e => e.classId === effectiveId);
     const relatedActivities = activities.filter(a => (a.classId || '') === effectiveId);
-
     if (classEnrollments.length > 0 || relatedActivities.length > 0) {
       return {
         canDelete: false,
@@ -1240,13 +1140,10 @@ const DashboardPage = () => {
         message: `Cannot delete class. This class has ${classEnrollments.length} student(s) enrolled and ${relatedActivities.length} linked activity(ies) that must be removed first.`
       };
     }
-
     return { canDelete: true };
   };
-
   const validateActivityDeletion = async (activity) => {
     const activitySubmissions = submissions.filter(s => s.activityId === activity.id);
-
     if (activitySubmissions.length > 0) {
       return {
         canDelete: false,
@@ -1254,18 +1151,14 @@ const DashboardPage = () => {
         message: `Cannot delete activity. This activity has ${activitySubmissions.length} submission(s) that must be deleted first.`
       };
     }
-
     return { canDelete: true };
   };
-
   const handleActivitySubmit = async (e) => {
     e.preventDefault();
-
     if (!validateActivityForm()) {
       toast?.showError('Please fix the form errors before submitting.');
       return;
     }
-
     setLoading(true);
     try {
       // Localize fallbacks: if AR missing, default to EN; same for description
@@ -1277,7 +1170,6 @@ const DashboardPage = () => {
       const result = editingActivity ?
         await updateActivity(editingActivity.docId, normalized) :
         await addActivity(normalized);
-
       if (result.success) {
         // Log activity
         try {
@@ -1288,12 +1180,10 @@ const DashboardPage = () => {
             classId: activityForm.classId
           });
         } catch (e) { }
-        
         // Handle email notifications if checked
         if (!editingActivity && emailOptions.sendEmail) {
           await sendActivityEmail(activityForm);
         }
-
         // Handle announcement creation if checked
         if (!editingActivity && emailOptions.createAnnouncement) {
           await createActivityAnnouncement(activityForm);
@@ -1319,13 +1209,10 @@ const DashboardPage = () => {
           } catch (e) {
             }
         }
-
         await loadData();
         handleCancelEdit();
-
         // Reset email options
         setEmailOptions({ sendEmail: false, createAnnouncement: false });
-
         toast?.showSuccess(editingActivity ? 'Activity updated successfully!' : 'Activity created successfully!');
       } else {
         toast?.showError('Error: ' + result.error);
@@ -1337,7 +1224,6 @@ const DashboardPage = () => {
       setLoading(false);
     }
   };
-
   // Send activity email notification
   const sendActivityEmail = async (activity) => {
     try {
@@ -1346,28 +1232,23 @@ const DashboardPage = () => {
       const classStudents = enrollmentsResult.data?.filter(e =>
         e.classId === activity.classId
       ) || [];
-
       if (classStudents.length === 0) {
         toast?.showInfo('No students found in this class');
         return;
       }
-
       // Get student emails
       const studentEmails = classStudents.map(enrollment => {
         const user = users.find(u => u.docId === enrollment.userId);
         return user?.email;
       }).filter(Boolean);
-
       if (studentEmails.length === 0) {
         toast?.showInfo('No student emails found');
         return;
       }
-
       // Format email
       const dueDate = activity.dueDate
         ? formatDateTime(activity.dueDate)
         : 'No deadline';
-
       const buildEn = () => `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #800020;">📚 New Activity Assigned</h2>
@@ -1396,19 +1277,16 @@ const DashboardPage = () => {
           <p>${activity.description_ar || ''}</p>
           <a href="${activity.url}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#800020,#600018);color:#fff;text-decoration:none;border-radius:8px;margin-top:1rem;">ابدأ النشاط 🎯</a>
         </div>`;
-
       let emailBody = '';
       if (emailOptions.emailLang === 'en') emailBody = buildEn();
       else if (emailOptions.emailLang === 'ar') emailBody = buildAr();
       else emailBody = [buildEn(), '<hr/>', buildAr()].join('');
-
       // Send email via Firebase function
       const sendResult = await sendEmail({
         to: studentEmails,
         subject: `New Activity: ${activity.title_en || activity.title_ar || ''}`,
         html: emailBody
       });
-
       if (sendResult.success) {
         toast?.showSuccess(`Email sent to ${studentEmails.length} students`);
       } else {
@@ -1419,34 +1297,27 @@ const DashboardPage = () => {
       toast?.showError('Error sending email notification');
     }
   };
-
   // Create announcement from activity
   const createActivityAnnouncement = async (activity) => {
     try {
       const dueDate = activity.dueDate
         ? formatDateTime(activity.dueDate)
         : 'No deadline';
-
       const announcement = {
         title: `New ${activity.type}: ${activity.title_en}`,
         content: `
 📚 ${activity.title_en}
-
 ${activity.description_en || 'No description'}
-
 📅 Due Date: ${dueDate}
 🎯 Level: ${activity.difficulty}
 ${activity.allowRetake ? '🔄 Retakes allowed' : '⚠️ No retakes'}
 ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
-
 🔗 Link: ${activity.url}
         `.trim(),
         priority: activity.optional ? 'normal' : 'high',
         classId: activity.classId || null
       };
-
       const result = await addAnnouncement(announcement);
-
       if (result.success) {
         toast?.showSuccess(t('announcement_created_successfully') || 'Announcement created successfully');
       } else {
@@ -1457,7 +1328,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       toast?.showError('Error creating announcement');
     }
   };
-
   const handleAnnouncementSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -1465,7 +1335,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       const result = editingAnnouncement ?
         await updateAnnouncement(editingAnnouncement.docId, announcementForm) :
         await addAnnouncement(announcementForm);
-
       if (result.success) {
         // Log activity
         try {
@@ -1478,7 +1347,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             classId: announcementForm.classId
           });
         } catch (e) { }
-        
         // Legacy log (keep for backward compatibility)
         if (!editingAnnouncement) {
           try {
@@ -1503,7 +1371,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         if (!editingAnnouncement) {
           const { programId, subjectId, classId } = announcementForm;
           let notificationSent = false;
-
           if (classId) {
             await notifyUsersByClass(
               classId,
@@ -1525,7 +1392,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             notificationSent = true;
           }
           */
-
           if (!notificationSent) {
             await notifyAllUsers(
               `📢 ${announcementForm.title}`,
@@ -1533,7 +1399,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               'announcement'
             );
           }
-
           // Optional email blast
           if (announcementEmailOptions.sendEmail) {
             const buildBody = () => {
@@ -1552,7 +1417,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                // For now, non-class targets are global. This can be expanded.
                recipients = users.map(u => u.email).filter(Boolean);
              }
-
             if (recipients.length > 0) {
               const sendRes = await sendEmail({
                 to: recipients,
@@ -1570,7 +1434,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             }
           }
         }
-
         await loadData();
         setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
         setAnnouncementEmailOptions({ sendEmail: false, lang: 'both' });
@@ -1604,11 +1467,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       setLoading(false);
     }
   };
-
   if (authLoading) {
     return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
-
   if (!user || !isAdmin) {
     return (
       <div className="dashboard-page">
@@ -1619,16 +1480,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       </div>
     );
   }
-
   // Show initial full-screen loading only on first load
   if (authLoading) {
     return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
   }
-
   return (
     <div className="dashboard-page" data-theme={theme}>
       {/* Compact header removed to save vertical space */}
-
       <div className="dashboard-content">
         {/* Joyride dashboard tour component injected to guide through tabs */}
         <Joyride
@@ -1662,7 +1520,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       onChange={({ category, item }) => { setActiveCategory(category); handleTabChange(item); }}
     />
   </div>
-
         {/* Summary Cards with Filters */}
         <CollapsibleDashboardSection
           sectionId="summary-cards"
@@ -1772,7 +1629,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 placeholder={t('all_classes') || 'All Classes'}
               />
             </div>
-
             {/* Summary Cards */}
             <div
               style={{
@@ -1936,7 +1792,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     if (!r.programId && !r.subjectId && !r.classId) {
                       return true;
                     }
-                    
                     if (enrollmentClassFilter !== 'all') {
                       return r.classId === enrollmentClassFilter;
                     }
@@ -1954,7 +1809,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 const config = getCardConfig(stat.type, t, theme);
                 const IconComponent = config.icon;
                 const borderRadius = getShapeRadius(config.shape);
-                
                 return (
                   <Card
                     key={idx}
@@ -2033,10 +1887,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           </div>
         </CollapsibleDashboardSection>
-
         <div className="tab-content">
            {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />}
-
     <div className="tab-header">
       <h2>{(() => {
         const currentTabItem = ribbonCategories.flatMap(cat => cat.items).find(item => item.key === activeTab);
@@ -2046,7 +1898,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                <InfoTooltip contentKey={`help.${activeTab}`} />
              </div>
            </div>
-
           {activeTab === 'activities' && (
             <div className="activities-tab">
               {editingActivity && (
@@ -2063,7 +1914,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {getThemedIcon('ui', 'edit', 16, theme)} Editing Activity: {editingActivity.id} - {editingActivity.title_en}
                 </div>
               )}
-
               {activeTab === 'analytics' && (
                 <div className="analytics-tab" style={{ padding: '0.5rem' }}>
                   <DragGrid
@@ -2137,7 +1987,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   />
                 </div>
               )}
-
               <RibbonTabs
                 categories={[
                   {
@@ -2311,7 +2160,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     </div>
                   </>
                 )}
-
                 {/* Content Tab */}
                 {activeActivityFormTab === 'content' && (
                   <>
@@ -2393,7 +2241,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         )}
                       </div>
                     </div>
-
                     {/* Quiz Selector - Only show for quiz type */}
                     {activityForm.type === 'quiz' && (
                       <div className="form-row single-column">
@@ -2410,7 +2257,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                               const quizAllowRetake = selectedQuiz.settings?.allowRetake !== undefined 
                                 ? selectedQuiz.settings.allowRetake 
                                 : (selectedQuiz.allowRetake !== undefined ? selectedQuiz.allowRetake : false);
-                              
                               setActivityForm(prev => ({
                                 ...prev,
                                 quizId: selectedQuizId,
@@ -2456,7 +2302,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                       const quizAllowRetake = selectedQuiz.settings?.allowRetake !== undefined 
                                         ? selectedQuiz.settings.allowRetake 
                                         : (selectedQuiz.allowRetake !== undefined ? selectedQuiz.allowRetake : false);
-                                      
                                       return {
                                         ...prev,
                                         overrideQuizSettings: false,
@@ -2481,7 +2326,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     )}
                   </>
                 )}
-
                 {/* Settings Tab */}
                 {activeActivityFormTab === 'settings' && (
                   <>
@@ -2529,7 +2373,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         onChange={(checked) => setActivityForm({ ...activityForm, requiresSubmission: checked })}
                       />
                     </div>
-
                     {/* Email Notification Options */}
                     <div style={{
                       display: 'grid',
@@ -2545,7 +2388,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         checked={emailOptions.sendEmail}
                         onChange={(checked) => setEmailOptions({ ...emailOptions, sendEmail: checked })}
                       />
-
                       <ToggleSwitch
                         label={t('create_announcement') || 'Create announcement'}
                         checked={emailOptions.createAnnouncement}
@@ -2568,7 +2410,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     </div>
                   )}
                 </div>
-
                 {/* Form Actions - Show on all tabs */}
                 <div className="form-actions">
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2811,12 +2652,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     valueGetter: (params) => params.value,
                     renderCell: (params) => {
                       if (!params.value) return 'Unknown';
-                      
                       // Log the raw value for debugging
                       logger.debug('Activities Date Debug - Raw params.value:', params.value);
                       logger.debug('Activities Date Debug - Type:', typeof params.value);
                       logger.debug('Activities Date Debug - Has toDate:', typeof params.value?.toDate);
-                      
                       let date;
                       if (params.value?.toDate) {
                         date = params.value.toDate();
@@ -2831,13 +2670,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         date = new Date(params.value);
                         logger.debug('Activities Date Debug - Fallback new Date():', date);
                       }
-                      
                       logger.debug('Activities Date Debug - Final date:', date, 'isValid:', !isNaN(date.getTime()));
-                      
                       if (isNaN(date.getTime())) {
                         return 'Invalid Date';
                       }
-                      
                       return formatQatarDate(date);
                     }
                   },
@@ -2911,8 +2747,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               </div>
             </div>
           )}
-
-
           {activeTab === 'announcements' && (
           <AnnouncementsPage
             announcements={announcements}
@@ -2947,44 +2781,33 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             user={user}
           />
         )}
-
-
           {activeTab === 'programs' && isSuperAdmin && (
             <ProgramsManagementPage />
           )}
-
           {activeTab === 'subjects' && (isSuperAdmin || isAdmin || isInstructor) && (
             <SubjectsManagementPage />
           )}
-
           {activeTab === 'marks' && (isSuperAdmin || isAdmin || isInstructor) && (
             <MarksEntryPage />
           )}
-
           {activeTab === 'classschedule' && (isSuperAdmin || isAdmin || isInstructor) && (
             <ClassSchedulePage />
           )}
-
           {activeTab === 'manage-enrollments' && (isSuperAdmin || isAdmin || isInstructor) && (
             <ManageEnrollmentsPage />
           )}
-
           {activeTab === 'hr-penalties' && (isSuperAdmin || isAdmin || isInstructor) && (
             <HRPenaltiesPage />
           )}
-
           {activeTab === 'instructor-participation' && (isSuperAdmin || isAdmin || isInstructor) && (
             <InstructorParticipationPage />
           )}
-
           {activeTab === 'instructor-behavior' && (isSuperAdmin || isAdmin || isInstructor) && (
             <InstructorBehaviorPage />
           )}
-
           {activeTab === 'scheduled-reports' && (isSuperAdmin || isAdmin) && (
             <ScheduledReportsPage />
           )}
-
           {activeTab === 'login' && (
             <div className="login-activity-tab">
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '0.5rem 0 1rem', flexWrap: 'wrap', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
@@ -3086,7 +2909,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       const isAllTypes = activityTypeFilter === 'all';
                       const filterOption = getActivityLogOptions(t).find(opt => opt.value === activityTypeFilter);
                       const description = isAllTypes ? 'all login logs' : `${filterOption?.label || activityTypeFilter} logs`;
-                      
                       setDeleteModal({
                         open: true,
                         type: 'login_logs',
@@ -3098,14 +2920,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                             const onProgress = (processed, total, percentage) => {
                               toast?.showInfo(`Deleting logs: ${processed}/${total} (${percentage}%)`);
                             };
-                            
                             let result;
                             if (activityTypeFilter === 'all') {
                               result = await deleteAllLoginLogs(onProgress);
                             } else {
                               result = await deleteLoginLogsByType(activityTypeFilter, onProgress);
                             }
-                            
                             if (result.success) {
                               toast?.showSuccess(`Successfully deleted ${result.deletedCount} ${description}`);
                               // Refresh the login logs data
@@ -3161,14 +2981,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     renderCell: (params) => {
                       const timestamp = params.value;
                       const activityType = params.row?.type;
-                      
                       if (!timestamp) return '—';
-                      
                       // Handle both Firestore Timestamp and regular Date
                       const date = timestamp?.seconds ? 
                         new Date(timestamp.seconds * 1000) : 
                         new Date(timestamp);
-                      
                       // For penalty viewing activities, use Qatar timezone and log details
                       if (activityType === 'penalty_viewed') {
                         const qatarTimeAgo = getQatarTimeAgo(date);
@@ -3183,7 +3000,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         });
                         return qatarTimeAgo || formatQatarDate(date);
                       }
-                      
                       // Use Qatar timezone for other activities too
                       return getQatarTimeAgo(date) || formatQatarDate(date);
                     }
@@ -3221,11 +3037,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     renderCell: (params) => {
                       const details = params.value || {};
                       if (Object.keys(details).length === 0) return '—';
-                      
                       // Show relevant details based on activity type
                       const type = params.row.type;
                       let detailText = '';
-                      
                       if (type === 'login' && details.ip) {
                         detailText = `IP: ${details.ip}`;
                       } else if (type === 'logout' && details.sessionDuration) {
@@ -3235,7 +3049,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       } else if (details.message) {
                         detailText = details.message;
                       }
-                      
                       return detailText || JSON.stringify(details);
                     }
                   }
@@ -3251,7 +3064,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               />
             </div>
           )}
-
           {activeTab === 'classes' && (
             <ClassesPage
               classes={classes}
@@ -3284,7 +3096,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               user={user}
             />
           )}
-
           {/* Grade Submission Modal */}
         <Modal
           isOpen={gradingModalOpen && !!gradingSubmission}
@@ -3298,7 +3109,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           title={t('grade_submission') || 'Grade Submission'}
           size="small"
           closeOnOverlayClick={!loading}
-
           footer={(
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <Button
@@ -3366,7 +3176,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           )}
         </Modal>
-
         {/* Enrollments Tab */}
         {activeTab === 'enrollments' && (
           <div className="enrollments-section" style={{ marginTop: '2rem' }}>
@@ -3391,12 +3200,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               const existingEnrollment = enrollments.find(e =>
                 e.userId === enrollmentForm.userId && e.classId === enrollmentForm.classId
               );
-
               if (existingEnrollment) {
                 toast?.showError('This user is already enrolled in this class');
                 return;
               }
-
               setLoading(true);
               try {
                 const result = await addEnrollment(enrollmentForm);
@@ -3439,7 +3246,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   />
                 </div>
               )}
-
               {/* Class Info Tab */}
               {activeEnrollmentTab === 'class' && (
                 <div className="form-row wide-cols">
@@ -3451,7 +3257,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     options={enrollmentProgramOptions}
                     required
                   />
-                  
                   <Select
                     searchable
                     placeholder={t('all_subjects')}
@@ -3460,7 +3265,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     options={enrollmentSubjectOptions}
                     required
                   />
-
                   <Select
                     searchable
                     placeholder={t('all_classes')}
@@ -3472,7 +3276,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   />
                 </div>
               )}
-
               {/* Role Tab */}
               {activeEnrollmentTab === 'role' && (
                 <div className="form-row wide-cols">
@@ -3494,14 +3297,12 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   />
                 </div>
               )}
-
               <div className="form-actions">
                 <Button type="submit" variant="primary" disabled={loading} size="medium">
                   {t('save') || 'Save'}
                 </Button>
               </div>
             </form>
-
             {/* Filters - like HR Penalties */}
             <div style={{ marginTop: '1rem', marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
@@ -3540,7 +3341,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 />
               </div>
             </div>
-
             <div style={{ marginTop: '1rem' }}>
               <AdvancedDataGrid
                 rows={enrollments.filter(e => {
@@ -3587,9 +3387,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const programName = row.programName || 
                                      (row.program && (row.program.name_en || row.program.name)) ||
                                      (row.programId && programs.find(p => (p.docId || p.id) === row.programId)?.name_en);
-                    
                     return programName || params.value || 'N/A';
-                    
                     return programName || params.value || 'N/A';
                   },
                   renderCell: (params) => {
@@ -3597,7 +3395,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const programName = row.programName || 
                                      (row.program && (row.program.name_en || row.program.name)) ||
                                      (row.programId && programs.find(p => (p.docId || p.id) === row.programId)?.name_en);
-                    
                     if (!programName && !params.value) {
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
@@ -3605,7 +3402,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         </span>
                       );
                     }
-                    
                     const finalProgramName = programName || params.value || 'N/A';
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -3625,9 +3421,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const subjectName = row.subjectName || 
                                      (row.subject && (row.subject.name_en || row.subject.name)) ||
                                      (row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
-                    
                     return subjectName || params.value || 'N/A';
-                    
                     return subjectName || params.value || 'N/A';
                   },
                   renderCell: (params) => {
@@ -3635,7 +3429,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     const subjectName = row.subjectName || 
                                      (row.subject && (row.subject.name_en || row.subject.name)) ||
                                      (row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
-                    
                     if (!subjectName && !params.value) {
                       return (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
@@ -3643,7 +3436,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         </span>
                       );
                     }
-                    
                     const finalSubjectName = subjectName || params.value || 'N/A';
                     return (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -3692,12 +3484,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         // Submissions are quiz/activity submissions (student work)
                         const userSubmissions = submissions.filter(s => s.userId === enrollment.userId && s.activityId);
                         const relatedActivities = activities.filter(a => a.classId === enrollment.classId);
-                        
                         // Create readable item name
                         const userName = user ? (user.displayName || user.realName || user.email || 'Unknown User') : 'Unknown User';
                         const className = classItem ? (classItem.name || classItem.code || 'Unknown Class') : 'Unknown Class';
                         const itemName = `${userName} → ${className}`;
-                        
                         setDeleteModal({
                           open: true,
                           item: { ...enrollment, _displayName: itemName },
@@ -3754,7 +3544,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           </div>
         )}
-
           {/* Grade Submission Modal */}
         <Modal
           isOpen={gradingModalOpen && !!gradingSubmission}
@@ -3768,7 +3557,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           title={t('grade_submission') || 'Grade Submission'}
           size="small"
           closeOnOverlayClick={!loading}
-
           footer={(
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <Button
@@ -3836,7 +3624,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           )}
         </Modal>
-
         {activeTab === 'submissions' && (
           <div className="submissions-tab">
             <div
@@ -4010,557 +3797,27 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           </div>
         )}
         {activeTab === 'users' && (
-          <div className="users-tab">
-            <p style={{ color: '#555', marginBottom: '1rem' }}>{t('invite_users_blurb')}</p>
-
-            {editingUser && (
-              <div style={{ 
-                padding: '0.75rem 1rem', 
-                background: '#fef3c7', 
-                border: '1px solid #fbbf24', 
-                borderRadius: '8px', 
-                marginBottom: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                {getThemedIcon('ui', 'edit', 16, theme)} Editing User: {editingUser.displayName || editingUser.email}
-              </div>
-            )}
-
-            <RibbonTabs
-              categories={[
-                {
-                  id: 'user-fields',
-                  items: [
-                    { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'user', 14, theme) },
-                    { key: 'academic', label: 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) },
-                    { key: 'role', label: 'Role & Access', icon: getThemedIcon('ui', 'shield', 14, theme) }
-                  ]
-                }
-              ]}
-              activeCategory="user-fields"
-              activeItem={activeUserFormTab}
-              onChange={({ category, item }) => setActiveUserFormTab(item)}
-            />
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (!userForm.email.trim()) {
-                toast?.showError('Email is required');
-                return;
-              }
-
-              // Validate student number is required for students
-              if (userForm.role === USER_ROLES.STUDENT && !userForm.studentNumber?.trim()) {
-                toast?.showError('Student number is required for students');
-                return;
-              }
-
-              // Validate student number uniqueness for students
-              if (userForm.role === USER_ROLES.STUDENT && userForm.studentNumber?.trim()) {
-                const isDuplicate = users.some(user => 
-                  user.studentNumber === userForm.studentNumber.trim() && 
-                  user.docId !== editingUser?.docId
-                );
-                
-                if (isDuplicate) {
-                  toast?.showError('Student number must be unique. This student number is already in use.');
-                  return;
-                }
-              }
-
-              setLoading(true);
-              try {
-                if (editingUser) {
-                  const result = await updateUser(editingUser.docId, userForm);
-                  if (!result.success) throw new Error(result.error || 'Failed to update user');
-                  // Log activity
-                  try {
-                    await logActivity(ACTIVITY_TYPES.USER_UPDATED, {
-                      userId: editingUser.docId,
-                      userEmail: userForm.email,
-                      userDisplayName: userForm.displayName,
-                      userRole: userForm.role
-                    });
-                  } catch (e) { }
-                  toast?.showSuccess('User updated successfully!');
-                } else {
-                  // Add to allowlist if checkbox is checked
-                  if (autoAddToAllowlist && userForm.email) {
-                    const targetList = userForm.role === USER_ROLES.ADMIN ? 'adminEmails' : 'allowedEmails';
-                    const currentEmails = allowlist[targetList] || [];
-
-                    if (!currentEmails.includes(userForm.email)) {
-                      const updatedAllowlist = {
-                        ...allowlist,
-                        [targetList]: [...currentEmails, userForm.email]
-                      };
-                      setAllowlist(updatedAllowlist);
-
-                      // Save to Firestore
-                      try {
-                        await updateAllowlist(updatedAllowlist);
-                      } catch (allowlistError) {
-                        toast?.showWarning('Failed to update allowlist: ' + allowlistError.message);
-                      }
-                    }
-                    toast?.showSuccess(`Invite prepared. ${userForm.email} added to ${userForm.role} allowlist. Ask them to sign up.`);
-                  } else {
-                    toast?.showInfo('No changes saved. Provide an email or enable allowlist option.');
-                  }
-                }
-
-                await loadData();
-                setEditingUser(null);
-                setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', order: '', role: USER_ROLES.STUDENT });
-              } catch (error) {
-                toast?.showError('Error: ' + error.message);
-              } finally {
-                setLoading(false);
-              }
-            }} className="dashboard-form">
-              {activeUserFormTab === 'basic' && (
-                <div className="form-row">
-                  <Input
-                    type="email"
-                    placeholder={t('user_email_placeholder')}
-                    value={userForm.email}
-                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                    required
-                  />
-                  <Input
-                    type="text"
-                    placeholder={t('user_display_name_placeholder')}
-                    value={userForm.displayName}
-                    onChange={(e) => setUserForm({ ...userForm, displayName: e.target.value })}
-                  />
-                </div>
-              )}
-
-              {activeUserFormTab === 'academic' && (
-                <div className="form-row">
-                  <Input
-                    type="text"
-                    placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
-                    value={userForm.realName || ''}
-                    onChange={(e) => setUserForm({ ...userForm, realName: e.target.value })}
-                  />
-                  <Input
-                    type="text"
-                    placeholder={t('student_number_placeholder') || 'Student Number (Required)'}
-                    value={userForm.studentNumber || ''}
-                    onChange={(e) => setUserForm({ ...userForm, studentNumber: e.target.value })}
-                    required
-                  />
-                  <Input
-                    type="number"
-                    placeholder={t('student_order_placeholder') || 'Order/Sequence (Optional)'}
-                    value={userForm.order || ''}
-                    onChange={(e) => setUserForm({ ...userForm, order: e.target.value })}
-                    description={t('student_order_description') || 'Display order for student lists'}
-                  />
-                  <div /> {/* Empty div to maintain grid layout */}
-                </div>
-              )}
-
-              {activeUserFormTab === 'role' && (
-                <div className="form-row">
-                  <Select
-                  searchable
-                  placeholder={t('role') || 'Role'}
-                  value={userForm.role}
-                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                  options={[
-                    { value: USER_ROLES.STUDENT, label: (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: getRoleIconColor(USER_ROLES.STUDENT) }}>
-                          {getRoleIconThemed(USER_ROLES.STUDENT)}
-                        </span>
-                        {t('student') || 'Student'}
-                      </span>
-                    )},
-                    { value: USER_ROLES.INSTRUCTOR, label: (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: getRoleIconColor(USER_ROLES.INSTRUCTOR) }}>
-                          {getRoleIconThemed(USER_ROLES.INSTRUCTOR)}
-                        </span>
-                        {t('instructor') || 'Instructor'}
-                      </span>
-                    )},
-                    { value: USER_ROLES.HR, label: (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: getRoleIconColor(USER_ROLES.HR) }}>
-                          {getRoleIconThemed(USER_ROLES.HR)}
-                        </span>
-                        {t('hr') || 'HR'}
-                      </span>
-                    )},
-                    { value: USER_ROLES.ADMIN, label: (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: getRoleIconColor(USER_ROLES.ADMIN) }}>
-                          {getRoleIconThemed(USER_ROLES.ADMIN)}
-                        </span>
-                        {t('admin') || 'Admin'}
-                      </span>
-                    )},
-                    { value: USER_ROLES.SUPER_ADMIN, label: (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: getRoleIconColor(USER_ROLES.SUPER_ADMIN) }}>
-                          {getRoleIconThemed(USER_ROLES.SUPER_ADMIN)}
-                        </span>
-                        {t('super_admin') || 'Super Admin'}
-                      </span>
-                    )},
-                  ]}
-                  fullWidth
-                />
-                </div>
-              )}
-
-              {!editingUser && (
-                <div className="form-row flex-row">
-                  <ToggleSwitch
-                    label="Auto-add email to student allowlist"
-                    checked={autoAddToAllowlist}
-                    onChange={(checked) => setAutoAddToAllowlist(checked)}
-                  />
-                </div>
-              )}
-
-              <div className="form-actions">
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    {activeUserFormTab !== 'basic' && (
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => {
-                          if (activeUserFormTab === 'role') {
-                            setActiveUserFormTab('academic');
-                          } else if (activeUserFormTab === 'academic') {
-                            setActiveUserFormTab('basic');
-                          }
-                        }}
-                      >
-                        ← Previous
-                      </Button>
-                    )}
-                    {activeUserFormTab !== 'role' && (
-                      <Button 
-                        type="button" 
-                        variant="secondary"
-                        onClick={() => {
-                          if (activeUserFormTab === 'basic') {
-                            setActiveUserFormTab('academic');
-                          } else if (activeUserFormTab === 'academic') {
-                            setActiveUserFormTab('role');
-                          }
-                        }}
-                      >
-                        Next →
-                      </Button>
-                    )}
-                    {activeUserFormTab === 'role' && (
-                      <Button type="submit" variant="primary" loading={loading}>
-                        {(editingUser ? t('update') : t('save'))}
-                      </Button>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => {
-                        setEditingUser(null);
-                        setUserForm({ email: '', displayName: '', role: USER_ROLES.STUDENT, studentNumber: '', order: '' });
-                        setActiveUserFormTab('basic');
-                      }}
-                    >
-                      {t('cancel') || 'Cancel'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </form>
-
-            <div style={{ marginTop: '1rem' }}>
-              <AdvancedDataGrid
-                rows={users}
-              getRowId={(row) => row.docId || row.id}
-              columns={[
-                { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
-                { field: 'displayName', headerName: t('display_name_col'), flex: 1, minWidth: 180 },
-                {
-                  field: 'studentNumber', 
-                  headerName: t('student_number') || 'Student Number', 
-                  width: 140,
-                  renderCell: (params) => {
-                    if (params.row.role === 'student') {
-                      return (
-                        <span style={{ 
-                          fontFamily: 'monospace', 
-                          fontSize: '0.875rem',
-                          color: '#059669',
-                          fontWeight: 600
-                        }}>
-                          {params.value || '—'}
-                        </span>
-                      );
-                    }
-                    return '—';
-                  }
-                },
-                {
-                  field: 'order', 
-                  headerName: t('order') || 'Order', 
-                  width: 80,
-                  renderCell: (params) => {
-                    if (params.row.role === 'student') {
-                      return (
-                        <span style={{ 
-                          fontSize: '0.875rem',
-                          color: params.value ? '#1f2937' : '#9ca3af',
-                          fontWeight: params.value ? 600 : 400
-                        }}>
-                          {params.value || '—'}
-                        </span>
-                      );
-                    }
-                    return '—';
-                  }
-                },
-                {
-                  field: 'role', headerName: t('role_col'), width: 120,
-                  renderCell: (params) => {
-                    const role = params.value || t('student');
-                    const roleIcons = {
-                      'superadmin': getThemedIcon('ui', 'crown', 16, theme),
-                      'admin': getThemedIcon('ui', 'shield', 16, theme),
-                      'instructor': getThemedIcon('ui', 'book_open', 16, theme),
-                      'hr': getThemedIcon('ui', 'users', 16, theme),
-                      'student': getThemedIcon('ui', 'user', 16, theme)
-                    };
-                    const roleColors = {
-                      'superadmin': '#f59e0b',
-                      'admin': '#4f46e5', 
-                      'instructor': '#0ea5e9',
-                      'hr': '#8b5cf6',
-                      'student': '#16a34a'
-                    };
-                    const normalizedRole = role.toLowerCase();
-                    const icon = roleIcons[normalizedRole] || roleIcons['student'];
-                    const color = roleColors[normalizedRole] || roleColors['student'];
-                    
-                    return (
-                      <span style={{ 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        gap: '4px',
-                        color: color,
-                        fontWeight: 600
-                      }}>
-                        {icon} {role}
-                      </span>
-                    );
-                  }
-                },
-                {
-                  field: 'status', 
-                  headerName: t('status'), 
-                  width: 120,
-                  renderCell: (params) => {
-                    const isDisabled = params.row.disabled || params.row.isDisabled;
-                    const isArchived = params.row.archived || params.row.deleted;
-                    
-                    if (isArchived) {
-                      return (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
-                          {getThemedIcon('ui', 'archive', 16, theme)} {t('status_archived')}
-                        </span>
-                      );
-                    } else if (isDisabled) {
-                      return (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
-                          {getThemedIcon('ui', 'user_x', 16, theme)} {t('status_disabled')}
-                        </span>
-                      );
-                    } else {
-                      return (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-success, #28a745)', fontWeight: 500 }}>
-                          {getThemedIcon('ui', 'user_check', 16, theme)} {t('status_active')}
-                        </span>
-                      );
-                    }
-                  }
-                },
-                {
-                  field: 'enrolledClasses', headerName: t('enrolled_classes_col'), width: 140,
-                  valueGetter: (params) => {
-                    const userId = params.row.docId || params.row.id;
-                    const userEnrollments = enrollments.filter(e => {
-                      const enrollmentUserId = e.userId || e.userDocId;
-                      return enrollmentUserId === userId || (e.userEmail || e.email) === params.row.email;
-                    });
-                    return userEnrollments.length;
-                  }
-                },
-                {
-                  field: 'progress', headerName: t('progress'), width: 180,
-                  renderCell: (params) => {
-                    const userId = params.row.docId || params.row.id;
-                    return (
-                      <a
-                        href={`/student-dashboard?userId=${userId}`}
-                        style={{ color: 'var(--color-primary, #800020)', textDecoration: 'none', fontWeight: '600' }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate(`/student-dashboard?userId=${userId}`);
-                        }}
-                      >
-                        View Dashboard →
-                      </a>
-                    );
-                  }
-                },
-                {
-                  field: 'createdAt', headerName: t('joined'), width: 180,
-                  valueGetter: (params) => params.value,
-                  renderCell: (params) => {
-                    if (!params.value) return (t('unknown') || 'Unknown');
-                    const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
-                    if (isNaN(date.getTime())) return (t('unknown') || 'Unknown');
-                    return formatQatarDate(date);
-                  }
-                },
-                {
-                  field: 'actions', headerName: t('actions_col'), width: 280, sortable: false, filterable: false,
-                  renderCell: (params) => (
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <Button size="sm" variant="ghost" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => {
-                        setEditingUser(params.row);
-                        setUserForm({
-                          email: params.row.email || '',
-                          displayName: params.row.displayName || '',
-                          realName: params.row.realName || '',
-                          studentNumber: params.row.studentNumber || '',
-                          order: params.row.order || '',
-                          role: params.row.role || 'student'
-                        });
-                      }}>
-                        {t('edit') || 'Edit'}
-                      </Button>
-                      {(params.row.role || 'student') === 'student' && (
-                        <Button 
-                          size="sm" 
-                          variant="primary" 
-                          onClick={async () => {
-                            const result = await impersonateUser(params.row.docId || params.row.id);
-                            if (result.success) {
-                              toast?.showSuccess(t('impersonation_started') || 'Now viewing as student');
-                              navigate('/');
-                            } else {
-                              toast?.showError(result.error || 'Failed to impersonate');
-                            }
-                          }} 
-                          title={t('impersonate_student') || 'View as Student'}
-                        >
-                          {getThemedIcon('ui', 'eye', 16, theme)}
-                        </Button>
-                      )}
-                      {(params.row.role || 'student') === 'student' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => {
-                            openQRCodeInNewTab(params.row);
-                          }}
-                          title={t('view_qr_code') || 'View QR Code'}
-                        >
-                          {getThemedIcon('ui', 'qr_code', 16, theme)}
-                        </Button>
-                      )}
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={async () => {
-                          try {
-                            const { sendPasswordResetEmail } = await import('firebase/auth');
-                            const { auth } = await import('@firebaseServices/config');
-                            await sendPasswordResetEmail(auth, params.row.email);
-                            toast?.showSuccess(`Password reset email sent to ${params.row.email}`);
-                          } catch (error) {
-                            logger.error('Error:', error);
-                            toast?.showError('Failed: ' + error.message);
-                          }
-                        }}
-                        title={t('reset_password') || 'Reset Password'}
-                      >
-                        {getThemedIcon('ui', 'key_round', 16, theme)}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        icon={params.row.disabled || params.row.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
-                        style={{ color: params.row.disabled || params.row.isDisabled ? '#28a745' : '#dc2626' }}
-                        onClick={async () => {
-                          try {
-                            const { updateUser } = await import('@firebaseServices/userService');
-                            const userId = params.row.docId || params.row.id;
-                            const isCurrentlyDisabled = params.row.disabled || params.row.isDisabled;
-                            const result = await updateUser(userId, {
-                              disabled: !isCurrentlyDisabled,
-                              isDisabled: !isCurrentlyDisabled
-                            });
-                            if (result.success) {
-                              // Log activity
-                              try {
-                                await logActivity(ACTIVITY_TYPES.USER_UPDATED, {
-                                  userId: userId,
-                                  userEmail: params.row.email,
-                                  action: isCurrentlyDisabled ? 'enabled' : 'disabled'
-                                });
-                              } catch (e) { }
-                              toast?.showSuccess(`User ${isCurrentlyDisabled ? 'enabled' : 'disabled'} successfully!`);
-                              await loadData();
-                            } else {
-                              toast?.showError(result.error || 'Failed to update user');
-                            }
-                          } catch (error) {
-                            logger.error('Error:', error);
-                            toast?.showError('Failed: ' + error.message);
-                          }
-                        }}
-                        title={params.row.disabled || params.row.isDisabled ? 'Enable User' : 'Disable User'}
-                      >
-                        {params.row.disabled || params.row.isDisabled ? 'Enable' : 'Disable'}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        icon={getThemedIcon('ui', 'trash', 16, theme)}
-                        style={{ color: '#dc2626' }}
-                        onClick={() => {
-                          setUserToDelete(params.row);
-                          setShowUserDeletionModal(true);
-                        }}
-                      >
-                        {t('delete') || 'Delete'}
-                      </Button>
-                    </div>
-                  )
-                }
-              ]}
-              pageSize={10}
-              pageSizeOptions={[5, 10, 20, 50]}
-              checkboxSelection
-              exportFileName="users"
-              showExportButton
-              exportLabel={t('export') || 'Export'}
-            />
-            </div>
-          </div>
+          <UsersPage
+            users={users}
+            enrollments={enrollments}
+            allowlist={allowlist}
+            autoAddToAllowlist={autoAddToAllowlist}
+            setAutoAddToAllowlist={setAutoAddToAllowlist}
+            userForm={userForm}
+            setUserForm={setUserForm}
+            editingUser={editingUser}
+            setEditingUser={setEditingUser}
+            activeUserFormTab={activeUserFormTab}
+            setActiveUserFormTab={setActiveUserFormTab}
+            loading={loading}
+            setLoading={setLoading}
+            loadData={loadData}
+            userToDelete={userToDelete}
+            setUserToDelete={setUserToDelete}
+            setShowUserDeletionModal={setShowUserDeletionModal}
+            theme={theme}
+          />
         )}
-
         {activeTab === 'resources' && (
           <ResourcesPage
             resources={resources}
@@ -4599,7 +3856,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             user={user}
           />
         )}
-
         {activeTab === 'smtp' && (
           <div className="smtp-tab">
             {/* Deprecation Notice */}
@@ -4639,7 +3895,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 </div>
               </div>
             </div>
-            
             <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 12, padding: '1.5rem', maxWidth: 760, opacity: 0.6 }}>
               {(() => {
                 if (!smtpLoading && !smtpConfig.__loaded) {
@@ -4736,7 +3991,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
           </div>
         )}
-
         {activeTab === 'categories' && (
           <CategoriesPage
             courses={courses}
@@ -4750,20 +4004,17 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             theme={theme}
           />
         )}
-
         {activeTab === 'emailTemplates' && (
           <div className="email-templates-tab">
             <FancyLoading />
             <EmailTemplates />
           </div>
         )}
-
         {activeTab === 'emailLogs' && (
           <div className="email-logs-tab">
             <EmailLogs />
           </div>
         )}
-
         {activeTab === 'allowlist' && (
           <div className="allowlist-tab">
             <EmailManager
@@ -4775,7 +4026,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               excludeEmails={allowlist.adminEmails || []}
               excludeMessage="This email is already in the admin list"
             />
-
             <EmailManager
               emails={allowlist.adminEmails || []}
               onEmailsChange={(emails) => setAllowlist({ ...allowlist, adminEmails: emails })}
@@ -4785,7 +4035,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               excludeEmails={allowlist.allowedEmails || []}
               excludeMessage="This email is already in the student list"
             />
-
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
               <button onClick={handleAllowlistSave} className="submit-btn" disabled={loading} style={{ position: 'relative', opacity: loading ? 0.7 : 1 }}>
                 {loading && <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>⏳</span>}
@@ -4796,7 +4045,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         )}
         </div>
       </div>
-
       {/* Smart Email Composer Modal */}
       <SmartEmailComposer
         open={smartComposerOpen}
@@ -4805,19 +4053,16 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           try {
             // Ensure to is an array
             const recipients = Array.isArray(to) ? to : [to];
-
             // Validate recipients
             if (recipients.length === 0) {
               throw new Error('No recipients specified');
             }
-
             const result = await sendEmail({
               to: recipients,
               subject: subject || 'Newsletter',
               html: htmlBody || '<p>No content</p>',
               type: type || 'newsletter'
             });
-
             // Log the email attempt
             await addEmailLog({
               to: recipients,
@@ -4827,12 +4072,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               error: result.success ? null : result.error,
               sentBy: user?.uid || 'unknown'
             });
-
             if (!result.success) {
               logger.error('❌ Error sending email:', result.error);
               throw new Error(result.error || 'Failed to send email');
             }
-
             // refresh logs list if we're on the tab
             loadData();
           } catch (error) {
@@ -4841,7 +4084,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           }
         }}
       />
-
       {/* Set Password Modal */}
       {
         showPasswordModal && passwordUser && (
@@ -4909,7 +4151,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           </Modal>
         )
       }
-
       {/* User Deletion Modal */}
       <UserDeletionModal
         open={showUserDeletionModal}
@@ -4925,7 +4166,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         onConfirmDelete={async (user, relatedData, archiveUser) => {
           try {
             const userId = user.docId || user.id || user.uid;
-            
             if (archiveUser) {
               // Archive user instead of deleting
               const { updateUser } = await import('@firebaseServices/userService');
@@ -4935,7 +4175,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 disabled: true,
                 archivedAt: Timestamp.now()
               });
-
               if (result.success) {
                 // Log activity
                 try {
@@ -4961,11 +4200,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                                    (relatedData?.quizResults?.length || 0) + 
                                    (relatedData?.marks?.length || 0);
               toast?.showInfo(`Deleting user and ${totalRecords} related records...`);
-
               // Use cascade delete function which handles all related data
               const { deleteUserCascade } = await import('@firebaseServices/userService');
               const result = await deleteUserCascade(userId);
-
               if (result.success) {
                 // Log activity
                 try {
@@ -4989,7 +4226,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           }
         }}
       />
-
       {/* Delete Confirmation Modal */}
       {deleteModal.open && (
         <div style={{
@@ -5038,7 +4274,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           </Card>
         </div>
       )}
-
       {/* Test Email Dialog */}
       <Modal
         isOpen={testEmailDialogOpen}
@@ -5093,9 +4328,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           </div>
         </div>
       </Modal>
-
     </div >
   );
 };
-
 export default DashboardPage;

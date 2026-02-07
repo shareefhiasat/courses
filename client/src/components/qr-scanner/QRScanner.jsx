@@ -2549,7 +2549,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           </div>
                       ) : (
                           <div style={{ fontStyle: 'italic' }}>
-                            {t('no_name_available') || 'No name available'}
+                            {t('no_name_available') || 'Not available'}
                           </div>
                       )}
 
@@ -2575,7 +2575,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/* First Row: Primary Actions */}
                     <button
                         onClick={async () => {
-                          await handleMarkAttendance('present', 'Marked present manually');
+                          await handleMarkAttendance('present', 'Manual');
                         }}
                         disabled={actionLoading}
                         style={{
