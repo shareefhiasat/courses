@@ -38,6 +38,8 @@ import ResourcesPage from './ResourcesPage';
 import ClassesPage from './ClassesPage';
 import UsersPage from './UsersPage';
 import LoginActivityPage from './LoginActivityPage';
+import SubmissionsPage from './SubmissionsPage';
+import SMTPPage from './SMTPPage';
 import { 
   getResourceTypeConfig, 
   getResourceTypeOptions, 
@@ -3357,176 +3359,28 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           )}
         </Modal>
         {activeTab === 'submissions' && (
-          <div className="submissions-tab">
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: 12,
-                marginBottom: '0.75rem',
-                alignItems: 'center'
-              }}
-            >
-              <Select
-                value={activityFilter}
-                onChange={(e) => setActivityFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_activities') || 'All Activities', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                  ...activities.map(a => ({ value: a.id || a.docId, label: a.title_en || a.title_ar || a.id }))
-                ]}
-                searchable
-                fullWidth
-              />
-              <UserSelect
-                users={users}
-                enrollments={enrollments}
-                value={submissionStudentFilter}
-                onChange={(e) => setSubmissionStudentFilter(e.target.value)}
-                placeholder={t('all_students') || 'All Students'}
-                roleFilter={[USER_ROLES.STUDENT]}
-                includeAll={true}
-                showEnrollments={true}
-                showStatus={true}
-                fullWidth
-              />
-              <Select
-                value={submissionStatusFilter}
-                onChange={(e) => setSubmissionStatusFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_statuses') || 'All Status', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                  { value: SUBMISSION_STATUS.PENDING, label: t('pending') || 'Pending' },
-                  { value: 'graded', label: t('graded') || 'Graded' },
-                  { value: 'late', label: t('late') || 'Late' }
-                ]}
-                searchable
-                fullWidth
-              />
-              <Select
-                value={submissionScoreFilter}
-                onChange={(e) => setSubmissionScoreFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_scores') || 'All Scores', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                  { value: 'graded', label: t('graded_only') || 'Graded only' },
-                  { value: 'not_graded', label: t('not_graded_only') || 'Not graded yet' }
-                ]}
-                searchable
-                fullWidth
-              />
-            </div>
-            <AdvancedDataGrid
-              rows={filteredSubmissions}
-              getRowId={(row) => row.id || row.docId}
-              columns={[
-                {
-                  field: 'activityId', headerName: t('activity_col'), flex: 1, minWidth: 200,
-                  renderCell: (params) => {
-                    const activity = activities.find(a => (a.id === params.value) || (a.docId === params.value));
-                    return activity ? (activity.title_en || activity.title_ar || activity.id) : params.value;
-                  }
-                },
-                {
-                  field: 'userId', headerName: t('student_col'), flex: 1.5, minWidth: 260,
-                  renderCell: (params) => {
-                    const user = users.find(u => (u.docId || u.id) === params.value);
-                    if (!user) return params.value;
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <span>{user.displayName || user.realName || user.email || params.value}</span>
-                        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{user.email}</span>
-                        {user.studentNumber && (
-                          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>#{user.studentNumber}</span>
-                        )}
-                      </div>
-                    );
-                  }
-                },
-                {
-                  field: 'status', headerName: t('status_col'), width: 140,
-                  renderCell: (params) => {
-                    const statusMap = {
-                      [SUBMISSION_STATUS.SUBMITTED]: { icon: getThemedIcon('ui', 'file_text', 16, theme), text: 'Submitted' },
-                      [SUBMISSION_STATUS.GRADED]: { icon: getThemedIcon('ui', 'check_circle', 16, theme), text: 'Graded' },
-                      'late': { icon: getThemedIcon('ui', 'clock', 16, theme), text: 'Late' },
-                      [SUBMISSION_STATUS.PENDING]: { icon: getThemedIcon('ui', 'clock', 16, theme), text: 'Pending' }
-                    };
-                    const status = statusMap[params.value] || statusMap[SUBMISSION_STATUS.SUBMITTED];
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
-                        {status.icon} {status.text}
-                      </span>
-                    );
-                  }
-                },
-                {
-                  field: 'score', headerName: t('score_col'), width: 140,
-                  renderCell: (params) => {
-                    const act = activities.find(a => a.id === params.row.activityId || a.docId === params.row.activityId);
-                    const maxScore = act?.maxScore || 100;
-                    return params.value !== null && params.value !== undefined ? `${params.value} / ${maxScore}` : 'Not graded yet';
-                  }
-                },
-                {
-                  field: 'submittedAt', headerName: t('submitted_at_col'), width: 180,
-                  valueGetter: (params) => params.value,
-                  renderCell: (params) => params.value ? formatDateTime(params.value) : (t('unknown') || 'Unknown')
-                },
-                {
-                  field: 'files', headerName: t('files_col'), width: 150,
-                  renderCell: (params) => {
-                    if (!params.value || params.value.length === 0) return t('no_files') || 'No files';
-                    return (
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {params.value.map((file, i) => (
-                          <a
-                            key={i}
-                            href={file}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              background: '#e3f2fd',
-                              color: '#1976d2',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              textDecoration: 'none',
-                              fontSize: '0.8rem'
-                            }}
-                          >
-                            File {i + 1}
-                          </a>
-                        ))}
-                      </div>
-                    );
-                  }
-                },
-                {
-                  field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
-                  renderCell: (params) => (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        const submission = params.row;
-                        const currentScore = (submission.score !== null && submission.score !== undefined)
-                          ? String(submission.score)
-                          : '';
-                        setGradingSubmission(submission);
-                        setGradingScore(currentScore);
-                        setGradingModalOpen(true);
-                      }}
-                    >
-                      {t('grade') || 'Grade'}
-                    </Button>
-                  )
-                }
-              ]}
-              pageSize={15}
-              pageSizeOptions={[5, 10, 15, 20, 50]}
-              checkboxSelection
-              exportFileName="submissions"
-              showExportButton
-              exportLabel={t('export') || 'Export'}
-            />
-          </div>
+          <SubmissionsPage
+            submissions={submissions}
+            activities={activities}
+            users={users}
+            enrollments={enrollments}
+            activityFilter={activityFilter}
+            setActivityFilter={setActivityFilter}
+            submissionStudentFilter={submissionStudentFilter}
+            setSubmissionStudentFilter={setSubmissionStudentFilter}
+            submissionStatusFilter={submissionStatusFilter}
+            setSubmissionStatusFilter={setSubmissionStatusFilter}
+            submissionScoreFilter={submissionScoreFilter}
+            setSubmissionScoreFilter={setSubmissionScoreFilter}
+            gradingSubmission={gradingSubmission}
+            setGradingSubmission={setGradingSubmission}
+            gradingScore={gradingScore}
+            setGradingScore={setGradingScore}
+            gradingModalOpen={gradingModalOpen}
+            setGradingModalOpen={setGradingModalOpen}
+            theme={theme}
+            formatDateTime={formatDateTime}
+          />
         )}
         {activeTab === 'users' && (
           <UsersPage
@@ -3589,139 +3443,10 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           />
         )}
         {activeTab === 'smtp' && (
-          <div className="smtp-tab">
-            {/* Deprecation Notice */}
-            <div style={{ 
-              padding: '1rem 1.5rem', 
-              background: '#fef3c7', 
-              border: '1px solid #fbbf24', 
-              borderRadius: 12, 
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.75rem'
-            }}>
-              <div style={{ flexShrink: 0, marginTop: '2px' }}>
-                {getThemedIcon('ui', 'alert_triangle', 20, theme)}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#92400e' }}>
-                  ⚠️ SMTP Configuration Deprecated
-                </div>
-                <div style={{ color: '#78350f', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                  SMTP configuration is now managed via <strong>environment variables</strong> for better testing, tracking, and single source of truth.
-                  <br />
-                  <br />
-                  <strong>Configuration:</strong>
-                  <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
-                    <li>Production: Set <code>VITE_SMTP_*</code> variables in <code>.env</code></li>
-                    <li>Testing: Set <code>VITE_USE_TEST_SMTP=true</code> to use Mailtrap</li>
-                    <li>Fallback: Firestore <code>config/smtp</code> (if env vars not set)</li>
-                    <li>Default: Gmail super admin (last resort)</li>
-                  </ul>
-                  <br />
-                  See <code>client/env.template</code> for all SMTP environment variables.
-                  <br />
-                  <br />
-                  <strong>This UI will be removed in a future version.</strong> Please migrate to environment variables.
-                </div>
-              </div>
-            </div>
-            <div style={{ background: 'white', border: '1px solid #eee', borderRadius: 12, padding: '1.5rem', maxWidth: 760, opacity: 0.6 }}>
-              {(() => {
-                if (!smtpLoading && !smtpConfig.__loaded) {
-                  (async () => {
-                    setSmtpLoading(true);
-                    const r = await getSMTPConfig();
-                    if (r.success && r.data) setSmtpConfig({ ...r.data, __loaded: true });
-                    else setSmtpConfig(s => ({ ...s, __loaded: true }));
-                    setSmtpLoading(false);
-                  })();
-                }
-                return null;
-              })()}
-              <div style={{ display: 'grid', gap: 12 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
-                  <Input
-                    label={t('smtp_host')}
-                    value={smtpConfig.host}
-                    onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
-                    placeholder="smtp.gmail.com"
-                    fullWidth
-                  />
-                  <NumberInput
-                    label={t('smtp_port')}
-                    value={smtpConfig.port}
-                    onChange={(e) => setSmtpConfig({ ...smtpConfig, port: parseInt(e.target.value || '0') })}
-                    placeholder="587"
-                    fullWidth
-                  />
-                  <Input
-                    label={t('sender_name')}
-                    value={smtpConfig.senderName}
-                    onChange={(e) => setSmtpConfig({ ...smtpConfig, senderName: e.target.value })}
-                    fullWidth
-                  />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <Input
-                    label={t('email_address')}
-                    type="email"
-                    value={smtpConfig.user}
-                    onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
-                    placeholder="your-email@gmail.com"
-                    fullWidth
-                  />
-                  <Input
-                     label={t('app_password')}
-                     type="password"
-                     value={smtpConfig.password}
-                     onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
-                     placeholder={t('app_password') || 'App Password'}
-                     fullWidth
-                   />
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: '1rem', justifyContent: 'flex-end' }}>
-                  <Button
-                    variant="success"
-                    onClick={() => {
-                      setTestEmailAddress(user?.email || smtpConfig.user);
-                      setTestEmailDialogOpen(true);
-                    }}
-                    disabled={smtpTesting}
-                    style={{ minWidth: '120px' }}
-                  >
-                    {smtpTesting ? t('testing') || 'Testing...' : t('test_email')}
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={async () => {
-                      try {
-                        setSmtpSaving(true);
-                        const payload = {
-                          host: smtpConfig.host,
-                          port: smtpConfig.port,
-                          secure: smtpConfig.secure,
-                          user: smtpConfig.user,
-                          password: smtpConfig.password,
-                          senderName: smtpConfig.senderName,
-                        };
-                        const r = await updateSMTPConfig(payload);
-                        if (r.success) toast?.showSuccess('SMTP configuration saved!');
-                        else toast?.showError('Failed: ' + r.error);
-                      } finally {
-                        setSmtpSaving(false);
-                      }
-                    }}
-                    disabled={smtpSaving}
-                    style={{ minWidth: '120px' }}
-                  >
-                    {smtpSaving ? t('saving') || 'Saving...' : t('save')}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SMTPPage
+            user={user}
+            theme={theme}
+          />
         )}
         {activeTab === 'categories' && (
           <CategoriesPage
