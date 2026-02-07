@@ -1,5 +1,5 @@
 import React from 'react';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import {
   FileText, Link, Video, Globe, Edit, Trash, 
   RefreshCw, UserCheck, UserX, Lock, User, UserMinus, AlertTriangle, Info, 

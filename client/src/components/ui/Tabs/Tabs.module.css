@@ -116,11 +116,13 @@
   display: inline-flex;
   align-items: center;
   line-height: 1;
+  color: inherit;
 }
 
 .tabIcon svg {
   width: 16px;
   height: 16px;
+  color: inherit;
 }
 
 /* Tab label */
@@ -170,6 +172,7 @@
 .sm .tabIcon svg {
   width: 14px;
   height: 14px;
+  color: inherit;
 }
 
 .lg .tab {
@@ -181,6 +184,7 @@
 .lg .tabIcon svg {
   width: 20px;
   height: 20px;
+  color: inherit;
 }
 
 /* Dark mode */
@@ -239,6 +243,7 @@
     width: 14px;
     height: 14px;
     flex-shrink: 0;
+    color: inherit;
   }
 
   .tabBadge {
@@ -267,6 +272,7 @@
   .tabIcon svg {
     width: 12px;
     height: 12px;
+    color: inherit;
   }
 
   .tabBadge {

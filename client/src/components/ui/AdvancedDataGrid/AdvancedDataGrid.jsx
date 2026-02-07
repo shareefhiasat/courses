@@ -9,6 +9,8 @@ import {
   GridToolbarExport,
 } from '@mui/x-data-grid';
 import { Box } from '@mui/material';
+import iconTypes from '@constants/iconTypes';
+const { getColoredIcon } = iconTypes;
 import Loading from '../Loading';
 
 /**

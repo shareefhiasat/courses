@@ -2134,9 +2134,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {
                     id: 'activity-fields',
                     items: [
-                      { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'file_text', 14, theme) },
-                      { key: 'content', label: 'Content', icon: getThemedIcon('ui', 'edit', 14, theme) },
-                      { key: 'settings', label: 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
+                      { key: 'basic', label: t('basic_info') || 'Basic Info', icon: getThemedIcon('ui', 'file_text', 14, theme) },
+                      { key: 'content', label: t('content') || 'Content', icon: getThemedIcon('ui', 'edit', 14, theme) },
+                      { key: 'settings', label: t('settings') || 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
                     ]
                   }
                 ]}
@@ -2926,9 +2926,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {
                     id: 'announcement-fields',
                     items: [
-                      { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'bell', 14, theme) },
-                      { key: 'content', label: 'Content', icon: getThemedIcon('ui', 'edit', 14, theme) },
-                      { key: 'email', label: 'Email Options', icon: getThemedIcon('ui', 'mail', 14, theme) }
+                      { key: 'basic', label: t('basic_info') || 'Basic Info', icon: getThemedIcon('ui', 'bell', 14, theme) },
+                      { key: 'content', label: t('content') || 'Content', icon: getThemedIcon('ui', 'edit', 14, theme) },
+                      { key: 'email', label: t('email_options') || 'Email Options', icon: getThemedIcon('ui', 'mail', 14, theme) }
                     ]
                   }
                 ]}
@@ -3608,9 +3608,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   {
                     id: 'class-fields',
                     items: [
-                      { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'home', 14, theme) },
-                      { key: 'academic', label: 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) },
-                      { key: 'settings', label: 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
+                      { key: 'basic', label: t('basic_info') || 'Basic Info', icon: getThemedIcon('ui', 'home', 14, theme) },
+                      { key: 'academic', label: t('academic_info') || 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) },
+                      { key: 'settings', label: t('settings') || 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
                     ]
                   }
                 ]}

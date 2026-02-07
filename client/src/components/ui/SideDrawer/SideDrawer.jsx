@@ -453,21 +453,21 @@ const SideDrawer = ({ isOpen, onClose }) => {
 
   const hrLinks = {
     main: {
-      label: 'MAIN',
+      label: t('main') || 'MAIN',
       items: [
-        { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: 'Home' },
+        { path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: t('home') || 'Home' },
         { path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: t('hr_attendance') || 'HR Attendance' },
         { path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: t('analytics') || 'Analytics' },
       ]
     },
     community: {
-      label: 'COMMUNITY',
+      label: t('community') || 'COMMUNITY',
       items: [
         { path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: t('chat') || 'Chat' },
       ]
     },
     settings: {
-      label: 'SETTINGS',
+      label: t('settings') || 'SETTINGS',
       items: [
         { path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: t('notifications') || 'Notifications' },
         { path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: t('student_profile') || 'Student Profile' },
@@ -1089,7 +1089,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 onMouseLeave={onFooterLeave}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center' }}>{getThemedIcon('ui', 'languages', 16, theme)}</span>
-                {!collapsed && <span>{lang === 'en' ? 'العربية' : 'English'}</span>}
+                {!collapsed && <span>{t(lang === 'en' ? 'arabic' : 'english') || (lang === 'en' ? 'العربية' : 'English')}</span>}
               </button>
 
               {/* Logout */}

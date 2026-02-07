@@ -8,6 +8,7 @@ export { ToastProvider, useToast } from './Toast';
 export { default as Spinner } from './Spinner';
 export { default as Modal } from './Modal';
 export { default as Tabs } from './Tabs';
+export { default as JoyrideTour } from './JoyrideTour';
 export { default as StoryboardChip } from './StoryboardChip/StoryboardChip';
 export { default as StoryboardTabs } from './StoryboardTabs/StoryboardTabs';
 

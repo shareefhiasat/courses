@@ -23,7 +23,7 @@ import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Select, DatePicker, Button, Loading, Card, CardBody } from '@ui';
 import { FancyLoading } from '@ui';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionPanel from '@/components/qr-scanner/StudentActionPanel';
@@ -1055,7 +1055,7 @@ const InstructorQRScannerPage = () => {
       logger.debug('CSV downloaded successfully');
     } catch (error) {
       logger.error('Error downloading CSV:', error);
-      alert('Failed to download CSV. Please try again.');
+      alert(t('failed_to_download_csv') || 'Failed to download CSV. Please try again.');
     }
   }, [students, classes, subjects, selectedClassId, selectedSubjectId, selectedDate, t]);
 
@@ -1779,12 +1779,12 @@ const InstructorQRScannerPage = () => {
                   }}
                 >
                   <option value="all">{t('all_status')}</option>
-                  <option value="present">{lang === 'ar' ? 'حاضر' : 'Present'}</option>
-                  <option value="absent_no_excuse">{lang === 'ar' ? 'غائب (بدون عذر)' : 'Absent (No Excuse)'}</option>
-                  <option value="absent_with_excuse">{lang === 'ar' ? 'غائب (بعذر)' : 'Absent (Excused)'}</option>
-                  <option value="late">{lang === 'ar' ? 'متأخر' : 'Late'}</option>
-                  <option value="excused_leave">{lang === 'ar' ? 'إجازة' : 'Excused Leave'}</option>
-                  <option value="human_case">{lang === 'ar' ? 'حالة إنسانية' : 'Human Case'}</option>
+                  <option value="present">{t('present')}</option>
+                  <option value="absent_no_excuse">{t('absent_no_excuse')}</option>
+                  <option value="absent_with_excuse">{t('absent_with_excuse')}</option>
+                  <option value="late">{t('late')}</option>
+                  <option value="excused_leave">{t('excused_leave')}</option>
+                  <option value="human_case">{t('human_case')}</option>
                 </select>
               </div>
               
@@ -1918,10 +1918,10 @@ const InstructorQRScannerPage = () => {
                 <p>{t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}</p>
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                   <Button variant="outline" onClick={() => setDeleteActivityModalOpen(false)}>
-                    {t('cancel') || 'Cancel'}
+                    {t('cancel')}
                   </Button>
                   <Button variant="primary" onClick={confirmDeleteActivity} loading={deleteActivityLoading} style={{ backgroundColor: '#dc2626' }}>
-                    {t('delete') || 'Delete'}
+                    {t('delete')}
                   </Button>
                 </div>
               </CardBody>

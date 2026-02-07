@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import Joyride from 'react-joyride';
+import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
-const { getThemedIcon, getColoredIcon, deriveIconColor } = iconTypes;
+const { getThemedIcon, getColoredIcon, deriveIconColor, getIconWithColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
 import { Tabs } from '@ui';
 import { getActivities, getAnnouncements, getResources } from '@firebaseServices/activityService';
@@ -621,13 +621,13 @@ const HomePage = memo(() => {
               {
                 value: 'activities',
                 label: t('activities') || 'Activities',
-                icon: getThemedIcon('ui', 'clipboard_list', 16, theme),
+                icon: mode === 'activities' ? getIconWithColor('ui', 'clipboard_list', 16, '#ffffff') : getIconWithColor('ui', 'clipboard_list', 16, primaryColor),
                 badge: mode === 'activities' ? filteredItems.length : undefined
               },
               {
                 value: 'resources',
                 label: t('resources') || 'Resources',
-                icon: getThemedIcon('ui', 'book_open', 16, theme),
+                icon: mode === 'resources' ? getIconWithColor('ui', 'book_open', 16, '#ffffff') : getIconWithColor('ui', 'book_open', 16, primaryColor),
                 badge: mode === 'resources' ? filteredItems.length : undefined
               }
             ]}
@@ -645,37 +645,37 @@ const HomePage = memo(() => {
                 {
                   value: 'all',
                   label: lang === 'en' ? 'All' : 'الكل',
-                  icon: getThemedIcon('ui', 'globe2', 16, theme),
+                  icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
                   badge: activityType === 'all' ? filteredItems.length : undefined
                 },
                 {
                   value: 'quiz',
                   label: lang === 'en' ? 'Quiz' : 'اختبار',
-                  icon: getThemedIcon('ui', 'help_circle', 16, theme),
+                  icon: activityType === 'quiz' ? getIconWithColor('ui', 'help_circle', 16, '#ffffff') : getIconWithColor('ui', 'help_circle', 16, primaryColor),
                   badge: activityType === 'quiz' ? filteredItems.length : undefined
                 },
                 {
                   value: 'homework',
                   label: lang === 'en' ? 'Homework' : 'واجب',
-                  icon: getThemedIcon('ui', 'clipboard_list', 16, theme),
+                  icon: activityType === 'homework' ? getIconWithColor('ui', 'clipboard_list', 16, '#ffffff') : getIconWithColor('ui', 'clipboard_list', 16, primaryColor),
                   badge: activityType === 'homework' ? filteredItems.length : undefined
                 },
                 {
                   value: 'training',
                   label: lang === 'en' ? 'Training' : 'تدريب',
-                  icon: getThemedIcon('ui', 'book_open', 16, theme),
+                  icon: activityType === 'training' ? getIconWithColor('ui', 'book_open', 16, '#ffffff') : getIconWithColor('ui', 'book_open', 16, primaryColor),
                   badge: activityType === 'training' ? filteredItems.length : undefined
                 },
                 {
                   value: 'lab',
                   label: lang === 'en' ? 'Lab' : 'معمل',
-                  icon: getThemedIcon('ui', 'monitor', 16, theme),
+                  icon: activityType === 'lab' ? getIconWithColor('ui', 'monitor', 16, '#ffffff') : getIconWithColor('ui', 'monitor', 16, primaryColor),
                   badge: activityType === 'lab' ? filteredItems.length : undefined
                 },
                 {
                   value: 'project',
                   label: lang === 'en' ? 'Project' : 'مشروع',
-                  icon: getThemedIcon('ui', 'code2', 16, theme),
+                  icon: activityType === 'project' ? getIconWithColor('ui', 'code2', 16, '#ffffff') : getIconWithColor('ui', 'code2', 16, primaryColor),
                   badge: activityType === 'project' ? filteredItems.length : undefined
                 }
               ]}
@@ -694,7 +694,7 @@ const HomePage = memo(() => {
                 {
                   value: '',
                   label: lang === 'en' ? 'All' : 'الكل',
-                  icon: getThemedIcon('ui', 'globe2', 16, theme),
+                  icon: category === '' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
                   badge: category === '' ? filteredItems.length : undefined
                 },
                 ...(courses.length ? courses : [
@@ -708,7 +708,7 @@ const HomePage = memo(() => {
                   return {
                     value: c.docId,
                     label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId),
-                    icon: getThemedIcon('ui', c.icon?.toLowerCase() || 'folder', 16, theme),
+                    icon: category === c.docId ? getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, '#ffffff') : getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, primaryColor),
                     badge: categoryActivities.length
                   };
                 })
@@ -1487,116 +1487,14 @@ const HomePage = memo(() => {
         </div>
       
       {/* Joyride Help Tour */}
-      <Joyride
-        continuous
+      <JoyrideTour
         run={runTour}
-        disableScrolling={false}
-        scrollOffset={100}
-        scrollToFirstStep={true}
-        spotlightClicks={false}
-        steps={[
-          {
-            target: '[data-tour="mode-switcher"]',
-            content: t('joyride_tour_mode_switcher') || 'Use these tabs to switch between Activities, Resources, and Quizzes',
-            disableBeacon: true,
-            placement: 'bottom'
-          },
-          {
-            target: '[data-tour="stats"]',
-            content: t('joyride_tour_stats') || 'These statistics show counts for completed, pending, required, featured, and bookmarked items',
-            disableBeacon: true,
-            placement: 'bottom'
-          },
-          {
-            target: '[data-tour="search"]',
-            content: t('joyride_tour_search') || 'Use this field to search in titles and descriptions',
-            disableBeacon: true,
-            placement: 'bottom'
-          },
-          {
-            target: '[data-tour="filters"]',
-            content: t('joyride_tour_filters') || 'Use these filters to search and filter items by type, level, and status',
-            disableBeacon: true,
-            placement: 'top'
-          },
-          {
-            target: '[data-tour="status-filters"]',
-            content: t('joyride_tour_status_filters') || 'Use these filters to find completed, pending, required, or bookmarked items',
-            disableBeacon: true,
-            placement: 'top'
-          },
-          {
-            target: '[data-tour="difficulty-filters"]',
-            content: t('joyride_tour_difficulty_filters') || 'Select difficulty level: Beginner, Intermediate, or Advanced',
-            disableBeacon: true,
-            placement: 'top'
-          },
-          ...(mode === 'activities' ? [{
-            target: '[data-tour="mode-switcher"]',
-            content: t('joyride_tour_mode_switcher') || 'Use these tabs to switch between Activities and Resources',
-            disableBeacon: true,
-            placement: 'bottom'
-          }, {
-            target: '[data-tour="activity-type-tabs"]',
-            content: t('joyride_tour_activity_type_tabs') || 'Select activity type: All, Quiz, Homework, Training, Lab, or Project',
-            disableBeacon: true,
-            placement: 'bottom'
-          }, {
-            target: '[data-tour="category-tabs"]',
-            content: t('joyride_tour_category_tabs') || 'Select category: All, Programming, Computing, Algorithm, or General',
-            disableBeacon: true,
-            placement: 'bottom'
-          }] : []),
-          ...(mode === 'activities' && activityType === 'quiz' ? [{
-            target: '[data-tour="class-filter"]',
-            content: t('joyride_tour_class_filter') || 'Select a class to view quizzes associated with it',
-            disableBeacon: true,
-            placement: 'top',
-            disableScrolling: false
-          }] : []),
-          ...(mode === 'resources' ? [{
-            target: '[data-tour="resource-type-filters"]',
-            content: t('joyride_tour_resource_type_filters') || 'Select resource type: All, Video, Link, or Document',
-            disableBeacon: true,
-            placement: 'top'
-          }] : []),
-          {
-            target: '[data-tour="cards-grid"]',
-            content: t('joyride_tour_cards_grid') || 'These are the cards displaying items. You can click buttons to start, complete, or bookmark',
-            disableBeacon: true,
-            placement: 'top',
-            disableScrolling: false
-          }
-        ]}
-        locale={{
-          back: t('joyride_back') || 'Back',
-          close: t('joyride_close') || 'Close',
-          last: t('joyride_last') || 'Finish',
-          next: t('joyride_next') || 'Next',
-          skip: t('joyride_skip') || 'Skip'
-        }}
-        styles={{
-          options: {
-            primaryColor: primaryColor,
-            textColor: isDark ? '#fff' : '#000',
-            backgroundColor: isDark ? '#1a1a1a' : '#fff',
-            overlayColor: 'rgba(0, 0, 0, 0.5)',
-            arrowColor: isDark ? '#1a1a1a' : '#fff',
-            zIndex: 10000
-          }
-        }}
-        callback={(data) => {
-          logger.debug('[HomePage] Joyride callback:', data);
-          if (data.status === 'finished' || data.status === 'skipped') {
-            console.log('[HomePage] Tour finished/skipped, setting runTour to false');
-            setRunTour(false);
-            try {
-              localStorage.setItem(tourSeenKey, 'true');
-              logger.debug('[HomePage] Saved tour seen key:', tourSeenKey);
-            } catch (e) {
-              logger.error('[HomePage] Failed to save tour seen key:', e);
-            }
-          }
+        mode={mode}
+        activityType={activityType}
+        tourSeenKey={tourSeenKey}
+        onTourFinish={() => {
+          console.log('[HomePage] Tour finished/skipped, setting runTour to false');
+          setRunTour(false);
         }}
       />
     </div>
