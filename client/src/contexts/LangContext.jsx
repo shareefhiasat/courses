@@ -9,7 +9,9 @@ const LangContext = createContext({
 });
 
 const DICT = {
-  en: {
+  en:
+{
+
     // Activity/Deletion related labels
     delete_activity: 'Delete Activity',
     delete_announcement: 'Delete Announcement',
@@ -47,6 +49,19 @@ const DICT = {
     help_template_edit: 'Customize the content and design of email notifications.',
     variables: 'Variables',
     help_template_vars: 'Use dynamic variables like {{name}} to personalize emails.',
+    credits: 'Credits',
+    hours: 'Hours',
+    hours_per_week: 'Hours/Week',
+    lecture: 'Lecture',
+    lab: 'Lab',
+    mix: 'Mix',
+    mix_lecture_lab: 'Mix (Lecture + Lab)',
+    general_mandatory: 'General Mandatory',
+    major_mandatory: 'Major Mandatory',
+    major_optional: 'Major Optional',
+    add_subject: 'Add Subject',
+    update: 'Update',
+    total_hours: 'Total Hours',
     default_email_templates: 'Default Email Templates',
     create_default_templates_description: 'Create 9 professional bilingual email templates to get started quickly:',
     new_activity: 'New Activity',
@@ -1426,11 +1441,28 @@ const DICT = {
     add_program: 'Add Program',
     duration_years_header: 'Duration (Years)',
     min_gpa_header: 'Min GPA',
+    rows_per_page: 'Rows per page',
+    total_programs: 'Total Programs',
+    search_programs: 'Search Programs',
+    create_program: 'Create Program',
+    edit_program: 'Edit Program',
+    delete_program: 'Delete Program',
+    program_code: 'Program Code',
+    program_name_en: 'Program Name (EN)',
+    program_name_ar: 'Program Name (AR)',
+    duration_years: 'Duration (Years)',
+    min_gpa_header: 'Min GPA',
+    credit_hours_header: 'Credit Hours',
+    actions: 'Actions',
+    code: 'Code',
+    name_en: 'Name (EN)',
+    name_ar: 'Name (AR)',
     credit_hours_header: 'Credit Hours',
     years: 'years',
     
     // Subjects Management Page
     please_fill_required_fields_subject: 'Please fill in all required fields',
+    rows_per_page: 'Rows per page',
     subject_updated_successfully: 'Subject updated successfully',
     subject_created_successfully: 'Subject created successfully',
     operation_failed_subject: 'Operation failed',

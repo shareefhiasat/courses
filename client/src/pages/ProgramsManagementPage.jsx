@@ -259,7 +259,7 @@ const ProgramsManagementPage = () => {
             columns={[
               { 
                 field: 'code', 
-                headerName: t('code') || 'Code', 
+                headerName: t('program_code') || 'Code', 
                 width: 120,
                 valueGetter: (params) => {
                   const row = params?.row || {};
@@ -267,11 +267,11 @@ const ProgramsManagementPage = () => {
                   return code || '—';
                 }
               },
-              { field: 'name_en', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
-              { field: 'name_ar', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
+              { field: 'name_en', headerName: t('program_name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
+              { field: 'name_ar', headerName: t('program_name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
               {
                 field: 'duration_years',
-                headerName: t('duration_years_header') || 'Duration (Years)',
+                headerName: t('duration_years') || 'Duration (Years)',
                 width: 140,
                 valueGetter: (params) => `${params.value || 2} ${t('years') || 'years'}`
               },

@@ -186,22 +186,22 @@ const SubjectsManagementPage = () => {
   const columns = [
     {
       key: 'code',
-      label: 'Code',
+      label: t('code') || 'Code',
       sortable: true
     },
     {
       key: 'name_en',
-      label: 'Name (EN)',
+      label: t('name_en') || 'Name (EN)',
       sortable: true
     },
     {
       key: 'name_ar',
-      label: 'Name (AR)',
+      label: t('name_ar') || 'Name (AR)',
       sortable: true
     },
     {
       key: 'programId',
-      label: 'Program',
+      label: t('program') || 'Program',
       render: (value) => {
         const program = programs.find(p => p.docId === value);
         return program ? (lang === 'ar' ? program.name_ar : program.name_en) : 'N/A';
@@ -209,23 +209,23 @@ const SubjectsManagementPage = () => {
     },
     {
       key: 'creditHours',
-      label: 'Credits'
+      label: t('credits') || 'Credits'
     },
     {
       key: 'totalHours',
-      label: 'Hours'
+      label: t('hours') || 'Hours'
     },
     {
       key: 'type',
-      label: 'Type',
+      label: t('type') || 'Type',
       render: (value) => {
-        const typeMap = { lecture: 'Lecture', lab: 'Lab', mix: 'Mix' };
+        const typeMap = { lecture: t('lecture') || 'Lecture', lab: t('lab') || 'Lab', mix: t('mix') || 'Mix' };
         return typeMap[value] || value;
       }
     },
     {
       key: 'hoursPerWeek',
-      label: 'Hours/Week'
+      label: t('hours_per_week') || 'Hours/Week'
     },
     {
       key: 'actions',
@@ -238,7 +238,7 @@ const SubjectsManagementPage = () => {
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(subject)}
           >
-            Edit
+            {t('edit') || 'Edit'}
           </Button>
           <Button
             variant="ghost"
@@ -247,7 +247,7 @@ const SubjectsManagementPage = () => {
             onClick={() => handleDelete(subject)}
             style={{ color: '#dc2626' }}
           >
-            Delete
+            {t('delete') || 'Delete'}
           </Button>
         </div>
       )
@@ -325,9 +325,9 @@ const SubjectsManagementPage = () => {
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             placeholder="All Types"
             options={[
-              { value: 'lecture', label: 'Lecture', icon: getThemedIcon('ui', 'file_text', 16, theme) },
-              { value: 'lab', label: 'Lab', icon: getThemedIcon('ui', 'users', 16, theme) },
-              { value: 'mix', label: 'Mix (Lecture + Lab)', icon: getThemedIcon('ui', 'file_text', 16, theme) }
+              { value: 'lecture', label: t('lecture') || 'Lecture', icon: getThemedIcon('ui', 'file_text', 16, theme) },
+              { value: 'lab', label: t('lab') || 'Lab', icon: getThemedIcon('ui', 'users', 16, theme) },
+              { value: 'mix', label: t('mix_lecture_lab') || 'Mix (Lecture + Lab)', icon: getThemedIcon('ui', 'file_text', 16, theme) }
             ]}
             required
           />
@@ -336,9 +336,9 @@ const SubjectsManagementPage = () => {
             onChange={(e) => setFormData({ ...formData, requirementType: e.target.value })}
             placeholder="All Requirements"
             options={[
-              { value: 'general_mandatory', label: 'General Mandatory', icon: getThemedIcon('ui', 'filter', 16, theme) },
-              { value: 'major_mandatory', label: 'Major Mandatory', icon: getThemedIcon('ui', 'book_open', 16, theme) },
-              { value: 'major_optional', label: 'Major Optional', icon: getThemedIcon('ui', 'file_text', 16, theme) }
+              { value: 'general_mandatory', label: t('general_mandatory') || 'General Mandatory', icon: getThemedIcon('ui', 'filter', 16, theme) },
+              { value: 'major_mandatory', label: t('major_mandatory') || 'Major Mandatory', icon: getThemedIcon('ui', 'book_open', 16, theme) },
+              { value: 'major_optional', label: t('major_optional') || 'Major Optional', icon: getThemedIcon('ui', 'file_text', 16, theme) }
             ]}
             required
           />
@@ -354,7 +354,7 @@ const SubjectsManagementPage = () => {
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
-            {editingSubject ? 'Update' : 'Add Subject'}
+            {editingSubject ? (t('update') || 'Update') : (t('add_subject') || 'Add Subject')}
           </Button>
           {editingSubject && (
             <Button 
@@ -394,7 +394,7 @@ const SubjectsManagementPage = () => {
             columns={[
               { 
                 field: 'code', 
-                headerName: 'Code', 
+                headerName: t('code') || 'Code', 
                 width: 120,
                 valueGetter: (params) => {
                   const row = params?.row || {};
@@ -402,11 +402,11 @@ const SubjectsManagementPage = () => {
                   return code || '—';
                 }
               },
-              { field: 'name_en', headerName: 'Name (EN)', flex: 1, minWidth: 180 },
-              { field: 'name_ar', headerName: 'Name (AR)', flex: 1, minWidth: 180 },
+              { field: 'name_en', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
+              { field: 'name_ar', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
               {
                 field: 'programId',
-                headerName: 'Program',
+                headerName: t('program') || 'Program',
                 flex: 1,
                 minWidth: 200,
                 valueGetter: (params) => {
@@ -418,23 +418,23 @@ const SubjectsManagementPage = () => {
                   return lang === 'ar' ? program.name_ar : program.name_en;
                 }
               },
-              { field: 'creditHours', headerName: 'Credits', width: 100 },
-              { field: 'totalHours', headerName: 'Total Hours', width: 120 },
+              { field: 'creditHours', headerName: t('credits') || 'Credits', width: 100 },
+              { field: 'totalHours', headerName: t('total_hours') || 'Total Hours', width: 120 },
               {
                 field: 'type',
-                headerName: 'Type',
+                headerName: t('type') || 'Type',
                 width: 120,
                 valueGetter: (params) => {
                   const row = params?.row || {};
                   const type = row.type || params?.value;
-                  const typeMap = { lecture: 'Lecture', lab: 'Lab', mix: 'Mix' };
+                  const typeMap = { lecture: t('lecture') || 'Lecture', lab: t('lab') || 'Lab', mix: t('mix') || 'Mix' };
                   return type ? (typeMap[type] || type) : '—';
                 }
               },
-              { field: 'hoursPerWeek', headerName: 'Hours/Week', width: 120 },
+              { field: 'hoursPerWeek', headerName: t('hours_per_week') || 'Hours/Week', width: 120 },
               {
                 field: 'actions',
-                headerName: 'Actions',
+                headerName: t('actions') || 'Actions',
                 width: 200,
                 sortable: false,
                 filterable: false,
@@ -446,7 +446,7 @@ const SubjectsManagementPage = () => {
                       icon={getThemedIcon('ui', 'edit', 16, theme)}
                       onClick={() => handleEdit(params.row)}
                     >
-                      Edit
+                      {t('edit') || 'Edit'}
                     </Button>
                     <Button
                       size="sm"
@@ -455,7 +455,7 @@ const SubjectsManagementPage = () => {
                       onClick={() => handleDelete(params.row)}
                       style={{ color: '#dc2626' }}
                     >
-                      Delete
+                      {t('delete') || 'Delete'}
                     </Button>
                   </div>
                 )
