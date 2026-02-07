@@ -40,6 +40,7 @@ import UsersPage from './UsersPage';
 import LoginActivityPage from './LoginActivityPage';
 import SubmissionsPage from './SubmissionsPage';
 import SMTPPage from './SMTPPage';
+import EnrollmentManagementPage from './EnrollmentManagementPage';
 import { 
   getResourceTypeConfig, 
   getResourceTypeOptions, 
@@ -2912,371 +2913,38 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         </Modal>
         {/* Enrollments Tab */}
         {activeTab === 'enrollments' && (
-          <div className="enrollments-section" style={{ marginTop: '2rem' }}>
-            <RibbonTabs
-              categories={[
-                {
-                  id: 'enrollment-fields',
-                  items: [
-                    { key: 'user', label: 'User Info', icon: getThemedIcon('ui', 'user', 14, theme) },
-                    { key: 'class', label: 'Class Info', icon: getThemedIcon('ui', 'home', 14, theme) },
-                    { key: 'role', label: 'Role', icon: getThemedIcon('ui', 'shield', 14, theme) }
-                  ]
-                }
-              ]}
-              activeCategory="enrollment-fields"
-              activeItem={activeEnrollmentTab}
-              onChange={({ category, item }) => setActiveEnrollmentTab(item)}
-            />
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              // Check if enrollment already exists
-              const existingEnrollment = enrollments.find(e =>
-                e.userId === enrollmentForm.userId && e.classId === enrollmentForm.classId
-              );
-              if (existingEnrollment) {
-                toast?.showError('This user is already enrolled in this class');
-                return;
-              }
-              setLoading(true);
-              try {
-                const result = await addEnrollment(enrollmentForm);
-                if (result.success) {
-                  // Log activity
-                  try {
-                    await logActivity(ACTIVITY_TYPES.ENROLLMENT_CREATED, {
-                      enrollmentId: result.id,
-                      userId: enrollmentForm.userId,
-                      classId: enrollmentForm.classId,
-                      role: enrollmentForm.role
-                    });
-                  } catch (e) { }
-                  await loadData();
-                  setEnrollmentForm({ userId: '', classId: '', role: USER_ROLES.STUDENT, programId: '', subjectId: '', year: '', term: '' });
-                  toast?.showSuccess('Enrollment added successfully!');
-                } else {
-                  toast?.showError('Error: ' + result.error);
-                }
-              } catch (error) {
-                toast?.showError('Error: ' + error.message);
-              } finally {
-                setLoading(false);
-              }
-            }} className="dashboard-form">
-              {/* User Info Tab */}
-              {activeEnrollmentTab === 'user' && (
-                <div className="form-row wide-cols">
-                  <UserSelect
-                    users={users}
-                    enrollments={enrollments}
-                    value={enrollmentForm.userId}
-                    onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
-                    placeholder={t('select_user') || 'Select User'}
-                    roleFilter={[USER_ROLES.STUDENT]}
-                    showEnrollments={true}
-                    showStatus={true}
-                    searchable={true}
-                    required
-                  />
-                </div>
-              )}
-              {/* Class Info Tab */}
-              {activeEnrollmentTab === 'class' && (
-                <div className="form-row wide-cols">
-                  <Select
-                    searchable
-                    placeholder={t('all_programs')}
-                    value={enrollmentForm.programId}
-                    onChange={handleEnrollmentProgramChange}
-                    options={enrollmentProgramOptions}
-                    required
-                  />
-                  <Select
-                    searchable
-                    placeholder={t('all_subjects')}
-                    value={ensureString(enrollmentForm.subjectId || '')}
-                    onChange={handleEnrollmentSubjectChange}
-                    options={enrollmentSubjectOptions}
-                    required
-                  />
-                  <Select
-                    searchable
-                    placeholder={t('all_classes')}
-                    value={enrollmentForm.classId}
-                    onChange={(e) => setEnrollmentForm(prev => ({ ...prev, classId: e.target.value }))}
-                    disabled={!enrollmentForm.subjectId}
-                    options={enrollmentClassOptions}
-                    required
-                  />
-                </div>
-              )}
-              {/* Role Tab */}
-              {activeEnrollmentTab === 'role' && (
-                <div className="form-row wide-cols">
-                  <Select
-                    searchable
-                    placeholder={t('role') || 'Role'}
-                    value={enrollmentForm.role}
-                    onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
-                    options={[
-                      { value: USER_ROLES.STUDENT, label: (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ color: getRoleIconColor(USER_ROLES.STUDENT) }}>
-                            {getRoleIconThemed(USER_ROLES.STUDENT)}
-                          </span>
-                          {t('student') || 'Student'}
-                        </span>
-                      )}
-                    ]}
-                  />
-                </div>
-              )}
-              <div className="form-actions">
-                <Button type="submit" variant="primary" disabled={loading} size="medium">
-                  {t('save') || 'Save'}
-                </Button>
-              </div>
-            </form>
-            {/* Filters - like HR Penalties */}
-            <div style={{ marginTop: '1rem', marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-                <Select
-                  searchable
-                  placeholder={t('all_programs')}
-                  value={ensureString(enrollmentProgramFilter || 'all')}
-                  onChange={(e) => {
-                    const newValue = ensureString(e.target.value);
-                    setEnrollmentProgramFilter(newValue);
-                  }}
-                  options={enrollmentFilterProgramOptions}
-                  fullWidth
-                />
-                <Select
-                  searchable
-                  placeholder={t('all_subjects')}
-                  value={ensureString(enrollmentSubjectFilter || 'all')}
-                  onChange={(e) => {
-                    const newValue = ensureString(e.target.value);
-                    setEnrollmentSubjectFilter(newValue);
-                  }}
-                  options={enrollmentFilterSubjectOptions}
-                  fullWidth
-                />
-                <Select
-                  searchable
-                  placeholder={t('all_classes') || 'All Classes'}
-                  value={ensureString(enrollmentClassFilter || 'all')}
-                  onChange={(e) => {
-                    const newValue = ensureString(e.target.value);
-                    setEnrollmentClassFilter(newValue);
-                  }}
-                  options={enrollmentFilterClassOptions}
-                  fullWidth
-                />
-              </div>
-            </div>
-            <div style={{ marginTop: '1rem' }}>
-              <AdvancedDataGrid
-                rows={enrollments.filter(e => {
-                  // Filter by program
-                  if (enrollmentProgramFilter && enrollmentProgramFilter !== 'all') {
-                    const classItem = classes.find(c => (c.docId || c.id) === e.classId);
-                    if (!classItem?.subjectId) return false;
-                    const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
-                    if (!subject || subject.programId !== enrollmentProgramFilter) return false;
-                  }
-                  // Filter by subject
-                  if (enrollmentSubjectFilter && enrollmentSubjectFilter !== 'all') {
-                    const classItem = classes.find(c => (c.docId || c.id) === e.classId);
-                    if (!classItem || classItem.subjectId !== enrollmentSubjectFilter) return false;
-                  }
-                  // Filter by class
-                  if (enrollmentClassFilter && enrollmentClassFilter !== 'all') {
-                    if (e.classId !== enrollmentClassFilter) return false;
-                  }
-                  return true;
-                })}
-                getRowId={(row) => row.docId || row.id}
-                columns={[
-                {
-                  field: 'userId', headerName: t('user_col'), flex: 1, minWidth: 250,
-                  renderCell: (params) => {
-                    const user = users.find(u => (u.docId || u.id) === params.value);
-                    if (!user) return params.value;
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        {getThemedIcon('ui', 'user', 16, theme)} {user.displayName || user.realName || '—'}{user.email ? ` (${user.email})` : ''}
-                      </span>
-                    );
-                  }
-                },
-                {
-                  field: 'programName',
-                  headerName: t('program') || 'Program',
-                  flex: 1,
-                  minWidth: 180,
-                  valueGetter: (params) => {
-                    // Try to get the program name directly from the row
-                    const row = params.row || {};
-                    const programName = row.programName || 
-                                     (row.program && (row.program.name_en || row.program.name)) ||
-                                     (row.programId && programs.find(p => (p.docId || p.id) === row.programId)?.name_en);
-                    return programName || params.value || 'N/A';
-                    return programName || params.value || 'N/A';
-                  },
-                  renderCell: (params) => {
-                    const row = params.row || {};
-                    const programName = row.programName || 
-                                     (row.program && (row.program.name_en || row.program.name)) ||
-                                     (row.programId && programs.find(p => (p.docId || p.id) === row.programId)?.name_en);
-                    if (!programName && !params.value) {
-                      return (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          {getThemedIcon('ui', 'target', 16, theme)} N/A
-                        </span>
-                      );
-                    }
-                    const finalProgramName = programName || params.value || 'N/A';
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        {getThemedIcon('ui', 'target', 16, theme)} {finalProgramName}
-                      </span>
-                    );
-                  }
-                },
-                {
-                  field: 'subjectName',
-                  headerName: t('subject_col') || 'Subject',
-                  flex: 1,
-                  minWidth: 180,
-                  valueGetter: (params) => {
-                    // Try to get the subject name directly from the row
-                    const row = params.row || {};
-                    const subjectName = row.subjectName || 
-                                     (row.subject && (row.subject.name_en || row.subject.name)) ||
-                                     (row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
-                    return subjectName || params.value || 'N/A';
-                    return subjectName || params.value || 'N/A';
-                  },
-                  renderCell: (params) => {
-                    const row = params.row || {};
-                    const subjectName = row.subjectName || 
-                                     (row.subject && (row.subject.name_en || row.subject.name)) ||
-                                     (row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
-                    if (!subjectName && !params.value) {
-                      return (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                          {getThemedIcon('ui', 'book_open', 16, theme)} N/A
-                        </span>
-                      );
-                    }
-                    const finalSubjectName = subjectName || params.value || 'N/A';
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        {getThemedIcon('ui', 'book_open', 16, theme)} {finalSubjectName}
-                      </span>
-                    );
-                  }
-                },
-                {
-                  field: 'classId', headerName: t('class_col'), flex: 1, minWidth: 200,
-                  renderCell: (params) => {
-                    const classItem = classes.find(c => (c.docId || c.id) === params.value);
-                    if (!classItem) return params.value;
-                    const codePart = classItem.code ? ` (${classItem.code})` : '';
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{codePart}
-                      </span>
-                    );
-                  }
-                },
-                {
-                  field: 'role', headerName: t('role_col'), width: 150,
-                  renderCell: (params) => {
-                    const roleMap = {
-                      [USER_ROLES.STUDENT]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{getThemedIcon('ui', 'user', 16, theme)} Student</span>,
-                      'ta': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👨‍🏫 TA</span>,
-                      [USER_ROLES.INSTRUCTOR]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👩‍🏫 Instructor</span>
-                    };
-                    return roleMap[params.value] || params.value;
-                  }
-                },
-                {
-                  field: 'createdAt', headerName: t('enrolled_col'), width: 180,
-                  valueGetter: (params) => params.value,
-                  renderCell: (params) => params.value ? formatQatarDateOnly(params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value))) : 'Unknown'
-                },
-                {
-                  field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
-                  renderCell: (params) => (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
-                        const enrollment = params.row;
-                        const user = users.find(u => (u.docId || u.id) === enrollment.userId);
-                        const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
-                        // Submissions are quiz/activity submissions (student work)
-                        const userSubmissions = submissions.filter(s => s.userId === enrollment.userId && s.activityId);
-                        const relatedActivities = activities.filter(a => a.classId === enrollment.classId);
-                        // Create readable item name
-                        const userName = user ? (user.displayName || user.realName || user.email || 'Unknown User') : 'Unknown User';
-                        const className = classItem ? (classItem.name || classItem.code || 'Unknown Class') : 'Unknown Class';
-                        const itemName = `${userName} → ${className}`;
-                        setDeleteModal({
-                          open: true,
-                          item: { ...enrollment, _displayName: itemName },
-                          type: 'enrollment',
-                          onConfirm: async () => {
-                            try {
-                              const result = await deleteEnrollment(enrollment.docId);
-                              if (result.success) {
-                                // Log activity
-                                try {
-                                  await logActivity(ACTIVITY_TYPES.ENROLLMENT_DELETED, {
-                                    enrollmentId: enrollment.docId,
-                                    userId: enrollment.userId,
-                                    classId: enrollment.classId
-                                  });
-                                } catch (e) { }
-                                await loadData();
-                                toast?.showSuccess('Enrollment removed successfully!');
-                                setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-                              } else {
-                                toast?.showError('Error: ' + result.error);
-                                setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-                              }
-                            } catch (error) {
-                              toast?.showError('Error: ' + error.message);
-                              setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-                            }
-                          },
-                          relatedData: {
-                            'Activity/Quiz Submissions': userSubmissions.map(s => ({
-                              ...s,
-                              _label: `Activity/Quiz Submission`
-                            })),
-                            'Related Activities': relatedActivities
-                          },
-                          warningMessage: userSubmissions.length > 0 
-                            ? `This enrollment has ${userSubmissions.length} activity/quiz submission(s) that should be deleted first.`
-                            : null
-                        });
-                      }}>
-                        {t('delete') || 'Delete'}
-                      </Button>
-                    </div>
-                  )
-                }
-              ]}
-              pageSize={10}
-              pageSizeOptions={[5, 10, 20, 50]}
-              checkboxSelection
-              exportFileName="enrollments"
-              showExportButton
-              exportLabel={t('export') || 'Export'}
-            />
-            </div>
-          </div>
+          <EnrollmentManagementPage
+            enrollments={enrollments}
+            users={users}
+            classes={classes}
+            programs={programs}
+            subjects={subjects}
+            activities={activities}
+            submissions={submissions}
+            enrollmentForm={enrollmentForm}
+            setEnrollmentForm={setEnrollmentForm}
+            activeEnrollmentTab={activeEnrollmentTab}
+            setActiveEnrollmentTab={setActiveEnrollmentTab}
+            enrollmentProgramOptions={enrollmentProgramOptions}
+            enrollmentSubjectOptions={enrollmentSubjectOptions}
+            enrollmentClassOptions={enrollmentClassOptions}
+            enrollmentProgramFilter={enrollmentProgramFilter}
+            enrollmentSubjectFilter={enrollmentSubjectFilter}
+            enrollmentClassFilter={enrollmentClassFilter}
+            enrollmentFilterProgramOptions={enrollmentFilterProgramOptions}
+            enrollmentFilterSubjectOptions={enrollmentFilterSubjectOptions}
+            enrollmentFilterClassOptions={enrollmentFilterClassOptions}
+            deleteModal={deleteModal}
+            setDeleteModal={setDeleteModal}
+            loading={loading}
+            setLoading={setLoading}
+            loadData={loadData}
+            theme={theme}
+            formatQatarDateOnly={formatQatarDateOnly}
+            handleEnrollmentProgramChange={handleEnrollmentProgramChange}
+            handleEnrollmentSubjectChange={handleEnrollmentSubjectChange}
+            ensureString={ensureString}
+          />
         )}
           {/* Grade Submission Modal */}
         <Modal
