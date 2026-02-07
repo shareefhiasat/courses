@@ -9,27 +9,27 @@ export class ActivitiesPage {
     this.page = page;
     
     // Navigation
-    this.activitiesTab = page.locator('button:has-text("Activities"), [role="tab"]:has-text("Activities")');
+    this.activitiesTab = page.locator('button:has-text("activities"), [role="tab"]:has-text("activities")');
     
     // Form elements
-    this.titleEnInput = page.locator('input[placeholder*="Title (English)"], input[name="title_en"]').first();
-    this.titleArInput = page.locator('input[placeholder*="Title (Arabic)"], input[name="title_ar"]').first();
+    this.titleEnInput = page.locator('input[placeholder*="title_english"], input[name="title_en"]').first();
+    this.titleArInput = page.locator('input[placeholder*="title_arabic"], input[name="title_ar"]').first();
     this.typeSelect = page.locator('select, [role="combobox"]').first();
     this.classSelect = page.locator('select, [role="combobox"]').nth(1);
     this.urlInput = page.locator('input[type="url"], input[placeholder*="URL"], input[name="url"]').first();
-    this.descriptionEnTextarea = page.locator('textarea[placeholder*="Description (English)"], textarea[name="description_en"]').first();
-    this.descriptionArTextarea = page.locator('textarea[placeholder*="Description (Arabic)"], textarea[name="description_ar"]').first();
+    this.descriptionEnTextarea = page.locator('textarea[placeholder*="description_english"], textarea[name="description_en"]').first();
+    this.descriptionArTextarea = page.locator('textarea[placeholder*="description_arabic"], textarea[name="description_ar"]').first();
     
     // Buttons
-    this.submitButton = page.locator('button[type="submit"]:has-text("Create"), button[type="submit"]:has-text("Update")').first();
-    this.addActivityButton = page.locator('button:has-text("Add Activity"), button:has-text("Create Activity")').first();
+    this.submitButton = page.locator('button[type="submit"]:has-text("create"), button[type="submit"]:has-text("update")').first();
+    this.addActivityButton = page.locator('button:has-text("add_activity"), button:has-text("create_activity")').first();
     
     // Grid
     this.dataGrid = page.locator('[role="grid"], .data-grid, table').first();
     
     // Actions
-    this.editButton = (activityTitle) => page.locator(`button:has-text("Edit"):near(:text("${activityTitle}"))`).first();
-    this.deleteButton = (activityTitle) => page.locator(`button:has-text("Delete"):near(:text("${activityTitle}"))`).first();
+    this.editButton = (activityTitle) => page.locator(`button:has-text("edit"):near(:text("${activityTitle}"))`).first();
+    this.deleteButton = (activityTitle) => page.locator(`button:has-text("delete"):near(:text("${activityTitle}"))`).first();
   }
 
   async goto() {
@@ -97,7 +97,7 @@ export class ActivitiesPage {
   async deleteActivity(activityTitle) {
     await this.deleteButton(activityTitle).click();
     await this.page.waitForTimeout(500);
-    await this.page.locator('button:has-text("OK"), button:has-text("Confirm")').first().click();
+    await this.page.locator('button:has-text("ok"), button:has-text("confirm")').first().click();
     await this.page.waitForTimeout(2000);
   }
 

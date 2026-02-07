@@ -7,6 +7,7 @@ import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, where } from 'firebase/firestore';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getClasses } from '@firebaseServices/classService';
 import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '@ui';
 import { FancyLoading } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -121,20 +122,22 @@ const ManageEnrollmentsPage = () => {
   const loadData = async () => {
     try {
       const [classesSnap, programsRes, subjectsRes] = await Promise.all([
-        getDocs(collection(db, 'classes')),
+        getClasses(),
         getPrograms(),
         getSubjects()
       ]);
       
-      const classesData = classesSnap.docs.map(d => ({ 
-        id: d.id, 
-        docId: d.id,
-        ...d.data() 
-      }));
+      const classesData = classesSnap.success ? classesSnap.data : [];
       setClasses(classesData);
       
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+      if (classesSnap.success) {
+        setClasses(classesSnap.data);
+      } else {
+        console.error('[ManageEnrollments] Classes service error:', classesSnap.error);
+        toast.error(classesSnap.error || t('failed_to_load_classes') || 'Failed to load classes');
+      }
     } catch (e) {
       logger.error('[ManageEnrollments] Error loading data:', e);
     } finally {
@@ -567,18 +570,18 @@ const ManageEnrollmentsPage = () => {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: '600', color: '#343a40' }}>
                         {getThemedIcon('ui', 'alert_circle', 16, theme)}
-                        <span>Disabling Students</span>
+                        <span>{t('disabling_students') || 'Disabling Students'}</span>
                       </div>
                       <div style={{ lineHeight: '1.4' }}>
-                        When you disable a student, they lose access to:
+                        {t('disable_student_info') || 'When you disable a student, they lose access to:'}
                         <ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', color: '#6c757d' }}>
-                          <li>Class chat participation</li>
-                          <li>Viewing class activities</li>
-                          <li>Submitting assignments</li>
-                          <li>Attendance scanning</li>
+                          <li>{t('class_chat_participation') || 'Class chat participation'}</li>
+                          <li>{t('viewing_class_activities') || 'Viewing class activities'}</li>
+                          <li>{t('submitting_assignments') || 'Submitting assignments'}</li>
+                          <li>{t('attendance_scanning') || 'Attendance scanning'}</li>
                         </ul>
                         <div style={{ marginTop: '0.5rem', fontStyle: 'italic', color: '#8b5cf6' }}>
-                          You can re-enable access anytime.
+                          {t('re_enable_access') || 'You can re-enable access anytime.'}
                         </div>
                       </div>
                     </div>
@@ -621,7 +624,7 @@ const ManageEnrollmentsPage = () => {
                         <div className={styles.studentName}>
                           {student.displayName || student.email}
                           {student.isDisabled && (
-                            <Badge variant="danger" size="sm">DISABLED</Badge>
+                            <Badge variant="danger" size="sm">{t('disabled') || 'DISABLED'}</Badge>
                           )}
                         </div>
                         <div className={styles.studentEmail}>

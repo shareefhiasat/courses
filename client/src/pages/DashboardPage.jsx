@@ -1108,7 +1108,12 @@ const DashboardPage = () => {
       if (announcementsRes.success) setAnnouncements(announcementsRes.data);
       if (usersRes.success) setUsers(usersRes.data);
       if (allowlistRes.success) setAllowlist(allowlistRes.data);
-      if (classesRes.success) setClasses(classesRes.data || []);
+      if (classesRes.success) {
+        console.log('Dashboard Debug - Raw classes data:', classesRes.data);
+        console.log('Dashboard Debug - Classes data length:', classesRes.data?.length || 0);
+        console.log('Dashboard Debug - First class sample:', classesRes.data?.[0]);
+        setClasses(classesRes.data || []);
+      }
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
@@ -1439,9 +1444,9 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
       const result = await addAnnouncement(announcement);
 
       if (result.success) {
-        toast?.showSuccess('Announcement created successfully');
+        toast?.showSuccess(t('announcement_created_successfully') || 'Announcement created successfully');
       } else {
-        toast?.showError('Failed to create announcement');
+        toast?.showError(t('failed_to_create_announcement') || 'Failed to create announcement');
       }
     } catch (error) {
       logger.error('Error creating announcement:', error);
@@ -2943,14 +2948,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     <div className="form-row wide-cols">
                       <Select
                         searchable
-                        placeholder={t('program') || 'Program (Optional)'}
+                        placeholder={t('program_optional') || 'Program (Optional)'}
                         value={announcementForm.programId}
                         onChange={handleDropdownChange(setAnnouncementForm, 'programId', ['subjectId', 'classId'])}
                         options={activityProgramOptions}
                       />
                       <Select
                         searchable
-                        placeholder={t('subject') || 'Subject (Optional)'}
+                        placeholder={t('subject_optional') || 'Subject (Optional)'}
                         value={announcementForm.subjectId}
                         onChange={handleDropdownChange(setAnnouncementForm, 'subjectId', ['classId'])}
                         options={activitySubjectOptions.filter(o => !announcementForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === announcementForm.programId)}
@@ -2958,7 +2963,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       />
                       <Select
                         searchable
-                        placeholder={t('class') || 'Class (Optional)'}
+                        placeholder={t('class_optional') || 'Class (Optional)'}
                         value={announcementForm.classId}
                         onChange={handleDropdownChange(setAnnouncementForm, 'classId')}
                         options={activityClassOptions.map(o => {
@@ -3861,26 +3866,43 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               </div>
 
               <div style={{ marginTop: '1rem' }}>
+                {(() => {
+                  console.log('Dashboard Debug - Classes state:', classes);
+                  console.log('Dashboard Debug - Classes length:', classes?.length || 0);
+                  console.log('Dashboard Debug - Filters:', { classProgramFilter, classSubjectFilter, classFilter });
+                  
+                  const filteredClasses = classes.filter(classItem => {
+                    if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;
+                    if (classSubjectFilter && classSubjectFilter !== 'all' && classItem.subjectId !== classSubjectFilter) return false;
+                    if (classFilter && classFilter !== 'all' && classItem.docId !== classFilter) return false;
+                    return true;
+                  });
+                  
+                  console.log('Dashboard Debug - Filtered classes:', filteredClasses);
+                  console.log('Dashboard Debug - Filtered classes length:', filteredClasses?.length || 0);
+                  
+                  return null;
+                })()}
                 <AdvancedDataGrid
                   rows={classes.filter(classItem => {
-                    if (classProgramFilter && classItem.programId !== classProgramFilter) return false;
-                    if (classSubjectFilter && classItem.subjectId !== classSubjectFilter) return false;
-                    if (classFilter && classItem.docId !== classFilter) return false;
+                    if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;
+                    if (classSubjectFilter && classSubjectFilter !== 'all' && classItem.subjectId !== classSubjectFilter) return false;
+                    if (classFilter && classFilter !== 'all' && classItem.docId !== classFilter) return false;
                     return true;
                   })}
-                getRowId={(row) => row.docId || row.id}
-                columns={[
-                  { field: 'name', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
-                  { 
-                    field: 'code', 
-                    headerName: t('code') || 'Code', 
-                    width: 120,
-                    valueGetter: (params) => {
-                      const row = params?.row || {};
-                      const code = row.code || params?.value;
-                      return code || '—';
-                    }
-                  },
+                  getRowId={(row) => row.docId || row.id}
+                  columns={[
+                    { field: 'name', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
+                    { 
+                      field: 'code', 
+                      headerName: t('code') || 'Code', 
+                      width: 120,
+                      valueGetter: (params) => {
+                        const row = params?.row || {};
+                        const code = row.code || params?.value;
+                        return code || '—';
+                      }
+                    },
                   {
                     field: 'subjectId', headerName: t('subject') || 'Subject', flex: 1, minWidth: 180,
                     valueGetter: (params) => {
@@ -4043,6 +4065,95 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 loadingOverlayMessage={loading ? "Loading classes..." : undefined}
                 fancyVariant="dots"
               />
+              
+              {/* Debug fallback display */}
+              {process.env.NODE_ENV === 'development' && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0f0f0', borderRadius: '8px' }}>
+                  <h4>Debug Info - Classes Data:</h4>
+                  <p>Total classes loaded: {classes?.length || 0}</p>
+                  <p>Filtered classes: {classes.filter(classItem => {
+                    if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;
+                    if (classSubjectFilter && classSubjectFilter !== 'all' && classItem.subjectId !== classSubjectFilter) return false;
+                    if (classFilter && classFilter !== 'all' && classItem.docId !== classFilter) return false;
+                    return true;
+                  }).length}</p>
+                  
+                  {/* Test button to create sample class */}
+                  <div style={{ margin: '1rem 0' }}>
+                    <Button 
+                      variant="outline" 
+                      onClick={async () => {
+                        try {
+                          const testClass = {
+                            name: 'Test Class ' + new Date().getTime(),
+                            code: 'TEST' + Math.floor(Math.random() * 1000),
+                            term: 'Fall 2024',
+                            subjectId: subjects[0]?.docId || '',
+                            programId: programs[0]?.docId || '',
+                            ownerEmail: user?.email || '',
+                            createdAt: new Date().toISOString()
+                          };
+                          const result = await addClass(testClass);
+                          if (result.success) {
+                            toast?.showSuccess('Test class created successfully!');
+                            await loadData();
+                          } else {
+                            toast?.showError('Failed to create test class: ' + result.error);
+                          }
+                        } catch (error) {
+                          toast?.showError('Error creating test class: ' + error.message);
+                        }
+                      }}
+                    >
+                      Create Test Class
+                    </Button>
+                  </div>
+                  
+                  {/* Simple table display as fallback */}
+                  {classes.length > 0 && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <h5>Simple Classes Display (Fallback):</h5>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead>
+                          <tr style={{ background: '#e0e0e0' }}>
+                            <th style={{ border: '1px solid #ccc', padding: '4px' }}>Name</th>
+                            <th style={{ border: '1px solid #ccc', padding: '4px' }}>Code</th>
+                            <th style={{ border: '1px solid #ccc', padding: '4px' }}>Subject</th>
+                            <th style={{ border: '1px solid #ccc', padding: '4px' }}>Term</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {classes.filter(classItem => {
+                            if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;
+                            if (classSubjectFilter && classSubjectFilter !== 'all' && classItem.subjectId !== classSubjectFilter) return false;
+                            if (classFilter && classFilter !== 'all' && classItem.docId !== classFilter) return false;
+                            return true;
+                          }).map(classItem => (
+                            <tr key={classItem.docId}>
+                              <td style={{ border: '1px solid #ccc', padding: '4px' }}>{classItem.name || '—'}</td>
+                              <td style={{ border: '1px solid #ccc', padding: '4px' }}>{classItem.code || '—'}</td>
+                              <td style={{ border: '1px solid #ccc', padding: '4px' }}>
+                                {(() => {
+                                  const subject = subjects.find(s => (s.docId === classItem.subjectId) || (s.id === classItem.subjectId));
+                                  return subject ? (lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en) : '—';
+                                })()}
+                              </td>
+                              <td style={{ border: '1px solid #ccc', padding: '4px' }}>{classItem.term || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  
+                  <details>
+                    <summary>Raw classes data</summary>
+                    <pre style={{ fontSize: '12px', maxHeight: '200px', overflow: 'auto' }}>
+                      {JSON.stringify(classes, null, 2)}
+                    </pre>
+                  </details>
+                </div>
+              )}
               </div>
             </div>
           )}
@@ -5358,7 +5469,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (!resourceForm.title.trim() || !resourceForm.url.trim()) {
-                toast?.showError('Title and URL are required');
+                toast?.showError(t('title_and_url_required') || 'Title and URL are required');
                 return;
               }
 
@@ -5422,8 +5533,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       if (recipients.length > 0) {
                         const emailResult = await sendEmail({
                           to: recipients,
-                          subject: `New Resource: ${resourceForm.title}`,
-                          html: `<div><h2>New Resource: ${resourceForm.title}</h2><p>${resourceForm.description || ''}</p><p><a href="${resourceForm.url}">Access Resource</a></p></div>`,
+                          subject: `${t('new_resource')}: ${resourceForm.title}`,
+                          html: `<div><h2>${t('new_resource')}: ${resourceForm.title}</h2><p>${resourceForm.description || ''}</p><p><a href="${resourceForm.url}">${t('access_resource')}</a></p></div>`,
                           type: 'resource'
                         });
                         if (emailResult.success) {
@@ -5437,8 +5548,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   if (!editingResource && resourceEmailOptions.createAnnouncement) {
                     try {
                       const announcementData = {
-                        title: `New Resource Available`,
-                        content: `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
+                        title: `${t('new_resource')}: ${resourceForm.title}`,
+                        content: t('new_resource_available', { title: resourceForm.title, description: resourceForm.description, url: resourceForm.url }) || `A new learning resource "${resourceForm.title}" has been added.\n\n${resourceForm.description}\n\nAccess it here: ${resourceForm.url}`,
                         target: resourceData.classId ? 'class' : (resourceData.subjectId ? 'subject' : (resourceData.programId ? 'program' : 'global')),
                         programId: resourceData.programId || null,
                         subjectId: resourceData.subjectId || null,
@@ -5454,13 +5565,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                         if (resourceData.classId) {
                           await notifyUsersByClass(
                             resourceData.classId,
-                            `📚 New Resource: ${resourceForm.title}`,
+                            `📚 ${t('new_resource')}: ${resourceForm.title}`,
                             resourceForm.description || 'New resource available',
                             'resource'
                           );
                         } else {
                           await notifyAllUsers(
-                            `📚 New Resource: ${resourceForm.title}`,
+                            `📚 ${t('new_resource')}: ${resourceForm.title}`,
                             resourceForm.description || 'New resource available',
                             'resource'
                           );
@@ -5477,13 +5588,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                       if (resourceData.classId) {
                         await notifyUsersByClass(
                           resourceData.classId,
-                          `📚 New Resource: ${resourceForm.title}`,
+                          `📚 ${t('new_resource')}: ${resourceForm.title}`,
                           resourceForm.description || 'New resource available',
                           'resource'
                         );
                       } else {
                         await notifyAllUsers(
-                          `📚 New Resource: ${resourceForm.title}`,
+                          `📚 ${t('new_resource')}: ${resourceForm.title}`,
                           resourceForm.description || 'New resource available',
                           'resource'
                         );
@@ -5496,7 +5607,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '' });
                   setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
                   setEditingResource(null);
-                  toast?.showSuccess(editingResource ? 'Resource updated successfully!' : 'Resource created successfully!');
+                  toast?.showSuccess(editingResource ? (t('resource_updated_successfully') || 'Resource updated successfully!') : (t('resource_created_successfully') || 'Resource created successfully!'));
                 } else {
                   toast?.showError(`Error ${editingResource ? 'updating' : 'creating'} resource: ` + result.error);
                 }
@@ -5512,14 +5623,14 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                   <div className="form-row wide-cols">
                     <Select
                       searchable
-                      placeholder={t('program') || 'Program (Optional - Public if empty)'}
+                      placeholder={t('program_optional_public') || 'Program (Optional - Public if empty)'}
                       value={resourceForm.programId || ''}
                       onChange={handleDropdownChange(setResourceForm, 'programId', ['subjectId', 'classId'])}
                       options={activityProgramOptions}
                     />
                     <Select
                       searchable
-                      placeholder={t('subject') || 'Subject (Optional)'}
+                      placeholder={t('subject_optional') || 'Subject (Optional)'}
                       value={resourceForm.subjectId || ''}
                       onChange={handleDropdownChange(setResourceForm, 'subjectId', ['classId'])}
                       options={activitySubjectOptions.filter(o => !resourceForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceForm.programId)}
@@ -5527,7 +5638,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     />
                     <Select
                       searchable
-                      placeholder={t('class') || 'Class (Optional)'}
+                      placeholder={t('class_optional') || 'Class (Optional)'}
                       value={resourceForm.classId || ''}
                       onChange={handleDropdownChange(setResourceForm, 'classId')}
                       options={activityClassOptions.map(o => {
@@ -5542,7 +5653,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     />
                     <Select
                       searchable
-                      placeholder={t('category') || 'Category (Optional)'}
+                      placeholder={t('category_optional') || 'Category (Optional)'}
                       value={resourceForm.courseId || ''}
                       onChange={(e) => setResourceForm({ ...resourceForm, courseId: e.target.value })}
                       options={[
@@ -5571,7 +5682,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     />
                     <Select
                       searchable
-                      placeholder={t('type') || 'Resource Type'}
+                      placeholder={t('resource_type') || 'Resource Type'}
                       value={resourceForm.type}
                       onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
                       options={getResourceTypeOptions(theme)}
@@ -5640,7 +5751,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                     onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, sendEmail: checked })}
                   />
                   <ToggleSwitch
-                    label={t('create_announcement') || 'Create announcement (bell notification)'}
+                    label={t('create_announcement_bell') || 'Create announcement (bell notification)'}
                     checked={resourceEmailOptions.createAnnouncement}
                     onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, createAnnouncement: checked })}
                   />
