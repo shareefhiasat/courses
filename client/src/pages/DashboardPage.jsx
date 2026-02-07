@@ -41,6 +41,7 @@ import LoginActivityPage from './LoginActivityPage';
 import SubmissionsPage from './SubmissionsPage';
 import SMTPPage from './SMTPPage';
 import EnrollmentManagementPage from './EnrollmentManagementPage';
+import EmailLogsPage from './EmailLogsPage';
 import { 
   getResourceTypeConfig, 
   getResourceTypeOptions, 
@@ -3135,11 +3136,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             <EmailTemplates />
           </div>
         )}
-        {activeTab === 'emailLogs' && (
-          <div className="email-logs-tab">
-            <EmailLogs />
-          </div>
-        )}
+        {activeTab === 'emailLogs' && <EmailLogsPage />}
         {activeTab === 'allowlist' && (
           <div className="allowlist-tab">
             <EmailManager
