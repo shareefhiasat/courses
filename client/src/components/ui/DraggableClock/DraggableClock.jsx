@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Minus, Maximize2, Pin, PinOff } from 'lucide-react';
+import { useLang } from '@contexts/LangContext';
+import { formatLocalizedDateTime } from '@utils/date';
 import './DraggableClock.css';
 
 const DraggableClock = ({ 
@@ -24,6 +26,7 @@ const DraggableClock = ({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPinned, setIsPinned] = useState(defaultPinned !== undefined ? defaultPinned : getStoredPinnedPreference());
+  const { t, lang } = useLang();
   const dragRef = useRef(null);
   const startPos = useRef({ x: 0, y: 0 });
 
@@ -86,20 +89,26 @@ const DraggableClock = ({
   }, [isDragging]);
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: showSeconds ? '2-digit' : undefined,
-      hour12: true
-    });
+    const localized = formatLocalizedDateTime(date, t, lang);
+    
+    // Extract time part and localize AM/PM
+    let timeStr = localized.time;
+    if (lang === 'ar') {
+      timeStr = timeStr.replace('AM', t('am') || 'ص');
+      timeStr = timeStr.replace('PM', t('pm') || 'م');
+    }
+    
+    if (!showSeconds) {
+      // Remove seconds if not needed
+      timeStr = timeStr.replace(/:\d{2}\s/, ' ');
+    }
+    
+    return timeStr;
   };
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    });
+    const localized = formatLocalizedDateTime(date, t, lang);
+    return localized.date;
   };
 
   return (

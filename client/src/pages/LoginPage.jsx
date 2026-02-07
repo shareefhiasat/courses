@@ -59,7 +59,7 @@ const LoginPage = () => {
     if (seconds < 3600) return `${Math.floor(seconds / 60)} ${t('minute') || 'minute'}${Math.floor(seconds / 60) > 1 ? (t('minutes_plural') || 's') : ''} ${t('ago') || 'ago'}`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)} ${t('hour') || 'hour'}${Math.floor(seconds / 3600) > 1 ? (t('hours_plural') || 's') : ''} ${t('ago') || 'ago'}`;
     return `${Math.floor(seconds / 86400)} ${t('day') || 'day'}${Math.floor(seconds / 86400) > 1 ? (t('days_plural') || 's') : ''} ${t('ago') || 'ago'}`;
-  }, []);
+  }, [t]);
 
   const getLogoutMessage = useCallback((reason) => {
     switch (reason.type) {
@@ -108,7 +108,7 @@ const LoginPage = () => {
           icon: 'ℹ️'
         };
     }
-  }, []);
+  }, [t]);
 
   if (loading) {
     return <FancyLoading fullscreen={true} />;

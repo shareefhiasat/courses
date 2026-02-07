@@ -82,7 +82,7 @@ export const HistoryEntry = ({
               lineHeight: '1.4'
             }}>
               <div style={{ marginBottom: '0.5rem' }}>
-                <strong>{t('note') || 'Note'}:</strong> {log.comment}
+                {log.comment}
               </div>
             </div>
           </InfoTooltip>

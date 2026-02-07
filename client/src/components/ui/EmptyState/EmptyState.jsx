@@ -17,7 +17,11 @@ const EmptyState = ({
   return (
     <div className={`${styles.emptyState} ${className}`}>
       <div className={styles.iconWrapper}>
-        <Icon size={64} className={styles.icon} />
+        {typeof Icon === 'function' ? (
+          <Icon size={64} className={styles.icon} />
+        ) : (
+          <div className={styles.icon}>{Icon}</div>
+        )}
       </div>
       <h3 className={styles.title}>{title}</h3>
       {description && <p className={styles.description}>{description}</p>}

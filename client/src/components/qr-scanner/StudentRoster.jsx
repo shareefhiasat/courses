@@ -7,7 +7,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getAttendanceByStudent, rosterQuickAction } from '@firebaseServices/attendanceService';
 import { getPenalties } from '@firebaseServices/penaltyService';
 import { getParticipations } from '@firebaseServices/participationService';
@@ -131,7 +131,7 @@ const StudentRoster = React.memo(function StudentRoster({
             type: RECORD_TYPES.ATTENDANCE,
             date: record.date || toYmd(record.timestamp) || toYmd(record.updatedAt) || toYmd(record.createdAt),
             time: record.timestamp || record.date,
-            label: ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Unknown',
+            label: getLocalizedAttendanceLabel(record.status, t, lang) || record.status || 'Unknown',
             points: 0,
             comment: record.reason || record.notes || '',
             color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
@@ -598,12 +598,12 @@ const StudentRoster = React.memo(function StudentRoster({
         selectedClassId,
         status,
         enhancedUser,
-        `Quick ${getAttendanceLabel(status, lang)}`
+        `${t('quick') || 'Quick'} ${getLocalizedAttendanceLabel(status, t, lang)}`
       );
 
       if (result.success) {
         // Show success feedback
-        console.log(`✅ ${student.displayName || student.name} marked as ${getAttendanceLabel(status, lang)}`);
+        console.log(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, t, lang)}`);
         
         // Emit real-time event
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -834,7 +834,7 @@ const StudentRoster = React.memo(function StudentRoster({
                strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
-            {statusInfo.en}
+            {getLocalizedAttendanceLabel(status, t, lang)}
         </span>
       );
     }
@@ -849,7 +849,7 @@ const StudentRoster = React.memo(function StudentRoster({
           color: 'white',
           border: `1px solid ${statusInfo.color}`
         }}>
-        {statusInfo.en}
+        {getLocalizedAttendanceLabel(status, t, lang)}
       </span>
     );
   }, []);

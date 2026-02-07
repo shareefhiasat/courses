@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, where } from 'firebase/firestore';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
@@ -14,6 +15,7 @@ import styles from './ManageEnrollmentsPage.module.css';
 const ManageEnrollmentsPage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
   const { t } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -367,7 +369,7 @@ const ManageEnrollmentsPage = () => {
                 borderRadius: '8px'
               }}>
                 <div style={{ 
-                  display: 'flex', 
+                  display: 'flex',
                   alignItems: 'center', 
                   justifyContent: 'center' 
                 }}>
@@ -491,7 +493,7 @@ const ManageEnrollmentsPage = () => {
           <CardBody>
           {!selectedClass ? (
             <EmptyState
-              icon={Search}
+              icon={getThemedIcon('ui', 'search', 16, theme)}
               title={t('select_class') || 'Select a class to manage student access'}
             />
           ) : (

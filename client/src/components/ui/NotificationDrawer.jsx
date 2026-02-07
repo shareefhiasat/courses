@@ -421,7 +421,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                   e.stopPropagation();
                   window.open('/notifications', '_blank');
                 }}
-                title="Open in new tab"
+                title={t('open_in_new_tab') || 'Open in new tab'}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -461,7 +461,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               {getThemedIcon('ui', 'search', 16, theme)}
               <Input
                 type="text"
-                placeholder="Search notifications..."
+                placeholder={t('search_notifications') || 'Search notifications...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -805,7 +805,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                         {!notification.read ? (
                           <button
                             onClick={(e) => handleMarkAsRead(notification.id, e)}
-                            title="Mark as read"
+                            title={t('mark_as_read') || 'Mark as read'}
                             style={{
                               background: 'transparent',
                               border: 'none',
@@ -831,7 +831,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                         ) : (
                           <button
                             onClick={(e) => handleMarkAsUnread(notification.id, e)}
-                            title="Mark as unread"
+                            title={t('mark_as_unread') || 'Mark as unread'}
                             style={{
                               background: 'transparent',
                               border: 'none',
@@ -858,7 +858,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                         {!notification.archived ? (
                           <button
                             onClick={(e) => handleArchive(notification.id, e)}
-                            title="Archive"
+                            title={t('archive') || 'Archive'}
                             style={{
                               background: 'transparent',
                               border: 'none',
@@ -884,7 +884,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                         ) : null}
                         <button
                           onClick={(e) => handleDelete(notification.id, e)}
-                          title="Delete"
+                          title={t('delete') || 'Delete'}
                           style={{
                             background: 'transparent',
                             border: 'none',

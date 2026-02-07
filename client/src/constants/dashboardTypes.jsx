@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import {
   FileText, Link, Video, Globe, Edit, Trash, 

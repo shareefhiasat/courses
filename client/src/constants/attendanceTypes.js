@@ -70,6 +70,24 @@ export const getAttendanceLabel = (id, lang = 'en') => {
   return type ? (lang === 'ar' ? type.label_ar : type.label_en) : id;
 };
 
+/**
+ * Get localized attendance label using translation function
+ * @param {string} id - Attendance status id
+ * @param {Function} t - Translation function
+ * @param {string} lang - Current language (optional)
+ * @returns {string} Localized attendance label
+ */
+export const getLocalizedAttendanceLabel = (id, t, lang = 'en') => {
+  // First try to get translation from LangContext
+  const translatedLabel = t(id);
+  if (translatedLabel && translatedLabel !== id) {
+    return translatedLabel;
+  }
+  
+  // Fallback to attendance types
+  return getAttendanceLabel(id, lang);
+};
+
 export const getAttendanceIcon = (id) => {
   const type = getAttendanceTypeById(id);
   return type ? type.icon : 'HelpCircle';

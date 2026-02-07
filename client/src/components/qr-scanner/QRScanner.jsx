@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { CollapsibleSection, PerformedBy } from '@ui';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@firebaseServices/attendanceService';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { USER_ROLES, isAdmin, isSuperAdmin, isStudent } from '@constants/userRoles';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@firebaseServices/penaltyService';
 import { createParticipation, getParticipations, getParticipationsByClassAndDate, deleteParticipation } from '@firebaseServices/participationService';
@@ -279,7 +279,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       finalType = attendanceStatus;
       // Add attendance icon to message if not already present
       const icon = getAttendanceIcon(attendanceStatus);
-      const label = getAttendanceLabel(attendanceStatus, lang);
+      const label = getLocalizedAttendanceLabel(attendanceStatus, t, lang);
       if (!message.includes(label)) {
         finalMessage = `${label}: ${message}`;
       }
@@ -1224,7 +1224,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               || activityLabel
               || 'Behavior';
         } else if (record.status) {
-          finalLabel = ATTENDANCE_STATUS_LABELS[record.status]?.en || record.status || 'Attendance';
+          finalLabel = getLocalizedAttendanceLabel(record.status, t, lang) || record.status || 'Attendance';
         }
 
         const computedType = (record.category === RECORD_TYPES.PENALTY || record.penaltyType)
@@ -1544,7 +1544,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         if (result.success) {
           setShowScanDialog(false);
-          const statusLabel = getAttendanceLabel(status, lang);
+          const statusLabel = getLocalizedAttendanceLabel(status, t, lang);
           showResult('success', `Student marked as ${statusLabel} successfully!`, status);
 
           // Emit proper attendance event
@@ -1618,8 +1618,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     if (!student || !status) return;
     
     // Show immediate visual feedback
-    const statusLabel = getAttendanceLabel(status, lang);
-    addDebugLog(`⚡ Quick marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
+    const statusLabel = getLocalizedAttendanceLabel(status, t, lang);
+    addDebugLog(`⚡ ${t('quick') || 'Quick'} marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
     
     try {
       // Use the dedicated roster quick action method
@@ -1628,7 +1628,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         selectedClassId,
         status,
         user,
-        `Quick ${statusLabel}`
+        `${t('quick') || 'Quick'} ${statusLabel}`
       );
 
       if (result.success) {
