@@ -53,11 +53,31 @@ const HomePage = memo(() => {
     }
   });
 
+  // Navbar collapse state
+  const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('navbarCollapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   // Help tour state
   const [runTour, setRunTour] = useState(false);
   const filtersRef = useRef(null);
   const gridRef = useRef(null);
   const tourSeenKey = `homePageHelpSeen_${mode}_${activityType}_${category}`;
+
+  // Navbar toggle function
+  const toggleNavbar = () => {
+    const newCollapsed = !isNavbarCollapsed;
+    setIsNavbarCollapsed(newCollapsed);
+    localStorage.setItem('navbarCollapsed', newCollapsed.toString());
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('navbar:toggle', { 
+      detail: { collapsed: newCollapsed } 
+    }));
+  };
   
   // Data states
   const [activities, setActivities] = useState([]);
@@ -941,7 +961,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getColoredIcon('ui', 'check_circle', 12, '#16a34a', theme)}
+                  {getColoredIcon('ui', 'check_circle', 12, completedFilter ? '#fff' : '#16a34a', theme)}
                   {getStatusLabel(TASK_STATUS.COMPLETED, lang)}
                 </button>
                 
@@ -962,7 +982,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getColoredIcon('ui', 'hourglass', 12, '#f59e0b', theme)}
+                  {getColoredIcon('ui', 'hourglass', 12, pendingFilter ? '#fff' : '#f59e0b', theme)}
                   {getStatusLabel(TASK_STATUS.NOT_STARTED, lang)}
                 </button>
 
@@ -983,7 +1003,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getColoredIcon('ui', 'alert_circle', 12, '#b91c1c', theme)}
+                  {getColoredIcon('ui', 'alert_circle', 12, requiredFilter ? '#fff' : '#b91c1c', theme)}
                   {t('required') || 'Required'}
                 </button>
 
@@ -1004,7 +1024,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getColoredIcon('ui', 'book_open', 12, '#f57c00', theme)}
+                  {getColoredIcon('ui', 'book_open', 12, optionalFilter ? '#fff' : '#f57c00', theme)}
                   {t('optional') || 'Optional'}
                 </button>
 
@@ -1025,7 +1045,7 @@ const HomePage = memo(() => {
                     cursor: 'pointer'
                   }}
                 >
-                  {getColoredIcon('ui', 'clock', 12, '#dc2626', theme)}
+                  {getColoredIcon('ui', 'clock', 12, overdueFilter ? '#fff' : '#dc2626', theme)}
                   {t('overdue') || 'Overdue'}
                 </button>
               </>
