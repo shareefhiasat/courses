@@ -136,6 +136,7 @@ const StudentRoster = React.memo(function StudentRoster({
             comment: record.reason || record.notes || '',
             color: ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280',
             status: record.status,  // ← Clean: only the status field
+            method: record.method, // ← Add method field for localization
             // Add user information - map markedBy fields to performedBy fields for consistency
             performedBy: record.markedBy,
             performedByName: record.markedByName || record.performedByName,
@@ -992,6 +993,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   sendingEmails={sendingEmails}
                   setSendingEmails={setSendingEmails}
                   sendStudentSummaryEmail={sendStudentSummaryEmail}
+                  lang={lang}
                 />
               ))}
           </div>
@@ -1201,6 +1203,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     isRTL={isRTL}
                     groupLogsByDay={groupLogsByDay}
                     toggleFilter={toggleFilter}
+                    lang={lang}
                   />
                 ))}
             </tbody>

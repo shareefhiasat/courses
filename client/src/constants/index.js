@@ -142,6 +142,7 @@ export {
 // Re-export commonly used constants from other files
 import { USER_ROLES } from './userRoles.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from './attendanceTypes.js';
+import { ATTENDANCE_METHODS, getAttendanceMethodLabel, shouldShowMethodLabel } from './attendanceMethods.jsx';
 import { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions } from './notificationTypes.jsx';
 import { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById } from './participationTypes.jsx';
 import { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } from './penaltyTypes.jsx';
@@ -150,6 +151,7 @@ import { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TAS
 
 export { USER_ROLES };
 export { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel };
+export { ATTENDANCE_METHODS, getAttendanceMethodLabel, shouldShowMethodLabel };
 export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions };
 export { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById };
 export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById };
@@ -297,6 +299,9 @@ export default {
   ATTENDANCE_STATUS_LABELS,
   getAttendanceColor,
   getAttendanceLabel,
+  ATTENDANCE_METHODS,
+  getAttendanceMethodLabel,
+  shouldShowMethodLabel,
   NOTIFICATION_TYPES,
   NOTIFICATION_STATUS,
   getNotificationTypeOptions,

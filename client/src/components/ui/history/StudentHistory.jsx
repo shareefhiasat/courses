@@ -18,7 +18,8 @@ const StudentHistory = React.memo(({
   handleDeletePenalty, 
   t, 
   isRTL,
-  studentId 
+  studentId,
+  lang = 'en'
 }) => {
   console.log('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
   console.log('🔧 StudentHistory expandedDays:', expandedDays);
@@ -148,6 +149,7 @@ const StudentHistory = React.memo(({
                     onDelete={onDelete}
                     t={t}
                     isRTL={isRTL}
+                    lang={lang}
                   />
                 );
               });

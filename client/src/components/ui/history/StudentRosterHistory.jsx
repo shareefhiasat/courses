@@ -21,7 +21,8 @@ const StudentRosterHistory = ({
   t, 
   isRTL,
   groupLogsByDay,
-  toggleFilter 
+  toggleFilter,
+  lang = 'en'
 }) => {
   const [isMobile, setIsMobile] = React.useState(false);
   
@@ -219,6 +220,7 @@ const StudentRosterHistory = ({
         t={t}
         isRTL={isRTL}
         studentId={student.id}
+        lang={lang}
       />
     </div>
   );

@@ -546,6 +546,7 @@ const StudentTableRow = ({
               isRTL={isRTL}
               groupLogsByDay={groupLogsByDay}
               toggleFilter={toggleFilter}
+              lang={lang}
             />
           </td>
         </tr>

@@ -31,7 +31,8 @@ const StudentCard = ({
   toggleFilter,
   sendingEmails,
   setSendingEmails,
-  sendStudentSummaryEmail
+  sendStudentSummaryEmail,
+  lang = 'en'
 }) => {
   const [isMobile, setIsMobile] = React.useState(false);
   
@@ -449,6 +450,7 @@ const StudentCard = ({
             isRTL={isRTL}
             groupLogsByDay={groupLogsByDay}
             toggleFilter={toggleFilter}
+            lang={lang}
           />
         </div>
       )}

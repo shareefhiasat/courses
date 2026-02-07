@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, InfoTooltip, PerformedBy } from '@ui';
 import { Trash2 } from 'lucide-react';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants';
 
 export const HistoryEntry = ({ 
   log, 
@@ -12,7 +13,8 @@ export const HistoryEntry = ({
   t, 
   isRTL,
   showDeleteButton = true,
-  borderColor = '#f1f5f9'
+  borderColor = '#f1f5f9',
+  lang = 'en'
 }) => {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -69,25 +71,58 @@ export const HistoryEntry = ({
         {log.label}
       </span>
       
-      {log.comment && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-            {log.comment.length > 30 ? `${log.comment.substring(0, 30)}...` : log.comment}
-          </span>
-          <InfoTooltip>
-            <div style={{ 
-              maxWidth: '300px', 
-              padding: '0.5rem',
-              fontSize: '0.75rem',
-              lineHeight: '1.4'
-            }}>
-              <div style={{ marginBottom: '0.5rem' }}>
-                {log.comment}
-              </div>
-            </div>
-          </InfoTooltip>
-        </div>
-      )}
+      {(() => {
+        // For attendance records, check if we should show method label instead of notes
+        let displayComment = log.comment;
+        let showTooltip = false;
+        
+        if (type === RECORD_TYPES.ATTENDANCE && log.method) {
+          if (shouldShowMethodLabel(log.method, log.comment)) {
+            // Use localized method label instead of notes
+            displayComment = getAttendanceMethodLabel(log.method, t, lang);
+            showTooltip = log.comment && log.comment !== displayComment; // Show tooltip if original notes were different
+          } else {
+            // Use original notes
+            displayComment = log.comment;
+            showTooltip = log.comment && log.comment.length > 30;
+          }
+        } else if (log.comment) {
+          showTooltip = log.comment.length > 30;
+        }
+
+        return displayComment && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ color: '#64748b', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+              {displayComment.length > 30 && !showTooltip ? `${displayComment.substring(0, 30)}...` : displayComment}
+            </span>
+            {showTooltip && (
+              <InfoTooltip>
+                <div style={{ 
+                  maxWidth: '300px', 
+                  padding: '0.5rem',
+                  fontSize: '0.75rem',
+                  lineHeight: '1.4'
+                }}>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    {log.comment}
+                  </div>
+                  {type === RECORD_TYPES.ATTENDANCE && log.method && shouldShowMethodLabel(log.method, log.comment) && (
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      paddingTop: '0.5rem', 
+                      borderTop: '1px solid #e5e7eb',
+                      fontSize: '0.625rem',
+                      color: '#6b7280'
+                    }}>
+                      <strong>Method:</strong> {getAttendanceMethodLabel(log.method, t, lang)}
+                    </div>
+                  )}
+                </div>
+              </InfoTooltip>
+            )}
+          </div>
+        );
+      })()}
       
       {log.points !== undefined && type !== RECORD_TYPES.ATTENDANCE && (
         <span style={{ 
