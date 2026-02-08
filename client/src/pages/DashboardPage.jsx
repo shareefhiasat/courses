@@ -14,7 +14,8 @@ import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
-  getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement
+  getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement,
+  getResources
 } from '@firebaseServices/activityService';
 import { getUsers, addUser, updateUser, deleteUser } from '@firebaseServices/userService';
 import { getEnrollments, addEnrollment, deleteEnrollment } from '@firebaseServices/enrollmentService';
@@ -981,7 +982,7 @@ const DashboardPage = () => {
         getAllowlist(),
         getClasses(),
         getEnrollments(),
-        getSubmissions(),
+        // getSubmissions(), // DEPRECATED: Student attachments not supported, only quizzes
         getResources(),
         getLoginLogs(),
         getCourses(),
@@ -996,21 +997,21 @@ const DashboardPage = () => {
         getPrograms(),
         getNotificationLogs(notificationLogFilters)
       ]);
-      if (activitiesRes.success) {
+      if (activitiesRes?.success) {
         setActivities(activitiesRes.data);
       }
-      if (announcementsRes.success) setAnnouncements(announcementsRes.data);
-      if (usersRes.success) setUsers(usersRes.data);
-      if (allowlistRes.success) setAllowlist(allowlistRes.data);
-      if (classesRes.success) {
+      if (announcementsRes?.success) setAnnouncements(announcementsRes.data);
+      if (usersRes?.success) setUsers(usersRes.data);
+      if (allowlistRes?.success) setAllowlist(allowlistRes.data);
+      if (classesRes?.success) {
         setClasses(classesRes.data || []);
       }
-      if (subjectsRes.success) setSubjects(subjectsRes.data || []);
-      if (programsRes.success) setPrograms(programsRes.data || []);
-      if (notificationLogsRes.success) setNotificationLogs(notificationLogsRes.data);
-      if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
+      if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
+      if (programsRes?.success) setPrograms(programsRes.data || []);
+      if (notificationLogsRes?.success) setNotificationLogs(notificationLogsRes.data);
+      if (quizzesRes?.success) setQuizzes(quizzesRes.data || []);
       // Enrich enrollments with program and subject names (like HR Penalties)
-      if (enrollmentsRes.success) {
+      if (enrollmentsRes?.success) {
         const enrollmentsData = enrollmentsRes.data || [];
         const classesData = classesRes.data || [];
         const subjectsData = subjectsRes.data || [];
@@ -1065,7 +1066,7 @@ const DashboardPage = () => {
         }));
         setEnrollments(enrichedEnrollments);
       }
-      if (submissionsRes.success) setSubmissions(submissionsRes.data);
+      // if (submissionsRes.success) setSubmissions(submissionsRes.data); // DEPRECATED
       if (resourcesRes.success) setResources(resourcesRes.data);
       if (loginLogsRes.success) setLoginLogs(loginLogsRes.data);
       if (coursesRes.success) setCourses(coursesRes.data || []);
@@ -2028,15 +2029,15 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
               
               <DatePicker
                 size="small"
-                value={notificationLogFilters.startDate}
-                onChange={(date) => setNotificationLogFilters(prev => ({ ...prev, startDate: date }))}
+                value={notificationLogFilters.startDate || ''}
+                onChange={(date) => setNotificationLogFilters(prev => ({ ...prev, startDate: date || null }))}
                 placeholder={t('from_date') || 'From date'}
               />
               
               <DatePicker
                 size="small"
-                value={notificationLogFilters.endDate}
-                onChange={(date) => setNotificationLogFilters(prev => ({ ...prev, endDate: date }))}
+                value={notificationLogFilters.endDate || ''}
+                onChange={(date) => setNotificationLogFilters(prev => ({ ...prev, endDate: date || null }))}
                 placeholder={t('to_date') || 'To date'}
               />
 

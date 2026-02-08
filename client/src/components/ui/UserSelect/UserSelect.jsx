@@ -113,7 +113,7 @@ const UserSelect = ({
             gap: 8,
             opacity: isDisabled ? 0.7 : 1
           }}>
-            {showStatus && <IconComponent size={16} color={iconProps.color} />}
+            {showStatus && <span>{IconComponent}</span>}
             <span style={{ 
               textDecoration: isDisabled ? 'line-through' : 'none',
               flex: 1
