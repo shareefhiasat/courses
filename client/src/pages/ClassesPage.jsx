@@ -66,7 +66,16 @@ const ClassesPage = () => {
       if (classesRes?.success) setClasses(classesRes.data || []);
       if (programsRes?.success) setPrograms(programsRes.data || []);
       if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
-      if (usersRes?.success) setUsers(usersRes.data || []);
+      if (usersRes?.success) {
+        setUsers(usersRes.data || []);
+        // Debug: Log users and their roles
+        console.log('🔍 [ClassesPage] Loaded users:', usersRes.data?.map(u => ({
+          email: u.email,
+          displayName: u.displayName || u.name,
+          role: u.role,
+          active: u.active
+        })));
+      }
       if (enrollmentsRes?.success) setEnrollments(enrollmentsRes.data || []);
       if (activitiesRes?.success) setActivities(activitiesRes.data || []);
     } catch (error) {
@@ -399,6 +408,46 @@ const ClassesPage = () => {
       />
       
       <form onSubmit={handleClassSubmit} className="dashboard-form">
+        {/* Form Actions - Show on all tabs - MOVED TO TOP */}
+        <div className="form-actions" style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              {activeClassFormTab !== 'basic' && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => handleTabNavigation('previous')}
+                >
+                  ← Previous
+                </Button>
+              )}
+              {activeClassFormTab !== 'settings' && (
+                <Button 
+                  type="button" 
+                  variant="secondary"
+                  onClick={() => handleTabNavigation('next')}
+                >
+                  Next →
+                </Button>
+              )}
+              {activeClassFormTab === 'settings' && (
+                <Button type="submit" variant="primary" loading={loading}>
+                  {(editingClass ? t('update') : t('save'))}
+                </Button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleCancelEdit}
+              >
+                {t('cancel') || 'Cancel'}
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Basic Info Tab */}
         {activeClassFormTab === 'basic' && (
           <>
@@ -439,14 +488,22 @@ const ClassesPage = () => {
                 options={classFormSubjectOptions}
                 required
               />
+              {/* Debug: Show users count and roles */}
+              {process.env.NODE_ENV === 'development' && (
+                <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.5rem' }}>
+                  Debug: {users.length} users loaded | 
+                  Admin/Instructors: {users.filter(u => u.role === USER_ROLES.SUPER_ADMIN || u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.INSTRUCTOR).length} |
+                  Active: {users.filter(u => (u.role === USER_ROLES.SUPER_ADMIN || u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.INSTRUCTOR) && u.active).length}
+                </div>
+              )}
               <UserSelect
                 users={users}
                 enrollments={enrollments}
                 value={classForm.ownerEmail}
                 onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
-                placeholder={t('all_instructors') || 'All Instructors'}
-                roleFilter={[USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR]}
-                includeAll={true}
+                placeholder={t('select_instructor') || 'Select Instructor'}
+                roleFilter={[USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR]}
+                includeAll={false}
                 showEnrollments={false}
                 showStatus={true}
                 useEmailAsValue={true}
@@ -501,50 +558,10 @@ const ClassesPage = () => {
             <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Features like class capacity, schedule, enrollment restrictions, etc.</p>
           </div>
         )}
-
-        {/* Form Actions - Show on all tabs */}
-        <div className="form-actions">
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {activeClassFormTab !== 'basic' && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleTabNavigation('previous')}
-                >
-                  ← Previous
-                </Button>
-              )}
-              {activeClassFormTab !== 'settings' && (
-                <Button 
-                  type="button" 
-                  variant="secondary"
-                  onClick={() => handleTabNavigation('next')}
-                >
-                  Next →
-                </Button>
-              )}
-              {activeClassFormTab === 'settings' && (
-                <Button type="submit" variant="primary" loading={loading}>
-                  {(editingClass ? t('update') : t('save'))}
-                </Button>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleCancelEdit}
-              >
-                {t('cancel') || 'Cancel'}
-              </Button>
-            </div>
-          </div>
-        </div>
       </form>
 
       {/* Filters for Classes */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+      <div className="filters-container" style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
         <Select
           value={classProgramFilter || ''}
           onChange={(e) => setClassProgramFilter(e.target.value)}
