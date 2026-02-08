@@ -1783,9 +1783,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             setEnrollmentForm={setEnrollmentForm}
             activeEnrollmentTab={activeEnrollmentTab}
             setActiveEnrollmentTab={setActiveEnrollmentTab}
-            enrollmentProgramFilter={enrollmentProgramFilter}
-            enrollmentSubjectFilter={enrollmentSubjectFilter}
-            enrollmentClassFilter={enrollmentClassFilter}
             deleteModal={deleteModal}
             setDeleteModal={setDeleteModal}
             loading={loading}
@@ -1793,9 +1790,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             loadData={loadData}
             theme={theme}
             formatQatarDateOnly={formatQatarDateOnly}
-            handleEnrollmentProgramChange={handleEnrollmentProgramChange}
-            handleEnrollmentSubjectChange={handleEnrollmentSubjectChange}
-            handleEnrollmentClassChange={handleEnrollmentClassChange}
             ensureString={ensureString}
           />
         )}

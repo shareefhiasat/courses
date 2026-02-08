@@ -260,7 +260,8 @@ const ClassesPage = ({
         );
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'calendar', 16, theme)} {term}
+            {/*{getThemedIcon('ui', 'calendar', 16, theme)} */}
+            {term}
           </span>
         );
       }
@@ -291,13 +292,15 @@ const ClassesPage = ({
           const displayName = owner.displayName || owner.name || owner.realName || '';
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              {getThemedIcon('ui', 'user', 16, theme)} {displayName ? `${displayName} (${email})` : email}
+              {/*{getThemedIcon('ui', 'user', 16, theme)} */}
+              {displayName ? `${displayName} (${email})` : email}
             </span>
           );
         }
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'user', 16, theme)} {email}
+            {/*{getThemedIcon('ui', 'user', 16, theme)} */}
+            {email}
           </span>
         );
       }
@@ -515,59 +518,6 @@ const ClassesPage = ({
         </div>
       </form>
 
-      {/* Filters for Classes */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
-        <Select
-          value={classProgramFilter || ''}
-          onChange={(e) => setClassProgramFilter(e.target.value)}
-          options={[
-            { value: '', label: t('all_programs') || 'All Programs' },
-            ...(localPrograms || []).map(p => ({
-              value: p.docId,
-              label: lang === 'ar' ? (p.name_ar || p.name_en) : (p.name_en || p.docId)
-            }))
-          ]}
-          placeholder={t('all_programs') || 'All Programs'}
-          searchable
-          icon={getThemedIcon('ui', 'filter', 16, theme)}
-        />
-        <Select
-          value={classSubjectFilter || ''}
-          onChange={(e) => setClassSubjectFilter(e.target.value)}
-          options={[
-            { value: '', label: t('all_subjects') || 'All Subjects' },
-            ...(localSubjects || []).map(s => ({
-              value: s.docId,
-              label: lang === 'ar' ? (s.name_ar || s.name_en) : (s.name_en || s.docId)
-            }))
-          ]}
-          placeholder={t('all_subjects') || 'All Subjects'}
-          searchable
-          icon={getThemedIcon('ui', 'filter', 16, theme)}
-        />
-        <Select
-          value={classFilter || ''}
-          onChange={(e) => setClassFilter(e.target.value)}
-          options={[
-            { value: '', label: t('all_classes') || 'All Classes' },
-            ...(classes || []).map(c => ({
-              value: c.docId,
-              label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}`
-            }))
-          ]}
-          placeholder={t('all_classes') || 'All Classes'}
-          searchable
-          icon={getThemedIcon('ui', 'filter', 16, theme)}
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleClearFilters}
-        >
-          {t('clear_filters') || 'Clear Filters'}
-        </Button>
-      </div>
-
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           rows={filteredClasses}
@@ -582,46 +532,6 @@ const ClassesPage = ({
           loadingOverlayMessage={loading ? "Loading classes..." : undefined}
           fancyVariant="dots"
         />
-        
-        {/* Debug fallback display */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0f0f0', borderRadius: '8px' }}>
-            <h4>Debug Info - Classes Data:</h4>
-            <p>Total classes loaded: {classes?.length || 0}</p>
-            <p>Filtered classes: {filteredClasses.length}</p>
-            
-            {/* Test button to create sample class */}
-            <div style={{ margin: '1rem 0' }}>
-              <Button 
-                variant="outline" 
-                onClick={async () => {
-                  try {
-                    const testClass = {
-                      name: 'Test Class ' + new Date().getTime(),
-                      code: 'TEST' + Math.floor(Math.random() * 1000),
-                      term: 'Fall 2024',
-                      subjectId: subjects[0]?.docId || '',
-                      programId: programs[0]?.docId || '',
-                      ownerEmail: user?.email || '',
-                      createdAt: new Date().toISOString()
-                    };
-                    const result = await addClass(testClass);
-                    if (result.success) {
-                      toast?.showSuccess('Test class created successfully!');
-                      await loadData();
-                    } else {
-                      toast?.showError('Failed to create test class: ' + result.error);
-                    }
-                  } catch (error) {
-                    toast?.showError('Error creating test class: ' + error.message);
-                  }
-                }}
-              >
-                Create Test Class
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

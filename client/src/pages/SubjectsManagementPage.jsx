@@ -23,7 +23,6 @@ const SubjectsManagementPage = () => {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingSubject, setEditingSubject] = useState(null);
-  const [filterProgram, setFilterProgram] = useState('all');
   const [formData, setFormData] = useState({
     programId: '',
     code: '',
@@ -179,10 +178,6 @@ const SubjectsManagementPage = () => {
     return <Navigate to="/" replace />;
   }
 
-  const filteredSubjects = filterProgram === 'all' 
-    ? subjects 
-    : subjects.filter(s => s.programId === filterProgram);
-
   const columns = [
     {
       key: 'code',
@@ -273,20 +268,6 @@ const SubjectsManagementPage = () => {
 
       <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
-          <Select
-            value={formData.programId}
-            onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
-            placeholder={t('all_programs_select') || 'All Programs'}
-            options={[
-              { value: '', label: t('all_programs_select') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...programs.map(p => ({
-                value: p.docId,
-                label: lang === 'ar' ? p.name_ar : p.name_en,
-                icon: getThemedIcon('ui', 'book_open', 16, theme)
-              }))
-            ]}
-            required
-          />
           <Input
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
@@ -371,25 +352,9 @@ const SubjectsManagementPage = () => {
         </div>
       </form>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0.5rem 0' }}>
-        <Select
-          value={filterProgram}
-          onChange={(e) => setFilterProgram(e.target.value)}
-          placeholder={t('all_programs') || 'All Programs'}
-          options={[
-            { value: 'all', label: t('all_programs') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
-            ...programs.map(p => ({
-              value: p.docId,
-              label: lang === 'ar' ? p.name_ar : p.name_en,
-              icon: getThemedIcon('ui', 'book_open', 16, theme)
-            }))
-          ]}
-        />
-      </div>
-
       <div className={styles.content}>
         <AdvancedDataGrid
-            rows={filteredSubjects}
+            rows={subjects}
             getRowId={(row) => row.docId || row.id}
             columns={[
               { 
@@ -404,20 +369,6 @@ const SubjectsManagementPage = () => {
               },
               { field: 'name_en', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
               { field: 'name_ar', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
-              {
-                field: 'programId',
-                headerName: t('program') || 'Program',
-                flex: 1,
-                minWidth: 200,
-                valueGetter: (params) => {
-                  const row = params?.row || {};
-                  const programId = row.programId || params?.value;
-                  if (!programId) return 'N/A';
-                  const program = programs.find(p => p.docId === programId || p.id === programId);
-                  if (!program) return 'N/A';
-                  return lang === 'ar' ? program.name_ar : program.name_en;
-                }
-              },
               { field: 'creditHours', headerName: t('credits') || 'Credits', width: 100 },
               { field: 'totalHours', headerName: t('total_hours') || 'Total Hours', width: 120 },
               {

@@ -18,9 +18,6 @@ const EnrollmentManagementPage = ({
   setEnrollmentForm,
   activeEnrollmentTab,
   setActiveEnrollmentTab,
-  enrollmentProgramFilter,
-  enrollmentSubjectFilter,
-  enrollmentClassFilter,
   deleteModal,
   setDeleteModal,
   loading,
@@ -28,9 +25,6 @@ const EnrollmentManagementPage = ({
   loadData,
   theme,
   formatQatarDateOnly,
-  handleEnrollmentProgramChange,
-  handleEnrollmentSubjectChange,
-  handleEnrollmentClassChange,
   ensureString
 }) => {
   const { t } = useLang();
@@ -212,65 +206,9 @@ const EnrollmentManagementPage = ({
           </Button>
         </div>
       </form>
-      {/* Filters - like HR Penalties */}
-      <div style={{ marginTop: '1rem', marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-          <Select
-            searchable
-            placeholder={t('all_programs')}
-            value={ensureString(enrollmentProgramFilter || 'all')}
-            onChange={(e) => {
-              const newValue = ensureString(e.target.value);
-              handleEnrollmentProgramChange(newValue);
-            }}
-            options={localProgramOptions}
-            fullWidth
-          />
-          <Select
-            searchable
-            placeholder={t('all_subjects')}
-            value={ensureString(enrollmentSubjectFilter || 'all')}
-            onChange={(e) => {
-              const newValue = ensureString(e.target.value);
-              handleEnrollmentSubjectChange(newValue);
-            }}
-            options={localSubjectOptions}
-            fullWidth
-          />
-          <Select
-            searchable
-            placeholder={t('all_classes') || 'All Classes'}
-            value={ensureString(enrollmentClassFilter || 'all')}
-            onChange={(e) => {
-              const newValue = ensureString(e.target.value);
-              handleEnrollmentClassChange(newValue);
-            }}
-            options={localClassOptions}
-            fullWidth
-          />
-        </div>
-      </div>
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
-          rows={enrollments.filter(e => {
-            // Filter by program
-            if (enrollmentProgramFilter && enrollmentProgramFilter !== 'all') {
-              const classItem = localClasses.find(c => (c.docId || c.id) === e.classId);
-              if (!classItem?.subjectId) return false;
-              const subject = localSubjects.find(s => (s.docId || s.id) === classItem.subjectId);
-              if (!subject || subject.programId !== enrollmentProgramFilter) return false;
-            }
-            // Filter by subject
-            if (enrollmentSubjectFilter && enrollmentSubjectFilter !== 'all') {
-              const classItem = localClasses.find(c => (c.docId || c.id) === e.classId);
-              if (!classItem || classItem.subjectId !== enrollmentSubjectFilter) return false;
-            }
-            // Filter by class
-            if (enrollmentClassFilter && enrollmentClassFilter !== 'all') {
-              if (e.classId !== enrollmentClassFilter) return false;
-            }
-            return true;
-          })}
+          rows={enrollments}
           getRowId={(row) => row.docId || row.id}
           columns={[
           {
