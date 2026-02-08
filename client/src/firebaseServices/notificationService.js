@@ -12,7 +12,9 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from './config';
+import { notificationGateway } from './notificationGateway';
 import { sendEmail } from './emailService';
+import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 
 // ===== Notifications =====
 // Model: collection "notifications" documents { userId, title, message, type, read, createdAt, data? }
@@ -258,43 +260,31 @@ export const sendStudentNotification = async ({
 /**
  * Send quiz availability notification
  */
-export async function notifyQuizAvailable(quiz, students) {
+export async function sendQuizAvailable(quiz, students) {
   try {
     const notifications = [];
 
     for (const student of students) {
-      await addNotification({
+      // Use notification gateway for centralized management
+      await notificationGateway.send(NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, {
         userId: student.id,
-        title: 'New Quiz Available',
-        message: `${quiz.title} is now available. Due: ${formatDate(quiz.settings.dueDate)}`,
-        type: 'quiz',
+        role: 'student',
         classId: quiz.classId || null,
+        title: 'notify.quiz_available.title',
+        message: 'notify.quiz_available.message',
+        variables: {
+          quizTitle: quiz.title,
+          dueDate: formatDate(quiz.settings.dueDate)
+        },
         metadata: {
           quizId: quiz.id,
           quizTitle: quiz.title,
           dueDate: quiz.settings.dueDate
         },
-        data: { quizId: quiz.id }
+        data: { quizId: quiz.id },
+        templateId: 'quizAvailable',
+        email: student.email
       });
-
-      try {
-        await sendEmail({
-          to: student.email,
-          template: 'quizAvailable',
-          type: 'quiz',
-          classId: quiz.classId || null,
-          data: {
-            studentName: student.displayName || student.email,
-            quizTitle: quiz.title,
-            quizDescription: quiz.description,
-            dueDate: formatDate(quiz.settings.dueDate),
-            quizUrl: `${window.location.origin}/quiz/${quiz.id}`,
-            estimatedTime: quiz.estimatedTime || 30
-          }
-        });
-      } catch (emailError) {
-        console.error('Error sending quiz email:', emailError);
-      }
 
       notifications.push({ success: true, userId: student.id });
     }
@@ -314,37 +304,26 @@ export async function sendDeadlineReminders(assignments, students) {
 
     for (const assignment of assignments) {
       for (const student of students) {
-        await addNotification({
+        // Use notification gateway for centralized management
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_NEW, {
           userId: student.id,
-          title: 'Assignment Deadline Reminder',
-          message: `${assignment.title} is due soon. Deadline: ${formatDate(assignment.dueDate)}`,
-          type: 'deadline',
+          role: 'student',
           classId: assignment.classId || null,
+          title: 'notify.activity_new.title',
+          message: 'notify.activity_new.message',
+          variables: {
+            activityTitle: assignment.title,
+            dueDate: formatDate(assignment.dueDate)
+          },
           metadata: {
             assignmentId: assignment.id,
             assignmentTitle: assignment.title,
             dueDate: assignment.dueDate
           },
-          data: { assignmentId: assignment.id }
+          data: { assignmentId: assignment.id },
+          templateId: 'deadlineReminder',
+          email: student.email
         });
-
-        try {
-          await sendEmail({
-            to: student.email,
-            template: 'deadlineReminder',
-            type: 'deadline',
-            classId: assignment.classId || null,
-            data: {
-              studentName: student.displayName || student.email,
-              assignmentTitle: assignment.title,
-              assignmentDescription: assignment.description,
-              dueDate: formatDate(assignment.dueDate),
-              assignmentUrl: `${window.location.origin}/assignment/${assignment.id}`
-            }
-          });
-        } catch (emailError) {
-          console.error('Error sending deadline email:', emailError);
-        }
 
         notifications.push({ success: true, userId: student.id });
       }
@@ -359,63 +338,57 @@ export async function sendDeadlineReminders(assignments, students) {
 /**
  * Send grade released notification
  */
-export async function notifyGradeReleased(grade, student) {
+export async function sendGradeReleased(grade, student) {
   try {
-    await addNotification({
+    // Use notification gateway for centralized management
+    await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_GRADED, {
       userId: student.id,
-      title: 'Grade Released',
-      message: `Your grade for ${grade.title} has been released. Score: ${grade.score}/${grade.maxScore}`,
-      type: 'grade',
+      role: 'student',
       classId: grade.classId || null,
+      title: 'notify.activity_graded.title',
+      message: 'notify.activity_graded.message',
+      variables: {
+        activityTitle: grade.title,
+        grade: grade.score,
+        totalScore: grade.maxScore
+      },
       metadata: {
         gradeId: grade.id,
         assignmentTitle: grade.title,
         score: grade.score,
         maxScore: grade.maxScore
       },
-      data: { gradeId: grade.id }
+      data: { gradeId: grade.id },
+      templateId: 'gradeReleased',
+      email: student.email
     });
-
-    try {
-      await sendEmail({
-        to: student.email,
-        template: 'gradeReleased',
-        type: 'grade',
-        classId: grade.classId || null,
-        data: {
-          studentName: student.displayName || student.email,
-          assignmentTitle: grade.title,
-          score: grade.score,
-          maxScore: grade.maxScore,
-          percentage: Math.round((grade.score / grade.maxScore) * 100),
-          gradeUrl: `${window.location.origin}/grades/${grade.id}`
-        }
-      });
-    } catch (emailError) {
-      console.error('Error sending grade email:', emailError);
-    }
 
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
   }
-};
+}
 
 /**
  * Send push notification
  */
-export async function sendPushNotification(userId, title, message, data = {}) {
+export async function sendPushNotification(userId, title, message, data = {}, trigger = null) {
   try {
-    return await addNotification({
+    // Use notification gateway for centralized management
+    // Allow trigger parameter for flexibility, fallback to ANNOUNCEMENT_NEW for backward compatibility
+    const notificationTrigger = trigger || NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW;
+    
+    return await notificationGateway.send(notificationTrigger, {
       userId,
       title,
       message,
-      type: 'push',
+      variables: {},
       metadata: {
         ...data,
         pushSent: true,
         sentAt: new Date().toISOString()
-      }
+      },
+      templateId: null
     });
   } catch (error) {
     return { success: false, error: error.message };
@@ -430,16 +403,18 @@ export async function scheduleReminders(reminders) {
     const notifications = [];
     
     for (const reminder of reminders) {
-      const notification = await addNotification({
+      // Use notification gateway for centralized management
+      const notification = await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW, {
         userId: reminder.userId,
         title: reminder.title,
         message: reminder.message,
-        type: 'reminder',
-        scheduledFor: reminder.scheduledFor,
+        variables: {},
         metadata: {
           reminderId: reminder.id,
-          scheduledAt: new Date().toISOString()
-        }
+          scheduledAt: new Date().toISOString(),
+          scheduledFor: reminder.scheduledFor
+        },
+        templateId: null
       });
       notifications.push(notification);
     }
@@ -450,7 +425,202 @@ export async function scheduleReminders(reminders) {
   }
 };
 
-// ===== UTILITY FUNCTIONS =====
+// ===== NOTIFICATION LOGGING & FILTERING =====
+
+/**
+ * Log notification activity for tracking and debugging
+ */
+export async function logNotificationActivity(activity) {
+  try {
+    const logEntry = {
+      ...activity,
+      timestamp: new Date().toISOString(),
+      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    };
+    
+    // Store in notification_logs collection
+    await addDoc(collection(db, 'notification_logs'), logEntry);
+    
+    // Also log to console for development
+    console.log('🔔 Notification Activity:', {
+      trigger: activity.trigger,
+      channel: activity.channel,
+      userId: activity.userId,
+      success: activity.success,
+      timestamp: logEntry.timestamp
+    });
+    
+    return { success: true, logId: logEntry.id };
+  } catch (error) {
+    console.error('Error logging notification activity:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get notifications by type (trigger)
+ */
+export async function getNotificationsByType(userId, trigger, limit = 50) {
+  try {
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      where('metadata.trigger', '==', trigger),
+      orderBy('createdAt', 'desc'),
+      limit(limit)
+    );
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach(d => items.push({ id: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get notifications by category (activity, announcement, quiz, etc.)
+ */
+export async function getNotificationsByCategory(userId, category, limit = 50) {
+  try {
+    // Define category to trigger mappings
+    const categoryTriggers = {
+      'activity': [
+        NOTIFICATION_TRIGGERS.ACTIVITY_NEW,
+        NOTIFICATION_TRIGGERS.ACTIVITY_GRADED
+      ],
+      'announcement': [
+        NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW
+      ],
+      'quiz': [
+        NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE
+      ],
+      'attendance': [
+        NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED,
+        NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT
+      ],
+      'behavior': [
+        NOTIFICATION_TRIGGERS.BEHAVIOR_AWARDED,
+        NOTIFICATION_TRIGGERS.PENALTY_ISSUED
+      ],
+      'participation': [
+        NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED
+      ],
+      'resource': [
+        NOTIFICATION_TRIGGERS.RESOURCE_NEW
+      ]
+    };
+
+    const triggers = categoryTriggers[category] || [];
+    
+    if (triggers.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      where('metadata.trigger', 'in', triggers),
+      orderBy('createdAt', 'desc'),
+      limit(limit)
+    );
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach(d => items.push({ id: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get notification statistics for monitoring
+ */
+export async function getNotificationStats(userId, days = 30) {
+  try {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      where('createdAt', '>=', startDate),
+      orderBy('createdAt', 'desc')
+    );
+    const qs = await getDocs(q);
+    
+    const stats = {
+      total: qs.size,
+      byTrigger: {},
+      byType: {},
+      read: 0,
+      unread: qs.size
+    };
+    
+    qs.forEach(doc => {
+      const data = doc.data();
+      const trigger = data.metadata?.trigger || 'unknown';
+      const type = data.type || 'info';
+      
+      stats.byTrigger[trigger] = (stats.byTrigger[trigger] || 0) + 1;
+      stats.byType[type] = (stats.byType[type] || 0) + 1;
+      
+      if (data.read) {
+        stats.read++;
+        stats.unread--;
+      }
+    });
+    
+    return { success: true, data: stats };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get notification logs for admin monitoring
+ */
+export async function getNotificationLogs(filters = {}, limit = 100) {
+  try {
+    let q = query(
+      collection(db, 'notification_logs'),
+      orderBy('timestamp', 'desc'),
+      limit(limit)
+    );
+    
+    // Apply filters if provided
+    if (filters.userId) {
+      q = query(q, where('userId', '==', filters.userId));
+    }
+    
+    if (filters.trigger) {
+      q = query(q, where('trigger', '==', filters.trigger));
+    }
+    
+    if (filters.channel) {
+      q = query(q, where('channel', '==', filters.channel));
+    }
+    
+    if (filters.success !== undefined && filters.success !== null && filters.success !== '') {
+      q = query(q, where('success', '==', filters.success === 'true' || filters.success === true));
+    }
+    
+    if (filters.startDate) {
+      q = query(q, where('timestamp', '>=', filters.startDate));
+    }
+    
+    if (filters.endDate) {
+      q = query(q, where('timestamp', '<=', filters.endDate));
+    }
+    
+    const qs = await getDocs(q);
+    const items = [];
+    qs.forEach(d => items.push({ id: d.id, ...d.data() }));
+    return { success: true, data: items };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
 
 /**
  * Format date for notifications

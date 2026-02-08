@@ -8,7 +8,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import { USER_ROLES, getRoleColor, getRoleIcon, getRoleDisplayName } from '@constants/userRoles';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
@@ -19,15 +19,12 @@ import {
 import { getUsers, addUser, updateUser, deleteUser } from '@firebaseServices/userService';
 import { getEnrollments, addEnrollment, deleteEnrollment } from '@firebaseServices/enrollmentService';
 import { getSubmissions, gradeSubmission, deleteSubmission } from '@firebaseServices/submissionService';
-import { getResources, addResource, updateResource, deleteResource } from '@firebaseServices/activityService';
-import { addEmailLog, getEmailLogs } from '@firebaseServices/emailService';
-import { addActivityLog } from '@firebaseServices/activityService';
+import { addEmailLog, getEmailLogs, sendEmail, getSMTPConfig, updateSMTPConfig } from '@firebaseServices/emailService';
+import { addActivityLog, getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@firebaseServices/activityService';
 import { getClasses, addClass, updateClass, deleteClass } from '@firebaseServices/classService';
-import { sendEmail, getSMTPConfig, updateSMTPConfig } from '@firebaseServices/emailService';
 import { getCourses, setCourse, deleteCourse } from '@firebaseServices/courseService';
-import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@firebaseServices/activityService';
 import { getAllowlist, updateAllowlist } from '@firebaseServices/configService';
-import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
+import { notifyAllUsers, notifyUsersByClass, getNotificationLogs } from '@firebaseServices/notificationService';
 import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRangeSlider, UrlInput, Checkbox, Textarea, NumberInput, useToast, DataGrid, Tabs, AdvancedDataGrid, YearSelect, Card, CardBody, Badge, UserSelect } from '@ui';
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
@@ -174,7 +171,7 @@ const DashboardPage = () => {
       activities: 'content', announcements: 'content', resources: 'content',
       users: 'users', allowlist: 'users',
       classes: 'academic', enrollments: 'academic', submissions: 'academic',
-      /* smtp: 'communication' - DEPRECATED */ emailTemplates: 'communication', emailLogs: 'communication',
+      /* smtp: 'communication' - DEPRECATED */ emailTemplates: 'communication', emailLogs: 'communication', notificationLogs: 'communication',
       categories: 'settings', login: 'settings'
     };
     return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
@@ -188,6 +185,15 @@ const DashboardPage = () => {
   const [activityFilter, setActivityFilter] = useState('all');
   const [submissionStudentFilter, setSubmissionStudentFilter] = useState('all');
   const [submissionScoreFilter, setSubmissionScoreFilter] = useState('all');
+  const [notificationLogs, setNotificationLogs] = useState([]);
+  const [notificationLogFilters, setNotificationLogFilters] = useState({
+    trigger: '',
+    channel: '',
+    startDate: null,
+    endDate: null
+  });
+  const [selectedNotificationLog, setSelectedNotificationLog] = useState(null);
+  const [notificationLogModalOpen, setNotificationLogModalOpen] = useState(false);
   // Activity and Announcement filters for summary cards
   const [activityProgramFilter, setActivityProgramFilter] = useState('all');
   const [activitySubjectFilter, setActivitySubjectFilter] = useState('all');
@@ -223,7 +229,7 @@ const DashboardPage = () => {
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'emailLogs', 'scheduled-reports', 'categories', 'login'];
+    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'emailLogs', 'notificationLogs', 'scheduled-reports', 'categories', 'login'];
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
@@ -315,7 +321,7 @@ const DashboardPage = () => {
       items: [
         // { key: 'smtp', label: t('smtp') }, // DEPRECATED - Use environment variables instead
         { key: 'emailTemplates', label: t('templates') },
-        { key: 'emailLogs', label: t('notifications') },
+        { key: 'notificationLogs', label: t('notification_logs') },
         { key: 'scheduled-reports', label: t('scheduled_reports') }
       ]
     },
@@ -341,7 +347,8 @@ const DashboardPage = () => {
       label: t('settings'),
       items: [
         { key: 'categories', label: t('categories') },
-        { key: 'login', label: t('logs') }
+        { key: 'login', label: t('logs') },
+        { key: 'emailLogs', label: t('email_logs_deprecated') }
       ]
     }
   ];
@@ -967,7 +974,7 @@ const DashboardPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [activitiesRes, announcementsRes, usersRes, allowlistRes, classesRes, enrollmentsRes, submissionsRes, resourcesRes, loginLogsRes, coursesRes, quizzesRes, subjectsRes, programsRes] = await Promise.all([
+      const [activitiesRes, announcementsRes, usersRes, allowlistRes, classesRes, enrollmentsRes, submissionsRes, resourcesRes, loginLogsRes, coursesRes, quizzesRes, subjectsRes, programsRes, notificationLogsRes] = await Promise.all([
         getActivities(),
         getAnnouncements(),
         getUsers(),
@@ -986,25 +993,21 @@ const DashboardPage = () => {
           }
         })(),
         getSubjects(),
-        getPrograms()
+        getPrograms(),
+        getNotificationLogs(notificationLogFilters)
       ]);
       if (activitiesRes.success) {
-        logger.debug('Dashboard Debug - Raw activities data:', activitiesRes.data);
-        logger.debug('Dashboard Debug - First activity sample:', activitiesRes.data[0]);
-        logger.debug('Dashboard Debug - First activity createdAt:', activitiesRes.data[0]?.createdAt);
         setActivities(activitiesRes.data);
       }
       if (announcementsRes.success) setAnnouncements(announcementsRes.data);
       if (usersRes.success) setUsers(usersRes.data);
       if (allowlistRes.success) setAllowlist(allowlistRes.data);
       if (classesRes.success) {
-        console.log('Dashboard Debug - Raw classes data:', classesRes.data);
-        console.log('Dashboard Debug - Classes data length:', classesRes.data?.length || 0);
-        console.log('Dashboard Debug - First class sample:', classesRes.data?.[0]);
         setClasses(classesRes.data || []);
       }
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
       if (programsRes.success) setPrograms(programsRes.data || []);
+      if (notificationLogsRes.success) setNotificationLogs(notificationLogsRes.data);
       if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
       // Enrich enrollments with program and subject names (like HR Penalties)
       if (enrollmentsRes.success) {
@@ -1509,339 +1512,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           isAdmin={isAdmin}
           isInstructor={isInstructor}
         />
-        <div className="tab-content">
-            {/* Filters */}
-            <div data-tour="filters" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <Select
-                size="small"
-                searchable
-                value={enrollmentProgramFilter}
-                onChange={(e) => {
-                  setEnrollmentProgramFilter(e.target.value);
-                  setEnrollmentSubjectFilter('all');
-                  setEnrollmentClassFilter('all');
-                }}
-                options={[
-                  { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-                  ...programs.map(p => ({
-                    value: p.docId || p.id,
-                    label: p.name_en || p.name_ar || p.code || p.docId,
-                    icon: getThemedIcon('ui', 'book_open', 16, theme)
-                  }))
-                ]}
-                style={{ minWidth: 180 }}
-                placeholder={t('all_programs')}
-              />
-              <Select
-                size="small"
-                searchable
-                value={enrollmentSubjectFilter}
-                onChange={(e) => {
-                  setEnrollmentSubjectFilter(e.target.value);
-                  setEnrollmentClassFilter('all');
-                }}
-                options={[
-                  { value: 'all', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-                  ...subjects
-                    .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
-                    .map(s => ({
-                      value: s.docId || s.id,
-                      label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim(),
-                      icon: getThemedIcon('ui', 'file_text', 16, theme)
-                    }))
-                ]}
-                style={{ minWidth: 180 }}
-                placeholder={t('all_subjects')}
-              />
-              <Select
-                size="small"
-                searchable
-                value={enrollmentClassFilter}
-                onChange={(e) => setEnrollmentClassFilter(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-                  ...classes
-                    .filter(c => {
-                      if (enrollmentProgramFilter !== 'all') {
-                        const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                        return subject?.programId === enrollmentProgramFilter;
-                      }
-                      if (enrollmentSubjectFilter !== 'all') {
-                        return c.subjectId === enrollmentSubjectFilter;
-                      }
-                      // Filter for instructors
-                      if (isInstructor && !isAdmin && !isSuperAdmin) {
-                        return c.instructorId === user.uid || c.ownerEmail === user.email || c.instructor === user.email;
-                      }
-                      return true;
-                    })
-                    .map(c => ({
-                      value: c.id || c.docId,
-                      label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`,
-                      icon: getThemedIcon('ui', 'users', 16, theme)
-                    }))
-                ]}
-                style={{ minWidth: 180 }}
-                placeholder={t('all_classes') || 'All Classes'}
-              />
-            </div>
-            {/* Summary Cards */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                gap: '0.75rem'
-              }}
-            >
-              {[
-                // Programs - Super Admin only
-                ...(isSuperAdmin ? [{
-                  type: 'programs',
-                  value: programs.length,
-                  tooltip: 'Total number of programs in the system'
-                }] : []),
-                // Subjects - Admin and Super Admin
-                ...((isAdmin || isSuperAdmin) ? [{
-                  type: 'subjects',
-                  value: subjects.filter(s => {
-                    if (enrollmentProgramFilter !== 'all') return s.programId === enrollmentProgramFilter;
-                    return true;
-                  }).length,
-                  tooltip: isSuperAdmin ? 'Total number of subjects' : 'Subjects in your accessible programs'
-                }] : []),
-                // Classes - All roles with filtering
-                {
-                  type: 'classes',
-                  value: classes.filter(c => {
-                    if (enrollmentProgramFilter !== 'all') {
-                      const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                      return subject?.programId === enrollmentProgramFilter;
-                    }
-                    if (enrollmentSubjectFilter !== 'all') {
-                      return c.subjectId === enrollmentSubjectFilter;
-                    }
-                    if (enrollmentClassFilter !== 'all') {
-                      return (c.id || c.docId) === enrollmentClassFilter;
-                    }
-                    if (isInstructor && !isAdmin && !isSuperAdmin) {
-                      return c.instructorId === user.uid || c.ownerEmail === user.email || c.instructor === user.email;
-                    }
-                    return true;
-                  }).length,
-                  tooltip: isSuperAdmin ? 'Total number of classes' : isAdmin ? 'Classes in your accessible programs' : 'Your classes'
-                },
-                // Enrollments
-                {
-                  type: 'enrollments',
-                  value: enrollments.filter(e => {
-                    if (enrollmentClassFilter !== 'all') {
-                      return e.classId === enrollmentClassFilter;
-                    }
-                    if (enrollmentSubjectFilter !== 'all') {
-                      const classItem = classes.find(c => (c.id || c.docId) === e.classId);
-                      return classItem?.subjectId === enrollmentSubjectFilter;
-                    }
-                    if (enrollmentProgramFilter !== 'all') {
-                      const classItem = classes.find(c => (c.id || c.docId) === e.classId);
-                      const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
-                      return subject?.programId === enrollmentProgramFilter;
-                    }
-                    if (isInstructor && !isAdmin && !isSuperAdmin) {
-                      const classItem = classes.find(c => (c.id || c.docId) === e.classId);
-                      return classItem && (classItem.instructorId === user.uid || classItem.ownerEmail === user.email || classItem.instructor === user.email);
-                    }
-                    return true;
-                  }).length,
-                  tooltip: isSuperAdmin ? 'Total number of enrollments' : isAdmin ? 'Enrollments in your accessible programs' : 'Enrollments in your classes'
-                },
-                // Activities
-                {
-                  type: 'activities',
-                  value: activities.filter(a => {
-                    if (enrollmentClassFilter !== 'all') {
-                      return a.classId === enrollmentClassFilter;
-                    }
-                    if (enrollmentSubjectFilter !== 'all') {
-                      const classItem = classes.find(c => (c.id || c.docId) === a.classId);
-                      return classItem?.subjectId === enrollmentSubjectFilter;
-                    }
-                    if (enrollmentProgramFilter !== 'all') {
-                      const classItem = classes.find(c => (c.id || c.docId) === a.classId);
-                      const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
-                      return subject?.programId === enrollmentProgramFilter;
-                    }
-                    if (isInstructor && !isAdmin && !isSuperAdmin) {
-                      const classItem = classes.find(c => (c.id || c.docId) === a.classId);
-                      return classItem && (classItem.instructorId === user.uid || classItem.ownerEmail === user.email || classItem.instructor === user.email);
-                    }
-                    return true;
-                  }).length,
-                  tooltip: isSuperAdmin ? 'Total number of activities' : isAdmin ? 'Activities in your accessible programs' : 'Activities in your classes'
-                },
-                // Users - Admin and Super Admin only
-                ...((isAdmin || isSuperAdmin) ? [{
-                  type: 'users',
-                  value: users.length,
-                  tooltip: 'Total number of users in the system'
-                }] : []),
-                // Submissions
-                {
-                  type: 'submissions',
-                  value: submissions.filter(s => {
-                    if (enrollmentClassFilter !== 'all') {
-                      const activity = activities.find(a => a.id === s.activityId);
-                      return activity?.classId === enrollmentClassFilter;
-                    }
-                    if (enrollmentSubjectFilter !== 'all') {
-                      const activity = activities.find(a => a.id === s.activityId);
-                      if (!activity) return false;
-                      const classItem = classes.find(c => (c.id || c.docId) === activity.classId);
-                      return classItem?.subjectId === enrollmentSubjectFilter;
-                    }
-                    if (enrollmentProgramFilter !== 'all') {
-                      const activity = activities.find(a => a.id === s.activityId);
-                      if (!activity) return false;
-                      const classItem = classes.find(c => (c.id || c.docId) === activity.classId);
-                      const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
-                      return subject?.programId === enrollmentProgramFilter;
-                    }
-                    if (isInstructor && !isAdmin && !isSuperAdmin) {
-                      const activity = activities.find(a => a.id === s.activityId);
-                      if (!activity) return false;
-                      const classItem = classes.find(c => (c.id || c.docId) === activity.classId);
-                      return classItem && (classItem.instructorId === user.uid || classItem.ownerEmail === user.email || classItem.instructor === user.email);
-                    }
-                    return true;
-                  }).length,
-                  tooltip: isSuperAdmin ? 'Total number of submissions' : isAdmin ? 'Submissions in your accessible programs' : 'Submissions from your students'
-                },
-                // Quizzes
-                {
-                  type: 'quizzes',
-                  value: quizzes.length,
-                  tooltip: 'Total number of quizzes. Click to view all quizzes.',
-                  onClick: () => navigate('/quizzes'),
-                  hoverable: true
-                },
-                // Announcements
-                {
-                  type: 'announcements',
-                  value: announcements.filter(a => {
-                    if (enrollmentClassFilter !== 'all') {
-                      return a.classId === enrollmentClassFilter;
-                    }
-                    if (enrollmentSubjectFilter !== 'all') {
-                      return a.subjectId === enrollmentSubjectFilter;
-                    }
-                    if (enrollmentProgramFilter !== 'all') {
-                      return a.programId === enrollmentProgramFilter;
-                    }
-                    return true;
-                  }).length,
-                  tooltip: 'Total number of announcements'
-                },
-                // Resources
-                {
-                  type: 'resources',
-                  value: resources.filter(r => {
-                    // If resource has no program/subject/class, it's public and should be included
-                    if (!r.programId && !r.subjectId && !r.classId) {
-                      return true;
-                    }
-                    if (enrollmentClassFilter !== 'all') {
-                      return r.classId === enrollmentClassFilter;
-                    }
-                    if (enrollmentSubjectFilter !== 'all') {
-                      return r.subjectId === enrollmentSubjectFilter;
-                    }
-                    if (enrollmentProgramFilter !== 'all') {
-                      return r.programId === enrollmentProgramFilter;
-                    }
-                    return true;
-                  }).length,
-                  tooltip: 'Total number of resources'
-                }
-              ].map((stat, idx) => {
-                const config = getCardConfig(stat.type, t, theme);
-                const IconComponent = config.icon;
-                const borderRadius = getShapeRadius(config.shape);
-                return (
-                  <Card
-                    key={idx}
-                    padding="xs"
-                    onClick={() => stat.onClick && stat.onClick()}
-                    style={{ 
-                      position: 'relative', 
-                      overflow: 'visible',
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: stat.onClick ? 'pointer' : 'default',
-                      transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
-                      border: '2px solid transparent',
-                      backgroundColor: theme === 'dark' ? 'var(--card-bg, #1f2937)' : 'var(--card-bg, #ffffff)',
-                      ':hover': {
-                        transform: stat.onClick ? 'translateY(-1px)' : 'none',
-                        boxShadow: stat.onClick ? (theme === 'dark' ? '0 2px 6px rgba(0, 0, 0, 0.3)' : '0 2px 6px rgba(0, 0, 0, 0.08)') : 'none',
-                        borderColor: config.iconColor
-                      }
-                    }}
-                  >
-                    <CardBody style={{ padding: '0.5rem', display: 'flex', flex: 1 }}>
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.5rem',
-                        width: '100%',
-                        height: '100%'
-                      }}>
-                        <div style={{ 
-                          padding: '0.35rem', 
-                          background: config.bg, 
-                          borderRadius: borderRadius,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          marginTop: '0.1rem'
-                        }}>
-                          {React.cloneElement(IconComponent, { size: 16, style: { color: config.iconColor } })}
-                        </div>
-                        <div style={{ 
-                          flex: 1, 
-                          minWidth: 0,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          height: '100%',
-                          gap: '0.1rem'
-                        }}>
-                          <span style={{ 
-                            fontSize: '0.7rem', 
-                            color: theme === 'dark' ? 'var(--text-secondary, #9ca3af)' : 'var(--text-secondary, #6b7280)',
-                            lineHeight: '1.1',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {config.label}
-                          </span>
-                          <div style={{ 
-                            fontSize: '1rem', 
-                            fontWeight: 700, 
-                            color: config.iconColor,
-                            lineHeight: '1.1'
-                          }}>
-                            {stat.value}
-                          </div>
-                        </div>
-                      </div>
-                    </CardBody>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
+
         <div className="tab-content">
            {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />}
     <div className="tab-header">
@@ -2310,6 +1981,186 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         )}
         {activeTab === 'emailTemplates' && <EmailTemplatesPage />}
         {activeTab === 'emailLogs' && <EmailLogsPage />}
+        {activeTab === 'notificationLogs' && (
+          <div className="notification-logs-container">
+            <div className="tab-header">
+              <h2>{t('notification_logs') || 'Notification Logs'}</h2>
+              <div className="tooltip-wrapper">
+                <InfoTooltip contentKey={`help.notification_logs`} />
+              </div>
+            </div>
+            
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <Select
+                size="small"
+                searchable
+                value={notificationLogFilters.trigger}
+                onChange={(e) => setNotificationLogFilters(prev => ({ ...prev, trigger: e.target.value }))}
+                options={[
+                  { value: '', label: t('all_triggers'), icon: getColoredIcon('ui', 'filter', 16, null, theme) },
+                  { value: 'activity_new', label: 'Activity New' },
+                  { value: 'activity_graded', label: 'Activity Graded' },
+                  { value: 'announcement_new', label: 'Announcement New' },
+                  { value: 'quiz_available', label: 'Quiz Available' },
+                  { value: 'attendance_recorded', label: 'Attendance Recorded' },
+                  { value: 'attendance_absent', label: 'Attendance Absent' },
+                  { value: 'penalty_issued', label: 'Penalty Issued' },
+                  { value: 'behavior_awarded', label: 'Behavior Awarded' },
+                  { value: 'participation_recorded', label: 'Participation Recorded' }
+                ]}
+                placeholder={t('filter_by_trigger') || 'Filter by trigger'}
+              />
+              
+              <Select
+                size="small"
+                value={notificationLogFilters.channel}
+                onChange={(e) => setNotificationLogFilters(prev => ({ ...prev, channel: e.target.value }))}
+                options={[
+                  { value: '', label: t('all_channels'), icon: getColoredIcon('ui', 'filter', 16, null, theme) },
+                  { value: 'web', label: t('web') },
+                  { value: 'email', label: t('email') },
+                  { value: 'sms', label: t('sms') },
+                  { value: 'whatsapp', label: t('whatsapp') }
+                ]}
+                placeholder={t('filter_by_channel') || 'Filter by channel'}
+              />
+              
+              <DatePicker
+                size="small"
+                value={notificationLogFilters.startDate}
+                onChange={(date) => setNotificationLogFilters(prev => ({ ...prev, startDate: date }))}
+                placeholder={t('from_date') || 'From date'}
+              />
+              
+              <DatePicker
+                size="small"
+                value={notificationLogFilters.endDate}
+                onChange={(date) => setNotificationLogFilters(prev => ({ ...prev, endDate: date }))}
+                placeholder={t('to_date') || 'To date'}
+              />
+
+              <Select
+                size="small"
+                value={notificationLogFilters.success}
+                onChange={(e) => setNotificationLogFilters(prev => ({ ...prev, success: e.target.value }))}
+                options={[
+                  { value: '', label: t('all_statuses'), icon: getColoredIcon('ui', 'filter', 16, null, theme) },
+                  { value: 'true', label: t('success') || 'Success' },
+                  { value: 'false', label: t('failed') || 'Failed' }
+                ]}
+                placeholder={t('filter_by_status') || 'Filter by status'}
+              />
+              
+              <Button
+                size="small"
+                onClick={() => {
+                  setNotificationLogFilters({
+                    trigger: '',
+                    channel: '',
+                    success: '',
+                    startDate: null,
+                    endDate: null
+                  });
+                  loadData();
+                }}
+                icon={getColoredIcon('ui', 'refresh', 16, null, theme)}
+              >
+                {t('reset_filters') || 'Reset Filters'}
+              </Button>
+            </div>
+            
+            {/* Notification Logs Table */}
+            <AdvancedDataGrid
+              data={notificationLogs}
+              columns={[
+                {
+                  key: 'timestamp',
+                  label: t('timestamp') || 'Timestamp',
+                  render: (row) => formatDateTime(row.timestamp)
+                },
+                {
+                  key: 'trigger',
+                  label: t('trigger') || 'Trigger',
+                  render: (row) => (
+                    <Badge 
+                      text={row.trigger || 'N/A'} 
+                      type="info" 
+                      size="small" 
+                    />
+                  )
+                },
+                {
+                  key: 'userId',
+                  label: t('user_id') || 'User ID',
+                  render: (row) => row.userId || 'N/A'
+                },
+                {
+                  key: 'role',
+                  label: t('role') || 'Role',
+                  render: (row) => (
+                    <Badge 
+                      text={row.role || 'N/A'} 
+                      type={row.role === 'admin' ? 'error' : 'success'} 
+                      size="small" 
+                    />
+                  )
+                },
+                {
+                  key: 'channel',
+                  label: t('channel') || 'Channel',
+                  render: (row) => (
+                    <Badge 
+                      text={row.channel || 'N/A'} 
+                      type="info" 
+                      size="small" 
+                    />
+                  )
+                },
+                {
+                  key: 'success',
+                  label: t('status') || 'Status',
+                  render: (row) => (
+                    <Badge 
+                      text={row.success ? t('success') || 'Success' : t('failed') || 'Failed'} 
+                      type={row.success ? 'success' : 'error'} 
+                      size="small" 
+                    />
+                  )
+                },
+                {
+                  key: 'details',
+                  label: t('details') || 'Details',
+                  render: (row) => (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '0.875rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {row.details?.message || row.details?.title || 'N/A'}
+                      </div>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedNotificationLog(row);
+                          setNotificationLogModalOpen(true);
+                        }}
+                        icon={getColoredIcon('ui', 'eye', 14, null, theme)}
+                      />
+                    </div>
+                  )
+                }
+              ]}
+              pagination={{
+                enabled: true,
+                pageSize: 20,
+                showSizeChanger: true,
+                showQuickJumper: true
+              }}
+              loading={loading}
+              emptyMessage={t('no_notification_logs_found') || 'No notification logs found'}
+              theme={theme}
+            />
+          </div>
+        )}
         {activeTab === 'allowlist' && (
           <AllowlistPage
             allowlist={allowlist}
@@ -2360,6 +2211,97 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           }
         }}
       />
+      {/* Notification Log Detail Modal */}
+      {notificationLogModalOpen && selectedNotificationLog && (
+        <Modal
+          isOpen={notificationLogModalOpen}
+          onClose={() => {
+            setNotificationLogModalOpen(false);
+            setSelectedNotificationLog(null);
+          }}
+          title={t('notification_log_details') || 'Notification Log Details'}
+          size="medium"
+        >
+          <div style={{ padding: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+              <strong>{t('timestamp') || 'Timestamp'}:</strong>
+              <div>{formatDateTime(selectedNotificationLog.timestamp)}</div>
+              
+              <strong>{t('trigger') || 'Trigger'}:</strong>
+              <div><Badge text={selectedNotificationLog.trigger} type="info" size="small" /></div>
+              
+              <strong>{t('channel') || 'Channel'}:</strong>
+              <div><Badge text={selectedNotificationLog.channel} type="info" size="small" /></div>
+              
+              <strong>{t('user_id') || 'User ID'}:</strong>
+              <div>{selectedNotificationLog.userId || 'N/A'}</div>
+              
+              <strong>{t('role') || 'Role'}:</strong>
+              <div><Badge text={selectedNotificationLog.role} type={selectedNotificationLog.role === 'admin' ? 'error' : 'success'} size="small" /></div>
+              
+              <strong>{t('status') || 'Status'}:</strong>
+              <div>
+                <Badge 
+                  text={selectedNotificationLog.success ? t('success') || 'Success' : t('failed') || 'Failed'} 
+                  type={selectedNotificationLog.success ? 'success' : 'error'} 
+                  size="small" 
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ marginBottom: '0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>
+                {t('content_details') || 'Content Details'}
+              </h4>
+              <div className="detail-item" style={{ marginBottom: '0.5rem' }}>
+                <strong>{t('title') || 'Title'}:</strong>
+                <div style={{ padding: '0.5rem', background: theme === 'dark' ? '#333' : '#f9f9f9', borderRadius: '4px', marginTop: '0.25rem' }}>
+                  {selectedNotificationLog.details?.title || 'N/A'}
+                </div>
+              </div>
+              <div className="detail-item">
+                <strong>{t('message') || 'Message'}:</strong>
+                <div style={{ padding: '0.5rem', background: theme === 'dark' ? '#333' : '#f9f9f9', borderRadius: '4px', marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>
+                  {selectedNotificationLog.details?.message || 'N/A'}
+                </div>
+              </div>
+            </div>
+
+            {selectedNotificationLog.details?.variables && Object.keys(selectedNotificationLog.details.variables).length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ marginBottom: '0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>
+                  {t('variables') || 'Variables'}
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem', padding: '0.5rem', background: theme === 'dark' ? '#333' : '#f9f9f9', borderRadius: '4px' }}>
+                  {Object.entries(selectedNotificationLog.details.variables).map(([key, value]) => (
+                    <React.Fragment key={key}>
+                      <span style={{ fontWeight: 600, color: '#888' }}>{key}:</span>
+                      <span>{String(value)}</span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedNotificationLog.details?.error && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ marginBottom: '0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem', color: '#ef4444' }}>
+                  {t('error_details') || 'Error Details'}
+                </h4>
+                <div style={{ padding: '0.5rem', background: '#fef2f2', color: '#991b1b', borderRadius: '4px', border: '1px solid #fee2e2' }}>
+                  {selectedNotificationLog.details.error}
+                </div>
+              </div>
+            )}
+
+            <div className="form-actions" style={{ marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <Button onClick={() => setNotificationLogModalOpen(false)}>
+                {t('close') || 'Close'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {/* Set Password Modal */}
       {
         showPasswordModal && passwordUser && (

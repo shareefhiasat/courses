@@ -1,7 +1,8 @@
 import { doc, deleteDoc, collection, addDoc, serverTimestamp, updateDoc, getDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from './config';
-import { addNotification } from './notificationService';
-import { sendEmail } from '@firebaseServices/emailService';
+import { notificationGateway } from './notificationGateway';
+import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -66,57 +67,27 @@ export async function createBehavior({
       try {
         const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
-        // In-app notification
-        await addNotification({
+        // Use smart notification gateway
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_AWARDED, {
           userId: studentId,
+          role: 'student',
+          classId: classId,
           title: '⚠️ Behavior Recorded',
           message: `Behavior recorded for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
-          type: 'behavior',
-          classId: classId,
-          metadata: {
-            date: todayStr,
-            points,
-            type,
-            className: className,
-            method: 'manual'
-          },
-          data: { 
-            classId, 
-            date: todayStr, 
-            points,
-            type
+          type: RECORD_TYPES.BEHAVIOR,
+          email: studentInfo?.email,
+          templateId: 'behaviorNotification',
+          variables: {
+            studentName: studentInfo?.displayName || studentInfo?.email || 'Student',
+            className: className || 'Class',
+            date: formattedDate,
+            behaviorType: type,
+            delta: points,
+            notes: description || ''
           }
         });
-
-        if (studentInfo?.email && Math.abs(points) >= 2) {
-          try {
-            await sendEmail({
-              to: studentInfo.email,
-              template: 'behaviorNotification',
-              type: 'behavior',
-              classId: classId,
-              data: {
-                studentName: studentInfo.displayName || studentInfo.email,
-                className: className || 'Class',
-                date: formattedDate,
-                behaviorType: type,
-                delta: points,
-                notes: description || ''
-              },
-              metadata: {
-                classId,
-                className,
-                date: todayStr,
-                type,
-                points
-              }
-            });
-          } catch (emailError) {
-            console.warn('Failed to send behavior email:', emailError);
-          }
-        }
       } catch (notifyError) {
-        console.warn('Failed to send behavior notification:', notifyError);
+        console.warn('Failed to send behavior notification via gateway:', notifyError);
       }
     }
 

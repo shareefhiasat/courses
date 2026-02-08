@@ -86,6 +86,60 @@ export const NOTIFICATION_TYPE_LABELS = {
   }
 };
 
+// Notification Channels
+export const NOTIFICATION_CHANNELS = {
+  WEB: 'web',
+  EMAIL: 'email',
+  SMS: 'sms',
+  WHATSAPP: 'whatsapp'
+};
+
+// Notification Action Triggers
+export const NOTIFICATION_TRIGGERS = {
+  // Academic / Course
+  ACTIVITY_NEW: 'activity_new',
+  ACTIVITY_COMPLETE: 'activity_complete',
+  ACTIVITY_GRADED: 'activity_graded',
+  RESOURCE_NEW: 'resource_new',
+  ANNOUNCEMENT_NEW: 'announcement_new',
+  
+  // Attendance & Behavior
+  ATTENDANCE_RECORDED: 'attendance_recorded',
+  ATTENDANCE_ABSENT: 'attendance_absent',
+  BEHAVIOR_AWARDED: 'behavior_awarded',
+  PENALTY_ISSUED: 'penalty_issued',
+  PARTICIPATION_RECORDED: 'participation_recorded',
+  
+  // Quiz
+  QUIZ_AVAILABLE: 'quiz_available',
+  QUIZ_DEADLINE_REMINDER: 'quiz_deadline_reminder',
+  QUIZ_RESULTS_RELEASED: 'quiz_results_released',
+  
+  // System / Account
+  ENROLLMENT_CONFIRMED: 'enrollment_confirmed',
+  ENROLLMENT_CANCELLED: 'enrollment_cancelled',
+  WELCOME_SIGNUP: 'welcome_signup',
+  PASSWORD_RESET: 'password_reset',
+  
+  // Communication
+  CHAT_MESSAGE: 'chat_message',
+  CHAT_DIGEST: 'chat_digest'
+};
+
+/**
+ * Mapping triggers to screens/pages for RoleAccessPro integration
+ */
+export const SCREEN_NOTIFICATION_MAPPING = {
+  activities: [NOTIFICATION_TRIGGERS.ACTIVITY_NEW, NOTIFICATION_TRIGGERS.ACTIVITY_COMPLETE, NOTIFICATION_TRIGGERS.ACTIVITY_GRADED],
+  resources: [NOTIFICATION_TRIGGERS.RESOURCE_NEW],
+  quizzes: [NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, NOTIFICATION_TRIGGERS.QUIZ_DEADLINE_REMINDER, NOTIFICATION_TRIGGERS.QUIZ_RESULTS_RELEASED],
+  attendance: [NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT],
+  hrPenalties: [NOTIFICATION_TRIGGERS.PENALTY_ISSUED],
+  instructorParticipation: [NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED],
+  instructorBehavior: [NOTIFICATION_TRIGGERS.BEHAVIOR_AWARDED],
+  chat: [NOTIFICATION_TRIGGERS.CHAT_MESSAGE, NOTIFICATION_TRIGGERS.CHAT_DIGEST]
+};
+
 // Notification Status Labels
 export const NOTIFICATION_STATUS_LABELS = {
   [NOTIFICATION_STATUS.UNREAD]: {

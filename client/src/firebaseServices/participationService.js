@@ -1,7 +1,8 @@
 import { doc, deleteDoc, collection, addDoc, serverTimestamp, updateDoc, getDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from './config';
-import { addNotification } from './notificationService';
-import { sendEmail } from '@firebaseServices/emailService';
+import { notificationGateway } from './notificationGateway';
+import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -67,57 +68,27 @@ export async function createParticipation({
         const actionLabel = points > 0 ? 'added' : 'recorded';
         const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
-        // In-app notification
-        await addNotification({
+        // Use smart notification gateway
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED, {
           userId: studentId,
+          role: 'student',
+          classId: classId,
           title: `📝 Participation ${actionLabel}`,
           message: `Participation ${actionLabel} for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
-          type: 'participation',
-          classId: classId,
-          metadata: {
-            date: todayStr,
-            points,
-            type,
-            className: className,
-            method: 'manual'
-          },
-          data: { 
-            classId, 
-            date: todayStr, 
-            points,
-            type
+          type: RECORD_TYPES.PARTICIPATION,
+          email: studentInfo?.email,
+          templateId: 'participationNotification',
+          variables: {
+            studentName: studentInfo?.displayName || studentInfo?.email || 'Student',
+            className: className || 'Class',
+            date: formattedDate,
+            category: 'Participation',
+            delta: points,
+            notes: description || ''
           }
         });
-
-        if (studentInfo?.email && Math.abs(points) >= 2) {
-          try {
-            await sendEmail({
-              to: studentInfo.email,
-              template: 'participationNotification',
-              type: 'participation',
-              classId: classId,
-              data: {
-                studentName: studentInfo.displayName || studentInfo.email,
-                className: className || 'Class',
-                date: formattedDate,
-                category: 'Participation',
-                delta: points,
-                notes: description || ''
-              },
-              metadata: {
-                classId,
-                className,
-                date: todayStr,
-                type,
-                points
-              }
-            });
-          } catch (emailError) {
-            console.warn('Failed to send participation email:', emailError);
-          }
-        }
       } catch (notifyError) {
-        console.warn('Failed to send participation notification:', notifyError);
+        console.warn('Failed to send participation notification via gateway:', notifyError);
       }
     }
 

@@ -13,7 +13,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./config";
-import { addNotification } from "./notificationService";
+import { notificationGateway } from "./notificationGateway";
+import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { RECORD_TYPES } from "@utils/sharedTypes";
 
 const toYmd = (tsOrDate) => {
@@ -170,23 +171,28 @@ export const createPenalty = async ({
       try {
         const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
-        // In-app notification
-        await addNotification({
+        // Use smart notification gateway
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_ISSUED, {
           userId: studentId,
+          role: 'student',
+          classId: classId,
           title: '⚠️ Penalty Recorded',
           message: `Penalty recorded for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
           type: RECORD_TYPES.PENALTY,
-          classId: classId,
-          metadata: {
-            date: todayStr,
+          email: studentInfo?.email,
+          templateId: 'penaltyNotification', // Assuming this template exists or will be created
+          variables: {
+            studentName: studentInfo?.displayName || studentInfo?.email || 'Student',
+            className: className || 'Class',
+            date: formattedDate,
+            penaltyType: type,
             points,
-            type,
-            className: className,
-            method: 'manual'
+            reason,
+            notes: description || note || ''
           }
         });
       } catch (notifyError) {
-        console.warn('Failed to send penalty notification:', notifyError);
+        console.warn('Failed to send penalty notification via gateway:', notifyError);
       }
     }
 

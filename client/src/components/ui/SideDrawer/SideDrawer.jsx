@@ -891,9 +891,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         background: 'transparent',
                         border: 'none',
                         color: theme==='light' ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.5)',
-                        fontSize: '0.65rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1.2px',
+                        fontSize: lang === 'ar' ? '0.75rem' : '0.65rem',
+                        textTransform: lang === 'ar' ? 'none' : 'uppercase',
+                        letterSpacing: lang === 'ar' ? '0.5px' : '1.2px',
                         fontWeight: 600,
                         cursor: 'pointer',
                         transition: 'color 0.2s'
@@ -968,7 +968,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                             : 'transparent',
                           transition: 'all 0.2s',
                           fontWeight: isActive(link.path, link.hash) ? 600 : 400,
-                          fontSize: '0.85rem',
+                          fontSize: lang === 'ar' ? '0.9rem' : '0.85rem',
                           flex: 1
                           }}
                           onMouseEnter={(e) => {
@@ -1088,8 +1088,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}>{getThemedIcon('ui', 'languages', 16, theme)}</span>
-                {!collapsed && <span>{t(lang === 'en' ? 'arabic' : 'english') || (lang === 'en' ? 'العربية' : 'English')}</span>}
+                <span>{t(lang === 'en' ? 'arabic' : 'english') || (lang === 'en' ? 'العربية' : 'English')}</span>
               </button>
 
               {/* Logout */}
@@ -1104,8 +1103,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}>{getThemedIcon('ui', 'log_out', 16, theme)}</span>
-                {!collapsed && <span>{t('logout') || 'Logout'}</span>}
+                <span>{t('logout') || 'Logout'}</span>
               </button>
             </div>
           </motion.div>

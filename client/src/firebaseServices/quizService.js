@@ -14,6 +14,10 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { canParticipate } from "../utils/userStatus";
+import { notificationGateway } from "./notificationGateway";
+import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
+import { getUserById } from "./userService";
+import { RECORD_TYPES } from "@utils/sharedTypes";
 
 // Create a new quiz
 export const createQuiz = async (quizData, userId) => {
@@ -34,6 +38,40 @@ export const createQuiz = async (quizData, userId) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    // Notify students about new quiz availability if it's assigned to classes
+    const classIds = Array.isArray(quizData?.assignedClassIds) ? quizData.assignedClassIds : (quizData?.classId ? [quizData.classId] : []);
+    if (classIds.length > 0 && quizData?.visibility !== 'private') {
+      try {
+        // Get all students in these classes
+        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', 'in', classIds)));
+        const studentIds = [...new Set(enrollmentsSnap.docs.map(d => d.data().userId))];
+        
+        for (const studentId of studentIds) {
+          const { data: student } = await getUserById(studentId);
+          if (student && student.email) {
+            await notificationGateway.send(NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, {
+              userId: studentId,
+              role: 'student',
+              classId: classIds[0],
+              title: 'New Quiz Available',
+              message: `${quizData.title} is now available.`,
+              type: RECORD_TYPES.QUIZ || 'quiz',
+              email: student.email,
+              templateId: 'quizAvailable',
+              variables: {
+                studentName: student.displayName || student.name || 'Student',
+                quizTitle: quizData.title,
+                dueDate: quizData.settings?.dueDate ? new Date(quizData.settings.dueDate).toLocaleDateString() : 'N/A'
+              }
+            });
+          }
+        }
+      } catch (notifyError) {
+        console.warn('Failed to send quiz availability notifications:', notifyError);
+      }
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error("Error creating quiz:", error);

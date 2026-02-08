@@ -1,20 +1,3 @@
-import { 
-  Mail, 
-  Megaphone, 
-  FileText, 
-  CheckCircle2, 
-  XCircle, 
-  GraduationCap, 
-  MessageSquareText, 
-  Mailbox, 
-  Send, 
-  MailOpen, 
-  MousePointerClick, 
-  CornerDownLeft, 
-  Flag, 
-  ListFilter,
-  Eye 
-} from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 
 // Email Type Configuration
@@ -42,76 +25,76 @@ export const EMAIL_STATUS = {
 };
 
 // Email Type Icons Configuration
-export const getEmailTypeIcon = (type, size = 16) => {
+export const getEmailTypeIcon = (type, size = 16, theme = 'light') => {
   const iconMap = {
-    [EMAIL_TYPES.NEWSLETTER]: <Mailbox size={size} title="Newsletter" />,
-    [EMAIL_TYPES.ANNOUNCEMENT]: <Megaphone size={size} title="Announcement" />,
-    [EMAIL_TYPES.ACTIVITY]: <FileText size={size} title="Activity" />,
-    [EMAIL_TYPES.ACTIVITY_COMPLETE]: <CheckCircle2 size={size} title="Completion" />,
-    [EMAIL_TYPES.ACTIVITY_GRADED]: <FileText size={size} title="Grading" />,
-    [EMAIL_TYPES.ENROLLMENT]: <GraduationCap size={size} title="Enrollment" />,
-    [EMAIL_TYPES.RESOURCE]: getThemedIcon('ui', 'book_open', size, 'light'),
-    [EMAIL_TYPES.CHAT_DIGEST]: <MessageSquareText size={size} title="Chat Digest" />,
-    [EMAIL_TYPES.CUSTOM]: <Mail size={size} title="Email" />
+    [EMAIL_TYPES.NEWSLETTER]: getThemedIcon('ui', 'mailbox', size, theme),
+    [EMAIL_TYPES.ANNOUNCEMENT]: getThemedIcon('ui', 'megaphone', size, theme),
+    [EMAIL_TYPES.ACTIVITY]: getThemedIcon('ui', 'file_text', size, theme),
+    [EMAIL_TYPES.ACTIVITY_COMPLETE]: getThemedIcon('ui', 'check_circle', size, theme),
+    [EMAIL_TYPES.ACTIVITY_GRADED]: getThemedIcon('ui', 'file_text', size, theme),
+    [EMAIL_TYPES.ENROLLMENT]: getThemedIcon('ui', 'graduation_cap', size, theme),
+    [EMAIL_TYPES.RESOURCE]: getThemedIcon('ui', 'book_open', size, theme),
+    [EMAIL_TYPES.CHAT_DIGEST]: getThemedIcon('ui', 'message_square', size, theme),
+    [EMAIL_TYPES.CUSTOM]: getThemedIcon('ui', 'mail', size, theme)
   };
   
-  return iconMap[type] || <Mail size={size} title="Email" />;
+  return iconMap[type] || getThemedIcon('ui', 'mail', size, theme);
 };
 
 // Email Status Configuration for Dropdowns
-export const getEmailStatusOptions = () => [
-  { value: 'all', label: 'All Status', icon: <ListFilter size={16} title="All Status" /> },
-  { value: EMAIL_STATUS.SENT, label: 'Sent', icon: <Send size={16} title="Sent" /> },
-  { value: EMAIL_STATUS.DELIVERED, label: 'Delivered', icon: <CheckCircle2 size={16} title="Delivered" /> },
-  { value: EMAIL_STATUS.FAILED, label: 'Failed', icon: <XCircle size={16} title="Failed" /> },
-  { value: EMAIL_STATUS.OPENED, label: 'Opened', icon: <MailOpen size={16} title="Opened" /> },
-  { value: EMAIL_STATUS.CLICKED, label: 'Clicked', icon: <MousePointerClick size={16} title="Clicked" /> },
-  { value: EMAIL_STATUS.BOUNCED, label: 'Bounced', icon: <CornerDownLeft size={16} title="Bounced" /> },
-  { value: EMAIL_STATUS.COMPLAINED, label: 'Complained', icon: <Flag size={16} title="Complained" /> }
+export const getEmailStatusOptions = (theme = 'light') => [
+  { value: 'all', label: 'All Status', icon: getThemedIcon('ui', 'filter', 16, theme) },
+  { value: EMAIL_STATUS.SENT, label: 'Sent', icon: getThemedIcon('ui', 'send', 16, theme) },
+  { value: EMAIL_STATUS.DELIVERED, label: 'Delivered', icon: getThemedIcon('ui', 'check_circle', 16, theme) },
+  { value: EMAIL_STATUS.FAILED, label: 'Failed', icon: getThemedIcon('ui', 'x_circle', 16, theme) },
+  { value: EMAIL_STATUS.OPENED, label: 'Opened', icon: getThemedIcon('ui', 'mail_open', 16, theme) },
+  { value: EMAIL_STATUS.CLICKED, label: 'Clicked', icon: getThemedIcon('ui', 'mouse_pointer_click', 16, theme) },
+  { value: EMAIL_STATUS.BOUNCED, label: 'Bounced', icon: getThemedIcon('ui', 'corner_down_left', 16, theme) },
+  { value: EMAIL_STATUS.COMPLAINED, label: 'Complained', icon: getThemedIcon('ui', 'flag', 16, theme) }
 ];
 
 // Email Type Options for Dropdowns
-export const getEmailTypeOptions = () => [
+export const getEmailTypeOptions = (theme = 'light') => [
   { value: 'all', label: 'All Types' },
-  { value: EMAIL_TYPES.NEWSLETTER, label: 'Newsletter', icon: <Mailbox size={16} title="Newsletter" /> },
-  { value: EMAIL_TYPES.ANNOUNCEMENT, label: 'Announcements', icon: <Megaphone size={16} title="Announcement" /> },
-  { value: EMAIL_TYPES.ACTIVITY, label: 'Activities', icon: <FileText size={16} title="Activity" /> },
-  { value: EMAIL_TYPES.ACTIVITY_GRADED, label: 'Grading', icon: <FileText size={16} title="Grading" /> },
-  { value: EMAIL_TYPES.ACTIVITY_COMPLETE, label: 'Completions', icon: <CheckCircle2 size={16} title="Completion" /> },
-  { value: EMAIL_TYPES.ENROLLMENT, label: 'Enrollments', icon: <GraduationCap size={16} title="Enrollment" /> },
-  { value: EMAIL_TYPES.RESOURCE, label: 'Resources', icon: getThemedIcon('ui', 'book_open', 16, 'light') },
-  { value: EMAIL_TYPES.CHAT_DIGEST, label: 'Chat Digest', icon: <MessageSquareText size={16} title="Chat Digest" /> }
+  { value: EMAIL_TYPES.NEWSLETTER, label: 'Newsletter', icon: getThemedIcon('ui', 'mailbox', 16, theme) },
+  { value: EMAIL_TYPES.ANNOUNCEMENT, label: 'Announcements', icon: getThemedIcon('ui', 'megaphone', 16, theme) },
+  { value: EMAIL_TYPES.ACTIVITY, label: 'Activities', icon: getThemedIcon('ui', 'file_text', 16, theme) },
+  { value: EMAIL_TYPES.ACTIVITY_GRADED, label: 'Grading', icon: getThemedIcon('ui', 'file_text', 16, theme) },
+  { value: EMAIL_TYPES.ACTIVITY_COMPLETE, label: 'Completions', icon: getThemedIcon('ui', 'check_circle', 16, theme) },
+  { value: EMAIL_TYPES.ENROLLMENT, label: 'Enrollments', icon: getThemedIcon('ui', 'graduation_cap', 16, theme) },
+  { value: EMAIL_TYPES.RESOURCE, label: 'Resources', icon: getThemedIcon('ui', 'book_open', 16, theme) },
+  { value: EMAIL_TYPES.CHAT_DIGEST, label: 'Chat Digest', icon: getThemedIcon('ui', 'message_square', 16, theme) }
 ];
 
 // Email Status Badge Configuration (without colors - user requested no colors)
-export const getEmailStatusBadge = (status, t) => {
+export const getEmailStatusBadge = (status, t, theme = 'light') => {
   const statusConfig = {
     [EMAIL_STATUS.SENT]: { 
-      icon: <Send size={14} />, 
+      icon: getThemedIcon('ui', 'send', 14, theme), 
       label: t('sent_status') || 'Sent' 
     },
     [EMAIL_STATUS.DELIVERED]: { 
-      icon: <CheckCircle2 size={14} />, 
+      icon: getThemedIcon('ui', 'check_circle', 14, theme), 
       label: t('delivered_status') || 'Delivered' 
     },
     [EMAIL_STATUS.FAILED]: { 
-      icon: <XCircle size={14} />, 
+      icon: getThemedIcon('ui', 'x_circle', 14, theme), 
       label: t('failed_status') || 'Failed' 
     },
     [EMAIL_STATUS.OPENED]: { 
-      icon: <MailOpen size={14} />, 
+      icon: getThemedIcon('ui', 'mail_open', 14, theme), 
       label: t('opened_status') || 'Opened' 
     },
     [EMAIL_STATUS.CLICKED]: { 
-      icon: <MousePointerClick size={14} />, 
+      icon: getThemedIcon('ui', 'mouse_pointer_click', 14, theme), 
       label: t('clicked_status') || 'Clicked' 
     },
     [EMAIL_STATUS.BOUNCED]: { 
-      icon: <CornerDownLeft size={14} />, 
+      icon: getThemedIcon('ui', 'corner_down_left', 14, theme), 
       label: t('bounced_status') || 'Bounced' 
     },
     [EMAIL_STATUS.COMPLAINED]: { 
-      icon: <Flag size={14} />, 
+      icon: getThemedIcon('ui', 'flag', 14, theme), 
       label: t('complained_status') || 'Complained' 
     }
   };
@@ -138,46 +121,46 @@ export const getEmailStatusBadge = (status, t) => {
 };
 
 // Email Status Badge Configuration (with colors - alternative version)
-export const getEmailStatusBadgeWithColors = (status, t) => {
+export const getEmailStatusBadgeWithColors = (status, t, theme = 'light') => {
   const statusConfig = {
     [EMAIL_STATUS.SENT]: { 
-      icon: <Send size={14} />, 
+      icon: getThemedIcon('ui', 'send', 14, theme), 
       color: '#155724', 
       bg: '#d4edda', 
       label: t('sent_status') || 'Sent' 
     },
     [EMAIL_STATUS.DELIVERED]: { 
-      icon: <CheckCircle2 size={14} />, 
+      icon: getThemedIcon('ui', 'check_circle', 14, theme), 
       color: '#155724', 
       bg: '#d4edda', 
       label: t('delivered_status') || 'Delivered' 
     },
     [EMAIL_STATUS.FAILED]: { 
-      icon: <XCircle size={14} />, 
+      icon: getThemedIcon('ui', 'x_circle', 14, theme), 
       color: '#721c24', 
       bg: '#f8d7da', 
       label: t('failed_status') || 'Failed' 
     },
     [EMAIL_STATUS.OPENED]: { 
-      icon: <MailOpen size={14} />, 
+      icon: getThemedIcon('ui', 'mail_open', 14, theme), 
       color: '#0c5460', 
       bg: '#d1ecf1', 
       label: t('opened_status') || 'Opened' 
     },
     [EMAIL_STATUS.CLICKED]: { 
-      icon: <MousePointerClick size={14} />, 
+      icon: getThemedIcon('ui', 'mouse_pointer_click', 14, theme), 
       color: '#004085', 
       bg: '#cce5ff', 
       label: t('clicked_status') || 'Clicked' 
     },
     [EMAIL_STATUS.BOUNCED]: { 
-      icon: <CornerDownLeft size={14} />, 
+      icon: getThemedIcon('ui', 'corner_down_left', 14, theme), 
       color: '#856404', 
       bg: '#fff3cd', 
       label: t('bounced_status') || 'Bounced' 
     },
     [EMAIL_STATUS.COMPLAINED]: { 
-      icon: <Flag size={14} />, 
+      icon: getThemedIcon('ui', 'flag', 14, theme), 
       color: '#721c24', 
       bg: '#f8d7da', 
       label: t('complained_status') || 'Complained' 
@@ -204,5 +187,3 @@ export const getEmailStatusBadgeWithColors = (status, t) => {
   );
 };
 
-// Export Eye icon for use in other components
-export { Eye };

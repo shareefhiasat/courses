@@ -18,18 +18,6 @@ import { db } from "./config";
 import { logActivity, ACTIVITY_TYPES } from './activityLogger';
 import { deleteCollection, deleteDocumentsByField } from './collectionManagementService';
 
-// Helper: Convert ISO string to Firestore Timestamp
-const convertDatesToTimestamps = (data) => {
-  const converted = { ...data };
-  if (converted.dueDate && typeof converted.dueDate === "string") {
-    const date = new Date(converted.dueDate);
-    if (!isNaN(date.getTime())) {
-      converted.dueDate = Timestamp.fromDate(date);
-    }
-  }
-  return converted;
-};
-
 // Activities
 export const getActivities = async () => {
   try {
@@ -57,6 +45,38 @@ export const addActivity = async (activityData) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    // Send notifications for new activity
+    if (activityData.classId) {
+      try {
+        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', activityData.classId)));
+        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        
+        for (const studentId of studentIds) {
+          const { data: student } = await getUserById(studentId);
+          if (student && student.email) {
+            await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_NEW, {
+              userId: studentId,
+              role: 'student',
+              classId: activityData.classId,
+              title: 'New Activity Assigned',
+              message: `A new activity "${activityData.title}" has been assigned to your class.`,
+              type: RECORD_TYPES.ACTIVITY,
+              email: student.email,
+              templateId: 'activityNew',
+              variables: {
+                studentName: student.displayName || student.name || 'Student',
+                activityTitle: activityData.title,
+                dueDate: activityData.dueDate ? new Date(activityData.dueDate).toLocaleDateString() : 'N/A'
+              }
+            });
+          }
+        }
+      } catch (notifyError) {
+        console.warn('Failed to send activity notifications:', notifyError);
+      }
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error("Error adding activity:", error);
@@ -119,6 +139,38 @@ export const addAnnouncement = async (announcementData) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    // Send notifications for new announcement
+    if (announcementData.classId) {
+      try {
+        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', announcementData.classId)));
+        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        
+        for (const studentId of studentIds) {
+          const { data: student } = await getUserById(studentId);
+          if (student && student.email) {
+            await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW, {
+              userId: studentId,
+              role: 'student',
+              classId: announcementData.classId,
+              title: 'New Announcement',
+              message: announcementData.title,
+              type: 'announcement',
+              email: student.email,
+              templateId: 'announcementNew',
+              variables: {
+                studentName: student.displayName || student.name || 'Student',
+                announcementTitle: announcementData.title,
+                announcementContent: announcementData.content
+              }
+            });
+          }
+        }
+      } catch (notifyError) {
+        console.warn('Failed to send announcement notifications:', notifyError);
+      }
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error("Error adding announcement:", error);
@@ -176,6 +228,38 @@ export const addResource = async (resourceData) => {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    // Send notifications for new resource
+    if (resourceData.classId) {
+      try {
+        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', resourceData.classId)));
+        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        
+        for (const studentId of studentIds) {
+          const { data: student } = await getUserById(studentId);
+          if (student && student.email) {
+            await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_NEW, {
+              userId: studentId,
+              role: 'student',
+              classId: resourceData.classId,
+              title: 'New Resource Available',
+              message: `A new resource "${resourceData.title}" has been uploaded to your class.`,
+              type: RECORD_TYPES.RESOURCE || 'resource',
+              email: student.email,
+              templateId: 'resourceNew',
+              variables: {
+                studentName: student.displayName || student.name || 'Student',
+                resourceTitle: resourceData.title,
+                resourceType: resourceData.type || 'document'
+              }
+            });
+          }
+        }
+      } catch (notifyError) {
+        console.warn('Failed to send resource notifications:', notifyError);
+      }
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error("Error adding resource:", error);

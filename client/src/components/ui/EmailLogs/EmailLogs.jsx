@@ -9,13 +9,15 @@ import {
   getEmailTypeIcon, 
   getEmailStatusOptions, 
   getEmailTypeOptions, 
-  getEmailStatusBadge,
-  Eye 
+  getEmailStatusBadge
 } from '@constants/emailTypes';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
 
 const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const toast = useToast();
   const { t } = useLang();
+  const { theme } = useTheme();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [missingIndexUrl, setMissingIndexUrl] = useState('');
@@ -137,7 +139,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             {defaultTypeFilter === 'all' && <Select
                 value={filters.type}
                 onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                options={getEmailTypeOptions()}
+                options={getEmailTypeOptions(theme)}
                 fullWidth
                 searchable
             />}
@@ -145,7 +147,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             <Select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                options={getEmailStatusOptions()}
+                options={getEmailStatusOptions(theme)}
                 fullWidth
                 searchable
             />
@@ -199,7 +201,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                 width: 150,
                 renderCell: (params) => (
                     <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
-                {getEmailTypeIcon(params.value, 18)}
+                {getEmailTypeIcon(params.value, 18, theme)}
                       <span style={{ fontSize: '0.85rem' }}>{params.value}</span>
               </span>
                 )
@@ -231,7 +233,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                 field: 'status',
                 headerName: t('status'),
                 width: 120,
-                renderCell: (params) => getEmailStatusBadge(params.value, t)
+                renderCell: (params) => getEmailStatusBadge(params.value, t, theme)
               },
               {
                 field: 'actions',
@@ -255,7 +257,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                         }}
                         title="View"
                     >
-                      <Eye size={16} />
+                      {getThemedIcon('ui', 'eye', 16, theme)}
                     </button>
                 )
               }
@@ -313,7 +315,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                   alignItems: 'center'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}>
-                    {getTypeIcon(selectedLog.type, 18)}
+                    {getEmailTypeIcon(selectedLog.type, 18, theme)}
                     <span style={{ fontWeight: 500, maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {selectedLog.subject || 'Email log'}
                 </span>
@@ -348,11 +350,11 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                     <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#f8f9fa', borderRadius: 8 }}>
                       <div style={{ display: 'grid', gap: '0.75rem', fontSize: '0.9rem' }}>
                         <div><strong>Date/Time:</strong> {selectedLog.timestamp ? formatDateTime(selectedLog.timestamp) : 'N/A'}</div>
-                        <div><strong>Type:</strong> {getTypeIcon(selectedLog.type)} {selectedLog.type}</div>
+                        <div><strong>Type:</strong> {getEmailTypeIcon(selectedLog.type, 16, theme)} {selectedLog.type}</div>
                         <div><strong>Subject:</strong> {selectedLog.subject}</div>
                         <div><strong>From:</strong> {selectedLog.senderName} &lt;{selectedLog.from}&gt;</div>
                         <div><strong>To:</strong> {Array.isArray(selectedLog.to) ? selectedLog.to.join(', ') : selectedLog.to}</div>
-                        <div><strong>Status:</strong> {getStatusBadge(selectedLog.status)}</div>
+                        <div><strong>Status:</strong> {getEmailStatusBadge(selectedLog.status, t, theme)}</div>
                         {selectedLog.error && (
                             <div style={{ color: '#dc3545' }}><strong>Error:</strong> {selectedLog.error}</div>
                         )}

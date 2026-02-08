@@ -13,8 +13,9 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./config";
-import { addNotification } from "./notificationService";
+import { notificationGateway } from "./notificationGateway";
 import { sendEmail } from '@firebaseServices/emailService';
+import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 
 /**
  * GPA Grading Rules
@@ -634,13 +635,18 @@ const sendMarksNotifications = async ({
       marksRecord.grade
     } (${marksRecord.totalScore.toFixed(2)}%)`;
 
-    // In-app notification
+    // In-app notification via gateway
     if (sendInApp) {
-      await addNotification({
+      await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_GRADED, {
         userId: studentId,
+        role: 'student',
         title: notificationTitle,
         message: notificationMessage,
-        type: "marks",
+        variables: {
+          activityTitle: subject.name_en || subject.code,
+          grade: marksRecord.grade,
+          totalScore: marksRecord.totalScore.toFixed(2)
+        },
         metadata: {
           subjectId,
           subjectCode: subject.code,

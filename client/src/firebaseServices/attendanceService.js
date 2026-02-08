@@ -1,5 +1,9 @@
 import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from './config';
+import { notificationGateway } from './notificationGateway';
+import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+import { getUserById } from './userService';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 
 /**
  * Centralized Attendance Service - DRY Firebase attendance operations
@@ -54,6 +58,31 @@ export const markAttendance = async (attendanceData) => {
         ...attendanceData,
         updatedAt: serverTimestamp()
       });
+      
+      // Notify via gateway on update if not present
+      if (attendanceData.status !== 'present') {
+        try {
+          const { data: student } = await getUserById(attendanceData.studentId);
+          if (student) {
+            await notificationGateway.send(NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, {
+              userId: attendanceData.studentId,
+              role: 'student',
+              classId: attendanceData.classId,
+              title: 'Attendance Updated',
+              message: `Your attendance status has been updated to: ${attendanceData.status}`,
+              type: RECORD_TYPES.ATTENDANCE,
+              email: student.email,
+              templateId: 'attendanceNotification',
+              variables: {
+                studentName: student.displayName || student.name || 'Student',
+                status: attendanceData.status,
+                date: today
+              }
+            });
+          }
+        } catch (e) { console.warn('Notify failed', e); }
+      }
+
       return { success: true, id: attendanceDocId, action: 'updated' };
     } else {
       // Create new attendance record
@@ -63,6 +92,31 @@ export const markAttendance = async (attendanceData) => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+
+      // Notify via gateway on new record if absent/late
+      if (attendanceData.status !== 'present') {
+        try {
+          const { data: student } = await getUserById(attendanceData.studentId);
+          if (student) {
+            await notificationGateway.send(attendanceData.status === 'absent' ? NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT : NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, {
+              userId: attendanceData.studentId,
+              role: 'student',
+              classId: attendanceData.classId,
+              title: attendanceData.status === 'absent' ? 'Absence Recorded' : 'Attendance Recorded',
+              message: `You were marked ${attendanceData.status} for today's class.`,
+              type: RECORD_TYPES.ATTENDANCE,
+              email: student.email,
+              templateId: 'attendanceNotification',
+              variables: {
+                studentName: student.displayName || student.name || 'Student',
+                status: attendanceData.status,
+                date: today
+              }
+            });
+          }
+        } catch (e) { console.warn('Notify failed', e); }
+      }
+
       return { success: true, id: newDocRef.id, action: 'created' };
     }
   } catch (error) {

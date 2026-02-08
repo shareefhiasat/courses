@@ -7,7 +7,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
-import { notifyQuizAvailable } from '@firebaseServices/notificationService';
+import { sendQuizAvailable } from '@firebaseServices/notificationService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getUsers, getUser } from '@firebaseServices/userService';
 import { getAllQuizzes, getQuizzesByCreator, deleteQuiz, getQuiz, createQuiz, updateQuiz } from '@firebaseServices/quizService';
@@ -471,7 +471,7 @@ export default function QuizzesPage() {
                   .filter(Boolean);
                 
                 if (studentsToNotify.length > 0) {
-                  await notifyQuizAvailable(
+                  await sendQuizAvailable(
                     { 
                       id: targetQuizId, 
                       title: quizData.title_en || quizData.title || '',

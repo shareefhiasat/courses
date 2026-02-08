@@ -12,7 +12,7 @@ import {
   // Academic Icons
   BookOpen, GraduationCap, Award, FileText, Database, Trophy, Gamepad2,
   // Communication Icons
-  MessageSquare, Bell, BellOff, Send, Phone,
+  MessageSquare, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter,
   // Navigation Icons
   Home, Search, Filter, ChevronDown, ChevronUp, Link, Video, List, ExternalLink,
   // Time Icons
@@ -256,20 +256,28 @@ export const ICON_TYPES = {
     paperclip: <Paperclip size={16} />,
     attachment: <Paperclip size={16} />,
     mail: <MessageSquare size={16} />,
+    // Email-specific icons needed by emailTypes.jsx
+    mailbox: <Mailbox size={16} />,
+    megaphone: <Megaphone size={16} />,
+    mail_open: <MailOpen size={16} />,
+    mouse_pointer_click: <MousePointerClick size={16} />,
+    corner_down_left: <CornerDownLeft size={16} />,
+    flag: <Flag size={16} />,
+    list_filter: <ListFilter size={16} />,
+    chevron_left: <ChevronLeft size={16} />,
+    chevron_right: <ChevronRight size={16} />,
+    rotate_cw: <RotateCw size={16} />,
+    skip_forward: <SkipForward size={16} />,
+    shuffle: <Shuffle size={16} />,
+    bot: <Bot size={16} />,
+    heart: <Heart size={16} />,
     trash: <Trash size={16} />,
     user: <User size={16} />,
     key_round: <KeyRound size={16} />,
     copy: <Copy size={16} />,
     // Additional icons from dashboard and chat pages
     upload: <Upload size={16} />,
-    rotate_cw: <RotateCw size={16} />,
-    skip_forward: <SkipForward size={16} />,
-    shuffle: <Shuffle size={16} />,
-    chevron_left: <ChevronLeft size={16} />,
-    chevron_right: <ChevronRight size={16} />,
     rotate_ccw: <RotateCcw size={16} />,
-    bot: <Bot size={16} />,
-    heart: <Heart size={16} />,
     // Missing icons from HomePage
     monitor: <Monitor size={16} />,
     code2: <Code size={16} />,

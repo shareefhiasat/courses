@@ -7,20 +7,24 @@ import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useTo
 import { USER_ROLES } from '@constants/userRoles';
 import { getAllLocalizedScreens } from '@constants/screenDefinitions';
 import { getThemedIcon } from '@constants/iconTypes';
+import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS, SCREEN_NOTIFICATION_MAPPING } from '@constants/notificationTypes';
 import styles from './RoleAccessPro.module.css';
 
 export default function RoleAccessPro() {
   const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const theme = 'light'; // Hook into actual theme if available, otherwise default
   const toast = useToast();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [roleScreens, setRoleScreens] = useState({});
+  const [notificationSettings, setNotificationSettings] = useState({});
   const [message, setMessage] = useState('');
   const [activeRole, setActiveRole] = useState(USER_ROLES.ADMIN);
   const [q, setQ] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [expandedNotifications, setExpandedNotifications] = useState({});
 
   const roles = [USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR, USER_ROLES.HR, USER_ROLES.STUDENT];
 
@@ -86,6 +90,12 @@ export default function RoleAccessPro() {
       const snap = await getDoc(docRef);
       if (snap.exists()) setRoleScreens(snap.data());
       else setRoleScreens(defaultRoleScreens);
+
+      // Load notification settings
+      const notifyRef = doc(db, 'config', 'notificationSettings');
+      const notifySnap = await getDoc(notifyRef);
+      if (notifySnap.exists()) setNotificationSettings(notifySnap.data());
+      else setNotificationSettings({});
     } catch (e) {
       console.error(e);
       setRoleScreens(defaultRoleScreens);
@@ -99,13 +109,30 @@ export default function RoleAccessPro() {
     try {
       const docRef = doc(db, 'config', 'roleScreens');
       await setDoc(docRef, roleScreens);
-      toast.success(t('role_access_updated') || 'Role access saved');
+      
+      const notifyRef = doc(db, 'config', 'notificationSettings');
+      await setDoc(notifyRef, notificationSettings);
+      
+      toast.success(t('role_access_updated') || 'Role access and notification settings saved');
     } catch (e) {
       console.error(e);
-      toast.error('Error saving role access');
+      toast.error('Error saving settings');
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleNotification = (role, trigger, channel) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      [role]: {
+        ...(prev[role] || {}),
+        [trigger]: {
+          ...(prev[role]?.[trigger] || { web: false, email: false, sms: false, whatsapp: false }),
+          [channel]: !(prev[role]?.[trigger]?.[channel] || false)
+        }
+      }
+    }));
   };
 
   const toggleScreen = (role, id) => {
@@ -247,42 +274,107 @@ export default function RoleAccessPro() {
                       </div>
                     </div>
 
-                    <div className={styles.screensList}>
-                      {items.map((s, idx) => (
-                        <div key={s.id} className={`${styles.screenRow} ${idx % 2 ? styles.alt : ''}`}>
-                          <div className={styles.screenInfo} style={{ flex: 1, minWidth: 0 }}>
-                            <div className={styles.screenName}>{s.name}</div>
-                            {s.description && (
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #666)', marginTop: '0.25rem' }}>
-                                {s.description}
-                              </div>
-                            )}
-                            <div className={styles.screenId}>{s.id}</div>
-                          </div>
-                          
-                          <div className={styles.roleToggles} style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexShrink: 0 }}>
-                            {roles.map(r => {
-                              const on = !!(roleScreens[r]?.[s.id]);
+                          <div className={styles.screensList}>
+                            {items.map((s, idx) => {
+                              const triggers = SCREEN_NOTIFICATION_MAPPING[s.id] || [];
+                              const isExpanded = expandedNotifications[`${activeRole}_${s.id}`];
+
                               return (
-                                <div key={`${s.id}_${r}`} style={{ minWidth: 64, display: 'flex', justifyContent: 'center' }}>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.preventDefault(); toggleScreen(r, s.id); }}
-                                    role="switch"
-                                    aria-checked={on}
-                                    className={`${styles.toggle} ${on ? styles.toggleOn : styles.toggleOff}`}
-                                    title={`${r} toggle`}
-                                    style={r === activeRole ? { outline: '2px solid rgba(128,0,32,0.25)' } : undefined}
-                                  >
-                                    <span className={styles.toggleKnob} />
-                                  </button>
-                                </div>
+                                <React.Fragment key={s.id}>
+                                  <div className={`${styles.screenRow} ${idx % 2 ? styles.alt : ''}`}>
+                                    <div className={styles.screenInfo} style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div className={styles.screenName}>{s.name}</div>
+                                        {triggers.length > 0 && (
+                                          <Button
+                                            variant="ghost"
+                                            size="xs"
+                                            onClick={() => setExpandedNotifications(prev => ({ ...prev, [`${activeRole}_${s.id}`]: !isExpanded }))}
+                                            style={{ padding: '2px', height: 'auto' }}
+                                            title={t('configure_notifications') || 'Configure Notifications'}
+                                          >
+                                            {getThemedIcon('ui', 'bell', 14, theme)}
+                                          </Button>
+                                        )}
+                                      </div>
+                                      {s.description && (
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #666)', marginTop: '0.25rem' }}>
+                                          {s.description}
+                                        </div>
+                                      )}
+                                      <div className={styles.screenId}>{s.id}</div>
+                                    </div>
+                                    
+                                    <div className={styles.roleToggles} style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexShrink: 0 }}>
+                                      {roles.map(r => {
+                                        const on = !!(roleScreens[r]?.[s.id]);
+                                        return (
+                                          <div key={`${s.id}_${r}`} style={{ minWidth: 64, display: 'flex', justifyContent: 'center' }}>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => { e.preventDefault(); toggleScreen(r, s.id); }}
+                                              role="switch"
+                                              aria-checked={on}
+                                              className={`${styles.toggle} ${on ? styles.toggleOn : styles.toggleOff}`}
+                                              title={`${r} toggle`}
+                                              style={r === activeRole ? { outline: '2px solid rgba(128,0,32,0.25)' } : undefined}
+                                            >
+                                              <span className={styles.toggleKnob} />
+                                            </button>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* Notification Sub-menu */}
+                                  {isExpanded && triggers.length > 0 && (
+                                    <div className={styles.notificationSubMenu} style={{ 
+                                      padding: '0.75rem 1rem 0.75rem 2.5rem', 
+                                      background: 'var(--panel-bg-alt, #f0f0f0)',
+                                      borderBottom: '1px solid var(--border-color, #eee)'
+                                    }}>
+                                      <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-primary, #800020)' }}>
+                                        {t('notification_settings_for') || 'Notification Settings for'} {s.name}
+                                      </div>
+                                      <table style={{ width: '100%', fontSize: '0.75rem' }}>
+                                        <thead>
+                                          <tr style={{ textAlign: 'left', opacity: 0.7 }}>
+                                            <th style={{ padding: '4px' }}>{t('trigger') || 'Trigger'}</th>
+                                            <th style={{ padding: '4px', textAlign: 'center' }}>{t('web') || 'Web'}</th>
+                                            <th style={{ padding: '4px', textAlign: 'center' }}>{t('email') || 'Email'}</th>
+                                            <th style={{ padding: '4px', textAlign: 'center' }}>{t('sms') || 'SMS'}</th>
+                                            <th style={{ padding: '4px', textAlign: 'center' }}>{t('whatsapp') || 'WhatsApp'}</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {triggers.map(trigger => (
+                                            <tr key={trigger}>
+                                              <td style={{ padding: '4px' }}>{t(trigger) || trigger.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                                              {Object.values(NOTIFICATION_CHANNELS).map(channel => {
+                                                const isActive = !!notificationSettings[activeRole]?.[trigger]?.[channel];
+                                                return (
+                                                  <td key={channel} style={{ padding: '4px', textAlign: 'center' }}>
+                                                    <input 
+                                                      type="checkbox" 
+                                                      checked={isActive}
+                                                      onChange={() => toggleNotification(activeRole, trigger, channel)}
+                                                      disabled={channel === NOTIFICATION_CHANNELS.SMS || channel === NOTIFICATION_CHANNELS.WHATSAPP}
+                                                      title={channel === NOTIFICATION_CHANNELS.SMS || channel === NOTIFICATION_CHANNELS.WHATSAPP ? 'Coming Soon' : channel}
+                                                    />
+                                                  </td>
+                                                );
+                                              })}
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </React.Fragment>
                               );
                             })}
                           </div>
-                        </div>
-                      ))}
-                    </div>
                   </>
                 )}
               </div>
