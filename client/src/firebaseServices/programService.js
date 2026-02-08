@@ -10,6 +10,7 @@ import {
   query, 
   where, 
   orderBy,
+  limit,
   Timestamp
 } from 'firebase/firestore';
 import { db } from './config';
@@ -20,12 +21,37 @@ import { db } from './config';
  */
 export const getPrograms = async () => {
   try {
+    const callId = Math.random().toString(36).substr(2, 9);
+    console.log(`🔍 [getPrograms-${callId}] Starting fetch...`);
     const q = query(collection(db, 'programs'), orderBy('name_en', 'asc'));
+    console.log(`🔍 [getPrograms-${callId}] Query created:`, q);
     const qs = await getDocs(q);
+    console.log(`🔍 [getPrograms-${callId}] Query snapshot received:`, qs);
+    console.log(`🔍 [getPrograms-${callId}] Query docs count:`, qs.docs?.length || 0);
+    console.log(`🔍 [getPrograms-${callId}] Query empty:`, qs.empty);
+    console.log(`🔍 [getPrograms-${callId}] Query metadata:`, qs.metadata);
+    
     const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
+    qs.forEach((d, index) => {
+      console.log(`🔍 [getPrograms-${callId}] Processing doc ${index}:`, {
+        id: d.id,
+        exists: d.exists(),
+        data: d.data()
+      });
+      const programData = { docId: d.id, ...d.data() };
+      console.log(`🔍 [getPrograms-${callId}] Program data ${index}:`, programData);
+      items.push(programData);
+      console.log(`🔍 [getPrograms-${callId}] Items array length after push ${index}:`, items.length);
+    });
+    
+    console.log(`🔍 [getPrograms-${callId}] Final items array:`, items);
+    console.log(`🔍 [getPrograms-${callId}] Final items length:`, items.length);
+    console.log(`🔍 [getPrograms-${callId}] Returning result:`, { success: true, data: items });
     return { success: true, data: items };
   } catch (error) {
+    console.error(`❌ [getPrograms-${callId}] ERROR:`, error);
+    console.error(`❌ [getPrograms-${callId}] Error message:`, error.message);
+    console.error(`❌ [getPrograms-${callId}] Error stack:`, error.stack);
     return { success: false, error: error.message };
   }
 };

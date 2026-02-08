@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { CollapsibleDashboardSection, Select } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
+import { getResourceCount } from '@firebaseServices/activityService';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getClasses } from '@firebaseServices/classService';
 
 /**
  * AnalyticsDashboardPage - Dashboard Statistics Page
@@ -41,6 +44,70 @@ const AnalyticsDashboardPage = ({
 }) => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const [resourceCount, setResourceCount] = useState(0);
+  const [loadingResourceCount, setLoadingResourceCount] = useState(false);
+  
+  // Local state for dropdowns (same as NotificationDrawer)
+  const [localPrograms, setLocalPrograms] = useState([]);
+  const [localSubjects, setLocalSubjects] = useState([]);
+  const [localClasses, setLocalClasses] = useState([]);
+
+  // Load programs, subjects, classes for filters (same as NotificationDrawer)
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [programsRes, subjectsRes, classesRes] = await Promise.all([
+          getPrograms(),
+          getSubjects(),
+          getClasses()
+        ]);
+        if (programsRes.success) setLocalPrograms(programsRes.data || []);
+        if (subjectsRes.success) setLocalSubjects(subjectsRes.data || []);
+        if (classesRes.success) setLocalClasses(classesRes.data || []);
+      } catch (error) {
+        console.error('🔍 [AnalyticsDashboardPage] Error loading filters:', error);
+      }
+    };
+    loadFilters();
+  }, []); // Load once on mount
+
+  // Fetch resource count from server based on current filters
+  useEffect(() => {
+    const fetchResourceCount = async () => {
+      setLoadingResourceCount(true);
+      try {
+        const filters = {};
+        if (enrollmentProgramFilter !== 'all') {
+          filters.programId = enrollmentProgramFilter;
+        }
+        if (enrollmentSubjectFilter !== 'all') {
+          filters.subjectId = enrollmentSubjectFilter;
+        }
+        if (enrollmentClassFilter !== 'all') {
+          filters.classId = enrollmentClassFilter;
+        }
+
+        const result = await getResourceCount(filters);
+        if (result.success) {
+          setResourceCount(result.count);
+          console.log('🔍 [AnalyticsDashboardPage] Server-side resource count:', result.count);
+        } else {
+          console.error('🔍 [AnalyticsDashboardPage] Error fetching resource count:', result.error);
+          setResourceCount(0);
+        }
+      } catch (error) {
+        console.error('🔍 [AnalyticsDashboardPage] Exception fetching resource count:', error);
+        setResourceCount(0);
+      } finally {
+        setLoadingResourceCount(false);
+      }
+    };
+
+    fetchResourceCount();
+  }, [enrollmentProgramFilter, enrollmentSubjectFilter, enrollmentClassFilter]);
+
+  // Safety check: ensure programs is an array (remove debug logs)
+  const safePrograms = Array.isArray(localPrograms) ? localPrograms : [];
 
   return (
     <CollapsibleDashboardSection
@@ -63,10 +130,9 @@ const AnalyticsDashboardPage = ({
             }}
             options={[
               { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 14, theme) },
-              ...programs.map(p => ({
+              ...safePrograms.map(p => ({
                 value: p.docId || p.id,
-                label: p.name_en || p.name_ar || p.code || p.docId,
-                icon: getThemedIcon('ui', 'book_open', 14, theme)
+                label: p.name_en || p.name || p.code || p.docId
               }))
             ]}
             style={{ minWidth: 140 }}
@@ -89,10 +155,9 @@ const AnalyticsDashboardPage = ({
             }}
             options={[
               { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...programs.map(p => ({
+              ...safePrograms.map(p => ({
                 value: p.docId || p.id,
-                label: p.name_en || p.name_ar || p.code || p.docId,
-                icon: getThemedIcon('ui', 'book_open', 16, theme)
+                label: p.name_en || p.name || p.code || p.docId
               }))
             ]}
             style={{ minWidth: 180 }}
@@ -108,12 +173,11 @@ const AnalyticsDashboardPage = ({
             }}
             options={[
               { value: 'all', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...subjects
+              ...(localSubjects || [])
                 .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
                 .map(s => ({
                   value: s.docId || s.id,
-                  label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim(),
-                  icon: getThemedIcon('ui', 'file_text', 16, theme)
+                  label: `${s.code || ''} - ${s.name_en || s.name || s.docId}`.trim()
                 }))
             ]}
             style={{ minWidth: 180 }}
@@ -126,10 +190,10 @@ const AnalyticsDashboardPage = ({
             onChange={(e) => setEnrollmentClassFilter(e.target.value)}
             options={[
               { value: 'all', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...classes
+              ...(localClasses || [])
                 .filter(c => {
                   if (enrollmentProgramFilter !== 'all') {
-                    const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+                    const subject = localSubjects.find(s => (s.docId || s.id) === c.subjectId);
                     return subject?.programId === enrollmentProgramFilter;
                   }
                   if (enrollmentSubjectFilter !== 'all') {
@@ -311,23 +375,8 @@ const AnalyticsDashboardPage = ({
             // Resources
             {
               type: 'resources',
-              value: resources.filter(r => {
-                // If resource has no program/subject/class, it's public and should be included
-                if (!r.programId && !r.subjectId && !r.classId) {
-                  return true;
-                }
-                if (enrollmentClassFilter !== 'all') {
-                  return r.classId === enrollmentClassFilter;
-                }
-                if (enrollmentSubjectFilter !== 'all') {
-                  return r.subjectId === enrollmentSubjectFilter;
-                }
-                if (enrollmentProgramFilter !== 'all') {
-                  return r.programId === enrollmentProgramFilter;
-                }
-                return true;
-              }).length,
-              tooltip: 'Total number of resources'
+              value: loadingResourceCount ? '...' : resourceCount,
+              tooltip: loadingResourceCount ? 'Loading resource count...' : 'Total number of resources (server-side count)'
             }
           ].map((stat, idx) => {
             const config = getCardConfig(stat.type, t, theme);

@@ -198,8 +198,124 @@ export const deleteAnnouncement = async (id) => {
   }
 };
 
-// Resources
-export const getResources = async () => {
+// Resources - Enhanced with filtering and pagination
+export const getResources = async (filters = {}, pagination = {}) => {
+  try {
+    const {
+      programId,
+      subjectId, 
+      classId,
+      category,
+      isPublic = null // null = all, true = public only, false = assigned only
+    } = filters;
+    
+    const {
+      limit = 100,
+      offset = 0
+    } = pagination;
+
+    // Build query constraints
+    const constraints = [orderBy("createdAt", "desc")];
+    
+    // Add filters
+    if (programId) {
+      constraints.push(where("programId", "==", programId));
+    }
+    if (subjectId) {
+      constraints.push(where("subjectId", "==", subjectId));
+    }
+    if (classId) {
+      constraints.push(where("classId", "==", classId));
+    }
+    if (category) {
+      constraints.push(where("category", "==", category));
+    }
+    if (isPublic === true) {
+      // Public resources have no program/subject/class assignments
+      constraints.push(where("programId", "==", null));
+      constraints.push(where("subjectId", "==", null));
+      constraints.push(where("classId", "==", null));
+    } else if (isPublic === false) {
+      // Assigned resources have at least one assignment
+      constraints.push(
+        where("programId", "!=", null)
+      );
+    }
+
+    const q = query(collection(db, "resources"), ...constraints);
+    const querySnapshot = await getDocs(q);
+    
+    const resources = [];
+    querySnapshot.forEach((d) => {
+      const data = d.data();
+      resources.push({
+        id: d.id,
+        ...data,
+        createdAt: data.createdAt?.toDate(),
+        updatedAt: data.updatedAt?.toDate()
+      });
+    });
+
+    // Apply pagination in memory (Firestore doesn't support offset directly with complex queries)
+    const startIndex = offset || 0;
+    const endIndex = startIndex + (limit || resources.length);
+    const paginatedResources = resources.slice(startIndex, endIndex);
+
+    return { 
+      success: true, 
+      data: paginatedResources,
+      total: resources.length, // Return total count for pagination UI
+      hasMore: endIndex < resources.length
+    };
+  } catch (error) {
+    console.error("Error getting resources:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get resource count for analytics dashboard (optimized for performance)
+export const getResourceCount = async (filters = {}) => {
+  try {
+    const {
+      programId,
+      subjectId, 
+      classId
+    } = filters;
+
+    // For counting, we need to query in parts due to Firestore limitations
+    const constraints = [];
+    
+    // Add filters
+    if (programId) {
+      constraints.push(where("programId", "==", programId));
+    }
+    if (subjectId) {
+      constraints.push(where("subjectId", "==", subjectId));
+    }
+    if (classId) {
+      constraints.push(where("classId", "==", classId));
+    }
+
+    // If no filters, get total count
+    if (constraints.length === 0) {
+      const q = query(collection(db, "resources"));
+      const querySnapshot = await getDocs(q);
+      return { success: true, count: querySnapshot.size };
+    }
+
+    // With filters, apply them
+    const q = query(collection(db, "resources"), ...constraints);
+    const querySnapshot = await getDocs(q);
+    
+    return { success: true, count: querySnapshot.size };
+  } catch (error) {
+    console.error("Error getting resource count:", error);
+    return { success: false, error: error.message, count: 0 };
+  }
+};
+
+// Legacy function for backward compatibility (gets all resources)
+export const getAllResources = async () => {
   try {
     const q = query(collection(db, "resources"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
@@ -215,7 +331,7 @@ export const getResources = async () => {
     });
     return { success: true, data: resources };
   } catch (error) {
-    console.error("Error getting resources:", error);
+    console.error("Error getting all resources:", error);
     return { success: false, error: error.message };
   }
 };

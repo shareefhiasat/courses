@@ -32,7 +32,9 @@ import {
   // Additional icons from dashboard and chat pages
   Upload, RotateCw, SkipForward, Shuffle, ChevronLeft, ChevronRight, RotateCcw, Bot, Heart,
   // Missing icons from HomePage
-  Monitor, Code, Folder, Hourglass, Repeat
+  Monitor, Code, Folder, Hourglass, Repeat,
+  // Notification settings icons
+  Volume2, Vibrate
 } from 'lucide-react';
 
 // Centralized Icon Configuration
@@ -257,6 +259,11 @@ export const ICON_TYPES = {
     attachment: <Paperclip size={16} />,
     mail: <MessageSquare size={16} />,
     // Email-specific icons needed by emailTypes.jsx
+    external_link: <ExternalLink size={16} />,
+    // Notification settings icons
+    volume: <Volume2 size={16} />,
+    vibrate: <Vibrate size={16} />,
+    test: <Monitor size={16} />,
     mailbox: <Mailbox size={16} />,
     megaphone: <Megaphone size={16} />,
     mail_open: <MailOpen size={16} />,
@@ -301,9 +308,7 @@ export const ICON_TYPES = {
     // Open tab icon for sticky mode
     open_tab: <LayoutGrid size={16} />,
     // Open new tab icon
-    open_new_tab: <ExternalLink size={16} />,
-    // External link icon
-    external_link: <ExternalLink size={16} />
+    open_new_tab: <ExternalLink size={16} />
   }
 };
 

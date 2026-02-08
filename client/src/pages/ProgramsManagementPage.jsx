@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@firebaseServices/programService';
-import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid } from '@ui';
+import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid, Modal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
@@ -19,6 +19,8 @@ const ProgramsManagementPage = () => {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProgram, setEditingProgram] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [programToDelete, setProgramToDelete] = useState(null);
   const [formData, setFormData] = useState({
     name_en: '',
     name_ar: '',
@@ -107,21 +109,24 @@ const ProgramsManagementPage = () => {
     });
   };
 
-  const handleDelete = async (program) => {
-    if (!globalThis.confirm(t('confirm_delete_program', { programName: program.name_en }) || `Are you sure you want to delete program "${program.name_en}"?`)) {
-      return;
-    }
+  const handleDelete = (program) => {
+    setProgramToDelete(program);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!programToDelete) return;
 
     setLoading(true);
     try {
-      const result = await deleteProgram(program.docId);
+      const result = await deleteProgram(programToDelete.docId);
       if (result.success) {
         // Log activity
         try {
           await logActivity(ACTIVITY_TYPES.PROGRAM_DELETED, {
-            programId: program.docId,
-            programName: program.name_en,
-            programCode: program.code
+            programId: programToDelete.docId,
+            programName: programToDelete.name_en,
+            programCode: programToDelete.code
           });
         } catch (e) { logger.warn('Failed to log activity:', e); }
         toast.success(t('program_deleted_successfully') || 'Program deleted successfully');
@@ -133,7 +138,14 @@ const ProgramsManagementPage = () => {
       toast.error(error.message);
     } finally {
       setLoading(false);
+      setDeleteModalOpen(false);
+      setProgramToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalOpen(false);
+    setProgramToDelete(null);
   };
 
   const resetForm = () => {
@@ -329,6 +341,42 @@ const ProgramsManagementPage = () => {
             fancyVariant="dots"
         />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={cancelDelete}
+        title={t('confirm_delete_program') || 'Confirm Delete'}
+        size="small"
+      >
+        <div style={{ padding: '20px 0' }}>
+          <p style={{ marginBottom: '20px' }}>
+            {t('confirm_delete_program_message', { 
+              programName: programToDelete?.name_en || 'this program' 
+            }) || `Are you sure you want to delete program "${programToDelete?.name_en || 'this program'}"?`}
+          </p>
+          <p style={{ color: '#dc2626', fontSize: '0.9em', marginBottom: '20px' }}>
+            {t('delete_warning') || 'This action cannot be undone.'}
+          </p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <Button
+              variant="ghost"
+              onClick={cancelDelete}
+              disabled={loading}
+            >
+              {t('cancel') || 'Cancel'}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmDelete}
+              disabled={loading}
+              loading={loading}
+            >
+              {t('delete') || 'Delete'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
     </div>
   );

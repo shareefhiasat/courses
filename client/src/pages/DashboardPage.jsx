@@ -15,7 +15,7 @@ import { SUBMISSION_STATUS, getStatusLabel } from '@utils/sharedTypes';
 import {
   getActivities, addActivity, updateActivity, deleteActivity,
   getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement,
-  getResources
+  getResources, getResourceCount
 } from '@firebaseServices/activityService';
 import { getUsers, addUser, updateUser, deleteUser } from '@firebaseServices/userService';
 import { getEnrollments, addEnrollment, deleteEnrollment } from '@firebaseServices/enrollmentService';
@@ -1007,7 +1007,9 @@ const DashboardPage = () => {
         setClasses(classesRes.data || []);
       }
       if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
-      if (programsRes?.success) setPrograms(programsRes.data || []);
+      if (programsRes?.success) {
+        setPrograms(programsRes.data || []);
+      }
       if (notificationLogsRes?.success) setNotificationLogs(notificationLogsRes.data);
       if (quizzesRes?.success) setQuizzes(quizzesRes.data || []);
       // Enrich enrollments with program and subject names (like HR Penalties)
