@@ -41,7 +41,7 @@ const Modal = ({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
 
-  // Handle escape key
+  // Handle escape key and focus management
   useEffect(() => {
     if (!isOpen || !closeOnEscape) return;
 
@@ -50,6 +50,11 @@ const Modal = ({
         onClose();
       }
     };
+
+    // Focus management
+    if (isOpen && modalRef.current) {
+      modalRef.current.focus();
+    }
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
@@ -141,7 +146,9 @@ const Modal = ({
         className={modalClasses} 
         role="dialog" 
         aria-modal="true"
+        aria-labelledby={title ? 'modal-title' : undefined}
         style={modalStyle}
+        tabIndex={-1}
       >
         {(title || showCloseButton) && (
           <div 
@@ -149,7 +156,7 @@ const Modal = ({
             className={styles.header}
             style={{ cursor: draggable ? 'move' : 'default' }}
           >
-            {title && <h2 className={styles.title}>{title}</h2>}
+            {title && <h2 id="modal-title" className={styles.title}>{title}</h2>}
             {showCloseButton && (
               <button
                 className={styles.closeButton}

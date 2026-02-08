@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
@@ -6,28 +6,21 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, UserSelect, RibbonTabs, AdvancedDataGrid } from '@ui';
 import { USER_ROLES } from '@constants';
 import { ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getClasses } from '@firebaseServices/classService';
 
 const EnrollmentManagementPage = ({
   enrollments,
   users,
-  classes,
-  programs,
-  subjects,
   activities,
   submissions,
   enrollmentForm,
   setEnrollmentForm,
   activeEnrollmentTab,
   setActiveEnrollmentTab,
-  enrollmentProgramOptions,
-  enrollmentSubjectOptions,
-  enrollmentClassOptions,
   enrollmentProgramFilter,
   enrollmentSubjectFilter,
   enrollmentClassFilter,
-  enrollmentFilterProgramOptions,
-  enrollmentFilterSubjectOptions,
-  enrollmentFilterClassOptions,
   deleteModal,
   setDeleteModal,
   loading,
@@ -37,10 +30,60 @@ const EnrollmentManagementPage = ({
   formatQatarDateOnly,
   handleEnrollmentProgramChange,
   handleEnrollmentSubjectChange,
+  handleEnrollmentClassChange,
   ensureString
 }) => {
   const { t } = useLang();
   const toast = useToast();
+
+  // Local state for programs, subjects, and classes (NotificationDrawer pattern)
+  const [localPrograms, setLocalPrograms] = useState([]);
+  const [localSubjects, setLocalSubjects] = useState([]);
+  const [localClasses, setLocalClasses] = useState([]);
+
+  // Load programs, subjects, and classes (NotificationDrawer pattern)
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [programsRes, subjectsRes, classesRes] = await Promise.all([
+          getPrograms(),
+          getSubjects(),
+          getClasses()
+        ]);
+        if (programsRes.success) setLocalPrograms(programsRes.data || []);
+        if (subjectsRes.success) setLocalSubjects(subjectsRes.data || []);
+        if (classesRes.success) setLocalClasses(classesRes.data || []);
+      } catch (error) {
+        console.error('🔍 [EnrollmentManagementPage] Error loading filters:', error);
+      }
+    };
+    loadFilters();
+  }, []);
+
+  // Create local options for dropdowns (NotificationDrawer pattern)
+  const localProgramOptions = [
+    { value: 'all', label: t('all_programs') || 'All Programs' },
+    ...localPrograms.map(p => ({
+      value: p.docId || p.id,
+      label: p.name_en || p.name || p.code || 'Unknown Program'
+    }))
+  ];
+
+  const localSubjectOptions = [
+    { value: 'all', label: t('all_subjects') || 'All Subjects' },
+    ...localSubjects.map(s => ({
+      value: s.docId || s.id,
+      label: s.name_en || s.name || s.code || 'Unknown Subject'
+    }))
+  ];
+
+  const localClassOptions = [
+    { value: 'all', label: t('all_classes') || 'All Classes' },
+    ...localClasses.map(c => ({
+      value: c.docId || c.id,
+      label: c.name || c.code || 'Unknown Class'
+    }))
+  ];
 
   return (
     <div className="enrollments-section" style={{ marginTop: '2rem' }}>
@@ -120,7 +163,7 @@ const EnrollmentManagementPage = ({
               placeholder={t('all_programs')}
               value={enrollmentForm.programId}
               onChange={handleEnrollmentProgramChange}
-              options={enrollmentProgramOptions}
+              options={localProgramOptions}
               required
             />
             <Select
@@ -128,7 +171,7 @@ const EnrollmentManagementPage = ({
               placeholder={t('all_subjects')}
               value={ensureString(enrollmentForm.subjectId || '')}
               onChange={handleEnrollmentSubjectChange}
-              options={enrollmentSubjectOptions}
+              options={localSubjectOptions}
               required
             />
             <Select
@@ -137,7 +180,7 @@ const EnrollmentManagementPage = ({
               value={enrollmentForm.classId}
               onChange={(e) => setEnrollmentForm(prev => ({ ...prev, classId: e.target.value }))}
               disabled={!enrollmentForm.subjectId}
-              options={enrollmentClassOptions}
+              options={localClassOptions}
               required
             />
           </div>
@@ -178,9 +221,9 @@ const EnrollmentManagementPage = ({
             value={ensureString(enrollmentProgramFilter || 'all')}
             onChange={(e) => {
               const newValue = ensureString(e.target.value);
-              setEnrollmentProgramFilter(newValue);
+              handleEnrollmentProgramChange(newValue);
             }}
-            options={enrollmentFilterProgramOptions}
+            options={localProgramOptions}
             fullWidth
           />
           <Select
@@ -189,9 +232,9 @@ const EnrollmentManagementPage = ({
             value={ensureString(enrollmentSubjectFilter || 'all')}
             onChange={(e) => {
               const newValue = ensureString(e.target.value);
-              setEnrollmentSubjectFilter(newValue);
+              handleEnrollmentSubjectChange(newValue);
             }}
-            options={enrollmentFilterSubjectOptions}
+            options={localSubjectOptions}
             fullWidth
           />
           <Select
@@ -200,9 +243,9 @@ const EnrollmentManagementPage = ({
             value={ensureString(enrollmentClassFilter || 'all')}
             onChange={(e) => {
               const newValue = ensureString(e.target.value);
-              setEnrollmentClassFilter(newValue);
+              handleEnrollmentClassChange(newValue);
             }}
-            options={enrollmentFilterClassOptions}
+            options={localClassOptions}
             fullWidth
           />
         </div>
@@ -212,14 +255,14 @@ const EnrollmentManagementPage = ({
           rows={enrollments.filter(e => {
             // Filter by program
             if (enrollmentProgramFilter && enrollmentProgramFilter !== 'all') {
-              const classItem = classes.find(c => (c.docId || c.id) === e.classId);
+              const classItem = localClasses.find(c => (c.docId || c.id) === e.classId);
               if (!classItem?.subjectId) return false;
-              const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
+              const subject = localSubjects.find(s => (s.docId || s.id) === classItem.subjectId);
               if (!subject || subject.programId !== enrollmentProgramFilter) return false;
             }
             // Filter by subject
             if (enrollmentSubjectFilter && enrollmentSubjectFilter !== 'all') {
-              const classItem = classes.find(c => (c.docId || c.id) === e.classId);
+              const classItem = localClasses.find(c => (c.docId || c.id) === e.classId);
               if (!classItem || classItem.subjectId !== enrollmentSubjectFilter) return false;
             }
             // Filter by class
@@ -311,7 +354,7 @@ const EnrollmentManagementPage = ({
           {
             field: 'classId', headerName: t('class_col'), flex: 1, minWidth: 200,
             renderCell: (params) => {
-              const classItem = classes.find(c => (c.docId || c.id) === params.value);
+              const classItem = localClasses.find(c => (c.docId || c.id) === params.value);
               if (!classItem) return params.value;
               const codePart = classItem.code ? ` (${classItem.code})` : '';
               return (
@@ -344,7 +387,7 @@ const EnrollmentManagementPage = ({
                 <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
                   const enrollment = params.row;
                   const user = users.find(u => (u.docId || u.id) === enrollment.userId);
-                  const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
+                  const classItem = localClasses.find(c => (c.docId || c.id) === enrollment.classId);
                   // Submissions are quiz/activity submissions (student work)
                   const userSubmissions = submissions.filter(s => s.userId === enrollment.userId && s.activityId);
                   const relatedActivities = activities.filter(a => a.classId === enrollment.classId);

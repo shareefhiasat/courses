@@ -6,6 +6,7 @@ import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getUsers } from '@firebaseServices/userService';
 import { getUserProfile } from '@firebaseServices/userService';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { Container, Grid, Card, CardBody, Button, Spinner, EmptyState } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -18,9 +19,46 @@ const EnrollmentsPage = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [classes, setClasses] = useState([]);
+  const [localClasses, setLocalClasses] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [myClasses, setMyClasses] = useState([]);
+  
+  // Local state for programs and subjects (NotificationDrawer pattern)
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+
+  // Load programs and subjects (NotificationDrawer pattern)
+  useEffect(() => {
+    const loadProgramsAndSubjects = async () => {
+      try {
+        const [programsRes, subjectsRes] = await Promise.all([
+          getPrograms(),
+          getSubjects()
+        ]);
+        if (programsRes.success) setPrograms(programsRes.data || []);
+        if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+      } catch (error) {
+        console.error('🔍 [EnrollmentsPage] Error loading programs/subjects:', error);
+      }
+    };
+    loadProgramsAndSubjects();
+  }, []);
+
+  // Helper function to get program name for class
+  const getProgramName = (classItem) => {
+    if (!classItem.subjectId) return 'N/A';
+    const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
+    if (!subject?.programId) return 'N/A';
+    const program = programs.find(p => (p.docId || p.id) === subject.programId);
+    return program?.name_en || program?.name || 'N/A';
+  };
+
+  // Helper function to get subject name for class
+  const getSubjectName = (classItem) => {
+    if (!classItem.subjectId) return 'N/A';
+    const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
+    return subject?.name_en || subject?.name || subject?.code || 'N/A';
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -28,7 +66,7 @@ const EnrollmentsPage = () => {
         const [clsRes, enrRes] = await Promise.all([getClasses(), getEnrollments()]);
         const cls = clsRes.success ? (clsRes.data || []) : [];
         const enr = enrRes.success ? (enrRes.data || []) : [];
-        setClasses(cls);
+        setLocalClasses(cls);
         setEnrollments(enr);
         if (user) {
           let mine = enr.filter(e => e.userId === user.uid);
@@ -44,7 +82,7 @@ const EnrollmentsPage = () => {
               ids = new Set(enrolled);
             } catch {}
           }
-          setMyClasses(cls.filter(c => ids.has(c.docId)));
+          setMyClasses(localClasses.filter(c => ids.has(c.docId)));
         }
       } finally {
         setLoading(false);
@@ -84,7 +122,24 @@ const EnrollmentsPage = () => {
                   <h3 className={styles.className}>{cls.name}</h3>
                   {cls.term && <span className={styles.term}>{cls.term}</span>}
                 </div>
-                {cls.code && <div className={styles.classCode}>{cls.code}</div>}
+                
+                {/* Show Program and Subject Information */}
+                <div className={styles.classInfo}>
+                  <div className={styles.infoRow}>
+                    <span className={styles.infoLabel}>Program:</span>
+                    <span className={styles.infoValue}>{getProgramName(cls)}</span>
+                  </div>
+                  <div className={styles.infoRow}>
+                    <span className={styles.infoLabel}>Subject:</span>
+                    <span className={styles.infoValue}>{getSubjectName(cls)}</span>
+                  </div>
+                  {cls.code && (
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoLabel}>Code:</span>
+                      <span className={styles.infoValue}>{cls.code}</span>
+                    </div>
+                  )}
+                </div>
                 
                 <div className={styles.actions}>
                   <Button

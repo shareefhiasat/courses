@@ -665,6 +665,14 @@ const DashboardPage = () => {
       classId: ''
     }));
   };
+  const handleEnrollmentClassChange = (eventOrValue) => {
+    const value = eventOrValue && eventOrValue.target ? eventOrValue.target.value : eventOrValue;
+    const newClassId = value != null ? String(value) : '';
+    setEnrollmentForm(prev => ({
+      ...prev,
+      classId: newClassId
+    }));
+  };
   const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('all');
   const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('all');
   const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
@@ -1769,24 +1777,15 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           <EnrollmentManagementPage
             enrollments={enrollments}
             users={users}
-            classes={classes}
-            programs={programs}
-            subjects={subjects}
             activities={activities}
             submissions={submissions}
             enrollmentForm={enrollmentForm}
             setEnrollmentForm={setEnrollmentForm}
             activeEnrollmentTab={activeEnrollmentTab}
             setActiveEnrollmentTab={setActiveEnrollmentTab}
-            enrollmentProgramOptions={enrollmentProgramOptions}
-            enrollmentSubjectOptions={enrollmentSubjectOptions}
-            enrollmentClassOptions={enrollmentClassOptions}
             enrollmentProgramFilter={enrollmentProgramFilter}
             enrollmentSubjectFilter={enrollmentSubjectFilter}
             enrollmentClassFilter={enrollmentClassFilter}
-            enrollmentFilterProgramOptions={enrollmentFilterProgramOptions}
-            enrollmentFilterSubjectOptions={enrollmentFilterSubjectOptions}
-            enrollmentFilterClassOptions={enrollmentFilterClassOptions}
             deleteModal={deleteModal}
             setDeleteModal={setDeleteModal}
             loading={loading}
@@ -1796,6 +1795,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             formatQatarDateOnly={formatQatarDateOnly}
             handleEnrollmentProgramChange={handleEnrollmentProgramChange}
             handleEnrollmentSubjectChange={handleEnrollmentSubjectChange}
+            handleEnrollmentClassChange={handleEnrollmentClassChange}
             ensureString={ensureString}
           />
         )}

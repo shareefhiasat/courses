@@ -346,19 +346,19 @@ const ProgramsManagementPage = () => {
       <Modal
         isOpen={deleteModalOpen}
         onClose={cancelDelete}
-        title={t('confirm_delete_program') || 'Confirm Delete'}
-        size="small"
+        title={t('delete_confirmation') || 'Delete Confirmation'}
+        size="medium"
       >
-        <div style={{ padding: '20px 0' }}>
-          <p style={{ marginBottom: '20px' }}>
+        <div style={{ padding: '0 20px' }}>
+          <p style={{ marginBottom: '20px', lineHeight: '1.5', fontSize: '0.95rem' }}>
             {t('confirm_delete_program_message', { 
               programName: programToDelete?.name_en || 'this program' 
             }) || `Are you sure you want to delete program "${programToDelete?.name_en || 'this program'}"?`}
           </p>
-          <p style={{ color: '#dc2626', fontSize: '0.9em', marginBottom: '20px' }}>
+          <p style={{ color: '#dc2626', fontSize: '0.85rem', marginBottom: '20px', fontWeight: 500 }}>
             {t('delete_warning') || 'This action cannot be undone.'}
           </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', paddingTop: '10px' }}>
             <Button
               variant="ghost"
               onClick={cancelDelete}

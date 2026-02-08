@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { addClass, updateClass, deleteClass } from '@firebaseServices/classService';
+import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger.jsx';
 import { USER_ROLES } from '@constants/userRoles';
 import { 
@@ -49,6 +50,28 @@ const ClassesPage = ({
 }) => {
   const { t, lang } = useLang();
   const uiToast = useToast();
+  
+  // Local state for dropdowns (same as NotificationDrawer pattern)
+  const [localPrograms, setLocalPrograms] = useState([]);
+  const [localSubjects, setLocalSubjects] = useState([]);
+
+  // Load programs and subjects for filters (same as NotificationDrawer)
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const [programsRes, subjectsRes] = await Promise.all([
+          getPrograms(),
+          getSubjects()
+        ]);
+        if (programsRes.success) setLocalPrograms(programsRes.data || []);
+        if (subjectsRes.success) setLocalSubjects(subjectsRes.data || []);
+      } catch (error) {
+        console.error('🔍 [ClassesPage] Error loading filters:', error);
+      }
+    };
+    loadFilters();
+  }, []); // Load once on mount
+  
   const toast = {
     showSuccess: uiToast.success,
     showError: uiToast.error,
@@ -499,7 +522,7 @@ const ClassesPage = ({
           onChange={(e) => setClassProgramFilter(e.target.value)}
           options={[
             { value: '', label: t('all_programs') || 'All Programs' },
-            ...(programs || []).map(p => ({
+            ...(localPrograms || []).map(p => ({
               value: p.docId,
               label: lang === 'ar' ? (p.name_ar || p.name_en) : (p.name_en || p.docId)
             }))
@@ -513,7 +536,7 @@ const ClassesPage = ({
           onChange={(e) => setClassSubjectFilter(e.target.value)}
           options={[
             { value: '', label: t('all_subjects') || 'All Subjects' },
-            ...(subjects || []).map(s => ({
+            ...(localSubjects || []).map(s => ({
               value: s.docId,
               label: lang === 'ar' ? (s.name_ar || s.name_en) : (s.name_en || s.docId)
             }))
