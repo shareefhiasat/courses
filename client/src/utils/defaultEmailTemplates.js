@@ -1,12 +1,12 @@
 // Default bilingual email templates for CS Learning Hub
-// All templates use Qatar timezone (UTC+3) and DD/MM/YYYY format
+// All templates use camelCase variables and Qatar timezone (UTC+3)
 
 export const defaultTemplates = [
   {
     id: "announcement_default",
     name: "Announcement Email - Bilingual",
     type: "announcement",
-    subject: "📢 New Announcement | إعلان جديد: {{title}}",
+    subject: "📢 New Announcement | إعلان جديد: {{titleEn}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -21,20 +21,28 @@ export const defaultTemplates = [
     
     <!-- English Content -->
     <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #800020;">
-      <h2 style="color: #800020; margin-top: 0; font-size: 22px;">{{title}}</h2>
-      <div style="color: #555; line-height: 1.8; font-size: 15px;">{{content}}</div>
+      <h2 style="color: #800020; margin-top: 0; font-size: 22px;">{{titleEn}}</h2>
+      <div style="color: #555; line-height: 1.8; font-size: 15px;">{{messageEn}}</div>
       <p style="color: #999; font-size: 13px; margin-top: 15px; margin-bottom: 0;">
-        📅 {{dateTime}} (Qatar Time UTC+3)
+        📅 {{createdAt}} (Qatar Time UTC+3)
       </p>
+      {{#if programName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Program:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Subject:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Class:</strong> {{className}}</p>{{/if}}
+      {{#if classDescription}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Description:</strong> {{classDescription}}</p>{{/if}}
     </div>
     
     <!-- Arabic Content -->
     <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #600018;">
-      <h2 style="color: #600018; margin-top: 0; font-size: 22px;">{{title_ar}}</h2>
-      <div style="color: #555; line-height: 1.8; font-size: 15px;">{{content_ar}}</div>
+      <h2 style="color: #600018; margin-top: 0; font-size: 22px;">{{titleAr}}</h2>
+      <div style="color: #555; line-height: 1.8; font-size: 15px;">{{messageAr}}</div>
       <p style="color: #999; font-size: 13px; margin-top: 15px; margin-bottom: 0;">
-        📅 {{dateTime}} (توقيت قطر UTC+3)
+        📅 {{createdAt}} (توقيت قطر UTC+3)
       </p>
+      {{#if programName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>البرنامج:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>المادة:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>الفصل:</strong> {{className}}</p>{{/if}}
+      {{#if classDescription}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>الوصف:</strong> {{classDescription}}</p>{{/if}}
     </div>
     
     <!-- Call to Action -->
@@ -54,14 +62,20 @@ export const defaultTemplates = [
     `,
     variables: [
       "recipientName",
-      "title",
-      "title_ar",
-      "content",
-      "content_ar",
-      "dateTime",
+      "titleEn",
+      "titleAr",
+      "messageEn",
+      "messageAr",
+      "createdAt",
+      "updatedAt",
+      "programName",
+      "subjectName",
+      "className",
+      "classDescription",
       "link",
       "siteName",
       "currentDate",
+      "userLang"
     ],
   },
 
@@ -69,7 +83,7 @@ export const defaultTemplates = [
     id: "activity_default",
     name: "New Activity Email - Bilingual",
     type: "activity",
-    subject: "📝 New Activity | نشاط جديد: {{activityTitle}}",
+    subject: "📝 New Activity | نشاط جديد: {{activityName}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -83,25 +97,33 @@ export const defaultTemplates = [
     
     <!-- English Content -->
     <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #4CAF50;">
-      <h2 style="color: #4CAF50; margin-top: 0;">{{activityTitle}}</h2>
-      <p style="color: #666; margin: 10px 0;"><strong>Type:</strong> {{activityType}} | <strong>Course:</strong> {{course}}</p>
-      <div style="color: #555; line-height: 1.8; margin: 15px 0;">{{description}}</div>
+      <h2 style="color: #4CAF50; margin-top: 0;">{{activityName}}</h2>
+      <p style="color: #666; margin: 10px 0;"><strong>Type:</strong> {{activityType}}</p>
+      {{#if programName}}<p style="color: #666; margin: 10px 0;"><strong>Program:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; margin: 10px 0;"><strong>Subject:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; margin: 10px 0;"><strong>Class:</strong> {{className}}</p>{{/if}}
+      <div style="color: #555; line-height: 1.8; margin: 15px 0;">{{activityDescription}}</div>
       <div style="background: #f0f8ff; padding: 15px; border-radius: 6px; margin-top: 15px;">
-        <p style="margin: 5px 0; color: #333;"><strong>📅 Due Date:</strong> {{dueDateTime}} (Qatar Time)</p>
+        <p style="margin: 5px 0; color: #333;"><strong>📅 Due Date:</strong> {{dueDate}} (Qatar Time)</p>
         <p style="margin: 5px 0; color: #333;"><strong>🎯 Max Score:</strong> {{maxScore}} points</p>
         <p style="margin: 5px 0; color: #333;"><strong>📊 Difficulty:</strong> {{difficulty}}</p>
+        {{#if estimatedTime}}<p style="margin: 5px 0; color: #333;"><strong>⏱️ Estimated Time:</strong> {{estimatedTime}}</p>{{/if}}
       </div>
     </div>
     
     <!-- Arabic Content -->
     <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #45a049;">
-      <h2 style="color: #45a049; margin-top: 0;">{{activityTitle_ar}}</h2>
-      <p style="color: #666; margin: 10px 0;"><strong>النوع:</strong> {{activityType}} | <strong>المادة:</strong> {{course_ar}}</p>
-      <div style="color: #555; line-height: 1.8; margin: 15px 0;">{{description_ar}}</div>
+      <h2 style="color: #45a049; margin-top: 0;">{{activityName}}</h2>
+      <p style="color: #666; margin: 10px 0;"><strong>النوع:</strong> {{activityType}}</p>
+      {{#if programName}}<p style="color: #666; margin: 10px 0;"><strong>البرنامج:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; margin: 10px 0;"><strong>المادة:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; margin: 10px 0;"><strong>الفصل:</strong> {{className}}</p>{{/if}}
+      <div style="color: #555; line-height: 1.8; margin: 15px 0;">{{activityDescription}}</div>
       <div style="background: #f0f8ff; padding: 15px; border-radius: 6px; margin-top: 15px;">
-        <p style="margin: 5px 0; color: #333;"><strong>📅 تاريخ التسليم:</strong> {{dueDateTime}} (توقيت قطر)</p>
+        <p style="margin: 5px 0; color: #333;"><strong>📅 تاريخ التسليم:</strong> {{dueDate}} (توقيت قطر)</p>
         <p style="margin: 5px 0; color: #333;"><strong>🎯 الدرجة القصوى:</strong> {{maxScore}} نقطة</p>
         <p style="margin: 5px 0; color: #333;"><strong>📊 المستوى:</strong> {{difficulty}}</p>
+        {{#if estimatedTime}}<p style="margin: 5px 0; color: #333;"><strong>⏱️ الوقت المقدر:</strong> {{estimatedTime}}</p>{{/if}}
       </div>
     </div>
     
@@ -121,19 +143,23 @@ export const defaultTemplates = [
     `,
     variables: [
       "recipientName",
-      "activityTitle",
-      "activityTitle_ar",
+      "activityName",
       "activityType",
-      "course",
-      "course_ar",
-      "description",
-      "description_ar",
-      "dueDateTime",
+      "programName",
+      "subjectName",
+      "className",
+      "classDescription",
+      "activityDescription",
+      "dueDate",
       "maxScore",
       "difficulty",
+      "estimatedTime",
+      "createdAt",
+      "updatedAt",
       "link",
       "siteName",
       "currentDate",
+      "userLang"
     ],
   },
 
@@ -141,7 +167,7 @@ export const defaultTemplates = [
     id: "activity_graded_default",
     name: "Activity Graded Email - Bilingual",
     type: "activity_graded",
-    subject: "✅ Activity Graded | تم تقييم النشاط: {{activityTitle}}",
+    subject: "✅ Activity Graded | تم تقييم النشاط: {{activityName}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -156,15 +182,18 @@ export const defaultTemplates = [
     <!-- English Content -->
     <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
       <h2 style="color: #28a745; margin-top: 0;">Congratulations!</h2>
-      <p style="color: #555; font-size: 15px;">Your submission for <strong>{{activityTitle}}</strong> has been graded.</p>
+      <p style="color: #555; font-size: 15px;">Your submission for <strong>{{activityName}}</strong> has been graded.</p>
+      {{#if programName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Program:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Subject:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Class:</strong> {{className}}</p>{{/if}}
       <div style="background: #d4edda; padding: 25px; border-radius: 8px; margin: 20px 0; text-align: center;">
         <p style="margin: 0; font-size: 36px; color: #28a745; font-weight: bold;">{{score}}/{{maxScore}}</p>
-        <p style="margin: 10px 0 0 0; color: #155724; font-size: 14px;">Graded on {{dateTime}} (Qatar Time)</p>
+        <p style="margin: 10px 0 0 0; color: #155724; font-size: 14px;">Graded on {{gradedAt}} (Qatar Time)</p>
       </div>
       <div style="margin-top: 20px;">
         <h3 style="color: #555; font-size: 16px; margin-bottom: 10px;">Instructor Feedback:</h3>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; color: #666; line-height: 1.6;">
-          {{feedback}}
+          {{feedbackEn}}
         </div>
       </div>
     </div>
@@ -172,15 +201,18 @@ export const defaultTemplates = [
     <!-- Arabic Content -->
     <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #20c997;">
       <h2 style="color: #20c997; margin-top: 0;">تهانينا!</h2>
-      <p style="color: #555; font-size: 15px;">تم تقييم تسليمك لنشاط <strong>{{activityTitle_ar}}</strong></p>
+      <p style="color: #555; font-size: 15px;">تم تقييم تسليمك لنشاط <strong>{{activityName}}</strong></p>
+      {{#if programName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>البرنامج:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>المادة:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>الفصل:</strong> {{className}}</p>{{/if}}
       <div style="background: #d4edda; padding: 25px; border-radius: 8px; margin: 20px 0; text-align: center;">
         <p style="margin: 0; font-size: 36px; color: #28a745; font-weight: bold;">{{score}}/{{maxScore}}</p>
-        <p style="margin: 10px 0 0 0; color: #155724; font-size: 14px;">تم التقييم في {{dateTime}} (توقيت قطر)</p>
+        <p style="margin: 10px 0 0 0; color: #155724; font-size: 14px;">تم التقييم في {{gradedAt}} (توقيت قطر)</p>
       </div>
       <div style="margin-top: 20px;">
         <h3 style="color: #555; font-size: 16px; margin-bottom: 10px;">ملاحظات المدرس:</h3>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; color: #666; line-height: 1.6;">
-          {{feedback_ar}}
+          {{feedbackAr}}
         </div>
       </div>
     </div>
@@ -201,16 +233,22 @@ export const defaultTemplates = [
     `,
     variables: [
       "studentName",
-      "activityTitle",
-      "activityTitle_ar",
+      "studentDisplayName",
+      "studentNumber",
+      "activityName",
+      "programName",
+      "subjectName",
+      "className",
+      "classDescription",
       "score",
       "maxScore",
-      "dateTime",
-      "feedback",
-      "feedback_ar",
+      "gradedAt",
+      "feedbackEn",
+      "feedbackAr",
       "link",
       "siteName",
       "currentDate",
+      "userLang"
     ],
   },
 
@@ -237,11 +275,14 @@ export const defaultTemplates = [
       <p style="color: #555; line-height: 1.8; font-size: 15px;">
         You have been successfully enrolled in <strong>{{className}}</strong> for the <strong>{{term}}</strong> term.
       </p>
+      {{#if programName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Program:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Subject:</strong> {{subjectName}}</p>{{/if}}
       <div style="background: #f0f4ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <p style="margin: 5px 0; color: #333;"><strong>📚 Class:</strong> {{className}}</p>
-        <p style="margin: 5px 0; color: #333;"><strong>🔢 Code:</strong> {{classCode}}</p>
+        {{#if classDescription}}<p style="margin: 5px 0; color: #333;"><strong>📝 Description:</strong> {{classDescription}}</p>{{/if}}
         <p style="margin: 5px 0; color: #333;"><strong>📅 Term:</strong> {{term}}</p>
         <p style="margin: 5px 0; color: #333;"><strong>👨‍🏫 Instructor:</strong> {{instructorName}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>🆔 Student ID:</strong> {{studentNumber}}</p>
       </div>
       <p style="color: #555; line-height: 1.8;">
         Get ready to learn, collaborate, and achieve your goals. Access your class materials, activities, and resources through the platform.
@@ -254,11 +295,14 @@ export const defaultTemplates = [
       <p style="color: #555; line-height: 1.8; font-size: 15px;">
         تم تسجيلك بنجاح في <strong>{{className}}</strong> للفصل الدراسي <strong>{{term}}</strong>.
       </p>
+      {{#if programName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>البرنامج:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>المادة:</strong> {{subjectName}}</p>{{/if}}
       <div style="background: #f0f4ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <p style="margin: 5px 0; color: #333;"><strong>📚 الصف:</strong> {{className}}</p>
-        <p style="margin: 5px 0; color: #333;"><strong>🔢 الرمز:</strong> {{classCode}}</p>
+        {{#if classDescription}}<p style="margin: 5px 0; color: #333;"><strong>📝 الوصف:</strong> {{classDescription}}</p>{{/if}}
         <p style="margin: 5px 0; color: #333;"><strong>📅 الفصل:</strong> {{term}}</p>
         <p style="margin: 5px 0; color: #333;"><strong>👨‍🏫 المدرس:</strong> {{instructorName}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>🆔 رقم الطالب:</strong> {{studentNumber}}</p>
       </div>
       <p style="color: #555; line-height: 1.8;">
         استعد للتعلم والتعاون وتحقيق أهدافك. يمكنك الوصول إلى مواد الصف والأنشطة والموارد من خلال المنصة.
@@ -282,13 +326,19 @@ export const defaultTemplates = [
     `,
     variables: [
       "studentName",
+      "studentDisplayName",
+      "studentNumber",
+      "programName",
+      "subjectName",
       "className",
-      "classCode",
+      "classDescription",
       "term",
       "instructorName",
+      "enrolledAt",
       "siteUrl",
       "siteName",
       "currentDate",
+      "userLang"
     ],
   },
 
@@ -296,7 +346,7 @@ export const defaultTemplates = [
     id: "resource_default",
     name: "New Resource Email - Bilingual",
     type: "resource",
-    subject: "📚 New Resource Available | مورد جديد متاح: {{resourceTitle}}",
+    subject: "📚 New Resource Available | مورد جديد متاح: {{resourceName}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -310,21 +360,27 @@ export const defaultTemplates = [
     
     <!-- English Content -->
     <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #FF9800;">
-      <h2 style="color: #FF9800; margin-top: 0;">{{resourceTitle}}</h2>
+      <h2 style="color: #FF9800; margin-top: 0;">{{resourceName}}</h2>
       <p style="color: #666; margin: 10px 0;"><strong>Type:</strong> {{resourceType}}</p>
-      <div style="color: #555; line-height: 1.8; margin: 15px 0;">{{description}}</div>
+      {{#if programName}}<p style="color: #666; margin: 10px 0;"><strong>Program:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; margin: 10px 0;"><strong>Subject:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; margin: 10px 0;"><strong>Class:</strong> {{className}}</p>{{/if}}
+      <div style="color: #555; line-height: 1.8; margin: 15px 0;">{{resourceDescription}}</div>
       <p style="color: #999; font-size: 13px; margin-top: 15px;">
-        📅 Available from: {{currentDateTime}} (Qatar Time)
+        📅 Available from: {{createdAt}} (Qatar Time)
       </p>
     </div>
     
     <!-- Arabic Content -->
     <div style="background: white; padding: 25px; border-radius: 8px; direction: rtl; border-right: 4px solid #F57C00;">
-      <h2 style="color: #F57C00; margin-top: 0;">{{resourceTitle}}</h2>
+      <h2 style="color: #F57C00; margin-top: 0;">{{resourceName}}</h2>
       <p style="color: #666; margin: 10px 0;"><strong>النوع:</strong> {{resourceType}}</p>
-      <div style="color: #555; line-height: 1.8; margin: 15px 0;">{{description}}</div>
+      {{#if programName}}<p style="color: #666; margin: 10px 0;"><strong>البرنامج:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; margin: 10px 0;"><strong>المادة:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; margin: 10px 0;"><strong>الفصل:</strong> {{className}}</p>{{/if}}
+      <div style="color: #555; line-height: 1.8; margin: 15px 0;">{{resourceDescription}}</div>
       <p style="color: #999; font-size: 13px; margin-top: 15px;">
-        📅 متاح من: {{currentDateTime}} (توقيت قطر)
+        📅 متاح من: {{createdAt}} (توقيت قطر)
       </p>
     </div>
     
@@ -344,13 +400,19 @@ export const defaultTemplates = [
     `,
     variables: [
       "recipientName",
-      "resourceTitle",
+      "resourceName",
       "resourceType",
-      "description",
-      "currentDateTime",
+      "programName",
+      "subjectName",
+      "className",
+      "classDescription",
+      "resourceDescription",
+      "createdAt",
+      "updatedAt",
       "link",
       "siteName",
       "currentDate",
+      "userLang"
     ],
   },
 
@@ -359,7 +421,7 @@ export const defaultTemplates = [
     name: "Activity Completed Notification - Bilingual",
     type: "activity_complete",
     subject:
-      "✅ Student Completed Activity | أكمل الطالب النشاط: {{activityTitle}}",
+      "✅ Student Completed Activity | أكمل الطالب النشاط: {{activityName}}",
     html: `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
   <!-- Header -->
@@ -376,12 +438,15 @@ export const defaultTemplates = [
       <p style="color: #555; line-height: 1.8;">
         <strong>{{studentName}}</strong> ({{studentEmail}}) has marked the following activity as complete:
       </p>
+      {{#if programName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Program:</strong> {{programName}}</p>{{/if}}
+      {{#if subjectName}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Subject:</strong> {{subjectName}}</p>{{/if}}
+      {{#if className}}<p style="color: #666; font-size: 14px; margin: 10px 0;"><strong>Class:</strong> {{className}}</p>{{/if}}
       <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 5px 0; color: #333;"><strong>📝 Activity:</strong> {{activityTitle}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>📝 Activity:</strong> {{activityName}}</p>
         <p style="margin: 5px 0; color: #333;"><strong>🎓 Student:</strong> {{studentName}}</p>
         <p style="margin: 5px 0; color: #333;"><strong>📧 Email:</strong> {{studentEmail}}</p>
-        <p style="margin: 5px 0; color: #333;"><strong>🔢 Military Number:</strong> {{militaryNumber}}</p>
-        <p style="margin: 5px 0; color: #333;"><strong>📅 Submitted:</strong> {{dateTime}} (Qatar Time)</p>
+        <p style="margin: 5px 0; color: #333;"><strong>🆔 Student Number:</strong> {{studentNumber}}</p>
+        <p style="margin: 5px 0; color: #333;"><strong>📅 Submitted:</strong> {{submittedAt}} (Qatar Time)</p>
       </div>
       <p style="color: #555; line-height: 1.8;">
         Please review the submission and provide feedback.
@@ -404,13 +469,19 @@ export const defaultTemplates = [
     `,
     variables: [
       "studentName",
+      "studentDisplayName",
+      "studentNumber",
       "studentEmail",
-      "militaryNumber",
-      "activityTitle",
-      "dateTime",
+      "activityName",
+      "programName",
+      "subjectName",
+      "className",
+      "classDescription",
+      "submittedAt",
       "link",
       "siteName",
       "currentDate",
+      "userLang"
     ],
   },
 

@@ -50,63 +50,63 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       trigger: 'Manual send by admin/teacher.',
       actor: 'Admin/Teacher',
       audience: 'Selected users, classes, or all students.',
-      variables: ['title', 'title_ar', 'content', 'content_ar', 'dateTime', 'link']
+      variables: ['titleEn', 'titleAr', 'messageEn', 'messageAr', 'programName', 'subjectName', 'className', 'classDescription', 'postedBy', 'priority', 'createdAt', 'updatedAt']
     },
     activity: {
       purpose: 'Notify students about a newly posted activity.',
       trigger: 'Manual send when creating an activity.',
       actor: 'Admin/Teacher',
       audience: 'Students in the target class/course.',
-      variables: ['activityTitle', 'activityTitle_ar', 'activityType', 'course', 'course_ar', 'difficulty', 'dueDateTime', 'maxScore', 'description', 'description_ar', 'link']
+      variables: ['activityName', 'activityType', 'activityDescription', 'dueDate', 'startDate', 'endDate', 'programName', 'subjectName', 'className', 'classDescription', 'instructorName', 'points', 'estimatedTime', 'createdAt', 'updatedAt']
     },
     activity_complete: {
       purpose: 'Confirm that the student completed an activity.',
       trigger: 'Automatic on student completion.',
       actor: 'System',
       audience: 'The submitting student.',
-      variables: ['studentName', 'studentEmail', 'activityTitle', 'activityTitle_ar', 'submissionDate', 'link']
+      variables: ['studentName', 'studentDisplayName', 'studentNumber', 'activityName', 'activityType', 'submissionDate', 'programName', 'subjectName', 'className', 'createdAt', 'updatedAt']
     },
     activity_graded: {
       purpose: 'Inform the student that their submission was graded.',
       trigger: 'Automatic when a teacher saves a grade.',
       actor: 'System',
       audience: 'The graded student.',
-      variables: ['studentName', 'studentEmail', 'activityTitle', 'activityTitle_ar', 'score', 'maxScore', 'feedback', 'feedback_ar', 'submissionDate', 'link']
+      variables: ['studentName', 'studentDisplayName', 'studentNumber', 'activityName', 'activityDescription', 'grade', 'score', 'maxScore', 'percentage', 'feedback', 'gradedBy', 'gradedAt', 'programName', 'subjectName', 'className', 'passingStatus', 'createdAt', 'updatedAt']
     },
     enrollment: {
       purpose: 'Welcome a user after enrolling them into a class.',
       trigger: 'Manual or automatic on enrollment.',
       actor: 'Admin/Teacher/System',
       audience: 'Newly enrolled student.',
-      variables: ['studentName', 'studentEmail', 'studentId', 'referenceId', 'studentKey', 'accessKey', 'className', 'term', 'instructorName', 'instructorEmail', 'link']
+      variables: ['studentName', 'studentDisplayName', 'studentNumber', 'programName', 'subjectName', 'className', 'classDescription', 'instructorName', 'enrollmentDate', 'accessKey', 'siteName', 'createdAt', 'updatedAt']
     },
     resource: {
       purpose: 'Notify users about a new learning resource.',
       trigger: 'Manual send by admin/teacher.',
       actor: 'Admin/Teacher',
       audience: 'Target students/classes.',
-      variables: ['resourceTitle', 'resourceType', 'description', 'dueDate', 'link']
+      variables: ['resourceName', 'resourceType', 'resourceDescription', 'resourceUrl', 'fileSize', 'programName', 'subjectName', 'className', 'classDescription', 'uploadedBy', 'category', 'tags', 'createdAt', 'updatedAt']
     },
     chat_digest: {
       purpose: 'Summarize unread chat activity.',
       trigger: 'Scheduled or manual digest.',
       actor: 'System/Admin',
       audience: 'Students or staff with unread messages.',
-      variables: ['unreadCount', 'messages', 'chatLink']
+      variables: ['senderName', 'senderRole', 'chatRoomName', 'messageContent', 'messageTime', 'programName', 'subjectName', 'className', 'messageType', 'attachmentUrl', 'unreadCount', 'createdAt', 'updatedAt']
     },
     qr_code: {
       purpose: 'Send student their QR code for attendance tracking.',
       trigger: 'Manual send from QR scanner or student profile.',
       actor: 'Teacher/Admin',
       audience: 'Individual student.',
-      variables: ['studentName', 'studentEmail', 'studentId', 'referenceId', 'studentKey', 'accessKey', 'qrCodeDataURL', 'siteName']
+      variables: ['studentName', 'studentDisplayName', 'studentNumber', 'programName', 'subjectName', 'className', 'classDescription', 'qrCodeDataURL', 'siteName', 'issuedBy', 'issuedAt', 'createdAt', 'updatedAt']
     },
     student_summary: {
       purpose: 'Send comprehensive student performance report.',
       trigger: 'Manual send from QR scanner or dashboard.',
       actor: 'Teacher/Admin',
       audience: 'Individual student or parent.',
-      variables: ['studentName', 'studentEmail', 'studentId', 'referenceId', 'studentKey', 'accessKey', 'className', 'attendanceStats', 'participationStats', 'behaviorStats', 'penaltyStats', 'overallGrade', 'reportPeriod', 'siteName', 'currentDate']
+      variables: ['studentName', 'studentDisplayName', 'studentNumber', 'programName', 'subjectName', 'className', 'classDescription', 'attendanceStats', 'participationStats', 'behaviorStats', 'penaltyStats', 'overallGrade', 'reportPeriod', 'siteName', 'currentDate', 'createdAt', 'updatedAt']
     },
     custom: {
       purpose: 'Free-form custom email for any purpose.',
@@ -181,7 +181,7 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
     const prettyDateTime = formatDateTime(now);
     const prettyDate = prettyDateTime ? prettyDateTime.split(' ')[0] : '';
     return {
-      // Common variables
+      // Common variables (camelCase)
       recipientName: 'Ahmed Mohammed',
       recipientEmail: 'ahmed@example.com',
       greeting: 'Dear Ahmed Mohammed',
@@ -189,52 +189,62 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
       siteUrl: 'https://your-domain.com',
       currentDate: prettyDate,
       currentDateTime: prettyDateTime,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
 
-      // Announcement variables
-      title: 'Important Update',
-      title_ar: 'تحديث مهم',
-      content: 'This is a sample announcement content.',
-      content_ar: 'هذا محتوى إعلان نموذجي.',
-      dateTime: prettyDateTime,
+      // Announcement variables (camelCase)
+      titleEn: 'Important Update',
+      titleAr: 'تحديث مهم',
+      messageEn: 'This is a sample announcement content.',
+      messageAr: 'هذا محتوى إعلان نموذجي.',
+      programName: 'Computer Science',
+      subjectName: 'Programming Fundamentals',
+      className: 'CS101',
+      classDescription: 'Introduction to Programming',
+      postedBy: 'Admin',
+      priority: 'high',
 
-      // Activity variables
-      activityTitle: 'Python Quiz 1',
-      activityTitle_ar: 'اختبار بايثون 1',
+      // Activity variables (camelCase)
+      activityName: 'Python Quiz 1',
       activityType: 'quiz',
-      course: 'Programming',
-      course_ar: 'البرمجة',
-      description: 'Complete the Python quiz to test your knowledge.',
-      description_ar: 'أكمل اختبار بايثون لاختبار معرفتك.',
-      dueDateTime: prettyDateTime,
+      activityDescription: 'Complete the Python quiz to test your knowledge.',
+      dueDate: prettyDateTime,
+      startDate: prettyDateTime,
+      endDate: prettyDateTime,
       maxScore: '100',
-      difficulty: 'intermediate',
+      points: '100',
+      estimatedTime: '2 hours',
+      instructorName: 'Dr. Smith',
 
-      // Student variables
+      // Student variables (camelCase)
       studentName: 'Ahmed Mohammed',
-      studentEmail: 'ahmed@example.com',
-      militaryNumber: '12345',
+      studentDisplayName: 'Ahmed M.',
+      studentNumber: 'ST12345',
+      grade: 'A',
       score: '85',
+      percentage: '85%',
       feedback: 'Great work! Keep it up.',
-      feedback_ar: 'عمل رائع! استمر.',
+      feedbackAr: 'عمل رائع! استمر.',
       submissionDate: prettyDate,
+      gradedAt: prettyDateTime,
+      passingStatus: 'Pass',
 
-      // Class variables
+      // Class variables (camelCase)
       className: 'Python I',
-      classCode: 'CS101',
+      classDescription: 'Introduction to Python Programming',
       term: 'Fall 2025',
       instructorName: 'Dr. Smith',
       instructorEmail: 'smith@example.com',
 
-      // Resource variables
-      resourceTitle: 'Python Basics PDF',
+      // Resource variables (camelCase)
+      resourceName: 'Python Basics PDF',
       resourceType: 'document',
-
-      // Chat variables
-      unreadCount: '5',
-      chatLink: 'https://your-domain.com/chat',
-
-      // Links
-      link: 'https://your-domain.com'
+      resourceDescription: 'Comprehensive guide to Python basics',
+      resourceUrl: 'https://example.com/python-basics.pdf',
+      fileSize: '2.5 MB',
+      category: 'Study Materials',
+      tags: 'python,basics,programming',
+      uploadedBy: 'Dr. Smith'
     };
   };
 
