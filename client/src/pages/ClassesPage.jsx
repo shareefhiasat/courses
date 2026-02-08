@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { addClass, updateClass, deleteClass } from '@firebaseServices/classService';
+import { addClass, updateClass, deleteClass, getClasses } from '@firebaseServices/classService';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getUsers } from '@firebaseServices/userService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { getActivities } from '@firebaseServices/activityService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger.jsx';
 import { USER_ROLES } from '@constants/userRoles';
 import { 
@@ -18,59 +22,86 @@ import {
 import { RibbonTabs } from '@ui';
 import logger from '@utils/logger';
 
-const ClassesPage = ({ 
-  classes = [],
-  programs = [],
-  subjects = [],
-  users = [],
-  enrollments = [],
-  activities = [],
-  classForm = { id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' },
-  setClassForm,
-  editingClass,
-  setEditingClass,
-  activeClassFormTab,
-  setActiveClassFormTab,
-  deleteModal,
-  setDeleteModal,
-  setClasses,
-  loadData,
-  theme,
-  loading,
-  setLoading,
-  classProgramFilter,
-  classSubjectFilter,
-  classFilter,
-  setClassProgramFilter,
-  setClassSubjectFilter,
-  setClassFilter,
-  classFormSubjectOptions,
-  handleDropdownChange,
-  user
-}) => {
+const ClassesPage = () => {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
+  const { user } = useAuth();
   const uiToast = useToast();
   
-  // Local state for dropdowns (same as NotificationDrawer pattern)
-  const [localPrograms, setLocalPrograms] = useState([]);
-  const [localSubjects, setLocalSubjects] = useState([]);
+  // Main data state
+  const [classes, setClasses] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [activities, setActivities] = useState([]);
+  
+  // Form state
+  const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
+  const [editingClass, setEditingClass] = useState(null);
+  const [activeClassFormTab, setActiveClassFormTab] = useState('basic');
+  
+  // Filter state
+  const [classProgramFilter, setClassProgramFilter] = useState('');
+  const [classSubjectFilter, setClassSubjectFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: null, onConfirm: null });
 
-  // Load programs and subjects for filters (same as NotificationDrawer)
+  // Load all data
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [classesRes, programsRes, subjectsRes, usersRes, enrollmentsRes, activitiesRes] = await Promise.all([
+        getClasses(),
+        getPrograms(),
+        getSubjects(),
+        getUsers(),
+        getEnrollments(),
+        getActivities()
+      ]);
+      
+      if (classesRes?.success) setClasses(classesRes.data || []);
+      if (programsRes?.success) setPrograms(programsRes.data || []);
+      if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
+      if (usersRes?.success) setUsers(usersRes.data || []);
+      if (enrollmentsRes?.success) setEnrollments(enrollmentsRes.data || []);
+      if (activitiesRes?.success) setActivities(activitiesRes.data || []);
+    } catch (error) {
+      console.error('🔍 [ClassesPage] Error loading data:', error);
+      toast?.showError('Error loading data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on mount
   useEffect(() => {
-    const loadFilters = async () => {
-      try {
-        const [programsRes, subjectsRes] = await Promise.all([
-          getPrograms(),
-          getSubjects()
-        ]);
-        if (programsRes.success) setLocalPrograms(programsRes.data || []);
-        if (subjectsRes.success) setLocalSubjects(subjectsRes.data || []);
-      } catch (error) {
-        console.error('🔍 [ClassesPage] Error loading filters:', error);
-      }
-    };
-    loadFilters();
-  }, []); // Load once on mount
+    loadData();
+  }, []);
+  
+  // Utility functions
+  const handleDropdownChange = (field, value) => {
+    setClassForm(prev => ({ ...prev, [field]: value }));
+  };
+  
+  // Generate subject options for form
+  const classFormSubjectOptions = [
+    { value: '', label: t('select_subject') || 'Select Subject' },
+    ...(subjects || []).map(s => ({
+      value: s.docId,
+      label: lang === 'ar' ? (s.name_ar || s.name_en) : (s.name_en || s.docId)
+    }))
+  ];
+  
+  // Clear filters
+  const handleClearFilters = () => {
+    setClassProgramFilter('');
+    setClassSubjectFilter('');
+    setClassFilter('');
+  };
   
   const toast = {
     showSuccess: uiToast.success,
@@ -198,12 +229,6 @@ const ClassesPage = ({
         setActiveClassFormTab('basic');
       }
     }
-  };
-
-  const handleClearFilters = () => {
-    setClassProgramFilter('all');
-    setClassSubjectFilter('all');
-    setClassFilter('all');
   };
 
   const columns = [
@@ -517,6 +542,52 @@ const ClassesPage = ({
           </div>
         </div>
       </form>
+
+      {/* Filters for Classes */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+        <Select
+          value={classProgramFilter || ''}
+          onChange={(e) => setClassProgramFilter(e.target.value)}
+          options={[
+            { value: '', label: t('all_programs') || 'All Programs' },
+            ...(programs || []).map(p => ({
+              value: p.docId,
+              label: lang === 'ar' ? (p.name_ar || p.name_en) : (p.name_en || p.docId)
+            }))
+          ]}
+          placeholder={t('all_programs') || 'All Programs'}
+          searchable
+          icon={getThemedIcon('ui', 'filter', 16, theme)}
+        />
+        <Select
+          value={classSubjectFilter || ''}
+          onChange={(e) => setClassSubjectFilter(e.target.value)}
+          options={[
+            { value: '', label: t('all_subjects') || 'All Subjects' },
+            ...(subjects || []).map(s => ({
+              value: s.docId,
+              label: lang === 'ar' ? (s.name_ar || s.name_en) : (s.name_en || s.docId)
+            }))
+          ]}
+          placeholder={t('all_subjects') || 'All Subjects'}
+          searchable
+          icon={getThemedIcon('ui', 'filter', 16, theme)}
+        />
+        <Select
+          value={classFilter || ''}
+          onChange={(e) => setClassFilter(e.target.value)}
+          options={[
+            { value: '', label: t('all_classes') || 'All Classes' },
+            ...(classes || []).map(c => ({
+              value: c.docId,
+              label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}`
+            }))
+          ]}
+          placeholder={t('all_classes') || 'All Classes'}
+          searchable
+          icon={getThemedIcon('ui', 'filter', 16, theme)}
+        />
+      </div>
 
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid

@@ -206,9 +206,6 @@ const DashboardPage = () => {
   const [resourceSubjectFilter, setResourceSubjectFilter] = useState('all');
   const [resourceClassFilter, setResourceClassFilter] = useState('all');
   const [resourceCategoryFilter, setResourceCategoryFilter] = useState('all');
-  const [classProgramFilter, setClassProgramFilter] = useState('all');
-  const [classSubjectFilter, setClassSubjectFilter] = useState('all');
-  const [classFilter, setClassFilter] = useState('all');
   const [emailComposerOpen, setEmailComposerOpen] = useState(false);
   const [userQuickFilter, setUserQuickFilter] = useState('all');
   const [activityAutoRefreshMs, setActivityAutoRefreshMs] = useState(0);
@@ -635,7 +632,6 @@ const DashboardPage = () => {
   });
   const [announcementEmailOptions, setAnnouncementEmailOptions] = useState({ sendEmail: false, lang: 'both' });
   const [resourceEmailOptions, setResourceEmailOptions] = useState({ sendEmail: false, createAnnouncement: false });
-  const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
   const [subjects, setSubjects] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [enrollmentForm, setEnrollmentForm] = useState({ 
@@ -680,12 +676,10 @@ const DashboardPage = () => {
   const [activeUserFormTab, setActiveUserFormTab] = useState('basic');
   const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
-  const [editingClass, setEditingClass] = useState(null);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [editingResource, setEditingResource] = useState(null);
   const [activeActivityFormTab, setActiveActivityFormTab] = useState('basic');
   const [activeAnnouncementFormTab, setActiveAnnouncementFormTab] = useState('basic');
-  const [activeClassFormTab, setActiveClassFormTab] = useState('basic');
   const [activeResourceFormTab, setActiveResourceFormTab] = useState('basic');
   const [resourceForm, setResourceForm] = useState({
     title: '',
@@ -913,29 +907,7 @@ const DashboardPage = () => {
       });
     return [...opts, ...validClasses];
   }, [classes, enrollmentSubjectFilter, enrollmentProgramFilter, subjects, t]);
-  // Class Form - Subject Options
-  const classFormSubjectOptions = useMemo(() => {
-    const opts = [
-      { value: '', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
-    ];
-    const validSubjects = subjects.map(subject => {
-      const value = ensureString(subject.docId || subject.id);
-      const name = lang === 'ar' 
-        ? (subject.name_ar || subject.name_en || '')
-        : (subject.name_en || subject.name_ar || '');
-      const label = `${name}${subject.code ? ` (${subject.code})` : ''}`;
-      return { value, label, icon: getThemedIcon('ui', 'file_text', 16, theme) };
-    });
-    return [...opts, ...validSubjects];
-  }, [subjects, lang, t]);
   // Debug logging for dropdown state changes
-  useEffect(() => {
-    }, [activityForm.programId, activityForm.subjectId, activityForm.classId, activityProgramOptions.length, activitySubjectOptions.length, activityClassOptions.length]);
-  // Debug logging for enrollment form state
-  useEffect(() => {
-    }, [enrollmentForm.programId, enrollmentForm.subjectId, enrollmentForm.classId, 
-      enrollmentProgramOptions.length, enrollmentSubjectOptions.length, enrollmentClassOptions.length]);
-  // Listen for URL changes (hash or search params) from sidebar or direct navigation
   const [hashProcessed, setHashProcessed] = useState(false);
   useEffect(() => {
     // First check for tab in query parameters
@@ -1661,36 +1633,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             />
           )}
           {activeTab === 'classes' && (
-            <ClassesPage
-              classes={classes}
-              programs={programs}
-              subjects={subjects}
-              users={users}
-              enrollments={enrollments}
-              activities={activities}
-              classForm={classForm}
-              setClassForm={setClassForm}
-              editingClass={editingClass}
-              setEditingClass={setEditingClass}
-              activeClassFormTab={activeClassFormTab}
-              setActiveClassFormTab={setActiveClassFormTab}
-              deleteModal={deleteModal}
-              setDeleteModal={setDeleteModal}
-              setClasses={setClasses}
-              loadData={loadData}
-              theme={theme}
-              loading={loading}
-              setLoading={setLoading}
-              classProgramFilter={classProgramFilter}
-              classSubjectFilter={classSubjectFilter}
-              classFilter={classFilter}
-              setClassProgramFilter={setClassProgramFilter}
-              setClassSubjectFilter={setClassSubjectFilter}
-              setClassFilter={setClassFilter}
-              classFormSubjectOptions={classFormSubjectOptions}
-              handleDropdownChange={handleDropdownChange}
-              user={user}
-            />
+            <ClassesPage />
           )}
           {/* Grade Submission Modal */}
         <Modal
