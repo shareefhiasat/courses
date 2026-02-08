@@ -500,7 +500,7 @@ export async function getNotificationsByCategory(userId, category, limit = 50) {
         NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT
       ],
       'behavior': [
-        NOTIFICATION_TRIGGERS.BEHAVIOR_AWARDED,
+        NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED,
         NOTIFICATION_TRIGGERS.PENALTY_ISSUED
       ],
       'participation': [

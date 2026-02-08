@@ -68,7 +68,7 @@ export async function createBehavior({
         const formattedDate = new Date(todayStr).toLocaleDateString('en-GB');
         
         // Use smart notification gateway
-        await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_AWARDED, {
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED, {
           userId: studentId,
           role: 'student',
           classId: classId,

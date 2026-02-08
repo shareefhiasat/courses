@@ -68,18 +68,36 @@ export const notificationGateway = {
         });
       }
 
-      // 3. Handle Email Notification (Customizable via templateId)
+      // 3. Handle Email Notification (Bilingual Support)
       // Check if trigger has a mapped template or use provided one
       const templateId = details.templateId || this.getMappedTemplate(trigger);
 
       if (settings.email && details.email && templateId) {
+        // Get bilingual content for email templates
+        const titleEn = this.getLocalizedText('en', `notify.${trigger}.title`, details.variables) || details.title;
+        const messageEn = this.getLocalizedText('en', `notify.${trigger}.message`, details.variables) || details.message;
+        const titleAr = this.getLocalizedText('ar', `notify.${trigger}.title`, details.variables) || details.title;
+        const messageAr = this.getLocalizedText('ar', `notify.${trigger}.message`, details.variables) || details.message;
+
         const emailResult = await sendEmail({
           to: details.email,
           templateId: templateId,
           variables: {
             ...details.variables,
+            // Bilingual content variables (camelCase)
+            titleEn: titleEn,
+            titleAr: titleAr,
+            messageEn: messageEn,
+            messageAr: messageAr,
+            // Fallback variables (for backward compatibility)
+            title: titleEn,
+            message: messageEn,
+            // System variables
             siteName: 'QAF Learning Hub',
-            siteUrl: window.location.origin
+            siteUrl: window.location.origin,
+            userLang: lang, // User's preferred language
+            createdAt: new Date().toISOString(), // Qatar timezone will be applied by server
+            updatedAt: new Date().toISOString()  // Qatar timezone will be applied by server
           }
         });
 
@@ -96,7 +114,17 @@ export const notificationGateway = {
             title: details.title,
             message: details.message,
             templateId,
-            variables: details.variables,
+            variables: {
+              ...details.variables,
+              // Log bilingual variables for debugging (camelCase)
+              titleEn: titleEn,
+              titleAr: titleAr,
+              messageEn: messageEn,
+              messageAr: messageAr,
+              userLang: lang,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            },
             recipient: details.email,
             error: emailResult.success ? null : emailResult.error
           }
@@ -149,7 +177,7 @@ export const notificationGateway = {
       [NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED]: 'attendanceNotification',
       [NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT]: 'attendanceNotification',
       [NOTIFICATION_TRIGGERS.PENALTY_ISSUED]: 'penaltyNotification',
-      [NOTIFICATION_TRIGGERS.BEHAVIOR_AWARDED]: 'behaviorNotification',
+      [NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED]: 'behaviorNotification',
       [NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED]: 'participationNotification',
       [NOTIFICATION_TRIGGERS.PASSWORD_RESET]: 'passwordReset',
       [NOTIFICATION_TRIGGERS.CHAT_MESSAGE]: 'chatMessage'
