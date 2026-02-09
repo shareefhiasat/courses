@@ -19,11 +19,11 @@ import {
   Button, 
   Input, 
   Textarea, 
-  Select, 
   AdvancedDataGrid, 
   useToast, 
   ToggleSwitch 
 } from '@ui';
+import ProgramsSelect from "@/components/ui/Select/ProgramsSelect";
 import { RibbonTabs } from '@ui';
 import logger from '@utils/logger';
 
@@ -43,7 +43,13 @@ const AnnouncementsPage = () => {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Selection state
+  const [selectedProgram, setSelectedProgram] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
   
   // Form state
   const [announcementForm, setAnnouncementForm] = useState({
@@ -80,30 +86,110 @@ const AnnouncementsPage = () => {
         getClasses(),
         getUsers()
       ]);
-
-      console.log('🔍 AnnouncementsPage - programsRes:', programsRes);
-      console.log('🔍 AnnouncementsPage - programsRes.success:', programsRes?.success);
-      console.log('🔍 AnnouncementsPage - programsRes.data:', programsRes?.data);
-
-      if (announcementsRes?.success) setAnnouncements(announcementsRes.data || []);
-      if (programsRes?.success) {
-        console.log('🔍 AnnouncementsPage - setting programs:', programsRes.data);
-        setPrograms(programsRes.data || []);
-      }
-      if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
-      if (classesRes?.success) setClasses(classesRes.data || []);
-      if (usersRes?.success) setUsers(usersRes.data || []);
+      setAnnouncements(announcementsRes);
+      setPrograms(programsRes);
+      setSubjects(subjectsRes);
+      setClasses(classesRes);
+      setUsers(usersRes);
     } catch (error) {
-      console.error('Error loading data:', error);
-      toast?.showError('Failed to load data');
+      console.error('Error fetching data:', error);
+      toast.showError(t('error_fetching_data') || 'Error fetching data. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch all data in parallel
+        const [programsRes, subjectsRes, classesRes, usersRes] = await Promise.all([
+          getPrograms().catch(e => {
+            console.error('Error fetching programs:', e);
+            return { success: false, data: [] };
+          }),
+          getSubjects().catch(e => {
+            console.error('Error fetching subjects:', e);
+            return { success: false, data: [] };
+          }),
+          getClasses().catch(e => {
+            console.error('Error fetching classes:', e);
+            return { success: false, data: [] };
+          }),
+          getUsers().catch(e => {
+            console.error('Error fetching users:', e);
+            return { success: false, data: [] };
+          })
+        ]);
+
+        // Extract data from responses, defaulting to empty array if not successful
+        const programsData = programsRes?.success ? programsRes.data : [];
+        const subjectsData = subjectsRes?.success ? subjectsRes.data : [];
+        const classesData = classesRes?.success ? classesRes.data : [];
+        const usersData = usersRes?.success ? usersRes.data : [];
+
+        // Set state with the extracted data
+        setPrograms(Array.isArray(programsData) ? programsData : []);
+        setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
+        setClasses(Array.isArray(classesData) ? classesData : []);
+        setUsers(Array.isArray(usersData) ? usersData : []);
+        
+        // Fetch announcements after programs, subjects, and classes are loaded
+        try {
+          const announcementsData = await getAnnouncements();
+          setAnnouncements(Array.isArray(announcementsData) ? announcementsData : []);
+        } catch (announcementError) {
+          console.error('Error fetching announcements:', announcementError);
+          setAnnouncements([]);
+          throw announcementError;
+        }
+      } catch (error) {
+        console.error('Error in fetchData:', error);
+        setError(t('error_fetching_data') || 'Error fetching data. Please try again.');
+        toast.showError(t('error_fetching_data') || 'Error fetching data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [t]);
+
+  // Handle program selection change
+  const handleProgramChange = (programId) => {
+    setSelectedProgram(programId);
+    setSelectedSubject('');
+    setSelectedClass('');
+    setAnnouncementForm(prev => ({
+      ...prev,
+      programId,
+      subjectId: '',
+      classId: ''
+    }));
+  };
+
+  // Handle subject selection change
+  const handleSubjectChange = (subjectId) => {
+    setSelectedSubject(subjectId);
+    setSelectedClass('');
+    setAnnouncementForm(prev => ({
+      ...prev,
+      subjectId,
+      classId: ''
+    }));
+  };
+
+  // Handle class selection change
+  const handleClassChange = (classId) => {
+    setSelectedClass(classId);
+    setAnnouncementForm(prev => ({
+      ...prev,
+      classId
+    }));
+  };
 
   // Local state for dropdown options to avoid race conditions
   const [dropdownOptions, setDropdownOptions] = useState({
@@ -474,8 +560,19 @@ const AnnouncementsPage = () => {
     }
   ];
 
-  const filteredAnnouncements = announcements.filter(a => {
-    // Simple filter - just return all for now since we removed the filter props
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Filter announcements based on selected program/subject/class
+  const filteredAnnouncements = announcements.filter(announcement => {
+    if (selectedProgram && announcement.programId !== selectedProgram) return false;
+    if (selectedSubject && announcement.subjectId !== selectedSubject) return false;
+    if (selectedClass && announcement.classId !== selectedClass) return false;
     return true;
   });
 
@@ -562,39 +659,31 @@ const AnnouncementsPage = () => {
         {/* Basic Info Tab */}
         {activeAnnouncementFormTab === 'basic' && (
           <>
-            <div className="form-row wide-cols">
-              <Select
-                searchable
-                placeholder={t('program_optional') || 'Program (Optional)'}
-                value={announcementForm.programId}
-                onChange={handleLocalDropdownChange(setAnnouncementForm, 'programId', ['subjectId', 'classId'])}
-                options={dropdownOptions.programs}
-              />
-              <Select
-                searchable
-                placeholder={t('subject_optional') || 'Subject (Optional)'}
-                value={announcementForm.subjectId}
-                onChange={handleLocalDropdownChange(setAnnouncementForm, 'subjectId', ['classId'])}
-                options={dropdownOptions.subjects.filter(o => !announcementForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === announcementForm.programId)}
-                disabled={!announcementForm.programId}
-              />
-              <Select
-                searchable
-                placeholder={t('class_optional') || 'Class (Optional)'}
-                value={announcementForm.classId}
-                onChange={handleLocalDropdownChange(setAnnouncementForm, 'classId')}
-                options={dropdownOptions.classes.filter(o => !announcementForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === announcementForm.subjectId)}
-                disabled={!announcementForm.subjectId}
-              />
-            </div>
-            <div className="form-row">
-              <Input
-                type="text"
-                placeholder={t('announcement_title')}
-                value={announcementForm.title}
-                onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
-                required
-              />
+            <div className="space-y-4">
+              <div className="form-row">
+                <ProgramsSelect
+                  programs={programs}
+                  subjects={subjects}
+                  classes={classes}
+                  selectedProgram={announcementForm.programId}
+                  selectedSubject={announcementForm.subjectId}
+                  selectedClass={announcementForm.classId}
+                  onProgramChange={(programId) => setAnnouncementForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
+                  onSubjectChange={(subjectId) => setAnnouncementForm(prev => ({ ...prev, subjectId, classId: '' }))}
+                  onClassChange={(classId) => setAnnouncementForm(prev => ({ ...prev, classId }))}
+                  showLabels={false}
+                />
+              </div>
+              <div className="form-row">
+                <Input
+                  type="text"
+                  placeholder={t('announcement_title')}
+                  value={announcementForm.title}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                  required
+                  className="w-full"
+                />
+              </div>
             </div>
           </>
         )}
