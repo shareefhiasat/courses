@@ -50,6 +50,7 @@ import {
   COMMON_ICONS,
   getThemeColor
 } from '@constants/dashboardTypes.jsx';
+import { getNotificationTriggerOptions, getNotificationChannelOptions } from '@constants';
 import { generateStudentQRCode } from '@utils/qrCode';
 import ProgramsManagementPage from './ProgramsManagementPage';
 import SubjectsManagementPage from './SubjectsManagementPage';
@@ -1832,42 +1833,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           />
         )}
         {activeTab === 'resources' && (
-          <ResourcesPage
-            resources={resources}
-            programs={programs}
-            subjects={subjects}
-            classes={classes}
-            courses={courses}
-            users={users}
-            resourceForm={resourceForm}
-            setResourceForm={setResourceForm}
-            editingResource={editingResource}
-            setEditingResource={setEditingResource}
-            activeResourceFormTab={activeResourceFormTab}
-            setActiveResourceFormTab={setActiveResourceFormTab}
-            resourceEmailOptions={resourceEmailOptions}
-            setResourceEmailOptions={setResourceEmailOptions}
-            deleteModal={deleteModal}
-            setDeleteModal={setDeleteModal}
-            setResources={setResources}
-            loadData={loadData}
-            theme={theme}
-            loading={loading}
-            setLoading={setLoading}
-            resourceProgramFilter={resourceProgramFilter}
-            resourceSubjectFilter={resourceSubjectFilter}
-            resourceClassFilter={resourceClassFilter}
-            resourceCategoryFilter={resourceCategoryFilter}
-            setResourceProgramFilter={setResourceProgramFilter}
-            setResourceSubjectFilter={setResourceSubjectFilter}
-            setResourceClassFilter={setResourceClassFilter}
-            setResourceCategoryFilter={setResourceCategoryFilter}
-            activityProgramOptions={activityProgramOptions}
-            activitySubjectOptions={activitySubjectOptions}
-            activityClassOptions={activityClassOptions}
-            handleDropdownChange={handleDropdownChange}
-            user={user}
-          />
+          <ResourcesPage />
         )}
         {activeTab === 'smtp' && (
           <SMTPPage
@@ -1905,18 +1871,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 searchable
                 value={notificationLogFilters.trigger}
                 onChange={(e) => setNotificationLogFilters(prev => ({ ...prev, trigger: e.target.value }))}
-                options={[
-                  { value: '', label: t('all_triggers'), icon: getColoredIcon('ui', 'filter', 16, null, theme) },
-                  { value: 'activity_new', label: 'Activity New' },
-                  { value: 'activity_graded', label: 'Activity Graded' },
-                  { value: 'announcement_new', label: 'Announcement New' },
-                  { value: 'quiz_available', label: 'Quiz Available' },
-                  { value: 'attendance_recorded', label: 'Attendance Recorded' },
-                  { value: 'attendance_absent', label: 'Attendance Absent' },
-                  { value: 'penalty_issued', label: 'Penalty Issued' },
-                  { value: 'behavior_awarded', label: 'Behavior Awarded' },
-                  { value: 'participation_recorded', label: 'Participation Recorded' }
-                ]}
+                options={getNotificationTriggerOptions(t, theme, getColoredIcon)}
                 placeholder={t('filter_by_trigger') || 'Filter by trigger'}
               />
               
@@ -1924,13 +1879,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                 size="small"
                 value={notificationLogFilters.channel}
                 onChange={(e) => setNotificationLogFilters(prev => ({ ...prev, channel: e.target.value }))}
-                options={[
-                  { value: '', label: t('all_channels'), icon: getColoredIcon('ui', 'filter', 16, null, theme) },
-                  { value: 'web', label: t('web') },
-                  { value: 'email', label: t('email') },
-                  { value: 'sms', label: t('sms') },
-                  { value: 'whatsapp', label: t('whatsapp') }
-                ]}
+                options={getNotificationChannelOptions(t, theme, getColoredIcon)}
                 placeholder={t('filter_by_channel') || 'Filter by channel'}
               />
               

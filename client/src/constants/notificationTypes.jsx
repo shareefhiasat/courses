@@ -229,3 +229,30 @@ export const getNotificationStatusOptions = (t, lang = 'en') => {
     { value: NOTIFICATION_STATUS.ARCHIVED, label: getNotificationStatusLabel(NOTIFICATION_STATUS.ARCHIVED, lang) }
   ];
 };
+
+// Get notification trigger options for dropdowns
+export const getNotificationTriggerOptions = (t, theme, getColoredIcon) => {
+  return [
+    { value: '', label: t('all_triggers') || 'All Triggers', icon: getColoredIcon('ui', 'filter', 16, null, theme) },
+    { value: NOTIFICATION_TRIGGERS.ACTIVITY_NEW, label: t('activity_new') || 'Activity New' },
+    { value: NOTIFICATION_TRIGGERS.ACTIVITY_GRADED, label: t('activity_graded') || 'Activity Graded' },
+    { value: NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW, label: t('announcement_new') || 'Announcement New' },
+    { value: NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, label: t('quiz_available') || 'Quiz Available' },
+    { value: NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, label: t('attendance_recorded') || 'Attendance Recorded' },
+    { value: NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT, label: t('attendance_absent') || 'Attendance Absent' },
+    { value: NOTIFICATION_TRIGGERS.PENALTY_ISSUED, label: t('penalty_issued') || 'Penalty Issued' },
+    { value: NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED, label: t('behavior_awarded') || 'Behavior Awarded' },
+    { value: NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED, label: t('participation_recorded') || 'Participation Recorded' }
+  ];
+};
+
+// Get notification channel options for dropdowns
+export const getNotificationChannelOptions = (t, theme, getColoredIcon) => {
+  return [
+    { value: '', label: t('all_channels') || 'All Channels', icon: getColoredIcon('ui', 'filter', 16, null, theme) },
+    { value: NOTIFICATION_CHANNELS.WEB, label: t('web') || 'Web' },
+    { value: NOTIFICATION_CHANNELS.EMAIL, label: t('email') || 'Email' },
+    { value: NOTIFICATION_CHANNELS.SMS, label: t('sms') || 'SMS' },
+    { value: NOTIFICATION_CHANNELS.WHATSAPP, label: t('whatsapp') || 'WhatsApp' }
+  ];
+};

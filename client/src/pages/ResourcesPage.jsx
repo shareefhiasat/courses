@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { addResource, updateResource, deleteResource } from '@firebaseServices/activityService';
+import { addResource, updateResource, deleteResource, getResources } from '@firebaseServices/activityService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
 import { sendEmail } from '@firebaseServices/emailService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
@@ -21,50 +22,138 @@ import {
 } from '@ui';
 import { RibbonTabs } from '@ui';
 import { getResourceTypeConfig, getResourceTypeOptions } from '@constants/dashboardTypes.jsx';
-import logger from '@utils/logger';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
 
-const ResourcesPage = ({ 
-  resources = [],
-  programs = [],
-  subjects = [],
-  classes = [],
-  courses = [],
-  users = [],
-  resourceForm = { title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '' },
-  setResourceForm,
-  editingResource,
-  setEditingResource,
-  activeResourceFormTab,
-  setActiveResourceFormTab,
-  resourceEmailOptions = { sendEmail: false, createAnnouncement: false },
-  setResourceEmailOptions,
-  deleteModal,
-  setDeleteModal,
-  setResources,
-  loadData,
-  theme,
-  loading,
-  setLoading,
-  resourceProgramFilter,
-  resourceSubjectFilter,
-  resourceClassFilter,
-  resourceCategoryFilter,
-  setResourceProgramFilter,
-  setResourceSubjectFilter,
-  setResourceClassFilter,
-  setResourceCategoryFilter,
-  activityProgramOptions,
-  activitySubjectOptions,
-  activityClassOptions,
-  handleDropdownChange,
-  user
-}) => {
+// Import all services at top level to prevent duplicate calls
+import { getPrograms } from '@firebaseServices/programService';
+import { getSubjects } from '@firebaseServices/subjectService';
+import { getClasses } from '@firebaseServices/classService';
+import { getCourses } from '@firebaseServices/courseService';
+import { getUsers } from '@firebaseServices/userService';
+
+const ResourcesPage = () => {
+  const { user } = useAuth();
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const uiToast = useToast();
   const toast = {
     showSuccess: uiToast.success,
     showError: uiToast.error,
     showInfo: uiToast.info,
+  };
+
+  // State management
+  const [resources, setResources] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  const [resourceForm, setResourceForm] = useState({ 
+    title: '', 
+    description: '', 
+    url: '', 
+    type: 'link', 
+    dueDate: '', 
+    optional: false, 
+    featured: false, 
+    programId: '', 
+    subjectId: '', 
+    classId: '', 
+    courseId: '' 
+  });
+  
+  const [editingResource, setEditingResource] = useState(null);
+  const [activeResourceFormTab, setActiveResourceFormTab] = useState('basic');
+  const [resourceEmailOptions, setResourceEmailOptions] = useState({ sendEmail: false, createAnnouncement: false });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, resource: null });
+  
+  const [resourceProgramFilter, setResourceProgramFilter] = useState('all');
+  const [resourceSubjectFilter, setResourceSubjectFilter] = useState('all');
+  const [resourceClassFilter, setResourceClassFilter] = useState('all');
+  const [resourceCategoryFilter, setResourceCategoryFilter] = useState('all');
+
+  // Load data on component mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Load resources
+      const resourcesResult = await getResources();
+      if (resourcesResult.success) {
+        setResources(resourcesResult.data || []);
+      } else {
+        console.error('🔍 [ResourcesPage] Failed to load resources:', resourcesResult.error);
+      }
+
+      // Load programs for dropdowns
+      const programsResult = await getPrograms();
+      if (programsResult.success) {
+        setPrograms(programsResult.data || []);
+      }
+
+      // Load subjects for dropdowns
+      const subjectsResult = await getSubjects();
+      if (subjectsResult.success) {
+        setSubjects(subjectsResult.data || []);
+      }
+
+      // Load classes for dropdowns
+      const classesResult = await getClasses();
+      if (classesResult.success) {
+        setClasses(classesResult.data || []);
+      }
+
+      // Load courses for dropdowns
+      const coursesResult = await getCourses();
+      if (coursesResult.success) {
+        setCourses(coursesResult.data || []);
+      }
+
+      // Load users for dropdowns
+      const usersResult = await getUsers();
+      if (usersResult.success) {
+        setUsers(usersResult.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast?.showError(t('error_loading_data') || 'Error loading data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper functions for dropdown options
+  const activityProgramOptions = programs.map(program => ({
+    value: program.id,
+    label: program.name || program.title
+  }));
+
+  const activitySubjectOptions = subjects.map(subject => ({
+    value: subject.id,
+    label: subject.name || subject.title
+  }));
+
+  const activityClassOptions = classes.map(cls => ({
+    value: cls.id,
+    label: cls.name || cls.title
+  }));
+
+  const handleDropdownChange = (setState, field, resetFields = []) => (e) => {
+    const value = e.target.value;
+    setState(prev => {
+      const newState = { ...prev, [field]: value };
+      // Reset dependent fields
+      resetFields.forEach(resetField => {
+        newState[resetField] = '';
+      });
+      return newState;
+    });
   };
 
   const handleResourceSubmit = async (e) => {
@@ -338,7 +427,8 @@ const ResourcesPage = ({
         const courseId = params.value || params.row?.courseId;
         if (!courseId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-            {getThemedIcon('ui', 'tag', 16, theme)} —
+            {/*{getThemedIcon('ui', 'tag', 16, theme)} */}
+            —
           </span>
         );
         const course = courses.find(c => (c.docId || c.id) === courseId);
@@ -363,7 +453,8 @@ const ResourcesPage = ({
         const programId = params.value || params.row?.programId;
         if (!programId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-success, #16a34a)' }}>
-            {getThemedIcon('ui', 'globe', 16, theme)} Public
+            {/*{getThemedIcon('ui', 'globe', 16, theme)} */}
+            Public
           </span>
         );
         const program = programs.find(p => (p.docId || p.id) === programId);
@@ -371,7 +462,8 @@ const ResourcesPage = ({
         const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'target', 16, theme)} {programName}
+            {/*{getThemedIcon('ui', 'target', 16, theme)} */}
+            {programName}
           </span>
         );
       }
@@ -388,7 +480,8 @@ const ResourcesPage = ({
         const subjectId = params.value || params.row?.subjectId;
         if (!subjectId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-            {getThemedIcon('ui', 'book_open', 16, theme)} —
+            {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
+            —
           </span>
         );
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
@@ -396,7 +489,8 @@ const ResourcesPage = ({
         const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'book_open', 16, theme)} {subjectName}
+            {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
+            {subjectName}
           </span>
         );
       }
@@ -413,14 +507,16 @@ const ResourcesPage = ({
         const classId = params.value || params.row?.classId;
         if (!classId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-            {getThemedIcon('ui', 'users', 16, theme)} —
+            {/*{getThemedIcon('ui', 'users', 16, theme)} */}
+            —
           </span>
         );
         const classItem = classes.find(c => (c.docId || c.id) === classId);
         if (!classItem) return params.value;
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+            {/*{getThemedIcon('ui', 'users', 16, theme)} */}
+            {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
           </span>
         );
       }
@@ -586,35 +682,17 @@ const ResourcesPage = ({
         {activeResourceFormTab === 'basic' && (
           <>
             <div className="form-row wide-cols">
-              <Select
-                searchable
-                placeholder={t('program_optional_public') || 'Program (Optional - Public if empty)'}
-                value={resourceForm.programId || ''}
-                onChange={handleDropdownChange(setResourceForm, 'programId', ['subjectId', 'classId'])}
-                options={activityProgramOptions}
-              />
-              <Select
-                searchable
-                placeholder={t('subject_optional') || 'Subject (Optional)'}
-                value={resourceForm.subjectId || ''}
-                onChange={handleDropdownChange(setResourceForm, 'subjectId', ['classId'])}
-                options={activitySubjectOptions.filter(o => !resourceForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceForm.programId)}
-                disabled={!resourceForm.programId}
-              />
-              <Select
-                searchable
-                placeholder={t('class_optional') || 'Class (Optional)'}
-                value={resourceForm.classId || ''}
-                onChange={handleDropdownChange(setResourceForm, 'classId')}
-                options={activityClassOptions.map(o => {
-                  const classData = classes.find(c => c.docId === o.value);
-                  if (!classData) return o;
-                  return {
-                    ...o,
-                    label: `${classData.name || classData.code || 'Unnamed'}${classData.code ? ` (${classData.code})` : ''}${classData.term ? ` - ${classData.term}` : ''}${classData.year ? ` ${classData.year}` : ''}`
-                  };
-                })}
-                disabled={!resourceForm.subjectId}
+              <ProgramsSelect
+                programs={programs}
+                subjects={subjects}
+                classes={classes}
+                selectedProgram={resourceForm.programId}
+                selectedSubject={resourceForm.subjectId}
+                selectedClass={resourceForm.classId}
+                onProgramChange={(programId) => setResourceForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
+                onSubjectChange={(subjectId) => setResourceForm(prev => ({ ...prev, subjectId, classId: '' }))}
+                onClassChange={(classId) => setResourceForm(prev => ({ ...prev, classId }))}
+                showLabels={false}
               />
               <Select
                 searchable
@@ -763,75 +841,6 @@ const ResourcesPage = ({
           </div>
         </div>
       </form>
-
-      {/* Resource Filters */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '1rem', 
-        marginBottom: '1rem',
-        padding: '1rem',
-        background: 'var(--surface-secondary, #f8fafc)',
-        borderRadius: '8px',
-        flexWrap: 'wrap'
-      }}>
-        <Select
-          searchable
-          placeholder={t('filter_by_program') || 'Filter by Program'}
-          value={resourceProgramFilter}
-          onChange={(e) => setResourceProgramFilter(e.target.value)}
-          options={[
-            { value: 'all', label: t('all_programs') || 'All Programs' },
-            ...activityProgramOptions
-          ]}
-          style={{ minWidth: '200px' }}
-        />
-        <Select
-          searchable
-          placeholder={t('filter_by_subject') || 'Filter by Subject'}
-          value={resourceSubjectFilter}
-          onChange={(e) => setResourceSubjectFilter(e.target.value)}
-          options={[
-            { value: 'all', label: t('all_subjects') || 'All Subjects' },
-            ...activitySubjectOptions.filter(o => !resourceProgramFilter || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === resourceProgramFilter)
-          ]}
-          disabled={!resourceProgramFilter}
-          style={{ minWidth: '200px' }}
-        />
-        <Select
-          searchable
-          placeholder={t('filter_by_class') || 'Filter by Class'}
-          value={resourceClassFilter}
-          onChange={(e) => setResourceClassFilter(e.target.value)}
-          options={[
-            { value: 'all', label: t('all_classes') || 'All Classes' },
-            ...activityClassOptions
-          ]}
-          disabled={!resourceSubjectFilter}
-          style={{ minWidth: '200px' }}
-        />
-        <Select
-          searchable
-          placeholder={t('filter_by_category') || 'Filter by Category'}
-          value={resourceCategoryFilter}
-          onChange={(e) => setResourceCategoryFilter(e.target.value)}
-          options={[
-            { value: 'all', label: t('all_categories') || 'All Categories' },
-            ...courses.map(course => ({
-              value: course.docId,
-              label: lang === 'ar' ? (course.name_ar || course.name_en) : (course.name_en || course.name_ar)
-            })).sort((a, b) => a.label.localeCompare(b.label))
-          ]}
-          style={{ minWidth: '200px' }}
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleClearFilters}
-          style={{ minWidth: '120px' }}
-        >
-          {t('clear_filters') || 'Clear Filters'}
-        </Button>
-      </div>
 
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
