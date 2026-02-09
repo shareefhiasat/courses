@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
 import { CollapsibleDashboardSection, Select } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { getResourceCount } from '@firebaseServices/activityService';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { getActivities } from '@firebaseServices/activityService';
+import { getUsers } from '@firebaseServices/userService';
+import { getSubmissions } from '@firebaseServices/submissionService';
+import { getAllQuizzes } from '@firebaseServices/quizService';
+import { getAnnouncements } from '@firebaseServices/activityService';
 
 /**
  * AnalyticsDashboardPage - Dashboard Statistics Page
@@ -20,56 +27,76 @@ import { getClasses } from '@firebaseServices/classService';
  * - Role-based access control
  * - Theme-aware styling with centralized icons
  */
-const AnalyticsDashboardPage = ({
-  programs,
-  subjects,
-  classes,
-  enrollments,
-  activities,
-  users,
-  submissions,
-  quizzes,
-  announcements,
-  resources,
-  enrollmentProgramFilter,
-  enrollmentSubjectFilter,
-  enrollmentClassFilter,
-  setEnrollmentProgramFilter,
-  setEnrollmentSubjectFilter,
-  setEnrollmentClassFilter,
-  user,
-  isSuperAdmin,
-  isAdmin,
-  isInstructor
-}) => {
+const AnalyticsDashboardPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const { user, isAdmin, isSuperAdmin, isInstructor } = useAuth();
+  
+  // Local state for all data
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [loadingResourceCount, setLoadingResourceCount] = useState(false);
   
-  // Local state for dropdowns (same as NotificationDrawer)
-  const [localPrograms, setLocalPrograms] = useState([]);
-  const [localSubjects, setLocalSubjects] = useState([]);
-  const [localClasses, setLocalClasses] = useState([]);
-
-  // Load programs, subjects, classes for filters (same as NotificationDrawer)
+  // Filter states
+  const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('all');
+  const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('all');
+  const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('all');
+  
+  // Load all data on component mount
   useEffect(() => {
-    const loadFilters = async () => {
+    const loadAllData = async () => {
+      setLoading(true);
       try {
-        const [programsRes, subjectsRes, classesRes] = await Promise.all([
+        const [
+          programsRes,
+          subjectsRes,
+          classesRes,
+          enrollmentsRes,
+          activitiesRes,
+          usersRes,
+          submissionsRes,
+          quizzesRes,
+          announcementsRes
+        ] = await Promise.all([
           getPrograms(),
           getSubjects(),
-          getClasses()
+          getClasses(),
+          getEnrollments(),
+          getActivities(),
+          getUsers(),
+          getSubmissions(),
+          getAllQuizzes(),
+          getAnnouncements()
         ]);
-        if (programsRes.success) setLocalPrograms(programsRes.data || []);
-        if (subjectsRes.success) setLocalSubjects(subjectsRes.data || []);
-        if (classesRes.success) setLocalClasses(classesRes.data || []);
+        
+        if (programsRes.success) setPrograms(programsRes.data || []);
+        if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+        if (classesRes.success) setClasses(classesRes.data || []);
+        if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
+        if (activitiesRes.success) setActivities(activitiesRes.data || []);
+        if (usersRes.success) setUsers(usersRes.data || []);
+        if (submissionsRes.success) setSubmissions(submissionsRes.data || []);
+        if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
+        if (announcementsRes.success) setAnnouncements(announcementsRes.data || []);
+        
       } catch (error) {
-        console.error('🔍 [AnalyticsDashboardPage] Error loading filters:', error);
+        console.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
+      } finally {
+        setLoading(false);
       }
     };
-    loadFilters();
-  }, []); // Load once on mount
+    
+    loadAllData();
+  }, []);
 
   // Fetch resource count from server based on current filters
   useEffect(() => {
@@ -106,8 +133,27 @@ const AnalyticsDashboardPage = ({
     fetchResourceCount();
   }, [enrollmentProgramFilter, enrollmentSubjectFilter, enrollmentClassFilter]);
 
-  // Safety check: ensure programs is an array (remove debug logs)
-  const safePrograms = Array.isArray(localPrograms) ? localPrograms : [];
+  // Safety check: ensure programs is an array
+  const safePrograms = Array.isArray(programs) ? programs : [];
+  
+  if (loading) {
+    return (
+      <CollapsibleDashboardSection
+        sectionId="summary-cards"
+        title={t('dashboard_statistics') || 'Dashboard Statistics'}
+        icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
+        color={theme === 'dark' ? '#818cf8' : '#6366f1'}
+        defaultMode="full"
+      >
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          {getThemedIcon('ui', 'loader', 24, theme)}
+          <p style={{ marginTop: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+            {t('loading_statistics') || 'Loading statistics...'}
+          </p>
+        </div>
+      </CollapsibleDashboardSection>
+    );
+  }
 
   return (
     <CollapsibleDashboardSection
@@ -130,7 +176,7 @@ const AnalyticsDashboardPage = ({
             }}
             options={[
               { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 14, theme) },
-              ...safePrograms.map(p => ({
+            ...safePrograms.map(p => ({
                 value: p.docId || p.id,
                 label: p.name_en || p.name || p.code || p.docId
               }))
@@ -155,7 +201,7 @@ const AnalyticsDashboardPage = ({
             }}
             options={[
               { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...safePrograms.map(p => ({
+            ...safePrograms.map(p => ({
                 value: p.docId || p.id,
                 label: p.name_en || p.name || p.code || p.docId
               }))
@@ -173,7 +219,7 @@ const AnalyticsDashboardPage = ({
             }}
             options={[
               { value: 'all', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...(localSubjects || [])
+              ...(subjects || [])
                 .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
                 .map(s => ({
                   value: s.docId || s.id,
@@ -190,10 +236,10 @@ const AnalyticsDashboardPage = ({
             onChange={(e) => setEnrollmentClassFilter(e.target.value)}
             options={[
               { value: 'all', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...(localClasses || [])
+              ...(classes || [])
                 .filter(c => {
                   if (enrollmentProgramFilter !== 'all') {
-                    const subject = localSubjects.find(s => (s.docId || s.id) === c.subjectId);
+                    const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
                     return subject?.programId === enrollmentProgramFilter;
                   }
                   if (enrollmentSubjectFilter !== 'all') {
@@ -229,7 +275,7 @@ const AnalyticsDashboardPage = ({
             // Programs - Super Admin only
             ...(isSuperAdmin ? [{
               type: 'programs',
-              value: programs.length,
+              value: safePrograms.length,
               tooltip: 'Total number of programs in the system'
             }] : []),
             // Subjects - Admin and Super Admin

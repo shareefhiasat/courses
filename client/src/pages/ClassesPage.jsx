@@ -22,6 +22,7 @@ import {
   CardBody
 } from '@ui';
 import { RibbonTabs } from '@ui';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import logger from '@utils/logger';
 
 const ClassesPage = () => {
@@ -39,7 +40,7 @@ const ClassesPage = () => {
   const [activities, setActivities] = useState([]);
   
   // Form state
-  const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
+  const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
   const [editingClass, setEditingClass] = useState(null);
   const [activeClassFormTab, setActiveClassFormTab] = useState('basic');
   
@@ -98,15 +99,6 @@ const ClassesPage = () => {
     setClassForm(prev => ({ ...prev, [field]: value }));
   };
   
-  // Generate subject options for form
-  const classFormSubjectOptions = [
-    { value: '', label: t('select_subject') || 'Select Subject' },
-    ...(subjects || []).map(s => ({
-      value: s.docId,
-      label: lang === 'ar' ? (s.name_ar || s.name_en) : (s.name_en || s.docId)
-    }))
-  ];
-  
   // Clear filters
   const handleClearFilters = () => {
     setClassProgramFilter('');
@@ -145,7 +137,7 @@ const ClassesPage = () => {
         } catch (e) { }
         await loadData();
         setEditingClass(null);
-        setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
+        setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
         toast?.showSuccess(editingClass ? 'Class updated successfully!' : 'Class created successfully!');
       } else {
         toast?.showError('Error: ' + result.error);
@@ -166,7 +158,9 @@ const ClassesPage = () => {
       code: params.row.code || '',
       term: params.row.term || '',
       ownerEmail: params.row.ownerEmail || '',
-      subjectId: params.row.subjectId || ''
+      subjectId: params.row.subjectId || '',
+      programId: params.row.programId || '',
+      classId: params.row.classId || ''
     });
   };
 
@@ -224,7 +218,7 @@ const ClassesPage = () => {
 
   const handleCancelEdit = () => {
     setEditingClass(null);
-    setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '' });
+    setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
     setActiveClassFormTab('basic');
   };
 
@@ -477,15 +471,17 @@ const ClassesPage = () => {
         {activeClassFormTab === 'academic' && (
           <>
             <div className="form-row">
-              <Select
-                searchable
-                placeholder={t('all_subjects')}
-                value={classForm.subjectId || ''}
-                onChange={e => {
-                  const newSubjectId = e.target.value;
-                  setClassForm({ ...classForm, subjectId: newSubjectId });
-                }}
-                options={classFormSubjectOptions}
+              <ProgramsSelect
+                programs={programs}
+                subjects={subjects}
+                classes={classes}
+                selectedProgram={classForm.programId}
+                selectedSubject={classForm.subjectId}
+                selectedClass={classForm.classId || ''}
+                onProgramChange={(programId) => setClassForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
+                onSubjectChange={(subjectId) => setClassForm(prev => ({ ...prev, subjectId, classId: '' }))}
+                onClassChange={(classId) => setClassForm(prev => ({ ...prev, classId }))}
+                showLabels={false}
                 required
               />
               <UserSelect
@@ -545,33 +541,18 @@ const ClassesPage = () => {
 
       {/* Filters for Classes */}
       <div className="filters-container" style={{ display: 'flex', justifyContent: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
-        <Select
-          value={classProgramFilter || ''}
-          onChange={(e) => setClassProgramFilter(e.target.value)}
-          options={[
-            { value: '', label: t('all_programs') || 'All Programs' },
-            ...(programs || []).map(p => ({
-              value: p.docId,
-              label: lang === 'ar' ? (p.name_ar || p.name_en) : (p.name_en || p.docId)
-            }))
-          ]}
-          placeholder={t('all_programs') || 'All Programs'}
-          searchable
-          icon={getThemedIcon('ui', 'filter', 16, theme)}
-        />
-        <Select
-          value={classSubjectFilter || ''}
-          onChange={(e) => setClassSubjectFilter(e.target.value)}
-          options={[
-            { value: '', label: t('all_subjects') || 'All Subjects' },
-            ...(subjects || []).map(s => ({
-              value: s.docId,
-              label: lang === 'ar' ? (s.name_ar || s.name_en) : (s.name_en || s.docId)
-            }))
-          ]}
-          placeholder={t('all_subjects') || 'All Subjects'}
-          searchable
-          icon={getThemedIcon('ui', 'filter', 16, theme)}
+        <ProgramsSelect
+          programs={programs}
+          subjects={subjects}
+          classes={classes}
+          selectedProgram={classProgramFilter}
+          selectedSubject={classSubjectFilter}
+          selectedClass=""
+          onProgramChange={(programId) => setClassProgramFilter(programId)}
+          onSubjectChange={(subjectId) => setClassSubjectFilter(subjectId)}
+          onClassChange={() => {}} // Not used in filters
+          showClass={false} // Hide class dropdown for filters
+          showLabels={false}
         />
         <Select
           value={classFilter || ''}

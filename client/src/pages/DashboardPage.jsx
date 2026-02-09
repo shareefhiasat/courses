@@ -1473,28 +1473,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
     />
   </div>
         {/* Summary Cards with Filters */}
-        <AnalyticsDashboardPage
-          programs={programs}
-          subjects={subjects}
-          classes={classes}
-          enrollments={enrollments}
-          activities={activities}
-          users={users}
-          submissions={submissions}
-          quizzes={quizzes}
-          announcements={announcements}
-          resources={resources}
-          enrollmentProgramFilter={enrollmentProgramFilter}
-          enrollmentSubjectFilter={enrollmentSubjectFilter}
-          enrollmentClassFilter={enrollmentClassFilter}
-          setEnrollmentProgramFilter={setEnrollmentProgramFilter}
-          setEnrollmentSubjectFilter={setEnrollmentSubjectFilter}
-          setEnrollmentClassFilter={setEnrollmentClassFilter}
-          user={user}
-          isSuperAdmin={isSuperAdmin}
-          isAdmin={isAdmin}
-          isInstructor={isInstructor}
-        />
+        <AnalyticsDashboardPage />
 
         <div className="tab-content">
            {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />}

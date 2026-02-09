@@ -201,6 +201,51 @@ export const getNotificationStatusLabel = (status, lang = 'en') => {
   return label ? (lang === 'ar' ? label.ar : label.en) : status;
 };
 
+// Get notification trigger options for dropdowns
+export const getNotificationTriggerOptions = (t, theme, getColoredIcon) => {
+  const options = [
+    { value: '', label: t('all_triggers') || 'All Triggers', icon: getColoredIcon('filter', theme) }
+  ];
+
+  // Add trigger options
+  Object.entries(NOTIFICATION_TRIGGERS).forEach(([key, value]) => {
+    const labelKey = `notification_trigger_${key}`;
+    const label = t(labelKey) || value;
+    options.push({
+      value,
+      label,
+      icon: getColoredIcon('bell', theme)
+    });
+  });
+
+  return options;
+};
+
+// Get notification channel options for dropdowns
+export const getNotificationChannelOptions = (t, theme, getColoredIcon) => {
+  const options = [
+    { value: '', label: t('all_channels') || 'All Channels', icon: getColoredIcon('filter', theme) }
+  ];
+
+  // Add channel options (email, push, in-app, etc.)
+  const channels = [
+    { key: 'email', label: t('email') || 'Email' },
+    { key: 'push', label: t('push_notification') || 'Push Notification' },
+    { key: 'in_app', label: t('in_app') || 'In-App' },
+    { key: 'sms', label: t('sms') || 'SMS' }
+  ];
+
+  channels.forEach(channel => {
+    options.push({
+      value: channel.key,
+      label: channel.label,
+      icon: getColoredIcon('mail', theme)
+    });
+  });
+
+  return options;
+};
+
 // Get notification type options for dropdowns
 export const getNotificationTypeOptions = (t, lang = 'en') => {
   return [
@@ -227,32 +272,5 @@ export const getNotificationStatusOptions = (t, lang = 'en') => {
     { value: NOTIFICATION_STATUS.UNREAD, label: getNotificationStatusLabel(NOTIFICATION_STATUS.UNREAD, lang) },
     { value: NOTIFICATION_STATUS.READ, label: getNotificationStatusLabel(NOTIFICATION_STATUS.READ, lang) },
     { value: NOTIFICATION_STATUS.ARCHIVED, label: getNotificationStatusLabel(NOTIFICATION_STATUS.ARCHIVED, lang) }
-  ];
-};
-
-// Get notification trigger options for dropdowns
-export const getNotificationTriggerOptions = (t, theme, getColoredIcon) => {
-  return [
-    { value: '', label: t('all_triggers') || 'All Triggers', icon: getColoredIcon('ui', 'filter', 16, null, theme) },
-    { value: NOTIFICATION_TRIGGERS.ACTIVITY_NEW, label: t('activity_new') || 'Activity New' },
-    { value: NOTIFICATION_TRIGGERS.ACTIVITY_GRADED, label: t('activity_graded') || 'Activity Graded' },
-    { value: NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW, label: t('announcement_new') || 'Announcement New' },
-    { value: NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE, label: t('quiz_available') || 'Quiz Available' },
-    { value: NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED, label: t('attendance_recorded') || 'Attendance Recorded' },
-    { value: NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT, label: t('attendance_absent') || 'Attendance Absent' },
-    { value: NOTIFICATION_TRIGGERS.PENALTY_ISSUED, label: t('penalty_issued') || 'Penalty Issued' },
-    { value: NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED, label: t('behavior_awarded') || 'Behavior Awarded' },
-    { value: NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED, label: t('participation_recorded') || 'Participation Recorded' }
-  ];
-};
-
-// Get notification channel options for dropdowns
-export const getNotificationChannelOptions = (t, theme, getColoredIcon) => {
-  return [
-    { value: '', label: t('all_channels') || 'All Channels', icon: getColoredIcon('ui', 'filter', 16, null, theme) },
-    { value: NOTIFICATION_CHANNELS.WEB, label: t('web') || 'Web' },
-    { value: NOTIFICATION_CHANNELS.EMAIL, label: t('email') || 'Email' },
-    { value: NOTIFICATION_CHANNELS.SMS, label: t('sms') || 'SMS' },
-    { value: NOTIFICATION_CHANNELS.WHATSAPP, label: t('whatsapp') || 'WhatsApp' }
   ];
 };
