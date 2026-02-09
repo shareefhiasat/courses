@@ -92,9 +92,9 @@ export const ICON_TYPES = {
     phone_use_during_exam: <Phone size={16} />,
     plagiarism: <AlertTriangle size={16} />,
     disruptive_behavior: <AlertTriangle size={16} />,
+    eye: <Eye size={16} />,
     late_submission: <Clock size={16} />,
-    missing_deadline: <Target size={16} />,
-    eye: <Eye size={16} />
+    missing_deadline: <Target size={16} />
   },
   
   // Participation Type Icons
@@ -257,6 +257,13 @@ export const ICON_TYPES = {
     mic: <Mic size={16} />,
     paperclip: <Paperclip size={16} />,
     attachment: <Paperclip size={16} />,
+    // Missing icons from LoginActivityPage
+    log_in: <LogIn size={16} />,
+    log_out: <LogOut size={16} />,
+    stop: <X size={16} />,
+    key_round: <KeyRound size={16} />,
+    user: <User size={16} />,
+    api: <Globe size={16} />,
     mail: <MessageSquare size={16} />,
     // Email-specific icons needed by emailTypes.jsx
     external_link: <ExternalLink size={16} />,

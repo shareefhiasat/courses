@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@firebaseServices/programService';
-import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid, Modal } from '@ui';
+import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid, Card, CardBody } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
@@ -19,8 +19,7 @@ const ProgramsManagementPage = () => {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProgram, setEditingProgram] = useState(null);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [programToDelete, setProgramToDelete] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: 'delete' });
   const [formData, setFormData] = useState({
     name_en: '',
     name_ar: '',
@@ -110,23 +109,22 @@ const ProgramsManagementPage = () => {
   };
 
   const handleDelete = (program) => {
-    setProgramToDelete(program);
-    setDeleteModalOpen(true);
+    setDeleteModal({ open: true, item: program });
   };
 
   const confirmDelete = async () => {
-    if (!programToDelete) return;
+    if (!deleteModal.item) return;
 
     setLoading(true);
     try {
-      const result = await deleteProgram(programToDelete.docId);
+      const result = await deleteProgram(deleteModal.item.docId);
       if (result.success) {
         // Log activity
         try {
           await logActivity(ACTIVITY_TYPES.PROGRAM_DELETED, {
-            programId: programToDelete.docId,
-            programName: programToDelete.name_en,
-            programCode: programToDelete.code
+            programId: deleteModal.item.docId,
+            programName: deleteModal.item.name_en,
+            programCode: deleteModal.item.code
           });
         } catch (e) { logger.warn('Failed to log activity:', e); }
         toast.success(t('program_deleted_successfully') || 'Program deleted successfully');
@@ -138,15 +136,10 @@ const ProgramsManagementPage = () => {
       toast.error(error.message);
     } finally {
       setLoading(false);
-      setDeleteModalOpen(false);
-      setProgramToDelete(null);
+      setDeleteModal({ open: false, item: null });
     }
   };
 
-  const cancelDelete = () => {
-    setDeleteModalOpen(false);
-    setProgramToDelete(null);
-  };
 
   const resetForm = () => {
     setFormData({
@@ -343,41 +336,36 @@ const ProgramsManagementPage = () => {
       </div>
 
       {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={deleteModalOpen}
-        onClose={cancelDelete}
-        title={t('delete_confirmation') || 'Delete Confirmation'}
-        size="medium"
-      >
-        <div style={{ padding: '0 20px' }}>
-          <p style={{ marginBottom: '20px', lineHeight: '1.5', fontSize: '0.95rem' }}>
-            {t('confirm_delete_program_message', { 
-              programName: programToDelete?.name_en || 'this program' 
-            }) || `Are you sure you want to delete program "${programToDelete?.name_en || 'this program'}"?`}
-          </p>
-          <p style={{ color: '#dc2626', fontSize: '0.85rem', marginBottom: '20px', fontWeight: 500 }}>
-            {t('delete_warning') || 'This action cannot be undone.'}
-          </p>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', paddingTop: '10px' }}>
-            <Button
-              variant="ghost"
-              onClick={cancelDelete}
-              disabled={loading}
-            >
-              {t('cancel') || 'Cancel'}
-            </Button>
-            <Button
-              variant="danger"
-              onClick={confirmDelete}
-              disabled={loading}
-              loading={loading}
-            >
-              {t('delete') || 'Delete'}
-            </Button>
-          </div>
+      {deleteModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+            <CardBody>
+              <h3>{t('delete_program') || 'Delete Program'}</h3>
+              <p>{t('delete_program_confirmation') || `Are you sure you want to delete program "${deleteModal.item?.name_en || 'this program'}"?`}</p>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t('delete_warning') || 'This action cannot be undone.'}</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
+                  {t('cancel') || 'Cancel'}
+                </Button>
+                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
+                  {t('delete') || 'Delete'}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
         </div>
-      </Modal>
-
+      )}
     </div>
   );
 };

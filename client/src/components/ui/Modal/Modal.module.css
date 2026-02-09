@@ -55,13 +55,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
+  padding: 1rem;
   border-bottom: 1px solid var(--border, #e0e0e0);
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-size-xl, 1.25rem);
+  font-size: var(--font-size-base, 1rem);
   font-weight: 600;
   color: #212529;
 }
@@ -86,7 +86,7 @@
 
 /* Body */
 .body {
-  padding: 1.5rem;
+  padding: 1rem;
   overflow-y: auto;
   flex: 1;
   color: #212529;
@@ -98,7 +98,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
-  padding: 1.5rem;
+  padding: 1rem;
   border-top: 1px solid var(--border, #e0e0e0);
 }
 
@@ -139,7 +139,7 @@
   .header,
   .body,
   .footer {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 }
 

@@ -364,7 +364,6 @@ const UsersPage = ({
                   </span>
                 )},
               ]}
-              fullWidth
             />
           </div>
         )}
@@ -495,7 +494,8 @@ const UsersPage = ({
                     color: color,
                     fontWeight: 600
                   }}>
-                    {icon} {role}
+                    {/*{icon} */}
+                    {role}
                   </span>
                 );
               }
@@ -511,19 +511,22 @@ const UsersPage = ({
                 if (isArchived) {
                   return (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
-                      {getThemedIcon('ui', 'archive', 16, theme)} {t('status_archived')}
+                      {/*{getThemedIcon('ui', 'archive', 16, theme)} */}
+                      {t('status_archived')}
                     </span>
                   );
                 } else if (isDisabled) {
                   return (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
-                      {getThemedIcon('ui', 'user_x', 16, theme)} {t('status_disabled')}
+                      {/*{getThemedIcon('ui', 'user_x', 16, theme)} */}
+                      {t('status_disabled')}
                     </span>
                   );
                 } else {
                   return (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-success, #28a745)', fontWeight: 500 }}>
-                      {getThemedIcon('ui', 'user_check', 16, theme)} {t('status_active')}
+                      {/*{getThemedIcon('ui', 'user_check', 16, theme)} */}
+                      {t('status_active')}
                     </span>
                   );
                 }

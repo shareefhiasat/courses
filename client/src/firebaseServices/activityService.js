@@ -17,6 +17,25 @@ import {
 import { db } from "./config";
 import { logActivity, ACTIVITY_TYPES } from './activityLogger';
 import { deleteCollection, deleteDocumentsByField } from './collectionManagementService';
+import { ACTIVITY_TYPE_OPTIONS } from '@constants/activityTypes';
+
+// Convert date fields to timestamps for Firestore
+const convertDatesToTimestamps = (data) => {
+  const converted = { ...data };
+  
+  // Convert date fields to Firestore timestamps
+  if (data.dueDate) {
+    converted.dueDate = new Timestamp(data.dueDate);
+  }
+  if (data.startDate) {
+    converted.startDate = new Timestamp(data.startDate);
+  }
+  if (data.endDate) {
+    converted.endDate = new Timestamp(data.endDate);
+  }
+  
+  return converted;
+};
 
 // Activities
 export const getActivities = async () => {
@@ -455,4 +474,9 @@ export const deleteAllLoginLogs = async (onProgress = null) => {
  */
 export const deleteLoginLogsByType = async (logType, onProgress = null) => {
   return await deleteDocumentsByField('activityLogs', 'type', logType, onProgress);
+};
+
+// Get activity types from centralized constants
+export const getActivityTypes = () => {
+  return { success: true, data: ACTIVITY_TYPE_OPTIONS };
 };

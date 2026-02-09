@@ -52,6 +52,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Categories: admin write, public read
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Login logs: admin only
     match /loginLogs/{logId} {
       allow read, write: if isAdmin();

@@ -29,11 +29,85 @@ export const ACTIVITY_TYPE_LABELS = {
   [ACTIVITY_TYPES.PARTICIPATION]: 'Participation'
 };
 
+// Arabic labels for bilingual support
+export const ACTIVITY_TYPE_LABELS_AR = {
+  [ACTIVITY_TYPES.QUIZ]: 'اختبار',
+  [ACTIVITY_TYPES.HOMEWORK]: 'واجب منزلي',
+  [ACTIVITY_TYPES.TRAINING]: 'تدريب',
+  [ACTIVITY_TYPES.LAB_AND_PROJECT]: 'معمل ومشروع',
+  [ACTIVITY_TYPES.MID_EXAM]: 'امتحان منتصف الفصل',
+  [ACTIVITY_TYPES.FINAL_EXAM]: 'امتحان نهائي',
+  [ACTIVITY_TYPES.ATTENDANCE]: 'الحضور',
+  [ACTIVITY_TYPES.PARTICIPATION]: 'المشاركة'
+};
+
 // Options for dropdown/select components
 export const ACTIVITY_TYPE_OPTIONS = Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => ({
   value,
   label
 }));
+
+// Get activity type configuration with icon and text
+export const getActivityTypeConfig = (type, theme = 'light', lang = 'en') => {
+  const labels = lang === 'ar' ? ACTIVITY_TYPE_LABELS_AR : ACTIVITY_TYPE_LABELS;
+  
+  const typeConfig = {
+    [ACTIVITY_TYPES.QUIZ]: { 
+      icon: 'target', 
+      text: labels[ACTIVITY_TYPES.QUIZ] 
+    },
+    [ACTIVITY_TYPES.HOMEWORK]: { 
+      icon: 'home', 
+      text: labels[ACTIVITY_TYPES.HOMEWORK] 
+    },
+    [ACTIVITY_TYPES.TRAINING]: { 
+      icon: 'target', 
+      text: labels[ACTIVITY_TYPES.TRAINING] 
+    },
+    [ACTIVITY_TYPES.LAB_AND_PROJECT]: { 
+      icon: 'wrench', 
+      text: labels[ACTIVITY_TYPES.LAB_AND_PROJECT] 
+    },
+    [ACTIVITY_TYPES.MID_EXAM]: { 
+      icon: 'file_text', 
+      text: labels[ACTIVITY_TYPES.MID_EXAM] 
+    },
+    [ACTIVITY_TYPES.FINAL_EXAM]: { 
+      icon: 'file_text', 
+      text: labels[ACTIVITY_TYPES.FINAL_EXAM] 
+    },
+    [ACTIVITY_TYPES.ATTENDANCE]: { 
+      icon: 'users', 
+      text: labels[ACTIVITY_TYPES.ATTENDANCE] 
+    },
+    [ACTIVITY_TYPES.PARTICIPATION]: { 
+      icon: 'message_square', 
+      text: labels[ACTIVITY_TYPES.PARTICIPATION] 
+    }
+  };
+  
+  const config = typeConfig[type] || { 
+    icon: 'file_text', 
+    text: type || 'Unknown' 
+  };
+  
+  return {
+    ...config,
+    icon: config.icon
+  };
+};
+
+// Get activity type options for dropdown with icons
+export const getActivityTypeOptionsForDropdown = (theme = 'light', lang = 'en') => {
+  return Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => {
+    const config = getActivityTypeConfig(value, theme, lang);
+    return {
+      value,
+      label: config.text,
+      icon: config.icon
+    };
+  });
+};
 
 // Mark types (subset of activity types used specifically for marks)
 export const MARK_TYPES = {

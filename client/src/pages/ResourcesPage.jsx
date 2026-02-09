@@ -464,7 +464,7 @@ const ResourcesPage = ({
             icon={getThemedIcon('ui', 'edit', 16, theme)} 
             onClick={() => handleEdit(params)}
           >
-            Edit
+            {t('edit') || 'Edit'}
           </Button>
           <Button 
             size="sm" 
@@ -515,7 +515,53 @@ const ResourcesPage = ({
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} Editing Resource: {editingResource.title || editingResource.title_en}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_resource') || 'Editing Resource'}: {editingResource.title || editingResource.title_en}
+        </div>
+      )}
+
+      {/* Form Navigation Buttons */}
+      {editingResource && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '12px',
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          background: 'var(--background-secondary, #f8fafc)',
+          border: '1px solid var(--border-color, #e2e8f0)',
+          borderRadius: '8px'
+        }}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveResourceFormTab('basic')}
+            disabled={activeResourceFormTab === 'basic'}
+          >
+            {t('previous') || 'Previous'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveResourceFormTab('content')}
+            disabled={activeResourceFormTab === 'content'}
+          >
+            {t('next') || 'Next'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEditingResource(null);
+              setResourceForm({ title: '', description: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '' });
+              setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
+              setActiveResourceFormTab('basic');
+            }}
+          >
+            {t('cancel') || 'Cancel'}
+          </Button>
         </div>
       )}
 

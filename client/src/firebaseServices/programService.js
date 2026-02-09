@@ -15,6 +15,9 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 
+// Re-export getClasses from classService for convenience
+export { getClasses, addClass, updateClass, deleteClass, getClassById } from './classService';
+
 /**
  * Programs Collection
  * Top-level academic programs that contain subjects
@@ -32,7 +35,7 @@ export const getPrograms = async () => {
     console.log(`🔍 [getPrograms-${callId}] Query metadata:`, qs.metadata);
     
     const items = [];
-    qs.forEach((d, index) => {
+    qs.docs.forEach((d, index) => {
       console.log(`🔍 [getPrograms-${callId}] Processing doc ${index}:`, {
         id: d.id,
         exists: d.exists(),

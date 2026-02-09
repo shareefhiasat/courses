@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
@@ -7,7 +7,10 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
 import { formatQatarDate } from '@utils/timezone';
 import logger from '@utils/logger';
-import { ACTIVITY_TYPES } from '@constants/activityTypes';
+import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdown, getThemeColor } from '@constants';
+import { getActivityTypes } from '@firebaseServices/activityService';
+import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
+import { getCategories } from '@firebaseServices/categoryService';
 import { Select, Input, Textarea, DatePicker, NumberInput, Button, ToggleSwitch, UrlInput } from '@ui';
 
 /**
@@ -26,9 +29,7 @@ import { Select, Input, Textarea, DatePicker, NumberInput, Button, ToggleSwitch,
  */
 const ActivitiesPage = ({
   activities,
-  programs,
-  subjects,
-  classes,
+  setActivities,
   quizzes,
   courses,
   users,
@@ -46,20 +47,118 @@ const ActivitiesPage = ({
   deleteModal,
   setDeleteModal,
   loadData,
-  enrollmentProgramFilter,
-  enrollmentSubjectFilter,
-  enrollmentClassFilter,
-  activityProgramOptions,
-  activitySubjectOptions,
-  activityClassOptions,
-  handleDropdownChange,
-  handleActivitySubmit,
   handleEditActivity,
+  handleActivitySubmit,
+  handleDropdownChange,
   user
 }) => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const [activityTypes, setActivityTypes] = useState([]);
+  const [categories, setCategories] = useState([]);
+  
+  // Separate state management to avoid race conditions
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Load data independently
+  useEffect(() => {
+    const loadData = async () => {
+      setDataLoading(true);
+      try {
+        const [programsResult, subjectsResult, classesResult, categoriesResult] = await Promise.all([
+          getPrograms(),
+          getSubjects(), 
+          getClasses(),
+          getCategories()
+        ]);
+        
+        if (programsResult.success) setPrograms(programsResult.data || []);
+        if (subjectsResult.success) setSubjects(subjectsResult.data || []);
+        if (classesResult.success) setClasses(classesResult.data || []);
+        if (categoriesResult.success) setCategories(categoriesResult.data || []);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast?.showError('Failed to load data');
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
+
+  // Create options from local state
+  const activityProgramOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
+    ];
+    const validPrograms = programs
+      .filter(prog => prog.docId || prog.id)
+      .map(prog => {
+        const value = prog.docId || prog.id;
+        const label = lang === 'ar' 
+          ? (prog.name_ar || prog.name_en || prog.name || value) 
+          : (prog.name_en || prog.name_ar || prog.name || value);
+        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
+      });
+    return [...opts, ...validPrograms];
+  }, [programs, lang, t, theme]);
+
+  const activitySubjectOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
+    ];
+    const validSubjects = subjects
+      .filter(sub => {
+        if (!activityForm.programId) return true;
+        const subProgramId = sub.program || sub.programId || '';
+        const formProgramId = activityForm.programId || '';
+        return subProgramId === formProgramId;
+      })
+      .map(sub => {
+        const value = sub.docId || sub.id;
+        const label = lang === 'ar' 
+          ? (sub.name_ar || sub.name_en || value) 
+          : (sub.name_en || sub.name_ar || value);
+        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
+      });
+    return [...opts, ...validSubjects];
+  }, [subjects, activityForm.programId, lang, t]);
+
+  const activityClassOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) }
+    ];
+    const validClasses = classes
+      .filter(cls => cls.docId || cls.id)
+      .map(cls => {
+        const value = cls.docId || cls.id;
+        const label = cls.name + (cls.code ? ` (${cls.code})` : '');
+        return { value, label, icon: getThemedIcon('ui', 'users', 16, theme) };
+      });
+    return [...opts, ...validClasses];
+  }, [classes, lang, t]);
+
+  const activityCategoryOptions = useMemo(() => {
+    const opts = [
+      { value: '', label: t('all_categories'), icon: getThemedIcon('ui', 'filter', 16, theme) }
+    ];
+    const validCategories = categories
+      .filter(cat => cat.docId || cat.id)
+      .map(cat => {
+        const value = cat.docId || cat.id;
+        const label = lang === 'ar' 
+          ? (cat.name_ar || cat.name_en || value) 
+          : (cat.name_en || cat.name_ar || value);
+        return { value, label, icon: getThemedIcon('ui', cat.icon || 'folder', 16, theme) };
+      })
+      .sort((a, b) => (a.label || '').localeCompare(b.label || '', undefined, { numeric: true }));
+    return [...opts, ...validCategories];
+  }, [categories, lang, t, theme]);
 
   return (
     <div className="activities-tab">
@@ -74,7 +173,7 @@ const ActivitiesPage = ({
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} Editing Activity: {editingActivity.id} - {editingActivity.title_en}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_activity') || 'Editing Activity'}: {editingActivity.id} - {editingActivity.title_en}
         </div>
       )}
       
@@ -150,6 +249,18 @@ const ActivitiesPage = ({
                 disabled={!activityForm.subjectId}
                 icon={getThemedIcon('ui', 'filter', 16, theme)}
               />
+              <Select
+                searchable
+                placeholder={t('all_categories')}
+                value={activityForm.categoryId || null}
+                onChange={handleDropdownChange(
+                  setActivityForm,
+                  'categoryId'
+                )}
+                options={activityCategoryOptions}
+                style={{ width: '100%' }}
+                icon={getThemedIcon('ui', 'filter', 16, theme)}
+              />
             </div>
             <div className="form-row">
               <div>
@@ -164,34 +275,10 @@ const ActivitiesPage = ({
               </div>
               <Select
                 searchable
-                placeholder={t('course') || 'Course'}
-                value={activityForm.course}
-                onChange={(e) => setActivityForm({ ...activityForm, course: e.target.value })}
-                options={[
-                  { value: '', label: lang === 'ar' ? 'لا يوجد فئة' : 'No Category' },
-                  ...(courses && courses.length > 0 ? courses : [
-                    { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
-                    { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
-                    { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
-                    { docId: 'general', name_en: 'General', name_ar: 'عام' },
-                  ]).map(c => ({
-                    value: c.docId,
-                    label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId)
-                  }))
-                ]}
-                style={{ width: '100%' }}
-              />
-              <Select
-                searchable
                 placeholder={t('type') || 'Activity Type'}
                 value={activityForm.type}
                 onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })}
-                options={[
-                  { value: 'quiz', label: t('quiz') || 'Quiz', icon: getThemedIcon('ui', 'target', 16, theme) },
-                  { value: 'homework', label: t('homework') || 'Homework', icon: getThemedIcon('ui', 'file_text', 16, theme) },
-                  { value: 'training', label: t('training') || 'Training', icon: getThemedIcon('ui', 'award', 16, theme) },
-                  { value: 'labandproject', label: 'Lab & Project', icon: getThemedIcon('ui', 'zap', 16, theme) }
-                ]}
+                options={getActivityTypeOptionsForDropdown(theme, lang)}
                 style={{ width: '100%' }}
               />
               <div style={{ position: 'relative', width: '100%' }}>
@@ -201,7 +288,7 @@ const ActivitiesPage = ({
                   value={activityForm.difficulty || 'beginner'}
                   onChange={(e) => {
                     if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                      toast?.showInfo?.('Difficulty is synced from quiz. Enable "Override quiz settings" to edit.');
+                      toast?.showInfo?.(t('difficulty_synced_from_quiz') || 'Difficulty is synced from quiz. Enable "Override quiz settings" to edit.');
                       return;
                     }
                     setActivityForm({ ...activityForm, difficulty: e.target.value });
@@ -523,7 +610,7 @@ const ActivitiesPage = ({
                     }
                   }}
                 >
-                  ← Previous
+                  {t('previous') || '← Previous'}
                 </Button>
               )}
               {activeActivityFormTab !== 'settings' && (
@@ -538,7 +625,7 @@ const ActivitiesPage = ({
                     }
                   }}
                 >
-                  Next →
+                  {t('next') || 'Next →'}
                 </Button>
               )}
               {activeActivityFormTab === 'settings' && (
@@ -571,23 +658,33 @@ const ActivitiesPage = ({
         )}
       </form>
       
+      {!editingActivity && (
+        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, color: getThemeColor('text.primary', theme) }}>
+            {t('activities_list') || 'Activities List'}
+          </h3>
+          <Button
+            variant="primary"
+            icon={getThemedIcon('ui', 'plus', 16, theme)}
+            onClick={() => {
+              setEditingActivity({ id: 'new', title_en: '', title_ar: '', description_en: '', description_ar: '' });
+              setActivityForm({
+                id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
+                type: 'homework', classId: '', difficulty: 'easy', maxScore: 100,
+                allowRetake: false, dueDate: null, show: true, quizId: '',
+                overrideQuizSettings: false
+              });
+              setActiveActivityFormTab('basic');
+            }}
+          >
+            {t('add_activity') || 'Add Activity'}
+          </Button>
+        </div>
+      )}
+      
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
-          rows={activities.filter(a => {
-            if (enrollmentClassFilter !== 'all') {
-              return a.classId === enrollmentClassFilter;
-            }
-            if (enrollmentSubjectFilter !== 'all') {
-              const classItem = classes.find(c => (c.id || c.docId) === a.classId);
-              return classItem?.subjectId === enrollmentSubjectFilter;
-            }
-            if (enrollmentProgramFilter !== 'all') {
-              const classItem = classes.find(c => (c.id || c.docId) === a.classId);
-              const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
-              return subject?.programId === enrollmentProgramFilter;
-            }
-            return true;
-          })}
+          rows={activities}
           getRowId={(row) => row.docId || row.id}
           columns={[
             { field: 'id', headerName: t('id_col'), width: 90 },
@@ -604,15 +701,18 @@ const ActivitiesPage = ({
                 const programId = params.value || params.row?.programId || params.row?.program;
                 if (!programId) return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {getThemedIcon('ui', 'archive', 16, theme)} General
+                    {getThemedIcon('ui', 'archive', 16, theme)} {t('general') || 'General'}
                   </span>
                 );
                 const program = programs.find(p => (p.docId || p.id) === programId);
                 if (!program) return '—';
-                const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
+                const programName = lang === 'ar' 
+                  ? (program.name_ar || program.name_en || program.name || programId) 
+                  : (program.name_en || program.name_ar || program.name || programId);
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {getThemedIcon('ui', 'target', 16, theme)} {programName}
+                    {/*{getThemedIcon('ui', 'target', 16, theme)}*/}
+                    {programName}
                   </span>
                 );
               }
@@ -629,15 +729,19 @@ const ActivitiesPage = ({
                 const subjectId = params.value || params.row?.subjectId || params.row?.subject;
                 if (!subjectId) return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {getThemedIcon('ui', 'book_open', 16, theme)} General
+                    {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
+                    {t('general') || 'General'}
                   </span>
                 );
                 const subject = subjects.find(s => (s.docId || s.id) === subjectId);
                 if (!subject) return '—';
-                const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
+                const subjectName = lang === 'ar' 
+                  ? (subject.name_ar || subject.name_en || subject.name || subjectId) 
+                  : (subject.name_en || subject.name_ar || subject.name || subjectId);
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {getThemedIcon('ui', 'book_open', 16, theme)} {subjectName}
+                    {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
+                    {subjectName}
                   </span>
                 );
               }
@@ -649,19 +753,20 @@ const ActivitiesPage = ({
               renderCell: (params) => {
                 if (!params.value) return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {getThemedIcon('ui', 'users',16, theme)} General
+                    {/*{getThemedIcon('ui', 'users',16, theme)} */}
+                    {t('general') || 'General'}
                   </span>
                 );
                 const classItem = classes.find(c => (c.docId || c.id) === params.value);
                 if (!classItem) return params.value;
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
+                    {/*{getThemedIcon('ui', 'users', 16, theme)} */}
+                    {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
                   </span>
                 );
               }
             },
-            { field: 'course', headerName: t('course_col') || 'Course', width: 140 },
             { 
               field: 'type', 
               headerName: t('type_col') || 'Type', 
@@ -673,15 +778,10 @@ const ActivitiesPage = ({
               renderCell: (params) => {
                 const type = params.value || params.row?.type;
                 if (!type) return '—';
-                const typeMap = {
-                  'quiz': { icon: getThemedIcon('ui', 'target',16, theme), text: 'Quiz' },
-                  'homework': { icon: getThemedIcon('ui', 'home', 16, theme), text: 'Homework' },
-                  'training': { icon: getThemedIcon('ui', 'target',16, theme), text: 'Training' }
-                };
-                const typeConfig = typeMap[type] || { icon: getThemedIcon('ui', 'file_text', 16, theme), text: type };
+                const typeConfig = getActivityTypeConfig(type, theme, lang);
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {typeConfig.icon} {typeConfig.text}
+                    {getThemedIcon('ui', typeConfig.icon, 16, theme)} {typeConfig.text}
                   </span>
                 );
               }
@@ -812,17 +912,17 @@ const ActivitiesPage = ({
                                 activityType: activity.type
                               });
                             } catch (e) { }
-                            toast?.showSuccess('Activity deleted successfully!');
+                            toast?.showSuccess(t('activity_deleted_successfully') || 'Activity deleted successfully!');
                             await loadData();
                             setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
                           } else {
                             setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
-                            toast?.showError('Error deleting activity: ' + result.error);
+                            toast?.showError(t('error_deleting_activity') || 'Error deleting activity: ' + result.error);
                             setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
                           }
                         } catch (error) {
                           setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
-                          toast?.showError('Error deleting activity: ' + error.message);
+                          toast?.showError(t('error_deleting_activity') || 'Error deleting activity: ' + error.message);
                           setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
                         }
                       }

@@ -9,7 +9,8 @@ import {
   where, 
   orderBy,
   onSnapshot,
-  serverTimestamp 
+  serverTimestamp,
+  limit as firebaseLimit
 } from 'firebase/firestore';
 import { db } from './config';
 import { notificationGateway } from './notificationGateway';
@@ -580,12 +581,12 @@ export async function getNotificationStats(userId, days = 30) {
 /**
  * Get notification logs for admin monitoring
  */
-export async function getNotificationLogs(filters = {}, limit = 100) {
+export async function getNotificationLogs(filters = {}, limitCount = 100) {
   try {
     let q = query(
       collection(db, 'notification_logs'),
       orderBy('timestamp', 'desc'),
-      limit(limit)
+      firebaseLimit(limitCount)
     );
     
     // Apply filters if provided

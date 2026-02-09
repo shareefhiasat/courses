@@ -70,7 +70,7 @@ export class ProgramsPage {
     await this.page.waitForTimeout(500);
     
     // Confirm deletion
-    await this.page.locator('button:has-text("OK"), button:has-text("Confirm"), button:has-text("Yes")').first().click();
+    await this.page.locator('button:has-text("Delete"), button:has-text("Confirm"), button:has-text("Yes")').first().click();
     await this.page.waitForTimeout(2000);
   }
 

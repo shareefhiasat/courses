@@ -218,7 +218,8 @@ const EnrollmentManagementPage = ({
               if (!user) return params.value;
               return (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {getThemedIcon('ui', 'user', 16, theme)} {user.displayName || user.realName || '—'}{user.email ? ` (${user.email})` : ''}
+                  {/*{getThemedIcon('ui', 'user', 16, theme)} */}
+                  {user.displayName || user.realName || '—'}{user.email ? ` (${user.email})` : ''}
                 </span>
               );
             }
@@ -244,14 +245,16 @@ const EnrollmentManagementPage = ({
               if (!programName && !params.value) {
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {getThemedIcon('ui', 'target', 16, theme)} N/A
+                    {/*{getThemedIcon('ui', 'target', 16, theme)} */}
+                    -
                   </span>
                 );
               }
               const finalProgramName = programName || params.value || 'N/A';
               return (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {getThemedIcon('ui', 'target', 16, theme)} {finalProgramName}
+                  {/*{getThemedIcon('ui', 'target', 16, theme)} */}
+                  {finalProgramName}
                 </span>
               );
             }
@@ -277,14 +280,16 @@ const EnrollmentManagementPage = ({
               if (!subjectName && !params.value) {
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {getThemedIcon('ui', 'book_open', 16, theme)} N/A
+                    {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
+                    -
                   </span>
                 );
               }
               const finalSubjectName = subjectName || params.value || 'N/A';
               return (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {getThemedIcon('ui', 'book_open', 16, theme)} {finalSubjectName}
+                  {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
+                  {finalSubjectName}
                 </span>
               );
             }
@@ -297,7 +302,8 @@ const EnrollmentManagementPage = ({
               const codePart = classItem.code ? ` (${classItem.code})` : '';
               return (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{codePart}
+                  {/*{getThemedIcon('ui', 'users', 16, theme)} */}
+                  {classItem.name}{codePart}
                 </span>
               );
             }
@@ -306,7 +312,7 @@ const EnrollmentManagementPage = ({
             field: 'role', headerName: t('role_col'), width: 150,
             renderCell: (params) => {
               const roleMap = {
-                [USER_ROLES.STUDENT]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{getThemedIcon('ui', 'user', 16, theme)} Student</span>,
+                [USER_ROLES.STUDENT]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{getThemedIcon('ui', 'user', 16, theme)} Student</span>, // User icon for student role
                 'ta': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👨‍🏫 TA</span>,
                 [USER_ROLES.INSTRUCTOR]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👩‍🏫 Instructor</span>
               };
@@ -322,7 +328,7 @@ const EnrollmentManagementPage = ({
             field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
             renderCell: (params) => (
               <div style={{ display: 'flex', gap: 8 }}>
-                <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
+                <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => { // Trash icon for delete enrollment action
                   const enrollment = params.row;
                   const user = users.find(u => (u.docId || u.id) === enrollment.userId);
                   const classItem = localClasses.find(c => (c.docId || c.id) === enrollment.classId);

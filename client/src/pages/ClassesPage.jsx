@@ -17,7 +17,9 @@ import {
   AdvancedDataGrid, 
   useToast, 
   YearSelect,
-  UserSelect
+  UserSelect,
+  Card,
+  CardBody
 } from '@ui';
 import { RibbonTabs } from '@ui';
 import logger from '@utils/logger';
@@ -177,45 +179,47 @@ const ClassesPage = () => {
       open: true,
       item: classItem,
       type: 'class',
-      onConfirm: async () => {
-        // Optimistic update
-        const prevClasses = classes;
-        setClasses(prev => prev.filter(c => c.docId !== classItem.docId));
-        try {
-          // deleteClass now handles cascade deletion of enrollments and attendance
-          const result = await deleteClass(classItem.docId);
-          if (result.success) {
-            // Log activity
-            try {
-              await logActivity(ACTIVITY_TYPES.CLASS_DELETED, {
-                classId: classItem.docId,
-                className: classItem.name
-              });
-            } catch (e) { }
-            await loadData();
-            toast?.showSuccess(`Class deleted successfully! Removed ${classEnrollments.length} enrollment(s) and related attendance records.`);
-            setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-          } else {
-            // Rollback on error
-            setClasses(prevClasses);
-            toast?.showError('Error deleting class: ' + result.error);
-            setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-          }
-        } catch (error) {
-          // Rollback on error
-          setClasses(prevClasses);
-          toast?.showError('Error deleting class: ' + error.message);
-          setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-        }
-      },
-      relatedData: {
-        enrollments: classEnrollments,
-        activities: relatedActivities
-      },
-      warningMessage: classEnrollments.length > 0 || relatedActivities.length > 0
-        ? `This class has ${classEnrollments.length} enrollment(s) and ${relatedActivities.length} activity(ies) that will be deleted.`
-        : null
+      classEnrollments,
+      relatedActivities
     });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.item) return;
+
+    setLoading(true);
+    try {
+      // Optimistic update
+      const prevClasses = classes;
+      setClasses(prev => prev.filter(c => c.docId !== deleteModal.item.docId));
+      
+      // deleteClass now handles cascade deletion of enrollments and attendance
+      const result = await deleteClass(deleteModal.item.docId);
+      if (result.success) {
+        // Log activity
+        try {
+          await logActivity(ACTIVITY_TYPES.CLASS_DELETED, {
+            classId: deleteModal.item.docId,
+            className: deleteModal.item.name
+          });
+        } catch (e) { }
+        await loadData();
+        toast?.showSuccess(`Class deleted successfully! Removed ${deleteModal.classEnrollments?.length || 0} enrollment(s) and related attendance records.`);
+        setDeleteModal({ open: false, item: null, type: null, classEnrollments: null, relatedActivities: null });
+      } else {
+        // Rollback on error
+        setClasses(prevClasses);
+        toast?.showError('Error deleting class: ' + result.error);
+        setDeleteModal({ open: false, item: null, type: null, classEnrollments: null, relatedActivities: null });
+      }
+    } catch (error) {
+      // Rollback on error
+      setClasses(prevClasses);
+      toast?.showError('Error deleting class: ' + error.message);
+      setDeleteModal({ open: false, item: null, type: null, classEnrollments: null, relatedActivities: null });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -229,12 +233,11 @@ const ClassesPage = () => {
       if (activeClassFormTab === 'basic') {
         setActiveClassFormTab('academic');
       } else if (activeClassFormTab === 'academic') {
-        setActiveClassFormTab('settings');
+        // Save form when reaching the last tab
+        handleClassSubmit({ preventDefault: () => {} });
       }
     } else {
-      if (activeClassFormTab === 'settings') {
-        setActiveClassFormTab('academic');
-      } else if (activeClassFormTab === 'academic') {
+      if (activeClassFormTab === 'academic') {
         setActiveClassFormTab('basic');
       }
     }
@@ -268,7 +271,8 @@ const ClassesPage = () => {
         const subjectId = row.subjectId || params?.value;
         if (!subjectId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-            {getThemedIcon('ui', 'book_open', 16, theme)} —
+            {/*{getThemedIcon('ui', 'book_open', 16, theme)}*/}
+            —
           </span>
         );
         const subject = subjects.find(s => (s.docId === subjectId) || (s.id === subjectId));
@@ -276,7 +280,8 @@ const ClassesPage = () => {
         const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : subject.name_en;
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'book_open', 16, theme)} {subjectName || '—'}
+            {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
+            {subjectName || '—'}
           </span>
         );
       }
@@ -397,8 +402,7 @@ const ClassesPage = () => {
             id: 'class-fields',
             items: [
               { key: 'basic', label: t('basic_info') || 'Basic Info', icon: getThemedIcon('ui', 'home', 14, theme) },
-              { key: 'academic', label: t('academic_info') || 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) },
-              { key: 'settings', label: t('settings') || 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
+              { key: 'academic', label: t('academic_info') || 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) }
             ]
           }
         ]}
@@ -410,41 +414,37 @@ const ClassesPage = () => {
       <form onSubmit={handleClassSubmit} className="dashboard-form">
         {/* Form Actions - Show on all tabs - MOVED TO TOP */}
         <div className="form-actions" style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {activeClassFormTab !== 'basic' && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleTabNavigation('previous')}
-                >
-                  ← Previous
-                </Button>
-              )}
-              {activeClassFormTab !== 'settings' && (
-                <Button 
-                  type="button" 
-                  variant="secondary"
-                  onClick={() => handleTabNavigation('next')}
-                >
-                  Next →
-                </Button>
-              )}
-              {activeClassFormTab === 'settings' && (
-                <Button type="submit" variant="primary" loading={loading}>
-                  {(editingClass ? t('update') : t('save'))}
-                </Button>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'center' }}>
+            {activeClassFormTab !== 'basic' && (
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={handleCancelEdit}
+                onClick={() => handleTabNavigation('previous')}
               >
-                {t('cancel') || 'Cancel'}
+                ← Previous
               </Button>
-            </div>
+            )}
+            {activeClassFormTab === 'academic' && (
+              <Button type="submit" variant="primary" loading={loading}>
+                {(editingClass ? t('update') : t('save'))}
+              </Button>
+            )}
+            {activeClassFormTab !== 'academic' && (
+              <Button 
+                type="button" 
+                variant="secondary"
+                onClick={() => handleTabNavigation('next')}
+              >
+                Next →
+              </Button>
+            )}
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleCancelEdit}
+            >
+              {t('cancel') || 'Cancel'}
+            </Button>
           </div>
         </div>
 
@@ -488,14 +488,6 @@ const ClassesPage = () => {
                 options={classFormSubjectOptions}
                 required
               />
-              {/* Debug: Show users count and roles */}
-              {process.env.NODE_ENV === 'development' && (
-                <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.5rem' }}>
-                  Debug: {users.length} users loaded | 
-                  Admin/Instructors: {users.filter(u => u.role === USER_ROLES.SUPER_ADMIN || u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.INSTRUCTOR).length} |
-                  Active: {users.filter(u => (u.role === USER_ROLES.SUPER_ADMIN || u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.INSTRUCTOR) && u.active).length}
-                </div>
-              )}
               <UserSelect
                 users={users}
                 enrollments={enrollments}
@@ -549,19 +541,10 @@ const ClassesPage = () => {
             </div>
           </>
         )}
-
-        {/* Settings Tab */}
-        {activeClassFormTab === 'settings' && (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-            {getThemedIcon('ui', 'settings', 48, theme)}
-            <p>Additional class settings can be added here in the future.</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Features like class capacity, schedule, enrollment restrictions, etc.</p>
-          </div>
-        )}
       </form>
 
       {/* Filters for Classes */}
-      <div className="filters-container" style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
+      <div className="filters-container" style={{ display: 'flex', justifyContent: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
         <Select
           value={classProgramFilter || ''}
           onChange={(e) => setClassProgramFilter(e.target.value)}
@@ -621,6 +604,38 @@ const ClassesPage = () => {
           fancyVariant="dots"
         />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+            <CardBody>
+              <h3>{t('delete_class') || 'Delete Class'}</h3>
+              <p>{t('delete_class_confirmation') || `Are you sure you want to delete class "${deleteModal.item?.name || deleteModal.item?.code || 'this class'}"?`}</p>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t('delete_class_warning') || 'This will also remove all enrollments and attendance records for this class.'}</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, type: null, classEnrollments: null, relatedActivities: null })}>
+                  {t('cancel') || 'Cancel'}
+                </Button>
+                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }} loading={loading}>
+                  {t('delete') || 'Delete'}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

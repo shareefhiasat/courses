@@ -147,6 +147,7 @@ import { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, ge
 import { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById } from './participationTypes.jsx';
 import { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } from './penaltyTypes.jsx';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
+import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_LABELS_AR, ACTIVITY_TYPE_OPTIONS, getActivityTypeConfig, getActivityTypeOptionsForDropdown } from './activityTypes.js';
 import { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS } from '../utils/sharedTypes.js';
 
 export { USER_ROLES };
@@ -156,6 +157,7 @@ export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, ge
 export { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById };
 export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById };
 export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById };
+export { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_LABELS_AR, ACTIVITY_TYPE_OPTIONS, getActivityTypeConfig, getActivityTypeOptionsForDropdown };
 export { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TASK_STATUS, USER_STATUS, CLASS_STATUS };
 
 // Global Role Configuration System - Comprehensive role-based limitations

@@ -35,7 +35,9 @@ import { getClasses } from '@firebaseServices/classService';
 
 const NotificationsPage = () => {
   const { user } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  console.log('Current lang:', lang);
+  console.log('t function test:', t('all_types'));
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
@@ -469,7 +471,11 @@ const NotificationsPage = () => {
               setFilterAttendanceStatus('all');
               setFilterAbsenceType('all');
             }}
-            options={getNotificationTypeOptions(t, lang)}
+            options={(() => {
+              const options = getNotificationTypeOptions(t, lang);
+              console.log('Notification type options:', options);
+              return options;
+            })()}
             size="small"
             fullWidth
           />

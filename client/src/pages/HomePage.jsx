@@ -10,6 +10,7 @@ import { getCourses } from '@firebaseServices/courseService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
 import { getUserSubmissions } from '@firebaseServices/submissionService';
 import { getUserProfile } from '@firebaseServices/userService';
+import { getCategories } from '@firebaseServices/categoryService';
 import { useAuth } from '@contexts/AuthContext';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
@@ -85,6 +86,7 @@ const HomePage = memo(() => {
   const [quizzes, setQuizzes] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('');
   
@@ -222,19 +224,23 @@ const HomePage = memo(() => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult] = await Promise.all([
+      const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult, categoriesResult] = await Promise.all([
         getActivities(),
         getResources(),
         getAllQuizzes(),
         getAnnouncements(),
-        getCourses()
+        getCourses(),
+        getCategories()
       ]);
       
-      if (activitiesResult.success) setActivities(activitiesResult.data || []);
+      if (activitiesResult.success) {
+        setActivities(activitiesResult.data || []);
+      }
       if (resourcesResult.success) setResources(resourcesResult.data || []);
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
       if (announcementsResult.success) setAnnouncements(announcementsResult.data || []);
       if (coursesResult.success) setCourses(coursesResult.data || []);
+      if (categoriesResult.success) setCategories(categoriesResult.data || []);
     } catch (error) {
         logger.error('Error loading data:', error);
     } finally {
@@ -244,31 +250,40 @@ const HomePage = memo(() => {
 
   // Get current items based on mode and activity type
   const getCurrentItems = () => {
-    if (mode === 'resources') return resources;
+    if (mode === 'resources') {
+      // Filter resources by category
+      return resources.filter(r => 
+        category === '' || (r.docId || r.category || 'general') === category
+      );
+    }
     
-    // Handle activities mode with activity type filtering
+    // Handle activities mode with activity type and category filtering
     if (mode === 'activities') {
+      let filtered = [];
+      
       if (activityType === 'quiz') {
         // Show quizzes when activity type is quiz, filtered by category
-        return quizzes.filter(q => 
+        filtered = quizzes.filter(q => 
           (category === '' || (q.course || 'general') === category)
         );
       } else if (activityType === 'all') {
         // Show all activities when activity type is all, filtered by category
-        return activities.filter(a => 
+        filtered = activities.filter(a => 
           a.show !== false && 
           (!a.classId || enrolledClasses.includes(a.classId)) &&
           (category === '' || (a.course || 'general') === category)
         );
       } else {
         // Show filtered activities by type (homework, training, lab, project), also filtered by category
-        return activities.filter(a => 
+        filtered = activities.filter(a => 
           a.type === activityType && 
           a.show !== false && 
           (!a.classId || enrolledClasses.includes(a.classId)) &&
           (category === '' || (a.course || 'general') === category)
         );
       }
+      
+      return filtered;
     }
     
     return [];
@@ -697,21 +712,45 @@ const HomePage = memo(() => {
                   icon: category === '' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
                   badge: category === '' ? filteredItems.length : undefined
                 },
-                ...(courses.length ? courses : [
-                  { docId: 'programming', name_en: 'Programming', name_ar: 'البرمجة' },
-                  { docId: 'computing', name_en: 'Computing', name_ar: 'الحوسبة' },
-                  { docId: 'algorithm', name_en: 'Algorithm', name_ar: 'الخوارزميات' },
-                  { docId: 'general', name_en: 'General', name_ar: 'عام' }
-                ]).map(c => {
+                ...(categories.length ? categories.map(c => {
                   // Count activities that match current filters (not all activities)
-                  const categoryActivities = filteredItems.filter(a => (a.course || 'general') === c.docId);
+                  const categoryActivities = filteredItems.filter(a => (a.course || 'general') === (c.docId || c.id));
                   return {
-                    value: c.docId,
-                    label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId) : (c.name_en || c.docId),
-                    icon: category === c.docId ? getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, '#ffffff') : getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, primaryColor),
+                    value: c.docId || c.id,
+                    label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId || c.id) : (c.name_en || c.name_ar || c.docId || c.id),
+                    icon: category === (c.docId || c.id) ? getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, '#ffffff') : getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, primaryColor),
                     badge: categoryActivities.length
                   };
-                })
+                }) : [])
+              ]}
+              activeTab={category}
+              onTabChange={setCategory}
+              variant="default"
+            />
+          </div>
+        )}
+
+        {/* Category Tabs (only for resources mode) - Third row */}
+        {mode === 'resources' && (
+          <div data-tour="category-tabs" style={{ marginBottom: '0.15rem' }}>
+            <Tabs
+              tabs={[
+                {
+                  value: '',
+                  label: lang === 'en' ? 'All' : 'الكل',
+                  icon: category === '' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
+                  badge: category === '' ? filteredItems.length : undefined
+                },
+                ...(categories.length ? categories.map(c => {
+                  // Count resources that match current filters
+                  const categoryResources = filteredItems.filter(r => (r.course || 'general') === (c.docId || c.id));
+                  return {
+                    value: c.docId || c.id,
+                    label: lang === 'ar' ? (c.name_ar || c.name_en || c.docId || c.id) : (c.name_en || c.name_ar || c.docId || c.id),
+                    icon: category === (c.docId || c.id) ? getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, '#ffffff') : getIconWithColor('ui', c.icon?.toLowerCase() || 'folder', 16, primaryColor),
+                    badge: categoryResources.length
+                  };
+                }) : [])
               ]}
               activeTab={category}
               onTabChange={setCategory}

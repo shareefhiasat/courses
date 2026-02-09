@@ -84,7 +84,7 @@ export class SubjectsPage {
   async deleteSubject(subjectName) {
     await this.deleteButton(subjectName).click();
     await this.page.waitForTimeout(500);
-    await this.page.locator('button:has-text("OK"), button:has-text("Confirm")').first().click();
+    await this.page.locator('button:has-text("Delete"), button:has-text("Confirm"), button:has-text("Yes")').first().click();
     await this.page.waitForTimeout(2000);
   }
 

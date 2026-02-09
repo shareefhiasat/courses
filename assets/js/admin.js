@@ -135,12 +135,117 @@ window.saveActivity = async function saveActivity() {
   }
 };
 
+// Centralized Modal System
+window.showConfirmModal = function(options) {
+  return new Promise((resolve) => {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+      position: relative;
+    `;
+    
+    modal.innerHTML = `
+      <h3 style="margin: 0 0 16px 0; font-size: 1rem; font-weight: 600; color: #212529;">
+        ${options.title || 'Confirm Delete'}
+      </h3>
+      <p style="margin: 0 0 16px 0; line-height: 1.5; color: #6b7280;">
+        ${options.message || 'Are you sure you want to delete this item?'}
+      </p>
+      <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+        <button id="modal-cancel" style="
+          padding: 8px 16px;
+          border: 1px solid #d1d5db;
+          background: white;
+          color: #6b7280;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+        ">
+          ${options.cancelText || 'Cancel'}
+        </button>
+        <button id="modal-confirm" style="
+          padding: 8px 16px;
+          border: 1px solid #dc2626;
+          background: #dc2626;
+          color: white;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+        ">
+          ${options.confirmText || 'Delete'}
+        </button>
+      </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Event handlers
+    const cancelBtn = document.getElementById('modal-cancel');
+    const confirmBtn = document.getElementById('modal-confirm');
+    
+    cancelBtn.onclick = () => {
+      cleanup();
+      resolve(false);
+    };
+    
+    confirmBtn.onclick = () => {
+      cleanup();
+      resolve(true);
+    };
+    
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        cleanup();
+        resolve(false);
+      }
+    };
+    
+    function cleanup() {
+      document.body.removeChild(overlay);
+    }
+    
+    // Focus management
+    setTimeout(() => {
+      confirmBtn.focus();
+    }, 100);
+  });
+};
+
 // Override deleteActivity with confirmation and spinner
 window.deleteActivity = async function deleteActivityWrapper(index) {
-  if (!confirm(t('confirmDelete', currentLang))) return;
-  
   const activity = window.currentData.activities[index];
   if (!activity) return;
+  
+  const confirmed = await window.showConfirmModal({
+    title: t('deleteActivity', currentLang),
+    message: t('confirmDeleteActivity', currentLang, { activityTitle: activity.title_en || activity.title }),
+    confirmText: t('delete', currentLang),
+    cancelText: t('cancel', currentLang)
+  });
+  
+  if (!confirmed) return;
 
   try {
     const res = await deleteActivity(activity.id);

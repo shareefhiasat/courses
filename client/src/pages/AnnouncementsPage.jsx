@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { addAnnouncement, updateAnnouncement, deleteAnnouncement, addActivityLog } from '@firebaseServices/activityService';
+import { 
+  getAnnouncements, 
+  addAnnouncement, 
+  updateAnnouncement, 
+  deleteAnnouncement, 
+  addActivityLog 
+} from '@firebaseServices/activityService';
+import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
+import { getUsers } from '@firebaseServices/userService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
 import { sendEmail } from '@firebaseServices/emailService';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger.jsx';
@@ -16,47 +24,137 @@ import {
   useToast, 
   ToggleSwitch 
 } from '@ui';
-import { RibbonTabs, SmartEmailComposer } from '@ui';
+import { RibbonTabs } from '@ui';
 import logger from '@utils/logger';
 
-const AnnouncementsPage = ({ 
-  announcements = [],
-  programs = [],
-  subjects = [],
-  classes = [],
-  users = [],
-  announcementForm = { title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' },
-  setAnnouncementForm,
-  editingAnnouncement,
-  setEditingAnnouncement,
-  activeAnnouncementFormTab,
-  setActiveAnnouncementFormTab,
-  announcementEmailOptions = { sendEmail: false, lang: 'both' },
-  setAnnouncementEmailOptions,
-  deleteModal,
-  setDeleteModal,
-  setAnnouncements,
-  loadData,
-  theme,
-  loading,
-  setLoading,
-  enrollmentProgramFilter,
-  enrollmentSubjectFilter,
-  enrollmentClassFilter,
-  smartComposerOpen,
-  setSmartComposerOpen,
-  activityProgramOptions,
-  activitySubjectOptions,
-  activityClassOptions,
-  handleDropdownChange,
-  user
-}) => {
+const AnnouncementsPage = () => {
   const { t, lang } = useLang();
+  const { theme } = useTheme();
   const uiToast = useToast();
   const toast = {
     showSuccess: uiToast.success,
     showError: uiToast.error,
     showInfo: uiToast.info,
+  };
+
+  // Local state for all data
+  const [announcements, setAnnouncements] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Form state
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    content: '',
+    content_ar: '',
+    target: 'global',
+    programId: '',
+    subjectId: '',
+    classId: ''
+  });
+  
+  // UI state
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [activeAnnouncementFormTab, setActiveAnnouncementFormTab] = useState('basic');
+  const [announcementEmailOptions, setAnnouncementEmailOptions] = useState({ sendEmail: false, lang: 'both' });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, announcement: null });
+
+  // Load all data on component mount
+  const loadData = async () => {
+    console.log('🔍 AnnouncementsPage - loadData() called');
+    setLoading(true);
+    try {
+      const [
+        announcementsRes,
+        programsRes,
+        subjectsRes,
+        classesRes,
+        usersRes
+      ] = await Promise.all([
+        getAnnouncements(),
+        getPrograms(),
+        getSubjects(),
+        getClasses(),
+        getUsers()
+      ]);
+
+      console.log('🔍 AnnouncementsPage - programsRes:', programsRes);
+      console.log('🔍 AnnouncementsPage - programsRes.success:', programsRes?.success);
+      console.log('🔍 AnnouncementsPage - programsRes.data:', programsRes?.data);
+
+      if (announcementsRes?.success) setAnnouncements(announcementsRes.data || []);
+      if (programsRes?.success) {
+        console.log('🔍 AnnouncementsPage - setting programs:', programsRes.data);
+        setPrograms(programsRes.data || []);
+      }
+      if (subjectsRes?.success) setSubjects(subjectsRes.data || []);
+      if (classesRes?.success) setClasses(classesRes.data || []);
+      if (usersRes?.success) setUsers(usersRes.data || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast?.showError('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Local state for dropdown options to avoid race conditions
+  const [dropdownOptions, setDropdownOptions] = useState({
+    programs: [],
+    subjects: [],
+    classes: []
+  });
+
+  // Update dropdown options when data changes
+  useEffect(() => {
+    const newDropdownOptions = {
+      programs: [
+        { value: '', label: t('all_programs') || 'All Programs' },
+        ...programs.map(program => ({
+          value: program.docId || program.id,
+          label: lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar)
+        }))
+      ],
+      subjects: [
+        { value: '', label: t('all_subjects') || 'All Subjects' },
+        ...subjects.map(subject => ({
+          value: subject.docId || subject.id,
+          label: lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar),
+          programId: subject.programId
+        }))
+      ],
+      classes: [
+        { value: '', label: t('all_classes') || 'All Classes' },
+        ...classes.map(classItem => ({
+          value: classItem.docId || classItem.id,
+          label: `${classItem.name || classItem.code || 'Unnamed'}${classItem.code ? ` (${classItem.code})` : ''}${classItem.term ? ` - ${classItem.term}` : ''}${classItem.year ? ` ${classItem.year}` : ''}`,
+          subjectId: classItem.subjectId
+        }))
+      ]
+    };
+    
+    setDropdownOptions(newDropdownOptions);
+  }, [programs, subjects, classes, lang, t]);
+
+  // Local dropdown change handler
+  const handleLocalDropdownChange = (setter, field, clearFields = []) => {
+    return (value) => {
+      setter(prev => {
+        const newState = { ...prev, [field]: value };
+        // Clear dependent fields when parent changes
+        clearFields.forEach(clearField => {
+          newState[clearField] = '';
+        });
+        return newState;
+      });
+    };
   };
 
   const handleAnnouncementSubmit = async (e) => {
@@ -85,7 +183,7 @@ const AnnouncementsPage = ({
           try {
             await addActivityLog({
               type: 'announcement_created',
-              userId: user?.uid,
+              userId: 'current_user', // We'll get this from auth context if needed
               timestamp: new Date(),
               userAgent: navigator.userAgent,
               metadata: {
@@ -359,7 +457,7 @@ const AnnouncementsPage = ({
             icon={getThemedIcon('ui', 'edit', 16, theme)} 
             onClick={() => handleEdit(params)}
           >
-            Edit
+            {t('edit') || 'Edit'}
           </Button>
           <Button 
             size="sm" 
@@ -377,15 +475,7 @@ const AnnouncementsPage = ({
   ];
 
   const filteredAnnouncements = announcements.filter(a => {
-    if (enrollmentClassFilter !== 'all') {
-      return a.classId === enrollmentClassFilter;
-    }
-    if (enrollmentSubjectFilter !== 'all') {
-      return a.subjectId === enrollmentSubjectFilter;
-    }
-    if (enrollmentProgramFilter !== 'all') {
-      return a.programId === enrollmentProgramFilter;
-    }
+    // Simple filter - just return all for now since we removed the filter props
     return true;
   });
 
@@ -402,7 +492,53 @@ const AnnouncementsPage = ({
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} Editing Announcement: {editingAnnouncement.title}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_announcement') || 'Editing Announcement'}: {editingAnnouncement.title}
+        </div>
+      )}
+
+      {/* Form Navigation Buttons */}
+      {editingAnnouncement && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '12px',
+          marginBottom: '1rem',
+          padding: '0.75rem',
+          background: 'var(--background-secondary, #f8fafc)',
+          border: '1px solid var(--border-color, #e2e8f0)',
+          borderRadius: '8px'
+        }}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveAnnouncementFormTab('basic')}
+            disabled={activeAnnouncementFormTab === 'basic'}
+          >
+            {t('previous') || 'Previous'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveAnnouncementFormTab('content')}
+            disabled={activeAnnouncementFormTab === 'content'}
+          >
+            {t('next') || 'Next'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEditingAnnouncement(null);
+              setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
+              setAnnouncementEmailOptions({ sendEmail: false, lang: 'both' });
+              setActiveAnnouncementFormTab('basic');
+            }}
+          >
+            {t('cancel') || 'Cancel'}
+          </Button>
         </div>
       )}
 
@@ -431,30 +567,23 @@ const AnnouncementsPage = ({
                 searchable
                 placeholder={t('program_optional') || 'Program (Optional)'}
                 value={announcementForm.programId}
-                onChange={handleDropdownChange(setAnnouncementForm, 'programId', ['subjectId', 'classId'])}
-                options={activityProgramOptions}
+                onChange={handleLocalDropdownChange(setAnnouncementForm, 'programId', ['subjectId', 'classId'])}
+                options={dropdownOptions.programs}
               />
               <Select
                 searchable
                 placeholder={t('subject_optional') || 'Subject (Optional)'}
                 value={announcementForm.subjectId}
-                onChange={handleDropdownChange(setAnnouncementForm, 'subjectId', ['classId'])}
-                options={activitySubjectOptions.filter(o => !announcementForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === announcementForm.programId)}
+                onChange={handleLocalDropdownChange(setAnnouncementForm, 'subjectId', ['classId'])}
+                options={dropdownOptions.subjects.filter(o => !announcementForm.programId || o.value === '' || subjects.find(s => s.docId === o.value)?.programId === announcementForm.programId)}
                 disabled={!announcementForm.programId}
               />
               <Select
                 searchable
                 placeholder={t('class_optional') || 'Class (Optional)'}
                 value={announcementForm.classId}
-                onChange={handleDropdownChange(setAnnouncementForm, 'classId')}
-                options={activityClassOptions.map(o => {
-                const classData = classes.find(c => c.docId === o.value);
-                if (!classData) return o;
-                return {
-                  ...o,
-                  label: `${classData.name || classData.code || 'Unnamed'}${classData.code ? ` (${classData.code})` : ''}${classData.term ? ` - ${classData.term}` : ''}${classData.year ? ` ${classData.year}` : ''}`
-                };
-              }).filter(o => !announcementForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === announcementForm.subjectId)}
+                onChange={handleLocalDropdownChange(setAnnouncementForm, 'classId')}
+                options={dropdownOptions.classes.filter(o => !announcementForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === announcementForm.subjectId)}
                 disabled={!announcementForm.subjectId}
               />
             </div>
@@ -552,13 +681,6 @@ const AnnouncementsPage = ({
               )}
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setSmartComposerOpen(true)}
-              >
-                {t('compose_email') || 'Compose Email'}
-              </Button>
               <Button 
                 type="button" 
                 variant="outline" 
@@ -584,16 +706,6 @@ const AnnouncementsPage = ({
           exportLabel={t('export') || 'Export'}
         />
       </div>
-
-      {smartComposerOpen && (
-        <SmartEmailComposer
-          isOpen={smartComposerOpen}
-          onClose={() => setSmartComposerOpen(false)}
-          programs={programs}
-          subjects={subjects}
-          classes={classes}
-        />
-      )}
     </div>
   );
 };

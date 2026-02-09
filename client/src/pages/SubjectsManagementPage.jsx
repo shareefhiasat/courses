@@ -8,7 +8,7 @@ import { getUsers } from '@firebaseServices/userService';
 import { getClasses } from '@firebaseServices/classService';
 import { getPrograms } from '@firebaseServices/programService';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@firebaseServices/subjectService';
-import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid } from '@ui';
+import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid, Card, CardBody } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import styles from './SubjectsManagementPage.module.css';
@@ -23,6 +23,7 @@ const SubjectsManagementPage = () => {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingSubject, setEditingSubject] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: 'delete' });
   const [formData, setFormData] = useState({
     programId: '',
     code: '',
@@ -125,20 +126,22 @@ const SubjectsManagementPage = () => {
     });
   };
 
-  const handleDelete = async (subject) => {
-    if (!window.confirm(t('confirm_delete_subject', { subjectName: subject.name_en }) || `Are you sure you want to delete subject "${subject.name_en}"?`)) {
-      return;
-    }
+  const handleDelete = (subject) => {
+    setDeleteModal({ open: true, item: subject });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.item) return;
 
     setLoading(true);
     try {
-      const result = await deleteSubject(subject.docId);
+      const result = await deleteSubject(deleteModal.item.docId);
       if (result.success) {
         // Log activity
         try {
           await logActivity(ACTIVITY_TYPES.SUBJECT_DELETED, {
-            subjectId: subject.docId,
-            subjectName: subject.name_en
+            subjectId: deleteModal.item.docId,
+            subjectName: deleteModal.item.name_en
           });
         } catch (e) { logger.warn('Failed to log activity:', e); }
         toast.success(t('subject_deleted_successfully') || 'Subject deleted successfully');
@@ -150,6 +153,7 @@ const SubjectsManagementPage = () => {
       toast.error(error.message);
     } finally {
       setLoading(false);
+      setDeleteModal({ open: false, item: null });
     }
   };
 
@@ -422,6 +426,38 @@ const SubjectsManagementPage = () => {
             fancyVariant="dots"
         />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.open && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
+            <CardBody>
+              <h3>{t('delete_subject') || 'Delete Subject'}</h3>
+              <p>{t('delete_subject_confirmation') || `Are you sure you want to delete subject "${deleteModal.item?.name_en || 'this subject'}"?`}</p>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t('delete_warning') || 'This action cannot be undone.'}</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
+                  {t('cancel') || 'Cancel'}
+                </Button>
+                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
+                  {t('delete') || 'Delete'}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

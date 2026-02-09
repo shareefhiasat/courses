@@ -172,7 +172,7 @@ const DashboardPage = () => {
       activities: 'content', announcements: 'content', resources: 'content',
       users: 'users', allowlist: 'users',
       classes: 'academic', enrollments: 'academic', submissions: 'academic',
-      /* smtp: 'communication' - DEPRECATED */ emailTemplates: 'communication', emailLogs: 'communication', notificationLogs: 'communication',
+      /* smtp: 'communication' - DEPRECATED */ emailTemplates: 'communication', notificationLogs: 'communication',
       categories: 'settings', login: 'settings'
     };
     return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
@@ -227,7 +227,7 @@ const DashboardPage = () => {
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'emailLogs', 'notificationLogs', 'scheduled-reports', 'categories', 'login'];
+    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'login'];
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
@@ -345,8 +345,7 @@ const DashboardPage = () => {
       label: t('settings'),
       items: [
         { key: 'categories', label: t('categories') },
-        { key: 'login', label: t('logs') },
-        { key: 'emailLogs', label: t('email_logs_deprecated') }
+        { key: 'login', label: t('logs') }
       ]
     }
   ];
@@ -1510,6 +1509,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
         {activeTab === 'activities' && (
             <ActivitiesPage
               activities={activities}
+              setActivities={setActivities}
               programs={programs}
               subjects={subjects}
               classes={classes}
@@ -1543,38 +1543,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             />
           )}
           {activeTab === 'announcements' && (
-          <AnnouncementsPage
-            announcements={announcements}
-            programs={programs}
-            subjects={subjects}
-            classes={classes}
-            users={users}
-            announcementForm={announcementForm}
-            setAnnouncementForm={setAnnouncementForm}
-            editingAnnouncement={editingAnnouncement}
-            setEditingAnnouncement={setEditingAnnouncement}
-            activeAnnouncementFormTab={activeAnnouncementFormTab}
-            setActiveAnnouncementFormTab={setActiveAnnouncementFormTab}
-            announcementEmailOptions={announcementEmailOptions}
-            setAnnouncementEmailOptions={setAnnouncementEmailOptions}
-            deleteModal={deleteModal}
-            setDeleteModal={setDeleteModal}
-            setAnnouncements={setAnnouncements}
-            loadData={loadData}
-            theme={theme}
-            loading={loading}
-            setLoading={setLoading}
-            enrollmentProgramFilter={enrollmentProgramFilter}
-            enrollmentSubjectFilter={enrollmentSubjectFilter}
-            enrollmentClassFilter={enrollmentClassFilter}
-            smartComposerOpen={smartComposerOpen}
-            setSmartComposerOpen={setSmartComposerOpen}
-            activityProgramOptions={activityProgramOptions}
-            activitySubjectOptions={activitySubjectOptions}
-            activityClassOptions={activityClassOptions}
-            handleDropdownChange={handleDropdownChange}
-            user={user}
-          />
+          <AnnouncementsPage />
         )}
           {activeTab === 'programs' && isSuperAdmin && (
             <ProgramsManagementPage />
@@ -1920,7 +1889,6 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           />
         )}
         {activeTab === 'emailTemplates' && <EmailTemplatesPage />}
-        {activeTab === 'emailLogs' && <EmailLogsPage />}
         {activeTab === 'notificationLogs' && (
           <div className="notification-logs-container">
             <div className="tab-header">
@@ -1931,7 +1899,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
             </div>
             
             {/* Filters */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center' }}>
               <Select
                 size="small"
                 searchable

@@ -375,7 +375,7 @@ const HelpDrawer = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '0.6rem 1rem 0.6rem 2.5rem',
+                    padding: '0.6rem 1rem',
                     borderRadius: '8px',
                     border: '1px solid var(--border-color, #ddd)',
                     fontSize: '0.95rem',
@@ -393,13 +393,6 @@ const HelpDrawer = () => {
                     e.target.style.boxShadow = 'none';
                   }}
                 />
-                <Search size={18} style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#374151'
-                }} />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}

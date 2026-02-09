@@ -192,6 +192,33 @@ export const DifferentSizes = () => {
   );
 };
 
+// Compact Delete Confirmation (Improved)
+export const CompactDeleteConfirmation = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <Button variant="danger" onClick={() => setIsOpen(true)}>
+        Compact Delete Modal (Small Title)
+      </Button>
+      <ConfirmModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onConfirm={() => {
+          console.log('Item deleted');
+          setIsOpen(false);
+        }}
+        title="Delete Class"
+        message="Are you sure you want to delete this class? This will also remove all enrollments and attendance records for this class."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        size="small"
+      />
+    </>
+  );
+};
+
 // Custom Messages
 export const CustomMessages = () => {
   const [modalType, setModalType] = useState(null);

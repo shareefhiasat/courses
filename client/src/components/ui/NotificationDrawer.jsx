@@ -457,21 +457,17 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
 
           {/* Search */}
           <div style={{ marginBottom: '0.75rem' }}>
-            <div style={{ position: 'relative' }}>
-              {getThemedIcon('ui', 'search', 16, theme)}
-              <Input
-                type="text"
-                placeholder={t('search_notifications') || 'Search notifications...'}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  paddingLeft: '2.5rem',
-                  background: isDark ? '#0f0f1e' : '#fff',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#d1d5db'}`,
-                  color: isDark ? '#fff' : '#111'
-                }}
-              />
-            </div>
+            <Input
+              type="text"
+              placeholder={t('search_notifications') || 'Search notifications...'}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                background: isDark ? '#0f0f1e' : '#fff',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#d1d5db'}`,
+                color: isDark ? '#fff' : '#111'
+              }}
+            />
           </div>
 
           {/* Filters */}
