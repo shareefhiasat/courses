@@ -1,40 +1,82 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Input, Select, UserSelect, DateRangeSlider, AdvancedDataGrid } from '@ui';
+import { Button, Input, Select, UserSelect, DateRangeSlider, AdvancedDataGrid, Modal } from '@ui';
+import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@firebaseServices/activityService';
+import { getUsers } from '@firebaseServices/userService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
 
-const LoginActivityPage = ({
-  loginLogs,
-  setLoginLogs,
-  activityTypeFilter,
-  setActivityTypeFilter,
-  loginSearch,
-  setLoginSearch,
-  loginUserFilter,
-  setLoginUserFilter,
-  loginFrom,
-  setLoginFrom,
-  loginTo,
-  setLoginTo,
-  activityAutoRefreshMs,
-  setActivityAutoRefreshMs,
-  activityNowTick,
-  activityLastUpdatedAt,
-  setActivityLastUpdatedAt,
-  users,
-  enrollments,
-  deleteModal,
-  setDeleteModal,
-  loading,
-  setLoading,
-  loadData,
-  theme
-}) => {
+const LogsActivityPage = () => {
   const { t } = useLang();
   const toast = useToast();
+  const theme = useTheme();
+
+  // Component state - no longer received as props
+  const [loginLogs, setLoginLogs] = useState([]);
+  const [activityTypeFilter, setActivityTypeFilter] = useState('all');
+  const [loginSearch, setLoginSearch] = useState('');
+  const [loginUserFilter, setLoginUserFilter] = useState('all');
+  const [loginFrom, setLoginFrom] = useState('');
+  const [loginTo, setLoginTo] = useState('');
+  const [activityAutoRefreshMs, setActivityAutoRefreshMs] = useState(0);
+  const [activityNowTick, setActivityNowTick] = useState(Date.now());
+  const [activityLastUpdatedAt, setActivityLastUpdatedAt] = useState(Date.now());
+  const [users, setUsers] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ open: false });
+  const [loading, setLoading] = useState(false);
+
+  // Load data function
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [loginLogsRes, usersRes, enrollmentsRes] = await Promise.all([
+        getLoginLogs(),
+        getUsers(),
+        getEnrollments()
+      ]);
+
+      if (loginLogsRes?.success) {
+        setLoginLogs(loginLogsRes.data);
+      }
+      if (usersRes?.success) {
+        setUsers(usersRes.data);
+      }
+      if (enrollmentsRes?.success) {
+        setEnrollments(enrollmentsRes.data);
+      }
+    } catch (error) {
+      console.error('Error loading logs data:', error);
+      toast?.showError('Failed to load activity logs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Auto-refresh for Activity tab
+  useEffect(() => {
+    if (!activityAutoRefreshMs) return;
+    const id = setInterval(() => {
+      loadData();
+      setActivityLastUpdatedAt(Date.now());
+    }, activityAutoRefreshMs);
+    return () => clearInterval(id);
+  }, [activityAutoRefreshMs]);
+
+  // Update activity tick for progress bar
+  useEffect(() => {
+    if (!activityAutoRefreshMs) return;
+    const id = setInterval(() => setActivityNowTick(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [activityAutoRefreshMs]);
 
   const filteredLoginLogs = () => {
     let filtered = loginLogs;
@@ -121,7 +163,7 @@ const LoginActivityPage = ({
       impersonation_end: { icon: getThemedIcon('ui', 'eye_off', 16, theme), label: 'Impersonation End' },
       security_alert: { icon: getThemedIcon('ui', 'alert_triangle', 16, theme), label: 'Security Alert' },
       api_access: { icon: getThemedIcon('ui', 'api', 16, theme), label: 'API Access' },
-      penalty_viewed: { icon: getThemedIcon('penalty', 'eye', 16, theme), label: 'Penalty Viewed' }
+      penalty_viewed: { icon: getThemedIcon('penalty_type', 'eye', 16, theme), label: 'Penalty Viewed' }
     };
     return configs[type] || configs.login;
   };
@@ -383,8 +425,41 @@ const LoginActivityPage = ({
         loadingOverlayMessage={loading ? "Loading login activity..." : undefined}
         fancyVariant="dots"
       />
+      {/* Delete Confirmation Modal */}
+      {deleteModal.open && (
+        <Modal
+          isOpen={deleteModal.open}
+          onClose={() => setDeleteModal({ open: false })}
+          title={deleteModal.type === 'login_logs' ? 'Delete Activity Logs' : 'Confirm Deletion'}
+          size="small"
+        >
+          <div style={{ padding: '1rem' }}>
+            <p style={{ marginBottom: '1rem', color: '#666' }}>
+              {deleteModal.type === 'login_logs' ?
+                `Are you sure you want to delete ${deleteModal.item?.description}? This action cannot be undone.` :
+                'Are you sure you want to delete this item?'
+              }
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteModal({ open: false })}
+              >
+                {t('cancel') || 'Cancel'}
+              </Button>
+              <Button
+                variant="danger"
+                loading={loading}
+                onClick={deleteModal.onConfirm}
+              >
+                {t('delete') || 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
 
-export default LoginActivityPage;
+export default LogsActivityPage;

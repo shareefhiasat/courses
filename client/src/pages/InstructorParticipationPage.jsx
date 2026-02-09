@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input } from '@ui';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
 import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
 import { getClassById } from '@firebaseServices/classService';
 import { getClasses } from '@firebaseServices/classService';
@@ -79,9 +79,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   }, [userCache]);
 
   // Filters
-  const [programFilter, setProgramFilter] = useState('all');
-  const [subjectFilter, setSubjectFilter] = useState('all');
-  const [classFilter, setClassFilter] = useState('all');
+  const [programFilter, setProgramFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
   useEffect(() => {
@@ -240,7 +240,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       
       // Apply filters
       let filtered = enriched;
-      if (programFilter !== 'all') {
+      if (programFilter) {
         filtered = filtered.filter(p => {
           if (p.subjectId) {
             const subject = subjects.find(s => (s.docId || s.id) === p.subjectId);
@@ -256,7 +256,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           return false;
         });
       }
-      if (subjectFilter !== 'all') {
+      if (subjectFilter) {
         filtered = filtered.filter(p => {
           if (p.subjectId) return p.subjectId === subjectFilter;
           if (p.classId) {
@@ -266,7 +266,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           return false;
         });
       }
-      if (classFilter !== 'all') {
+      if (classFilter) {
         filtered = filtered.filter(p => p.classId === classFilter);
       }
       if (typeFilter !== 'all') {
@@ -440,8 +440,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   }
 
   const filteredClasses = classes.filter(c => {
-    if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
-    if (programFilter !== 'all') {
+    if (subjectFilter && c.subjectId !== subjectFilter) return false;
+    if (programFilter) {
       const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
       if (subject?.programId !== programFilter) return false;
     }
@@ -773,24 +773,67 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
           <Select
+            value={programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId || ''}
+            onChange={(e) => {
+              // Reset subject and class when program changes
+              setFormData({ ...formData, subjectId: '', classId: '', studentId: '' });
+            }}
+            options={[
+              { value: '', label: t('all_programs') || 'All Programs' },
+              ...programs.map(program => ({
+                value: program.docId || program.id,
+                label: program[`name_${lang}`] || program.name || 'Unnamed Program',
+              }))
+            ]}
+            placeholder={t('program') || 'Program'}
+            label={t('program') || 'Program'}
+          />
+          <Select
+            value={formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId || ''}
+            onChange={(e) => {
+              setFormData({ ...formData, subjectId: e.target.value, classId: '', studentId: '' });
+            }}
+            options={[
+              { value: '', label: t('all_subjects') || 'All Subjects' },
+              ...(programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId ?
+                subjects.filter(subject => subject.programId === programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId).map(subject => ({
+                  value: subject.docId || subject.id,
+                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
+                })) : subjects.map(subject => ({
+                  value: subject.docId || subject.id,
+                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
+                })))
+            ]}
+            placeholder={t('subject') || 'Subject'}
+            label={t('subject') || 'Subject'}
+            disabled={!programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId}
+          />
+          <Select
             searchable
             value={formData.classId}
             onChange={(e) => {
-              setFormData({ ...formData, classId: e.target.value, studentId: '', subjectId: '' });
+              setFormData({ ...formData, classId: e.target.value, studentId: '' });
               const selectedClass = classes.find(c => (c.id || c.docId) === e.target.value);
               if (selectedClass?.subjectId) {
-                setFormData(prev => ({ ...prev, subjectId: selectedClass.subjectId }));
+                setFormData(prev => ({ ...prev, subjectId: selectedClass.subjectId, classId: e.target.value }));
               }
             }}
             options={[
-              { value: '', label: 'Select Class' },
-              ...filteredClasses.map(c => ({
-                value: c.id || c.docId,
-                label: `${c.name || c.code || c.id}${c.term ? ` (${c.term}${c.year ? ` ${c.year}` : ''}${c.semester ? ` ${c.semester}` : ''})` : ''}`
-              }))
+              { value: '', label: t('all_classes') || 'All Classes' },
+              ...(formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId ?
+                classes.filter(cls => cls.subjectId === (formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId)).map(cls => ({
+                  value: cls.docId || cls.id,
+                  label: cls.name || 'Unnamed Class',
+                  code: cls.code,
+                })) : classes.map(cls => ({
+                  value: cls.docId || cls.id,
+                  label: cls.name || 'Unnamed Class',
+                  code: cls.code,
+                })))
             ]}
             placeholder={t('select_class')}
-            required
+            label={t('class') || 'Class'}
+            disabled={!formData.subjectId && !classes.find(c => c.id === formData.classId)?.subjectId}
           />
           <Select
             searchable
@@ -948,98 +991,65 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
 
       {/* Filters */}
       <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-          <Select
-            searchable
-            value={programFilter}
-            onChange={(e) => {
-              setProgramFilter(e.target.value);
-              setSubjectFilter('all');
-              setClassFilter('all');
-            }}
-            options={[
-              { value: 'all', label: 'All Programs' },
-              ...programs.map(p => ({
-                value: p.docId || p.id,
-                label: p.name_en || p.name_ar || p.code || p.docId
-              }))
-            ]}
-            placeholder="Program"
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={programFilter}
+            selectedSubject={subjectFilter}
+            selectedClass={classFilter}
+            onProgramChange={setProgramFilter}
+            onSubjectChange={setSubjectFilter}
+            onClassChange={setClassFilter}
+            className="flex-1"
           />
-          <Select
-            searchable
-            value={subjectFilter}
-            onChange={(e) => {
-              setSubjectFilter(e.target.value);
-              setClassFilter('all');
-            }}
-            options={[
-              { value: 'all', label: 'All Subjects' },
-              ...subjects
-                .filter(s => programFilter === 'all' || s.programId === programFilter)
-                .map(s => ({
-                  value: s.docId || s.id,
-                  label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim()
-                }))
-            ]}
-            placeholder="Subject"
-          />
-          <Select
-            searchable
-            value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            options={[
-              { value: 'all', label: 'All Classes' },
-              ...filteredClasses.map(c => ({
-                value: c.id || c.docId,
-                label: `${c.name || c.code || c.id}${c.term ? ` (${c.term}${c.year ? ` ${c.year}` : ''}${c.semester ? ` ${c.semester}` : ''})` : ''}`
-              }))
-            ]}
-            placeholder="Class"
-          />
-          <Select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            options={[
-              { value: 'all', label: 'All Types' },
-              ...PARTICIPATION_TYPES.map(pt => {
-                let icon;
-                switch (pt.icon) {
-                  case 'MessageSquare':
-                    icon = getThemedIcon('ui', 'message_square', 16, theme);
-                    break;
-                  case 'Award':
-                    icon = getThemedIcon('ui', 'award', 16, theme);
-                    break;
-                  case 'FileText':
-                    icon = getThemedIcon('ui', 'file_text', 16, theme);
-                    break;
-                  case 'Users':
-                    icon = getThemedIcon('ui', 'users', 16, theme);
-                    break;
-                  case 'HelpCircle':
-                    icon = getThemedIcon('ui', 'help_circle', 16, theme);
-                    break;
-                  case 'Star':
-                    icon = getThemedIcon('ui', 'star', 16, theme);
-                    break;
-                  case 'ThumbsUp':
-                    icon = getThemedIcon('ui', 'thumbs_up', 16, theme);
-                    break;
-                  case 'Minus':
-                    icon = getThemedIcon('ui', 'minus', 16, theme);
-                    break;
-                  case 'X':
-                    icon = getThemedIcon('ui', 'x', 16, theme);
-                    break;
-                  default:
-                    icon = getThemedIcon('ui', 'star', 16, theme);
-                }
-                return { value: pt.id, label: getParticipationLabel(pt.id, lang), icon };
-              })
-            ]}
-            placeholder="Type"
-          />
+          <div style={{ minWidth: '200px' }}>
+            <Select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              options={[
+                { value: 'all', label: 'All Types' },
+                ...PARTICIPATION_TYPES.map(pt => {
+                  let icon;
+                  switch (pt.icon) {
+                    case 'MessageSquare':
+                      icon = getThemedIcon('ui', 'message_square', 16, theme);
+                      break;
+                    case 'Award':
+                      icon = getThemedIcon('ui', 'award', 16, theme);
+                      break;
+                    case 'FileText':
+                      icon = getThemedIcon('ui', 'file_text', 16, theme);
+                      break;
+                    case 'Users':
+                      icon = getThemedIcon('ui', 'users', 16, theme);
+                      break;
+                    case 'HelpCircle':
+                      icon = getThemedIcon('ui', 'help_circle', 16, theme);
+                      break;
+                    case 'Star':
+                      icon = getThemedIcon('ui', 'star', 16, theme);
+                      break;
+                    case 'ThumbsUp':
+                      icon = getThemedIcon('ui', 'thumbs_up', 16, theme);
+                      break;
+                    case 'Minus':
+                      icon = getThemedIcon('ui', 'minus', 16, theme);
+                      break;
+                    case 'X':
+                      icon = getThemedIcon('ui', 'x', 16, theme);
+                      break;
+                    default:
+                      icon = getThemedIcon('ui', 'star', 16, theme);
+                  }
+                  return { value: pt.id, label: getParticipationLabel(pt.id, lang), icon };
+                })
+              ]}
+              placeholder="Type"
+              label="Type"
+            />
+          </div>
         </div>
       </div>
 

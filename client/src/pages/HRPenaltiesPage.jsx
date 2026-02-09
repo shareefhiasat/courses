@@ -3,7 +3,7 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody } from '@ui';
+import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody, ProgramsSelect } from '@ui';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@firebaseServices/penaltyService';
 import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
@@ -112,9 +112,9 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   // Filters
-  const [programFilter, setProgramFilter] = useState('all');
-  const [subjectFilter, setSubjectFilter] = useState('all');
-  const [classFilter, setClassFilter] = useState('all');
+  const [programFilter, setProgramFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
   useEffect(() => {
@@ -267,7 +267,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       // Apply filters
       let filtered = enriched;
-      if (programFilter !== 'all') {
+      if (programFilter) {
         filtered = filtered.filter(p => {
           if (p.subjectId) {
             const subject = subjects.find(s => (s.docId || s.id) === p.subjectId);
@@ -283,7 +283,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           return false;
         });
       }
-      if (subjectFilter !== 'all') {
+      if (subjectFilter) {
         filtered = filtered.filter(p => {
           if (p.subjectId) return p.subjectId === subjectFilter;
           if (p.classId) {
@@ -293,7 +293,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           return false;
         });
       }
-      if (classFilter !== 'all') {
+      if (classFilter) {
         filtered = filtered.filter(p => p.classId === classFilter);
       }
       if (typeFilter !== 'all') {
@@ -472,8 +472,8 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }
 
   const filteredClasses = classes.filter(c => {
-    if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
-    if (programFilter !== 'all') {
+    if (subjectFilter && c.subjectId !== subjectFilter) return false;
+    if (programFilter) {
       const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
       if (subject?.programId !== programFilter) return false;
     }
@@ -482,12 +482,12 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   // Filter penalties based on selected filters
   const filteredPenalties = penalties.filter(penalty => {
-    if (programFilter !== 'all') {
+    if (programFilter) {
       const subject = subjects.find(s => (s.docId || s.id) === penalty.subjectId);
       if (!subject || subject.programId !== programFilter) return false;
     }
-    if (subjectFilter !== 'all' && penalty.subjectId !== subjectFilter) return false;
-    if (classFilter !== 'all' && penalty.classId !== classFilter) return false;
+    if (subjectFilter && penalty.subjectId !== subjectFilter) return false;
+    if (classFilter && penalty.classId !== classFilter) return false;
     if (typeFilter !== 'all' && penalty.type !== typeFilter) return false;
     return true;
   });
@@ -789,21 +789,70 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       )}
 
       {!isDashboardTab && (
-        <form onSubmit={handleSubmit} className="dashboard-form">
+      <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
+          <Select
+            value={programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId || ''}
+            onChange={(e) => {
+              // Reset subject and class when program changes
+              setFormData({ ...formData, subjectId: '', classId: '', studentId: '' });
+            }}
+            options={[
+              { value: '', label: t('all_programs') || 'All Programs' },
+              ...programs.map(program => ({
+                value: program.docId || program.id,
+                label: program[`name_${lang}`] || program.name || 'Unnamed Program',
+              }))
+            ]}
+            placeholder={t('program') || 'Program'}
+            label={t('program') || 'Program'}
+          />
+          <Select
+            value={formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId || ''}
+            onChange={(e) => {
+              setFormData({ ...formData, subjectId: e.target.value, classId: '', studentId: '' });
+            }}
+            options={[
+              { value: '', label: t('all_subjects') || 'All Subjects' },
+              ...(programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId ?
+                subjects.filter(subject => subject.programId === programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId).map(subject => ({
+                  value: subject.docId || subject.id,
+                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
+                })) : subjects.map(subject => ({
+                  value: subject.docId || subject.id,
+                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
+                })))
+            ]}
+            placeholder={t('subject') || 'Subject'}
+            label={t('subject') || 'Subject'}
+            disabled={!programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId}
+          />
           <Select
             searchable
             value={formData.classId}
-            onChange={(e) => setFormData({ ...formData, classId: e.target.value, studentId: '' })}
+            onChange={(e) => {
+              setFormData({ ...formData, classId: e.target.value, studentId: '' });
+              const selectedClass = classes.find(c => (c.id || c.docId) === e.target.value);
+              if (selectedClass?.subjectId) {
+                setFormData(prev => ({ ...prev, subjectId: selectedClass.subjectId, classId: e.target.value }));
+              }
+            }}
             options={[
-              { value: '', label: t('select_class') || 'Select Class' },
-              ...filteredClasses.map(c => ({
-                value: c.id || c.docId,
-                label: `${c.name || c.code || c.id}${c.term ? ` (${c.term}${c.year ? ` ${c.year}` : ''}${c.semester ? ` ${c.semester}` : ''})` : ''}`
-              }))
+              { value: '', label: t('all_classes') || 'All Classes' },
+              ...(formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId ?
+                classes.filter(cls => cls.subjectId === (formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId)).map(cls => ({
+                  value: cls.docId || cls.id,
+                  label: cls.name || 'Unnamed Class',
+                  code: cls.code,
+                })) : classes.map(cls => ({
+                  value: cls.docId || cls.id,
+                  label: cls.name || 'Unnamed Class',
+                  code: cls.code,
+                })))
             ]}
             placeholder={t('select_class')}
-            required
+            label={t('class') || 'Class'}
+            disabled={!formData.subjectId && !classes.find(c => c.id === formData.classId)?.subjectId}
           />
           <Select
             searchable
@@ -826,7 +875,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                       case 'UserCheck': return getThemedIcon('user_status', 'active', 24, theme);
                       case 'UserX': return getThemedIcon('user_status', 'deleted', 24, theme);
                       case 'UserMinus': return getThemedIcon('user_status', 'archived', 24, theme);
-                      case 'AlertCircle': return getThemedIcon('user_status', 'no_enrollments', 24, theme);
+                      case 'AlertCircle': return getThemedIcon('ui', 'alert_triangle', 24, theme);
                       default: return getThemedIcon('ui', 'info', 24, theme);
                     }
                   };
@@ -935,64 +984,31 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       {/* Filters */}
       <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-          <Select
-            searchable
-            value={programFilter}
-            onChange={(e) => {
-              setProgramFilter(e.target.value);
-              setSubjectFilter('all');
-              setClassFilter('all');
-            }}
-            options={[
-              { value: 'all', label: t('all_programs') || 'All Programs' },
-              ...programs.map(p => ({
-                value: p.docId || p.id,
-                label: p.name_en || p.name_ar || p.code || p.docId
-              }))
-            ]}
-            placeholder={t('program') || 'Program'}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={programFilter}
+            selectedSubject={subjectFilter}
+            selectedClass={classFilter}
+            onProgramChange={setProgramFilter}
+            onSubjectChange={setSubjectFilter}
+            onClassChange={setClassFilter}
+            className="flex-1"
           />
-          <Select
-            searchable
-            value={subjectFilter}
-            onChange={(e) => {
-              setSubjectFilter(e.target.value);
-              setClassFilter('all');
-            }}
-            options={[
-              { value: 'all', label: t('all_subjects') || 'All Subjects' },
-              ...subjects
-                .filter(s => programFilter === 'all' || s.programId === programFilter)
-                .map(s => ({
-                  value: s.docId || s.id,
-                  label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`.trim()
-                }))
-            ]}
-            placeholder={t('subject') || 'Subject'}
-          />
-          <Select
-            searchable
-            value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            options={[
-              { value: 'all', label: t('all_classes') || 'All Classes' },
-              ...filteredClasses.map(c => ({
-                value: c.id || c.docId,
-                label: `${c.name || c.code || c.id}${c.term ? ` (${c.term}${c.year ? ` ${c.year}` : ''}${c.semester ? ` ${c.semester}` : ''})` : ''}`
-              }))
-            ]}
-            placeholder={t('class') || 'Class'}
-          />
-          <Select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            options={[
-              { value: 'all', label: t('all_types') || 'All Types' },
-              ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
-            ]}
-            placeholder={t('type') || 'Type'}
-          />
+          <div style={{ minWidth: '200px' }}>
+            <Select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              options={[
+                { value: 'all', label: t('all_types') || 'All Types' },
+                ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
+              ]}
+              placeholder={t('type') || 'Type'}
+              label={t('type') || 'Type'}
+            />
+          </div>
         </div>
       </div>
 

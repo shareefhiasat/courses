@@ -38,7 +38,7 @@ const FilterSelect = ({
     ...data.map(item => {
       const itemValue = typeof item === 'object' ? (item.value || item.id || item.docId) : item;
       const itemLabel = typeof item === 'object' 
-        ? (item.name || item.label || item.title || item.code || itemValue)
+        ? (item.name_en || item.name || item.label || item.title || item.code || itemValue)
         : itemValue;
       
       return {

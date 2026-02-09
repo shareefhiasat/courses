@@ -7,6 +7,7 @@ import { db } from '@firebaseServices/config';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading, FilterSelect } from '@ui';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ClassSchedulePage.module.css';
 
@@ -80,30 +81,8 @@ const ClassSchedulePage = () => {
   const filteredClasses = useMemo(() => {
     let result = [...classes];
 
-    // Filter by program
-    if (programFilter !== 'all') {
-      result = result.filter(cls => {
-        if (!cls.subjectId) return false;
-        const subject = subjects.find(s => (s.docId || s.id) === cls.subjectId);
-        if (!subject) return false;
-        return (subject.programId || '') === programFilter;
-      });
-    }
-
-    // Filter by subject
-    if (subjectFilter !== 'all') {
-      result = result.filter(cls => {
-        return (cls.subjectId || '') === subjectFilter;
-      });
-    }
-
-    // Filter by class
-    if (classFilter !== 'all') {
-      result = result.filter(cls => {
-        const classId = cls.id || cls.docId;
-        return String(classId) === String(classFilter);
-      });
-    }
+    // Note: Program, subject, and class filtering is now handled by ProgramsSelect
+    // We only need to filter by year and term here
 
     // Filter by year
     if (yearFilter !== 'all') {
@@ -133,7 +112,7 @@ const ClassSchedulePage = () => {
     result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
     
     return result;
-  }, [classes, programs, subjects, programFilter, subjectFilter, classFilter, yearFilter, termFilter]);
+  }, [classes, yearFilter, termFilter]);
 
   useEffect(() => {
     if (!user) return;
@@ -287,34 +266,26 @@ const ClassSchedulePage = () => {
         <div style={{ padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
           <div style={{ fontWeight: 600, marginBottom: 8, fontSize: '0.9rem' }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
           <div style={{ display: 'grid', gap: 6, marginBottom: 8 }}>
-            <FilterSelect
-          filterKey="programs"
-          value={programFilter}
-          onChange={setProgramFilter}
-          data={programs}
-          additionalPlaceholderText={t('all_programs') || 'All Programs'}
-        />
-            <FilterSelect
-          filterKey="subjects"
-          value={subjectFilter}
-          onChange={setSubjectFilter}
-          data={subjects.filter(s => programFilter === 'all' || s.programId === programFilter)}
-          additionalPlaceholderText={t('all_subjects') || 'All Subjects'}
-        />
-            <FilterSelect
-          filterKey="classes"
-          value={classFilter}
-          onChange={setClassFilter}
-          data={classes.filter(c => {
-            if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
-            if (programFilter !== 'all') {
-              const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-              if (!subject || subject.programId !== programFilter) return false;
-            }
-            return true;
-          })}
-          additionalPlaceholderText={t('all_classes') || 'All Classes'}
-        />
+            <ProgramsSelect
+              programs={programs}
+              subjects={subjects}
+              classes={classes}
+              selectedProgram={programFilter}
+              selectedSubject={subjectFilter}
+              selectedClass={classFilter}
+              onProgramChange={(programId) => {
+                setProgramFilter(programId);
+                setSubjectFilter('');
+                setClassFilter('');
+              }}
+              onSubjectChange={(subjectId) => {
+                setSubjectFilter(subjectId);
+                setClassFilter('');
+              }}
+              onClassChange={setClassFilter}
+              showLabels={false}
+              style={{ width: '100%' }}
+            />
             <FilterSelect
           filterKey="years"
           value={yearFilter}

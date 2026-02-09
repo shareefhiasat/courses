@@ -31,6 +31,7 @@ const CollapsibleDashboardSection = ({
   compactContent = null,
   className = '',
   headerRight = null,
+  inlineFilters = null,
   animated = true,
   smartCollapse = false // Auto-collapse based on user behavior
 }) => {
@@ -144,7 +145,17 @@ const CollapsibleDashboardSection = ({
             {icon}
           </span>
           <div className={styles.headerInfo}>
-            <h3 className={styles.headerTitle}>{title}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <h3 className={styles.headerTitle}>{title}</h3>
+              {inlineFilters && (
+                <>
+                  <span style={{ color: 'var(--text-secondary, #6b7280)', fontSize: '1.1em', lineHeight: 1 }}>─</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {inlineFilters}
+                  </div>
+                </>
+              )}
+            </div>
             {count !== undefined && (
               <span className={styles.headerCount}>{count} items</span>
             )}

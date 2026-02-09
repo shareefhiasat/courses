@@ -3,7 +3,7 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, CATEGORY_ICONS } from '@constants';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@firebaseServices/categoryService';
 import { 
@@ -60,15 +60,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   // Dynamic icon options from centralized icon system
   const iconOptions = useMemo(() => {
-    const availableIcons = [
-      'folder', 'book', 'code', 'database', 'globe', 'monitor', 
-      'server', 'cloud', 'cpu', 'hard_drive', 'wifi', 'shield', 
-      'lock', 'key', 'bug', 'puzzle', 'layers', 'package', 
-      'terminal', 'settings', 'brain', 'star', 'heart', 'zap',
-      'target', 'award', 'trophy', 'flag', 'bookmark', 'tag'
-    ];
-    
-    return availableIcons.map(icon => ({
+    return CATEGORY_ICONS.map(icon => ({
       value: icon,
       label: t(icon) || icon.charAt(0).toUpperCase() + icon.slice(1).replace('_', ' '),
       icon: icon
@@ -104,10 +96,10 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         );
         setCategories(sortedCategories);
         
-        // Show success message for data loading
-        if (sortedCategories.length > 0) {
-          toast.success(t('categories_loaded_successfully') || `Loaded ${sortedCategories.length} categories`);
-        }
+        // Success message shown silently - no toast for data loading
+        // if (sortedCategories.length > 0) {
+        //   toast.success(t('categories_loaded_successfully') || `Loaded ${sortedCategories.length} categories`);
+        // }
       } else {
         toast.error(t('failed_to_load_categories') + ': ' + result.error);
       }
@@ -298,20 +290,22 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button
               size="small"
-              variant="outline"
+              variant="ghost"
               onClick={() => handleEdit(row)}
               disabled={hideActions}
+              icon={getThemedIcon('ui', 'edit', 16, theme)}
             >
-              {getThemedIcon('ui', 'edit', 16, theme)}
+              {t('edit') || 'Edit'}
             </Button>
             <Button
               size="small"
-              variant="outline"
+              variant="ghost"
               onClick={() => handleDelete(row)}
               disabled={hideActions}
-              style={{ color: '#dc2626', borderColor: '#dc2626' }}
+              style={{ color: '#dc2626' }}
+              icon={getThemedIcon('ui', 'trash', 16, theme)}
             >
-              {getThemedIcon('ui', 'delete', 16, theme)}
+              {t('delete') || 'Delete'}
             </Button>
           </div>
         );
@@ -343,7 +337,6 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={formData.name_en}
               onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
               placeholder={t('enter_name_english') || 'Enter name in English'}
-              label={t('name_english') || 'Name (English)'}
               required
               error={formErrors.name_en}
             />
@@ -351,16 +344,20 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={formData.name_ar}
               onChange={(e) => setFormData({ ...formData, name_ar: e.target.value })}
               placeholder={t('enter_name_arabic') || 'Enter name in Arabic'}
-              label={t('name_arabic') || 'Name (Arabic)'}
               required
               error={formErrors.name_ar}
+            />
+            <Input
+              value={formData.order}
+              onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+              type="number"
+              min="1"
+              placeholder={t('enter_order') || 'Enter order'}
+              error={formErrors.order}
             />
           </div>
           <div className="form-row">
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>
-                {t('icon') || 'Icon'}
-              </label>
               <Select
                 value={formData.icon}
                 onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
@@ -398,16 +395,14 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={formData.color}
               onChange={(e) => setFormData({ ...formData, color: e.target.value })}
               type="color"
-              label={t('color') || 'Color'}
+              placeholder={t('select_color') || 'Select color'}
             />
-          </div>
-          <div className="form-row">
             <Input
               value={formData.order}
               onChange={(e) => setFormData({ ...formData, order: e.target.value })}
               type="number"
               min="1"
-              label={t('order') || 'Order'}
+              placeholder={t('enter_order') || 'Enter order'}
               error={formErrors.order}
             />
           </div>
@@ -417,16 +412,12 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
               placeholder={t('enter_description_english') || 'Enter description in English'}
               rows={3}
-              label={t('description_english') || 'Description (English)'}
             />
-          </div>
-          <div className="form-row">
             <Textarea
               value={formData.description_ar}
               onChange={(e) => setFormData({ ...formData, description_ar: e.target.value })}
               placeholder={t('enter_description_arabic') || 'Enter description in Arabic'}
               rows={3}
-              label={t('description_arabic') || 'Description (Arabic)'}
             />
           </div>
           <div className="form-actions">

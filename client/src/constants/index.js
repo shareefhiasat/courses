@@ -16,7 +16,8 @@ export {
   getActivityIcon,
   getUserStatusIcon,
   getUserRoleIcon,
-  DASHBOARD_COLORS
+  DASHBOARD_COLORS,
+  CATEGORY_ICONS
 } from './iconTypes.jsx';
 
 // Filter Configuration - Centralized filter system

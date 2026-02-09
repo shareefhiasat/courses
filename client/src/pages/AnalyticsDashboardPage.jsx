@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
-import { CollapsibleDashboardSection, Select } from '@ui';
+import { CollapsibleDashboardSection } from '@ui';
+import FilterSelect from '@ui/FilterSelect/FilterSelect';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { getResourceCount } from '@firebaseServices/activityService';
@@ -13,6 +14,8 @@ import { getActivities } from '@firebaseServices/activityService';
 import { getUsers } from '@firebaseServices/userService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
 import { getAnnouncements } from '@firebaseServices/activityService';
+import { getPenalties } from '@firebaseServices/penaltyService';
+import { getBehaviors } from '@firebaseServices/behaviorService';
 
 /**
  * AnalyticsDashboardPage - Dashboard Statistics Page
@@ -40,6 +43,8 @@ const AnalyticsDashboardPage = () => {
   const [users, setUsers] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [penalties, setPenalties] = useState([]);
+  const [behaviors, setBehaviors] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingResourceCount, setLoadingResourceCount] = useState(false);
@@ -62,7 +67,9 @@ const AnalyticsDashboardPage = () => {
           activitiesRes,
           usersRes,
           quizzesRes,
-          announcementsRes
+          announcementsRes,
+          penaltiesRes,
+          behaviorsRes
         ] = await Promise.all([
           getPrograms(),
           getSubjects(),
@@ -71,7 +78,9 @@ const AnalyticsDashboardPage = () => {
           getActivities(),
           getUsers(),
           getAllQuizzes(),
-          getAnnouncements()
+          getAnnouncements(),
+          getPenalties(),
+          getBehaviors()
         ]);
         
         if (programsRes.success) setPrograms(programsRes.data || []);
@@ -82,6 +91,8 @@ const AnalyticsDashboardPage = () => {
         if (usersRes.success) setUsers(usersRes.data || []);
         if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
         if (announcementsRes.success) setAnnouncements(announcementsRes.data || []);
+        if (penaltiesRes.success) setPenalties(penaltiesRes.data || []);
+        if (behaviorsRes.success) setBehaviors(behaviorsRes.data || []);
         
       } catch (error) {
         console.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
@@ -158,106 +169,58 @@ const AnalyticsDashboardPage = () => {
       color={theme === 'dark' ? '#818cf8' : '#6366f1'}
       defaultMode="full"
       data-tour="stats"
-      compactContent={
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <Select
-            size="small"
-            searchable
+      inlineFilters={
+        <div style={{ display: 'flex', gap: '0.15rem', alignItems: 'center' }}>
+          <FilterSelect
+            filterKey="programs"
             value={enrollmentProgramFilter}
-            onChange={(e) => {
-              setEnrollmentProgramFilter(e.target.value);
+            onChange={(value) => {
+              setEnrollmentProgramFilter(value);
               setEnrollmentSubjectFilter('all');
               setEnrollmentClassFilter('all');
             }}
-            options={[
-              { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 14, theme) },
-            ...safePrograms.map(p => ({
-                value: p.docId || p.id,
-                label: p.name_en || p.name || p.code || p.docId
-              }))
-            ]}
-            style={{ minWidth: 140 }}
-            placeholder={t('all_programs') || 'All Programs'}
+            data={safePrograms}
+            style={{ minWidth: 80, maxWidth: 110 }}
+            size="small"
+          />
+          <FilterSelect
+            filterKey="subjects"
+            value={enrollmentSubjectFilter}
+            onChange={(value) => {
+              setEnrollmentSubjectFilter(value);
+              setEnrollmentClassFilter('all');
+            }}
+            data={subjects.filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)}
+            style={{ minWidth: 80, maxWidth: 110 }}
+            size="small"
+          />
+          <FilterSelect
+            filterKey="classes"
+            value={enrollmentClassFilter}
+            onChange={setEnrollmentClassFilter}
+            data={classes.filter(c => {
+              if (enrollmentProgramFilter !== 'all') {
+                const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+                return subject?.programId === enrollmentProgramFilter;
+              }
+              if (enrollmentSubjectFilter !== 'all') {
+                return c.subjectId === enrollmentSubjectFilter;
+              }
+              if (enrollmentClassFilter !== 'all') {
+                return (c.id || c.docId) === enrollmentClassFilter;
+              }
+              if (isInstructor && !isAdmin && !isSuperAdmin) {
+                return c.instructorId === user.uid || c.ownerEmail === user.email || c.instructor === user.email;
+              }
+              return true;
+            })}
+            style={{ minWidth: 80, maxWidth: 110 }}
+            size="small"
           />
         </div>
       }
     >
       <div style={{ marginBottom: '1rem' }}>
-        {/* Filters */}
-        <div data-tour="filters" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <Select
-            size="small"
-            searchable
-            value={enrollmentProgramFilter}
-            onChange={(e) => {
-              setEnrollmentProgramFilter(e.target.value);
-              setEnrollmentSubjectFilter('all');
-              setEnrollmentClassFilter('all');
-            }}
-            options={[
-              { value: 'all', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-            ...safePrograms.map(p => ({
-                value: p.docId || p.id,
-                label: p.name_en || p.name || p.code || p.docId
-              }))
-            ]}
-            style={{ minWidth: 180 }}
-            placeholder={t('all_programs') || 'All Programs'}
-          />
-          <Select
-            size="small"
-            searchable
-            value={enrollmentSubjectFilter}
-            onChange={(e) => {
-              setEnrollmentSubjectFilter(e.target.value);
-              setEnrollmentClassFilter('all');
-            }}
-            options={[
-              { value: 'all', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...(subjects || [])
-                .filter(s => enrollmentProgramFilter === 'all' || s.programId === enrollmentProgramFilter)
-                .map(s => ({
-                  value: s.docId || s.id,
-                  label: `${s.code || ''} - ${s.name_en || s.name || s.docId}`.trim()
-                }))
-            ]}
-            style={{ minWidth: 180 }}
-            placeholder={t('all_subjects') || 'All Subjects'}
-          />
-          <Select
-            size="small"
-            searchable
-            value={enrollmentClassFilter}
-            onChange={(e) => setEnrollmentClassFilter(e.target.value)}
-            options={[
-              { value: 'all', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...(classes || [])
-                .filter(c => {
-                  if (enrollmentProgramFilter !== 'all') {
-                    const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                    return subject?.programId === enrollmentProgramFilter;
-                  }
-                  if (enrollmentSubjectFilter !== 'all') {
-                    return c.subjectId === enrollmentSubjectFilter;
-                  }
-                  if (enrollmentClassFilter !== 'all') {
-                    return (c.id || c.docId) === enrollmentClassFilter;
-                  }
-                  if (isInstructor && !isAdmin && !isSuperAdmin) {
-                    return c.instructorId === user.uid || c.ownerEmail === user.email || c.instructor === user.email;
-                  }
-                  return true;
-                })
-                .map(c => ({
-                  value: c.id || c.docId,
-                  label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`,
-                  icon: getThemedIcon('ui', 'users', 16, theme)
-                }))
-            ]}
-            style={{ minWidth: 180 }}
-            placeholder={t('all_classes') || 'All Classes'}
-          />
-        </div>
         {/* Summary Cards */}
         <div
           style={{
@@ -387,6 +350,46 @@ const AnalyticsDashboardPage = () => {
                 return true;
               }).length,
               tooltip: t('total_announcements') || 'Total number of announcements'
+            },
+            // Penalties
+            {
+              type: 'penalties',
+              value: penalties.filter(p => {
+                if (enrollmentClassFilter !== 'all') {
+                  return p.classId === enrollmentClassFilter;
+                }
+                if (enrollmentSubjectFilter !== 'all') {
+                  return p.subjectId === enrollmentSubjectFilter;
+                }
+                if (enrollmentProgramFilter !== 'all') {
+                  return p.programId === enrollmentProgramFilter;
+                }
+                if (isInstructor && !isAdmin && !isSuperAdmin) {
+                  return p.instructorId === user.uid || p.instructorEmail === user.email;
+                }
+                return true;
+              }).length,
+              tooltip: t('total_penalties') || 'Total number of penalties'
+            },
+            // Behaviors
+            {
+              type: 'behaviors',
+              value: behaviors.filter(b => {
+                if (enrollmentClassFilter !== 'all') {
+                  return b.classId === enrollmentClassFilter;
+                }
+                if (enrollmentSubjectFilter !== 'all') {
+                  return b.subjectId === enrollmentSubjectFilter;
+                }
+                if (enrollmentProgramFilter !== 'all') {
+                  return b.programId === enrollmentProgramFilter;
+                }
+                if (isInstructor && !isAdmin && !isSuperAdmin) {
+                  return b.instructorId === user.uid || b.instructorEmail === user.email;
+                }
+                return true;
+              }).length,
+              tooltip: t('total_behaviors') || 'Total number of behavior records'
             }
           ].map((stat, idx) => {
             const config = getCardConfig(stat.type, t, theme);

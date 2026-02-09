@@ -34,7 +34,9 @@ import {
   // Missing icons from HomePage
   Monitor, Code, Folder, Hourglass, Repeat,
   // Notification settings icons
-  Volume2, Vibrate
+  Volume2, Vibrate,
+  // Additional icons for CategoriesPage
+  Cloud, Layers, Package, Bookmark
 } from 'lucide-react';
 
 // Centralized Icon Configuration
@@ -315,9 +317,35 @@ export const ICON_TYPES = {
     // Open tab icon for sticky mode
     open_tab: <LayoutGrid size={16} />,
     // Open new tab icon
-    open_new_tab: <ExternalLink size={16} />
+    open_new_tab: <ExternalLink size={16} />,
+    // Category icons from CategoriesPage
+    server: <Monitor size={16} />,
+    cloud: <Cloud size={16} />,
+    cpu: <Monitor size={16} />,
+    hard_drive: <Monitor size={16} />,
+    wifi: <Globe size={16} />,
+    lock: <Lock size={16} />,
+    key: <Key size={16} />,
+    bug: <AlertTriangle size={16} />,
+    puzzle: <Package size={16} />,
+    layers: <Layers size={16} />,
+    package: <Package size={16} />,
+    terminal: <Monitor size={16} />,
+    brain: <Monitor size={16} />,
+    target: <Target size={16} />,
+    bookmark: <Bookmark size={16} />,
+    tag: <Tag size={16} />
   }
 };
+
+// Centralized Category Icons for reuse across application
+export const CATEGORY_ICONS = [
+  'folder', 'book', 'code', 'database', 'globe', 'monitor', 
+  'server', 'cloud', 'cpu', 'hard_drive', 'wifi', 'shield', 
+  'lock', 'key', 'bug', 'puzzle', 'layers', 'package', 
+  'terminal', 'settings', 'brain', 'star', 'heart', 'zap',
+  'target', 'award', 'trophy', 'flag', 'bookmark', 'tag'
+];
 
 // Color Constants for Dashboard and Chat
 export const DASHBOARD_COLORS = {

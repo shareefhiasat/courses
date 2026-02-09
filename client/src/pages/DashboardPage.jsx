@@ -35,12 +35,13 @@ import AnnouncementsPage from './AnnouncementsPage';
 import ResourcesPage from './ResourcesPage';
 import ClassesPage from './ClassesPage';
 import UsersPage from './UsersPage';
-import LoginActivityPage from './LoginActivityPage';
+import LogsActivityPage from './LogsActivityPage';
 import SubmissionsPage from './SubmissionsPage';
 import SMTPPage from './SMTPPage';
 import EnrollmentManagementPage from './EnrollmentManagementPage';
 import EmailLogsPage from './EmailLogsPage';
 import ActivitiesPage from './ActivitiesPage';
+import ScheduledReportsPage from './ScheduledReportsPage';
 import { 
   getResourceTypeConfig, 
   getResourceTypeOptions, 
@@ -174,7 +175,7 @@ const DashboardPage = () => {
       users: 'users', allowlist: 'users',
       classes: 'academic', enrollments: 'academic', submissions: 'academic',
       /* smtp: 'communication' - DEPRECATED */ emailTemplates: 'communication', notificationLogs: 'communication',
-      categories: 'settings', login: 'settings'
+      categories: 'settings', logging: 'settings'
     };
     return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
   });
@@ -228,7 +229,7 @@ const DashboardPage = () => {
     localStorage.setItem('dashboardActiveTab', tab);
     setHashProcessed(false); // Reset hash processed flag when tab changes manually
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'login'];
+    const queryParamTabs = ['activities', 'announcements', 'resources', 'users', 'allowlist', 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'classschedule', 'hr-penalties', 'instructor-participation', 'instructor-behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging'];
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
@@ -346,7 +347,7 @@ const DashboardPage = () => {
       label: t('settings'),
       items: [
         { key: 'categories', label: t('categories') },
-        { key: 'login', label: t('logs') }
+        { key: 'logging', label: t('logs') }
       ]
     }
   ];
@@ -392,7 +393,7 @@ const DashboardPage = () => {
   }, []);
   // Progress ticker for Activity auto refresh bar
   useEffect(() => {
-    if (!activityAutoRefreshMs || activeTab !== 'login') return;
+    if (!activityAutoRefreshMs || activeTab !== 'logging') return;
     const id = setInterval(() => setActivityNowTick(Date.now()), 250);
     return () => clearInterval(id);
   }, [activityAutoRefreshMs, activeTab]);
@@ -1519,34 +1520,8 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           {activeTab === 'scheduled-reports' && (isSuperAdmin || isAdmin) && (
             <ScheduledReportsPage />
           )}
-          {activeTab === 'login' && (
-            <LoginActivityPage
-              loginLogs={loginLogs}
-              setLoginLogs={setLoginLogs}
-              activityTypeFilter={activityTypeFilter}
-              setActivityTypeFilter={setActivityTypeFilter}
-              loginSearch={loginSearch}
-              setLoginSearch={setLoginSearch}
-              loginUserFilter={loginUserFilter}
-              setLoginUserFilter={setLoginUserFilter}
-              loginFrom={loginFrom}
-              setLoginFrom={setLoginFrom}
-              loginTo={loginTo}
-              setLoginTo={setLoginTo}
-              activityAutoRefreshMs={activityAutoRefreshMs}
-              setActivityAutoRefreshMs={setActivityAutoRefreshMs}
-              activityNowTick={activityNowTick}
-              activityLastUpdatedAt={activityLastUpdatedAt}
-              setActivityLastUpdatedAt={setActivityLastUpdatedAt}
-              users={users}
-              enrollments={enrollments}
-              deleteModal={deleteModal}
-              setDeleteModal={setDeleteModal}
-              loading={loading}
-              setLoading={setLoading}
-              loadData={loadData}
-              theme={theme}
-            />
+          {activeTab === 'logging' && (
+            <LogsActivityPage />
           )}
           {activeTab === 'classes' && (
             <ClassesPage />
