@@ -12,6 +12,7 @@ import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { MARK_TYPES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { CollapsibleSideWindow } from '@ui';
@@ -57,16 +58,16 @@ const MarksEntryPage = () => {
   });
 
   // Filters
-  const [programFilter, setProgramFilter] = useState('all');
-  const [subjectFilter, setSubjectFilter] = useState('all');
-  const [classFilter, setClassFilter] = useState('all');
+  const [programFilter, setProgramFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('');
 
   // Memoized normalize Select onChange (our Select sometimes passes event, sometimes raw value)
   const getSelectValue = useCallback((eventOrValue) => {
     if (eventOrValue && typeof eventOrValue === 'object' && 'target' in eventOrValue) {
-      return eventOrValue.target?.value ?? 'all';
+      return eventOrValue.target?.value ?? '';
     }
-    return eventOrValue ?? 'all';
+    return eventOrValue ?? '';
   }, []);
 
   // Side window state
@@ -79,7 +80,7 @@ const MarksEntryPage = () => {
   const filteredClasses = useMemo(() => {
     let result = [...classes];
     
-    if (programFilter !== 'all') {
+    if (programFilter !== '') {
       result = result.filter(cls => {
         if (!cls.subjectId) return false;
         const subject = subjects.find(s => (s.docId || s.id) === cls.subjectId);
@@ -88,11 +89,11 @@ const MarksEntryPage = () => {
       });
     }
     
-    if (subjectFilter !== 'all') {
+    if (subjectFilter !== '') {
       result = result.filter(cls => (cls.subjectId || '') === subjectFilter);
     }
     
-    if (classFilter !== 'all') {
+    if (classFilter !== '') {
       result = result.filter(cls => {
         const classId = cls.id || cls.docId;
         return String(classId) === String(classFilter);
@@ -104,7 +105,7 @@ const MarksEntryPage = () => {
 
   // Filtered students based on selected class
   const filteredStudents = useMemo(() => {
-    if (classFilter === 'all') {
+    if (classFilter === '') {
       // console.log('No class filter applied');
       return [];
     }
@@ -243,7 +244,7 @@ const MarksEntryPage = () => {
 
   // Selected subject from filters
   const selectedSubject = useMemo(() => {
-    if (subjectFilter === 'all') return null;
+    if (subjectFilter === '') return null;
     return subjects.find(s => (s.docId || s.id) === subjectFilter);
   }, [subjectFilter, subjects]);
 
@@ -315,7 +316,7 @@ const MarksEntryPage = () => {
       }
 
       // Load existing student marks
-      if (classFilter !== 'all') {
+      if (classFilter !== '') {
         const marksResult = await getStudentMarks(selectedSubject.docId || selectedSubject.id, classFilter);
         if (marksResult.success) {
           setStudentMarks(marksResult.data || {});
@@ -336,7 +337,7 @@ const MarksEntryPage = () => {
   }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
 
   useEffect(() => {
-    if (selectedSubject && classFilter !== 'all' && enrollments.length > 0) {
+    if (selectedSubject && classFilter !== '' && enrollments.length > 0) {
       // Small delay to ensure enrollments are fully loaded with marks
       const timer = setTimeout(() => {
         loadMarksData();
@@ -393,7 +394,7 @@ const MarksEntryPage = () => {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
-    if (!editingStudent || !selectedSubject || classFilter === 'all') {
+    if (!editingStudent || !selectedSubject || classFilter === '') {
       toast.error(t('missing_required_data') || 'Missing required data');
       return;
     }
@@ -770,60 +771,25 @@ const MarksEntryPage = () => {
       <Card style={{ marginBottom: '1.5rem' }}>
         <CardBody>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-            <Select
-              searchable
-              value={programFilter}
-              onChange={(e) => {
-                const val = getSelectValue(e);
-                setProgramFilter(val);
-                setSubjectFilter('all');
-                setClassFilter('all');
+            <ProgramsSelect
+              programs={programs}
+              subjects={subjects}
+              classes={filteredClasses}
+              selectedProgram={programFilter}
+              selectedSubject={subjectFilter}
+              selectedClass={classFilter}
+              onProgramChange={(programId) => {
+                setProgramFilter(programId);
+                setSubjectFilter('');
+                setClassFilter('');
               }}
-              options={[
-                { value: 'all', label: t('all_programs') || 'All Programs', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...programs.map(p => ({
-                  value: p.docId || p.id,
-                  label: p.name_en || p.name_ar || p.code || p.docId,
-                  icon: getThemedIcon('ui', 'graduation_cap', 16, theme)
-                }))
-              ]}
-              fullWidth
-            />
-            <Select
-              searchable
-              value={subjectFilter}
-              onChange={(e) => {
-                const val = getSelectValue(e);
-                setSubjectFilter(val);
-                setClassFilter('all');
+              onSubjectChange={(subjectId) => {
+                setSubjectFilter(subjectId);
+                setClassFilter('');
               }}
-              options={[
-                { value: 'all', label: t('all_subjects') || 'All Subjects', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...subjects
-                  .filter(s => programFilter === 'all' || s.programId === programFilter)
-                  .map(s => ({
-                    value: s.docId || s.id,
-                    label: `${s.code || ''} - ${s.name_en || s.name_ar || s.docId}`,
-                    icon: getThemedIcon('ui', 'book_open', 16, theme)
-                  }))
-              ]}
+              onClassChange={(classId) => setClassFilter(classId)}
+              showLabels={false}
               fullWidth
-              disabled={programFilter === 'all'}
-            />
-            <Select
-              searchable
-              value={classFilter}
-              onChange={(e) => setClassFilter(getSelectValue(e))}
-              options={[
-                { value: 'all', label: t('all_classes') || 'All Classes', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                ...filteredClasses.map(c => ({
-                  value: c.id || c.docId,
-                  label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}${c.year ? ` ${c.year}` : ''}`,
-                  icon: getThemedIcon('ui', 'users', 16, theme)
-                }))
-              ]}
-              fullWidth
-              disabled={subjectFilter === 'all'}
             />
           </div>
         </CardBody>

@@ -2,7 +2,8 @@ import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
-import { FILTER_CONFIGS } from '@constants/filterConfig';
+import { FILTER_CONFIGS } from '@constants/filterConfig.js';
+import Select from '../Select/Select';
 
 /**
  * Reusable FilterSelect component that uses centralized filter configuration
@@ -53,9 +54,6 @@ const FilterSelect = ({
     const newValue = e?.target?.value !== undefined ? e.target.value : e;
     onChange?.(newValue);
   };
-
-  // Import Select component
-  const Select = require('./Select').default;
 
   return (
     <Select

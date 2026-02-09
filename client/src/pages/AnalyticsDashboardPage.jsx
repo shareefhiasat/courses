@@ -11,7 +11,6 @@ import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getActivities } from '@firebaseServices/activityService';
 import { getUsers } from '@firebaseServices/userService';
-import { getSubmissions } from '@firebaseServices/submissionService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
 import { getAnnouncements } from '@firebaseServices/activityService';
 
@@ -22,7 +21,7 @@ import { getAnnouncements } from '@firebaseServices/activityService';
  * extracted from DashboardPage.jsx for better modularity.
  * 
  * Features:
- * - Summary cards with counts for programs, subjects, classes, enrollments, activities, users, submissions, quizzes, announcements, resources
+ * - Summary cards with counts for programs, subjects, classes, enrollments, activities, users, quizzes, announcements, resources
  * - Filtering by program, subject, and class
  * - Role-based access control
  * - Theme-aware styling with centralized icons
@@ -39,7 +38,6 @@ const AnalyticsDashboardPage = () => {
   const [enrollments, setEnrollments] = useState([]);
   const [activities, setActivities] = useState([]);
   const [users, setUsers] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
@@ -63,7 +61,6 @@ const AnalyticsDashboardPage = () => {
           enrollmentsRes,
           activitiesRes,
           usersRes,
-          submissionsRes,
           quizzesRes,
           announcementsRes
         ] = await Promise.all([
@@ -73,7 +70,6 @@ const AnalyticsDashboardPage = () => {
           getEnrollments(),
           getActivities(),
           getUsers(),
-          getSubmissions(),
           getAllQuizzes(),
           getAnnouncements()
         ]);
@@ -84,7 +80,6 @@ const AnalyticsDashboardPage = () => {
         if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data || []);
         if (activitiesRes.success) setActivities(activitiesRes.data || []);
         if (usersRes.success) setUsers(usersRes.data || []);
-        if (submissionsRes.success) setSubmissions(submissionsRes.data || []);
         if (quizzesRes.success) setQuizzes(quizzesRes.data || []);
         if (announcementsRes.success) setAnnouncements(announcementsRes.data || []);
         
@@ -182,7 +177,7 @@ const AnalyticsDashboardPage = () => {
               }))
             ]}
             style={{ minWidth: 140 }}
-            placeholder={t('all_programs')}
+            placeholder={t('all_programs') || 'All Programs'}
           />
         </div>
       }
@@ -207,7 +202,7 @@ const AnalyticsDashboardPage = () => {
               }))
             ]}
             style={{ minWidth: 180 }}
-            placeholder={t('all_programs')}
+            placeholder={t('all_programs') || 'All Programs'}
           />
           <Select
             size="small"
@@ -227,7 +222,7 @@ const AnalyticsDashboardPage = () => {
                 }))
             ]}
             style={{ minWidth: 180 }}
-            placeholder={t('all_subjects')}
+            placeholder={t('all_subjects') || 'All Subjects'}
           />
           <Select
             size="small"
@@ -267,7 +262,7 @@ const AnalyticsDashboardPage = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
             gap: '0.75rem'
           }}
         >
@@ -276,7 +271,7 @@ const AnalyticsDashboardPage = () => {
             ...(isSuperAdmin ? [{
               type: 'programs',
               value: safePrograms.length,
-              tooltip: 'Total number of programs in the system'
+              tooltip: t('total_programs_system') || 'Total number of programs in the system'
             }] : []),
             // Subjects - Admin and Super Admin
             ...((isAdmin || isSuperAdmin) ? [{
@@ -285,7 +280,7 @@ const AnalyticsDashboardPage = () => {
                 if (enrollmentProgramFilter !== 'all') return s.programId === enrollmentProgramFilter;
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? 'Total number of subjects' : 'Subjects in your accessible programs'
+              tooltip: isSuperAdmin ? (t('total_subjects_all') || 'Total number of subjects') : (t('total_subjects_accessible') || 'Subjects in your accessible programs')
             }] : []),
             // Classes - All roles with filtering
             {
@@ -306,7 +301,7 @@ const AnalyticsDashboardPage = () => {
                 }
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? 'Total number of classes' : isAdmin ? 'Classes in your accessible programs' : 'Your classes'
+              tooltip: isSuperAdmin ? (t('total_classes_system') || 'Total number of classes') : isAdmin ? (t('total_classes_accessible') || 'Classes in your accessible programs') : (t('total_classes_instructor') || 'Your classes')
             },
             // Enrollments
             {
@@ -330,7 +325,7 @@ const AnalyticsDashboardPage = () => {
                 }
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? 'Total number of enrollments' : isAdmin ? 'Enrollments in your accessible programs' : 'Enrollments in your classes'
+              tooltip: isSuperAdmin ? (t('total_enrollments_system') || 'Total number of enrollments') : isAdmin ? (t('total_enrollments_accessible') || 'Enrollments in your accessible programs') : (t('total_enrollments_instructor') || 'Enrollments in your classes')
             },
             // Activities
             {
@@ -354,50 +349,25 @@ const AnalyticsDashboardPage = () => {
                 }
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? 'Total number of activities' : isAdmin ? 'Activities in your accessible programs' : 'Activities in your classes'
+              tooltip: isSuperAdmin ? (t('total_activities_system') || 'Total number of activities') : isAdmin ? (t('total_activities_accessible') || 'Activities in your accessible programs') : (t('total_activities_instructor') || 'Activities in your classes')
+            },
+            // Resources - Core statistic positioned on first line
+            {
+              type: 'resources',
+              value: loadingResourceCount ? '...' : resourceCount,
+              tooltip: loadingResourceCount ? (t('loading_resource_count') || 'Loading resource count...') : (t('total_resources') || 'Total number of resources (server-side count)')
             },
             // Users - Admin and Super Admin only
             ...((isAdmin || isSuperAdmin) ? [{
               type: 'users',
               value: users.length,
-              tooltip: 'Total number of users in the system'
+              tooltip: t('total_users_system') || 'Total number of users in the system'
             }] : []),
-            // Submissions
-            {
-              type: 'submissions',
-              value: submissions.filter(s => {
-                if (enrollmentClassFilter !== 'all') {
-                  const activity = activities.find(a => a.id === s.activityId);
-                  return activity?.classId === enrollmentClassFilter;
-                }
-                if (enrollmentSubjectFilter !== 'all') {
-                  const activity = activities.find(a => a.id === s.activityId);
-                  if (!activity) return false;
-                  const classItem = classes.find(c => (c.id || c.docId) === activity.classId);
-                  return classItem?.subjectId === enrollmentSubjectFilter;
-                }
-                if (enrollmentProgramFilter !== 'all') {
-                  const activity = activities.find(a => a.id === s.activityId);
-                  if (!activity) return false;
-                  const classItem = classes.find(c => (c.id || c.docId) === activity.classId);
-                  const subject = subjects.find(s => (s.docId || s.id) === classItem?.subjectId);
-                  return subject?.programId === enrollmentProgramFilter;
-                }
-                if (isInstructor && !isAdmin && !isSuperAdmin) {
-                  const activity = activities.find(a => a.id === s.activityId);
-                  if (!activity) return false;
-                  const classItem = classes.find(c => (c.id || c.docId) === activity.classId);
-                  return classItem && (classItem.instructorId === user.uid || classItem.ownerEmail === user.email || classItem.instructor === user.email);
-                }
-                return true;
-              }).length,
-              tooltip: isSuperAdmin ? 'Total number of submissions' : isAdmin ? 'Submissions in your accessible programs' : 'Submissions from your students'
-            },
             // Quizzes
             {
               type: 'quizzes',
               value: quizzes.length,
-              tooltip: 'Total number of quizzes. Click to view all quizzes.',
+              tooltip: t('total_quizzes') || 'Total number of quizzes. Click to view all quizzes.',
               onClick: () => window.location.href = '/quizzes',
               hoverable: true
             },
@@ -416,13 +386,7 @@ const AnalyticsDashboardPage = () => {
                 }
                 return true;
               }).length,
-              tooltip: 'Total number of announcements'
-            },
-            // Resources
-            {
-              type: 'resources',
-              value: loadingResourceCount ? '...' : resourceCount,
-              tooltip: loadingResourceCount ? 'Loading resource count...' : 'Total number of resources (server-side count)'
+              tooltip: t('total_announcements') || 'Total number of announcements'
             }
           ].map((stat, idx) => {
             const config = getCardConfig(stat.type, t, theme);

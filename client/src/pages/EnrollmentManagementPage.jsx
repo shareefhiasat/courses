@@ -4,6 +4,7 @@ import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, UserSelect, RibbonTabs, AdvancedDataGrid } from '@ui';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { USER_ROLES } from '@constants';
 import { ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
@@ -54,30 +55,25 @@ const EnrollmentManagementPage = ({
     loadFilters();
   }, []);
 
-  // Create local options for dropdowns (NotificationDrawer pattern)
-  const localProgramOptions = [
-    { value: 'all', label: t('all_programs') || 'All Programs' },
-    ...localPrograms.map(p => ({
-      value: p.docId || p.id,
-      label: p.name_en || p.name || p.code || 'Unknown Program'
-    }))
-  ];
+  // Handler functions for dropdown changes
+  const handleEnrollmentProgramChange = (e) => {
+    const programId = e.target.value;
+    setEnrollmentForm(prev => ({ 
+      ...prev, 
+      programId, 
+      subjectId: '', 
+      classId: '' 
+    }));
+  };
 
-  const localSubjectOptions = [
-    { value: 'all', label: t('all_subjects') || 'All Subjects' },
-    ...localSubjects.map(s => ({
-      value: s.docId || s.id,
-      label: s.name_en || s.name || s.code || 'Unknown Subject'
-    }))
-  ];
-
-  const localClassOptions = [
-    { value: 'all', label: t('all_classes') || 'All Classes' },
-    ...localClasses.map(c => ({
-      value: c.docId || c.id,
-      label: c.name || c.code || 'Unknown Class'
-    }))
-  ];
+  const handleEnrollmentSubjectChange = (e) => {
+    const subjectId = e.target.value;
+    setEnrollmentForm(prev => ({ 
+      ...prev, 
+      subjectId, 
+      classId: '' 
+    }));
+  };
 
   return (
     <div className="enrollments-section" style={{ marginTop: '2rem' }}>
@@ -152,29 +148,17 @@ const EnrollmentManagementPage = ({
         {/* Class Info Tab */}
         {activeEnrollmentTab === 'class' && (
           <div className="form-row wide-cols">
-            <Select
-              searchable
-              placeholder={t('all_programs')}
-              value={enrollmentForm.programId}
-              onChange={handleEnrollmentProgramChange}
-              options={localProgramOptions}
-              required
-            />
-            <Select
-              searchable
-              placeholder={t('all_subjects')}
-              value={ensureString(enrollmentForm.subjectId || '')}
-              onChange={handleEnrollmentSubjectChange}
-              options={localSubjectOptions}
-              required
-            />
-            <Select
-              searchable
-              placeholder={t('all_classes')}
-              value={enrollmentForm.classId}
-              onChange={(e) => setEnrollmentForm(prev => ({ ...prev, classId: e.target.value }))}
-              disabled={!enrollmentForm.subjectId}
-              options={localClassOptions}
+            <ProgramsSelect
+              programs={localPrograms}
+              subjects={localSubjects}
+              classes={localClasses}
+              selectedProgram={enrollmentForm.programId}
+              selectedSubject={enrollmentForm.subjectId}
+              selectedClass={enrollmentForm.classId}
+              onProgramChange={(programId) => setEnrollmentForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
+              onSubjectChange={(subjectId) => setEnrollmentForm(prev => ({ ...prev, subjectId, classId: '' }))}
+              onClassChange={(classId) => setEnrollmentForm(prev => ({ ...prev, classId }))}
+              showLabels={false}
               required
             />
           </div>
@@ -234,14 +218,14 @@ const EnrollmentManagementPage = ({
               const row = params.row || {};
               const programName = row.programName || 
                                (row.program && (row.program.name_en || row.program.name)) ||
-                               (row.programId && programs.find(p => (p.docId || p.id) === row.programId)?.name_en);
-              return programName || params.value || 'N/A';
+                               (row.programId && localPrograms.find(p => (p.docId || p.id) === row.programId)?.name_en);
+              return programName || params.value || '-';
             },
             renderCell: (params) => {
               const row = params.row || {};
               const programName = row.programName || 
                                (row.program && (row.program.name_en || row.program.name)) ||
-                               (row.programId && programs.find(p => (p.docId || p.id) === row.programId)?.name_en);
+                               (row.programId && localPrograms.find(p => (p.docId || p.id) === row.programId)?.name_en);
               if (!programName && !params.value) {
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
@@ -250,7 +234,7 @@ const EnrollmentManagementPage = ({
                   </span>
                 );
               }
-              const finalProgramName = programName || params.value || 'N/A';
+              const finalProgramName = programName || params.value || '-';
               return (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   {/*{getThemedIcon('ui', 'target', 16, theme)} */}
@@ -269,14 +253,14 @@ const EnrollmentManagementPage = ({
               const row = params.row || {};
               const subjectName = row.subjectName || 
                                (row.subject && (row.subject.name_en || row.subject.name)) ||
-                               (row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
-              return subjectName || params.value || 'N/A';
+                               (row.subjectId && localSubjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
+              return subjectName || params.value || '-';
             },
             renderCell: (params) => {
               const row = params.row || {};
               const subjectName = row.subjectName || 
                                (row.subject && (row.subject.name_en || row.subject.name)) ||
-                               (row.subjectId && subjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
+                               (row.subjectId && localSubjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
               if (!subjectName && !params.value) {
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
@@ -285,7 +269,7 @@ const EnrollmentManagementPage = ({
                   </span>
                 );
               }
-              const finalSubjectName = subjectName || params.value || 'N/A';
+              const finalSubjectName = subjectName || params.value || '-';
               return (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
