@@ -1508,40 +1508,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
              </div>
            </div>
         {activeTab === 'activities' && (
-            <ActivitiesPage
-              activities={activities}
-              setActivities={setActivities}
-              programs={programs}
-              subjects={subjects}
-              classes={classes}
-              quizzes={quizzes}
-              courses={courses}
-              users={users}
-              activityForm={activityForm}
-              setActivityForm={setActivityForm}
-              editingActivity={editingActivity}
-              setEditingActivity={setEditingActivity}
-              activeActivityFormTab={activeActivityFormTab}
-              setActiveActivityFormTab={setActiveActivityFormTab}
-              formErrors={formErrors}
-              loading={loading}
-              setLoading={setLoading}
-              emailOptions={emailOptions}
-              setEmailOptions={setEmailOptions}
-              deleteModal={deleteModal}
-              setDeleteModal={setDeleteModal}
-              loadData={loadData}
-              enrollmentProgramFilter={enrollmentProgramFilter}
-              enrollmentSubjectFilter={enrollmentSubjectFilter}
-              enrollmentClassFilter={enrollmentClassFilter}
-              activityProgramOptions={activityProgramOptions}
-              activitySubjectOptions={activitySubjectOptions}
-              activityClassOptions={activityClassOptions}
-              handleDropdownChange={handleDropdownChange}
-              handleActivitySubmit={handleActivitySubmit}
-              handleEditActivity={handleEditActivity}
-              user={user}
-            />
+            <ActivitiesPage />
           )}
           {activeTab === 'announcements' && (
           <AnnouncementsPage />

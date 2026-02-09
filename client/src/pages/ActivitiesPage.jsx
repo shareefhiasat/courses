@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { RibbonTabs, AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -11,7 +12,10 @@ import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdow
 import { getActivityTypes } from '@firebaseServices/activityService';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
 import { getCategories } from '@firebaseServices/categoryService';
+import { getActivities, addActivity, updateActivity, deleteActivity } from '@firebaseServices/activityService';
+import { getAllQuizzes } from '@firebaseServices/quizService';
 import { Select, Input, Textarea, DatePicker, NumberInput, Button, ToggleSwitch, UrlInput } from '@ui';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
 
 /**
  * ActivitiesPage - Activities management page
@@ -27,122 +31,165 @@ import { Select, Input, Textarea, DatePicker, NumberInput, Button, ToggleSwitch,
  * - Email notification options
  * - Activity deletion with confirmation
  */
-const ActivitiesPage = ({
-  activities,
-  setActivities,
-  quizzes,
-  courses,
-  users,
-  activityForm,
-  setActivityForm,
-  editingActivity,
-  setEditingActivity,
-  activeActivityFormTab,
-  setActiveActivityFormTab,
-  formErrors,
-  loading,
-  setLoading,
-  emailOptions,
-  setEmailOptions,
-  deleteModal,
-  setDeleteModal,
-  loadData,
-  handleEditActivity,
-  handleActivitySubmit,
-  handleDropdownChange,
-  user
-}) => {
+const ActivitiesPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const toast = useToast();
+  
+  // Internal state management
+  const [activities, setActivities] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [activityForm, setActivityForm] = useState({
+    id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
+    type: 'homework', programId: '', subjectId: '', classId: '', categoryId: '',
+    difficulty: 'beginner', maxScore: 100, allowRetake: false, dueDate: null,
+    show: true, quizId: '', overrideQuizSettings: false, featured: false,
+    optional: false, requiresSubmission: false, url: '', image: ''
+  });
+  const [editingActivity, setEditingActivity] = useState(null);
+  const [activeActivityFormTab, setActiveActivityFormTab] = useState('basic');
+  const [formErrors, setFormErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [emailOptions, setEmailOptions] = useState({
+    sendEmail: false,
+    createAnnouncement: false,
+    emailLang: 'en'
+  });
+  const [deleteModal, setDeleteModal] = useState({ show: false, activity: null });
+  
   const [activityTypes, setActivityTypes] = useState([]);
   const [categories, setCategories] = useState([]);
-  
-  // Separate state management to avoid race conditions
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 
-  // Load data independently
+  // Data loading function
+  const loadData = useCallback(async () => {
+    setDataLoading(true);
+    try {
+      const [
+        programsResult, 
+        subjectsResult, 
+        classesResult, 
+        categoriesResult,
+        activitiesResult,
+        quizzesResult
+      ] = await Promise.all([
+        getPrograms(),
+        getSubjects(), 
+        getClasses(),
+        getCategories(),
+        getActivities(),
+        getAllQuizzes()
+      ]);
+      
+      if (programsResult.success) setPrograms(programsResult.data || []);
+      if (subjectsResult.success) setSubjects(subjectsResult.data || []);
+      if (classesResult.success) setClasses(classesResult.data || []);
+      if (categoriesResult.success) setCategories(categoriesResult.data || []);
+      if (activitiesResult.success) setActivities(activitiesResult.data || []);
+      if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast?.showError('Failed to load data');
+    } finally {
+      setDataLoading(false);
+    }
+  }, [toast]);
+
+  // Load data on component mount
   useEffect(() => {
-    const loadData = async () => {
-      setDataLoading(true);
-      try {
-        const [programsResult, subjectsResult, classesResult, categoriesResult] = await Promise.all([
-          getPrograms(),
-          getSubjects(), 
-          getClasses(),
-          getCategories()
-        ]);
-        
-        if (programsResult.success) setPrograms(programsResult.data || []);
-        if (subjectsResult.success) setSubjects(subjectsResult.data || []);
-        if (classesResult.success) setClasses(classesResult.data || []);
-        if (categoriesResult.success) setCategories(categoriesResult.data || []);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast?.showError('Failed to load data');
-      } finally {
-        setDataLoading(false);
-      }
-    };
-    
     loadData();
+  }, [loadData]);
+
+  // Handler functions
+  const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
+    return (value) => {
+      setter(prev => {
+        const newState = { ...prev, [field]: value };
+        resetFields.forEach(resetField => {
+          newState[resetField] = '';
+        });
+        return newState;
+      });
+    };
   }, []);
 
-  // Create options from local state
-  const activityProgramOptions = useMemo(() => {
-    const opts = [
-      { value: '', label: t('all_programs'), icon: getThemedIcon('ui', 'filter', 16, theme) }
-    ];
-    const validPrograms = programs
-      .filter(prog => prog.docId || prog.id)
-      .map(prog => {
-        const value = prog.docId || prog.id;
-        const label = lang === 'ar' 
-          ? (prog.name_ar || prog.name_en || prog.name || value) 
-          : (prog.name_en || prog.name_ar || prog.name || value);
-        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
-      });
-    return [...opts, ...validPrograms];
-  }, [programs, lang, t, theme]);
+  const handleActivitySubmit = useCallback(async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setFormErrors({});
 
-  const activitySubjectOptions = useMemo(() => {
-    const opts = [
-      { value: '', label: t('all_subjects'), icon: getThemedIcon('ui', 'filter', 16, theme) }
-    ];
-    const validSubjects = subjects
-      .filter(sub => {
-        if (!activityForm.programId) return true;
-        const subProgramId = sub.program || sub.programId || '';
-        const formProgramId = activityForm.programId || '';
-        return subProgramId === formProgramId;
-      })
-      .map(sub => {
-        const value = sub.docId || sub.id;
-        const label = lang === 'ar' 
-          ? (sub.name_ar || sub.name_en || value) 
-          : (sub.name_en || sub.name_ar || value);
-        return { value, label, icon: getThemedIcon('ui', 'book_open', 16, theme) };
-      });
-    return [...opts, ...validSubjects];
-  }, [subjects, activityForm.programId, lang, t]);
+    try {
+      const activityData = {
+        ...activityForm,
+        updatedAt: new Date().toISOString(),
+        updatedBy: user?.id || 'unknown'
+      };
 
-  const activityClassOptions = useMemo(() => {
-    const opts = [
-      { value: '', label: t('all_classes'), icon: getThemedIcon('ui', 'filter', 16, theme) }
-    ];
-    const validClasses = classes
-      .filter(cls => cls.docId || cls.id)
-      .map(cls => {
-        const value = cls.docId || cls.id;
-        const label = cls.name + (cls.code ? ` (${cls.code})` : '');
-        return { value, label, icon: getThemedIcon('ui', 'users', 16, theme) };
-      });
-    return [...opts, ...validClasses];
-  }, [classes, lang, t]);
+      if (editingActivity && editingActivity.id !== 'new') {
+        await updateActivity(editingActivity.id, activityData);
+        toast?.showSuccess('Activity updated successfully');
+      } else {
+        activityData.createdAt = new Date().toISOString();
+        activityData.createdBy = user?.id || 'unknown';
+        await addActivity(activityData);
+        toast?.showSuccess('Activity created successfully');
+      }
 
+      // Reset form and reload data
+      setActivityForm({
+        id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
+        type: 'homework', programId: '', subjectId: '', classId: '', categoryId: '',
+        difficulty: 'beginner', maxScore: 100, allowRetake: false, dueDate: null,
+        show: true, quizId: '', overrideQuizSettings: false, featured: false,
+        optional: false, requiresSubmission: false, url: '', image: ''
+      });
+      setEditingActivity(null);
+      setActiveActivityFormTab('basic');
+      loadData();
+    } catch (error) {
+      console.error('Error saving activity:', error);
+      toast?.showError('Failed to save activity');
+    } finally {
+      setLoading(false);
+    }
+  }, [activityForm, editingActivity, user, toast, loadData]);
+
+  const handleEditActivity = useCallback((activity) => {
+    setEditingActivity(activity);
+    setActivityForm({
+      id: activity.id || '',
+      title_en: activity.title_en || '',
+      title_ar: activity.title_ar || '',
+      description_en: activity.description_en || '',
+      description_ar: activity.description_ar || '',
+      type: activity.type || 'homework',
+      programId: activity.programId || '',
+      subjectId: activity.subjectId || '',
+      classId: activity.classId || '',
+      categoryId: activity.categoryId || '',
+      difficulty: activity.difficulty || 'beginner',
+      maxScore: activity.maxScore || 100,
+      allowRetake: activity.allowRetake || false,
+      dueDate: activity.dueDate || null,
+      show: activity.show !== false,
+      quizId: activity.quizId || '',
+      overrideQuizSettings: activity.overrideQuizSettings || false,
+      featured: activity.featured || false,
+      optional: activity.optional || false,
+      requiresSubmission: activity.requiresSubmission || false,
+      url: activity.url || '',
+      image: activity.image || ''
+    });
+    setActiveActivityFormTab('basic');
+  }, []);
+
+  // Create options from local state (only keeping category options)
   const activityCategoryOptions = useMemo(() => {
     const opts = [
       { value: '', label: t('all_categories'), icon: getThemedIcon('ui', 'filter', 16, theme) }
@@ -198,56 +245,17 @@ const ActivitiesPage = ({
         {activeActivityFormTab === 'basic' && (
           <>
             <div className="form-row">
-              <div style={{ border: '0px solid #ccc', padding: '0px', margin: '0px 0', borderRadius: '4px' }}>
-                <Select
-                  searchable
-                  placeholder={t('all_programs')}
-                  value={activityForm.programId}
-                  onChange={(value) => {
-                    handleDropdownChange(
-                      setActivityForm,
-                      'programId',
-                      ['subjectId', 'classId']
-                    )(value);
-                  }}
-                  options={activityProgramOptions}
-                  style={{ width: '100%' }}
-                  icon={getThemedIcon('ui', 'filter', 16, theme)}
-                />
-              </div>
-              <Select
-                searchable
-                placeholder={t('all_subjects')}
-                value={activityForm.subjectId || null}
-                onChange={handleDropdownChange(
-                  setActivityForm,
-                  'subjectId',
-                  ['classId']
-                )}
-                options={activitySubjectOptions}
-                style={{ width: '100%' }}
-                disabled={!activityForm.programId}
-                icon={getThemedIcon('ui', 'filter', 16, theme)}
-              />
-              <Select
-                searchable
-                placeholder={t('all_classes')}
-                value={activityForm.classId || null}
-                onChange={handleDropdownChange(
-                  setActivityForm,
-                  'classId'
-                )}
-                options={activityClassOptions.map(o => {
-                const classData = classes.find(c => c.docId === o.value);
-                if (!classData) return o;
-                return {
-                  ...o,
-                  label: `${classData.name || classData.code || 'Unnamed'}${classData.code ? ` (${classData.code})` : ''}${classData.term ? ` - ${classData.term}` : ''}${classData.year ? ` ${classData.year}` : ''}`
-                };
-              }).filter(o => !activityForm.subjectId || o.value === '' || classes.find(c => c.docId === o.value)?.subjectId === activityForm.subjectId)}
-                style={{ width: '100%' }}
-                disabled={!activityForm.subjectId}
-                icon={getThemedIcon('ui', 'filter', 16, theme)}
+              <ProgramsSelect
+                programs={programs}
+                subjects={subjects}
+                classes={classes}
+                selectedProgram={activityForm.programId}
+                selectedSubject={activityForm.subjectId}
+                selectedClass={activityForm.classId}
+                onProgramChange={(programId) => setActivityForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
+                onSubjectChange={(subjectId) => setActivityForm(prev => ({ ...prev, subjectId, classId: '' }))}
+                onClassChange={(classId) => setActivityForm(prev => ({ ...prev, classId }))}
+                showLabels={false}
               />
               <Select
                 searchable
