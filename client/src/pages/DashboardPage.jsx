@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from 'react';
 import { formatQatarDateOnly } from '@utils/timezone';
 import logger from '@utils/logger';
  // import Joyride from 'react-joyride';
@@ -30,18 +30,6 @@ import { Loading, FancyLoading, Modal, Select, Input, Button, DatePicker, DateRa
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { RibbonTabs, DragGrid, EmailManager, SmartEmailComposer, UserDeletionModal, EmailTemplates, EmailLogs } from '@ui';
-import CategoriesPage from './CategoriesPage';
-import AnnouncementsPage from './AnnouncementsPage';
-import ResourcesPage from './ResourcesPage';
-import ClassesPage from './ClassesPage';
-import UsersPage from './UsersPage';
-import LogsActivityPage from './LogsActivityPage';
-import SubmissionsPage from './SubmissionsPage';
-import SMTPPage from './SMTPPage';
-import EnrollmentManagementPage from './EnrollmentManagementPage';
-import EmailLogsPage from './EmailLogsPage';
-import ActivitiesPage from './ActivitiesPage';
-import ScheduledReportsPage from './ScheduledReportsPage';
 import { 
   getResourceTypeConfig, 
   getResourceTypeOptions, 
@@ -53,17 +41,6 @@ import {
 } from '@constants/dashboardTypes.jsx';
 import { getNotificationTriggerOptions, getNotificationChannelOptions } from '@constants';
 import { generateStudentQRCode } from '@utils/qrCode';
-import ProgramsManagementPage from './ProgramsManagementPage';
-import SubjectsManagementPage from './SubjectsManagementPage';
-import MarksEntryPage from './MarksEntryPage';
-import ClassSchedulePage from './ClassSchedulePage';
-import ManageEnrollmentsPage from './ManageEnrollmentsPage';
-import HRPenaltiesPage from './HRPenaltiesPage';
-import InstructorParticipationPage from './InstructorParticipationPage';
-import InstructorBehaviorPage from './InstructorBehaviorPage';
-import AnalyticsDashboardPage from './AnalyticsDashboardPage';
-import AllowlistPage from './AllowlistPage';
-import EmailTemplatesPage from './EmailTemplatesPage';
 import { getSubjects, getPrograms } from '@firebaseServices/programService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
 import { logActivity, ACTIVITY_LOG_TYPES, getActivityLogOptions } from '@firebaseServices/activityLogger.jsx';
@@ -71,6 +48,31 @@ import { getUserDisplayName } from '@firebaseServices/userService';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';
 import { ToggleSwitch } from '@ui';
+
+const CategoriesPage = lazy(() => import('./CategoriesPage'));
+const AnnouncementsPage = lazy(() => import('./AnnouncementsPage'));
+const ResourcesPage = lazy(() => import('./ResourcesPage'));
+const ClassesPage = lazy(() => import('./ClassesPage'));
+const UsersPage = lazy(() => import('./UsersPage'));
+const LogsActivityPage = lazy(() => import('./LogsActivityPage'));
+const SubmissionsPage = lazy(() => import('./SubmissionsPage'));
+const SMTPPage = lazy(() => import('./SMTPPage'));
+const EnrollmentManagementPage = lazy(() => import('./EnrollmentManagementPage'));
+const EmailLogsPage = lazy(() => import('./EmailLogsPage'));
+const ActivitiesPage = lazy(() => import('./ActivitiesPage'));
+const ScheduledReportsPage = lazy(() => import('./ScheduledReportsPage'));
+const ProgramsManagementPage = lazy(() => import('./ProgramsManagementPage'));
+const SubjectsManagementPage = lazy(() => import('./SubjectsManagementPage'));
+const MarksEntryPage = lazy(() => import('./MarksEntryPage'));
+const ClassSchedulePage = lazy(() => import('./ClassSchedulePage'));
+const ManageEnrollmentsPage = lazy(() => import('./ManageEnrollmentsPage'));
+const HRPenaltiesPage = lazy(() => import('./HRPenaltiesPage'));
+const InstructorParticipationPage = lazy(() => import('./InstructorParticipationPage'));
+const InstructorBehaviorPage = lazy(() => import('./InstructorBehaviorPage'));
+const AnalyticsDashboardPage = lazy(() => import('./AnalyticsDashboardPage'));
+const AllowlistPage = lazy(() => import('./AllowlistPage'));
+const EmailTemplatesPage = lazy(() => import('./EmailTemplatesPage'));
+
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading, impersonateUser } = useAuth();
   const { lang, setLang, t } = useLang();
@@ -139,25 +141,25 @@ const DashboardPage = () => {
     const steps = [
       {
         target: '[data-tour="mode-switcher"]',
-        content: t('tour.mode_switcher'),
+        content: t('tour.mode_switcher_content'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="stats"]',
-        content: t('tour.stats'),
+        content: t('tour.stats_content'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="filters"]',
-        content: t('tour.filters'),
+        content: t('tour.filters_content'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="cards-grid"]',
-        content: t('tour.cards_grid'),
+        content: t('tour.cards_grid_content'),
         disableBeacon: true,
         placement: 'top'
       }
@@ -250,7 +252,7 @@ const DashboardPage = () => {
         'programs': '#programs',
         'subjects': '#subjects',
         'classes': '#classes',
-        'manage-enrollments': '#enrollments',
+        'enrollments': '#enrollments',
         'marks': '#marks',
         'classschedule': '#classschedule'
       };
@@ -547,6 +549,7 @@ const DashboardPage = () => {
   // Delete confirmation modal
   const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null });
   const filteredSubmissions = useMemo(() => {
+    if (!submissions.length) return [];
     return submissions.filter((s) => {
       if (activityFilter !== 'all' && s.activityId !== activityFilter) return false;
       if (submissionStudentFilter !== 'all' && s.userId !== submissionStudentFilter) return false;
@@ -565,30 +568,31 @@ const DashboardPage = () => {
       return true;
     });
   }, [submissions, activityFilter, submissionStudentFilter, submissionStatusFilter, submissionScoreFilter]);
-  // Filter announcements by date
-  const filteredAnnouncements = announcements.filter(announcement => {
-    if (announcementFilter === 'all') return true;
-    const createdAt = announcement.createdAt?.seconds ?
-      new Date(announcement.createdAt.seconds * 1000) :
-      new Date(announcement.createdAt);
+  const filteredAnnouncements = useMemo(() => {
+    if (!announcements.length) return [];
+    if (announcementFilter === 'all') return announcements;
+
     const now = new Date();
-    switch (announcementFilter) {
-      case 'today':
-        const isToday = createdAt.toDateString() === now.toDateString();
-        logger.debug('Date comparison', { createdAt: createdAt.toDateString(), now: now.toDateString(), isToday });
-        return isToday;
-      case '7days':
-        const daysDiff = (now - createdAt) / (24 * 60 * 60 * 1000);
-        const isWithin7Days = daysDiff <= 7;
-        return isWithin7Days;
-      case '30days':
-        const daysDiff30 = (now - createdAt) / (24 * 60 * 60 * 1000);
-        const isWithin30Days = daysDiff30 <= 30;
-        return isWithin30Days;
-      default:
-        return true;
-    }
-  });
+    return announcements.filter(announcement => {
+      const createdAt = announcement.createdAt?.seconds ?
+        new Date(announcement.createdAt.seconds * 1000) :
+        new Date(announcement.createdAt);
+      switch (announcementFilter) {
+        case 'today':
+          return createdAt.toDateString() === now.toDateString();
+        case '7days': {
+          const daysDiff = (now - createdAt) / (24 * 60 * 60 * 1000);
+          return daysDiff <= 7;
+        }
+        case '30days': {
+          const daysDiff30 = (now - createdAt) / (24 * 60 * 60 * 1000);
+          return daysDiff30 <= 30;
+        }
+        default:
+          return true;
+      }
+    });
+  }, [announcements, announcementFilter]);
   // Form states
   const [activityForm, setActivityForm] = useState({
     id: '',
@@ -925,7 +929,7 @@ const DashboardPage = () => {
     // Then check for hash navigation (legacy support)
     if (location.hash && !hashProcessed) {
       const hash = location.hash.substring(1); // Remove #
-      const hashToTabMap = {
+      const hashToHashMap = {
         'programs': 'programs',
         'subjects': 'subjects',
         'classes': 'classes',
@@ -933,7 +937,7 @@ const DashboardPage = () => {
         'marks': 'marks',
         'classschedule': 'classschedule'
       };
-      const tab = hashToTabMap[hash];
+      const tab = hashToHashMap[hash];
       if (tab && tab !== activeTab) {
         setActiveTab(tab);
         localStorage.setItem('dashboardActiveTab', tab);
@@ -1474,9 +1478,11 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
     />
   </div>
         {/* Summary Cards with Filters */}
-        <AnalyticsDashboardPage />
+        <Suspense fallback={<Loading variant="inline" message={t('loading') || 'Loading...'} fancyVariant="dots" />}>
+           <AnalyticsDashboardPage />
+         </Suspense>
 
-        <div className="tab-content">
+         <div className="tab-content">
            {loading && <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />}
     <div className="tab-header">
       <h2>{(() => {
@@ -1487,12 +1493,13 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
                <InfoTooltip contentKey={`help.${activeTab}`} />
              </div>
            </div>
-        {activeTab === 'activities' && (
+        <Suspense fallback={<Loading variant="inline" message={t('loading') || 'Loading...'} fancyVariant="dots" />}>
+          {activeTab === 'activities' && (
             <ActivitiesPage />
           )}
           {activeTab === 'announcements' && (
-          <AnnouncementsPage />
-        )}
+            <AnnouncementsPage />
+          )}
           {activeTab === 'programs' && isSuperAdmin && (
             <ProgramsManagementPage />
           )}
@@ -1526,6 +1533,7 @@ ${activity.optional ? '💡 Optional activity' : '📌 Required activity'}
           {activeTab === 'classes' && (
             <ClassesPage />
           )}
+        </Suspense>
           {/* Grade Submission Modal */}
         <Modal
           isOpen={gradingModalOpen && !!gradingSubmission}
