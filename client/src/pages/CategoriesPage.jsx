@@ -38,14 +38,6 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const formErrors = useMemo(() => {
     const errors = {};
     
-    if (!formData.name_en.trim()) {
-      errors.name_en = t('name_english_required') || 'English name is required';
-    }
-    
-    if (!formData.name_ar.trim()) {
-      errors.name_ar = t('name_arabic_required') || 'Arabic name is required';
-    }
-    
     if (formData.order && (isNaN(formData.order) || parseInt(formData.order) < 1)) {
       errors.order = t('order_must_be_positive') || 'Order must be a positive number';
     }
@@ -338,14 +330,12 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
               placeholder={t('enter_name_english') || 'Enter name in English'}
               required
-              error={formErrors.name_en}
             />
             <Input
               value={formData.name_ar}
               onChange={(e) => setFormData({ ...formData, name_ar: e.target.value })}
               placeholder={t('enter_name_arabic') || 'Enter name in Arabic'}
               required
-              error={formErrors.name_ar}
             />
             <Input
               value={formData.order}
@@ -396,14 +386,6 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               onChange={(e) => setFormData({ ...formData, color: e.target.value })}
               type="color"
               placeholder={t('select_color') || 'Select color'}
-            />
-            <Input
-              value={formData.order}
-              onChange={(e) => setFormData({ ...formData, order: e.target.value })}
-              type="number"
-              min="1"
-              placeholder={t('enter_order') || 'Enter order'}
-              error={formErrors.order}
             />
           </div>
           <div className="form-row">

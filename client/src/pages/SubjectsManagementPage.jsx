@@ -10,7 +10,7 @@ import { getPrograms } from '@firebaseServices/programService';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@firebaseServices/subjectService';
 import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid, Card, CardBody } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import styles from './SubjectsManagementPage.module.css';
 
 const SubjectsManagementPage = () => {

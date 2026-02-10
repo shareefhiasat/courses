@@ -16,6 +16,7 @@ import { getAllQuizzes } from '@firebaseServices/quizService';
 import { getAnnouncements } from '@firebaseServices/activityService';
 import { getPenalties } from '@firebaseServices/penaltyService';
 import { getBehaviors } from '@firebaseServices/behaviorService';
+import { getParticipations } from '@firebaseServices/participationService';
 
 /**
  * AnalyticsDashboardPage - Dashboard Statistics Page
@@ -45,6 +46,7 @@ const AnalyticsDashboardPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [penalties, setPenalties] = useState([]);
   const [behaviors, setBehaviors] = useState([]);
+  const [participations, setParticipations] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingResourceCount, setLoadingResourceCount] = useState(false);
@@ -69,7 +71,8 @@ const AnalyticsDashboardPage = () => {
           quizzesRes,
           announcementsRes,
           penaltiesRes,
-          behaviorsRes
+          behaviorsRes,
+          participationsRes
         ] = await Promise.all([
           getPrograms(),
           getSubjects(),
@@ -80,7 +83,8 @@ const AnalyticsDashboardPage = () => {
           getAllQuizzes(),
           getAnnouncements(),
           getPenalties(),
-          getBehaviors()
+          getBehaviors(),
+          getParticipations()
         ]);
         
         if (programsRes.success) setPrograms(programsRes.data || []);
@@ -93,6 +97,7 @@ const AnalyticsDashboardPage = () => {
         if (announcementsRes.success) setAnnouncements(announcementsRes.data || []);
         if (penaltiesRes.success) setPenalties(penaltiesRes.data || []);
         if (behaviorsRes.success) setBehaviors(behaviorsRes.data || []);
+        if (participationsRes.success) setParticipations(participationsRes.data || []);
         
       } catch (error) {
         console.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
@@ -390,6 +395,26 @@ const AnalyticsDashboardPage = () => {
                 return true;
               }).length,
               tooltip: t('total_behaviors') || 'Total number of behavior records'
+            },
+            // Participations
+            {
+              type: 'participations',
+              value: participations.filter(p => {
+                if (enrollmentClassFilter !== 'all') {
+                  return p.classId === enrollmentClassFilter;
+                }
+                if (enrollmentSubjectFilter !== 'all') {
+                  return p.subjectId === enrollmentSubjectFilter;
+                }
+                if (enrollmentProgramFilter !== 'all') {
+                  return p.programId === enrollmentProgramFilter;
+                }
+                if (isInstructor && !isAdmin && !isSuperAdmin) {
+                  return p.instructorId === user.uid || p.instructorEmail === user.email;
+                }
+                return true;
+              }).length,
+              tooltip: t('total_participations') || 'Total number of participation records'
             }
           ].map((stat, idx) => {
             const config = getCardConfig(stat.type, t, theme);

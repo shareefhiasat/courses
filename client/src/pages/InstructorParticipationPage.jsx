@@ -8,9 +8,10 @@ import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentS
 import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
 import { getClassById } from '@firebaseServices/classService';
 import { getClasses } from '@firebaseServices/classService';
-import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
+import { getUserById } from '@firebaseServices/userService';
 import { addNotification } from '@firebaseServices/notificationService';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { db } from '@firebaseServices/config';
 import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -594,7 +595,64 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       width: 180,
       renderCell: (params) => {
         const participationType = getParticipationTypeById(params.value);
-        return participationType ? (lang === 'ar' ? participationType.label_ar : participationType.label_en) : params.value;
+        if (!participationType) return params.value || '—';
+        
+        // Map the icon component name to centralized icon system
+        let iconName;
+        switch (participationType.icon.type.name) { // Get the component name from React element
+          case 'MessageSquare':
+            iconName = 'message_square';
+            break;
+          case 'Award':
+            iconName = 'award';
+            break;
+          case 'FileText':
+            iconName = 'file_text';
+            break;
+          case 'HelpCircle':
+            iconName = 'help_circle';
+            break;
+          case 'Users':
+            iconName = 'users';
+            break;
+          case 'Star':
+            iconName = 'star';
+            break;
+          case 'ThumbsUp':
+            iconName = 'thumbs_up';
+            break;
+          case 'Minus':
+            iconName = 'minus';
+            break;
+          case 'CheckCircle':
+            iconName = 'check_circle';
+            break;
+          case 'MoreHorizontal':
+            iconName = 'more_horizontal';
+            break;
+          default:
+            iconName = 'star';
+        }
+        
+        const icon = getThemedIcon('ui', iconName, 16, theme);
+        const label = lang === 'ar' ? participationType.label_ar : participationType.label_en;
+        
+        return (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            backgroundColor: participationType.color || '#f3f4f6',
+            color: '#374151',
+            fontSize: '0.875rem',
+            fontWeight: '500'
+          }}>
+            {icon}
+            <span>{label}</span>
+          </div>
+        );
       }
     },
     {
@@ -904,39 +962,47 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
             options={[
               { value: '', label: 'Select Type' },
               ...PARTICIPATION_TYPES.map(pt => {
-                let icon;
-                switch (pt.icon) {
+                // Map the icon component name to centralized icon system
+                let iconName;
+                switch (pt.icon.type.name) { // Get the component name from React element
                   case 'MessageSquare':
-                    icon = getThemedIcon('ui', 'message_square', 16, theme);
+                    iconName = 'message_square';
                     break;
                   case 'Award':
-                    icon = getThemedIcon('ui', 'award', 16, theme);
+                    iconName = 'award';
                     break;
                   case 'FileText':
-                    icon = getThemedIcon('ui', 'file_text', 16, theme);
-                    break;
-                  case 'Users':
-                    icon = getThemedIcon('ui', 'users', 16, theme);
+                    iconName = 'file_text';
                     break;
                   case 'HelpCircle':
-                    icon = getThemedIcon('ui', 'help_circle', 16, theme);
+                    iconName = 'help_circle';
+                    break;
+                  case 'Users':
+                    iconName = 'users';
                     break;
                   case 'Star':
-                    icon = getThemedIcon('ui', 'star', 16, theme);
+                    iconName = 'star';
                     break;
                   case 'ThumbsUp':
-                    icon = getThemedIcon('ui', 'thumbs_up', 16, theme);
+                    iconName = 'thumbs_up';
                     break;
                   case 'Minus':
-                    icon = getThemedIcon('ui', 'minus', 16, theme);
+                    iconName = 'minus';
                     break;
-                  case 'X':
-                    icon = getThemedIcon('ui', 'x', 16, theme);
+                  case 'CheckCircle':
+                    iconName = 'check_circle';
+                    break;
+                  case 'MoreHorizontal':
+                    iconName = 'more_horizontal';
                     break;
                   default:
-                    icon = getThemedIcon('ui', 'star', 16, theme);
+                    iconName = 'star';
                 }
-                return { value: pt.id, label: getParticipationLabel(pt.id, lang), icon };
+                return { 
+                  value: pt.id, 
+                  label: getParticipationLabel(pt.id, lang), 
+                  icon: getThemedIcon('ui', iconName, 16, theme) 
+                };
               })
             ]}
             placeholder={t('select_participation_type')}

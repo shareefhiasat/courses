@@ -387,7 +387,7 @@ const UsersPage = ({
                   variant="outline" 
                   onClick={() => handleTabNavigation('prev')}
                 >
-                  ← Previous
+                  {t('previous') || '← Previous'}
                 </Button>
               )}
               {activeUserFormTab !== 'role' && (
@@ -396,7 +396,7 @@ const UsersPage = ({
                   variant="secondary"
                   onClick={() => handleTabNavigation('next')}
                 >
-                  Next →
+                  {t('next') || 'Next →'}
                 </Button>
               )}
               {activeUserFormTab === 'role' && (

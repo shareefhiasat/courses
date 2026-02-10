@@ -58,8 +58,8 @@ const ProgramsSelect = ({
   ];
 
   return (
-    <div className={`flex flex-wrap gap-4 ${className}`}>
-      <div className="flex-1 min-w-[200px]">
+    <div className={`flex flex-nowrap gap-2 ${className}`}>
+      <div className="flex-1 min-w-[150px]">
         <Select
           label={showLabels ? (t('program') || 'Program') : ''}
           options={programOptions}
@@ -75,7 +75,7 @@ const ProgramsSelect = ({
       </div>
 
       {showSubjects && (
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-[150px]">
           <Select
             label={showLabels ? (t('subject') || 'Subject') : ''}
             options={subjectOptions}
@@ -91,7 +91,7 @@ const ProgramsSelect = ({
       )}
 
       {showClasses && showSubjects && (
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-[150px]">
           <Select
             label={showLabels ? (t('class') || 'Class') : ''}
             options={classOptions}

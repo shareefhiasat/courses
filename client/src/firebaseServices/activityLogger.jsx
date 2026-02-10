@@ -6,112 +6,6 @@
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./config";
 
-// Activity Log Types for Dashboard
-export const ACTIVITY_LOG_TYPES = {
-  // Authentication
-  LOGIN: 'login',
-  LOGOUT: 'logout',
-  SIGNUP: 'signup',
-  SESSION_TIMEOUT: 'session_timeout',
-  PROFILE_UPDATE: 'profile_update',
-  PASSWORD_CHANGE: 'password_change',
-  EMAIL_CHANGE: 'email_change',
-  
-  // Quiz Activities
-  QUIZ_STARTED: 'quiz_started',
-  QUIZ_SUBMITTED: 'quiz_submitted',
-  QUIZ_CREATED: 'quiz_created',
-  QUIZ_DELETED: 'quiz_deleted',
-  QUIZ_PUBLISHED: 'quiz_published',
-  
-  // Activity CRUD
-  ACTIVITY_CREATED: 'activity_created',
-  ACTIVITY_UPDATED: 'activity_updated',
-  ACTIVITY_DELETED: 'activity_deleted',
-  ACTIVITY_VIEWED: 'activity_viewed',
-  
-  // Assignment/Submission
-  ASSIGNMENT_STARTED: 'assignment_started',
-  ASSIGNMENT_SUBMITTED: 'assignment_submitted',
-  SUBMISSION_GRADED: 'submission_graded',
-  
-  // Resources CRUD
-  RESOURCE_CREATED: 'resource_created',
-  RESOURCE_UPDATED: 'resource_updated',
-  RESOURCE_DELETED: 'resource_deleted',
-  RESOURCE_COMPLETED: 'resource_completed',
-  RESOURCE_BOOKMARKED: 'resource_bookmarked',
-  
-  // Attendance
-  ATTENDANCE_MARKED: 'attendance_marked',
-  
-  // Communication
-  MESSAGE_SENT: 'message_sent',
-  MESSAGE_RECEIVED: 'message_received',
-  ANNOUNCEMENT_READ: 'announcement_read',
-  ANNOUNCEMENT_CREATED: 'announcement_created',
-  ANNOUNCEMENT_UPDATED: 'announcement_updated',
-  ANNOUNCEMENT_DELETED: 'announcement_deleted',
-  
-  // Penalties CRUD
-  PENALTY_CREATED: 'penalty_created',
-  PENALTY_UPDATED: 'penalty_updated',
-  PENALTY_DELETED: 'penalty_deleted',
-  PENALTY_VIEWED: 'penalty_viewed',
-  
-  // Participation CRUD
-  PARTICIPATION_CREATED: 'participation_created',
-  PARTICIPATION_UPDATED: 'participation_updated',
-  PARTICIPATION_DELETED: 'participation_deleted',
-  PARTICIPATION_VIEWED: 'participation_viewed',
-  
-  // Behavior CRUD
-  BEHAVIOR_CREATED: 'behavior_created',
-  BEHAVIOR_UPDATED: 'behavior_updated',
-  BEHAVIOR_DELETED: 'behavior_deleted',
-  BEHAVIOR_VIEWED: 'behavior_viewed',
-  
-  // Class CRUD
-  CLASS_CREATED: 'class_created',
-  CLASS_UPDATED: 'class_updated',
-  CLASS_DELETED: 'class_deleted',
-  CLASS_VIEWED: 'class_viewed',
-  
-  // Subject CRUD
-  SUBJECT_CREATED: 'subject_created',
-  SUBJECT_UPDATED: 'subject_updated',
-  SUBJECT_DELETED: 'subject_deleted',
-  SUBJECT_VIEWED: 'subject_viewed',
-  
-  // Program CRUD
-  PROGRAM_CREATED: 'program_created',
-  PROGRAM_UPDATED: 'program_updated',
-  PROGRAM_DELETED: 'program_deleted',
-  PROGRAM_VIEWED: 'program_viewed',
-  
-  // Enrollment CRUD
-  ENROLLMENT_CREATED: 'enrollment_created',
-  ENROLLMENT_UPDATED: 'enrollment_updated',
-  ENROLLMENT_DELETED: 'enrollment_deleted',
-  ENROLLMENT_VIEWED: 'enrollment_viewed',
-  
-  // Mark Entry CRUD
-  MARK_ENTRY_CREATED: 'mark_entry_created',
-  MARK_ENTRY_UPDATED: 'mark_entry_updated',
-  MARK_ENTRY_DELETED: 'mark_entry_deleted',
-  MARK_ENTRY_VIEWED: 'mark_entry_viewed',
-  
-  // User CRUD
-  USER_CREATED: 'user_created',
-  USER_UPDATED: 'user_updated',
-  USER_DELETED: 'user_deleted',
-  
-  // Navigation
-  DASHBOARD_VIEWED: 'dashboard_viewed',
-  ANALYTICS_VIEWED: 'analytics_viewed'
-};
-
-// Activity Log Options for Dashboard Filter
 import { 
   Filter,
   LogIn, 
@@ -292,9 +186,9 @@ export async function logActivity(type, details = {}, userId = null) {
 }
 
 /**
- * Activity type constants (CLEANED UP - No Badges!)
+ * Activity log type constants (CLEANED UP - No Badges!)
  */
-export const ACTIVITY_TYPES = {
+export const ACTIVITY_LOG_TYPES = {
   // Authentication
   LOGIN: "login",
   LOGOUT: "logout",
@@ -442,57 +336,57 @@ export const ACTIVITY_TYPES = {
  */
 export const ActivityLogger = {
   // Authentication
-  login: () => logActivity(ACTIVITY_TYPES.LOGIN),
-  logout: () => logActivity(ACTIVITY_TYPES.LOGOUT),
-  sessionTimeout: () => logActivity(ACTIVITY_TYPES.SESSION_TIMEOUT),
-  profileUpdate: () => logActivity(ACTIVITY_TYPES.PROFILE_UPDATE),
-  passwordChange: () => logActivity(ACTIVITY_TYPES.PASSWORD_CHANGE),
-  emailChange: () => logActivity(ACTIVITY_TYPES.EMAIL_CHANGE),
+  login: () => logActivity(ACTIVITY_LOG_TYPES.LOGIN),
+  logout: () => logActivity(ACTIVITY_LOG_TYPES.LOGOUT),
+  sessionTimeout: () => logActivity(ACTIVITY_LOG_TYPES.SESSION_TIMEOUT),
+  profileUpdate: () => logActivity(ACTIVITY_LOG_TYPES.PROFILE_UPDATE),
+  passwordChange: () => logActivity(ACTIVITY_LOG_TYPES.PASSWORD_CHANGE),
+  emailChange: () => logActivity(ACTIVITY_LOG_TYPES.EMAIL_CHANGE),
 
   // Quiz
   quizStarted: (quizId, quizTitle) =>
-    logActivity(ACTIVITY_TYPES.QUIZ_STARTED, { quizId, quizTitle }),
+    logActivity(ACTIVITY_LOG_TYPES.QUIZ_STARTED, { quizId, quizTitle }),
   quizSubmitted: (quizId, quizTitle, score) =>
-    logActivity(ACTIVITY_TYPES.QUIZ_SUBMITTED, { quizId, quizTitle, score }),
+    logActivity(ACTIVITY_LOG_TYPES.QUIZ_SUBMITTED, { quizId, quizTitle, score }),
   quizSaved: (quizId, quizTitle) =>
-    logActivity(ACTIVITY_TYPES.QUIZ_SAVED, { quizId, quizTitle }),
+    logActivity(ACTIVITY_LOG_TYPES.QUIZ_SAVED, { quizId, quizTitle }),
   quizViewed: (quizId, quizTitle) =>
-    logActivity(ACTIVITY_TYPES.QUIZ_VIEWED, { quizId, quizTitle }),
+    logActivity(ACTIVITY_LOG_TYPES.QUIZ_VIEWED, { quizId, quizTitle }),
 
   // Resources
   resourceViewed: (resourceId, resourceTitle) =>
-    logActivity(ACTIVITY_TYPES.RESOURCE_VIEWED, { resourceId, resourceTitle }),
+    logActivity(ACTIVITY_LOG_TYPES.RESOURCE_VIEWED, { resourceId, resourceTitle }),
   resourceCompleted: (resourceId, resourceTitle) =>
-    logActivity(ACTIVITY_TYPES.RESOURCE_COMPLETED, {
+    logActivity(ACTIVITY_LOG_TYPES.RESOURCE_COMPLETED, {
       resourceId,
       resourceTitle,
     }),
   resourceBookmarked: (resourceId, resourceTitle) =>
-    logActivity(ACTIVITY_TYPES.RESOURCE_BOOKMARKED, {
+    logActivity(ACTIVITY_LOG_TYPES.RESOURCE_BOOKMARKED, {
       resourceId,
       resourceTitle,
     }),
 
   // Navigation
-  dashboardViewed: () => logActivity(ACTIVITY_TYPES.DASHBOARD_VIEWED),
-  analyticsViewed: () => logActivity(ACTIVITY_TYPES.ANALYTICS_VIEWED),
+  dashboardViewed: () => logActivity(ACTIVITY_LOG_TYPES.DASHBOARD_VIEWED),
+  analyticsViewed: () => logActivity(ACTIVITY_LOG_TYPES.ANALYTICS_VIEWED),
 
   // Tools
-  calculatorOpened: () => logActivity(ACTIVITY_TYPES.CALCULATOR_OPENED),
-  scratchPadOpened: () => logActivity(ACTIVITY_TYPES.SCRATCH_PAD_OPENED),
-  formulaSheetOpened: () => logActivity(ACTIVITY_TYPES.FORMULA_SHEET_OPENED),
+  calculatorOpened: () => logActivity(ACTIVITY_LOG_TYPES.CALCULATOR_OPENED),
+  scratchPadOpened: () => logActivity(ACTIVITY_LOG_TYPES.SCRATCH_PAD_OPENED),
+  formulaSheetOpened: () => logActivity(ACTIVITY_LOG_TYPES.FORMULA_SHEET_OPENED),
 
   // Notifications
   notificationClicked: (notificationId, type) =>
-    logActivity(ACTIVITY_TYPES.NOTIFICATION_CLICKED, { notificationId, type }),
+    logActivity(ACTIVITY_LOG_TYPES.NOTIFICATION_CLICKED, { notificationId, type }),
   notificationDismissed: (notificationId) =>
-    logActivity(ACTIVITY_TYPES.NOTIFICATION_DISMISSED, { notificationId }),
+    logActivity(ACTIVITY_LOG_TYPES.NOTIFICATION_DISMISSED, { notificationId }),
 };
 
 /**
- * Activity type labels for UI display
+ * Activity log type labels for UI display
  */
-export const ACTIVITY_TYPE_LABELS = {
+export const ACTIVITY_LOG_LABELS = {
   login: "Login",
   logout: "Logout",
   session_timeout: "Session Timeout",

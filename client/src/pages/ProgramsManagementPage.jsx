@@ -7,7 +7,7 @@ import { getPrograms, createProgram, updateProgram, deleteProgram } from '@fireb
 import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid, Card, CardBody } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import styles from './ProgramsManagementPage.module.css';
 
 const ProgramsManagementPage = () => {

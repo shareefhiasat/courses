@@ -10,7 +10,7 @@ import {
   // Activity Icons
   TrendingUp, TrendingDown, Target, Activity, Zap,
   // Academic Icons
-  BookOpen, GraduationCap, Award, FileText, Database, Trophy, Gamepad2,
+  BookOpen, GraduationCap, Award, FileText, Database, Trophy, Gamepad2, Calculator,
   // Communication Icons
   MessageSquare, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter,
   // Navigation Icons
@@ -297,13 +297,24 @@ export const ICON_TYPES = {
     // Missing icons from HomePage
     monitor: <Monitor size={16} />,
     code2: <Code size={16} />,
+    // Missing icons for loading states
+    loader: <RefreshCw size={16} />,
+    // Additional icons for various components
+    calculator: <Calculator size={16} />,
+    formula_sheet: <BookOpen size={16} />,
+    user_plus: <UserPlus size={16} />,
+    user_minus: <UserMinus size={16} />,
+    user_x: <UserX size={16} />,
+    plus_circle: <Plus size={16} />,
+    inbox: <MessageSquare size={16} />,
+    layout_dashboard: <LayoutDashboard size={16} />,
+    clock_x: <Clock size={16} />,
     folder: <Folder size={16} />,
     hourglass: <Hourglass size={16} />,
     repeat: <Repeat size={16} />,
     // Additional globe variant
     globe2: <Globe size={16} />,
     // Missing icons that were causing errors
-    layout_dashboard: <LayoutDashboard size={16} />,
     gamepad2: <Gamepad2 size={16} />,
     timer: <Clock size={16} />,
     // Additional missing icons

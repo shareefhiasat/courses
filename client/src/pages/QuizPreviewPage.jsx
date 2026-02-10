@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
 import { getQuiz } from '@firebaseServices/quizService';
 import { getUser } from '@firebaseServices/userService';
 import { Container, Card, CardBody, Button, Spinner, Badge, Loading, useToast } from '@ui';
@@ -98,11 +99,11 @@ export default function QuizPreviewPage() {
 
   const getDifficultyColor = useCallback((difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case 'beginner':
+      case DIFFICULTY_TYPES.BEGINNER:
         return 'success';
-      case 'intermediate':
+      case DIFFICULTY_TYPES.INTERMEDIATE:
         return 'warning';
-      case 'advanced':
+      case DIFFICULTY_TYPES.ADVANCED:
         return 'danger';
       default:
         return 'primary';
@@ -111,12 +112,12 @@ export default function QuizPreviewPage() {
 
   const getDifficultyLabel = useCallback((difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case 'beginner':
-        return t('beginner') || 'Beginner';
-      case 'intermediate':
-        return t('intermediate') || 'Intermediate';
-      case 'advanced':
-        return t('advanced') || 'Advanced';
+      case DIFFICULTY_TYPES.BEGINNER:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.BEGINNER];
+      case DIFFICULTY_TYPES.INTERMEDIATE:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.INTERMEDIATE];
+      case DIFFICULTY_TYPES.ADVANCED:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.ADVANCED];
       default:
         return difficulty || (t('general') || 'General');
     }

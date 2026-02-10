@@ -153,3 +153,197 @@ export const formatLocalizedDateTime = (date, t, lang) => {
     fullDateTime: `${month} ${day}, ${dayName} ${time}`
   };
 };
+
+// ============================================================================
+// FIRESTORE DATE UTILITIES - Centralized date management for Firebase services
+// ============================================================================
+
+/**
+ * Validates if a date is within Firestore's acceptable range
+ * Firestore timestamps must be between year 1970 and 3000
+ * @param {Date} date - The date to validate
+ * @returns {boolean} - True if date is valid for Firestore
+ */
+export const isValidFirestoreDate = (date) => {
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    return false;
+  }
+  
+  const year = date.getFullYear();
+  const timestamp = date.getTime();
+  
+  // Basic validation - just ensure it's a reasonable date
+  // Firestore can handle a wide range, so we just exclude obviously wrong dates
+  return (
+    year >= 1900 && 
+    year <= 2050 && 
+    timestamp > 0
+  );
+};
+
+/**
+ * Converts various date formats to a valid Date object
+ * @param {string|Date|Object} dateInput - The date input to convert
+ * @returns {Date|null} - Valid Date object or null if invalid
+ */
+export const normalizeDate = (dateInput) => {
+  if (!dateInput) return null;
+  
+  let date;
+  
+  if (typeof dateInput === 'string') {
+    // Handle ISO string from datetime-local input
+    date = new Date(dateInput);
+  } else if (dateInput instanceof Date) {
+    date = dateInput;
+  } else if (typeof dateInput === 'object' && dateInput.toDate) {
+    // Handle Firestore Timestamp
+    date = dateInput.toDate();
+  } else if (typeof dateInput === 'number') {
+    // Handle timestamp numbers
+    date = new Date(dateInput);
+  } else {
+    // Fallback: try to convert whatever we received
+    date = new Date(dateInput);
+  }
+  
+  return isValidFirestoreDate(date) ? date : null;
+};
+
+/**
+ * Converts date fields in an object to Firestore Timestamps
+ * Extremely simple - no validation, just try to convert
+ * @param {Object} data - The data object containing date fields
+ * @param {string[]} dateFields - Array of field names that contain dates
+ * @param {Function} TimestampConstructor - Firestore Timestamp constructor
+ * @returns {Object} - The data object with dates converted to Timestamps
+ */
+export const convertDatesToTimestamps = (data, dateFields = ['dueDate', 'startDate', 'endDate'], TimestampConstructor) => {
+  if (!data || typeof data !== 'object' || !TimestampConstructor) {
+    return data;
+  }
+  
+  const converted = { ...data };
+  
+  dateFields.forEach(fieldName => {
+    if (data[fieldName]) {
+      try {
+        // Just try to convert - no validation, no complexity
+        converted[fieldName] = new TimestampConstructor(new Date(data[fieldName]));
+      } catch (error) {
+        // If it fails, keep the original value
+        console.log(`Keeping original date for ${fieldName}:`, data[fieldName]);
+      }
+    }
+  });
+  
+  return converted;
+};
+
+/**
+ * Safely converts a single date field to Firestore Timestamp
+ * @param {string|Date|Object} dateInput - The date input to convert
+ * @returns {Timestamp|null} - Firestore Timestamp or null if invalid
+ */
+export const convertSingleDateToTimestamp = (dateInput) => {
+  const normalizedDate = normalizeDate(dateInput);
+  
+  if (!normalizedDate) {
+    return null;
+  }
+  
+  try {
+    // Import Timestamp dynamically to avoid circular dependencies
+    const { Timestamp } = require('firebase/firestore');
+    return new Timestamp(normalizedDate);
+  } catch (error) {
+    console.warn('Failed to convert single date to timestamp:', {
+      input: dateInput,
+      normalized: normalizedDate,
+      error: error.message
+    });
+    return null;
+  }
+};
+
+/**
+ * Converts Firestore timestamps to ISO strings for form inputs
+ * @param {Object} data - The data object containing timestamp fields
+ * @param {string[]} dateFields - Array of field names that contain timestamps
+ * @returns {Object} - The data object with timestamps converted to ISO strings
+ */
+export const convertTimestampsToISOStrings = (data, dateFields = ['dueDate', 'startDate', 'endDate']) => {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+  
+  const converted = { ...data };
+  
+  dateFields.forEach(fieldName => {
+    if (data[fieldName]) {
+      try {
+        if (typeof data[fieldName] === 'object' && data[fieldName].toDate) {
+          // Handle Firestore Timestamp
+          converted[fieldName] = data[fieldName].toDate().toISOString();
+        } else if (data[fieldName] instanceof Date) {
+          // Handle Date object
+          converted[fieldName] = data[fieldName].toISOString();
+        } else if (typeof data[fieldName] === 'string') {
+          // Keep ISO strings as-is
+          converted[fieldName] = data[fieldName];
+        } else {
+          // Try to convert whatever we received
+          const date = new Date(data[fieldName]);
+          if (!isNaN(date.getTime())) {
+            converted[fieldName] = date.toISOString();
+          } else {
+            console.warn(`Could not convert ${fieldName} to ISO string:`, data[fieldName]);
+            converted[fieldName] = undefined;
+          }
+        }
+      } catch (error) {
+        console.warn(`Error converting ${fieldName} to ISO string:`, {
+          input: data[fieldName],
+          error: error.message
+        });
+        converted[fieldName] = undefined;
+      }
+    }
+  });
+  
+  return converted;
+};
+
+/**
+ * Checks if an object has any valid date fields
+ * @param {Object} data - The data object to check
+ * @param {string[]} dateFields - Array of field names that contain dates
+ * @returns {boolean} - True if any valid date fields exist
+ */
+export const hasValidDates = (data, dateFields = ['dueDate', 'startDate', 'endDate']) => {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+  
+  return dateFields.some(fieldName => {
+    return data[fieldName] && normalizeDate(data[fieldName]) !== null;
+  });
+};
+
+/**
+ * Gets a human-readable error message for date validation failures
+ * @param {string} fieldName - The name of the field that failed
+ * @param {*} inputValue - The invalid input value
+ * @returns {string} - Human-readable error message
+ */
+export const getDateErrorMessage = (fieldName, inputValue) => {
+  return `Invalid ${fieldName}: "${inputValue}". Please use a valid date between 1970 and 3000.`;
+};
+
+// Export configuration for common date fields
+export const COMMON_DATE_FIELDS = {
+  ACTIVITY: ['dueDate', 'startDate', 'endDate'],
+  QUIZ: ['startDate', 'endDate', 'dueDate'],
+  ENROLLMENT: ['enrollmentDate', 'completionDate'],
+  ATTENDANCE: ['date', 'checkInTime', 'checkOutTime']
+};

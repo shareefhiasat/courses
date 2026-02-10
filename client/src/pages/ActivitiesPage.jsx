@@ -9,13 +9,17 @@ import { formatDateTime } from '@utils/date';
 import { formatQatarDate } from '@utils/timezone';
 import logger from '@utils/logger';
 import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdown, getThemeColor } from '@constants';
+import { ACTIVITY_LOG_TYPES, logActivity } from '@firebaseServices/activityLogger';
+import { DIFFICULTY_TYPES, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
 import { getActivityTypes } from '@firebaseServices/activityService';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
 import { getCategories } from '@firebaseServices/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity } from '@firebaseServices/activityService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
 import { Select, Input, Textarea, DatePicker, NumberInput, Button, ToggleSwitch, UrlInput } from '@ui';
+import { convertTimestampsToISOStrings, COMMON_DATE_FIELDS } from '@utils/date.js';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
+
 
 /**
  * ActivitiesPage - Activities management page
@@ -44,10 +48,11 @@ const ActivitiesPage = () => {
   const [users, setUsers] = useState([]);
   const [activityForm, setActivityForm] = useState({
     id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
-    type: 'homework', programId: '', subjectId: '', classId: '', categoryId: '',
-    difficulty: 'beginner', maxScore: 100, allowRetake: false, dueDate: null,
+    type: ACTIVITY_TYPES.HOMEWORK, programId: '', subjectId: '', classId: '', categoryId: null,
+    difficulty: DIFFICULTY_TYPES.BEGINNER, maxScore: 100, allowRetake: false, dueDate: undefined,
     show: true, quizId: '', overrideQuizSettings: false, featured: false,
-    optional: false, requiresSubmission: false, url: '', image: ''
+    optional: false, requiresSubmission: false, url: '', image: '',
+    descriptionMode: 'en' // Start with English description mode
   });
   const [editingActivity, setEditingActivity] = useState(null);
   const [activeActivityFormTab, setActiveActivityFormTab] = useState('basic');
@@ -60,6 +65,15 @@ const ActivitiesPage = () => {
   });
   const [deleteModal, setDeleteModal] = useState({ show: false, activity: null });
   
+  // Simple save tracking
+  console.log('🔍 [SAVE] Form ready for save:', {
+    hasTitle: !!activityForm.title_en,
+    hasUrl: !!activityForm.url,
+    type: activityForm.type,
+    isQuiz: activityForm.type === 'quiz'
+  });
+
+    
   const [activityTypes, setActivityTypes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -87,6 +101,7 @@ const ActivitiesPage = () => {
         getAllQuizzes()
       ]);
       
+            
       if (programsResult.success) setPrograms(programsResult.data || []);
       if (subjectsResult.success) setSubjects(subjectsResult.data || []);
       if (classesResult.success) setClasses(classesResult.data || []);
@@ -119,33 +134,66 @@ const ActivitiesPage = () => {
     };
   }, []);
 
-  const handleActivitySubmit = useCallback(async (e) => {
-    e.preventDefault();
+  const resetActivityForm = useCallback(() => {
+    setActivityForm({
+      id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
+      type: ACTIVITY_TYPES.HOMEWORK, programId: '', subjectId: '', classId: '', categoryId: null,
+      difficulty: DIFFICULTY_TYPES.BEGINNER, maxScore: 100, allowRetake: false, dueDate: undefined,
+      show: true, quizId: '', overrideQuizSettings: false, featured: false,
+      optional: false, requiresSubmission: false, url: '', image: ''
+    });
+  }, []);
+
+  const handleActivitySubmit = useCallback(async () => {
     setLoading(true);
     setFormErrors({});
 
     try {
+      console.log('🔍 [SAVE] Preparing activity data');
       const activityData = {
         ...activityForm,
         updatedAt: new Date().toISOString(),
         updatedBy: user?.id || 'unknown'
       };
 
-      if (editingActivity && editingActivity.id !== 'new') {
+      console.log('🔍 [SAVE] Activity data prepared:', {
+        title: activityData.title_en,
+        url: activityData.url,
+        type: activityData.type,
+        hasProgram: !!activityData.programId,
+        hasSubject: !!activityData.subjectId,
+        hasClass: !!activityData.classId
+      });
+
+      // Remove undefined values before saving to prevent Firebase errors
+      if (activityData.dueDate === undefined) {
+        delete activityData.dueDate;
+      }
+
+      console.log('🔍 [SAVE] Calling Firebase save function');
+      console.log('🔍 [SAVE] editingActivity:', editingActivity);
+      console.log('🔍 [SAVE] editingActivity.id:', editingActivity?.id);
+      
+      if (editingActivity && editingActivity.id && editingActivity.id !== 'new') {
+        console.log('🔍 [SAVE] Updating existing activity:', editingActivity.id);
         await updateActivity(editingActivity.id, activityData);
+        console.log('🔍 [SAVE] Activity updated successfully');
         toast?.showSuccess('Activity updated successfully');
       } else {
-        activityData.createdAt = new Date().toISOString();
+        console.log('🔍 [SAVE] Creating new activity');
+        activityData.createdAt = new Date().toISOString(); // UTC timestamp
+        activityData.updatedAt = new Date().toISOString(); // UTC timestamp
         activityData.createdBy = user?.id || 'unknown';
         await addActivity(activityData);
+        console.log('🔍 [SAVE] Activity created successfully');
         toast?.showSuccess('Activity created successfully');
       }
 
       // Reset form and reload data
       setActivityForm({
         id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
-        type: 'homework', programId: '', subjectId: '', classId: '', categoryId: '',
-        difficulty: 'beginner', maxScore: 100, allowRetake: false, dueDate: null,
+        type: ACTIVITY_TYPES.HOMEWORK, programId: '', subjectId: '', classId: '', categoryId: null,
+        difficulty: DIFFICULTY_TYPES.BEGINNER, maxScore: 100, allowRetake: false, dueDate: undefined,
         show: true, quizId: '', overrideQuizSettings: false, featured: false,
         optional: false, requiresSubmission: false, url: '', image: ''
       });
@@ -153,41 +201,90 @@ const ActivitiesPage = () => {
       setActiveActivityFormTab('basic');
       loadData();
     } catch (error) {
-      console.error('Error saving activity:', error);
-      toast?.showError('Failed to save activity');
+      console.error('🔍 [SAVE] Error occurred:', error);
+      console.error('🔍 [SAVE] Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
+      toast?.showError(t('error_saving_activity') || 'Error saving activity');
     } finally {
       setLoading(false);
     }
   }, [activityForm, editingActivity, user, toast, loadData]);
 
-  const handleEditActivity = useCallback((activity) => {
+  const handleEditActivity = useCallback(async (activity) => {
     setEditingActivity(activity);
-    setActivityForm({
-      id: activity.id || '',
-      title_en: activity.title_en || '',
-      title_ar: activity.title_ar || '',
-      description_en: activity.description_en || '',
-      description_ar: activity.description_ar || '',
-      type: activity.type || 'homework',
-      programId: activity.programId || '',
-      subjectId: activity.subjectId || '',
-      classId: activity.classId || '',
-      categoryId: activity.categoryId || '',
-      difficulty: activity.difficulty || 'beginner',
-      maxScore: activity.maxScore || 100,
-      allowRetake: activity.allowRetake || false,
-      dueDate: activity.dueDate || null,
-      show: activity.show !== false,
-      quizId: activity.quizId || '',
-      overrideQuizSettings: activity.overrideQuizSettings || false,
-      featured: activity.featured || false,
-      optional: activity.optional || false,
-      requiresSubmission: activity.requiresSubmission || false,
-      url: activity.url || '',
-      image: activity.image || ''
+    
+    // Convert Firestore timestamps to ISO strings for form inputs
+    const activityForForm = convertTimestampsToISOStrings(activity, COMMON_DATE_FIELDS.ACTIVITY);
+    
+    console.log('🔍 [EDIT] Converting activity for form:', {
+      original: {
+        dueDate: activity.dueDate,
+        startDate: activity.startDate,
+        endDate: activity.endDate
+      },
+      converted: {
+        dueDate: activityForForm.dueDate,
+        startDate: activityForForm.startDate,
+        endDate: activityForForm.endDate
+      }
     });
+    
+    // Set basic form data first
+    setActivityForm({
+      id: activityForForm.id || '',
+      title_en: activityForForm.title_en || '',
+      title_ar: activityForForm.title_ar || '',
+      description_en: activityForForm.description_en || '',
+      description_ar: activityForForm.description_ar || '',
+      type: activityForForm.type || 'homework',
+      programId: activityForForm.programId || '',
+      subjectId: activityForForm.subjectId || '',
+      classId: activityForForm.classId || '',
+      categoryId: activityForForm.categoryId || null,
+      difficulty: activityForForm.difficulty || 'beginner',
+      maxScore: activityForForm.maxScore || 100,
+      allowRetake: activityForForm.allowRetake || false,
+      dueDate: activityForForm.dueDate || undefined, // Ensure undefined instead of null
+      show: activityForForm.show !== false,
+      quizId: activityForForm.quizId || '',
+      overrideQuizSettings: activityForForm.overrideQuizSettings || false,
+      featured: activityForForm.featured || false,
+      optional: activityForForm.optional || false,
+      requiresSubmission: activityForForm.requiresSubmission || false,
+      url: activityForForm.url || '',
+      image: activityForForm.image || ''
+    });
+    
+    // If activity has a quizId, fetch the quiz data and sync it
+    if (activity.quizId && activity.type === 'quiz') {
+      const selectedQuiz = quizzes.find(q => q.id === activity.quizId);
+      
+      if (selectedQuiz) {
+        const quizMaxScore = selectedQuiz.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 100;
+        const quizDifficulty = selectedQuiz.difficulty || 'beginner';
+        const quizAllowRetake = selectedQuiz.settings?.allowRetake !== undefined 
+          ? selectedQuiz.settings.allowRetake 
+          : (selectedQuiz.allowRetake !== undefined ? selectedQuiz.allowRetake : false);
+        
+        // Update form with quiz data
+        setActivityForm(prev => ({
+          ...prev,
+          quizId: activity.quizId,
+          // Only sync quiz data if not overriding settings
+          ...(activity.overrideQuizSettings ? {} : {
+            difficulty: quizDifficulty,
+            allowRetake: quizAllowRetake,
+            maxScore: quizMaxScore
+          })
+        }));
+      }
+    }
+    
     setActiveActivityFormTab('basic');
-  }, []);
+  }, [quizzes]);
 
   // Create options from local state (only keeping category options)
   const activityCategoryOptions = useMemo(() => {
@@ -220,67 +317,42 @@ const ActivitiesPage = () => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_activity') || 'Editing Activity'}: {editingActivity.id} - {editingActivity.title_en}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_activity') || 'Editing Activity'}: {editingActivity.title_en || editingActivity.title}
         </div>
       )}
-      
-      <RibbonTabs
-        categories={[
-          {
-            id: 'activity-fields',
-            items: [
-              { key: 'basic', label: t('basic_info') || 'Basic Info', icon: getThemedIcon('ui', 'file_text', 14, theme) },
-              { key: 'content', label: t('content') || 'Content', icon: getThemedIcon('ui', 'edit', 14, theme) },
-              { key: 'settings', label: t('settings') || 'Settings', icon: getThemedIcon('ui', 'settings', 14, theme) }
-            ]
-          }
-        ]}
-        activeCategory="activity-fields"
-        activeItem={activeActivityFormTab}
-        onChange={({ item }) => setActiveActivityFormTab(item)}
-      />
+
       
       <form onSubmit={handleActivitySubmit} className="dashboard-form">
-        {/* Basic Info Tab */}
-        {activeActivityFormTab === 'basic' && (
-          <>
-            <div className="form-row">
-              <ProgramsSelect
-                programs={programs}
-                subjects={subjects}
-                classes={classes}
-                selectedProgram={activityForm.programId}
-                selectedSubject={activityForm.subjectId}
-                selectedClass={activityForm.classId}
-                onProgramChange={(programId) => setActivityForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
-                onSubjectChange={(subjectId) => setActivityForm(prev => ({ ...prev, subjectId, classId: '' }))}
-                onClassChange={(classId) => setActivityForm(prev => ({ ...prev, classId }))}
-                showLabels={false}
-              />
+        {/* Basic Info Section */}
+        <div className="form-row">
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={activityForm.programId}
+            selectedSubject={activityForm.subjectId}
+            selectedClass={activityForm.classId}
+            onProgramChange={(programId) => setActivityForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
+            onSubjectChange={(subjectId) => setActivityForm(prev => ({ ...prev, subjectId, classId: '' }))}
+            onClassChange={(classId) => setActivityForm(prev => ({ ...prev, classId }))}
+            showLabels={false}
+            className="flex gap-2"
+          />
+        </div>
+            <div className="form-row wide-cols">
               <Select
                 searchable
                 placeholder={t('all_categories')}
-                value={activityForm.categoryId || null}
-                onChange={handleDropdownChange(
-                  setActivityForm,
-                  'categoryId'
-                )}
+                value={activityForm.categoryId}
+                onChange={(e) => {
+                  const value = e?.target?.value !== undefined ? e.target.value : e;
+                  setActivityForm(prev => ({ ...prev, categoryId: value }));
+                }}
                 options={activityCategoryOptions}
-                style={{ width: '100%' }}
                 icon={getThemedIcon('ui', 'filter', 16, theme)}
               />
             </div>
             <div className="form-row">
-              <div>
-                <Input
-                  type="text"
-                  placeholder={t('activity_id') || 'Activity ID'}
-                  value={activityForm.id}
-                  onChange={(e) => setActivityForm({ ...activityForm, id: e.target.value })}
-                  required
-                  error={formErrors.id}
-                />
-              </div>
               <Select
                 searchable
                 placeholder={t('type') || 'Activity Type'}
@@ -288,12 +360,13 @@ const ActivitiesPage = () => {
                 onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })}
                 options={getActivityTypeOptionsForDropdown(theme, lang)}
                 style={{ width: '100%' }}
+                icon={getThemedIcon('ui', 'layers', 16, theme)}
               />
               <div style={{ position: 'relative', width: '100%' }}>
                 <Select
                   searchable
                   placeholder={t('difficulty') || 'Difficulty'}
-                  value={activityForm.difficulty || 'beginner'}
+                  value={activityForm.difficulty || DIFFICULTY_TYPES.BEGINNER}
                   onChange={(e) => {
                     if (activityForm.quizId && !activityForm.overrideQuizSettings) {
                       toast?.showInfo?.(t('difficulty_synced_from_quiz') || 'Difficulty is synced from quiz. Enable "Override quiz settings" to edit.');
@@ -301,12 +374,9 @@ const ActivitiesPage = () => {
                     }
                     setActivityForm({ ...activityForm, difficulty: e.target.value });
                   }}
-                  options={[
-                    { value: 'beginner', label: t('beginner') || 'Beginner', icon: getThemedIcon('ui', 'book_open', 16, theme) },
-                    { value: 'intermediate', label: t('intermediate') || 'Intermediate', icon: getThemedIcon('ui', 'target', 16, theme) },
-                    { value: 'advanced', label: t('advanced') || 'Advanced', icon: getThemedIcon('ui', 'zap', 16, theme) }
-                  ]}
+                  options={getDifficultyOptionsForDropdown(theme, lang)}
                   style={{ width: '100%' }}
+                  icon={getThemedIcon('ui', 'target', 16, theme)}
                   disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
                 />
                 {activityForm.quizId && !activityForm.overrideQuizSettings && (
@@ -333,7 +403,9 @@ const ActivitiesPage = () => {
                   type="text"
                   placeholder={t('title_english') || t('title_en') || 'Title (English)'}
                   value={activityForm.title_en}
-                  onChange={(e) => setActivityForm({ ...activityForm, title_en: e.target.value })}
+                  onChange={(e) => {
+                    setActivityForm({ ...activityForm, title_en: e.target.value });
+                  }}
                   required
                   error={formErrors.title_en}
                 />
@@ -342,31 +414,39 @@ const ActivitiesPage = () => {
                 type="text"
                 placeholder={t('title_arabic') || t('title_ar') || 'Title (Arabic)'}
                 value={activityForm.title_ar}
-                onChange={(e) => setActivityForm({ ...activityForm, title_ar: e.target.value })}
+                onChange={(e) => {
+                  setActivityForm({ ...activityForm, title_ar: e.target.value });
+                }}
               />
             </div>
-          </>
-        )}
-        
-        {/* Content Tab */}
-        {activeActivityFormTab === 'content' && (
-          <>
-            <div className="form-row">
-              <Textarea
-                placeholder={t('description_english') || t('description_en') || 'Description (English)'}
-                value={activityForm.description_en}
-                onChange={(e) => setActivityForm({ ...activityForm, description_en: e.target.value })}
-                rows={3}
-                fullWidth
-              />
-              <Textarea
-                placeholder={t('description_arabic') || t('description_ar') || 'Description (Arabic)'}
-                value={activityForm.description_ar}
-                onChange={(e) => setActivityForm({ ...activityForm, description_ar: e.target.value })}
-                rows={3}
-                fullWidth
-              />
-            </div>
+
+        {/* Content Section */}
+        <div className="form-row">
+          <div style={{ flex: 1, marginRight: '16px' }}>
+            <Textarea
+              placeholder={t('description_english') || t('description_en') || 'Description (English)'}
+              value={activityForm.description_en}
+              onChange={(e) => {
+                setActivityForm({ ...activityForm, description_en: e.target.value });
+              }}
+              rows={3}
+              fullWidth
+            />
+          </div>
+          
+          <div style={{ flex: 1 }}>
+            <Textarea
+              placeholder={t('description_arabic') || t('description_ar') || 'Description (Arabic)'}
+              value={activityForm.description_ar}
+              onChange={(e) => {
+                setActivityForm({ ...activityForm, description_ar: e.target.value });
+              }}
+              rows={3}
+              fullWidth
+              style={{ direction: 'rtl' }}
+            />
+          </div>
+        </div>
             <div className="form-row">
               <div>
                 <UrlInput
@@ -383,8 +463,8 @@ const ActivitiesPage = () => {
               </div>
               <DatePicker
                 type="datetime"
-                value={activityForm.dueDate}
-                onChange={(iso) => setActivityForm({ ...activityForm, dueDate: iso })}
+                value={activityForm.dueDate || ''}
+                onChange={(iso) => setActivityForm({ ...activityForm, dueDate: iso || undefined })}
                 placeholder={t('pick_due_date') || 'Pick due date & time'}
               />
               <UrlInput
@@ -446,15 +526,23 @@ const ActivitiesPage = () => {
                       const quizAllowRetake = selectedQuiz.settings?.allowRetake !== undefined 
                         ? selectedQuiz.settings.allowRetake 
                         : (selectedQuiz.allowRetake !== undefined ? selectedQuiz.allowRetake : false);
-                      setActivityForm(prev => ({
-                        ...prev,
-                        quizId: selectedQuizId,
-                        ...(prev.overrideQuizSettings ? {} : {
-                          difficulty: quizDifficulty,
-                          allowRetake: quizAllowRetake,
-                          maxScore: quizMaxScore
-                        })
-                      }));
+                      
+                      setActivityForm(prev => {
+                        const newForm = {
+                          ...prev,
+                          quizId: selectedQuizId,
+                          ...(prev.overrideQuizSettings ? {} : {
+                            difficulty: quizDifficulty,
+                            allowRetake: quizAllowRetake,
+                            maxScore: quizMaxScore,
+                            // Sync quiz title and description to activity form
+                            title_en: selectedQuiz.title_en || selectedQuiz.title || '',
+                            title_ar: selectedQuiz.title_ar || '',
+                            description_en: selectedQuiz.description_en || '',
+                            description_ar: selectedQuiz.description_ar || ''
+                          })
+                        };
+                      });
                     } else {
                       setActivityForm(prev => ({
                         ...prev,
@@ -496,7 +584,12 @@ const ActivitiesPage = () => {
                                 overrideQuizSettings: false,
                                 difficulty: quizDifficulty,
                                 allowRetake: quizAllowRetake,
-                                maxScore: quizMaxScore
+                                maxScore: quizMaxScore,
+                                // Re-sync quiz title and description when disabling override
+                                title_en: selectedQuiz.title_en || selectedQuiz.title || '',
+                                title_ar: selectedQuiz.title_ar || '',
+                                description_en: selectedQuiz.description_en || '',
+                                description_ar: selectedQuiz.description_ar || ''
                               };
                             }
                           }
@@ -513,79 +606,75 @@ const ActivitiesPage = () => {
                 )}
               </div>
             )}
-          </>
-        )}
+
+        {/* Settings Section */}
+        <div className="form-row compact-cols">
+          <ToggleSwitch
+            label={t('show_to_students') || 'Show to students'}
+            checked={activityForm.show}
+            onChange={(checked) => setActivityForm({ ...activityForm, show: checked })}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ToggleSwitch
+              label={t('allow_retakes') || 'Allow retakes'}
+              checked={activityForm.allowRetake || false}
+              onChange={(checked) => {
+                if (activityForm.quizId && !activityForm.overrideQuizSettings) {
+                  toast?.showInfo?.('Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.');
+                  return;
+                }
+                setActivityForm({ ...activityForm, allowRetake: checked });
+              }}
+              disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
+            />
+            {activityForm.quizId && !activityForm.overrideQuizSettings && (
+              <span 
+                style={{ color: '#ef4444', flexShrink: 0 }} 
+                title="Locked - synced from quiz"
+              >
+                {getThemedIcon('ui', 'lock', 14, theme)}
+              </span>
+            )}
+          </div>
+          <ToggleSwitch
+            label={t('featured') || 'Featured'}
+            checked={activityForm.featured}
+            onChange={(checked) => setActivityForm({ ...activityForm, featured: checked })}
+          />
+          <ToggleSwitch
+            label={t('optional') || 'Optional (if off: Required)'}
+            checked={activityForm.optional}
+            onChange={(checked) => setActivityForm({ ...activityForm, optional: checked })}
+          />
+          <ToggleSwitch
+            label={t('requires_submission') || 'Requires Submission'}
+            checked={activityForm.requiresSubmission}
+            onChange={(checked) => setActivityForm({ ...activityForm, requiresSubmission: checked })}
+          />
+        </div>
         
-        {/* Settings Tab */}
-        {activeActivityFormTab === 'settings' && (
-          <>
-            <div className="form-row compact-cols">
-              <ToggleSwitch
-                label={t('show_to_students') || 'Show to students'}
-                checked={activityForm.show}
-                onChange={(checked) => setActivityForm({ ...activityForm, show: checked })}
-              />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ToggleSwitch
-                  label={t('allow_retakes') || 'Allow retakes'}
-                  checked={activityForm.allowRetake || false}
-                  onChange={(checked) => {
-                    if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                      toast?.showInfo?.('Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.');
-                      return;
-                    }
-                    setActivityForm({ ...activityForm, allowRetake: checked });
-                  }}
-                  disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
-                />
-                {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                  <span 
-                    style={{ color: '#ef4444', flexShrink: 0 }} 
-                    title="Locked - synced from quiz"
-                  >
-                    {getThemedIcon('ui', 'lock', 14, theme)}
-                  </span>
-                )}
-              </div>
-              <ToggleSwitch
-                label={t('featured') || 'Featured'}
-                checked={activityForm.featured}
-                onChange={(checked) => setActivityForm({ ...activityForm, featured: checked })}
-              />
-              <ToggleSwitch
-                label={t('optional') || 'Optional (if off: Required)'}
-                checked={activityForm.optional}
-                onChange={(checked) => setActivityForm({ ...activityForm, optional: checked })}
-              />
-              <ToggleSwitch
-                label={t('requires_submission') || 'Requires Submission'}
-                checked={activityForm.requiresSubmission}
-                onChange={(checked) => setActivityForm({ ...activityForm, requiresSubmission: checked })}
-              />
-            </div>
-            
-            {/* Email Notification Options */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '0.75rem',
-              padding: '1rem',
-              background: '#f0f8ff',
-              borderRadius: '8px',
-              border: '2px solid var(--color-primary, #800020)'
-            }}>
-              <ToggleSwitch
-                label={t('send_email_to_students') || 'Send email to students'}
-                checked={emailOptions.sendEmail}
-                onChange={(checked) => setEmailOptions({ ...emailOptions, sendEmail: checked })}
-              />
-              <ToggleSwitch
-                label={t('create_announcement') || 'Create announcement'}
-                checked={emailOptions.createAnnouncement}
-                onChange={(checked) => setEmailOptions({ ...emailOptions, createAnnouncement: checked })}
-              />
-              {emailOptions.sendEmail && (
-            <div>
+        {/* Email Notification Options */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '0.75rem',
+          padding: '1rem',
+          background: '#f0f8ff',
+          borderRadius: '8px',
+          border: '2px solid var(--color-primary, #800020)'
+        }}>
+          <ToggleSwitch
+            label={t('send_email_to_students') || 'Send email to students'}
+            checked={emailOptions.sendEmail}
+            onChange={(checked) => setEmailOptions({ ...emailOptions, sendEmail: checked })}
+          />
+          <ToggleSwitch
+            label={t('create_announcement') || 'Create announcement'}
+            checked={emailOptions.createAnnouncement}
+            onChange={(checked) => setEmailOptions({ ...emailOptions, createAnnouncement: checked })}
+          />
+          {emailOptions.sendEmail && (
+        <div>
               <small>{t('language') || 'Language'}</small>
               <Select
                 searchable
@@ -602,45 +691,13 @@ const ActivitiesPage = () => {
           )}
         </div>
         
-        {/* Form Actions - Show on all tabs */}
+        {/* Form Actions */}
         <div className="form-actions">
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {activeActivityFormTab !== 'basic' && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    if (activeActivityFormTab === 'settings') {
-                      setActiveActivityFormTab('content');
-                    } else if (activeActivityFormTab === 'content') {
-                      setActiveActivityFormTab('basic');
-                    }
-                  }}
-                >
-                  {t('previous') || '← Previous'}
-                </Button>
-              )}
-              {activeActivityFormTab !== 'settings' && (
-                <Button 
-                  type="button" 
-                  variant="secondary"
-                  onClick={() => {
-                    if (activeActivityFormTab === 'basic') {
-                      setActiveActivityFormTab('content');
-                    } else if (activeActivityFormTab === 'content') {
-                      setActiveActivityFormTab('settings');
-                    }
-                  }}
-                >
-                  {t('next') || 'Next →'}
-                </Button>
-              )}
-              {activeActivityFormTab === 'settings' && (
-                <Button type="submit" variant="primary" loading={loading}>
-                  {(editingActivity ? (t('update') || 'Update') : (t('save') || 'Save'))}
-                </Button>
-              )}
+              <Button type="submit" variant="primary" loading={loading}>
+                {(editingActivity ? (t('update') || 'Update') : (t('save') || 'Save'))}
+              </Button>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <Button 
@@ -648,55 +705,53 @@ const ActivitiesPage = () => {
                 variant="outline" 
                 onClick={() => {
                   setEditingActivity(null);
-                  setActivityForm({
-                    id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
-                    type: 'homework', classId: '', difficulty: 'easy', maxScore: 100,
-                    allowRetake: false, dueDate: null, show: true, quizId: '',
-                    overrideQuizSettings: false
-                  });
+                  resetActivityForm();
                   setActiveActivityFormTab('basic');
                 }}
+                style={{ display: editingActivity ? 'block' : 'none' }}
               >
                 {t('cancel') || 'Cancel'}
               </Button>
             </div>
           </div>
         </div>
-          </>
-        )}
       </form>
-      
-      {!editingActivity && (
-        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, color: getThemeColor('text.primary', theme) }}>
-            {t('activities_list') || 'Activities List'}
-          </h3>
-          <Button
-            variant="primary"
-            icon={getThemedIcon('ui', 'plus', 16, theme)}
-            onClick={() => {
-              setEditingActivity({ id: 'new', title_en: '', title_ar: '', description_en: '', description_ar: '' });
-              setActivityForm({
-                id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
-                type: 'homework', classId: '', difficulty: 'easy', maxScore: 100,
-                allowRetake: false, dueDate: null, show: true, quizId: '',
-                overrideQuizSettings: false
-              });
-              setActiveActivityFormTab('basic');
-            }}
-          >
-            {t('add_activity') || 'Add Activity'}
-          </Button>
-        </div>
-      )}
       
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           rows={activities}
           getRowId={(row) => row.docId || row.id}
           columns={[
-            { field: 'id', headerName: t('id_col'), width: 90 },
-            { field: 'title_en', headerName: t('title_en_col'), flex: 1, minWidth: 160 },
+            { field: 'title_en', headerName: t('title_en_col'), flex: 1, minWidth: 160,
+              renderCell: (params) => {
+                const row = params?.row || {};
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ color: getThemeColor('text.primary', theme) }}>
+                      {row.title_en || row.title || ''}
+                    </div>
+                    <div style={{ color: getThemeColor('text.secondary', theme), fontSize: '12px' }}>
+                      {row.title_ar || ''}
+                    </div>
+                  </div>
+                );
+              }
+            },
+            { field: 'title_ar', headerName: t('title_ar_col'), flex: 1, minWidth: 160,
+              renderCell: (params) => {
+                const row = params?.row || {};
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ color: getThemeColor('text.secondary', theme), fontSize: '12px' }}>
+                      {row.title_ar || ''}
+                    </div>
+                    <div style={{ color: getThemeColor('text.primary', theme), fontSize: '12px' }}>
+                      {row.title_en || row.title || ''}
+                    </div>
+                  </div>
+                );
+              }
+            },
             {
               field: 'programId',
               headerName: t('program') || 'Program',
@@ -708,8 +763,8 @@ const ActivitiesPage = () => {
               renderCell: (params) => {
                 const programId = params.value || params.row?.programId || params.row?.program;
                 if (!programId) return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {getThemedIcon('ui', 'archive', 16, theme)} {t('general') || 'General'}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {t('general') || 'General'}
                   </span>
                 );
                 const program = programs.find(p => (p.docId || p.id) === programId);
@@ -719,7 +774,6 @@ const ActivitiesPage = () => {
                   : (program.name_en || program.name_ar || program.name || programId);
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {/*{getThemedIcon('ui', 'target', 16, theme)}*/}
                     {programName}
                   </span>
                 );
@@ -736,8 +790,7 @@ const ActivitiesPage = () => {
               renderCell: (params) => {
                 const subjectId = params.value || params.row?.subjectId || params.row?.subject;
                 if (!subjectId) return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     {t('general') || 'General'}
                   </span>
                 );
@@ -748,7 +801,6 @@ const ActivitiesPage = () => {
                   : (subject.name_en || subject.name_ar || subject.name || subjectId);
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
                     {subjectName}
                   </span>
                 );
@@ -760,8 +812,7 @@ const ActivitiesPage = () => {
               width: 180,
               renderCell: (params) => {
                 if (!params.value) return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {/*{getThemedIcon('ui', 'users',16, theme)} */}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     {t('general') || 'General'}
                   </span>
                 );
@@ -769,7 +820,6 @@ const ActivitiesPage = () => {
                 if (!classItem) return params.value;
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {/*{getThemedIcon('ui', 'users', 16, theme)} */}
                     {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
                   </span>
                 );
@@ -789,7 +839,7 @@ const ActivitiesPage = () => {
                 const typeConfig = getActivityTypeConfig(type, theme, lang);
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {getThemedIcon('ui', typeConfig.icon, 16, theme)} {typeConfig.text}
+                    {typeConfig.text}
                   </span>
                 );
               }
@@ -802,14 +852,14 @@ const ActivitiesPage = () => {
                 const difficulty = params.value;
                 if (!difficulty) return '—';
                 const difficultyMap = {
-                  'easy': { icon: getThemedIcon('ui', 'check_circle',16, theme), text: 'Easy' },
-                  'medium': { icon: getThemedIcon('ui', 'alert_triangle', 16, theme), text: 'Medium' },
-                  'hard': { icon: getThemedIcon('ui', 'x_circle',16, theme), text: 'Hard' }
+                  'easy': { text: 'Easy' },
+                  'medium': { text: 'Medium' },
+                  'hard': { text: 'Hard' }
                 };
-                const difficultyConfig = difficultyMap[difficulty.toLowerCase()] || { icon: getThemedIcon('ui', 'info', 16, theme), text: difficulty };
+                const difficultyConfig = difficultyMap[difficulty.toLowerCase()] || { text: difficulty };
                 return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {difficultyConfig.icon} {difficultyConfig.text}
+                  <span>
+                    {difficultyConfig.text}
                   </span>
                 );
               }
@@ -825,10 +875,10 @@ const ActivitiesPage = () => {
               headerName: t('allow_retakes') || 'Retake',
               width: 100,
               renderCell: (params) => (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
+                <span style={{ fontSize: '0.85rem' }}>
                   {params.value ? 
-                    <>{getThemedIcon('ui', 'check_circle', 16, theme)} Yes</> : 
-                    <>{getThemedIcon('ui', 'x_circle', 16, theme)} No</>
+                    <span style={{ color: getThemeColor('success', theme) }}>{t('yes') || 'Yes'}</span> : 
+                    <span style={{ color: getThemeColor('error', theme) }}>{t('no') || 'No'}</span>
                   }
                 </span>
               )
@@ -888,8 +938,8 @@ const ActivitiesPage = () => {
               renderCell: (params) => (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
                   {params.value ? 
-                    <>{getThemedIcon('ui', 'eye',16, theme)} {t('yes') || 'Yes'}</> : 
-                    <>{getThemedIcon('ui', 'eye_off', 16, theme)} {t('no') || 'No'}</>
+                    <><span style={{ color: getThemeColor('success', theme) }}>{getThemedIcon('ui', 'eye', 16, theme)} {t('yes') || 'Yes'}</span></> :
+                    <><span style={{ color: getThemeColor('error', theme) }}>{getThemedIcon('ui', 'eye_off', 16, theme)} {t('no') || 'No'}</span></>
                   }
                 </span>
               )
@@ -914,7 +964,7 @@ const ActivitiesPage = () => {
                           if (result.success) {
                             // Log activity
                             try {
-                              await logActivity(ACTIVITY_TYPES.ACTIVITY_DELETED, {
+                              await logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_DELETED, {
                                 activityId: activity.docId,
                                 activityTitle: activity.title_en || activity.title,
                                 activityType: activity.type

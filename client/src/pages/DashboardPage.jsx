@@ -66,7 +66,7 @@ import AllowlistPage from './AllowlistPage';
 import EmailTemplatesPage from './EmailTemplatesPage';
 import { getSubjects, getPrograms } from '@firebaseServices/programService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
-import { logActivity, ACTIVITY_TYPES, getActivityLogOptions } from '@firebaseServices/activityLogger.jsx';
+import { logActivity, ACTIVITY_LOG_TYPES, getActivityLogOptions } from '@firebaseServices/activityLogger.jsx';
 import { getUserDisplayName } from '@firebaseServices/userService';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, USER_STATUS } from '@utils/userStatus';
 import './DashboardPage.css';

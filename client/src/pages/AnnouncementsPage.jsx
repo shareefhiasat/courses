@@ -13,7 +13,7 @@ import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programS
 import { getUsers } from '@firebaseServices/userService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
 import { sendEmail } from '@firebaseServices/emailService';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger.jsx';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger.jsx';
 import { formatQatarDate } from '@utils/timezone';
 import { 
   Button, 
@@ -751,7 +751,7 @@ const AnnouncementsPage = () => {
                   variant="outline" 
                   onClick={() => handleTabNavigation('previous')}
                 >
-                  ← Previous
+                  {t('previous') || '← Previous'}
                 </Button>
               )}
               {activeAnnouncementFormTab !== 'email' && (
@@ -760,7 +760,7 @@ const AnnouncementsPage = () => {
                   variant="secondary"
                   onClick={() => handleTabNavigation('next')}
                 >
-                  Next →
+                  {t('next') || 'Next →'}
                 </Button>
               )}
               {activeAnnouncementFormTab === 'email' && (

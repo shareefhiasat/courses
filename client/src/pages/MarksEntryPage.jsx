@@ -8,7 +8,7 @@ import { getSubjectMarksDistribution, setSubjectMarksDistribution, getStudentMar
 import { getUsers } from '@firebaseServices/userService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getClasses } from '@firebaseServices/classService';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { MARK_TYPES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';

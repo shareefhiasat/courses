@@ -3,6 +3,7 @@ import logger from '../utils/logger';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
+import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
 import {
   Plus, Save, Eye, Trash2, GripVertical, Clock, Copy, Play,
   CheckCircle, XCircle, HelpCircle, ListChecks, Repeat, Award
@@ -23,12 +24,6 @@ const QUESTION_TYPES = {
   MULTIPLE_CHOICE: 'multiple_choice',
   SINGLE_CHOICE: 'single_choice',
   TRUE_FALSE: 'true_false'
-};
-
-const DIFFICULTY_LABELS = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced'
 };
 
 const QUESTION_TYPE_INFO = {
@@ -106,7 +101,7 @@ export default function QuizBuilderPage() {
     description_en: '',
     description_ar: '',
     type: QUESTION_TYPES.MULTIPLE_CHOICE,
-    difficulty: 'beginner',
+    difficulty: DIFFICULTY_TYPES.BEGINNER,
     estimatedTime: 10,
     questions: [],
     settings: {
@@ -194,11 +189,11 @@ export default function QuizBuilderPage() {
 
   const getDifficultyChipClass = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case 'beginner':
+      case DIFFICULTY_TYPES.BEGINNER:
         return styles.difficultyBeginner;
-      case 'intermediate':
+      case DIFFICULTY_TYPES.INTERMEDIATE:
         return styles.difficultyIntermediate;
-      case 'advanced':
+      case DIFFICULTY_TYPES.ADVANCED:
         return styles.difficultyAdvanced;
       default:
         return styles.difficultyDefault;

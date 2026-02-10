@@ -5,13 +5,14 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '@firebaseServices/config';
 import { sendQuizAvailable } from '@firebaseServices/notificationService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getUsers, getUser } from '@firebaseServices/userService';
 import { getAllQuizzes, getQuizzesByCreator, deleteQuiz, getQuiz, createQuiz, updateQuiz } from '@firebaseServices/quizService';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading, Badge } from '@ui';
 import { ToggleSwitch, LanguageToggle } from '@ui';
 import QuizBuilderPageStyles from './QuizBuilderPage.module.css';
@@ -22,12 +23,6 @@ const QUESTION_TYPES = {
   MULTIPLE_CHOICE: 'multiple_choice',
   SINGLE_CHOICE: 'single_choice',
   TRUE_FALSE: 'true_false'
-};
-
-const DIFFICULTY_LABELS = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced'
 };
 
 const QUESTION_TYPE_INFO = {
@@ -116,7 +111,7 @@ export default function QuizzesPage() {
     description_en: '',
     description_ar: '',
     type: QUESTION_TYPES.MULTIPLE_CHOICE,
-    difficulty: 'beginner',
+    difficulty: DIFFICULTY_TYPES.BEGINNER,
     estimatedTime: 10,
     questions: [],
     settings: {
@@ -799,12 +794,12 @@ export default function QuizzesPage() {
 
   const getDifficultyLabel = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case 'beginner':
-        return 'Beginner';
-      case 'intermediate':
-        return 'Intermediate';
-      case 'advanced':
-        return 'Advanced';
+      case DIFFICULTY_TYPES.BEGINNER:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.BEGINNER];
+      case DIFFICULTY_TYPES.INTERMEDIATE:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.INTERMEDIATE];
+      case DIFFICULTY_TYPES.ADVANCED:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.ADVANCED];
       default:
         return 'General';
     }
@@ -812,11 +807,11 @@ export default function QuizzesPage() {
 
   const getDifficultyChipClass = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case 'beginner':
+      case DIFFICULTY_TYPES.BEGINNER:
         return QuizManagementPageStyles.difficultyBeginner;
-      case 'intermediate':
+      case DIFFICULTY_TYPES.INTERMEDIATE:
         return QuizManagementPageStyles.difficultyIntermediate;
-      case 'advanced':
+      case DIFFICULTY_TYPES.ADVANCED:
         return QuizManagementPageStyles.difficultyAdvanced;
       default:
         return QuizManagementPageStyles.difficultyDefault;
@@ -872,7 +867,7 @@ export default function QuizzesPage() {
     }
 
     chips.push(
-      <Badge key={`${quiz.id}-difficulty`} variant="subtle" color={quiz.difficulty === 'beginner' ? 'success' : quiz.difficulty === 'intermediate' ? 'warning' : 'danger'} size="small">
+      <Badge key={`${quiz.id}-difficulty`} variant="subtle" color={quiz.difficulty === DIFFICULTY_TYPES.BEGINNER ? 'success' : quiz.difficulty === DIFFICULTY_TYPES.INTERMEDIATE ? 'warning' : 'danger'} size="small">
         {getDifficultyLabel(quiz.difficulty)}
       </Badge>
     );
@@ -923,11 +918,11 @@ export default function QuizzesPage() {
 
   const getDifficultyChipClassForBuilder = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case 'beginner':
+      case DIFFICULTY_TYPES.BEGINNER:
         return QuizBuilderPageStyles.difficultyBeginner;
-      case 'intermediate':
+      case DIFFICULTY_TYPES.INTERMEDIATE:
         return QuizBuilderPageStyles.difficultyIntermediate;
-      case 'advanced':
+      case DIFFICULTY_TYPES.ADVANCED:
         return QuizBuilderPageStyles.difficultyAdvanced;
       default:
         return QuizBuilderPageStyles.difficultyDefault;
@@ -993,7 +988,7 @@ export default function QuizzesPage() {
     }
 
     chips.push(
-      <Badge key="difficulty" variant="subtle" color={quizData.difficulty === 'beginner' ? 'success' : quizData.difficulty === 'intermediate' ? 'warning' : 'danger'} size="small">
+      <Badge key="difficulty" variant="subtle" color={quizData.difficulty === DIFFICULTY_TYPES.BEGINNER ? 'success' : quizData.difficulty === DIFFICULTY_TYPES.INTERMEDIATE ? 'warning' : 'danger'} size="small">
         {getDifficultyLabelForBuilder(quizData.difficulty)}
       </Badge>
     );

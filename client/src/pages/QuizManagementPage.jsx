@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
 import { Container, Card, CardBody, Button, Loading, Spinner } from '@ui';
 import {
   Plus, Edit, Trash2, Play, Clock, Users, HelpCircle, ListChecks,
@@ -12,7 +13,7 @@ import { getAllQuizzes, getQuizzesByCreator, deleteQuiz } from '@firebaseService
 import { getUser } from '@firebaseServices/userService';
 import { db } from '@firebaseServices/config';
 import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { DeleteConfirmationModal } from '@ui';
 import styles from './QuizManagementPage.module.css';
 
@@ -249,24 +250,24 @@ export default function QuizManagementPage() {
 
   const getDifficultyLabel = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case 'beginner':
-        return t('beginner') || 'Beginner';
-      case 'intermediate':
-        return t('intermediate') || 'Intermediate';
-      case 'advanced':
-        return t('advanced') || 'Advanced';
+      case DIFFICULTY_TYPES.BEGINNER:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.BEGINNER];
+      case DIFFICULTY_TYPES.INTERMEDIATE:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.INTERMEDIATE];
+      case DIFFICULTY_TYPES.ADVANCED:
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.ADVANCED];
       default:
-        return t('general') || 'General';
+        return DIFFICULTY_LABELS[DIFFICULTY_TYPES.BEGINNER];
     }
   };
 
   const getDifficultyChipClass = (difficulty) => {
     switch ((difficulty || '').toLowerCase()) {
-      case 'beginner':
+      case DIFFICULTY_TYPES.BEGINNER:
         return styles.difficultyBeginner;
-      case 'intermediate':
+      case DIFFICULTY_TYPES.INTERMEDIATE:
         return styles.difficultyIntermediate;
-      case 'advanced':
+      case DIFFICULTY_TYPES.ADVANCED:
         return styles.difficultyAdvanced;
       default:
         return styles.difficultyDefault;

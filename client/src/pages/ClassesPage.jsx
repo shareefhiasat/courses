@@ -8,7 +8,7 @@ import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getUsers } from '@firebaseServices/userService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getActivities } from '@firebaseServices/activityService';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger.jsx';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger.jsx';
 import { USER_ROLES } from '@constants/userRoles';
 import { 
   Button, 
@@ -415,7 +415,7 @@ const ClassesPage = () => {
                 variant="outline" 
                 onClick={() => handleTabNavigation('previous')}
               >
-                ← Previous
+                {t('previous') || '← Previous'}
               </Button>
             )}
             {activeClassFormTab === 'academic' && (
@@ -429,7 +429,7 @@ const ClassesPage = () => {
                 variant="secondary"
                 onClick={() => handleTabNavigation('next')}
               >
-                Next →
+                {t('next') || 'Next →'}
               </Button>
             )}
             <Button 

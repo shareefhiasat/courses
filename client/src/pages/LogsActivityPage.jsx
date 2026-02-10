@@ -135,35 +135,287 @@ const LogsActivityPage = () => {
   };
 
   const getActivityLogOptions = (t) => [
+    // All Activities
     { value: 'all', label: t('all_activities') || 'All Activities' },
+
+    // Authentication & Security
     { value: 'login', label: t('login') || 'Login' },
     { value: 'logout', label: t('logout') || 'Logout' },
-    { value: 'session_start', label: t('session_start') || 'Session Start' },
-    { value: 'session_end', label: t('session_end') || 'Session End' },
-    { value: 'password_reset', label: t('password_reset') || 'Password Reset' },
+    { value: 'session_timeout', label: t('session_timeout') || 'Session Timeout' },
     { value: 'profile_update', label: t('profile_update') || 'Profile Update' },
+    { value: 'password_change', label: t('password_change') || 'Password Change' },
+    { value: 'email_change', label: t('email_change') || 'Email Change' },
     { value: 'role_change', label: t('role_change') || 'Role Change' },
     { value: 'impersonation_start', label: t('impersonation_start') || 'Impersonation Start' },
     { value: 'impersonation_end', label: t('impersonation_end') || 'Impersonation End' },
     { value: 'security_alert', label: t('security_alert') || 'Security Alert' },
     { value: 'api_access', label: t('api_access') || 'API Access' },
-    { value: 'penalty_viewed', label: t('penalty_viewed') || 'Penalty Viewed' }
+
+    // Quiz & Assessment Activities
+    { value: 'quiz_started', label: t('quiz_started') || 'Quiz Started' },
+    { value: 'quiz_submitted', label: t('quiz_submitted') || 'Quiz Submitted' },
+    { value: 'quiz_retake', label: t('quiz_retake') || 'Quiz Retake' },
+    { value: 'quiz_saved', label: t('quiz_saved') || 'Quiz Saved' },
+    { value: 'quiz_viewed', label: t('quiz_viewed') || 'Quiz Viewed' },
+
+    // Assignment Activities
+    { value: 'assignment_started', label: t('assignment_started') || 'Assignment Started' },
+    { value: 'assignment_submitted', label: t('assignment_submitted') || 'Assignment Submitted' },
+    { value: 'assignment_viewed', label: t('assignment_viewed') || 'Assignment Viewed' },
+
+    // Grading & Feedback
+    { value: 'submission_graded', label: t('submission_graded') || 'Submission Graded' },
+    { value: 'feedback_given', label: t('feedback_given') || 'Feedback Given' },
+
+    // Resource Activities
+    { value: 'resource_viewed', label: t('resource_viewed') || 'Resource Viewed' },
+    { value: 'resource_completed', label: t('resource_completed') || 'Resource Completed' },
+    { value: 'resource_bookmarked', label: t('resource_bookmarked') || 'Resource Bookmarked' },
+    { value: 'resource_downloaded', label: t('resource_downloaded') || 'Resource Downloaded' },
+
+    // Attendance
+    { value: 'attendance_marked', label: t('attendance_marked') || 'Attendance Marked' },
+
+    // Communication & Announcements
+    { value: 'message_sent', label: t('message_sent') || 'Message Sent' },
+    { value: 'message_received', label: t('message_received') || 'Message Received' },
+    { value: 'announcement_read', label: t('announcement_read') || 'Announcement Read' },
+    { value: 'announcement_created', label: t('announcement_created') || 'Announcement Created' },
+    { value: 'announcement_updated', label: t('announcement_updated') || 'Announcement Updated' },
+    { value: 'announcement_deleted', label: t('announcement_deleted') || 'Announcement Deleted' },
+
+    // Navigation & Views
+    { value: 'dashboard_viewed', label: t('dashboard_viewed') || 'Dashboard Viewed' },
+    { value: 'analytics_viewed', label: t('analytics_viewed') || 'Analytics Viewed' },
+    { value: 'activity_viewed', label: t('activity_viewed') || 'Activity Viewed' },
+
+    // Tools & Utilities
+    { value: 'calculator_opened', label: t('calculator_opened') || 'Calculator Opened' },
+    { value: 'scratch_pad_opened', label: t('scratch_pad_opened') || 'Scratch Pad Opened' },
+    { value: 'formula_sheet_opened', label: t('formula_sheet_opened') || 'Formula Sheet Opened' },
+
+    // Notifications
+    { value: 'notification_clicked', label: t('notification_clicked') || 'Notification Clicked' },
+    { value: 'notification_dismissed', label: t('notification_dismissed') || 'Notification Dismissed' },
+
+    // Class Activities
+    { value: 'class_joined', label: t('class_joined') || 'Class Joined' },
+    { value: 'class_left', label: t('class_left') || 'Class Left' },
+
+    // Admin & Management Activities
+    { value: 'user_created', label: t('user_created') || 'User Created' },
+    { value: 'user_updated', label: t('user_updated') || 'User Updated' },
+    { value: 'user_deleted', label: t('user_deleted') || 'User Deleted' },
+    { value: 'quiz_created', label: t('quiz_created') || 'Quiz Created' },
+    { value: 'quiz_deleted', label: t('quiz_deleted') || 'Quiz Deleted' },
+    { value: 'quiz_published', label: t('quiz_published') || 'Quiz Published' },
+
+    // Activity CRUD
+    { value: 'activity_created', label: t('activity_created') || 'Activity Created' },
+    { value: 'activity_updated', label: t('activity_updated') || 'Activity Updated' },
+    { value: 'activity_deleted', label: t('activity_deleted') || 'Activity Deleted' },
+
+    // Penalties CRUD
+    { value: 'penalty_created', label: t('penalty_created') || 'Penalty Created' },
+    { value: 'penalty_updated', label: t('penalty_updated') || 'Penalty Updated' },
+    { value: 'penalty_deleted', label: t('penalty_deleted') || 'Penalty Deleted' },
+    { value: 'penalty_viewed', label: t('penalty_viewed') || 'Penalty Viewed' },
+    { value: 'penalty_searched', label: t('penalty_searched') || 'Penalty Searched' },
+
+    // Participation CRUD
+    { value: 'participation_created', label: t('participation_created') || 'Participation Created' },
+    { value: 'participation_updated', label: t('participation_updated') || 'Participation Updated' },
+    { value: 'participation_deleted', label: t('participation_deleted') || 'Participation Deleted' },
+    { value: 'participation_viewed', label: t('participation_viewed') || 'Participation Viewed' },
+    { value: 'participation_searched', label: t('participation_searched') || 'Participation Searched' },
+
+    // Behavior CRUD
+    { value: 'behavior_created', label: t('behavior_created') || 'Behavior Created' },
+    { value: 'behavior_updated', label: t('behavior_updated') || 'Behavior Updated' },
+    { value: 'behavior_deleted', label: t('behavior_deleted') || 'Behavior Deleted' },
+    { value: 'behavior_viewed', label: t('behavior_viewed') || 'Behavior Viewed' },
+    { value: 'behavior_searched', label: t('behavior_searched') || 'Behavior Searched' },
+
+    // Class CRUD
+    { value: 'class_created', label: t('class_created') || 'Class Created' },
+    { value: 'class_updated', label: t('class_updated') || 'Class Updated' },
+    { value: 'class_deleted', label: t('class_deleted') || 'Class Deleted' },
+    { value: 'class_viewed', label: t('class_viewed') || 'Class Viewed' },
+    { value: 'class_searched', label: t('class_searched') || 'Class Searched' },
+
+    // Subject CRUD
+    { value: 'subject_created', label: t('subject_created') || 'Subject Created' },
+    { value: 'subject_updated', label: t('subject_updated') || 'Subject Updated' },
+    { value: 'subject_deleted', label: t('subject_deleted') || 'Subject Deleted' },
+    { value: 'subject_viewed', label: t('subject_viewed') || 'Subject Viewed' },
+    { value: 'subject_searched', label: t('subject_searched') || 'Subject Searched' },
+
+    // Program CRUD
+    { value: 'program_created', label: t('program_created') || 'Program Created' },
+    { value: 'program_updated', label: t('program_updated') || 'Program Updated' },
+    { value: 'program_deleted', label: t('program_deleted') || 'Program Deleted' },
+    { value: 'program_viewed', label: t('program_viewed') || 'Program Viewed' },
+    { value: 'program_searched', label: t('program_searched') || 'Program Searched' },
+
+    // Enrollment CRUD
+    { value: 'enrollment_created', label: t('enrollment_created') || 'Enrollment Created' },
+    { value: 'enrollment_updated', label: t('enrollment_updated') || 'Enrollment Updated' },
+    { value: 'enrollment_deleted', label: t('enrollment_deleted') || 'Enrollment Deleted' },
+    { value: 'enrollment_viewed', label: t('enrollment_viewed') || 'Enrollment Viewed' },
+    { value: 'enrollment_searched', label: t('enrollment_searched') || 'Enrollment Searched' },
+
+    // Mark Entry CRUD
+    { value: 'mark_entry_created', label: t('mark_entry_created') || 'Mark Entry Created' },
+    { value: 'mark_entry_updated', label: t('mark_entry_updated') || 'Mark Entry Updated' },
+    { value: 'mark_entry_deleted', label: t('mark_entry_deleted') || 'Mark Entry Deleted' },
+    { value: 'mark_entry_viewed', label: t('mark_entry_viewed') || 'Mark Entry Viewed' },
+    { value: 'mark_entry_searched', label: t('mark_entry_searched') || 'Mark Entry Searched' },
+
+    // Generic Actions
+    { value: 'search_performed', label: t('search_performed') || 'Search Performed' },
+    { value: 'save_action', label: t('save_action') || 'Save Action' },
+    { value: 'export_action', label: t('export_action') || 'Export Action' }
   ];
 
   const getActivityLogTypeConfig = (type, theme) => {
     const configs = {
+      // Authentication & Security
       login: { icon: getThemedIcon('ui', 'log_in', 16, theme), label: 'Login' },
       logout: { icon: getThemedIcon('ui', 'log_out', 16, theme), label: 'Logout' },
-      session_start: { icon: getThemedIcon('ui', 'play', 16, theme), label: 'Session Start' },
-      session_end: { icon: getThemedIcon('ui', 'stop', 16, theme), label: 'Session End' },
-      password_reset: { icon: getThemedIcon('ui', 'key_round', 16, theme), label: 'Password Reset' },
+      session_timeout: { icon: getThemedIcon('ui', 'clock_x', 16, theme), label: 'Session Timeout' },
       profile_update: { icon: getThemedIcon('ui', 'user', 16, theme), label: 'Profile Update' },
+      password_change: { icon: getThemedIcon('ui', 'key_round', 16, theme), label: 'Password Change' },
+      email_change: { icon: getThemedIcon('ui', 'mail', 16, theme), label: 'Email Change' },
       role_change: { icon: getThemedIcon('ui', 'shield', 16, theme), label: 'Role Change' },
       impersonation_start: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Impersonation Start' },
       impersonation_end: { icon: getThemedIcon('ui', 'eye_off', 16, theme), label: 'Impersonation End' },
       security_alert: { icon: getThemedIcon('ui', 'alert_triangle', 16, theme), label: 'Security Alert' },
       api_access: { icon: getThemedIcon('ui', 'api', 16, theme), label: 'API Access' },
-      penalty_viewed: { icon: getThemedIcon('penalty_type', 'eye', 16, theme), label: 'Penalty Viewed' }
+
+      // Quiz & Assessment Activities
+      quiz_started: { icon: getThemedIcon('ui', 'play_circle', 16, theme), label: 'Quiz Started' },
+      quiz_submitted: { icon: getThemedIcon('ui', 'check_circle', 16, theme), label: 'Quiz Submitted' },
+      quiz_retake: { icon: getThemedIcon('ui', 'rotate_cw', 16, theme), label: 'Quiz Retake' },
+      quiz_saved: { icon: getThemedIcon('ui', 'save', 16, theme), label: 'Quiz Saved' },
+      quiz_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Quiz Viewed' },
+
+      // Assignment Activities
+      assignment_started: { icon: getThemedIcon('ui', 'play', 16, theme), label: 'Assignment Started' },
+      assignment_submitted: { icon: getThemedIcon('ui', 'upload', 16, theme), label: 'Assignment Submitted' },
+      assignment_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Assignment Viewed' },
+
+      // Grading & Feedback
+      submission_graded: { icon: getThemedIcon('ui', 'star', 16, theme), label: 'Submission Graded' },
+      feedback_given: { icon: getThemedIcon('ui', 'message_circle', 16, theme), label: 'Feedback Given' },
+
+      // Resource Activities
+      resource_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Resource Viewed' },
+      resource_completed: { icon: getThemedIcon('ui', 'check_circle', 16, theme), label: 'Resource Completed' },
+      resource_bookmarked: { icon: getThemedIcon('ui', 'bookmark', 16, theme), label: 'Resource Bookmarked' },
+      resource_downloaded: { icon: getThemedIcon('ui', 'download', 16, theme), label: 'Resource Downloaded' },
+
+      // Attendance
+      attendance_marked: { icon: getThemedIcon('attendance_status', 'present', 16, theme), label: 'Attendance Marked' },
+
+      // Communication & Announcements
+      message_sent: { icon: getThemedIcon('ui', 'send', 16, theme), label: 'Message Sent' },
+      message_received: { icon: getThemedIcon('ui', 'inbox', 16, theme), label: 'Message Received' },
+      announcement_read: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Announcement Read' },
+      announcement_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Announcement Created' },
+      announcement_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Announcement Updated' },
+      announcement_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Announcement Deleted' },
+
+      // Navigation & Views
+      dashboard_viewed: { icon: getThemedIcon('ui', 'layout_dashboard', 16, theme), label: 'Dashboard Viewed' },
+      analytics_viewed: { icon: getThemedIcon('ui', 'bar_chart', 16, theme), label: 'Analytics Viewed' },
+      activity_viewed: { icon: getThemedIcon('ui', 'activity', 16, theme), label: 'Activity Viewed' },
+
+      // Tools & Utilities
+      calculator_opened: { icon: getThemedIcon('ui', 'calculator', 16, theme), label: 'Calculator Opened' },
+      scratch_pad_opened: { icon: getThemedIcon('ui', 'file_text', 16, theme), label: 'Scratch Pad Opened' },
+      formula_sheet_opened: { icon: getThemedIcon('ui', 'book_open', 16, theme), label: 'Formula Sheet Opened' },
+
+      // Notifications
+      notification_clicked: { icon: getThemedIcon('ui', 'mouse_pointer', 16, theme), label: 'Notification Clicked' },
+      notification_dismissed: { icon: getThemedIcon('ui', 'x', 16, theme), label: 'Notification Dismissed' },
+
+      // Class Activities
+      class_joined: { icon: getThemedIcon('ui', 'user_plus', 16, theme), label: 'Class Joined' },
+      class_left: { icon: getThemedIcon('ui', 'user_minus', 16, theme), label: 'Class Left' },
+
+      // Admin & Management Activities
+      user_created: { icon: getThemedIcon('ui', 'user_plus', 16, theme), label: 'User Created' },
+      user_updated: { icon: getThemedIcon('ui', 'user_check', 16, theme), label: 'User Updated' },
+      user_deleted: { icon: getThemedIcon('ui', 'user_x', 16, theme), label: 'User Deleted' },
+      quiz_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Quiz Created' },
+      quiz_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Quiz Deleted' },
+      quiz_published: { icon: getThemedIcon('ui', 'send', 16, theme), label: 'Quiz Published' },
+
+      // Activity CRUD
+      activity_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Activity Created' },
+      activity_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Activity Updated' },
+      activity_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Activity Deleted' },
+
+      // Penalties CRUD
+      penalty_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Penalty Created' },
+      penalty_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Penalty Updated' },
+      penalty_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Penalty Deleted' },
+      penalty_viewed: { icon: getThemedIcon('penalty_type', 'eye', 16, theme), label: 'Penalty Viewed' },
+      penalty_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Penalty Searched' },
+
+      // Participation CRUD
+      participation_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Participation Created' },
+      participation_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Participation Updated' },
+      participation_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Participation Deleted' },
+      participation_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Participation Viewed' },
+      participation_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Participation Searched' },
+
+      // Behavior CRUD
+      behavior_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Behavior Created' },
+      behavior_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Behavior Updated' },
+      behavior_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Behavior Deleted' },
+      behavior_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Behavior Viewed' },
+      behavior_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Behavior Searched' },
+
+      // Class CRUD
+      class_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Class Created' },
+      class_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Class Updated' },
+      class_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Class Deleted' },
+      class_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Class Viewed' },
+      class_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Class Searched' },
+
+      // Subject CRUD
+      subject_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Subject Created' },
+      subject_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Subject Updated' },
+      subject_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Subject Deleted' },
+      subject_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Subject Viewed' },
+      subject_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Subject Searched' },
+
+      // Program CRUD
+      program_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Program Created' },
+      program_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Program Updated' },
+      program_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Program Deleted' },
+      program_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Program Viewed' },
+      program_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Program Searched' },
+
+      // Enrollment CRUD
+      enrollment_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Enrollment Created' },
+      enrollment_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Enrollment Updated' },
+      enrollment_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Enrollment Deleted' },
+      enrollment_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Enrollment Viewed' },
+      enrollment_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Enrollment Searched' },
+
+      // Mark Entry CRUD
+      mark_entry_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Mark Entry Created' },
+      mark_entry_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Mark Entry Updated' },
+      mark_entry_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Mark Entry Deleted' },
+      mark_entry_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Mark Entry Viewed' },
+      mark_entry_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Mark Entry Searched' },
+
+      // Generic Actions
+      search_performed: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Search Performed' },
+      save_action: { icon: getThemedIcon('ui', 'save', 16, theme), label: 'Save Action' },
+      export_action: { icon: getThemedIcon('ui', 'download', 16, theme), label: 'Export Action' }
     };
     return configs[type] || configs.login;
   };

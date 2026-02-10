@@ -7,7 +7,7 @@ import { addResource, updateResource, deleteResource, getResources } from '@fire
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
 import { sendEmail } from '@firebaseServices/emailService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger.jsx';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger.jsx';
 import { formatQatarDate } from '@utils/timezone';
 import { 
   Button, 
@@ -811,7 +811,7 @@ const ResourcesPage = () => {
                   variant="outline" 
                   onClick={() => handleTabNavigation('previous')}
                 >
-                  ← Previous
+                  {t('previous') || '← Previous'}
                 </Button>
               )}
               {activeResourceFormTab !== 'settings' && (
@@ -820,7 +820,7 @@ const ResourcesPage = () => {
                   variant="secondary"
                   onClick={() => handleTabNavigation('next')}
                 >
-                  Next →
+                  {t('next') || 'Next →'}
                 </Button>
               )}
               {activeResourceFormTab === 'settings' && (

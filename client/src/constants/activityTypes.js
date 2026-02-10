@@ -12,9 +12,7 @@ export const ACTIVITY_TYPES = {
   TRAINING: 'training',
   LAB_AND_PROJECT: 'labandproject',
   MID_EXAM: 'mid-exam',
-  FINAL_EXAM: 'final-exam',
-  ATTENDANCE: 'attendance',
-  PARTICIPATION: 'participation'
+  FINAL_EXAM: 'final-exam'
 };
 
 // Labels for UI display
@@ -24,9 +22,7 @@ export const ACTIVITY_TYPE_LABELS = {
   [ACTIVITY_TYPES.TRAINING]: 'Training',
   [ACTIVITY_TYPES.LAB_AND_PROJECT]: 'Lab & Project',
   [ACTIVITY_TYPES.MID_EXAM]: 'Mid-Term Exam',
-  [ACTIVITY_TYPES.FINAL_EXAM]: 'Final Exam',
-  [ACTIVITY_TYPES.ATTENDANCE]: 'Attendance',
-  [ACTIVITY_TYPES.PARTICIPATION]: 'Participation'
+  [ACTIVITY_TYPES.FINAL_EXAM]: 'Final Exam'
 };
 
 // Arabic labels for bilingual support
@@ -36,9 +32,7 @@ export const ACTIVITY_TYPE_LABELS_AR = {
   [ACTIVITY_TYPES.TRAINING]: 'تدريب',
   [ACTIVITY_TYPES.LAB_AND_PROJECT]: 'معمل ومشروع',
   [ACTIVITY_TYPES.MID_EXAM]: 'امتحان منتصف الفصل',
-  [ACTIVITY_TYPES.FINAL_EXAM]: 'امتحان نهائي',
-  [ACTIVITY_TYPES.ATTENDANCE]: 'الحضور',
-  [ACTIVITY_TYPES.PARTICIPATION]: 'المشاركة'
+  [ACTIVITY_TYPES.FINAL_EXAM]: 'امتحان نهائي'
 };
 
 // Options for dropdown/select components
@@ -75,14 +69,6 @@ export const getActivityTypeConfig = (type, theme = 'light', lang = 'en') => {
     [ACTIVITY_TYPES.FINAL_EXAM]: { 
       icon: 'file_text', 
       text: labels[ACTIVITY_TYPES.FINAL_EXAM] 
-    },
-    [ACTIVITY_TYPES.ATTENDANCE]: { 
-      icon: 'users', 
-      text: labels[ACTIVITY_TYPES.ATTENDANCE] 
-    },
-    [ACTIVITY_TYPES.PARTICIPATION]: { 
-      icon: 'message_square', 
-      text: labels[ACTIVITY_TYPES.PARTICIPATION] 
     }
   };
   

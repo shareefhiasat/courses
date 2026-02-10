@@ -10,13 +10,14 @@ import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
 import { getClasses, getClassById } from '@firebaseServices/classService';
-import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { getUserById } from '@firebaseServices/userService';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
-import { getThemedIcon } from '@constants/iconTypes';
+import { db } from '@firebaseServices/config';
+import { collection, query, orderBy, getDocs, doc, getDoc, where } from 'firebase/firestore';
 import { 
   PAGE_STATES, 
   FORM_STATES, 
@@ -51,6 +52,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [enrollments, setEnrollments] = useState([]);
   const [userCache, setUserCache] = useState({}); // Cache for user data fetched on demand
   const [formData, setFormData] = useState({
+    programId: '',
     studentId: '',
     classId: '',
     subjectId: '',
@@ -152,11 +154,12 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
     (async () => {
       try {
-        const enrollmentsSnap = await getDocs(query(
-          collection(db, 'enrollments'),
-          where('classId', '==', formData.classId)
-        ));
-        const enrollmentIds = enrollmentsSnap.docs.map(d => d.data().userId).filter(Boolean);
+        const enrollmentsResult = await getEnrollmentsByClass(formData.classId);
+        if (!enrollmentsResult.success) {
+          setStudents([]);
+          return;
+        }
+        const enrollmentIds = enrollmentsResult.data.map(e => e.userId).filter(Boolean);
         if (enrollmentIds.length === 0) {
           setStudents([]);
           return;
@@ -397,6 +400,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const handleEdit = (penalty) => {
     setEditingPenalty(penalty);
     setFormData({
+      programId: penalty.programId || '',
       studentId: penalty.studentId || '',
       classId: penalty.classId || '',
       subjectId: penalty.subjectId || '',
@@ -456,6 +460,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   const resetForm = () => {
     setFormData({
+      programId: '',
       studentId: '',
       classId: '',
       subjectId: '',
@@ -465,6 +470,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       points: -1,
       comment: ''
     });
+    setEditingPenalty(null);
   };
 
   if (!isHR && !isAdmin && !isSuperAdmin) {
@@ -791,68 +797,36 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       {!isDashboardTab && (
       <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
-          <Select
-            value={programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId || ''}
-            onChange={(e) => {
-              // Reset subject and class when program changes
-              setFormData({ ...formData, subjectId: '', classId: '', studentId: '' });
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={formData.programId}
+            selectedSubject={formData.subjectId}
+            selectedClass={formData.classId}
+            onProgramChange={(programId) => {
+              setFormData({ ...formData, programId, subjectId: '', classId: '', studentId: '' });
             }}
-            options={[
-              { value: '', label: t('all_programs') || 'All Programs' },
-              ...programs.map(program => ({
-                value: program.docId || program.id,
-                label: program[`name_${lang}`] || program.name || 'Unnamed Program',
-              }))
-            ]}
-            placeholder={t('program') || 'Program'}
-            label={t('program') || 'Program'}
-          />
-          <Select
-            value={formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId || ''}
-            onChange={(e) => {
-              setFormData({ ...formData, subjectId: e.target.value, classId: '', studentId: '' });
+            onSubjectChange={(subjectId) => {
+              setFormData({ ...formData, subjectId, classId: '', studentId: '' });
             }}
-            options={[
-              { value: '', label: t('all_subjects') || 'All Subjects' },
-              ...(programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId ?
-                subjects.filter(subject => subject.programId === programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId).map(subject => ({
-                  value: subject.docId || subject.id,
-                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
-                })) : subjects.map(subject => ({
-                  value: subject.docId || subject.id,
-                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
-                })))
-            ]}
-            placeholder={t('subject') || 'Subject'}
-            label={t('subject') || 'Subject'}
-            disabled={!programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId}
-          />
-          <Select
-            searchable
-            value={formData.classId}
-            onChange={(e) => {
-              setFormData({ ...formData, classId: e.target.value, studentId: '' });
-              const selectedClass = classes.find(c => (c.id || c.docId) === e.target.value);
+            onClassChange={(classId) => {
+              setFormData({ ...formData, classId, studentId: '' });
+              // Find the subject for this class and update program if needed
+              const selectedClass = classes.find(c => (c.id || c.docId) === classId);
               if (selectedClass?.subjectId) {
-                setFormData(prev => ({ ...prev, subjectId: selectedClass.subjectId, classId: e.target.value }));
+                const selectedSubject = subjects.find(s => (s.docId || s.id) === selectedClass.subjectId);
+                const programId = selectedSubject?.programId;
+                setFormData(prev => ({
+                  ...prev,
+                  subjectId: selectedClass.subjectId,
+                  classId: classId,
+                  programId: programId || prev.programId
+                }));
               }
             }}
-            options={[
-              { value: '', label: t('all_classes') || 'All Classes' },
-              ...(formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId ?
-                classes.filter(cls => cls.subjectId === (formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId)).map(cls => ({
-                  value: cls.docId || cls.id,
-                  label: cls.name || 'Unnamed Class',
-                  code: cls.code,
-                })) : classes.map(cls => ({
-                  value: cls.docId || cls.id,
-                  label: cls.name || 'Unnamed Class',
-                  code: cls.code,
-                })))
-            ]}
-            placeholder={t('select_class')}
-            label={t('class') || 'Class'}
-            disabled={!formData.subjectId && !classes.find(c => c.id === formData.classId)?.subjectId}
+            showLabels={false}
+            className="flex-1"
           />
           <Select
             searchable

@@ -9,7 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useColorTheme } from '../contexts/ColorThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useToast } from '@ui';
-import { logActivity, ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { ToggleSwitch } from '@ui';
 import { usePostHog } from 'posthog-js/react';
 import './AuthForm.css';

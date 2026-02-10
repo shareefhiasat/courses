@@ -6,7 +6,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Select, UserSelect, RibbonTabs, AdvancedDataGrid } from '@ui';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { USER_ROLES } from '@constants';
-import { ACTIVITY_TYPES } from '@firebaseServices/activityLogger';
+import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
 

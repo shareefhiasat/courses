@@ -15,27 +15,15 @@ import {
   writeBatch
 } from "firebase/firestore";
 import { db } from "./config";
-import { logActivity, ACTIVITY_TYPES } from './activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from './activityLogger';
 import { deleteCollection, deleteDocumentsByField } from './collectionManagementService';
 import { ACTIVITY_TYPE_OPTIONS } from '@constants/activityTypes';
+import { convertDatesToTimestamps, COMMON_DATE_FIELDS } from '@utils/date.js';
+import { getUserById } from './userService';
+import { notificationGateway } from './notificationGateway';
+import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
 
-// Convert date fields to timestamps for Firestore
-const convertDatesToTimestamps = (data) => {
-  const converted = { ...data };
-  
-  // Convert date fields to Firestore timestamps
-  if (data.dueDate) {
-    converted.dueDate = new Timestamp(data.dueDate);
-  }
-  if (data.startDate) {
-    converted.startDate = new Timestamp(data.startDate);
-  }
-  if (data.endDate) {
-    converted.endDate = new Timestamp(data.endDate);
-  }
-  
-  return converted;
-};
+// Convert date fields to timestamps for Firestore using centralized utility
 
 // Activities
 export const getActivities = async () => {
@@ -58,12 +46,25 @@ export const getActivities = async () => {
 
 export const addActivity = async (activityData) => {
   try {
-    const convertedData = convertDatesToTimestamps(activityData);
+    console.log('🔍 [SERVICE] addActivity called with:', {
+      title: activityData.title_en,
+      url: activityData.url,
+      type: activityData.type,
+      hasProgram: !!activityData.programId,
+      hasSubject: !!activityData.subjectId,
+      hasClass: !!activityData.classId
+    });
+    
+    const convertedData = activityData; // No date conversion - save as-is
+    console.log('🔍 [SERVICE] Saving data directly without conversion');
+    
     const docRef = await addDoc(collection(db, "activities"), {
       ...convertedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    console.log('🔍 [SERVICE] Activity saved to Firestore with ID:', docRef.id);
 
     // Send notifications for new activity
     if (activityData.classId) {
@@ -98,14 +99,33 @@ export const addActivity = async (activityData) => {
 
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error("Error adding activity:", error);
+    console.error('🔍 [SERVICE] Error in addActivity:', error);
+    console.error('🔍 [SERVICE] Error details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name
+    });
     return { success: false, error: error.message };
   }
 };
 
 export const updateActivity = async (id, activityData) => {
   try {
-    const convertedData = convertDatesToTimestamps(activityData);
+    console.log('🔍 [SERVICE] updateActivity called with:', {
+      id,
+      title: activityData.title_en,
+      url: activityData.url,
+      type: activityData.type,
+      hasDates: {
+        dueDate: !!activityData.dueDate,
+        startDate: !!activityData.startDate,
+        endDate: !!activityData.endDate
+      }
+    });
+    
+    const convertedData = activityData; // No date conversion - save as-is
+    console.log('🔍 [SERVICE] Saving data directly without conversion');
+    
     await updateDoc(doc(db, "activities", id), {
       ...convertedData,
       updatedAt: serverTimestamp()
@@ -429,7 +449,7 @@ export const deleteResource = async (id) => {
 // ===== ACTIVITY LOGS (Re-exports from activityLogger) =====
 
 // Re-export activity logging functions from activityLogger for unified access
-export { logActivity, ACTIVITY_TYPES };
+export { logActivity, ACTIVITY_LOG_TYPES };
 
 // Legacy compatibility functions
 export const addActivityLog = async (log = {}) => {
@@ -437,7 +457,7 @@ export const addActivityLog = async (log = {}) => {
 };
 
 export const addLoginLog = async (log = {}) => {
-  return logActivity(ACTIVITY_TYPES.LOGIN, log.metadata || {}, log.userId);
+  return logActivity(ACTIVITY_LOG_TYPES.LOGIN, log.metadata || {}, log.userId);
 };
 
 export const getLoginLogs = async () => {
