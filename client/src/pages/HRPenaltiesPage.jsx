@@ -32,6 +32,7 @@ import {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES
 } from '@constants/pageTypes';
+import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ProgramsManagementPage.module.css';
 
 const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {

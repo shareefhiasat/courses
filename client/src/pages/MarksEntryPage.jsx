@@ -19,6 +19,7 @@ import { CollapsibleSideWindow } from '@ui';
 import InstructorBehaviorPage from './InstructorBehaviorPage';
 import InstructorParticipationPage from './InstructorParticipationPage';
 import HRPenaltiesPage from './HRPenaltiesPage';
+import { ACTIVITY_TYPES } from '@constants';
 import styles from './MarksEntryPage.module.css';
 
 const MarksEntryPage = () => {

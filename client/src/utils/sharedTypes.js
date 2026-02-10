@@ -15,7 +15,9 @@ export const RECORD_TYPES = {
   ATTENDANCE: 'attendance',
   PENALTY: 'penalty', 
   PARTICIPATION: 'participation',
-  BEHAVIOR: 'behavior'
+  BEHAVIOR: 'behavior',
+  ACTIVITY: 'activity',
+  RESOURCE: 'resource'
 };
 
 // General Status Constants - Phase 2

@@ -11,6 +11,7 @@ import { getSubjects, createSubject, updateSubject, deleteSubject } from '@fireb
 import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid, Card, CardBody } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
+import { ACTIVITY_TYPES } from '@constants';
 import styles from './SubjectsManagementPage.module.css';
 
 const SubjectsManagementPage = () => {

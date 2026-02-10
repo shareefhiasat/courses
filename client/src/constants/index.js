@@ -144,7 +144,7 @@ export {
 import { USER_ROLES } from './userRoles.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from './attendanceTypes.js';
 import { ATTENDANCE_METHODS, getAttendanceMethodLabel, shouldShowMethodLabel } from './attendanceMethods.jsx';
-import { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions, getNotificationTriggerOptions, getNotificationChannelOptions } from './notificationTypes.jsx';
+import { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions, getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS } from './notificationTypes.jsx';
 import { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById } from './participationTypes.jsx';
 import { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById } from './penaltyTypes.jsx';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById } from './behaviorTypes.jsx';
@@ -154,7 +154,7 @@ import { RECORD_TYPES, GENERAL_STATUS, ENROLLMENT_STATUS, SUBMISSION_STATUS, TAS
 export { USER_ROLES };
 export { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel };
 export { ATTENDANCE_METHODS, getAttendanceMethodLabel, shouldShowMethodLabel };
-export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions, getNotificationTriggerOptions, getNotificationChannelOptions };
+export { NOTIFICATION_TYPES, NOTIFICATION_STATUS, getNotificationTypeOptions, getNotificationStatusOptions, getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS };
 export { PARTICIPATION_TYPES, getParticipationColor, getParticipationLabel, getParticipationTypeById };
 export { PENALTY_TYPES, getPenaltyColor, getPenaltyLabel, getPenaltyTypeById };
 export { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorColor, getBehaviorTypeById };
@@ -309,6 +309,8 @@ export default {
   NOTIFICATION_STATUS,
   getNotificationTypeOptions,
   getNotificationStatusOptions,
+  NOTIFICATION_TRIGGERS,
+  NOTIFICATION_CHANNELS,
   PARTICIPATION_TYPES,
   getParticipationColor,
   getParticipationLabel,
