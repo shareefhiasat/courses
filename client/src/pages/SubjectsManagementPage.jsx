@@ -363,7 +363,7 @@ const gridColumns = useMemo(() => [
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
-            {editingSubject ? (t('update') || 'Update') : (t('add_subject') || 'Add Subject')}
+            {t('save') || 'Save'}
           </Button>
           {editingSubject && (
             <Button 

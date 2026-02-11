@@ -3,6 +3,8 @@ import { db } from './config';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import logger from '@utils/logger';
+import { logActivity, ACTIVITY_LOG_TYPES } from './activityLogger';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -91,6 +93,19 @@ export async function createBehavior({
       }
     }
 
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_CREATED, {
+        behaviorId: docRef.id,
+        studentId,
+        classId,
+        subjectId,
+        type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log behavior creation:', logError);
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error('Error creating behavior record:', error);
@@ -125,6 +140,19 @@ export async function updateBehavior(behaviorId, { updatedBy, ...updateData }) {
       }]
     });
 
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_UPDATED, {
+        behaviorId,
+        studentId: existingData.studentId,
+        classId: existingData.classId,
+        subjectId: existingData.subjectId,
+        type: existingData.type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log behavior update:', logError);
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error updating behavior record:', error);
@@ -135,14 +163,37 @@ export async function updateBehavior(behaviorId, { updatedBy, ...updateData }) {
 /**
  * Delete a behavior record
  */
-export async function deleteBehavior(behaviorId) {
+export async function deleteBehavior(behaviorId, behaviorData = null) {
   try {
     if (!behaviorId) {
       return { success: false, error: 'Behavior ID is required' };
     }
     
+    // Get document data before deletion for logging
+    let dataToDelete = behaviorData;
+    if (!dataToDelete) {
+      const docRef = doc(db, 'behaviors', behaviorId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        dataToDelete = docSnap.data();
+      }
+    }
+    
     await deleteDoc(doc(db, 'behaviors', behaviorId));
     console.log('[Behavior] Deleted behavior record:', behaviorId);
+    
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_DELETED, {
+        behaviorId,
+        studentId: dataToDelete?.studentId,
+        classId: dataToDelete?.classId,
+        subjectId: dataToDelete?.subjectId,
+        type: dataToDelete?.type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log behavior deletion:', logError);
+    }
     
     return { success: true };
   } catch (error) {

@@ -341,7 +341,7 @@ const ProgramsManagementPage = () => {
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
-            {editingProgram ? t('update') || 'Update' : t('add_program') || 'Add Program'}
+            {t('save') || 'Save'}
           </Button>
           {editingProgram && (
             <Button 

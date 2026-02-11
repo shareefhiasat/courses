@@ -293,7 +293,7 @@ const LogsActivityPage = () => {
       api_access: { icon: getThemedIcon('ui', 'api', 16, theme), label: 'API Access' },
 
       // Quiz & Assessment Activities
-      quiz_started: { icon: getThemedIcon('ui', 'play_circle', 16, theme), label: 'Quiz Started' },
+      quiz_started: { icon: getThemedIcon('ui', 'play', 16, theme), label: 'Quiz Started' },
       quiz_submitted: { icon: getThemedIcon('ui', 'check_circle', 16, theme), label: 'Quiz Submitted' },
       quiz_retake: { icon: getThemedIcon('ui', 'rotate_cw', 16, theme), label: 'Quiz Retake' },
       quiz_saved: { icon: getThemedIcon('ui', 'save', 16, theme), label: 'Quiz Saved' },
@@ -306,7 +306,7 @@ const LogsActivityPage = () => {
 
       // Grading & Feedback
       submission_graded: { icon: getThemedIcon('ui', 'star', 16, theme), label: 'Submission Graded' },
-      feedback_given: { icon: getThemedIcon('ui', 'message_circle', 16, theme), label: 'Feedback Given' },
+      feedback_given: { icon: getThemedIcon('ui', 'message_square', 16, theme), label: 'Feedback Given' },
 
       // Resource Activities
       resource_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Resource Viewed' },
@@ -336,7 +336,7 @@ const LogsActivityPage = () => {
       formula_sheet_opened: { icon: getThemedIcon('ui', 'book_open', 16, theme), label: 'Formula Sheet Opened' },
 
       // Notifications
-      notification_clicked: { icon: getThemedIcon('ui', 'mouse_pointer', 16, theme), label: 'Notification Clicked' },
+      notification_clicked: { icon: getThemedIcon('ui', 'cursor', 16, theme), label: 'Notification Clicked' },
       notification_dismissed: { icon: getThemedIcon('ui', 'x', 16, theme), label: 'Notification Dismissed' },
 
       // Class Activities

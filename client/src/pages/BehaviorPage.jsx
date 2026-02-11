@@ -1,37 +1,27 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect, NumberInput } from '@ui';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
-import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
+import { getEnrollments, getEnrollmentsByClass, getStudentsByClass } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
-import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { getBehaviors, createBehavior, updateBehavior, deleteBehavior } from '@firebaseServices/behaviorService';
-import { getUserById } from '@firebaseServices/userService';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes.jsx';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { 
   PAGE_STATES, 
-  FORM_STATES, 
-  MODAL_TYPES,
-  TYPE_ICONS,
-  getTypeIcon,
-  COMMON_GRID_COLUMNS,
-  VALIDATION_RULES,
-  COMMON_FILTERS,
-  PAGE_LAYOUTS,
-  getThemeStyles,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES
+  FORM_STATES,
+  COMMON_GRID_COLUMNS
 } from '@constants/pageTypes';
 import styles from './ProgramsManagementPage.module.css';
 
-const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
+const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
@@ -40,7 +30,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [behaviors, setBehaviors] = useState([]);
   const [editingBehavior, setEditingBehavior] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: MODAL_TYPES.DELETE });
+  const { deleteModal, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -57,6 +47,16 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     comment: ''
   });
   const [saving, setSaving] = useState(false);
+
+  // Refs for text inputs to prevent re-renders
+  const descriptionRef = useRef(null);
+  const commentRef = useRef(null);
+
+  // Sync refs when editing
+  useEffect(() => {
+    if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
+    if (commentRef.current) commentRef.current.value = formData.comment || '';
+  }, [editingBehavior, formData.description, formData.comment]);
 
   // Memoized function to fetch user data on demand and cache it
   const fetchUser = useCallback(async (userId) => {
@@ -88,8 +88,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     loadData();
     // Log page view
     try {
-      logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_VIEWED, {});
-    } catch (e) { }
+          } catch (e) { }
   }, [isInstructor, isAdmin, isSuperAdmin]);
 
   useEffect(() => {
@@ -104,28 +103,16 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     }
     (async () => {
       try {
-        const enrollmentsSnap = await getDocs(query(
-          collection(db, 'enrollments'),
-          where('classId', '==', formData.classId)
-        ));
-        const enrollmentIds = enrollmentsSnap.docs.map(d => d.data().userId).filter(Boolean);
-        if (enrollmentIds.length === 0) {
+        const result = await getStudentsByClass(formData.classId);
+        if (result.success) {
+          setStudents(result.data);
+        } else {
+          logger.error('Failed to load students:', result.error);
           setStudents([]);
-          return;
         }
-        const studentsData = await Promise.all(
-          enrollmentIds.map(async (studentId) => {
-            const studentDoc = await getDoc(doc(db, 'users', studentId));
-            if (studentDoc.exists()) {
-              const data = studentDoc.data();
-              return { id: studentId, ...data, displayName: data.displayName || data.email };
-            }
-            return null;
-          })
-        );
-        setStudents(studentsData.filter(Boolean));
-      } catch (err) {
-        logger.error('Failed to load students:', err);
+      } catch (error) {
+        logger.error('Failed to load students:', error);
+        setStudents([]);
       }
     })();
   }, [formData.classId]);
@@ -271,7 +258,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     // Validation - description is required for behaviors
@@ -309,17 +296,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           throw new Error(result.error);
         }
         
-        // Log activity
-        try {
-          await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_UPDATED, {
-            behaviorId: editingBehavior.id,
-            studentId: formData.studentId,
-            classId: formData.classId,
-            subjectId: subjectId,
-            type: formData.type
-          });
-        } catch (e) { }
-        toast.success(t('behavior_updated'));
+                toast.success(t('behavior_updated'));
       } else {
         const studentData = await fetchUser(formData.studentId);
         const result = await createBehavior({
@@ -336,17 +313,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           throw new Error(result.error);
         }
         
-        // Log activity
-        try {
-          await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_CREATED, {
-            behaviorId: result.id,
-            studentId: formData.studentId,
-            classId: formData.classId,
-            subjectId: subjectId,
-            type: formData.type
-          });
-        } catch (e) { }
-        toast.success(t('behavior_recorded'));
+                toast.success(t('behavior_recorded'));
       }
 
       setEditingBehavior(null);
@@ -358,9 +325,9 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     } finally {
       setSaving(false);
     }
-  };
+  }, [formData, editingBehavior, descriptionRef, commentRef, t, toast, loadBehaviors]);
 
-  const handleEdit = (behavior) => {
+  const handleEdit = useCallback((behavior) => {
     setEditingBehavior(behavior);
     setFormData({
       studentId: behavior.studentId || '',
@@ -371,42 +338,27 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       points: behavior.points || -1,
       comment: behavior.comment || ''
     });
-  };
+  }, []);
 
-  const handleDelete = async (behavior) => {
-    setDeleteModal({ open: true, item: behavior });
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteModal.item) return;
-    
-    setPageState(PAGE_STATES.LOADING);
-    try {
-      const result = await deleteBehavior(deleteModal.item.id);
-      
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-      
-      // Log activity
+  const handleDelete = useCallback((behavior) => {
+    deleteItem(behavior, async () => {
+      setBehaviors(prev => prev.filter(b => b.docId !== behavior.docId));
       try {
-        await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_DELETED, {
-          behaviorId: deleteModal.item.id,
-          studentId: deleteModal.item.studentId,
-          classId: deleteModal.item.classId,
-          subjectId: deleteModal.item.subjectId,
-          type: deleteModal.item.type
-        });
-      } catch (e) { }
-      toast.success(t('behavior_deleted'));
-      loadBehaviors();
-    } catch (error) {
-      toast.error('Failed to delete behavior: ' + error.message);
-    } finally {
-      setPageState(PAGE_STATES.IDLE);
-      setDeleteModal({ open: false, item: null });
-    }
-  };
+        const result = await deleteBehavior(behavior.id);
+        
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        
+                toast?.showSuccess(t('behavior_deleted'));
+        await loadBehaviors();
+      } catch (error) {
+        setBehaviors(prev => [...prev, behavior]);
+        logger.error('Delete failed:', error);
+        toast?.showError(error.message);
+      }
+    });
+  }, [deleteItem, toast, t, loadBehaviors]);
 
   const resetForm = () => {
     setFormData({
@@ -433,7 +385,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     return true;
   });
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       field: 'studentName',
       headerName: 'User',
@@ -535,7 +487,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           className = foundRow?.className;
         }
         let text = className || 'N/A';
-        const classTerm = row.classTerm || (rowId ? behaviors.find(b => (b.id || b.docId) === rowId)?.classTerm : null);
+        const classTerm = row.classTerm || getBehaviorClassTerm(rowId, behaviors);
         if (classTerm) text += ` (${classTerm})`;
         return text;
       }
@@ -695,7 +647,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         </div>
       )
     }])
-  ];
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions]);
 
   return (
     <div className={styles.container}>
@@ -717,68 +669,36 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       {!isDashboardTab && (
         <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
-          <Select
-            value={programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId || ''}
-            onChange={(e) => {
-              // Reset subject and class when program changes
-              setFormData({ ...formData, subjectId: '', classId: '', studentId: '' });
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={formData.programId}
+            selectedSubject={formData.subjectId}
+            selectedClass={formData.classId}
+            onProgramChange={(programId) => {
+              setFormData({ ...formData, programId, subjectId: '', classId: '', studentId: '' });
             }}
-            options={[
-              { value: '', label: t('all_programs') || 'All Programs' },
-              ...programs.map(program => ({
-                value: program.docId || program.id,
-                label: program[`name_${lang}`] || program.name || 'Unnamed Program',
-              }))
-            ]}
-            placeholder={t('program') || 'Program'}
-            label={t('program') || 'Program'}
-          />
-          <Select
-            value={formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId || ''}
-            onChange={(e) => {
-              setFormData({ ...formData, subjectId: e.target.value, classId: '', studentId: '' });
+            onSubjectChange={(subjectId) => {
+              setFormData({ ...formData, subjectId, classId: '', studentId: '' });
             }}
-            options={[
-              { value: '', label: t('all_subjects') || 'All Subjects' },
-              ...(programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId ?
-                subjects.filter(subject => subject.programId === programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId).map(subject => ({
-                  value: subject.docId || subject.id,
-                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
-                })) : subjects.map(subject => ({
-                  value: subject.docId || subject.id,
-                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
-                })))
-            ]}
-            placeholder={t('subject') || 'Subject'}
-            label={t('subject') || 'Subject'}
-            disabled={!programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId}
-          />
-          <Select
-            searchable
-            value={formData.classId}
-            onChange={(e) => {
-              setFormData({ ...formData, classId: e.target.value, studentId: '' });
-              const selectedClass = classes.find(c => (c.id || c.docId) === e.target.value);
+            onClassChange={(classId) => {
+              setFormData({ ...formData, classId, studentId: '' });
+              // Find the subject for this class and update program if needed
+              const selectedClass = classes.find(c => (c.id || c.docId) === classId);
               if (selectedClass?.subjectId) {
-                setFormData(prev => ({ ...prev, subjectId: selectedClass.subjectId, classId: e.target.value }));
+                const selectedSubject = subjects.find(s => (s.docId || s.id) === selectedClass.subjectId);
+                const programId = selectedSubject?.programId;
+                setFormData(prev => ({
+                  ...prev,
+                  subjectId: selectedClass.subjectId,
+                  classId: classId,
+                  programId: programId || prev.programId
+                }));
               }
             }}
-            options={[
-              { value: '', label: t('all_classes') || 'All Classes' },
-              ...(formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId ?
-                classes.filter(cls => cls.subjectId === (formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId)).map(cls => ({
-                  value: cls.docId || cls.id,
-                  label: cls.name || 'Unnamed Class',
-                  code: cls.code,
-                })) : classes.map(cls => ({
-                  value: cls.docId || cls.id,
-                  label: cls.name || 'Unnamed Class',
-                  code: cls.code,
-                })))
-            ]}
-            placeholder={t('select_class')}
-            label={t('class') || 'Class'}
-            disabled={!formData.subjectId && !classes.find(c => c.id === formData.classId)?.subjectId}
+            showLabels={false}
+            className="flex-1"
           />
           <Select
             searchable
@@ -887,35 +807,35 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
           />
         </div>
         <div className="form-row">
-          <Textarea
+          <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             placeholder={t('description_required_behavior')}
+            className="dashboard-textarea"
             rows={3}
             required
           />
-          <Textarea
+          <textarea
             value={formData.comment}
             onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
             placeholder="Comment (optional)"
+            className="dashboard-textarea"
             rows={3}
           />
         </div>
         <div className="form-row">
-          <Select
+          <NumberInput
             value={formData.points}
-            onChange={(e) => setFormData({ ...formData, points: e.target.value })}
-            options={Array.from({ length: 21 }, (_, i) => ({
-              value: i - 10,
-              label: `${i - 10 > 0 ? '+' : ''}${i - 10}`
-            }))}
+            onChange={(value) => setFormData({ ...formData, points: value })}
             placeholder="Points"
-            searchable={false}
+            min={-10}
+            max={10}
+            step={1}
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingBehavior ? (t('update_behavior') || 'Update') : (t('save_behavior') || 'Save')}
+            {t('save') || 'Save'}
           </Button>
           {editingBehavior && (
             <Button 
@@ -988,7 +908,6 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
                 })
               ]}
               placeholder="Type"
-              label="Type"
             />
           </div>
         </div>
@@ -1074,37 +993,17 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         />
       </div>
 
-      {deleteModal.open && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
-            <CardBody>
-              <h3>{t('delete_behavior') || 'Delete Behavior'}</h3>
-              <p>{t('delete_behavior_confirmation') || 'Are you sure you want to delete this behavior record?'}</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
-                  {t('cancel') || 'Cancel'}
-                </Button>
-                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
-                  {t('delete_behavior') || 'Delete'}
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        loading={pageState === PAGE_STATES.LOADING}
+        t={t}
+      />
     </div>
   );
 };
 
-export default InstructorBehaviorPage;
+export default BehaviorPage;

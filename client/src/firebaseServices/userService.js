@@ -373,3 +373,68 @@ export const deleteUserCascade = async (uid) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Get multiple users by their IDs in bulk
+ * @param {Array<string>} userIds - Array of user IDs to fetch
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export const getUsersByIds = async (userIds) => {
+  try {
+    if (!userIds || userIds.length === 0) {
+      return { success: true, data: {} };
+    }
+
+    const uniqueIds = [...new Set(userIds)]; // Remove duplicates
+    const userPromises = uniqueIds.map(async (userId) => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          return { id: userId, data: { id: userDoc.id, ...userDoc.data() } };
+        }
+        return { id: userId, data: null };
+      } catch (error) {
+        console.error(`Error fetching user ${userId}:`, error);
+        return { id: userId, data: null };
+      }
+    });
+
+    const results = await Promise.all(userPromises);
+    
+    // Convert array to object map for easy lookup
+    const userMap = {};
+    results.forEach(result => {
+      userMap[result.id] = result.data;
+    });
+
+    return { success: true, data: userMap };
+  } catch (error) {
+    console.error('Error fetching users in bulk:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get all users with optional role filter
+ * @param {Object} options - Filter options
+ * @param {boolean} options.studentsOnly - Only return students (non-admin, non-instructor)
+ * @param {boolean} options.instructorsOnly - Only return instructors
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getAllUsers = async (options = {}) => {
+  try {
+    const usersSnap = await getDocs(collection(db, 'users'));
+    let users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    if (options.studentsOnly) {
+      users = users.filter(u => !u.isAdmin && !u.isInstructor && !u.isHR && !u.isSuperAdmin);
+    } else if (options.instructorsOnly) {
+      users = users.filter(u => u.isInstructor || u.isAdmin || u.isSuperAdmin);
+    }
+
+    return { success: true, data: users };
+  } catch (error) {
+    console.error('Error fetching all users:', error);
+    return { success: false, error: error.message };
+  }
+};

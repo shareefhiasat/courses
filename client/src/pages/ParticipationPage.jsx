@@ -1,39 +1,30 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect, NumberInput } from '@ui';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
 import { getClassById } from '@firebaseServices/classService';
 import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
 import { getUserById } from '@firebaseServices/userService';
 import { addNotification } from '@firebaseServices/notificationService';
-import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
+import { loadParticipations, createParticipation, updateParticipation, deleteParticipation } from '@firebaseServices/participationService';
 import { formatQatarDateOnly } from '@utils/timezone';
-import { db } from '@firebaseServices/config';
-import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
+import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationTypeById } from '@constants/participationTypes';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { 
   PAGE_STATES, 
-  FORM_STATES, 
-  MODAL_TYPES,
-  TYPE_ICONS,
-  getTypeIcon,
-  COMMON_GRID_COLUMNS,
-  VALIDATION_RULES,
-  COMMON_FILTERS,
-  PAGE_LAYOUTS,
-  getThemeStyles,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES
+  FORM_STATES,
+  COMMON_GRID_COLUMNS
 } from '@constants/pageTypes';
 import styles from './ProgramsManagementPage.module.css';
 
-const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
+const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
@@ -42,7 +33,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [participations, setParticipations] = useState([]);
   const [editingParticipation, setEditingParticipation] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: MODAL_TYPES.DELETE });
+  const { deleteModal, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -59,6 +50,16 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
     comment: ''
   });
   const [saving, setSaving] = useState(false);
+
+  // Refs for text inputs to prevent re-renders
+  const descriptionRef = useRef(null);
+  const commentRef = useRef(null);
+
+  // Sync refs when editing
+  useEffect(() => {
+    if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
+    if (commentRef.current) commentRef.current.value = formData.comment || '';
+  }, [editingParticipation, formData.description, formData.comment]);
 
   // Memoized function to fetch user data on demand and cache it
   const fetchUser = useCallback(async (userId) => {
@@ -91,7 +92,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
   }, [isInstructor, isAdmin, isSuperAdmin]);
 
   useEffect(() => {
-    loadParticipations();
+    loadParticipationsData();
   }, [programFilter, subjectFilter, classFilter, typeFilter]);
 
   // Load students when class changes
@@ -145,149 +146,16 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
     }
   };
 
-  const loadParticipations = async () => {
-    setPageState(PAGE_STATES.LOADING);
-    try {
-      const snap = await getDocs(query(collection(db, 'participations'), orderBy('createdAt', 'desc')));
-      let data = snap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
-      
-      // Enrich with student, class, subject info
-      const enriched = await Promise.all(data.map(async (participation, idx) => {
-        // Create a new object to avoid mutation issues, ensuring id and docId are preserved
-        const enrichedParticipation = { 
-          ...participation,
-          id: participation.id || participation.docId,
-          docId: participation.docId || participation.id
-        };
-        try {
-          // Initialize with N/A as fallback
-          enrichedParticipation.studentName = 'N/A';
-          enrichedParticipation.className = 'N/A';
-          enrichedParticipation.subjectName = 'N/A';
-          
-          if (enrichedParticipation.studentId) {
-            try {
-              const userResult = await getUserById(enrichedParticipation.studentId);
-              if (userResult.success) {
-                const studentData = userResult.data;
-                // logger.debug('InstructorParticipationPage: Student data from Firebase:', studentData);
-                // logger.debug('InstructorParticipationPage: displayName:', studentData.displayName, 'email:', studentData.email);
-                enrichedParticipation.studentName = studentData.displayName || studentData.email || 'N/A';
-                enrichedParticipation.studentEmail = studentData.email;
-                } else {
-                }
-            } catch (err) {
-              logger.error('❌ Failed to load student:', enrichedParticipation.studentId, err);
-            }
-          } else {
-            }
-          
-          if (enrichedParticipation.classId) {
-            try {
-              const classResult = await getClassById(enrichedParticipation.classId);
-              if (classResult.success) {
-                const classData = classResult.data;
-                enrichedParticipation.className = classData.name || classData.code || 'N/A';
-                enrichedParticipation.classTerm = classData.term;
-                // If subjectId is missing, try to get it from class
-                if (!enrichedParticipation.subjectId && classData.subjectId) {
-                  enrichedParticipation.subjectId = classData.subjectId;
-                  }
-                } else {
-                }
-            } catch (err) {
-              logger.error('❌ Failed to load class:', enrichedParticipation.classId, err);
-            }
-          } else {
-            }
-          
-          // Load subject from participation or class
-          const subjectIdToLoad = enrichedParticipation.subjectId;
-          if (subjectIdToLoad) {
-            try {
-              const subjectResult = await getSubject(subjectIdToLoad);
-              if (subjectResult.success) {
-                const subjectData = subjectResult.data;
-                enrichedParticipation.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-                } else {
-                }
-            } catch (err) {
-              logger.error('❌ Failed to load subject:', subjectIdToLoad, err);
-            }
-          } else {
-            }
-          
-          } catch (err) {
-          logger.error('❌ Failed to enrich participation:', enrichedParticipation.id || enrichedParticipation.docId, err);
-        }
-        
-        try {
-          if (enrichedParticipation.createdBy) {
-            try {
-              const instructorResult = await getUserById(enrichedParticipation.createdBy);
-              if (instructorResult.success) {
-                const instructorData = instructorResult.data;
-                enrichedParticipation.instructorName = instructorData.displayName || instructorData.email;
-              }
-            } catch (err) {
-              }
-          }
-        } catch (err) {
-          logger.error('❌ Failed to enrich participation:', enrichedParticipation.id || enrichedParticipation.docId, err);
-        }
-        return enrichedParticipation;
-      }));
-      
-      
-      // Apply filters
-      let filtered = enriched;
-      if (programFilter) {
-        filtered = filtered.filter(p => {
-          if (p.subjectId) {
-            const subject = subjects.find(s => (s.docId || s.id) === p.subjectId);
-            return subject?.programId === programFilter;
-          }
-          if (p.classId) {
-            const classItem = classes.find(c => (c.id || c.docId) === p.classId);
-            if (classItem?.subjectId) {
-              const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
-              return subject?.programId === programFilter;
-            }
-          }
-          return false;
-        });
-      }
-      if (subjectFilter) {
-        filtered = filtered.filter(p => {
-          if (p.subjectId) return p.subjectId === subjectFilter;
-          if (p.classId) {
-            const classItem = classes.find(c => (c.id || c.docId) === p.classId);
-            return classItem?.subjectId === subjectFilter;
-          }
-          return false;
-        });
-      }
-      if (classFilter) {
-        filtered = filtered.filter(p => p.classId === classFilter);
-      }
-      if (typeFilter !== 'all') {
-        filtered = filtered.filter(p => p.type === typeFilter);
-      }
-      
-      // Create a new array to ensure React detects the change
-      // logger.debug('InstructorParticipationPage: Setting participations with data:', filtered.length, 'items');
-      // logger.debug('InstructorParticipationPage: Sample participation data:', filtered[0]);
-      // logger.debug('InstructorParticipationPage: Full filtered array:', filtered);
-      setParticipations([...filtered]);
-    } catch (error) {
-      logger.error('Failed to load participations:', error);
-      toast.error(t('failed_to_save_participation') + ': ' + error.message);
-    } finally {
-      setPageState(PAGE_STATES.IDLE);
-    }
+  const loadParticipationsData = () => {
+    loadParticipations(
+      setParticipations,
+      setPageState,
+      toast,
+      t
+    );
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     // Validation
@@ -321,31 +189,26 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       };
 
       if (editingParticipation) {
-        await updateDoc(doc(db, 'participations', editingParticipation.id), participationData);
-        // Log activity
-        try {
-          await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_UPDATED, {
-            participationId: editingParticipation.id,
-            studentId: formData.studentId,
-            classId: formData.classId,
-            subjectId: subjectId,
-            type: formData.type
-          });
-        } catch (e) { }
+        const result = await updateParticipation(editingParticipation.id, {
+          ...participationData,
+          updatedBy: user.uid
+        });
+        if (!result.success) {
+          throw new Error(result.error);
+        }
         toast.success(t('participation_updated'));
       } else {
-        const docRef = await addDoc(collection(db, 'participations'), participationData);
-        
-        // Log activity
-        try {
-          await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_CREATED, {
-            participationId: docRef.id,
-            studentId: formData.studentId,
-            classId: formData.classId,
-            subjectId: subjectId,
-            type: formData.type
-          });
-        } catch (e) { }
+        const result = await createParticipation({
+          ...participationData,
+          createdBy: user.uid,
+          performedBy: user.uid,
+          performedByName: user.displayName || user.email,
+          performedByEmail: user.email
+        });
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        const docRef = { id: result.id };
         
         // Send notification to student (with error handling)
         try {
@@ -379,9 +242,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
     } finally {
       setSaving(false);
     }
-  };
+  });
 
-  const handleEdit = (participation) => {
+  const handleEdit = useCallback((participation) => {
     setEditingParticipation(participation);
     setFormData({
       studentId: participation.studentId || '',
@@ -392,37 +255,25 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       points: participation.points || 1,
       comment: participation.comment || ''
     });
-  };
+  });
 
-  const handleDelete = async (participation) => {
-    setDeleteModal({ open: true, item: participation });
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteModal.item) return;
-    
-    setPageState(PAGE_STATES.LOADING);
-    try {
-      await deleteDoc(doc(db, 'participations', deleteModal.item.id));
-      // Log activity
+  const handleDelete = useCallback((participation) => {
+    deleteItem(participation, async () => {
+      setParticipations(prev => prev.filter(p => p.docId !== participation.docId));
       try {
-        await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_DELETED, {
-          participationId: deleteModal.item.id,
-          studentId: deleteModal.item.studentId,
-          classId: deleteModal.item.classId,
-          subjectId: deleteModal.item.subjectId,
-          type: deleteModal.item.type
-        });
-      } catch (e) { }
-      toast.success(t('participation_deleted'));
-      loadParticipations();
-    } catch (error) {
-      toast.error('Failed to delete participation: ' + error.message);
-    } finally {
-      setPageState(PAGE_STATES.IDLE);
-      setDeleteModal({ open: false, item: null });
-    }
-  };
+        const result = await deleteParticipation(participation.id, participation);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        toast?.showSuccess(t('participation_deleted'));
+        await loadParticipationsData();
+      } catch (error) {
+        setParticipations(prev => [...prev, participation]);
+        logger.error('Delete failed:', error);
+        toast?.showError(error.message);
+      }
+    });
+  }, [deleteItem, toast, t, loadParticipationsData]);
 
   const resetForm = () => {
     setFormData({
@@ -449,7 +300,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
     return true;
   });
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       field: 'studentName',
       headerName: 'User',
@@ -808,7 +659,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         </div>
       )
     }])
-  ];
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions]);
 
   return (
     <div className={styles.container}>
@@ -830,68 +681,36 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       {!isDashboardTab && (
         <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
-          <Select
-            value={programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId || ''}
-            onChange={(e) => {
-              // Reset subject and class when program changes
-              setFormData({ ...formData, subjectId: '', classId: '', studentId: '' });
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={formData.programId}
+            selectedSubject={formData.subjectId}
+            selectedClass={formData.classId}
+            onProgramChange={(programId) => {
+              setFormData({ ...formData, programId, subjectId: '', classId: '', studentId: '' });
             }}
-            options={[
-              { value: '', label: t('all_programs') || 'All Programs' },
-              ...programs.map(program => ({
-                value: program.docId || program.id,
-                label: program[`name_${lang}`] || program.name || 'Unnamed Program',
-              }))
-            ]}
-            placeholder={t('program') || 'Program'}
-            label={t('program') || 'Program'}
-          />
-          <Select
-            value={formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId || ''}
-            onChange={(e) => {
-              setFormData({ ...formData, subjectId: e.target.value, classId: '', studentId: '' });
+            onSubjectChange={(subjectId) => {
+              setFormData({ ...formData, subjectId, classId: '', studentId: '' });
             }}
-            options={[
-              { value: '', label: t('all_subjects') || 'All Subjects' },
-              ...(programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId ?
-                subjects.filter(subject => subject.programId === programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId).map(subject => ({
-                  value: subject.docId || subject.id,
-                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
-                })) : subjects.map(subject => ({
-                  value: subject.docId || subject.id,
-                  label: subject[`name_${lang}`] || subject.name || 'Unnamed Subject',
-                })))
-            ]}
-            placeholder={t('subject') || 'Subject'}
-            label={t('subject') || 'Subject'}
-            disabled={!programs.find(p => subjects.find(s => s.docId === (classes.find(c => c.id === formData.classId)?.subjectId))?.programId === p.docId)?.docId}
-          />
-          <Select
-            searchable
-            value={formData.classId}
-            onChange={(e) => {
-              setFormData({ ...formData, classId: e.target.value, studentId: '' });
-              const selectedClass = classes.find(c => (c.id || c.docId) === e.target.value);
+            onClassChange={(classId) => {
+              setFormData({ ...formData, classId, studentId: '' });
+              // Find the subject for this class and update program if needed
+              const selectedClass = classes.find(c => (c.id || c.docId) === classId);
               if (selectedClass?.subjectId) {
-                setFormData(prev => ({ ...prev, subjectId: selectedClass.subjectId, classId: e.target.value }));
+                const selectedSubject = subjects.find(s => (s.docId || s.id) === selectedClass.subjectId);
+                const programId = selectedSubject?.programId;
+                setFormData(prev => ({
+                  ...prev,
+                  subjectId: selectedClass.subjectId,
+                  classId: classId,
+                  programId: programId || prev.programId
+                }));
               }
             }}
-            options={[
-              { value: '', label: t('all_classes') || 'All Classes' },
-              ...(formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId ?
-                classes.filter(cls => cls.subjectId === (formData.subjectId || classes.find(c => c.id === formData.classId)?.subjectId)).map(cls => ({
-                  value: cls.docId || cls.id,
-                  label: cls.name || 'Unnamed Class',
-                  code: cls.code,
-                })) : classes.map(cls => ({
-                  value: cls.docId || cls.id,
-                  label: cls.name || 'Unnamed Class',
-                  code: cls.code,
-                })))
-            ]}
-            placeholder={t('select_class')}
-            label={t('class') || 'Class'}
-            disabled={!formData.subjectId && !classes.find(c => c.id === formData.classId)?.subjectId}
+            showLabels={false}
+            className="flex-1"
           />
           <Select
             searchable
@@ -1010,34 +829,36 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
           />
         </div>
         <div className="form-row">
-          <Textarea
+          <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             placeholder={t('description_optional_participation')}
+            className="dashboard-textarea"
             rows={3}
           />
-          <Textarea
+          <textarea
             value={formData.comment}
             onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
             placeholder="Comment (optional)"
+            className="dashboard-textarea"
             rows={3}
           />
         </div>
         <div className="form-row">
-          <Select
+          <input
+            type="number"
             value={formData.points}
-            onChange={(e) => setFormData({ ...formData, points: e.target.value })}
-            options={Array.from({ length: 21 }, (_, i) => ({
-              value: i - 10,
-              label: `${i - 10 > 0 ? '+' : ''}${i - 10}`
-            }))}
+            onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })}
             placeholder="Points"
-            searchable={false}
+            className="dashboard-input"
+            min="-10"
+            max="10"
+            step="1"
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingParticipation ? (t('update_participation') || 'Update') : (t('save_participation') || 'Save')}
+            {t('save') || 'Save'}
           </Button>
           {editingParticipation && (
             <Button 
@@ -1113,7 +934,6 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
                 })
               ]}
               placeholder="Type"
-              label="Type"
             />
           </div>
         </div>
@@ -1201,37 +1021,17 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         />
       </div>
 
-      {deleteModal.open && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
-            <CardBody>
-              <h3>{t('delete_participation') || 'Delete Participation'}</h3>
-              <p>{t('delete_participation_confirmation') || 'Are you sure you want to delete this participation record?'}</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
-                  {t('cancel') || 'Cancel'}
-                </Button>
-                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
-                  {t('delete_participation') || 'Delete'}
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        loading={pageState === PAGE_STATES.LOADING}
+        t={t}
+      />
     </div>
   );
 };
 
-export default InstructorParticipationPage;
+export default ParticipationPage;

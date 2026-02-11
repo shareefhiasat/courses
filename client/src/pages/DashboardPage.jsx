@@ -24,9 +24,9 @@ const SubjectsManagementPage = lazy(() => import('./SubjectsManagementPage'));
 const MarksEntryPage = lazy(() => import('./MarksEntryPage'));
 const ClassSchedulePage = lazy(() => import('./ClassSchedulePage'));
 const ManageEnrollmentsPage = lazy(() => import('./ManageEnrollmentsPage'));
-const HRPenaltiesPage = lazy(() => import('./HRPenaltiesPage'));
-const InstructorParticipationPage = lazy(() => import('./InstructorParticipationPage'));
-const InstructorBehaviorPage = lazy(() => import('./InstructorBehaviorPage'));
+const PenaltiesPage = lazy(() => import('./PenaltiesPage'));
+const ParticipationPage = lazy(() => import('./ParticipationPage'));
+const BehaviorPage = lazy(() => import('./BehaviorPage'));
 const AnalyticsDashboardPage = lazy(() => import('./AnalyticsDashboardPage'));
 const AllowlistPage = lazy(() => import('./AllowlistPage'));
 const EmailTemplatesPage = lazy(() => import('./EmailTemplatesPage'));
@@ -368,13 +368,13 @@ const DashboardPage = () => {
             <EnrollmentManagementPage />
           )}
           {activeTab === 'hr-penalties' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <HRPenaltiesPage />
+            <PenaltiesPage />
           )}
           {activeTab === 'instructor-participation' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <InstructorParticipationPage />
+            <ParticipationPage />
           )}
           {activeTab === 'instructor-behavior' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <InstructorBehaviorPage />
+            <BehaviorPage />
           )}
           {activeTab === 'scheduled-reports' && (isSuperAdmin || isAdmin) && (
             <ScheduledReportsPage />

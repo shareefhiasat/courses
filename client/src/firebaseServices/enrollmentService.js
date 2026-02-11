@@ -126,3 +126,40 @@ export const getEnrollmentsByClass = async (classId) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Get students enrolled in a class with their user data
+ * @param {string} classId - Class ID
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getStudentsByClass = async (classId) => {
+  try {
+    // Get enrollments for this class
+    const q = query(collection(db, "enrollments"), where("classId", "==", classId));
+    const enrollmentsSnap = await getDocs(q);
+    const enrollmentIds = enrollmentsSnap.docs.map(d => d.data().userId).filter(Boolean);
+    
+    if (enrollmentIds.length === 0) {
+      return { success: true, data: [] };
+    }
+    
+    // Fetch user data for all enrolled students
+    const studentsData = await Promise.all(
+      enrollmentIds.map(async (studentId) => {
+        const studentDoc = await getDoc(doc(db, 'users', studentId));
+        if (studentDoc.exists()) {
+          const data = studentDoc.data();
+          return { id: studentId, ...data, displayName: data.displayName || data.email };
+        }
+        return null;
+      })
+    );
+    
+    // Filter out null values
+    const students = studentsData.filter(Boolean);
+    return { success: true, data: students };
+  } catch (error) {
+    console.error('Error fetching students by class:', error);
+    return { success: false, error: error.message };
+  }
+};

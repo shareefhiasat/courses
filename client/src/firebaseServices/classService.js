@@ -94,3 +94,22 @@ export const getClassById = async (id) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Update class schedule
+ * @param {string} classId - Class ID
+ * @param {Object} schedule - Schedule data
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const updateClassSchedule = async (classId, schedule) => {
+  try {
+    await updateDoc(doc(db, 'classes', classId), {
+      schedule: schedule,
+      updatedAt: serverTimestamp()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating class schedule:', error);
+    return { success: false, error: error.message };
+  }
+};

@@ -3,6 +3,8 @@ import { db } from './config';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import logger from '@utils/logger';
+import { logActivity, ACTIVITY_LOG_TYPES } from './activityLogger';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -92,6 +94,19 @@ export async function createParticipation({
       }
     }
 
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_CREATED, {
+        participationId: docRef.id,
+        studentId,
+        classId,
+        subjectId,
+        type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log participation creation:', logError);
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error('Error creating participation record:', error);
@@ -126,6 +141,19 @@ export async function updateParticipation(participationId, { updatedBy, ...updat
       }]
     });
 
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_UPDATED, {
+        participationId,
+        studentId: existingData.studentId,
+        classId: existingData.classId,
+        subjectId: existingData.subjectId,
+        type: existingData.type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log participation update:', logError);
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Error updating participation record:', error);
@@ -137,14 +165,37 @@ export async function updateParticipation(participationId, { updatedBy, ...updat
  * Delete a participation record
  * Note: Participation records are stored in the participations collection
  */
-export async function deleteParticipation(participationId) {
+export async function deleteParticipation(participationId, participationData = null) {
   try {
     if (!participationId) {
       return { success: false, error: 'Participation ID is required' };
     }
     
+    // Get document data before deletion for logging
+    let dataToDelete = participationData;
+    if (!dataToDelete) {
+      const docRef = doc(db, 'participations', participationId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        dataToDelete = docSnap.data();
+      }
+    }
+    
     await deleteDoc(doc(db, 'participations', participationId));
     console.log('[Participation] Deleted participation record:', participationId);
+    
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_DELETED, {
+        participationId,
+        studentId: dataToDelete?.studentId,
+        classId: dataToDelete?.classId,
+        subjectId: dataToDelete?.subjectId,
+        type: dataToDelete?.type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log participation deletion:', logError);
+    }
     
     return { success: true };
   } catch (error) {
@@ -192,5 +243,39 @@ export const getParticipations = async () => {
     return { success: true, data: allParticipations };
   } catch (error) {
     return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Load participations from Firestore
+ * @param {Function} setParticipations - Function to set participations state
+ * @param {Function} setPageState - Function to set page state
+ * @param {Function} toast - Toast function
+ * @param {Function} t - Translation function
+ */
+export async function loadParticipations(
+  setParticipations,
+  setPageState,
+  toast,
+  t
+) {
+  try {
+    setPageState('LOADING');
+    const snap = await getDocs(query(collection(db, 'participations'), orderBy('createdAt', 'desc')));
+    
+    const participations = snap.docs.map(doc => ({
+      docId: doc.id,
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    setParticipations(participations);
+    setPageState('LOADED');
+  } catch (error) {
+    logger.error('Failed to load participations:', error);
+    toast?.error(t('failed_to_load_participations') + ': ' + error.message);
+    setPageState('ERROR');
+  } finally {
+    setPageState('IDLE');
   }
 };

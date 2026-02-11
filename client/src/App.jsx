@@ -17,9 +17,9 @@ import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import AttendancePage from './pages/AttendancePage';
 import StudentAttendancePage from './pages/StudentAttendancePage';
 import HRAttendancePage from './pages/HRAttendancePage';
-import HRPenaltiesPage from './pages/HRPenaltiesPage';
-import InstructorParticipationPage from './pages/InstructorParticipationPage';
-import InstructorBehaviorPage from './pages/InstructorBehaviorPage';
+import PenaltiesPage from './pages/PenaltiesPage';
+import ParticipationPage from './pages/ParticipationPage';
+import BehaviorPage from './pages/BehaviorPage';
 import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
 import QRCodeDisplayPage from './pages/QRCodeDisplayPage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
@@ -143,9 +143,9 @@ const AppContent = () => {
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/my-attendance" element={<StudentAttendancePage />} />
           <Route path="/hr-attendance" element={<HRAttendancePage />} />
-          <Route path="/hr-penalties" element={<HRPenaltiesPage />} />
-          <Route path="/instructor-participation" element={<InstructorParticipationPage />} />
-          <Route path="/instructor-behavior" element={<InstructorBehaviorPage />} />
+          <Route path="/hr-penalties" element={<PenaltiesPage />} />
+          <Route path="/instructor-participation" element={<ParticipationPage />} />
+          <Route path="/instructor-behavior" element={<BehaviorPage />} />
           <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
           <Route path="/qrcode/:studentId" element={<QRCodeDisplayPage />} />
           <Route path="/qrcode/:studentId/:classId" element={<QRCodeDisplayPage />} />

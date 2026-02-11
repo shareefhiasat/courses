@@ -22,7 +22,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [categories, setCategories] = useState([]);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: MODAL_TYPES.DELETE });
+  const { deleteModal, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [formData, setFormData] = useState({
     name_en: '',
     name_ar: '',
@@ -39,6 +39,14 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const nameArRef = useRef(null);
   const descEnRef = useRef(null);
   const descArRef = useRef(null);
+
+  // Sync refs when editing
+  useEffect(() => {
+    if (nameEnRef.current) nameEnRef.current.value = formData.name_en || '';
+    if (nameArRef.current) nameArRef.current.value = formData.name_ar || '';
+    if (descEnRef.current) descEnRef.current.value = formData.description_en || '';
+    if (descArRef.current) descArRef.current.value = formData.description_ar || '';
+  }, [editingCategory, formData.name_en, formData.name_ar, formData.description_en, formData.description_ar]);
 
   // Dynamic form validation
   const formErrors = useMemo(() => {
@@ -110,7 +118,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     // Dynamic validation
@@ -158,9 +166,9 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [formData, editingCategory, nameEnRef, nameArRef, descEnRef, descArRef, t, toast, loadData]);
 
-  const handleEdit = (category) => {
+  const handleEdit = useCallback((category) => {
     setEditingCategory(category);
     setFormData({
       name_en: category.name_en || '',
@@ -171,32 +179,27 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       color: category.color || '#3b82f6',
       order: category.order || 1
     });
-  };
+  }, []);
 
-  const handleDelete = (category) => {
-    setDeleteModal({ open: true, item: category, type: MODAL_TYPES.DELETE });
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteModal.item) return;
-    
-    setPageState(PAGE_STATES.LOADING);
-    try {
-      const categoryId = deleteModal.item.docId || deleteModal.item.id;
-      const result = await deleteCategory(categoryId);
-      if (result.success) {
-        toast.success(t('category_deleted_successfully'));
-        loadData();
-      } else {
-        toast.error('Failed to delete category: ' + result.error);
+  const handleDelete = useCallback((category) => {
+    deleteItem(category, async () => {
+      setCategories(prev => prev.filter(c => c.docId !== category.docId));
+      try {
+        const result = await deleteCategory(category.docId || category.id);
+        if (result.success) {
+          toast?.showSuccess(t('category_deleted_successfully'));
+          await loadData();
+        } else {
+          setCategories(prev => [...prev, category]);
+          toast?.showError(result.error);
+        }
+      } catch (error) {
+        setCategories(prev => [...prev, category]);
+        logger.error('Delete failed:', error);
+        toast?.showError(error.message);
       }
-    } catch (e) {
-      toast.error('Failed to delete category: ' + e.message);
-    } finally {
-      setPageState(PAGE_STATES.IDLE);
-      setDeleteModal({ open: false, item: null });
-    }
-  };
+    });
+  }, [deleteItem, toast, t, loadData]);
 
   const resetForm = () => {
     setFormData({
@@ -215,7 +218,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Access Denied</div>;
   }
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       field: 'name_en',
       headerName: t('name_english') || 'Name (English)',
@@ -309,7 +312,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         );
       }
     }
-  ];
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions]);
 
   return (
     <div className={styles.container}>
@@ -422,7 +425,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               loading={saving}
               disabled={!isFormValid || saving}
             >
-              {saving ? (t('saving') || 'Saving...') : (editingCategory ? (t('update_category') || 'Update') : (t('add_category') || 'Add'))}
+              {saving ? (t('saving') || 'Saving...') : (t('save') || 'Save')}
             </Button>
             {editingCategory && (
               <Button 
@@ -529,35 +532,15 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         />
       </div>
 
-      {deleteModal.open && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
-            <CardBody>
-              <h3>{t('confirm_delete_category') || 'Confirm Delete'}</h3>
-              <p>{t('confirm_delete_message') || 'Are you sure you want to delete this category? This action cannot be undone.'}</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
-                  {t('cancel') || 'Cancel'}
-                </Button>
-                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
-                  {t('delete') || 'Delete'}
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        loading={pageState === PAGE_STATES.LOADING}
+        t={t}
+      />
     </div>
   );
 };

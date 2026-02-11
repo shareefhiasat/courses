@@ -16,6 +16,8 @@ import { db } from "./config";
 import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { RECORD_TYPES } from "@utils/sharedTypes";
+import logger from "@utils/logger";
+import { logActivity, ACTIVITY_LOG_TYPES } from "./activityLogger";
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
@@ -196,6 +198,19 @@ export const createPenalty = async ({
       }
     }
 
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.PENALTY_CREATED, {
+        penaltyId: docRef.id,
+        studentId,
+        classId,
+        subjectId,
+        type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log penalty creation:', logError);
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error('Error creating penalty record:', error);
@@ -210,21 +225,63 @@ export const updatePenalty = async (penaltyId, data) => {
       ...updateFields
     } = data;
     
+    // Get existing document for logging
     const docRef = doc(db, "penalties", penaltyId);
+    const existingDoc = await getDoc(docRef);
+    const existingData = existingDoc.exists() ? existingDoc.data() : {};
+    
     await updateDoc(docRef, {
       ...updateFields,
       updatedAt: serverTimestamp(),
       updatedBy: updatedBy || null,
     });
+    
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.PENALTY_UPDATED, {
+        penaltyId,
+        studentId: existingData.studentId,
+        classId: existingData.classId,
+        subjectId: existingData.subjectId,
+        type: existingData.type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log penalty update:', logError);
+    }
+    
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-export const deletePenalty = async (penaltyId) => {
+export const deletePenalty = async (penaltyId, penaltyData = null) => {
   try {
+    // Get document data before deletion for logging
+    let dataToDelete = penaltyData;
+    if (!dataToDelete) {
+      const docRef = doc(db, "penalties", penaltyId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        dataToDelete = docSnap.data();
+      }
+    }
+    
     await deleteDoc(doc(db, "penalties", penaltyId));
+    
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.PENALTY_DELETED, {
+        penaltyId,
+        studentId: dataToDelete?.studentId,
+        classId: dataToDelete?.classId,
+        subjectId: dataToDelete?.subjectId,
+        type: dataToDelete?.type
+      });
+    } catch (logError) {
+      logger.warn('Failed to log penalty deletion:', logError);
+    }
+    
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

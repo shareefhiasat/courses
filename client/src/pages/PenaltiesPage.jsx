@@ -1,41 +1,31 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody, ProgramsSelect } from '@ui';
+import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody, ProgramsSelect, NumberInput } from '@ui';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@firebaseServices/penaltyService';
 import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
 import { getClasses, getClassById } from '@firebaseServices/classService';
-import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
+import { getEnrollments, getEnrollmentsByClass, getStudentsByClass } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
-import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
-import { getUserById } from '@firebaseServices/userService';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { db } from '@firebaseServices/config';
-import { collection, query, orderBy, getDocs, doc, getDoc, where } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { 
   PAGE_STATES, 
-  FORM_STATES, 
-  MODAL_TYPES,
-  TYPE_ICONS,
-  getTypeIcon,
-  COMMON_GRID_COLUMNS,
-  VALIDATION_RULES,
-  COMMON_FILTERS,
-  PAGE_LAYOUTS,
-  getThemeStyles,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES
+  FORM_STATES,
+  COMMON_GRID_COLUMNS
 } from '@constants/pageTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ProgramsManagementPage.module.css';
 
-const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
+const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isHR, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
@@ -45,7 +35,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [loading, setLoading] = useState(false);
   const [penalties, setPenalties] = useState([]);
   const [editingPenalty, setEditingPenalty] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: MODAL_TYPES.DELETE });
+  const { deleteModal, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -64,6 +54,18 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     comment: ''
   });
   const [saving, setSaving] = useState(false);
+
+  // Refs for text inputs to prevent re-renders
+  const descriptionRef = useRef(null);
+  const feedbackRef = useRef(null);
+  const commentRef = useRef(null);
+
+  // Sync refs when editing
+  useEffect(() => {
+    if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
+    if (feedbackRef.current) feedbackRef.current.value = formData.feedback || '';
+    if (commentRef.current) commentRef.current.value = formData.comment || '';
+  }, [editingPenalty, formData.description, formData.feedback, formData.comment]);
 
   // Function to fetch user data on demand and cache it
   const fetchUser = useCallback(async (userId) => {
@@ -135,8 +137,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         activityType: ACTIVITY_LOG_TYPES.PENALTY_VIEWED
       });
       
-      logActivity(ACTIVITY_LOG_TYPES.PENALTY_VIEWED, {});
-      
+            
       logger.debug('✅ PENALTY VIEWING LOG - Activity logged successfully');
     } catch (e) {
       logger.error('❌ PENALTY VIEWING LOG - Error logging activity:', e);
@@ -155,29 +156,16 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
     (async () => {
       try {
-        const enrollmentsResult = await getEnrollmentsByClass(formData.classId);
-        if (!enrollmentsResult.success) {
+        const result = await getStudentsByClass(formData.classId);
+        if (result.success) {
+          setStudents(result.data);
+        } else {
+          logger.error('Failed to load students:', result.error);
           setStudents([]);
-          return;
         }
-        const enrollmentIds = enrollmentsResult.data.map(e => e.userId).filter(Boolean);
-        if (enrollmentIds.length === 0) {
-          setStudents([]);
-          return;
-        }
-        const studentsData = await Promise.all(
-          enrollmentIds.map(async (studentId) => {
-            const studentDoc = await getDoc(doc(db, 'users', studentId));
-            if (studentDoc.exists()) {
-              const data = studentDoc.data();
-              return { id: studentId, ...data, displayName: data.displayName || data.email };
-            }
-            return null;
-          })
-        );
-        setStudents(studentsData.filter(Boolean));
-      } catch (err) {
-        logger.error('Failed to load students:', err);
+      } catch (error) {
+        logger.error('Failed to load students:', error);
+        setStudents([]);
       }
     })();
   }, [formData.classId]);
@@ -314,7 +302,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
     // Validation
@@ -355,33 +343,9 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           points: penaltyData.points,
           comment: penaltyData.comment
         });
-        // Log activity
-        if (result.success) {
-          try {
-            await logActivity(ACTIVITY_LOG_TYPES.PENALTY_UPDATED, {
-              penaltyId: editingPenalty.docId || editingPenalty.id,
-              studentId: penaltyData.studentId,
-              classId: penaltyData.classId,
-              subjectId: penaltyData.subjectId,
-              type: penaltyData.type
-            });
-          } catch (e) { }
-        }
-      } else {
+              } else {
         result = await createPenalty(penaltyData);
-        // Log activity
-        if (result.success) {
-          try {
-            await logActivity(ACTIVITY_LOG_TYPES.PENALTY_CREATED, {
-              penaltyId: result.id,
-              studentId: penaltyData.studentId,
-              classId: penaltyData.classId,
-              subjectId: penaltyData.subjectId,
-              type: penaltyData.type
-            });
-          } catch (e) { }
-        }
-      }
+              }
 
       if (result.success) {
         toast.success(editingPenalty ? t('penalty_updated') : t('penalty_recorded'));
@@ -396,9 +360,9 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [formData, editingPenalty, descriptionRef, feedbackRef, commentRef, t, toast, loadPenalties]);
 
-  const handleEdit = (penalty) => {
+  const handleEdit = useCallback((penalty) => {
     setEditingPenalty(penalty);
     setFormData({
       programId: penalty.programId || '',
@@ -411,53 +375,39 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       points: penalty.points || -1,
       comment: penalty.comment || ''
     });
-  };
+  }, []);
 
-  const handleDelete = async (penalty) => {
-    setDeleteModal({ open: true, item: penalty });
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteModal.item) return;
-    
-    setLoading(true);
-    try {
-      const result = await deletePenalty(deleteModal.item.docId || deleteModal.item.id);
-      if (result.success) {
-        // Log activity
-        try {
-          await logActivity(ACTIVITY_LOG_TYPES.PENALTY_DELETED, {
-            penaltyId: deleteModal.item.docId || deleteModal.item.id,
-            studentId: deleteModal.item.studentId,
-            classId: deleteModal.item.classId,
-            subjectId: deleteModal.item.subjectId,
-            type: deleteModal.item.type
-          });
-        } catch (e) { }
-        
-        // Send withdrawal notification
-        try {
-          await addNotification({
-            userId: deleteModal.item.studentId,
-            type: RECORD_TYPES.PENALTY,
-            title: 'Penalty Withdrawn',
-            message: `Your penalty for "${PENALTY_TYPES.find(pt => pt.id === deleteModal.item.type)?.label_en || deleteModal.item.type}" has been withdrawn.`,
-            data: { penaltyId: deleteModal.item.id, action: 'withdrawn' }
-          });
-        } catch (notifError) {
+  const handleDelete = useCallback((penalty) => {
+    deleteItem(penalty, async () => {
+      setPenalties(prev => prev.filter(p => p.docId !== penalty.docId));
+      try {
+        const result = await deletePenalty(penalty.docId || penalty.id);
+        if (result.success) {
+          toast?.showSuccess(t('penalty_deleted'));
+                    
+          // Send withdrawal notification
+          try {
+            await addNotification({
+              userId: penalty.studentId,
+              type: RECORD_TYPES.PENALTY,
+              title: 'Penalty Withdrawn',
+              message: `Your penalty for "${PENALTY_TYPES.find(pt => pt.id === penalty.type)?.label_en || penalty.type}" has been withdrawn.`,
+              data: { penaltyId: penalty.id, action: 'withdrawn' }
+            });
+          } catch (notifError) {
           }
-        toast.success(t('penalty_deleted'));
-        loadPenalties();
-      } else {
-        toast.error(t('operation_failed') + ': ' + (result.error || 'Failed to delete penalty'));
+          await loadPenalties();
+        } else {
+          setPenalties(prev => [...prev, penalty]);
+          toast?.showError(result.error || t('failed_to_delete_penalty'));
+        }
+      } catch (error) {
+        setPenalties(prev => [...prev, penalty]);
+        logger.error('Delete failed:', error);
+        toast?.showError(error.message);
       }
-    } catch (error) {
-      toast.error(t('failed_to_save_penalty') + ': ' + error.message);
-    } finally {
-      setLoading(false);
-      setDeleteModal({ open: false, item: null });
-    }
-  };
+    });
+  }, [deleteItem, toast, t, loadPenalties]);
 
   const resetForm = () => {
     setFormData({
@@ -499,7 +449,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     return true;
   });
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       field: 'studentName',
       headerName: t('user') || 'User',
@@ -613,7 +563,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
         if (className && className !== 'N/A') {
           let text = className;
-          const classTerm = row.classTerm || (rowId ? penalties.find(p => (p.id || p.docId) === rowId)?.classTerm : null);
+          const classTerm = row.classTerm || getPenaltyClassTerm(rowId, penalties);
           if (classTerm) text += ` (${classTerm})`;
           return text;
         }
@@ -772,7 +722,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ];
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions]);
 
   return (
     <div className={styles.container}>
@@ -905,41 +855,42 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           />
         </div>
         <div className="form-row">
-          <Textarea
+          <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             placeholder={t('description_required_penalty')}
+            className="dashboard-textarea"
             rows={3}
             required
           />
-          <Textarea
+          <textarea
             value={formData.comment}
             onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
             placeholder={t('comment_optional') || 'Comment (optional)'}
+            className="dashboard-textarea"
             rows={3}
           />
         </div>
         <div className="form-row">
-          <Textarea
+          <textarea
             value={formData.feedback}
             onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
             placeholder={t('hr_feedback_optional')}
+            className="dashboard-textarea"
             rows={3}
           />
-          <Select
+          <NumberInput
             value={formData.points}
-            onChange={(e) => setFormData({ ...formData, points: e.target.value })}
-            options={Array.from({ length: 21 }, (_, i) => ({
-              value: i - 10,
-              label: `${i - 10 > 0 ? '+' : ''}${i - 10}`
-            }))}
+            onChange={(value) => setFormData({ ...formData, points: value })}
             placeholder={t('points') || 'Points'}
-            searchable={false}
+            min={-10}
+            max={10}
+            step={1}
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {editingPenalty ? (t('update') || 'Update') : (t('save') || 'Save')}
+            {t('save') || 'Save'}
           </Button>
           {editingPenalty && (
             <Button 
@@ -981,7 +932,6 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))
               ]}
               placeholder={t('type') || 'Type'}
-              label={t('type') || 'Type'}
             />
           </div>
         </div>
@@ -1067,37 +1017,17 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         />
       </div>
 
-      {deleteModal.open && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
-            <CardBody>
-              <h3>{t('delete_penalty') || 'Delete Penalty'}</h3>
-              <p>{t('delete_penalty_confirmation') || 'Are you sure you want to delete this penalty? A notification will be sent to the student.'}</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
-                  {t('cancel') || 'Cancel'}
-                </Button>
-                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
-                  {t('delete') || 'Delete'}
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        loading={loading}
+        t={t}
+      />
     </div>
   );
 };
 
-export default HRPenaltiesPage;
+export default PenaltiesPage;

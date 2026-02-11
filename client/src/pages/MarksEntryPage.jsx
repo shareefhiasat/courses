@@ -16,9 +16,9 @@ import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { CollapsibleSideWindow } from '@ui';
-import InstructorBehaviorPage from './InstructorBehaviorPage';
-import InstructorParticipationPage from './InstructorParticipationPage';
-import HRPenaltiesPage from './HRPenaltiesPage';
+import BehaviorPage from './BehaviorPage';
+import ParticipationPage from './ParticipationPage';
+import PenaltiesPage from './PenaltiesPage';
 import { ACTIVITY_TYPES } from '@constants';
 import styles from './MarksEntryPage.module.css';
 
@@ -700,7 +700,7 @@ const MarksEntryPage = () => {
     switch (sideWindowContent) {
       case RECORD_TYPES.BEHAVIOR:
         return (
-          <InstructorBehaviorPage 
+          <BehaviorPage 
             isDashboardTab={true}
             initialFilters={sideWindowFilters}
             hideActions={true}
@@ -708,7 +708,7 @@ const MarksEntryPage = () => {
         );
       case RECORD_TYPES.PENALTY:
         return (
-          <HRPenaltiesPage 
+          <PenaltiesPage 
             isDashboardTab={true}
             initialFilters={sideWindowFilters}
             hideActions={true}
@@ -716,7 +716,7 @@ const MarksEntryPage = () => {
         );
       case RECORD_TYPES.PARTICIPATION:
         return (
-          <InstructorParticipationPage 
+          <ParticipationPage 
             isDashboardTab={true}
             initialFilters={sideWindowFilters}
             hideActions={true}

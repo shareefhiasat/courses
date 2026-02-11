@@ -4,6 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { db } from '@firebaseServices/config';
+import { getClasses, updateClassSchedule } from '@firebaseServices/classService';
 import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading, FilterSelect } from '@ui';
@@ -225,11 +226,13 @@ const ClassSchedulePage = () => {
     }
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'classes', cid), {
-        schedule: schedule
-      });
-      toast?.success?.(t('schedule_saved') || 'Schedule saved successfully!');
-      await loadClasses();
+      const result = await updateClassSchedule(cid, schedule);
+      if (result.success) {
+        toast?.success?.(t('schedule_saved') || 'Schedule saved successfully!');
+        await loadClasses();
+      } else {
+        throw new Error(result.error);
+      }
     } catch (e) {
       logger.error('[Schedule] Error saving:', e);
       toast?.error?.((t('schedule_save_failed') || 'Failed to save schedule: ') + (e?.message || 'unknown error'));
