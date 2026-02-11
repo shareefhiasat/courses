@@ -515,6 +515,41 @@
   margin-top: 0.5rem;
 }
 
+/* Plain HTML inputs for performance (no React re-renders on keystroke) */
+.dashboard-input {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #212529;
+  background: #fff;
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+  min-height: 40px;
+}
+
+.dashboard-input:hover:not(:disabled) {
+  border-color: var(--color-primary, var(--brand, #10B981));
+}
+
+.dashboard-input:focus {
+  border-color: var(--color-primary, var(--brand, #10B981));
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.dashboard-input::placeholder {
+  color: #666;
+  opacity: 0.6;
+}
+
+.dashboard-textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .dashboard-content {

@@ -20,7 +20,7 @@ import {
   // UI Icons
   Settings, Key, Eye, EyeOff, Lock, LogIn, LogOut,
   // Action Icons
-  Edit, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy,
+  Edit, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy, Wrench, Clipboard,
   // File Icons
   FileSignature, Archive, Globe, Tag, QrCode, KeyRound, Paperclip,
   // Behavior/Sleep Icons
@@ -291,6 +291,8 @@ export const ICON_TYPES = {
     user: <User size={16} />,
     key_round: <KeyRound size={16} />,
     copy: <Copy size={16} />,
+    wrench: <Wrench size={16} />,
+    clipboard: <Clipboard size={16} />,
     // Additional icons from dashboard and chat pages
     upload: <Upload size={16} />,
     rotate_ccw: <RotateCcw size={16} />,

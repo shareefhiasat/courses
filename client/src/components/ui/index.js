@@ -7,6 +7,7 @@ export { default as Select } from './Select';
 export { ToastProvider, useToast } from './Toast';
 export { default as Spinner } from './Spinner';
 export { default as Modal, ConfirmModal } from './Modal';
+export { default as DeleteModal, useDeleteModal } from './DeleteModal';
 export { default as Tabs } from './Tabs';
 export { default as JoyrideTour } from './JoyrideTour';
 export { default as StoryboardChip } from './StoryboardChip/StoryboardChip';

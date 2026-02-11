@@ -37,6 +37,14 @@
   align-items: center;
   pointer-events: auto; /* allow clicking the icon */
   z-index: 1;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.iconWrapper:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 [dir="rtl"] .iconWrapper {
@@ -48,6 +56,7 @@
   color: var(--text-muted, #666);
   width: 18px;
   height: 18px;
+  pointer-events: none; /* prevent icon from interfering with click */
 }
 
 /* Input */

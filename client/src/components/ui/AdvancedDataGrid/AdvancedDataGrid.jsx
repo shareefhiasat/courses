@@ -1,13 +1,9 @@
 import React, { useRef, useMemo } from 'react';
 import {
   DataGrid,
-  GridToolbarContainer,
-  GridToolbarQuickFilter,
-  GridToolbarColumnsButton,
-  GridToolbarFilterButton,
-  GridToolbarDensitySelector,
-  GridToolbarExport,
+  GridToolbar,
 } from '@mui/x-data-grid';
+import { arSD } from '@mui/x-data-grid/locales';
 import { Box } from '@mui/material';
 import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
 import Loading from '../Loading';
@@ -32,6 +28,8 @@ const AdvancedDataGrid = ({
   exportLabel = 'Export',
   loadingOverlayMessage,
   fancyVariant = 'dots',
+  direction = 'ltr', // 'ltr' or 'rtl'
+  lang = 'en', // 'en' or 'ar'
   ...rest
 }) => {
   // Store rows in a ref so we can access them in valueGetter
@@ -120,61 +118,91 @@ const AdvancedDataGrid = ({
     });
   }, [columns]);
 
-  // Compose a toolbar to guarantee Export presence across versions
-  const Toolbar = () => (
-    <GridToolbarContainer sx={{ 
-      p: 1.5, 
-      gap: 1, 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between',
-      background: 'white',
-      borderBottom: '1px solid #e5e7eb',
-      flexWrap: 'wrap'
-    }}>
-      <GridToolbarQuickFilter 
-        quickFilterParser={(value) => value.split(/\s+/).filter(Boolean)} 
-        debounceMs={300}
-        sx={{ minWidth: 200 }}
-      />
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <GridToolbarColumnsButton sx={{ fontSize: '0.875rem' }} />
-        <GridToolbarFilterButton sx={{ fontSize: '0.875rem' }} />
-        <GridToolbarDensitySelector sx={{ fontSize: '0.875rem' }} />
-        <GridToolbarExport 
-          csvOptions={{ 
-            fileName: exportFileName,
-            delimiter: ',',
-            utf8WithBom: true
-          }}
-          printOptions={{ disableToolbarButton: true }}
-          sx={{ 
-            fontSize: '0.875rem',
-            color: '#10b981',
-            fontWeight: 600,
-            '&:hover': {
-              background: 'rgba(16, 185, 129, 0.1)'
-            }
-          }}
-        />
-      </Box>
-    </GridToolbarContainer>
+  // Arabic locale text for DataGrid
+  const arabicLocale = {
+    ...arSD,
+    // Toolbar
+    toolbarColumns: 'الأعمدة',
+    toolbarFilters: 'تصفية',
+    toolbarDensity: 'الكثافة',
+    toolbarExport: 'تصدير',
+    toolbarQuickFilterPlaceholder: 'بحث...',
+    // Column menu
+    columnMenuLabel: 'القائمة',
+    columnMenuShowColumns: 'إظهار الأعمدة',
+    columnMenuFilter: 'تصفية',
+    columnMenuHideColumn: 'إخفاء',
+    columnMenuUnsort: 'إلغاء الترتيب',
+    columnMenuSortAsc: 'ترتيب تصاعدي',
+    columnMenuSortDesc: 'ترتيب تنازلي',
+    columnMenuManageColumns: 'إدارة الأعمدة',
+    // Filter
+    filterOperatorContains: 'يحتوي',
+    filterOperatorEquals: 'يساوي',
+    filterOperatorStartsWith: 'يبدأ بـ',
+    filterOperatorEndsWith: 'ينتهي بـ',
+    filterOperatorIsEmpty: 'فارغ',
+    filterOperatorIsNotEmpty: 'غير فارغ',
+    filterOperatorIsAnyOf: 'أي من',
+    // Pagination
+    MuiTablePagination: {
+      labelRowsPerPage: 'الصفوف في الصفحة:',
+      labelDisplayedRows: ({ from, to, count }) => `${from}–${to} من ${count !== -1 ? count : `أكثر من ${to}`}`
+    }
+  };
+
+  // Export fields (exclude internal/actions columns)
+  const exportFields = useMemo(() => 
+    safeColumns
+      .filter(col => col.field !== 'docId' && col.field !== 'id' && col.field !== '__rid' && col.field !== 'actions')
+      .map(col => col.field),
+    [safeColumns]
   );
-  const mergedSlots = { toolbar: Toolbar, ...(rest?.slots || {}) };
-  const mergedComponents = { Toolbar, ...(rest?.components || {}) };
+
+  // v8 GridToolbar includes columns, filters, density, export internally
+  const mergedSlots = { 
+    toolbar: () => (
+      <GridToolbar 
+        csvOptions={{ fileName: exportFileName, delimiter: ',', utf8WithBom: true, fields: exportFields }}
+        printOptions={{ disableToolbarButton: true }}
+      />
+    ),
+    ...(rest?.slots || {}) 
+  };
 
   const handleExternalExport = () => {
     if (!safeRows || safeRows.length === 0) return;
 
-    const visibleColumns = safeColumns.filter(col => !col.hide && col.field && col.headerName);
+    // Filter out Firebase ID columns and hidden columns
+    const visibleColumns = safeColumns.filter(col => 
+      !col.hide && 
+      col.field && 
+      col.headerName && 
+      col.field !== 'docId' && 
+      col.field !== 'id' && 
+      col.field !== '__rid' &&
+      col.field !== 'actions' // Also exclude actions column from export
+    );
     if (!visibleColumns.length) return;
 
     const header = visibleColumns.map(col => col.headerName);
     const rowsCsv = safeRows.map((row) => {
       const values = visibleColumns.map(col => {
-        const raw = row[col.field];
-        const value = raw == null ? '' : String(raw);
-        return '"' + value.replace(/"/g, '""') + '"';
+        let value;
+        
+        // Use valueFormatter if available for proper formatting
+        if (typeof col.valueFormatter === 'function') {
+          try {
+            value = col.valueFormatter({ value: row[col.field], row, field: col.field });
+          } catch (e) {
+            value = row[col.field];
+          }
+        } else {
+          value = row[col.field];
+        }
+        
+        const stringValue = value == null ? '' : String(value);
+        return '"' + stringValue.replace(/"/g, '""') + '"';
       });
       return values.join(',');
     });
@@ -222,10 +250,12 @@ const AdvancedDataGrid = ({
         height: '100%',
         maxHeight: '70vh',
         overflow: 'hidden',
+        direction: direction,
         '& .MuiDataGrid-root': { 
           border: 'none',
           overflow: 'hidden',
-          maxHeight: '70vh'
+          maxHeight: '70vh',
+          direction: direction
         }, 
         '& .MuiDataGrid-toolbarContainer': { 
           position: 'sticky', 
@@ -241,6 +271,24 @@ const AdvancedDataGrid = ({
         '& .MuiDataGrid-virtualScroller': {
           overflow: 'auto !important',
           maxHeight: 'calc(70vh - 60px)'
+        },
+        '& .MuiDataGrid-columnHeaders': {
+          textAlign: direction === 'rtl' ? 'right' : 'left'
+        },
+        '& .MuiDataGrid-cell': {
+          textAlign: direction === 'rtl' ? 'right' : 'left',
+          justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start'
+        },
+        '& .MuiDataGrid-row': {
+          direction: direction
+        },
+        // Ensure actions column is always visible in RTL
+        '& .MuiDataGrid-cell[data-field="actions"]': {
+          justifyContent: 'flex-start',
+          direction: 'ltr'
+        },
+        '& .MuiDataGrid-columnHeader[data-field="actions"]': {
+          direction: 'ltr'
         },
         ...sx 
       }}>
@@ -273,10 +321,9 @@ const AdvancedDataGrid = ({
         checkboxSelection={checkboxSelection}
         disableRowSelectionOnClick={disableRowSelectionOnClick}
         density={density}
-        // MUI v6 API
+        // MUI v8 API
         slots={mergedSlots}
-        // MUI v5 API (fallback)
-        components={mergedComponents}
+        localeText={lang === 'ar' ? arabicLocale : undefined}
         getRowId={(row) => {
           try {
             // Use consumer-provided getRowId if passed through rest

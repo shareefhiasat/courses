@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import styles from './DatePicker.module.css';
+import { getThemedIcon } from '@constants/iconTypes';
 
 /**
  * DatePicker Component
@@ -21,6 +22,7 @@ const DatePicker = ({
   showTime = false,
   fullWidth = false,
   className = '',
+  theme = 'light',
 }) => {
   const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
@@ -63,6 +65,12 @@ const DatePicker = ({
           max={max}
           className={inputClasses}
         />
+        <div 
+          className={styles.iconWrapper}
+          onClick={() => inputRef.current?.showPicker?.()}
+        >
+          {getThemedIcon('ui', 'calendar', 18, theme)}
+        </div>
       </div>
 
       {error && <span className={styles.errorText}>{error}</span>}
