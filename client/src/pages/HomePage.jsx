@@ -17,6 +17,8 @@ import { db } from '@firebaseServices/config';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
 import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
+import { getActivityTypeConfig } from '@constants/activityTypes';
+import { getDifficultyConfig } from '@constants/difficultyTypes';
 import { Loading, Card, CardBody } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
 import AuthForm from '@/components/AuthForm';
@@ -666,31 +668,31 @@ const HomePage = memo(() => {
                 {
                   value: 'quiz',
                   label: lang === 'en' ? 'Quiz' : 'اختبار',
-                  icon: activityType === 'quiz' ? getIconWithColor('ui', 'help_circle', 16, '#ffffff') : getIconWithColor('ui', 'help_circle', 16, primaryColor),
+                  icon: activityType === 'quiz' ? getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('quiz', theme, lang).icon, 16, primaryColor),
                   badge: activityType === 'quiz' ? filteredItems.length : undefined
                 },
                 {
                   value: 'homework',
                   label: lang === 'en' ? 'Homework' : 'واجب',
-                  icon: activityType === 'homework' ? getIconWithColor('ui', 'clipboard_list', 16, '#ffffff') : getIconWithColor('ui', 'clipboard_list', 16, primaryColor),
+                  icon: activityType === 'homework' ? getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('homework', theme, lang).icon, 16, primaryColor),
                   badge: activityType === 'homework' ? filteredItems.length : undefined
                 },
                 {
                   value: 'training',
                   label: lang === 'en' ? 'Training' : 'تدريب',
-                  icon: activityType === 'training' ? getIconWithColor('ui', 'book_open', 16, '#ffffff') : getIconWithColor('ui', 'book_open', 16, primaryColor),
+                  icon: activityType === 'training' ? getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('training', theme, lang).icon, 16, primaryColor),
                   badge: activityType === 'training' ? filteredItems.length : undefined
                 },
                 {
                   value: 'lab',
                   label: lang === 'en' ? 'Lab' : 'معمل',
-                  icon: activityType === 'lab' ? getIconWithColor('ui', 'monitor', 16, '#ffffff') : getIconWithColor('ui', 'monitor', 16, primaryColor),
+                  icon: activityType === 'lab' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
                   badge: activityType === 'lab' ? filteredItems.length : undefined
                 },
                 {
                   value: 'project',
                   label: lang === 'en' ? 'Project' : 'مشروع',
-                  icon: activityType === 'project' ? getIconWithColor('ui', 'code2', 16, '#ffffff') : getIconWithColor('ui', 'code2', 16, primaryColor),
+                  icon: activityType === 'project' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
                   badge: activityType === 'project' ? filteredItems.length : undefined
                 }
               ]}
@@ -1141,7 +1143,7 @@ const HomePage = memo(() => {
                     title={lv.label}
                     aria-label={lv.label}
                   >
-                    {getColoredIcon('ui', 'award', 12, active ? '#fff' : deriveIconColor(lv.fg), theme)}
+                    {getColoredIcon('ui', getDifficultyConfig(lv.id, theme, lang).icon, 12, active ? '#fff' : deriveIconColor(lv.fg), theme)}
                     {!isMinified && <span>{lv.label}</span>}
                   </button>
                     );

@@ -10,7 +10,7 @@ import { formatQatarDate } from '@utils/timezone';
 import logger from '@utils/logger';
 import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdown, getThemeColor } from '@constants';
 import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
-import { DIFFICULTY_TYPES, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
+import { DIFFICULTY_TYPES, getDifficultyConfig, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
 import { getActivityTypes } from '@firebaseServices/activityService';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
 import { getCategories } from '@firebaseServices/categoryService';
@@ -852,6 +852,7 @@ const ActivitiesPage = () => {
                 const typeConfig = getActivityTypeConfig(type, theme, lang);
                 return (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {getThemedIcon('ui', typeConfig.icon, 14, theme)}
                     {typeConfig.text}
                   </span>
                 );
@@ -864,14 +865,10 @@ const ActivitiesPage = () => {
               renderCell: (params) => {
                 const difficulty = params.value;
                 if (!difficulty) return '—';
-                const difficultyMap = {
-                  'easy': { text: 'Easy' },
-                  'medium': { text: 'Medium' },
-                  'hard': { text: 'Hard' }
-                };
-                const difficultyConfig = difficultyMap[difficulty.toLowerCase()] || { text: difficulty };
+                const difficultyConfig = getDifficultyConfig(difficulty, theme, lang);
                 return (
-                  <span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {getThemedIcon('ui', difficultyConfig.icon, 14, theme)}
                     {difficultyConfig.text}
                   </span>
                 );

@@ -5,6 +5,8 @@
  * These types are used for activities, marks, and other assessments.
  */
 
+import { getThemedIcon } from '@constants/iconTypes';
+
 // Activity/Mark Types
 export const ACTIVITY_TYPES = {
   QUIZ: 'quiz',
@@ -55,7 +57,7 @@ export const getActivityTypeConfig = (type, theme = 'light', lang = 'en') => {
       text: labels[ACTIVITY_TYPES.HOMEWORK] 
     },
     [ACTIVITY_TYPES.TRAINING]: { 
-      icon: 'target', 
+      icon: 'book_open', 
       text: labels[ACTIVITY_TYPES.TRAINING] 
     },
     [ACTIVITY_TYPES.LAB_AND_PROJECT]: { 
@@ -63,11 +65,11 @@ export const getActivityTypeConfig = (type, theme = 'light', lang = 'en') => {
       text: labels[ACTIVITY_TYPES.LAB_AND_PROJECT] 
     },
     [ACTIVITY_TYPES.MID_EXAM]: { 
-      icon: 'file_text', 
+      icon: 'clipboard', 
       text: labels[ACTIVITY_TYPES.MID_EXAM] 
     },
     [ACTIVITY_TYPES.FINAL_EXAM]: { 
-      icon: 'file_text', 
+      icon: 'award', 
       text: labels[ACTIVITY_TYPES.FINAL_EXAM] 
     }
   };
@@ -90,7 +92,7 @@ export const getActivityTypeOptionsForDropdown = (theme = 'light', lang = 'en') 
     return {
       value,
       label: config.text,
-      icon: config.icon
+      icon: getThemedIcon('ui', config.icon, 16, theme)
     };
   });
 };

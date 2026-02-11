@@ -3,6 +3,8 @@
  * Centralized difficulty levels for activities, quizzes, and assessments
  */
 
+import { getThemedIcon } from '@constants/iconTypes';
+
 // Difficulty level types
 export const DIFFICULTY_TYPES = {
   BEGINNER: 'beginner',
@@ -40,11 +42,11 @@ export const getDifficultyConfig = (type, theme = 'light', lang = 'en') => {
       text: labels[DIFFICULTY_TYPES.BEGINNER] 
     },
     [DIFFICULTY_TYPES.INTERMEDIATE]: { 
-      icon: 'star', 
+      icon: 'zap', 
       text: labels[DIFFICULTY_TYPES.INTERMEDIATE] 
     },
     [DIFFICULTY_TYPES.ADVANCED]: { 
-      icon: 'star', 
+      icon: 'trophy', 
       text: labels[DIFFICULTY_TYPES.ADVANCED] 
     }
   };
@@ -67,7 +69,7 @@ export const getDifficultyOptionsForDropdown = (theme = 'light', lang = 'en') =>
     return {
       value,
       label: config.text,
-      icon: config.icon
+      icon: getThemedIcon('ui', config.icon, 16, theme)
     };
   });
 };

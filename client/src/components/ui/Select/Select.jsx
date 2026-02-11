@@ -45,9 +45,11 @@ const Select = forwardRef(({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [isPositioned, setIsPositioned] = useState(false);
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const positionUpdateRef = useRef(null);
 
   // Get theme-aware styles
   const themeStyles = getComponentStyles(theme, 'select', 'default', size);
@@ -70,6 +72,7 @@ const Select = forwardRef(({
         // console.log('🔵 [Select] Click outside detected, closing dropdown');
         setIsOpen(false);
         setSearchTerm('');
+        setIsPositioned(false);
       } else {
         // console.log('🔵 [Select] Click on option/dropdown, keeping dropdown open');
       }
@@ -96,27 +99,46 @@ const Select = forwardRef(({
   useEffect(() => {
     if (isOpen && containerRef.current) {
       const updatePosition = () => {
-        const rect = containerRef.current.getBoundingClientRect();
-        const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-        const scrollX = window.scrollX || document.documentElement.scrollLeft || document.body.scrollLeft || 0;
-        setDropdownPosition({
-          top: rect.bottom + scrollY + 4,
-          left: rect.left + scrollX,
-          width: rect.width
+        // Cancel any pending position update
+        if (positionUpdateRef.current) {
+          cancelAnimationFrame(positionUpdateRef.current);
+        }
+
+        positionUpdateRef.current = requestAnimationFrame(() => {
+          if (!containerRef.current) return;
+          
+          const rect = containerRef.current.getBoundingClientRect();
+          
+          // Use a more stable positioning approach that doesn't trigger scroll
+          setDropdownPosition({
+            top: rect.bottom + window.scrollY,
+            left: rect.left + window.scrollX,
+            width: rect.width
+          });
+          
+          setIsPositioned(true);
         });
       };
       
-      // Initial position
+      // Initial position calculation
       updatePosition();
       
-      // Update on scroll and resize
-      window.addEventListener('scroll', updatePosition, true);
-      window.addEventListener('resize', updatePosition);
+      // Update on scroll and resize with passive listeners
+      const scrollHandler = () => updatePosition();
+      const resizeHandler = () => updatePosition();
+      
+      window.addEventListener('scroll', scrollHandler, { passive: true });
+      window.addEventListener('resize', resizeHandler, { passive: true });
       
       return () => {
-        window.removeEventListener('scroll', updatePosition, true);
-        window.removeEventListener('resize', updatePosition);
+        if (positionUpdateRef.current) {
+          cancelAnimationFrame(positionUpdateRef.current);
+        }
+        window.removeEventListener('scroll', scrollHandler);
+        window.removeEventListener('resize', resizeHandler);
       };
+    } else {
+      setIsPositioned(false);
     }
   }, [isOpen]);
 
@@ -204,6 +226,7 @@ const Select = forwardRef(({
       // Close the dropdown and clear search
       setIsOpen(false);
       setSearchTerm('');
+      setIsPositioned(false);
       
       console.log('✅ [Select] handleSelect completed for value:', normalizedValue);
     } catch (error) {
@@ -336,7 +359,7 @@ const Select = forwardRef(({
           </div>
         </div>
 
-        {isOpen && createPortal(
+        {isOpen && isPositioned && createPortal(
           <div 
             ref={dropdownRef}
             className={styles.dropdown}
