@@ -1,447 +1,292 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
+import { useToast } from '@ui';
+import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import { 
-  getAnnouncements, 
-  addAnnouncement, 
-  updateAnnouncement, 
-  deleteAnnouncement, 
-  addActivityLog 
-} from '@firebaseServices/activityService';
+import { formatQatarStandard, getQatarNow } from '@utils/qatarDate';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
+import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement as deleteAnnouncementService } from '@firebaseServices/announcementService';
 import { getUsers } from '@firebaseServices/userService';
 import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
 import { sendEmail } from '@firebaseServices/emailService';
-import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger.jsx';
-import { formatQatarDate } from '@utils/timezone';
-import { 
-  Button, 
-  Input, 
-  Textarea, 
-  AdvancedDataGrid, 
-  useToast, 
-  ToggleSwitch 
-} from '@ui';
-import ProgramsSelect from "@/components/ui/Select/ProgramsSelect";
-import { RibbonTabs } from '@ui';
+import { Button, ToggleSwitch, Select } from '@ui';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { RECORD_TYPES } from '@utils/sharedTypes';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import logger from '@utils/logger';
 
+/**
+ * AnnouncementsPage - Announcements management page
+ * 
+ * Refactored to match ActivitiesPage patterns:
+ * - Performance optimizations with refs and memoization
+ * - Unified DeleteModal integration
+ * - Qatar date utilities
+ * - Proper logging and error handling
+ * - Single continuous form (no tabs)
+ */
 const AnnouncementsPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
-  const uiToast = useToast();
-  const toast = {
-    showSuccess: uiToast.success,
-    showError: uiToast.error,
-    showInfo: uiToast.info,
-  };
-
-  // Local state for all data
+  const { user } = useAuth();
+  const toast = useToast();
+  
+  // Internal state management
   const [announcements, setAnnouncements] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // Selection state
-  const [selectedProgram, setSelectedProgram] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedClass, setSelectedClass] = useState('');
-  
-  // Form state
   const [announcementForm, setAnnouncementForm] = useState({
-    title: '',
-    content: '',
-    content_ar: '',
-    target: 'global',
-    programId: '',
-    subjectId: '',
-    classId: ''
+    id: '', title: '', content: '', content_ar: '',
+    target: 'global', programId: '', subjectId: '', classId: ''
   });
-  
-  // UI state
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
-  const [activeAnnouncementFormTab, setActiveAnnouncementFormTab] = useState('basic');
-  const [announcementEmailOptions, setAnnouncementEmailOptions] = useState({ sendEmail: false, lang: 'both' });
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, announcement: null });
+  const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [emailOptions, setEmailOptions] = useState({
+    sendEmail: false,
+    emailLang: 'en'
+  });
+  const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  
+  // Refs for text inputs — avoids re-rendering the whole page on every keystroke
+  const titleRef = useRef(null);
+  const contentRef = useRef(null);
+  const contentArRef = useRef(null);
 
-  // Load all data on component mount
-  const loadData = async () => {
-    console.log('🔍 AnnouncementsPage - loadData() called');
-    setLoading(true);
+  // Data loading function
+  const loadData = useCallback(async () => {
+    setDataLoading(true);
     try {
       const [
-        announcementsRes,
-        programsRes,
-        subjectsRes,
-        classesRes,
-        usersRes
+        programsResult,
+        subjectsResult,
+        classesResult,
+        usersResult,
+        announcementsResult
       ] = await Promise.all([
-        getAnnouncements(),
         getPrograms(),
         getSubjects(),
         getClasses(),
-        getUsers()
+        getUsers(),
+        getAnnouncements()
       ]);
-      setAnnouncements(announcementsRes);
-      setPrograms(programsRes);
-      setSubjects(subjectsRes);
-      setClasses(classesRes);
-      setUsers(usersRes);
+      
+      if (programsResult.success) setPrograms(programsResult.data || []);
+      if (subjectsResult.success) setSubjects(subjectsResult.data || []);
+      if (classesResult.success) setClasses(classesResult.data || []);
+      if (usersResult.success) setUsers(usersResult.data || []);
+      if (announcementsResult.success) setAnnouncements(announcementsResult.data || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.showError(t('error_fetching_data') || 'Error fetching data. Please try again.');
+      logger.error('Error loading data:', error);
+      toast?.showError('Failed to load data');
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
-  };
+  }, [toast]);
 
+  // Load data on component mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch all data in parallel
-        const [programsRes, subjectsRes, classesRes, usersRes] = await Promise.all([
-          getPrograms().catch(e => {
-            console.error('Error fetching programs:', e);
-            return { success: false, data: [] };
-          }),
-          getSubjects().catch(e => {
-            console.error('Error fetching subjects:', e);
-            return { success: false, data: [] };
-          }),
-          getClasses().catch(e => {
-            console.error('Error fetching classes:', e);
-            return { success: false, data: [] };
-          }),
-          getUsers().catch(e => {
-            console.error('Error fetching users:', e);
-            return { success: false, data: [] };
-          })
-        ]);
+    loadData();
+  }, [loadData]);
 
-        // Extract data from responses, defaulting to empty array if not successful
-        const programsData = programsRes?.success ? programsRes.data : [];
-        const subjectsData = subjectsRes?.success ? subjectsRes.data : [];
-        const classesData = classesRes?.success ? classesRes.data : [];
-        const usersData = usersRes?.success ? usersRes.data : [];
-
-        // Set state with the extracted data
-        setPrograms(Array.isArray(programsData) ? programsData : []);
-        setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
-        setClasses(Array.isArray(classesData) ? classesData : []);
-        setUsers(Array.isArray(usersData) ? usersData : []);
-        
-        // Fetch announcements after programs, subjects, and classes are loaded
-        try {
-          const announcementsData = await getAnnouncements();
-          setAnnouncements(Array.isArray(announcementsData) ? announcementsData : []);
-        } catch (announcementError) {
-          console.error('Error fetching announcements:', announcementError);
-          setAnnouncements([]);
-          throw announcementError;
-        }
-      } catch (error) {
-        console.error('Error in fetchData:', error);
-        setError(t('error_fetching_data') || 'Error fetching data. Please try again.');
-        toast.showError(t('error_fetching_data') || 'Error fetching data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [t]);
-
-  // Handle program selection change
-  const handleProgramChange = (programId) => {
-    setSelectedProgram(programId);
-    setSelectedSubject('');
-    setSelectedClass('');
-    setAnnouncementForm(prev => ({
-      ...prev,
-      programId,
-      subjectId: '',
-      classId: ''
-    }));
-  };
-
-  // Handle subject selection change
-  const handleSubjectChange = (subjectId) => {
-    setSelectedSubject(subjectId);
-    setSelectedClass('');
-    setAnnouncementForm(prev => ({
-      ...prev,
-      subjectId,
-      classId: ''
-    }));
-  };
-
-  // Handle class selection change
-  const handleClassChange = (classId) => {
-    setSelectedClass(classId);
-    setAnnouncementForm(prev => ({
-      ...prev,
-      classId
-    }));
-  };
-
-  // Local state for dropdown options to avoid race conditions
-  const [dropdownOptions, setDropdownOptions] = useState({
-    programs: [],
-    subjects: [],
-    classes: []
-  });
-
-  // Update dropdown options when data changes
-  useEffect(() => {
-    const newDropdownOptions = {
-      programs: [
-        { value: '', label: t('all_programs') || 'All Programs' },
-        ...programs.map(program => ({
-          value: program.docId || program.id,
-          label: lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar)
-        }))
-      ],
-      subjects: [
-        { value: '', label: t('all_subjects') || 'All Subjects' },
-        ...subjects.map(subject => ({
-          value: subject.docId || subject.id,
-          label: lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar),
-          programId: subject.programId
-        }))
-      ],
-      classes: [
-        { value: '', label: t('all_classes') || 'All Classes' },
-        ...classes.map(classItem => ({
-          value: classItem.docId || classItem.id,
-          label: `${classItem.name || classItem.code || 'Unnamed'}${classItem.code ? ` (${classItem.code})` : ''}${classItem.term ? ` - ${classItem.term}` : ''}${classItem.year ? ` ${classItem.year}` : ''}`,
-          subjectId: classItem.subjectId
-        }))
-      ]
-    };
-    
-    setDropdownOptions(newDropdownOptions);
-  }, [programs, subjects, classes, lang, t]);
-
-  // Local dropdown change handler
-  const handleLocalDropdownChange = (setter, field, clearFields = []) => {
+  // Handler functions
+  const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
     return (value) => {
       setter(prev => {
         const newState = { ...prev, [field]: value };
-        // Clear dependent fields when parent changes
-        clearFields.forEach(clearField => {
-          newState[clearField] = '';
+        resetFields.forEach(resetField => {
+          newState[resetField] = '';
         });
         return newState;
       });
     };
-  };
+  }, []);
 
-  const handleAnnouncementSubmit = async (e) => {
-    e.preventDefault();
+  const resetAnnouncementForm = useCallback(() => {
+    setAnnouncementForm({
+      id: '', title: '', content: '', content_ar: '',
+      target: 'global', programId: '', subjectId: '', classId: ''
+    });
+  }, []);
+
+  const handleEmailOptionChange = useCallback((field, value) => {
+    setEmailOptions(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // Sync refs when editing an existing announcement
+  useEffect(() => {
+    if (titleRef.current) titleRef.current.value = announcementForm.title || '';
+    if (contentRef.current) contentRef.current.value = announcementForm.content || '';
+    if (contentArRef.current) contentArRef.current.value = announcementForm.content_ar || '';
+  }, [editingAnnouncement]);
+
+  // Read text values from refs into form state before submit
+  const syncRefsToState = useCallback(() => {
+    return {
+      title: titleRef.current?.value ?? announcementForm.title,
+      content: contentRef.current?.value ?? announcementForm.content,
+      content_ar: contentArRef.current?.value ?? announcementForm.content_ar,
+    };
+  }, [announcementForm]);
+
+  const handleAnnouncementSubmit = useCallback(async (e) => {
+    if (e) e.preventDefault();
+    console.time('[PERF] handleAnnouncementSubmit');
     setLoading(true);
+
     try {
-      const result = editingAnnouncement ?
-        await updateAnnouncement(editingAnnouncement.docId, announcementForm) :
-        await addAnnouncement(announcementForm);
+      // Read text fields from refs (uncontrolled inputs)
+      const textValues = syncRefsToState();
+      console.log('[FORM] Text values from refs:', textValues);
 
-      if (result.success) {
-        // Log activity
-        try {
-          await logActivity(editingAnnouncement ? ACTIVITY_TYPES.ANNOUNCEMENT_UPDATED : ACTIVITY_TYPES.ANNOUNCEMENT_CREATED, {
-            announcementId: editingAnnouncement?.docId || result.id,
-            announcementTitle: announcementForm.title,
-            target: announcementForm.target,
-            programId: announcementForm.programId,
-            subjectId: announcementForm.subjectId,
-            classId: announcementForm.classId
-          });
-        } catch (e) { }
+      if (!textValues.title || textValues.title.trim() === '') {
+        throw new Error('Announcement title is required');
+      }
+      
+      // Clean the announcement data
+      const announcementData = {
+        ...announcementForm,
+        ...textValues,
+        title: textValues.title.trim(),
+        content: textValues.content?.trim() || '',
+        content_ar: textValues.content_ar?.trim() || '',
+        updatedAt: getQatarNow(),
+        updatedBy: user?.id || 'unknown'
+      };
+
+      if (editingAnnouncement && editingAnnouncement.docId && editingAnnouncement.docId !== 'new') {
+        await updateAnnouncementService(editingAnnouncement.docId, announcementData);
+        toast?.showSuccess('Announcement updated successfully');
         
-        // Legacy log (keep for backward compatibility)
-        if (!editingAnnouncement) {
+        // Update local announcements array instead of reloading
+        setAnnouncements(prev => prev.map(a => 
+          (a.docId || a.id) === editingAnnouncement.docId 
+            ? { ...a, ...announcementData, docId: editingAnnouncement.docId }
+            : a
+        ));
+      } else {
+        announcementData.createdAt = getQatarNow();
+        announcementData.updatedAt = getQatarNow();
+        announcementData.createdBy = user?.id || 'unknown';
+        
+        const result = await addAnnouncement(announcementData);
+        
+        if (result.success) {
+          console.log('🔍 [SAVE] Announcement created successfully with ID:', result.id);
+          toast?.showSuccess('Announcement created successfully');
+          
+          // Send notifications only for new announcements
+          const { programId, subjectId, classId } = announcementData;
+          
           try {
-            await addActivityLog({
-              type: 'announcement_created',
-              userId: 'current_user', // We'll get this from auth context if needed
-              timestamp: new Date(),
-              userAgent: navigator.userAgent,
-              metadata: {
-                announcementId: result.id,
-                title: announcementForm.title,
-                target: announcementForm.target,
-                programId: announcementForm.programId,
-                subjectId: announcementForm.subjectId,
-                classId: announcementForm.classId
-              }
-            });
-          } catch (e) { }
-        }
-        // Send notifications only for new announcements
-        if (!editingAnnouncement) {
-          const { programId, subjectId, classId } = announcementForm;
-          let notificationSent = false;
-
-          if (classId) {
-            await notifyUsersByClass(
-              classId,
-              `📢 ${announcementForm.title}`,
-              announcementForm.content,
-              'announcement'
-            );
-            notificationSent = true;
-          }
-
-          if (!notificationSent) {
-            await notifyAllUsers(
-              `📢 ${announcementForm.title}`,
-              announcementForm.content,
-              'announcement'
-            );
+            if (classId) {
+              await notifyUsersByClass(
+                classId,
+                `📢 ${announcementData.title}`,
+                announcementData.content,
+                'announcement'
+              );
+            } else {
+              await notifyAllUsers(
+                `📢 ${announcementData.title}`,
+                announcementData.content,
+                'announcement'
+              );
+            }
+          } catch (notifyError) {
+            logger.warn('Failed to send notifications:', notifyError);
           }
 
           // Optional email blast
-          if (announcementEmailOptions.sendEmail) {
-            const buildBody = () => {
-              const en = announcementForm.content?.trim();
-              const ar = announcementForm.content_ar?.trim();
-              // Always send bilingual when available: EN first, then AR if provided
-              return [`<div>${en || ''}</div>`, ar ? `<hr/><div dir="rtl" style="text-align:right">${ar}</div>` : ''].join('');
-            };
+          if (emailOptions.sendEmail) {
+            try {
+              const buildBody = () => {
+                const en = announcementData.content?.trim();
+                const ar = announcementData.content_ar?.trim();
+                return [`<div>${en || ''}</div>`, ar ? `<hr/><div dir="rtl" style="text-align:right">${ar}</div>` : ''].join('');
+              };
 
-            // Get recipients based on target
-            let recipients = [];
-            if (classId) {
-              // Get users in specific class
-              const classUsers = users.filter(u => u.enrollments?.some(e => e.classId === classId));
-              recipients = classUsers.map(u => u.email).filter(Boolean);
-            } else if (subjectId) {
-              // Get users in specific subject
-              const subjectUsers = users.filter(u => u.enrollments?.some(e => e.subjectId === subjectId));
-              recipients = subjectUsers.map(u => u.email).filter(Boolean);
-            } else if (programId) {
-              // Get users in specific program
-              const programUsers = users.filter(u => u.enrollments?.some(e => e.programId === programId));
-              recipients = programUsers.map(u => u.email).filter(Boolean);
-            } else {
-              // All users
-              recipients = users.map(u => u.email).filter(Boolean);
-            }
-
-            if (recipients.length > 0) {
-              const sendRes = await sendEmail({
-                to: recipients,
-                subject: `📢 ${announcementForm.title}`,
-                html: buildBody(),
-                type: 'announcement'
-              });
-              if (!sendRes.success) {
-                logger.error('Email send failed:', sendRes.error);
+              let recipients = [];
+              if (classId) {
+                const classUsers = users.filter(u => u.enrollments?.some(e => e.classId === classId));
+                recipients = classUsers.map(u => u.email).filter(Boolean);
+              } else if (subjectId) {
+                const subjectUsers = users.filter(u => u.enrollments?.some(e => e.subjectId === subjectId));
+                recipients = subjectUsers.map(u => u.email).filter(Boolean);
+              } else if (programId) {
+                const programUsers = users.filter(u => u.enrollments?.some(e => e.programId === programId));
+                recipients = programUsers.map(u => u.email).filter(Boolean);
+              } else {
+                recipients = users.map(u => u.email).filter(Boolean);
               }
+
+              if (recipients.length > 0) {
+                const sendRes = await sendEmail({
+                  to: recipients,
+                  subject: `📢 ${announcementData.title}`,
+                  html: buildBody(),
+                  type: 'announcement'
+                });
+                if (!sendRes.success) {
+                  logger.error('Email send failed:', sendRes.error);
+                }
+              }
+            } catch (emailError) {
+              logger.error('Email sending error:', emailError);
             }
           }
+        } else {
+          throw new Error(result.error || 'Failed to create announcement');
         }
-
-        await loadData();
-        setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
-        setAnnouncementEmailOptions({ sendEmail: false, lang: 'both' });
-        setEditingAnnouncement(null);
-        toast?.showSuccess(editingAnnouncement ?
-          'Announcement updated successfully!' :
-          'Announcement created and notifications sent!'
-        );
-      } else {
-        toast?.showError(`Error ${editingAnnouncement ? 'updating' : 'creating'} announcement: ` + result.error);
       }
+
+      // Reset form and clear refs
+      resetAnnouncementForm();
+      if (titleRef.current) titleRef.current.value = '';
+      if (contentRef.current) contentRef.current.value = '';
+      if (contentArRef.current) contentArRef.current.value = '';
+      setEditingAnnouncement(null);
+      setEmailOptions({ sendEmail: false, emailLang: 'en' });
+      await loadData();
     } catch (error) {
-      logger.error('Error with announcement:', error);
-      toast?.showError(`Error ${editingAnnouncement ? 'updating' : 'creating'} announcement: ` + error.message);
+      logger.error('Error saving announcement:', error);
+      toast?.showError(error.message || 'Error saving announcement');
     } finally {
       setLoading(false);
+      console.timeEnd('[PERF] handleAnnouncementSubmit');
     }
-  };
+  }, [announcementForm, editingAnnouncement, user, toast, syncRefsToState, resetAnnouncementForm, emailOptions, users, loadData]);
 
-  const handleEdit = (params) => {
-    setEditingAnnouncement(params.row);
+  const handleEditAnnouncement = useCallback((announcement) => {
+    setEditingAnnouncement(announcement);
+    
+    // Set basic form data first
     setAnnouncementForm({
-      title: params.row.title || '',
-      content: params.row.content || '',
-      content_ar: params.row.content_ar || '',
-      target: params.row.target || 'global',
-      programId: params.row.programId || '',
-      subjectId: params.row.subjectId || '',
-      classId: params.row.classId || ''
+      id: announcement.id || '',
+      title: announcement.title || '',
+      content: announcement.content || '',
+      content_ar: announcement.content_ar || '',
+      target: announcement.target || 'global',
+      programId: announcement.programId || '',
+      subjectId: announcement.subjectId || '',
+      classId: announcement.classId || ''
     });
-  };
+  }, []);
 
-  const handleDelete = (params) => {
-    setDeleteModal({
-      open: true,
-      item: params.row,
-      type: 'announcement',
-      onConfirm: async () => {
-        const announcement = params.row;
-        // Optimistic update
-        const prevAnnouncements = announcements;
-        setAnnouncements(prev => prev.filter(a => a.docId !== announcement.docId));
-        try {
-          const result = await deleteAnnouncement(announcement.docId);
-          if (result.success) {
-            // Log activity
-            try {
-              await logActivity(ACTIVITY_TYPES.ANNOUNCEMENT_DELETED, {
-                announcementId: announcement.docId,
-                announcementTitle: announcement.title
-              });
-            } catch (e) { }
-            toast?.showSuccess('Announcement deleted successfully!');
-            await loadData();
-            setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-          } else {
-            // Rollback on error
-            setAnnouncements(prevAnnouncements);
-            toast?.showError('Error deleting announcement: ' + result.error);
-            setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-          }
-        } catch (error) {
-          // Rollback on error
-          setAnnouncements(prevAnnouncements);
-          toast?.showError('Error deleting announcement: ' + error.message);
-          setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-        }
-      }
-    });
-  };
-
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingAnnouncement(null);
-    setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
-    setActiveAnnouncementFormTab('basic');
-  };
+    resetAnnouncementForm();
+    if (titleRef.current) titleRef.current.value = '';
+    if (contentRef.current) contentRef.current.value = '';
+    if (contentArRef.current) contentArRef.current.value = '';
+  }, [resetAnnouncementForm]);
 
-  const handleTabNavigation = (direction) => {
-    if (direction === 'next') {
-      if (activeAnnouncementFormTab === 'basic') {
-        setActiveAnnouncementFormTab('content');
-      } else if (activeAnnouncementFormTab === 'content') {
-        setActiveAnnouncementFormTab('email');
-      }
-    } else {
-      if (activeAnnouncementFormTab === 'email') {
-        setActiveAnnouncementFormTab('content');
-      } else if (activeAnnouncementFormTab === 'content') {
-        setActiveAnnouncementFormTab('basic');
-      }
-    }
-  };
-
-  const columns = [
+  // Memoize columns to prevent re-renders
+  const gridColumns = useMemo(() => [
     { field: 'title', headerName: 'Title', flex: 1, minWidth: 200 },
     {
       field: 'content', headerName: 'Content', flex: 2, minWidth: 250,
@@ -528,8 +373,11 @@ const AnnouncementsPage = () => {
       valueGetter: (params) => params.value,
       renderCell: (params) => {
         if (!params.value) return 'Unknown';
-        const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
-        return formatQatarDate(date);
+        return formatQatarStandard(params.value);
+      },
+      valueFormatter: (params) => {
+        if (!params.value) return 'Unknown';
+        return formatQatarStandard(params.value);
       }
     },
     {
@@ -541,7 +389,7 @@ const AnnouncementsPage = () => {
             variant="ghost" 
             className="editHover" 
             icon={getThemedIcon('ui', 'edit', 16, theme)} 
-            onClick={() => handleEdit(params)}
+            onClick={() => handleEditAnnouncement(params.row)}
           >
             {t('edit') || 'Edit'}
           </Button>
@@ -551,30 +399,40 @@ const AnnouncementsPage = () => {
             className="deleteHover" 
             icon={getThemedIcon('ui', 'trash', 16, theme)} 
             style={{ color: '#dc2626' }} 
-            onClick={() => handleDelete(params)}
+            onClick={() => {
+              const announcement = params.row;
+              deleteEntity('announcement', announcement, async () => {
+                setAnnouncements(prev => prev.filter(a => (a.docId || a.id) !== (announcement.docId || announcement.id)));
+                try {
+                  const result = await deleteAnnouncementService(announcement.docId, announcement);
+                  if (result.success) {
+                    toast?.showSuccess(t('announcement_deleted_successfully') || 'Announcement deleted successfully!');
+                    await loadData();
+                  } else {
+                    setAnnouncements(prev => [...prev, announcement]);
+                    toast?.showError(t('error_deleting_announcement') || 'Error deleting announcement: ' + result.error);
+                  }
+                } catch (error) {
+                  setAnnouncements(prev => [...prev, announcement]);
+                  toast?.showError(t('error_deleting_announcement') || 'Error deleting announcement: ' + error.message);
+                }
+              });
+            }}
           >
-            Delete
+            {t('delete') || 'Delete'}
           </Button>
         </div>
       )
     }
-  ];
+  ], [programs, subjects, classes, theme, lang, t, handleEditAnnouncement, toast, loadData, deleteEntity, announcements]);
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
-
-  // Filter announcements based on selected program/subject/class
-  const filteredAnnouncements = announcements.filter(announcement => {
-    if (selectedProgram && announcement.programId !== selectedProgram) return false;
-    if (selectedSubject && announcement.subjectId !== selectedSubject) return false;
-    if (selectedClass && announcement.classId !== selectedClass) return false;
-    return true;
-  });
 
   return (
     <div className="announcements-tab">
@@ -593,187 +451,110 @@ const AnnouncementsPage = () => {
         </div>
       )}
 
-      {/* Form Navigation Buttons */}
-      {editingAnnouncement && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '12px',
-          marginBottom: '1rem',
-          padding: '0.75rem',
-          background: 'var(--background-secondary, #f8fafc)',
-          border: '1px solid var(--border-color, #e2e8f0)',
-          borderRadius: '8px'
-        }}>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setActiveAnnouncementFormTab('basic')}
-            disabled={activeAnnouncementFormTab === 'basic'}
-          >
-            {t('previous') || 'Previous'}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setActiveAnnouncementFormTab('content')}
-            disabled={activeAnnouncementFormTab === 'content'}
-          >
-            {t('next') || 'Next'}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setEditingAnnouncement(null);
-              setAnnouncementForm({ title: '', content: '', content_ar: '', target: 'global', programId: '', subjectId: '', classId: '' });
-              setAnnouncementEmailOptions({ sendEmail: false, lang: 'both' });
-              setActiveAnnouncementFormTab('basic');
-            }}
-          >
-            {t('cancel') || 'Cancel'}
-          </Button>
+      <form onSubmit={handleAnnouncementSubmit} className="dashboard-form">
+        {/* Program/Subject/Class Selection */}
+        <div className="form-row">
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={announcementForm.programId}
+            selectedSubject={announcementForm.subjectId}
+            selectedClass={announcementForm.classId}
+            onProgramChange={handleDropdownChange(setAnnouncementForm, 'programId', ['subjectId', 'classId'])}
+            onSubjectChange={handleDropdownChange(setAnnouncementForm, 'subjectId', ['classId'])}
+            onClassChange={handleDropdownChange(setAnnouncementForm, 'classId')}
+            showLabels={false}
+            className="flex gap-2"
+          />
         </div>
-      )}
 
-      <RibbonTabs
-        categories={[
-          {
-            id: 'announcement-fields',
-            items: [
-              { key: 'basic', label: t('basic_info') || 'Basic Info', icon: getThemedIcon('ui', 'bell', 14, theme) },
-              { key: 'content', label: t('content') || 'Content', icon: getThemedIcon('ui', 'edit', 14, theme) },
-              { key: 'email', label: t('email_options') || 'Email Options', icon: getThemedIcon('ui', 'mail', 14, theme) }
-            ]
-          }
-        ]}
-        activeCategory="announcement-fields"
-        activeItem={activeAnnouncementFormTab}
-        onChange={({ item }) => setActiveAnnouncementFormTab(item)}
-      />
-      
-      <form onSubmit={handleAnnouncementSubmit} className="announcement-form dashboard-form">
-        {/* Basic Info Tab */}
-        {activeAnnouncementFormTab === 'basic' && (
-          <>
-            <div className="space-y-4">
-              <div className="form-row">
-                <ProgramsSelect
-                  programs={programs}
-                  subjects={subjects}
-                  classes={classes}
-                  selectedProgram={announcementForm.programId}
-                  selectedSubject={announcementForm.subjectId}
-                  selectedClass={announcementForm.classId}
-                  onProgramChange={(programId) => setAnnouncementForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
-                  onSubjectChange={(subjectId) => setAnnouncementForm(prev => ({ ...prev, subjectId, classId: '' }))}
-                  onClassChange={(classId) => setAnnouncementForm(prev => ({ ...prev, classId }))}
-                  showLabels={false}
-                />
-              </div>
-              <div className="form-row">
-                <Input
-                  type="text"
-                  placeholder={t('announcement_title')}
-                  value={announcementForm.title}
-                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
-                  required
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Content Tab */}
-        {activeAnnouncementFormTab === 'content' && (
-          <div className="form-row">
-            <Textarea
-              placeholder={t('announcement_content_english')}
-              value={announcementForm.content}
-              onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
-              rows={4}
+        {/* Title Input */}
+        <div className="form-row">
+          <div>
+            <input
+              ref={titleRef}
+              type="text"
+              placeholder={(t('announcement_title') || 'Announcement Title') + '*'}
+              defaultValue={announcementForm.title}
+              className="dashboard-input"
               required
-              fullWidth
-            />
-            <Textarea
-              placeholder={t('announcement_content_arabic')}
-              value={announcementForm.content_ar}
-              onChange={(e) => setAnnouncementForm({ ...announcementForm, content_ar: e.target.value })}
-              rows={4}
-              fullWidth
             />
           </div>
-        )}
+        </div>
 
-        {/* Email Options Tab */}
-        {activeAnnouncementFormTab === 'email' && (
-          <>
-            <div className="form-row flex-row with-top-margin">
-              <ToggleSwitch
-                label={t('send_email_notification') || 'Send Email Notification'}
-                checked={announcementEmailOptions.sendEmail}
-                onChange={(checked) => setAnnouncementEmailOptions({ ...announcementEmailOptions, sendEmail: checked })}
+        {/* Content Section */}
+        <div className="form-row">
+          <div style={{ flex: 1, marginRight: '16px' }}>
+            <textarea
+              ref={contentRef}
+              placeholder={t('announcement_content_english') || 'Content (English)'}
+              defaultValue={announcementForm.content}
+              rows={4}
+              className="dashboard-input dashboard-textarea"
+              required
+            />
+          </div>
+          
+          <div style={{ flex: 1 }}>
+            <textarea
+              ref={contentArRef}
+              placeholder={t('announcement_content_arabic') || 'Content (Arabic)'}
+              defaultValue={announcementForm.content_ar}
+              rows={4}
+              className="dashboard-input dashboard-textarea"
+              style={{ direction: 'rtl' }}
+            />
+          </div>
+        </div>
+
+        {/* Email Options */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '0.75rem',
+          padding: '1rem',
+          background: '#f0f8ff',
+          borderRadius: '8px',
+          border: '2px solid var(--color-primary, #800020)'
+        }}>
+          <ToggleSwitch
+            label={t('send_email_notification') || 'Send email notification'}
+            checked={emailOptions.sendEmail}
+            onChange={(checked) => handleEmailOptionChange('sendEmail', checked)}
+          />
+          {emailOptions.sendEmail && (
+            <div>
+              <small>{t('language') || 'Language'}</small>
+              <Select
+                searchable
+                placeholder={t('language') || 'Language'}
+                value={emailOptions.emailLang}
+                onChange={(e) => handleEmailOptionChange('emailLang', e.target.value)}
+                options={[
+                  { value: 'en', label: lang === 'ar' ? 'الإنجليزية' : 'English' },
+                  { value: 'ar', label: lang === 'ar' ? 'العربية' : 'Arabic' },
+                  { value: 'both', label: lang === 'ar' ? 'ثنائي اللغة' : 'Bilingual' }
+                ]}
               />
             </div>
-            {announcementEmailOptions.sendEmail && (
-              <div className="form-row">
-                <div>
-                  <small>{t('language') || 'Language'}</small>
-                  <Select
-                    searchable
-                    placeholder={t('language') || 'Language'}
-                    value={announcementEmailOptions.lang}
-                    onChange={(e) => setAnnouncementEmailOptions({ ...announcementEmailOptions, lang: e.target.value })}
-                    options={[
-                      { value: 'en', label: lang === 'ar' ? 'الإنجليزية' : 'English' },
-                      { value: 'ar', label: lang === 'ar' ? 'العربية' : 'Arabic' },
-                      { value: 'both', label: lang === 'ar' ? 'اللغتين' : 'Both Languages' }
-                    ]}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Form Actions - Show on all tabs */}
-        <div className="form-row flex-row">
-          <div className="form-actions" style={{ flex: 1, justifyContent: 'space-between', gap: '0.75rem' }}>
+          )}
+        </div>
+        
+        {/* Form Actions */}
+        <div className="form-actions">
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {activeAnnouncementFormTab !== 'basic' && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleTabNavigation('previous')}
-                >
-                  {t('previous') || '← Previous'}
-                </Button>
-              )}
-              {activeAnnouncementFormTab !== 'email' && (
-                <Button 
-                  type="button" 
-                  variant="secondary"
-                  onClick={() => handleTabNavigation('next')}
-                >
-                  {t('next') || 'Next →'}
-                </Button>
-              )}
-              {activeAnnouncementFormTab === 'email' && (
-                <Button type="submit" variant="primary" loading={loading}>
-                  {(editingAnnouncement ? (t('update') || 'Update') : (t('save') || 'Save'))}
-                </Button>
-              )}
+              <Button type="submit" variant="primary" loading={loading}>
+                {(editingAnnouncement ? (t('update') || 'Update') : (t('save') || 'Save'))}
+              </Button>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={handleCancelEdit}
+                style={{ display: editingAnnouncement ? 'block' : 'none' }}
               >
                 {t('cancel') || 'Cancel'}
               </Button>
@@ -784,17 +565,33 @@ const AnnouncementsPage = () => {
 
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
-          rows={filteredAnnouncements}
+          key={`announcements-grid-${lang}`}
+          rows={announcements}
           getRowId={(row) => row.docId || row.id}
-          columns={columns}
+          direction={lang === 'ar' ? 'rtl' : 'ltr'}
+          lang={lang}
+          columns={gridColumns}
           pageSize={10}
-          pageSizeOptions={[5, 10, 20, 50]}
+          pageSizeOptions={[10, 20, 50, 100]}
           checkboxSelection
-          showExportButton
           exportFileName="announcements"
+          showExportButton
           exportLabel={t('export') || 'Export'}
+          loadingOverlayMessage={dataLoading ? "Loading..." : undefined}
+          fancyVariant="dots"
         />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        loading={loading}
+        t={t}
+      />
     </div>
   );
 };
