@@ -551,8 +551,11 @@ const DICT = {
     description_en: 'Description (English)',
     description_ar: 'Description (Arabic)',
     image_url: 'Image URL',
+    image_url_help: 'Direct link to image file',
     max_score: 'Max Score',
+    max_score_synced_from_quiz: 'Max score is synced from quiz. Enable "Override quiz settings" to edit.',
     activity_url_label: 'Activity URL',
+    activity_url_help: 'Link to the activity resource',
     activity_id: 'Activity ID',
     
     show_to_students: 'Show to students',
@@ -1987,6 +1990,7 @@ const DICT = {
     type: 'النوع',
     difficulty: 'الصعوبة',
     activity_url_label: 'رابط النشاط',
+    activity_url_help: 'رابط لمورد النشاط',
 
         // QR Scanner Page
     loading: 'جاري التحميل...',
@@ -2727,6 +2731,7 @@ const DICT = {
     description_english: 'الوصف (إنجليزي)',
     description_arabic: 'الوصف (عربي)',
     image_url: 'رابط الصورة',
+    image_url_help: 'رابط مباشر لملف الصورة',
     existing_activities: 'الأنشطة الموجودة',
     // enrollments_management defined above
     // users_management defined above

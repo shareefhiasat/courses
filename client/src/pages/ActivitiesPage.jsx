@@ -3,19 +3,16 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
-import { RibbonTabs, AdvancedDataGrid } from '@ui';
+import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, qatarDateToTimestamp, getQatarNow } from '@utils/qatarDate';
-import logger from '@utils/logger';
 import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdown, getThemeColor } from '@constants';
-import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { DIFFICULTY_TYPES, getDifficultyConfig, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
-import { getActivityTypes } from '@firebaseServices/activityService';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
 import { getCategories } from '@firebaseServices/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@firebaseServices/activityService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
-import { Select, DatePicker, NumberInput, Button, ToggleSwitch } from '@ui';
+import { Select, DatePicker, NumberInput, Button, ToggleSwitch, UrlInput } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
@@ -44,8 +41,6 @@ const ActivitiesPage = () => {
   // Internal state management
   const [activities, setActivities] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [users, setUsers] = useState([]);
   const [activityForm, setActivityForm] = useState({
     id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
     type: ACTIVITY_TYPES.HOMEWORK, programId: '', subjectId: '', classId: '', categoryId: null,
@@ -64,10 +59,6 @@ const ActivitiesPage = () => {
     emailLang: 'en'
   });
   const { deleteModal, deleteActivity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
-  
-  
-    
-  const [activityTypes, setActivityTypes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -147,8 +138,6 @@ const ActivitiesPage = () => {
   const titleArRef = useRef(null);
   const descEnRef = useRef(null);
   const descArRef = useRef(null);
-  const urlRef = useRef(null);
-  const imageRef = useRef(null);
 
   // Sync refs when editing an existing activity
   useEffect(() => {
@@ -156,8 +145,6 @@ const ActivitiesPage = () => {
     if (titleArRef.current) titleArRef.current.value = activityForm.title_ar || '';
     if (descEnRef.current) descEnRef.current.value = activityForm.description_en || '';
     if (descArRef.current) descArRef.current.value = activityForm.description_ar || '';
-    if (urlRef.current) urlRef.current.value = activityForm.url || '';
-    if (imageRef.current) imageRef.current.value = activityForm.image || '';
   }, [editingActivity]); // only when we load an activity for editing
 
   // Read text values from refs into form state before submit
@@ -167,8 +154,6 @@ const ActivitiesPage = () => {
       title_ar: titleArRef.current?.value ?? activityForm.title_ar,
       description_en: descEnRef.current?.value ?? activityForm.description_en,
       description_ar: descArRef.current?.value ?? activityForm.description_ar,
-      url: urlRef.current?.value ?? activityForm.url,
-      image: imageRef.current?.value ?? activityForm.image,
     };
   }, [activityForm]);
 
@@ -823,15 +808,12 @@ const ActivitiesPage = () => {
           </div>
         </div>
             <div className="form-row">
-              <div>
-                <input
-                  ref={urlRef}
-                  type="url"
-                  placeholder={t('activity_url_label') || 'Activity URL'}
-                  defaultValue={activityForm.url}
-                  className="dashboard-input"
-                />
-              </div>
+              <UrlInput
+                placeholder="https://example.com or activity-link"
+                value={activityForm.url || ''}
+                onChange={(e) => handleFieldChange('url', e.target.value)}
+                fullWidth
+              />
               <DatePicker
                 type="datetime"
                 value={activityForm.dueDate || ''}
@@ -839,12 +821,11 @@ const ActivitiesPage = () => {
                 placeholder={t('pick_due_date') || 'Pick due date & time'}
                 theme={theme}
               />
-              <input
-                ref={imageRef}
-                type="url"
-                placeholder={t('image_url') || 'Image URL'}
-                defaultValue={activityForm.image}
-                className="dashboard-input"
+              <UrlInput
+                placeholder="https://example.com/image.jpg"
+                value={activityForm.image || ''}
+                onChange={(e) => handleFieldChange('image', e.target.value)}
+                fullWidth
               />
               <div style={{ position: 'relative', width: '100%' }}>
                 <NumberInput
