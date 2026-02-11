@@ -45,68 +45,99 @@ export const getActivities = async () => {
 };
 
 export const addActivity = async (activityData) => {
-  try {
-    console.log('🔍 [SERVICE] addActivity called with:', {
-      title: activityData.title_en,
-      url: activityData.url,
-      type: activityData.type,
-      hasProgram: !!activityData.programId,
-      hasSubject: !!activityData.subjectId,
-      hasClass: !!activityData.classId
-    });
-    
-    const convertedData = activityData; // No date conversion - save as-is
-    console.log('🔍 [SERVICE] Saving data directly without conversion');
-    
-    const docRef = await addDoc(collection(db, "activities"), {
-      ...convertedData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+  const maxRetries = 3;
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔍 [SERVICE] addActivity called (attempt ${attempt}/${maxRetries}):`, {
+        title: activityData.title_en,
+        url: activityData.url,
+        type: activityData.type,
+        hasProgram: !!activityData.programId,
+        hasSubject: !!activityData.subjectId,
+        hasClass: !!activityData.classId
+      });
+      
+      const convertedData = activityData; // No date conversion - save as-is
+      console.log('🔍 [SERVICE] Saving data directly without conversion');
+      
+      // Add a small delay for retries
+      if (attempt > 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+      
+      const docRef = await addDoc(collection(db, "activities"), {
+        ...convertedData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
 
-    console.log('🔍 [SERVICE] Activity saved to Firestore with ID:', docRef.id);
+      console.log('🔍 [SERVICE] Activity saved to Firestore with ID:', docRef.id);
 
-    // Send notifications for new activity
-    if (activityData.classId) {
-      try {
-        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', activityData.classId)));
-        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
-        
-        for (const studentId of studentIds) {
-          const { data: student } = await getUserById(studentId);
-          if (student && student.email) {
-            await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_NEW, {
-              userId: studentId,
-              role: 'student',
-              classId: activityData.classId,
-              title: 'New Activity Assigned',
-              message: `A new activity "${activityData.title}" has been assigned to your class.`,
-              type: RECORD_TYPES.ACTIVITY,
-              email: student.email,
-              templateId: 'activityNew',
-              variables: {
-                studentName: student.displayName || student.name || 'Student',
-                activityTitle: activityData.title,
-                dueDate: activityData.dueDate ? new Date(activityData.dueDate).toLocaleDateString() : 'N/A'
-              }
-            });
-          }
-        }
-      } catch (notifyError) {
-        console.warn('Failed to send activity notifications:', notifyError);
+      // TODO: Fix notification gateway - temporarily disabled
+      // Send notifications for new activity
+      // if (activityData.classId) {
+      //   try {
+      //     const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', activityData.classId)));
+      //     const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+          
+      //     for (const studentId of studentIds) {
+      //       const { data: student } = await getUserById(studentId);
+      //       if (student && student.email) {
+      //         await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_NEW, {
+      //           userId: studentId,
+      //           role: 'student',
+      //           classId: activityData.classId,
+      //           title: 'New Activity Assigned',
+      //           message: `A new activity "${activityData.title}" has been assigned to your class.`,
+      //           type: RECORD_TYPES.ACTIVITY,
+      //           email: student.email,
+      //           templateId: 'activityNew',
+      //           variables: {
+      //             studentName: student.displayName || student.name || 'Student',
+      //             activityTitle: activityData.title,
+      //             dueDate: activityData.dueDate ? new Date(activityData.dueDate).toLocaleDateString() : 'N/A'
+      //           }
+      //         });
+      //       }
+      //     }
+      //   } catch (notifyError) {
+      //     console.warn('Failed to send activity notifications:', notifyError);
+      //   }
+      // }
+
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      lastError = error;
+      console.error(`🔍 [SERVICE] Error in addActivity (attempt ${attempt}/${maxRetries}):`, error);
+      console.error('🔍 [SERVICE] Error details:', {
+        message: error.message,
+        code: error.code,
+        name: error.name
+      });
+      
+      // Check if it's a network error that might be worth retrying
+      const isNetworkError = error.message.includes('WebChannel') || 
+                            error.message.includes('network') ||
+                            error.code === 'unavailable' ||
+                            error.code === 'deadline-exceeded';
+      
+      if (isNetworkError && attempt < maxRetries) {
+        console.log(`🔍 [SERVICE] Network error detected, retrying... (${attempt}/${maxRetries})`);
+        continue;
+      }
+      
+      // If it's the last attempt or not a network error, break
+      if (attempt === maxRetries || !isNetworkError) {
+        break;
       }
     }
-
-    return { success: true, id: docRef.id };
-  } catch (error) {
-    console.error('🔍 [SERVICE] Error in addActivity:', error);
-    console.error('🔍 [SERVICE] Error details:', {
-      message: error.message,
-      code: error.code,
-      name: error.name
-    });
-    return { success: false, error: error.message };
   }
+  
+  // If we get here, all attempts failed
+  console.error('🔍 [SERVICE] All retry attempts failed');
+  return { success: false, error: lastError?.message || 'Failed to save activity after multiple attempts' };
 };
 
 export const updateActivity = async (id, activityData) => {
@@ -137,9 +168,23 @@ export const updateActivity = async (id, activityData) => {
   }
 };
 
-export const deleteActivity = async (id) => {
+export const deleteActivity = async (id, activityData = null) => {
   try {
     await deleteDoc(doc(db, "activities", id));
+    
+    // Log activity deletion if activity data is provided
+    if (activityData) {
+      try {
+        await logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_DELETED, {
+          activityId: id,
+          activityTitle: activityData.title_en || activityData.title,
+          activityType: activityData.type
+        });
+      } catch (logError) {
+        console.warn('Failed to log activity deletion:', logError);
+      }
+    }
+    
     return { success: true };
   } catch (error) {
     console.error("Error deleting activity:", error);

@@ -1,0 +1,32 @@
+.notification-logs-page {
+  padding: 1rem;
+}
+
+.notification-logs-page .tab-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.notification-logs-page .tab-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.notification-logs-page .filter-card {
+  margin-bottom: 1rem;
+}
+
+.notification-logs-page .filters-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .notification-logs-page .filters-row {
+    grid-template-columns: 1fr;
+  }
+}

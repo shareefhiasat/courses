@@ -9,7 +9,7 @@ import { formatDateTime } from '@utils/date';
 import { formatQatarDate } from '@utils/timezone';
 import logger from '@utils/logger';
 import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdown, getThemeColor } from '@constants';
-import { ACTIVITY_LOG_TYPES, logActivity } from '@firebaseServices/activityLogger';
+import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { DIFFICULTY_TYPES, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
 import { getActivityTypes } from '@firebaseServices/activityService';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
@@ -17,6 +17,8 @@ import { getCategories } from '@firebaseServices/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity } from '@firebaseServices/activityService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
 import { Select, Input, Textarea, DatePicker, NumberInput, Button, ToggleSwitch, UrlInput } from '@ui';
+import DeleteModal from '@ui/history/DeleteModal';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 import { convertTimestampsToISOStrings, COMMON_DATE_FIELDS } from '@utils/date.js';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 
@@ -63,16 +65,14 @@ const ActivitiesPage = () => {
     createAnnouncement: false,
     emailLang: 'en'
   });
-  const [deleteModal, setDeleteModal] = useState({ show: false, activity: null });
-  
-  // Simple save tracking
-  console.log('🔍 [SAVE] Form ready for save:', {
-    hasTitle: !!activityForm.title_en,
-    hasUrl: !!activityForm.url,
-    type: activityForm.type,
-    isQuiz: activityForm.type === 'quiz'
+  const [deleteModal, setDeleteModal] = useState({ 
+    isOpen: false, 
+    entityType: RECORD_TYPES.ACTIVITY, 
+    entityName: '', 
+    onConfirm: null 
   });
-
+  
+  
     
   const [activityTypes, setActivityTypes] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -144,49 +144,65 @@ const ActivitiesPage = () => {
     });
   }, []);
 
-  const handleActivitySubmit = useCallback(async () => {
+  // Optimized form field handlers to prevent lag
+  const handleFieldChange = useCallback((field, value) => {
+    setActivityForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleActivitySubmit = useCallback(async (e) => {
+    if (e) e.preventDefault(); // Prevent form submission reload
     setLoading(true);
     setFormErrors({});
 
     try {
-      console.log('🔍 [SAVE] Preparing activity data');
+      // Validate required fields
+      if (!activityForm.title_en || activityForm.title_en.trim() === '') {
+        throw new Error('Activity title is required');
+      }
+      
+      // Clean the activity data
       const activityData = {
         ...activityForm,
+        title_en: activityForm.title_en.trim(),
+        title_ar: activityForm.title_ar?.trim() || '',
+        description_en: activityForm.description_en?.trim() || '',
+        description_ar: activityForm.description_ar?.trim() || '',
+        url: activityForm.url?.trim() || '',
+        image: activityForm.image?.trim() || '',
+        maxScore: activityForm.maxScore || 100,
+        dueDate: activityForm.dueDate, // Keep the due date as-is
         updatedAt: new Date().toISOString(),
         updatedBy: user?.id || 'unknown'
       };
-
-      console.log('🔍 [SAVE] Activity data prepared:', {
-        title: activityData.title_en,
-        url: activityData.url,
-        type: activityData.type,
-        hasProgram: !!activityData.programId,
-        hasSubject: !!activityData.subjectId,
-        hasClass: !!activityData.classId
-      });
-
+      
       // Remove undefined values before saving to prevent Firebase errors
       if (activityData.dueDate === undefined) {
         delete activityData.dueDate;
       }
 
-      console.log('🔍 [SAVE] Calling Firebase save function');
-      console.log('🔍 [SAVE] editingActivity:', editingActivity);
-      console.log('🔍 [SAVE] editingActivity.id:', editingActivity?.id);
-      
-      if (editingActivity && editingActivity.id && editingActivity.id !== 'new') {
-        console.log('🔍 [SAVE] Updating existing activity:', editingActivity.id);
-        await updateActivity(editingActivity.id, activityData);
-        console.log('🔍 [SAVE] Activity updated successfully');
+      if (editingActivity && editingActivity.docId && editingActivity.docId !== 'new') {
+        await updateActivity(editingActivity.docId, activityData);
         toast?.showSuccess('Activity updated successfully');
+        
+        // Update local activities array instead of reloading
+        setActivities(prev => prev.map(a => 
+          (a.docId || a.id) === editingActivity.docId 
+            ? { ...a, ...activityData, docId: editingActivity.docId }
+            : a
+        ));
       } else {
-        console.log('🔍 [SAVE] Creating new activity');
         activityData.createdAt = new Date().toISOString(); // UTC timestamp
         activityData.updatedAt = new Date().toISOString(); // UTC timestamp
         activityData.createdBy = user?.id || 'unknown';
-        await addActivity(activityData);
-        console.log('🔍 [SAVE] Activity created successfully');
-        toast?.showSuccess('Activity created successfully');
+        
+        const result = await addActivity(activityData);
+        
+        if (result.success) {
+          console.log('🔍 [SAVE] Activity created successfully with ID:', result.id);
+          toast?.showSuccess('Activity created successfully');
+        } else {
+          throw new Error(result.error || 'Failed to create activity');
+        }
       }
 
       // Reset form and reload data
@@ -199,38 +215,37 @@ const ActivitiesPage = () => {
       });
       setEditingActivity(null);
       setActiveActivityFormTab('basic');
-      loadData();
     } catch (error) {
-      console.error('🔍 [SAVE] Error occurred:', error);
-      console.error('🔍 [SAVE] Error details:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
-      toast?.showError(t('error_saving_activity') || 'Error saving activity');
+      console.error('Error saving activity:', error);
+      
+      // Check if it's a network error
+      const isNetworkError = error.message.includes('WebChannel') || 
+                            error.message.includes('network') ||
+                            error.code === 'unavailable' ||
+                            error.message.includes('Failed to save activity after multiple attempts');
+      
+      if (isNetworkError) {
+        toast?.showError(
+          'Network error occurred. Please check your connection and try again.',
+          { 
+            action: {
+              label: 'Retry',
+              onClick: () => handleActivitySubmit()
+            }
+          }
+        );
+      } else {
+        toast?.showError(error.message || 'Error saving activity');
+      }
     } finally {
       setLoading(false);
     }
   }, [activityForm, editingActivity, user, toast, loadData]);
 
-  const handleEditActivity = useCallback(async (activity) => {
-    setEditingActivity(activity);
-    
-    // Convert Firestore timestamps to ISO strings for form inputs
+  const handleEditActivity = useCallback((activity) => {
     const activityForForm = convertTimestampsToISOStrings(activity, COMMON_DATE_FIELDS.ACTIVITY);
     
-    console.log('🔍 [EDIT] Converting activity for form:', {
-      original: {
-        dueDate: activity.dueDate,
-        startDate: activity.startDate,
-        endDate: activity.endDate
-      },
-      converted: {
-        dueDate: activityForForm.dueDate,
-        startDate: activityForForm.startDate,
-        endDate: activityForForm.endDate
-      }
-    });
+    setEditingActivity(activity);
     
     // Set basic form data first
     setActivityForm({
@@ -357,7 +372,7 @@ const ActivitiesPage = () => {
                 searchable
                 placeholder={t('type') || 'Activity Type'}
                 value={activityForm.type}
-                onChange={(e) => setActivityForm({ ...activityForm, type: e.target.value })}
+                onChange={(e) => handleFieldChange('type', e.target.value)}
                 options={getActivityTypeOptionsForDropdown(theme, lang)}
                 style={{ width: '100%' }}
                 icon={getThemedIcon('ui', 'layers', 16, theme)}
@@ -372,7 +387,7 @@ const ActivitiesPage = () => {
                       toast?.showInfo?.(t('difficulty_synced_from_quiz') || 'Difficulty is synced from quiz. Enable "Override quiz settings" to edit.');
                       return;
                     }
-                    setActivityForm({ ...activityForm, difficulty: e.target.value });
+                    handleFieldChange('difficulty', e.target.value);
                   }}
                   options={getDifficultyOptionsForDropdown(theme, lang)}
                   style={{ width: '100%' }}
@@ -452,7 +467,7 @@ const ActivitiesPage = () => {
                 <UrlInput
                   placeholder={t('activity_url_label') || 'Activity URL'}
                   value={activityForm.url}
-                  onChange={(e) => setActivityForm({ ...activityForm, url: e.target.value })}
+                  onChange={(e) => handleFieldChange('url', e.target.value)}
                   required={activityForm.type !== 'quiz'}
                   error={formErrors.url}
                   onOpen={(href) => window.open(href, '_blank')}
@@ -464,13 +479,13 @@ const ActivitiesPage = () => {
               <DatePicker
                 type="datetime"
                 value={activityForm.dueDate || ''}
-                onChange={(iso) => setActivityForm({ ...activityForm, dueDate: iso || undefined })}
+                onChange={(iso) => handleFieldChange('dueDate', iso || undefined)}
                 placeholder={t('pick_due_date') || 'Pick due date & time'}
               />
               <UrlInput
                 placeholder={t('image_url') || 'Image URL'}
                 value={activityForm.image}
-                onChange={(e) => setActivityForm({ ...activityForm, image: e.target.value })}
+                onChange={(e) => handleFieldChange('image', e.target.value)}
                 onOpen={(href) => window.open(href, '_blank')}
                 onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
                 onClear={() => setActivityForm({ ...activityForm, image: '' })}
@@ -485,7 +500,7 @@ const ActivitiesPage = () => {
                       toast?.showInfo?.('Max score is synced from quiz. Enable "Override quiz settings" to edit.');
                       return;
                     }
-                    setActivityForm({ ...activityForm, maxScore: Math.max(1, Number.parseInt(e.target.value || '0', 10)) });
+                    handleFieldChange('maxScore', Math.max(1, Number.parseInt(e.target.value || '0', 10)));
                   }}
                   min={1}
                   fullWidth
@@ -519,7 +534,7 @@ const ActivitiesPage = () => {
                   value={activityForm.quizId || ''}
                   onChange={(e) => {
                     const selectedQuizId = e.target.value;
-                    const selectedQuiz = quizzes.find(q => q.id === selectedQuizId);
+                    const selectedQuiz = quizzes.find(q => (q.id || q.docId) === selectedQuizId);
                     if (selectedQuiz) {
                       const quizMaxScore = selectedQuiz.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 100;
                       const quizDifficulty = selectedQuiz.difficulty || 'beginner';
@@ -542,12 +557,10 @@ const ActivitiesPage = () => {
                             description_ar: selectedQuiz.description_ar || ''
                           })
                         };
+                        return newForm;
                       });
                     } else {
-                      setActivityForm(prev => ({
-                        ...prev,
-                        quizId: ''
-                      }));
+                      setActivityForm(prev => ({ ...prev, quizId: selectedQuizId }));
                     }
                   }}
                   options={[
@@ -612,7 +625,7 @@ const ActivitiesPage = () => {
           <ToggleSwitch
             label={t('show_to_students') || 'Show to students'}
             checked={activityForm.show}
-            onChange={(checked) => setActivityForm({ ...activityForm, show: checked })}
+            onChange={(checked) => handleFieldChange('show', checked)}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ToggleSwitch
@@ -623,7 +636,7 @@ const ActivitiesPage = () => {
                   toast?.showInfo?.('Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.');
                   return;
                 }
-                setActivityForm({ ...activityForm, allowRetake: checked });
+                handleFieldChange('allowRetake', checked);
               }}
               disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
             />
@@ -639,17 +652,17 @@ const ActivitiesPage = () => {
           <ToggleSwitch
             label={t('featured') || 'Featured'}
             checked={activityForm.featured}
-            onChange={(checked) => setActivityForm({ ...activityForm, featured: checked })}
+            onChange={(checked) => handleFieldChange('featured', checked)}
           />
           <ToggleSwitch
             label={t('optional') || 'Optional (if off: Required)'}
             checked={activityForm.optional}
-            onChange={(checked) => setActivityForm({ ...activityForm, optional: checked })}
+            onChange={(checked) => handleFieldChange('optional', checked)}
           />
           <ToggleSwitch
             label={t('requires_submission') || 'Requires Submission'}
             checked={activityForm.requiresSubmission}
-            onChange={(checked) => setActivityForm({ ...activityForm, requiresSubmission: checked })}
+            onChange={(checked) => handleFieldChange('requiresSubmission', checked)}
           />
         </div>
         
@@ -870,20 +883,7 @@ const ActivitiesPage = () => {
               width: 120,
               renderCell: (params) => params.value || '—'
             },
-            {
-              field: 'allowRetake',
-              headerName: t('allow_retakes') || 'Retake',
-              width: 100,
-              renderCell: (params) => (
-                <span style={{ fontSize: '0.85rem' }}>
-                  {params.value ? 
-                    <span style={{ color: getThemeColor('success', theme) }}>{t('yes') || 'Yes'}</span> : 
-                    <span style={{ color: getThemeColor('error', theme) }}>{t('no') || 'No'}</span>
-                  }
-                </span>
-              )
-            },
-            {
+                        {
               field: 'quizId',
               headerName: t('quiz') || 'Quiz',
               width: 200,
@@ -934,54 +934,110 @@ const ActivitiesPage = () => {
               }
             },
             {
-              field: 'show', headerName: t('visible') || 'Visible', width: 120,
-              renderCell: (params) => (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>
-                  {params.value ? 
-                    <><span style={{ color: getThemeColor('success', theme) }}>{getThemedIcon('ui', 'eye', 16, theme)} {t('yes') || 'Yes'}</span></> :
-                    <><span style={{ color: getThemeColor('error', theme) }}>{getThemedIcon('ui', 'eye_off', 16, theme)} {t('no') || 'No'}</span></>
-                  }
-                </span>
-              )
+              field: 'show', headerName: t('visible') || 'Visible', width: 100,
+              renderCell: (params) => {
+                const isVisible = params.value;
+                return (
+                  <span style={{ 
+                    color: isVisible ? getThemeColor('success', theme) : getThemeColor('error', theme),
+                    fontWeight: 500,
+                    fontSize: '0.85rem'
+                  }}>
+                    {isVisible ? (t('yes') || 'Yes') : (t('no') || 'No')}
+                  </span>
+                );
+              }
+            },
+            {
+              field: 'allowRetake', headerName: t('allow_retakes') || 'Allow Retakes', width: 120,
+              renderCell: (params) => {
+                const allowed = params.value;
+                return (
+                  <span style={{ 
+                    color: allowed ? getThemeColor('success', theme) : getThemeColor('muted', theme),
+                    fontWeight: 500,
+                    fontSize: '0.85rem'
+                  }}>
+                    {allowed ? (t('yes') || 'Yes') : (t('no') || 'No')}
+                  </span>
+                );
+              }
+            },
+            {
+              field: 'featured', headerName: t('featured') || 'Featured', width: 100,
+              renderCell: (params) => {
+                const isFeatured = params.value;
+                return (
+                  <span style={{ 
+                    color: isFeatured ? getThemeColor('warning', theme) : getThemeColor('muted', theme),
+                    fontWeight: 500,
+                    fontSize: '0.85rem'
+                  }}>
+                    {isFeatured ? (t('yes') || 'Yes') : (t('no') || 'No')}
+                  </span>
+                );
+              }
+            },
+            {
+              field: 'optional', headerName: t('optional') || 'Optional', width: 100,
+              renderCell: (params) => {
+                const isOptional = params.value;
+                return (
+                  <span style={{ 
+                    color: isOptional ? getThemeColor('info', theme) : getThemeColor('muted', theme),
+                    fontWeight: 500,
+                    fontSize: '0.85rem'
+                  }}>
+                    {isOptional ? (t('yes') || 'Yes') : (t('no') || 'No')}
+                  </span>
+                );
+              }
+            },
+            {
+              field: 'requiresSubmission', headerName: t('requires_submission') || 'Requires Submission', width: 150,
+              renderCell: (params) => {
+                const required = params.value;
+                return (
+                  <span style={{ 
+                    color: required ? getThemeColor('error', theme) : getThemeColor('muted', theme),
+                    fontWeight: 500,
+                    fontSize: '0.85rem'
+                  }}>
+                    {required ? (t('yes') || 'Yes') : (t('no') || 'No')}
+                  </span>
+                );
+              }
             },
             {
               field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
-              renderCell: (params) => (
+              renderCell: useMemo(() => (params) => (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <Button size="sm" variant="ghost" className="editHover" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => handleEditActivity(params.row)}>
                     {t('edit') || 'Edit'}
                   </Button>
                   <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
+                    const activity = params.row;
                     setDeleteModal({
-                      open: true,
-                      item: params.row,
-                      type: 'activity',
+                      isOpen: true,
+                      entityType: RECORD_TYPES.ACTIVITY,
+                      entityName: activity.title_en || activity.title || 'this activity',
                       onConfirm: async () => {
-                        const activity = params.row;
                         setActivities(prev => prev.filter(a => (a.docId || a.id) !== (activity.docId || activity.id)));
                         try {
-                          const result = await deleteActivity(activity.docId);
+                          const result = await deleteActivity(activity.docId, activity);
                           if (result.success) {
-                            // Log activity
-                            try {
-                              await logActivity(ACTIVITY_LOG_TYPES.ACTIVITY_DELETED, {
-                                activityId: activity.docId,
-                                activityTitle: activity.title_en || activity.title,
-                                activityType: activity.type
-                              });
-                            } catch (e) { }
                             toast?.showSuccess(t('activity_deleted_successfully') || 'Activity deleted successfully!');
                             await loadData();
-                            setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
+                            setDeleteModal({ isOpen: false, entityType: RECORD_TYPES.ACTIVITY, entityName: '', onConfirm: null });
                           } else {
                             setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
                             toast?.showError(t('error_deleting_activity') || 'Error deleting activity: ' + result.error);
-                            setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
+                            setDeleteModal({ isOpen: false, entityType: RECORD_TYPES.ACTIVITY, entityName: '', onConfirm: null });
                           }
                         } catch (error) {
                           setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
                           toast?.showError(t('error_deleting_activity') || 'Error deleting activity: ' + error.message);
-                          setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
+                          setDeleteModal({ isOpen: false, entityType: RECORD_TYPES.ACTIVITY, entityName: '', onConfirm: null });
                         }
                       }
                     });
@@ -989,7 +1045,7 @@ const ActivitiesPage = () => {
                     Delete
                   </Button>
                 </div>
-              )
+              ), [handleEditActivity, t, theme, toast, loadData])
             }
           ]}
           pageSize={10}
@@ -1001,6 +1057,17 @@ const ActivitiesPage = () => {
           loadingOverlayMessage={loading ? "Loading..." : undefined} fancyVariant="dots"
         />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, entityType: RECORD_TYPES.ACTIVITY, entityName: '', onConfirm: null })}
+        onConfirm={deleteModal.onConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        deleteLoading={loading}
+        t={t}
+      />
     </div>
   );
 };

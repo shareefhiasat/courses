@@ -33,6 +33,7 @@ const Modal = ({
   showCloseButton = true,
   className = '',
   draggable = true,
+  titleStyle = {},
 }) => {
   const { theme } = useTheme();
   const modalRef = useRef(null);
@@ -156,7 +157,7 @@ const Modal = ({
             className={styles.header}
             style={{ cursor: draggable ? 'move' : 'default' }}
           >
-            {title && <h2 id="modal-title" className={styles.title}>{title}</h2>}
+            {title && <h2 id="modal-title" className={styles.title} style={titleStyle}>{title}</h2>}
             {showCloseButton && (
               <button
                 className={styles.closeButton}
