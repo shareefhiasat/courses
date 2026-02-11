@@ -32,6 +32,10 @@ const SubjectsManagementPage = () => {
   const nameArRef = useRef(null);
   const descEnRef = useRef(null);
   const descArRef = useRef(null);
+  const codeRef = useRef(null);
+  const creditHoursRef = useRef(null);
+  const totalHoursRef = useRef(null);
+  const hoursPerWeekRef = useRef(null);
   const [formData, setFormData] = useState({
     programId: '',
     code: '',
@@ -48,10 +52,14 @@ const SubjectsManagementPage = () => {
 
   const syncRefsToState = useCallback(() => {
     return {
+      code: codeRef.current?.value ?? formData.code,
       name_en: nameEnRef.current?.value ?? formData.name_en,
       name_ar: nameArRef.current?.value ?? formData.name_ar,
       description_en: descEnRef.current?.value ?? formData.description_en,
-      description_ar: descArRef.current?.value ?? formData.description_ar
+      description_ar: descArRef.current?.value ?? formData.description_ar,
+      creditHours: creditHoursRef.current?.value ? Number.parseInt(creditHoursRef.current.value) : formData.creditHours,
+      totalHours: totalHoursRef.current?.value ? Number.parseInt(totalHoursRef.current.value) : formData.totalHours,
+      hoursPerWeek: hoursPerWeekRef.current?.value ? Number.parseInt(hoursPerWeekRef.current.value) : formData.hoursPerWeek
     };
   }, [formData]);
 
@@ -75,6 +83,18 @@ const SubjectsManagementPage = () => {
       setLoading(false);
     }
   }, [toast]);
+
+  // Sync refs when editing an existing subject
+  useEffect(() => {
+    if (codeRef.current) codeRef.current.value = formData.code || '';
+    if (nameEnRef.current) nameEnRef.current.value = formData.name_en || '';
+    if (nameArRef.current) nameArRef.current.value = formData.name_ar || '';
+    if (descEnRef.current) descEnRef.current.value = formData.description_en || '';
+    if (descArRef.current) descArRef.current.value = formData.description_ar || '';
+    if (creditHoursRef.current) creditHoursRef.current.value = formData.creditHours?.toString() || '3';
+    if (totalHoursRef.current) totalHoursRef.current.value = formData.totalHours?.toString() || '36';
+    if (hoursPerWeekRef.current) hoursPerWeekRef.current.value = formData.hoursPerWeek?.toString() || '3';
+  }, [editingSubject]); // only when we load a subject for editing
 
   useEffect(() => {
     if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
@@ -297,8 +317,8 @@ const gridColumns = useMemo(() => [
       <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
           <Input
-            value={formData.code}
-            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+            ref={codeRef}
+            defaultValue={formData.code}
             placeholder={t('subject_code_placeholder') || 'Subject Code * (e.g., CS101)'}
             required
           />
@@ -316,15 +336,15 @@ const gridColumns = useMemo(() => [
             dir="rtl"
           />
           <NumberInput
-            value={formData.creditHours}
-            onChange={(e) => setFormData({ ...formData, creditHours: Number.parseInt(e.target.value) || 3 })}
+            ref={creditHoursRef}
+            defaultValue={formData.creditHours}
             placeholder={t('credit_hours_subject') || 'Credit Hours'}
             min={1}
             max={6}
           />
           <NumberInput
-            value={formData.totalHours}
-            onChange={(e) => setFormData({ ...formData, totalHours: Number.parseInt(e.target.value) || 36 })}
+            ref={totalHoursRef}
+            defaultValue={formData.totalHours}
             placeholder={t('total_hours_subject') || 'Total Hours'}
             min={1}
             helperText={t('total_hours_helper') || 'Total hours for the entire course'}
@@ -352,8 +372,8 @@ const gridColumns = useMemo(() => [
             required
           />
           <NumberInput
-            value={formData.hoursPerWeek}
-            onChange={(e) => setFormData({ ...formData, hoursPerWeek: Number.parseFloat(e.target.value) || 3 })}
+            ref={hoursPerWeekRef}
+            defaultValue={formData.hoursPerWeek}
             placeholder={t('hours_per_week_placeholder') || 'Hours Per Week'}
             min={1}
             max={20}

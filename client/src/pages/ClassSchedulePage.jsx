@@ -1,11 +1,19 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import logger from '@utils/logger';
+
+// Global logger fallback to prevent ReferenceError in components
+if (typeof window !== 'undefined' && !window.logger) {
+  window.logger = {
+    error: (...args) => console.error('[Logger]', ...args),
+    warn: (...args) => console.warn('[Logger]', ...args),
+    info: (...args) => console.info('[Logger]', ...args),
+    debug: (...args) => console.debug('[Logger]', ...args),
+  };
+}
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { db } from '@firebaseServices/config';
-import { getClasses, updateClassSchedule } from '@firebaseServices/classService';
-import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { getAllClasses, updateClassSchedule } from '@firebaseServices/classService';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading, FilterSelect } from '@ui';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
@@ -40,11 +48,19 @@ const ClassSchedulePage = () => {
   const [loading, setLoading] = useState(true);
   const [classSearchTerm, setClassSearchTerm] = useState('');
 
-  const dayOptions = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const dayOptions = [
+    { value: 'SUN', label: t('sunday') || 'SUN' },
+    { value: 'MON', label: t('monday') || 'MON' },
+    { value: 'TUE', label: t('tuesday') || 'TUE' },
+    { value: 'WED', label: t('wednesday') || 'WED' },
+    { value: 'THU', label: t('thursday') || 'THU' },
+    { value: 'FRI', label: t('friday') || 'FRI' },
+    { value: 'SAT', label: t('saturday') || 'SAT' }
+  ];
   const frequencyOptions = [
-    { value: 'once', label: 'Once a week', days: 1 },
-    { value: 'twice', label: 'Twice a week', days: 2 },
-    { value: 'thrice', label: 'Three times a week', days: 3 }
+    { value: 'once', label: t('once_a_week') || 'Once a week', days: 1 },
+    { value: 'twice', label: t('twice_a_week') || 'Twice a week', days: 2 },
+    { value: 'thrice', label: t('three_times_a_week') || 'Three times a week', days: 3 }
   ];
   const durationOptions = [60, 75, 90, 105, 120, 135, 150, 180];
 
@@ -124,29 +140,24 @@ const ClassSchedulePage = () => {
   const loadClasses = async () => {
     setLoading(true);
     try {
-      const [classesSnap, programsRes, subjectsRes] = await Promise.all([
-        getDocs(collection(db, 'classes')),
+      const [classesRes, programsRes, subjectsRes] = await Promise.all([
+        getAllClasses(),
         getPrograms(),
         getSubjects()
       ]);
       
-      const data = classesSnap.docs.map(d => {
-        const docData = d.data();
-        const docId = d.id;
-        return {
-          ...docData,
-          docId,
-          id: docData?.id || docId
-        };
-      });
-      setClasses(data);
+      if (classesRes.success) {
+        setClasses(classesRes.data);
+      } else {
+        throw new Error(classesRes.error);
+      }
       
       if (programsRes.success) setPrograms(programsRes.data || []);
       if (subjectsRes.success) setSubjects(subjectsRes.data || []);
 
       const previouslySelectedId = selectedClass?.docId || selectedClass?.id;
-      if (previouslySelectedId) {
-        const matching = data.find(cls => (cls.docId || cls.id) === previouslySelectedId);
+      if (previouslySelectedId && classesRes.success) {
+        const matching = classesRes.data.find(cls => (cls.docId || cls.id) === previouslySelectedId);
         if (matching) {
           loadSchedule(matching, { skipScroll: true });
         }
@@ -184,13 +195,13 @@ const ClassSchedulePage = () => {
     }
   };
 
-  const toggleDay = (day) => {
+  const toggleDay = (dayValue) => {
     const maxDays = frequencyOptions.find(f => f.value === schedule.frequency)?.days || 1;
-    if (schedule.days.includes(day)) {
-      setSchedule({ ...schedule, days: schedule.days.filter(d => d !== day) });
+    if (schedule.days.includes(dayValue)) {
+      setSchedule({ ...schedule, days: schedule.days.filter(d => d !== dayValue) });
     } else {
       if (schedule.days.length < maxDays) {
-        setSchedule({ ...schedule, days: [...schedule.days, day] });
+        setSchedule({ ...schedule, days: [...schedule.days, dayValue] });
       }
     }
   };
@@ -264,46 +275,61 @@ const ClassSchedulePage = () => {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1rem' }}>
+      {/* Filter Row - Above everything */}
+      <div style={{ 
+        marginBottom: '1rem', 
+        padding: '0.75rem', 
+        background: 'var(--panel)', 
+        border: '1px solid var(--border)', 
+        borderRadius: 12 
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: 12, 
+          alignItems: 'center' 
+        }}>
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={programFilter}
+            selectedSubject={subjectFilter}
+            selectedClass={classFilter}
+            onProgramChange={(programId) => {
+              setProgramFilter(programId);
+              setSubjectFilter('');
+              setClassFilter('');
+            }}
+            onSubjectChange={(subjectId) => {
+              setSubjectFilter(subjectId);
+              setClassFilter('');
+            }}
+            onClassChange={setClassFilter}
+            showLabels={false}
+            style={{ minWidth: '300px', flex: 1 }}
+          />
+          <FilterSelect
+            filterKey="years"
+            value={yearFilter}
+            onChange={setYearFilter}
+            data={availableYears}
+            additionalPlaceholderText={t('all_years') || 'All years'}
+          />
+          <FilterSelect
+            filterKey="terms"
+            value={termFilter}
+            onChange={setTermFilter}
+            data={availableTerms}
+            additionalPlaceholderText={t('all_terms') || 'All terms'}
+          />
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
         {/* Class List */}
         <div style={{ padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
           <div style={{ fontWeight: 600, marginBottom: 8, fontSize: '0.9rem' }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
-          <div style={{ display: 'grid', gap: 6, marginBottom: 8 }}>
-            <ProgramsSelect
-              programs={programs}
-              subjects={subjects}
-              classes={classes}
-              selectedProgram={programFilter}
-              selectedSubject={subjectFilter}
-              selectedClass={classFilter}
-              onProgramChange={(programId) => {
-                setProgramFilter(programId);
-                setSubjectFilter('');
-                setClassFilter('');
-              }}
-              onSubjectChange={(subjectId) => {
-                setSubjectFilter(subjectId);
-                setClassFilter('');
-              }}
-              onClassChange={setClassFilter}
-              showLabels={false}
-              style={{ width: '100%' }}
-            />
-            <FilterSelect
-          filterKey="years"
-          value={yearFilter}
-          onChange={setYearFilter}
-          data={availableYears}
-          additionalPlaceholderText={t('all_years') || 'All years'}
-        />
-            <FilterSelect
-          filterKey="terms"
-          value={termFilter}
-          onChange={setTermFilter}
-          data={availableTerms}
-          additionalPlaceholderText={t('all_terms') || 'All terms'}
-        />
-          </div>
           <div style={{ display: 'grid', gap: 8 }}>
             {filteredClasses.map((cls, index) => {
               const currentId = selectedClass?.docId || selectedClass?.id;
@@ -325,7 +351,10 @@ const ClassSchedulePage = () => {
                 >
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{cls.name || cls.code}</div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
-                    {hasSchedule ? `${cls.schedule.frequency} • ${cls.schedule.days.join(', ')}` : 'No schedule'}
+                    {hasSchedule ? `${cls.schedule.frequency} • ${cls.schedule.days.map(day => {
+                    const dayOption = dayOptions.find(d => d.value === day);
+                    return dayOption ? dayOption.label : day;
+                  }).join(', ')}` : (t('no_schedule') || 'No schedule')}
                   </div>
                 </div>
               );
@@ -381,14 +410,14 @@ const ClassSchedulePage = () => {
                   {t('select_days') || 'Select Days'} ({schedule.days.length}/{frequencyOptions.find(f => f.value === schedule.frequency)?.days})
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-                  {dayOptions.map(day => {
-                    const isSelected = schedule.days.includes(day);
+                  {dayOptions.map(dayOption => {
+                    const isSelected = schedule.days.includes(dayOption.value);
                     const maxDays = frequencyOptions.find(f => f.value === schedule.frequency)?.days || 1;
                     const canSelect = isSelected || schedule.days.length < maxDays;
                     return (
                       <button
-                        key={day}
-                        onClick={() => canSelect && toggleDay(day)}
+                        key={dayOption.value}
+                        onClick={() => canSelect && toggleDay(dayOption.value)}
                         disabled={!canSelect}
                         style={{
                           padding: '0.75rem 0.5rem',
@@ -402,7 +431,7 @@ const ClassSchedulePage = () => {
                           opacity: canSelect ? 1 : 0.5
                         }}
                       >
-                        {day}
+                        {dayOption.label}
                       </button>
                     );
                   })}

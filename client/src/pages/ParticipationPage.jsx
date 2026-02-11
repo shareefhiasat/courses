@@ -51,6 +51,19 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Handler functions - same pattern as ActivitiesPage
+  const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
+    return (value) => {
+      setter(prev => {
+        const newState = { ...prev, [field]: value };
+        resetFields.forEach(resetField => {
+          newState[resetField] = '';
+        });
+        return newState;
+      });
+    };
+  }, []);
+
   // Refs for text inputs to prevent re-renders
   const descriptionRef = useRef(null);
   const commentRef = useRef(null);
@@ -60,6 +73,14 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
     if (commentRef.current) commentRef.current.value = formData.comment || '';
   }, [editingParticipation, formData.description, formData.comment]);
+
+  // Read text values from refs into form state before submit
+  const syncRefsToState = useCallback(() => {
+    return {
+      description: descriptionRef.current?.value ?? formData.description,
+      comment: commentRef.current?.value ?? formData.comment
+    };
+  }, [formData.description, formData.comment]);
 
   // Memoized function to fetch user data on demand and cache it
   const fetchUser = useCallback(async (userId) => {
@@ -114,10 +135,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         const studentsData = await Promise.all(
           enrollmentIds.map(async (studentId) => {
             const userResult = await getUserById(studentId);
-            const studentDoc = userResult.success ? { exists: true, data: userResult.data } : { exists: false };
-            if (studentDoc.exists()) {
-              const data = studentDoc.data();
-              return { id: studentId, ...data, displayName: data.displayName || data.email };
+            if (userResult.success && userResult.data) {
+              const data = userResult.data;
+              return { id: studentId, docId: studentId, ...data, displayName: data.displayName || data.email };
             }
             return null;
           })
@@ -158,6 +178,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
+    // Read text fields from refs (uncontrolled inputs)
+    const textValues = syncRefsToState();
+    
     // Validation
     if (!formData.studentId || !formData.classId || !formData.type) {
       toast.error('Please fill in all required fields (Student, Class, Type)');
@@ -175,9 +198,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         classId: formData.classId,
         subjectId: subjectId,
         type: formData.type,
-        description: formData.description.trim(),
+        description: textValues.description.trim(),
         points: parseInt(formData.points) || 0,
-        comment: formData.comment.trim(),
+        comment: textValues.comment.trim(),
         createdBy: user.uid,
         ...(editingParticipation ? {
           updatedAt: Timestamp.now(),
@@ -680,6 +703,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       {!isDashboardTab && (
         <form onSubmit={handleSubmit} className="dashboard-form">
+        {/* First Row: Programs, Subjects, Classes */}
         <div className="form-row">
           <ProgramsSelect
             programs={programs}
@@ -688,30 +712,29 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             selectedProgram={formData.programId}
             selectedSubject={formData.subjectId}
             selectedClass={formData.classId}
-            onProgramChange={(programId) => {
-              setFormData({ ...formData, programId, subjectId: '', classId: '', studentId: '' });
-            }}
-            onSubjectChange={(subjectId) => {
-              setFormData({ ...formData, subjectId, classId: '', studentId: '' });
-            }}
+            onProgramChange={handleDropdownChange(setFormData, 'programId', ['subjectId', 'classId', 'studentId'])}
+            onSubjectChange={handleDropdownChange(setFormData, 'subjectId', ['classId', 'studentId'])}
             onClassChange={(classId) => {
-              setFormData({ ...formData, classId, studentId: '' });
-              // Find the subject for this class and update program if needed
-              const selectedClass = classes.find(c => (c.id || c.docId) === classId);
-              if (selectedClass?.subjectId) {
-                const selectedSubject = subjects.find(s => (s.docId || s.id) === selectedClass.subjectId);
-                const programId = selectedSubject?.programId;
-                setFormData(prev => ({
-                  ...prev,
-                  subjectId: selectedClass.subjectId,
-                  classId: classId,
-                  programId: programId || prev.programId
-                }));
-              }
+              setFormData(prev => {
+                const newState = { ...prev, classId, studentId: '' };
+                // Find the subject for this class and update program if needed
+                const selectedClass = classes.find(c => (c.id || c.docId) === classId);
+                if (selectedClass?.subjectId) {
+                  const selectedSubject = subjects.find(s => (s.docId || s.id) === selectedClass.subjectId);
+                  const programId = selectedSubject?.programId;
+                  newState.subjectId = selectedClass.subjectId;
+                  newState.programId = programId || prev.programId;
+                }
+                return newState;
+              });
             }}
             showLabels={false}
             className="flex-1"
           />
+        </div>
+
+        {/* Second Row: Student, Type, and other fields */}
+        <div className="form-row">
           <Select
             searchable
             value={formData.studentId}
@@ -830,30 +853,28 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
         <div className="form-row">
           <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            ref={descriptionRef}
+            defaultValue={formData.description}
             placeholder={t('description_optional_participation')}
             className="dashboard-textarea"
             rows={3}
           />
           <textarea
-            value={formData.comment}
-            onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+            ref={commentRef}
+            defaultValue={formData.comment}
             placeholder="Comment (optional)"
             className="dashboard-textarea"
             rows={3}
           />
         </div>
         <div className="form-row">
-          <input
-            type="number"
+          <NumberInput
             value={formData.points}
-            onChange={(e) => setFormData({ ...formData, points: Number(e.target.value) })}
+            onChange={(value) => setFormData({ ...formData, points: value })}
             placeholder="Points"
-            className="dashboard-input"
-            min="-10"
-            max="10"
-            step="1"
+            min={-10}
+            max={10}
+            step={1}
           />
         </div>
         <div className="form-actions">
@@ -889,6 +910,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             onProgramChange={setProgramFilter}
             onSubjectChange={setSubjectFilter}
             onClassChange={setClassFilter}
+            showLabels={false}
             className="flex-1"
           />
           <div style={{ minWidth: '200px' }}>

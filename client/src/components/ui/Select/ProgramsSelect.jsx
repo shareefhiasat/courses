@@ -65,11 +65,13 @@ const ProgramsSelect = ({
           options={programOptions}
           value={selectedProgram}
           onChange={(e) => {
-            onProgramChange?.(e.target.value);
+            const value = e?.target?.value || e?.value || '';
+            onProgramChange?.(value);
             // Reset subject and class when program changes
             onSubjectChange?.('');
             onClassChange?.('');
           }}
+          placeholder={t('all_programs') || 'All Programs'}
           disabled={disabled || programs.length === 0}
         />
       </div>
@@ -81,7 +83,8 @@ const ProgramsSelect = ({
             options={subjectOptions}
             value={selectedSubject}
             onChange={(e) => {
-              onSubjectChange?.(e.target.value);
+              const value = e?.target?.value || e?.value || '';
+              onSubjectChange?.(value);
               // Reset class when subject changes
               onClassChange?.('');
             }}
@@ -96,7 +99,10 @@ const ProgramsSelect = ({
             label={showLabels ? (t('class') || 'Class') : ''}
             options={classOptions}
             value={selectedClass}
-            onChange={(e) => onClassChange?.(e.target.value)}
+            onChange={(e) => {
+              const value = e?.target?.value || e?.value || '';
+              onClassChange?.(value);
+            }}
             disabled={disabled || !selectedSubject || filteredClasses.length === 0}
           />
         </div>

@@ -5,6 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, CATEGORY_ICONS } from '@constants';
 import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@firebaseServices/categoryService';
 import { 
   PAGE_STATES, 

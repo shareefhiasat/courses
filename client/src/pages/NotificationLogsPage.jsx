@@ -70,6 +70,11 @@ const NotificationLogsPage = () => {
   
   const columns = [
     {
+      key: 'id',
+      label: t('id', 'ID'),
+      hidden: true
+    },
+    {
       key: 'timestamp',
       label: t('timestamp', 'Timestamp'),
       render: (value) => formatQatarStandard(value),
@@ -109,43 +114,33 @@ const NotificationLogsPage = () => {
   
   return (
     <div className="notification-logs-page">
-      <div className="tab-header">
-        <h2>{t('notification_logs', 'Notification Logs')}</h2>
-        <div className="tooltip-wrapper">
-          <InfoTooltip contentKey={`help.notification_logs`} />
-        </div>
-      </div>
-      
-      <Card className="filter-card">
-        <CardBody>
-          <div className="filters-row">
+      {/* Filters */}
+      <div className="filters-row">
             <Select
-              label={t('trigger', 'Trigger')}
               options={triggerOptions}
               value={notificationLogFilters.trigger}
               onChange={(value) => handleFilterChange('trigger', value)}
               clearable
+              placeholder={t('trigger', 'Trigger')}
             />
             <Select
-              label={t('channel', 'Channel')}
               options={channelOptions}
               value={notificationLogFilters.channel}
               onChange={(value) => handleFilterChange('channel', value)}
               clearable
+              placeholder={t('channel', 'Channel')}
             />
             <DatePicker
-              label={t('start_date', 'Start Date')}
               value={notificationLogFilters.startDate || ''}
               onChange={(value) => handleFilterChange('startDate', value)}
+              placeholder={t('start_date', 'Start Date')}
             />
             <DatePicker
-              label={t('end_date', 'End Date')}
               value={notificationLogFilters.endDate || ''}
               onChange={(value) => handleFilterChange('endDate', value)}
+              placeholder={t('end_date', 'End Date')}
             />
-          </div>
-        </CardBody>
-      </Card>
+      </div>
       
       {loading ? (
         <Loading variant="overlay" />
@@ -203,10 +198,8 @@ const NotificationLogsPage = () => {
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <h4 style={{ marginBottom: '0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>
-                {t('content_details', 'Content Details')}
-              </h4>
-              <div className="detail-item" style={{ marginBottom: '0.5rem' }}>
+              <strong>{t('content_details', 'Content Details')}</strong>
+              <div className="detail-item" style={{ marginBottom: '0.5rem', marginTop: '0.5rem' }}>
                 <strong>{t('title', 'Title')}:</strong>
                 <div style={{ padding: '0.5rem', background: theme === 'dark' ? '#333' : '#f9f9f9', borderRadius: '4px', marginTop: '0.25rem' }}>
                   {selectedNotificationLog.details?.title || 'N/A'}
@@ -222,12 +215,10 @@ const NotificationLogsPage = () => {
 
             {selectedNotificationLog.details?.variables && Object.keys(selectedNotificationLog.details.variables).length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ marginBottom: '0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem' }}>
-                  {t('variables', 'Variables')}
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem', padding: '0.5rem', background: theme === 'dark' ? '#333' : '#f9f9f9', borderRadius: '4px' }}>
+                <strong>{t('variables', 'Variables')}</strong>
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem', padding: '0.5rem', background: theme === 'dark' ? '#333' : '#f9f9f9', borderRadius: '4px', marginTop: '0.5rem' }}>
                   {Object.entries(selectedNotificationLog.details.variables).map(([key, value]) => (
-                    <React.Fragment key={key}>
+                    <React.Fragment key={`variable-${key}`}>
                       <span style={{ fontWeight: 600, color: '#888' }}>{key}:</span>
                       <span>{String(value)}</span>
                     </React.Fragment>
@@ -238,10 +229,8 @@ const NotificationLogsPage = () => {
 
             {selectedNotificationLog.details?.error && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ marginBottom: '0.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.25rem', color: '#ef4444' }}>
-                  {t('error_details', 'Error Details')}
-                </h4>
-                <div style={{ padding: '0.5rem', background: '#fef2f2', color: '#991b1b', borderRadius: '4px', border: '1px solid #fee2e2' }}>
+                <strong style={{ color: '#ef4444' }}>{t('error_details', 'Error Details')}</strong>
+                <div style={{ padding: '0.5rem', background: '#fef2f2', color: '#991b1b', borderRadius: '4px', border: '1px solid #fee2e2', marginTop: '0.5rem' }}>
                   {selectedNotificationLog.details.error}
                 </div>
               </div>

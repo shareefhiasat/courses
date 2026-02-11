@@ -13,10 +13,10 @@ import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programS
 import { getClasses, getClassById } from '@firebaseServices/classService';
 import { getEnrollments, getEnrollmentsByClass, getStudentsByClass } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
+import { getUserById } from '@firebaseServices/userService';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
-import { db } from '@firebaseServices/config';
-import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 import { 
   PAGE_STATES, 
   FORM_STATES,
@@ -55,6 +55,19 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   });
   const [saving, setSaving] = useState(false);
 
+  // Handler functions - same pattern as ActivitiesPage
+  const handleDropdownChange = useCallback((setter, field, resetFields = []) => {
+    return (value) => {
+      setter(prev => {
+        const newState = { ...prev, [field]: value };
+        resetFields.forEach(resetField => {
+          newState[resetField] = '';
+        });
+        return newState;
+      });
+    };
+  }, []);
+
   // Refs for text inputs to prevent re-renders
   const descriptionRef = useRef(null);
   const feedbackRef = useRef(null);
@@ -66,6 +79,15 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (feedbackRef.current) feedbackRef.current.value = formData.feedback || '';
     if (commentRef.current) commentRef.current.value = formData.comment || '';
   }, [editingPenalty, formData.description, formData.feedback, formData.comment]);
+
+  // Read text values from refs into form state before submit
+  const syncRefsToState = useCallback(() => {
+    return {
+      description: descriptionRef.current?.value ?? formData.description,
+      feedback: feedbackRef.current?.value ?? formData.feedback,
+      comment: commentRef.current?.value ?? formData.comment
+    };
+  }, [formData.description, formData.feedback, formData.comment]);
 
   // Function to fetch user data on demand and cache it
   const fetchUser = useCallback(async (userId) => {
@@ -305,9 +327,12 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
+    // Read text fields from refs (uncontrolled inputs)
+    const textValues = syncRefsToState();
+    
     // Validation
-    if (!formData.studentId || !formData.classId || !formData.type || !formData.description.trim()) {
-      toast.error(t('fill_required_fields_penalty'));
+    if (!formData.studentId || !formData.classId || !formData.type || !textValues.description.trim()) {
+      toast.error(t('fill_required_fields_penalty') || 'Please fill in all required fields (Student, Class, Type, Description)');
       return;
     }
 
@@ -322,10 +347,10 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         classId: formData.classId,
         subjectId: subjectId,
         type: formData.type,
-        description: formData.description.trim(),
-        feedback: formData.feedback.trim(),
+        description: textValues.description.trim(),
+        feedback: textValues.feedback.trim(),
         points: parseInt(formData.points) || 0,
-        comment: formData.comment.trim(),
+        comment: textValues.comment.trim(),
         createdBy: user.uid,
         sendInAppNotification: true,
         sendEmailNotification: false
@@ -563,7 +588,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
         if (className && className !== 'N/A') {
           let text = className;
-          const classTerm = row.classTerm || getPenaltyClassTerm(rowId, penalties);
+          const classTerm = row.classTerm;
           if (classTerm) text += ` (${classTerm})`;
           return text;
         }
@@ -747,6 +772,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       {!isDashboardTab && (
       <form onSubmit={handleSubmit} className="dashboard-form">
+        {/* First Row: Programs, Subjects, Classes */}
         <div className="form-row">
           <ProgramsSelect
             programs={programs}
@@ -755,30 +781,29 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             selectedProgram={formData.programId}
             selectedSubject={formData.subjectId}
             selectedClass={formData.classId}
-            onProgramChange={(programId) => {
-              setFormData({ ...formData, programId, subjectId: '', classId: '', studentId: '' });
-            }}
-            onSubjectChange={(subjectId) => {
-              setFormData({ ...formData, subjectId, classId: '', studentId: '' });
-            }}
+            onProgramChange={handleDropdownChange(setFormData, 'programId', ['subjectId', 'classId', 'studentId'])}
+            onSubjectChange={handleDropdownChange(setFormData, 'subjectId', ['classId', 'studentId'])}
             onClassChange={(classId) => {
-              setFormData({ ...formData, classId, studentId: '' });
-              // Find the subject for this class and update program if needed
-              const selectedClass = classes.find(c => (c.id || c.docId) === classId);
-              if (selectedClass?.subjectId) {
-                const selectedSubject = subjects.find(s => (s.docId || s.id) === selectedClass.subjectId);
-                const programId = selectedSubject?.programId;
-                setFormData(prev => ({
-                  ...prev,
-                  subjectId: selectedClass.subjectId,
-                  classId: classId,
-                  programId: programId || prev.programId
-                }));
-              }
+              setFormData(prev => {
+                const newState = { ...prev, classId, studentId: '' };
+                // Find the subject for this class and update program if needed
+                const selectedClass = classes.find(c => (c.id || c.docId) === classId);
+                if (selectedClass?.subjectId) {
+                  const selectedSubject = subjects.find(s => (s.docId || s.id) === selectedClass.subjectId);
+                  const programId = selectedSubject?.programId;
+                  newState.subjectId = selectedClass.subjectId;
+                  newState.programId = programId || prev.programId;
+                }
+                return newState;
+              });
             }}
             showLabels={false}
             className="flex-1"
           />
+        </div>
+
+        {/* Second Row: Student, Type, and other fields */}
+        <div className="form-row">
           <Select
             searchable
             value={formData.studentId}
@@ -843,6 +868,10 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             required
             disabled={!formData.classId}
           />
+        </div>
+
+        {/* Third Row: Type */}
+        <div className="form-row">
           <Select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -854,27 +883,29 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             required
           />
         </div>
+        {/* First Row: Programs, Subjects, Classes */}
         <div className="form-row">
           <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            ref={descriptionRef}
+            defaultValue={formData.description}
             placeholder={t('description_required_penalty')}
             className="dashboard-textarea"
             rows={3}
             required
           />
           <textarea
-            value={formData.comment}
-            onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+            ref={commentRef}
+            defaultValue={formData.comment}
             placeholder={t('comment_optional') || 'Comment (optional)'}
             className="dashboard-textarea"
             rows={3}
           />
         </div>
+        {/* First Row: Programs, Subjects, Classes */}
         <div className="form-row">
           <textarea
-            value={formData.feedback}
-            onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
+            ref={feedbackRef}
+            defaultValue={formData.feedback}
             placeholder={t('hr_feedback_optional')}
             className="dashboard-textarea"
             rows={3}
@@ -921,6 +952,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onProgramChange={setProgramFilter}
             onSubjectChange={setSubjectFilter}
             onClassChange={setClassFilter}
+            showLabels={false}
             className="flex-1"
           />
           <div style={{ minWidth: '200px' }}>

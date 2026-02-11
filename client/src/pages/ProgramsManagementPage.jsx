@@ -27,6 +27,10 @@ const ProgramsManagementPage = () => {
   const nameArRef = useRef(null);
   const descEnRef = useRef(null);
   const descArRef = useRef(null);
+  const codeRef = useRef(null);
+  const durationRef = useRef(null);
+  const minGPARef = useRef(null);
+  const creditHoursRef = useRef(null);
   const [formData, setFormData] = useState({
     name_en: '',
     name_ar: '',
@@ -40,10 +44,14 @@ const ProgramsManagementPage = () => {
 
   const syncRefsToState = useCallback(() => {
     return {
+      code: codeRef.current?.value ?? formData.code,
       name_en: nameEnRef.current?.value ?? formData.name_en,
       name_ar: nameArRef.current?.value ?? formData.name_ar,
       description_en: descEnRef.current?.value ?? formData.description_en,
-      description_ar: descArRef.current?.value ?? formData.description_ar
+      description_ar: descArRef.current?.value ?? formData.description_ar,
+      duration_years: durationRef.current?.value ? Number.parseInt(durationRef.current.value) : formData.duration_years,
+      minGPA: minGPARef.current?.value ? Number.parseFloat(minGPARef.current.value) : formData.minGPA,
+      totalCreditHours: creditHoursRef.current?.value ? Number.parseInt(creditHoursRef.current.value) : formData.totalCreditHours
     };
   }, [formData]);
 
@@ -62,6 +70,18 @@ const ProgramsManagementPage = () => {
       setLoading(false);
     }
   }, [toast, t]);
+
+  // Sync refs when editing an existing program
+  useEffect(() => {
+    if (codeRef.current) codeRef.current.value = formData.code || '';
+    if (nameEnRef.current) nameEnRef.current.value = formData.name_en || '';
+    if (nameArRef.current) nameArRef.current.value = formData.name_ar || '';
+    if (descEnRef.current) descEnRef.current.value = formData.description_en || '';
+    if (descArRef.current) descArRef.current.value = formData.description_ar || '';
+    if (durationRef.current) durationRef.current.value = formData.duration_years?.toString() || '2';
+    if (minGPARef.current) minGPARef.current.value = formData.minGPA?.toString() || '1.5';
+    if (creditHoursRef.current) creditHoursRef.current.value = formData.totalCreditHours?.toString() || '70';
+  }, [editingProgram]); // only when we load a program for editing
 
   useEffect(() => {
     if (!authLoading && (isAdmin || isSuperAdmin)) {
@@ -284,8 +304,8 @@ const ProgramsManagementPage = () => {
       <form onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
           <Input
-            value={formData.code}
-            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+            ref={codeRef}
+            defaultValue={formData.code}
             placeholder={t('program_code_placeholder') || 'Program Code * (e.g., CS-DIP)'}
             required
           />
@@ -303,23 +323,23 @@ const ProgramsManagementPage = () => {
             dir="rtl"
           />
           <NumberInput
-            value={formData.duration_years}
-            onChange={(e) => setFormData({ ...formData, duration_years: Number.parseInt(e.target.value) || 2 })}
+            ref={durationRef}
+            defaultValue={formData.duration_years}
             placeholder={t('duration_years_placeholder') || 'Duration (Years)'}
             min={1}
             max={10}
           />
           <NumberInput
-            value={formData.minGPA}
-            onChange={(e) => setFormData({ ...formData, minGPA: Number.parseFloat(e.target.value) || 1.5 })}
+            ref={minGPARef}
+            defaultValue={formData.minGPA}
             placeholder={t('minimum_gpa_placeholder') || 'Minimum GPA'}
             min={0}
             max={4}
             step={0.1}
           />
           <NumberInput
-            value={formData.totalCreditHours}
-            onChange={(e) => setFormData({ ...formData, totalCreditHours: Number.parseInt(e.target.value) || 70 })}
+            ref={creditHoursRef}
+            defaultValue={formData.totalCreditHours}
             placeholder={t('total_credit_hours_placeholder') || 'Total Credit Hours'}
             min={1}
           />

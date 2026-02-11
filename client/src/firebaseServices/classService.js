@@ -113,3 +113,26 @@ export const updateClassSchedule = async (classId, schedule) => {
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Get all classes
+ * @returns {Promise<{success: boolean, data?: Array, error?: string}>}
+ */
+export const getAllClasses = async () => {
+  try {
+    const classesSnap = await getDocs(collection(db, 'classes'));
+    const data = classesSnap.docs.map(d => {
+      const docData = d.data();
+      const docId = d.id;
+      return {
+        ...docData,
+        docId,
+        id: docData?.id || docId
+      };
+    });
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error fetching classes:', error);
+    return { success: false, error: error.message };
+  }
+};
