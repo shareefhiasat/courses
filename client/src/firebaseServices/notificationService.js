@@ -439,8 +439,8 @@ export async function logNotificationActivity(activity) {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     };
     
-    // Store in notification_logs collection
-    await addDoc(collection(db, 'notification_logs'), logEntry);
+    // Store in notificationLogs collection
+    await addDoc(collection(db, 'notificationLogs'), logEntry);
     
     // Also log to console for development
     console.log('🔔 Notification Activity:', {
@@ -584,7 +584,7 @@ export async function getNotificationStats(userId, days = 30) {
 export async function getNotificationLogs(filters = {}, limitCount = 100) {
   try {
     let q = query(
-      collection(db, 'notification_logs'),
+      collection(db, 'notificationLogs'),
       orderBy('timestamp', 'desc'),
       firebaseLimit(limitCount)
     );

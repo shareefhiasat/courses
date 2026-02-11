@@ -7,7 +7,7 @@ import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, getQatarNow } from '@utils/qatarDate';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
-import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement as deleteAnnouncementService } from '@firebaseServices/announcementService';
+import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement as deleteAnnouncementService } from '@firebaseServices/activityService';
 import { getUsers, getUserById } from '@firebaseServices/userService';
 import { notificationGateway } from '@firebaseServices/notificationGateway';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
@@ -47,6 +47,12 @@ const AnnouncementsPage = () => {
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  
+  // Filter state
+  const [announcementProgramFilter, setAnnouncementProgramFilter] = useState('');
+  const [announcementSubjectFilter, setAnnouncementSubjectFilter] = useState('');
+  const [announcementClassFilter, setAnnouncementClassFilter] = useState('');
+  
   const [emailOptions, setEmailOptions] = useState({
     sendEmail: false,
     emailLang: 'en'
@@ -160,7 +166,7 @@ const AnnouncementsPage = () => {
       };
 
       if (editingAnnouncement && editingAnnouncement.docId && editingAnnouncement.docId !== 'new') {
-        await updateAnnouncementService(editingAnnouncement.docId, announcementData);
+        await updateAnnouncement(editingAnnouncement.docId, announcementData, emailOptions);
         toast?.showSuccess('Announcement updated successfully');
         
         // Update local announcements array instead of reloading
@@ -406,6 +412,13 @@ const AnnouncementsPage = () => {
     );
   }
 
+  const filteredAnnouncements = announcements.filter(announcement => {
+    if (announcementProgramFilter && announcementProgramFilter !== 'all' && announcement.programId !== announcementProgramFilter) return false;
+    if (announcementSubjectFilter && announcementSubjectFilter !== 'all' && announcement.subjectId !== announcementSubjectFilter) return false;
+    if (announcementClassFilter && announcementClassFilter !== 'all' && announcement.classId !== announcementClassFilter) return false;
+    return true;
+  });
+
   return (
     <div className="announcements-tab">
       {editingAnnouncement && (
@@ -497,7 +510,6 @@ const AnnouncementsPage = () => {
           />
           {emailOptions.sendEmail && (
             <div>
-              <small>{t('language') || 'Language'}</small>
               <Select
                 searchable
                 placeholder={t('language') || 'Language'}
@@ -535,10 +547,51 @@ const AnnouncementsPage = () => {
         </div>
       </form>
 
+      {/* Filters */}
+      <div style={{ 
+        padding: '1rem', 
+        background: 'var(--color-surface, #f9fafb)', 
+        borderRadius: '8px', 
+        marginBottom: '1rem',
+        border: '1px solid var(--color-border, #e5e7eb)'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: '1rem', 
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            programValue={announcementProgramFilter}
+            subjectValue={announcementSubjectFilter}
+            classValue={announcementClassFilter}
+            onProgramChange={setAnnouncementProgramFilter}
+            onSubjectChange={setAnnouncementSubjectFilter}
+            onClassChange={setAnnouncementClassFilter}
+            showLabels={false}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setAnnouncementProgramFilter('');
+              setAnnouncementSubjectFilter('');
+              setAnnouncementClassFilter('');
+            }}
+            icon={getThemedIcon('ui', 'x', 16, theme)}
+          >
+            {t('clear_filters') || 'Clear Filters'}
+          </Button>
+        </div>
+      </div>
+
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           key={`announcements-grid-${lang}`}
-          rows={announcements}
+          rows={filteredAnnouncements}
           getRowId={(row) => row.docId || row.id}
           direction={lang === 'ar' ? 'rtl' : 'ltr'}
           lang={lang}

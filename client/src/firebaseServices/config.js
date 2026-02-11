@@ -42,6 +42,9 @@ export const rtdb = getDatabase(app);
 // Export getFunctions for use in components
 export { getFunctions };
 
+// Re-export commonly used functions from configService
+export { getAllowlist, updateAllowlist, getConfig, updateConfig, getSystemSettings, updateSystemSettings } from './configService';
+
 // Connect to emulators in local development (OPTIONAL)
 // Set USE_EMULATOR=true in environment to enable
 // By default, uses production Firebase even in localhost (no CORS issues!)

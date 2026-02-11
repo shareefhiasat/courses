@@ -10,13 +10,16 @@ Props:
 */
 export default function RibbonTabs({ categories = [], activeCategory, activeItem, onChange, className = '' }) {
   const cat = categories.find(c => c.id === activeCategory) || categories[0] || { items: [] };
+  
+  // Detect dark mode
+  const isDarkMode = typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
 
   return (
-    <div className={className} style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
+    <div className={className} style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: isDarkMode ? '#1f2937' : '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
       {categories.map(category => (
         <div key={category.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: '0 1 auto' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', paddingLeft: '0.5rem' }}>{category.label}</div>
-          <div style={{ display: 'flex', gap: 6, padding: '0.25rem', background: 'white', borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: isDarkMode ? '#9ca3af' : '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', paddingLeft: '0.5rem' }}>{category.label}</div>
+          <div style={{ display: 'flex', gap: 6, padding: '0.25rem', background: isDarkMode ? '#111827' : 'white', borderRadius: 10, boxShadow: isDarkMode ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)', flexWrap: 'wrap' }}>
             {category.items.map(item => {
               const isActive = activeItem === item.key;
               return (
@@ -30,16 +33,16 @@ export default function RibbonTabs({ categories = [], activeCategory, activeItem
                     gap: '2px',
                     padding: '6px 10px',
                     borderRadius: 6,
-                    border: isActive ? '1px solid var(--color-primary, #10B981)' : '1px solid rgba(0,0,0,0.06)',
-                    background: isActive ? 'var(--color-primary, #10B981)' : 'white',
-                    color: isActive ? 'white' : '#111827',
+                    border: isActive ? '1px solid var(--color-primary, #10B981)' : (isDarkMode ? '1px solid #374151' : '1px solid rgba(0,0,0,0.06)'),
+                    background: isActive ? 'var(--color-primary, #10B981)' : (isDarkMode ? '#1f2937' : 'white'),
+                    color: isActive ? 'white' : (isDarkMode ? '#f9fafb' : '#111827'),
                     cursor: 'pointer',
                     fontWeight: 500,
                     fontSize: '0.8rem',
                     whiteSpace: 'nowrap',
                     lineHeight: '1.2',
                     margin: '1px 0',
-                    boxShadow: isActive ? '0 2px 8px rgba(16, 185, 129, 0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
+                    boxShadow: isActive ? '0 2px 8px rgba(16, 185, 129, 0.3)' : (isDarkMode ? '0 1px 3px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.08)'),
                     transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
                     transition: 'all 0.2s ease'
                   }}

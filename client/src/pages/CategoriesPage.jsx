@@ -23,7 +23,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [categories, setCategories] = useState([]);
   const [editingCategory, setEditingCategory] = useState(null);
-  const { deleteModal, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [formData, setFormData] = useState({
     name_en: '',
     name_ar: '',
@@ -48,6 +48,16 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (descEnRef.current) descEnRef.current.value = formData.description_en || '';
     if (descArRef.current) descArRef.current.value = formData.description_ar || '';
   }, [editingCategory, formData.name_en, formData.name_ar, formData.description_en, formData.description_ar]);
+
+  // Read text values from refs into form state before submit
+  const syncRefsToState = useCallback(() => {
+    return {
+      name_en: nameEnRef.current?.value ?? formData.name_en,
+      name_ar: nameArRef.current?.value ?? formData.name_ar,
+      description_en: descEnRef.current?.value ?? formData.description_en,
+      description_ar: descArRef.current?.value ?? formData.description_ar
+    };
+  }, [formData.name_en, formData.name_ar, formData.description_en, formData.description_ar]);
 
   // Dynamic form validation
   const formErrors = useMemo(() => {
@@ -122,6 +132,9 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
+    // Read text fields from refs (uncontrolled inputs)
+    const textValues = syncRefsToState();
+    
     // Dynamic validation
     if (!isFormValid) {
       const firstError = Object.values(formErrors)[0];
@@ -132,11 +145,11 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     setSaving(true);
     try {
       const categoryData = {
-        name_en: formData.name_en.trim(),
-        name_ar: formData.name_ar.trim(),
+        name_en: textValues.name_en.trim(),
+        name_ar: textValues.name_ar.trim(),
         icon: formData.icon.trim(),
-        description_en: formData.description_en.trim(),
-        description_ar: formData.description_ar.trim(),
+        description_en: textValues.description_en.trim(),
+        description_ar: textValues.description_ar.trim(),
         color: formData.color,
         order: parseInt(formData.order) || 1
       };
@@ -183,7 +196,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   const handleDelete = useCallback((category) => {
-    deleteItem(category, async () => {
+    deleteEntity('category', category, async () => {
       setCategories(prev => prev.filter(c => c.docId !== category.docId));
       try {
         const result = await deleteCategory(category.docId || category.id);
@@ -200,7 +213,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         toast?.showError(error.message);
       }
     });
-  }, [deleteItem, toast, t, loadData]);
+  }, [deleteEntity, toast, t, loadData]);
 
   const resetForm = () => {
     setFormData({
@@ -231,6 +244,44 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       headerName: t('name_arabic') || 'Name (Arabic)',
       flex: 1,
       minWidth: 150
+    },
+    {
+      field: 'description_en',
+      headerName: t('description_english') || 'Description (English)',
+      flex: 1.5,
+      minWidth: 200,
+      renderCell: (params) => {
+        const value = params?.value || '';
+        return (
+          <div style={{ 
+            maxWidth: '300px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }} title={value}>
+            {value || '—'}
+          </div>
+        );
+      }
+    },
+    {
+      field: 'description_ar',
+      headerName: t('description_arabic') || 'Description (Arabic)',
+      flex: 1.5,
+      minWidth: 200,
+      renderCell: (params) => {
+        const value = params?.value || '';
+        return (
+          <div style={{ 
+            maxWidth: '300px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }} title={value}>
+            {value || '—'}
+          </div>
+        );
+      }
     },
     {
       field: 'icon',
@@ -426,7 +477,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               loading={saving}
               disabled={!isFormValid || saving}
             >
-              {saving ? (t('saving') || 'Saving...') : (t('save') || 'Save')}
+              {saving ? (t('saving') || 'Saving...') : (editingCategory ? (t('update') || 'Update') : (t('save') || 'Save'))}
             </Button>
             {editingCategory && (
               <Button 

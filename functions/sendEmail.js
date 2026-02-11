@@ -124,8 +124,8 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
         messageId: info.messageId,
         response: info.response,
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        sentBy: context.auth?.uid || "system",
-        senderEmail: context.auth?.token?.email || "system",
+        sentBy: (context.auth && context.auth.uid) || "system",
+        senderEmail: (context.auth && context.auth.token && context.auth.token.email) || "system",
         metadata: data.metadata || {},
       });
 
@@ -153,8 +153,8 @@ exports.sendEmail = functions.https.onCall(async (data, context) => {
           error: error.message,
           errorCode: error.code || "unknown",
           attemptedAt: admin.firestore.FieldValue.serverTimestamp(),
-          sentBy: context.auth?.uid || "system",
-          senderEmail: context.auth?.token?.email || "system",
+          sentBy: (context.auth && context.auth.uid) || "system",
+          senderEmail: (context.auth && context.auth.token && context.auth.token.email) || "system",
           metadata: data.metadata || {},
         });
     } catch (logError) {
@@ -212,7 +212,7 @@ exports.testEmail = functions.https.onCall(async (data, context) => {
     );
   }
 
-  const testEmail = data.testEmail || context.auth.token.email;
+  const testEmail = data.testEmail || (context.auth && context.auth.token && context.auth.token.email);
 
   // Use the sendEmail function
   return exports.sendEmail.run(

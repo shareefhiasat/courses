@@ -3,19 +3,19 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody, ProgramsSelect, NumberInput } from '@ui';
+import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@firebaseServices/penaltyService';
 import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
-import { getClasses, getClassById } from '@firebaseServices/classService';
+import { getPrograms, getSubjects, getSubject, fetchProgram, fetchSubject } from '@firebaseServices/programService';
+import { getClasses, getClassById, fetchClass } from '@firebaseServices/classService';
 import { getEnrollments, getEnrollmentsByClass, getStudentsByClass } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
 import { getUserById } from '@firebaseServices/userService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
-import { formatQatarDateOnly } from '@utils/timezone';
+import { formatQatarDateOnly, formatQatarDate } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { 
   PAGE_STATES, 
@@ -35,7 +35,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [loading, setLoading] = useState(false);
   const [penalties, setPenalties] = useState([]);
   const [editingPenalty, setEditingPenalty] = useState(null);
-  const { deleteModal, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -49,6 +49,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     subjectId: '',
     type: '',
     description: '',
+    reason: '',
+    note: '',
     feedback: '',
     points: -1,
     comment: ''
@@ -70,24 +72,33 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   // Refs for text inputs to prevent re-renders
   const descriptionRef = useRef(null);
+  const reasonRef = useRef(null);
+  const noteRef = useRef(null);
   const feedbackRef = useRef(null);
   const commentRef = useRef(null);
+  const pointsRef = useRef(null);
 
   // Sync refs when editing
   useEffect(() => {
     if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
+    if (reasonRef.current) reasonRef.current.value = formData.reason || '';
+    if (noteRef.current) noteRef.current.value = formData.note || '';
     if (feedbackRef.current) feedbackRef.current.value = formData.feedback || '';
     if (commentRef.current) commentRef.current.value = formData.comment || '';
-  }, [editingPenalty, formData.description, formData.feedback, formData.comment]);
+    if (pointsRef.current) pointsRef.current.value = formData.points || -1;
+  }, [editingPenalty, formData.description, formData.reason, formData.note, formData.feedback, formData.comment, formData.points]);
 
   // Read text values from refs into form state before submit
   const syncRefsToState = useCallback(() => {
     return {
       description: descriptionRef.current?.value ?? formData.description,
+      reason: reasonRef.current?.value ?? formData.reason,
+      note: noteRef.current?.value ?? formData.note,
       feedback: feedbackRef.current?.value ?? formData.feedback,
-      comment: commentRef.current?.value ?? formData.comment
+      comment: commentRef.current?.value ?? formData.comment,
+      points: parseInt(pointsRef.current?.value) || formData.points || -1
     };
-  }, [formData.description, formData.feedback, formData.comment]);
+  }, [formData.description, formData.reason, formData.note, formData.feedback, formData.comment, formData.points]);
 
   // Function to fetch user data on demand and cache it
   const fetchUser = useCallback(async (userId) => {
@@ -124,7 +135,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   // Function to fetch subject data on demand and cache it
-  const fetchSubject = useCallback(async (subjectId) => {
+  const fetchSubjectData = useCallback(async (subjectId) => {
     if (!subjectId) return null;
     
     try {
@@ -264,9 +275,21 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           const subjectIdToLoad = enrichedPenalty.subjectId;
           if (subjectIdToLoad) {
             try {
-              const subjectData = await fetchSubject(subjectIdToLoad);
+              const subjectData = await fetchSubjectData(subjectIdToLoad);
               if (subjectData) {
                 enrichedPenalty.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
+                
+                // Load program from subject
+                if (subjectData.programId) {
+                  try {
+                    const programData = await fetchProgram(subjectData.programId);
+                    if (programData) {
+                      enrichedPenalty.programName = programData.name_en || programData.name_ar || programData.code || 'N/A';
+                    }
+                  } catch (err) {
+                    enrichedPenalty.programName = 'N/A';
+                  }
+                }
               }
             } catch (err) {
             }
@@ -331,7 +354,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     const textValues = syncRefsToState();
     
     // Validation
-    if (!formData.studentId || !formData.classId || !formData.type || !textValues.description.trim()) {
+    if (!formData.studentId || !formData.classId || !formData.type || !textValues.description?.trim()) {
       toast.error(t('fill_required_fields_penalty') || 'Please fill in all required fields (Student, Class, Type, Description)');
       return;
     }
@@ -346,12 +369,18 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         studentId: formData.studentId,
         classId: formData.classId,
         subjectId: subjectId,
+        programId: formData.programId,
         type: formData.type,
-        description: textValues.description.trim(),
-        feedback: textValues.feedback.trim(),
-        points: parseInt(formData.points) || 0,
-        comment: textValues.comment.trim(),
+        description: textValues.description?.trim() || '',
+        reason: textValues.reason?.trim() || '',
+        note: textValues.note?.trim() || '',
+        feedback: textValues.feedback?.trim() || '',
+        points: textValues.points || 0,
+        comment: textValues.comment?.trim() || '',
         createdBy: user.uid,
+        performedBy: user.uid,
+        performedByName: user.displayName || user.email,
+        performedByEmail: user.email,
         sendInAppNotification: true,
         sendEmailNotification: false
       };
@@ -366,7 +395,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           description: penaltyData.description,
           feedback: penaltyData.feedback,
           points: penaltyData.points,
-          comment: penaltyData.comment
+          comment: penaltyData.comment,
+          programId: penaltyData.programId
         });
               } else {
         result = await createPenalty(penaltyData);
@@ -396,6 +426,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       subjectId: penalty.subjectId || '',
       type: penalty.type || '',
       description: penalty.description || '',
+      reason: penalty.reason || '',
+      note: penalty.note || '',
       feedback: penalty.feedback || '',
       points: penalty.points || -1,
       comment: penalty.comment || ''
@@ -403,7 +435,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   const handleDelete = useCallback((penalty) => {
-    deleteItem(penalty, async () => {
+    deleteEntity('penalty', penalty, async () => {
       setPenalties(prev => prev.filter(p => p.docId !== penalty.docId));
       try {
         const result = await deletePenalty(penalty.docId || penalty.id);
@@ -432,7 +464,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         toast?.showError(error.message);
       }
     });
-  }, [deleteItem, toast, t, loadPenalties]);
+  }, [deleteEntity, toast, t, loadPenalties]);
 
   const resetForm = () => {
     setFormData({
@@ -442,6 +474,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       subjectId: '',
       type: '',
       description: '',
+      reason: '',
+      note: '',
       feedback: '',
       points: -1,
       comment: ''
@@ -516,10 +550,6 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               studentName = cachedUser.displayName;
               logger.debug('HR Penalties User Debug - Found displayName from cache:', cachedUser.displayName);
             }
-          } else if (studentId) {
-            // Fetch user data asynchronously (non-blocking)
-            fetchUser(studentId);
-            logger.debug('HR Penalties User Debug - Triggered async fetch for studentId:', studentId);
           }
         }
         
@@ -550,10 +580,6 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 studentName = cachedUser.displayName;
                 logger.debug('HR Penalties User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
               }
-            } else if (studentId) {
-              // Fetch user data asynchronously (non-blocking)
-              fetchUser(studentId);
-              logger.debug('HR Penalties User Debug - Triggered async fetch for studentId (fallback):', studentId);
             }
           }
         }
@@ -591,6 +617,26 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           const classTerm = row.classTerm;
           if (classTerm) text += ` (${classTerm})`;
           return text;
+        }
+        return 'N/A';
+      }
+    },
+    {
+      field: 'programName',
+      headerName: t('program') || 'Program',
+      flex: 1,
+      minWidth: 150,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const rowId = row.id || row.docId || params?.id;
+        // Try to get from row first, then from params.value, then from penalties state
+        let programName = row.programName || params?.value;
+        if (!programName && rowId) {
+          const foundRow = penalties.find(p => (p.id || p.docId) === rowId);
+          programName = foundRow?.programName;
+        }
+        if (programName && programName !== 'N/A') {
+          return programName;
         }
         return 'N/A';
       }
@@ -649,11 +695,23 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
-      field: 'comment',
-      headerName: t('comment') || 'Comment',
-      flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => params.value || '—'
+      field: 'description',
+      headerName: 'Description',
+      flex: 1.5,
+      minWidth: 200,
+      renderCell: (params) => {
+        const value = params?.value || '';
+        return (
+          <div style={{ 
+            maxWidth: '300px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }} title={value}>
+            {value || '—'}
+          </div>
+        );
+      }
     },
     {
       field: 'createdAt',
@@ -670,18 +728,18 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         if (params && typeof params === 'object' && params.seconds) {
           const date = new Date(params.seconds * 1000);
           logger.debug('HR Penalties Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
-          logger.debug('HR Penalties Date Debug - Formatted date:', formatQatarDateOnly(date));
+          logger.debug('HR Penalties Date Debug - Formatted date:', formatQatarDate(date));
           logger.debug('=== HR PENALTIES DATE DEBUG END ===');
-          return formatQatarDateOnly(date);
+          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         }
         
         // Check if params.value directly contains the timestamp
         if (params.value && typeof params.value === 'object' && params.value.seconds) {
           const date = new Date(params.value.seconds * 1000);
           logger.debug('HR Penalties Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
-          logger.debug('HR Penalties Date Debug - Formatted date:', formatQatarDateOnly(date));
+          logger.debug('HR Penalties Date Debug - Formatted date:', formatQatarDate(date));
           logger.debug('=== HR PENALTIES DATE DEBUG END ===');
-          return formatQatarDateOnly(date);
+          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         }
         
         // Fallback to original logic
@@ -704,7 +762,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return 'Invalid Date';
         }
-        const formattedDate = formatQatarDateOnly(date);
+        const formattedDate = formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         logger.debug('HR Penalties Date Debug - Formatted date (fallback):', formattedDate);
         logger.debug('=== HR PENALTIES DATE DEBUG END ===');
         return formattedDate;
@@ -894,6 +952,20 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             required
           />
           <textarea
+            ref={reasonRef}
+            defaultValue={formData.reason}
+            placeholder={t('reason') || 'Reason'}
+            className="dashboard-textarea"
+            rows={3}
+          />
+          <textarea
+            ref={noteRef}
+            defaultValue={formData.note}
+            placeholder={t('note') || 'Note'}
+            className="dashboard-textarea"
+            rows={3}
+          />
+          <textarea
             ref={commentRef}
             defaultValue={formData.comment}
             placeholder={t('comment_optional') || 'Comment (optional)'}
@@ -910,18 +982,21 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             className="dashboard-textarea"
             rows={3}
           />
-          <NumberInput
-            value={formData.points}
-            onChange={(value) => setFormData({ ...formData, points: value })}
+          <input
+            ref={pointsRef}
+            type="number"
+            defaultValue={formData.points}
             placeholder={t('points') || 'Points'}
             min={-10}
             max={10}
             step={1}
+            className="dashboard-input"
+            style={{ width: '100%' }}
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {t('save') || 'Save'}
+            {editingPenalty ? (t('update') || 'Update') : (t('save') || 'Save')}
           </Button>
           {editingPenalty && (
             <Button 

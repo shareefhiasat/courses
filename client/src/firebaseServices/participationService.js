@@ -3,6 +3,7 @@ import { db } from './config';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { USER_ROLES } from '@constants/userRoles';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from './activityLogger';
 
@@ -32,6 +33,7 @@ export async function createParticipation({
   classId,
   studentId,
   subjectId = null,
+  programId = null,
   type = 'participation',
   points = 0,
   description = '',
@@ -51,6 +53,7 @@ export async function createParticipation({
       classId,
       studentId,
       ...(subjectId ? { subjectId } : {}),
+      ...(programId ? { programId } : {}),
       type,
       points,
       description,
@@ -73,7 +76,7 @@ export async function createParticipation({
         // Use smart notification gateway
         await notificationGateway.send(NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED, {
           userId: studentId,
-          role: 'student',
+          role: USER_ROLES.STUDENT,
           classId: classId,
           title: `📝 Participation ${actionLabel}`,
           message: `Participation ${actionLabel} for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
@@ -153,6 +156,35 @@ export async function updateParticipation(participationId, { updatedBy, ...updat
     } catch (logError) {
       logger.warn('Failed to log participation update:', logError);
     }
+    
+    // Send update notification if student exists
+    if (existingData.studentId) {
+      try {
+        const formattedDate = new Date().toLocaleDateString('en-GB');
+        
+        // Get participation type label
+        const participationTypeLabel = existingData.type || 'participation';
+        
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.PARTICIPATION_UPDATED, {
+          userId: existingData.studentId,
+          role: USER_ROLES.STUDENT,
+          classId: existingData.classId,
+          title: '✏️ Participation Record Updated',
+          message: `Your participation record has been updated on ${formattedDate}`,
+          type: RECORD_TYPES.PARTICIPATION,
+          templateId: 'participationUpdateNotification',
+          variables: {
+            studentName: existingData.studentInfo?.displayName || existingData.studentInfo?.email || 'Student',
+            date: formattedDate,
+            participationType: participationTypeLabel,
+            updatedFields: Object.keys(updateData).join(', '),
+            className: existingData.className || 'Class'
+          }
+        });
+      } catch (notifyError) {
+        console.warn('Failed to send participation update notification via gateway:', notifyError);
+      }
+    }
 
     return { success: true };
   } catch (error) {
@@ -195,6 +227,34 @@ export async function deleteParticipation(participationId, participationData = n
       });
     } catch (logError) {
       logger.warn('Failed to log participation deletion:', logError);
+    }
+    
+    // Send deletion notification if student exists
+    if (dataToDelete?.studentId) {
+      try {
+        const formattedDate = new Date().toLocaleDateString('en-GB');
+        
+        // Get participation type label
+        const participationTypeLabel = dataToDelete.type || 'participation';
+        
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.PARTICIPATION_DELETED, {
+          userId: dataToDelete.studentId,
+          role: USER_ROLES.STUDENT,
+          classId: dataToDelete.classId,
+          title: '🗑️ Participation Record Removed',
+          message: `Your participation record has been removed on ${formattedDate}`,
+          type: RECORD_TYPES.PARTICIPATION,
+          templateId: 'participationDeleteNotification',
+          variables: {
+            studentName: dataToDelete.studentInfo?.displayName || dataToDelete.studentInfo?.email || 'Student',
+            date: formattedDate,
+            participationType: participationTypeLabel,
+            className: dataToDelete.className || 'Class'
+          }
+        });
+      } catch (notifyError) {
+        console.warn('Failed to send participation deletion notification via gateway:', notifyError);
+      }
     }
     
     return { success: true };
@@ -247,18 +307,27 @@ export const getParticipations = async () => {
 };
 
 /**
- * Load participations from Firestore
- * @param {Function} setParticipations - Function to set participations state
- * @param {Function} setPageState - Function to set page state
- * @param {Function} toast - Toast function
- * @param {Function} t - Translation function
+ * Load participations from Firestore with enrichment
+ * @param {Object} params - Parameters object
+ * @param {Function} params.setParticipations - Function to set participations state
+ * @param {Function} params.setPageState - Function to set page state
+ * @param {Function} params.toast - Toast function
+ * @param {Function} params.t - Translation function
+ * @param {Array} params.classes - Classes array for enrichment
+ * @param {Array} params.programs - Programs array for enrichment
+ * @param {Array} params.subjects - Subjects array for enrichment
+ * @param {Object} params.filters - Filters to apply
  */
-export async function loadParticipations(
+export async function loadParticipations({
   setParticipations,
   setPageState,
   toast,
-  t
-) {
+  t,
+  classes = [],
+  programs = [],
+  subjects = [],
+  filters = {}
+}) {
   try {
     setPageState('LOADING');
     const snap = await getDocs(query(collection(db, 'participations'), orderBy('createdAt', 'desc')));
@@ -269,7 +338,67 @@ export async function loadParticipations(
       ...doc.data()
     }));
     
-    setParticipations(participations);
+    // Enrich participations with program, subject, and class names
+    const enrichedParticipations = participations.map(participation => {
+      const enriched = { ...participation };
+      
+      // Get class information
+      if (participation.classId) {
+        const classItem = classes.find(c => (c.id || c.docId) === participation.classId);
+        if (classItem) {
+          enriched.className = classItem.name || classItem.code || 'N/A';
+          enriched.classTerm = classItem.term;
+          
+          // Get subject information
+          if (classItem.subjectId) {
+            const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
+            if (subject) {
+              enriched.subjectName = subject.name || subject.code || 'N/A';
+              
+              // Get program information
+              if (subject.programId) {
+                const program = programs.find(p => (p.docId || p.id) === subject.programId);
+                if (program) {
+                  enriched.programName = program.name || program.code || 'N/A';
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      return enriched;
+    });
+    
+    // Apply filters
+    let filtered = enrichedParticipations;
+    if (filters.programFilter) {
+      filtered = filtered.filter(p => {
+        if (p.subjectId) {
+          const subject = subjects.find(s => (s.docId || s.id) === p.subjectId);
+          return subject?.programId === filters.programFilter;
+        }
+        return false;
+      });
+    }
+    if (filters.subjectFilter) {
+      filtered = filtered.filter(p => {
+        if (p.subjectId) return p.subjectId === filters.subjectFilter;
+        if (p.classId) {
+          const classItem = classes.find(c => (c.id || c.docId) === p.classId);
+          return classItem?.subjectId === filters.subjectFilter;
+        }
+        return false;
+      });
+    }
+    if (filters.classFilter) {
+      filtered = filtered.filter(p => p.classId === filters.classFilter);
+    }
+    if (filters.typeFilter && filters.typeFilter !== 'all') {
+      filtered = filtered.filter(p => p.type === filters.typeFilter);
+    }
+    
+    setParticipations(filtered);
     setPageState('LOADED');
   } catch (error) {
     logger.error('Failed to load participations:', error);

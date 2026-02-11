@@ -315,3 +315,8 @@ async function generatePDF(html) {
   // For now, return null (no PDF)
   return null;
 }
+
+// Export email functions
+const sendEmailFunctions = require('./sendEmailV2');
+exports.sendEmail = sendEmailFunctions.sendEmail;
+exports.testEmail = sendEmailFunctions.testEmail;

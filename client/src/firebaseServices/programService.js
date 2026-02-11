@@ -246,3 +246,20 @@ export const updateEnrollment = async (enrollmentId, data) => {
   }
 };
 
+// Get program by ID
+export const getProgramById = async (programId) => {
+  try {
+    const programDoc = await getDoc(doc(db, 'programs', programId));
+    if (programDoc.exists()) {
+      return { success: true, data: { docId: programDoc.id, ...programDoc.data() } };
+    }
+    return { success: false, error: "Program not found" };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Alias functions for consistency with other services
+export const fetchProgram = getProgramById;
+export const fetchSubject = getSubject;
+

@@ -278,6 +278,47 @@ const handleCancelEdit = useCallback(() => {
         );
       }
     },
+    {
+      field: 'programId', headerName: t('program') || 'Program', flex: 1, minWidth: 180,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const programId = row.programId || params?.value;
+        if (!programId) return '—';
+        // Find program via subject
+        const subject = subjects.find(s => (s.docId === row.subjectId) || (s.id === row.subjectId));
+        if (subject && subject.programId) {
+          const program = programs.find(p => (p.docId === subject.programId) || (p.id === subject.programId));
+          if (program) {
+            const programName = lang === 'ar' ? (program.name_ar || program.name_en) : program.name_en;
+            return programName || '—';
+          }
+        }
+        return '—';
+      },
+      renderCell: (params) => {
+        const row = params?.row || {};
+        const programId = row.programId || params?.value;
+        if (!programId) return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
+            —
+          </span>
+        );
+        // Find program via subject
+        const subject = subjects.find(s => (s.docId === row.subjectId) || (s.id === row.subjectId));
+        if (subject && subject.programId) {
+          const program = programs.find(p => (p.docId === subject.programId) || (p.id === subject.programId));
+          if (program) {
+            const programName = lang === 'ar' ? (program.name_ar || program.name_en) : program.name_en;
+            return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                {programName || '—'}
+              </span>
+            );
+          }
+        }
+        return '—';
+      }
+    },
     { 
       field: 'term', 
       headerName: t('term') || 'Term', 

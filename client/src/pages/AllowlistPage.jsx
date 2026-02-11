@@ -1,13 +1,60 @@
-import React from 'react';
-import { EmailManager } from '@ui';
+import React, { useState, useEffect } from 'react';
+import { EmailManager, useToast, Loading } from '@ui';
+import { useLang } from '@contexts/LangContext';
+import { getAllowlist, updateAllowlist } from '@firebaseServices/config';
+import logger from '@utils/logger';
 
-const AllowlistPage = ({
-  allowlist,
-  setAllowlist,
-  handleAllowlistSave,
-  loading,
-  t
-}) => {
+const AllowlistPage = () => {
+  const { t } = useLang();
+  const toast = useToast();
+  const [allowlist, setAllowlist] = useState({ allowedEmails: [], adminEmails: [] });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const loadAllowlist = async () => {
+      setLoading(true);
+      try {
+        const result = await getAllowlist();
+        if (result.success) {
+          setAllowlist(result.data || { allowedEmails: [], adminEmails: [] });
+        } else {
+          logger.error('Failed to load allowlist:', result.error);
+          toast?.showError('Failed to load allowlist: ' + result.error);
+        }
+      } catch (error) {
+        logger.error('Error loading allowlist:', error);
+        toast?.showError('Error loading allowlist: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllowlist();
+  }, []);
+
+  const handleAllowlistSave = async () => {
+    setSaving(true);
+    try {
+      const result = await updateAllowlist(allowlist);
+      if (result.success) {
+        toast?.showSuccess('Allowlist updated successfully!');
+      } else {
+        logger.error('Failed to update allowlist:', result.error);
+        toast?.showError('Failed to update allowlist: ' + result.error);
+      }
+    } catch (error) {
+      logger.error('Error updating allowlist:', error);
+      toast?.showError('Error updating allowlist: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <Loading variant="inline" message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+  }
+
   return (
     <div className="allowlist-tab">
       <EmailManager
@@ -29,9 +76,9 @@ const AllowlistPage = ({
         excludeMessage="This email is already in student list"
       />
       <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-        <button onClick={handleAllowlistSave} className="submit-btn" disabled={loading} style={{ position: 'relative', opacity: loading ? 0.7 : 1 }}>
-          {loading && <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>⏳</span>}
-          <span style={{ opacity: loading ? 0 : 1 }}>{t('save') + ' Allowlist Changes'}</span>
+        <button onClick={handleAllowlistSave} className="submit-btn" disabled={saving} style={{ position: 'relative', opacity: saving ? 0.7 : 1 }}>
+          {saving && <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>⏳</span>}
+          <span style={{ opacity: saving ? 0 : 1 }}>{t('save') + ' Allowlist Changes'}</span>
         </button>
       </div>
     </div>

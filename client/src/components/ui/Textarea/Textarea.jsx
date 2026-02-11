@@ -23,7 +23,8 @@ import styles from './Textarea.module.css';
 const Textarea = forwardRef(({
   label,
   placeholder,
-  value = '',
+  value,
+  defaultValue,
   onChange,
   error,
   helperText,
@@ -73,7 +74,7 @@ const Textarea = forwardRef(({
         name={name}
         className={textareaClasses}
         placeholder={placeholder}
-        value={value}
+        value={value !== undefined ? value : defaultValue}
         onChange={onChange}
         disabled={disabled}
         required={required}

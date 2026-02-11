@@ -5,14 +5,14 @@ import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, qatarDateToTimestamp, getQatarNow } from '@utils/qatarDate';
+import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
 import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdown, getThemeColor } from '@constants';
 import { DIFFICULTY_TYPES, getDifficultyConfig, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
 import { getCategories } from '@firebaseServices/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@firebaseServices/activityService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
-import { Select, DatePicker, NumberInput, Button, ToggleSwitch, UrlInput } from '@ui';
+import { Select, DatePicker, Button, ToggleSwitch, UrlInput } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
@@ -41,6 +41,13 @@ const ActivitiesPage = () => {
   // Internal state management
   const [activities, setActivities] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
+  
+  // Filter state
+  const [activityProgramFilter, setActivityProgramFilter] = useState('');
+  const [activitySubjectFilter, setActivitySubjectFilter] = useState('');
+  const [activityClassFilter, setActivityClassFilter] = useState('');
+  const [activityTypeFilter, setActivityTypeFilter] = useState('');
+  
   const [activityForm, setActivityForm] = useState({
     id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
     type: ACTIVITY_TYPES.HOMEWORK, programId: '', subjectId: '', classId: '', categoryId: null,
@@ -133,11 +140,18 @@ const ActivitiesPage = () => {
     setActivityForm(prev => ({ ...prev, [field]: value }));
   }, []);
 
+  const handleEmailOptionChange = useCallback((field, value) => {
+    console.log('🔔 Activity bell toggle changed:', { field, value, previous: emailOptions[field] });
+    setEmailOptions(prev => ({ ...prev, [field]: value }));
+  }, [emailOptions]);
+
   // Refs for text inputs — avoids re-rendering the whole page on every keystroke
   const titleEnRef = useRef(null);
   const titleArRef = useRef(null);
   const descEnRef = useRef(null);
   const descArRef = useRef(null);
+  const urlRef = useRef(null);
+  const imageRef = useRef(null);
 
   // Sync refs when editing an existing activity
   useEffect(() => {
@@ -145,6 +159,8 @@ const ActivitiesPage = () => {
     if (titleArRef.current) titleArRef.current.value = activityForm.title_ar || '';
     if (descEnRef.current) descEnRef.current.value = activityForm.description_en || '';
     if (descArRef.current) descArRef.current.value = activityForm.description_ar || '';
+    if (urlRef.current) urlRef.current.value = activityForm.url || '';
+    if (imageRef.current) imageRef.current.value = activityForm.image || '';
   }, [editingActivity]); // only when we load an activity for editing
 
   // Read text values from refs into form state before submit
@@ -154,6 +170,8 @@ const ActivitiesPage = () => {
       title_ar: titleArRef.current?.value ?? activityForm.title_ar,
       description_en: descEnRef.current?.value ?? activityForm.description_en,
       description_ar: descArRef.current?.value ?? activityForm.description_ar,
+      url: urlRef.current?.value ?? activityForm.url,
+      image: imageRef.current?.value ?? activityForm.image,
     };
   }, [activityForm]);
 
@@ -194,7 +212,7 @@ const ActivitiesPage = () => {
       }
 
       if (editingActivity && editingActivity.docId && editingActivity.docId !== 'new') {
-        await updateActivity(editingActivity.docId, activityData);
+        await updateActivity(editingActivity.docId, activityData, emailOptions);
         toast?.showSuccess('Activity updated successfully');
         
         // Update local activities array instead of reloading
@@ -299,6 +317,14 @@ const ActivitiesPage = () => {
     
     setActiveActivityFormTab('basic');
   }, [quizzes]);
+
+  // Clear filters
+  const handleClearActivityFilters = () => {
+    setActivityProgramFilter('');
+    setActivitySubjectFilter('');
+    setActivityClassFilter('');
+    setActivityTypeFilter('');
+  };
 
   // Create options from local state (only keeping category options)
   const activityCategoryOptions = useMemo(() => {
@@ -676,6 +702,14 @@ const ActivitiesPage = () => {
     }
   ], [programs, subjects, classes, quizzes, theme, lang, t, handleEditActivity, toast, loadData]);
 
+  const filteredActivities = activities.filter(activity => {
+    if (activityProgramFilter && activityProgramFilter !== 'all' && activity.programId !== activityProgramFilter) return false;
+    if (activitySubjectFilter && activitySubjectFilter !== 'all' && activity.subjectId !== activitySubjectFilter) return false;
+    if (activityClassFilter && activityClassFilter !== 'all' && activity.classId !== activityClassFilter) return false;
+    if (activityTypeFilter && activityTypeFilter !== 'all' && activity.type !== activityTypeFilter) return false;
+    return true;
+  });
+
   return (
     <div className="activities-tab">
       {editingActivity && (
@@ -833,7 +867,8 @@ const ActivitiesPage = () => {
                 onChange={(e) => handleFieldChange('image', e.target.value)}
                 fullWidth
               />
-              <NumberInput
+              <input
+                type="number"
                 placeholder="100"
                 value={activityForm.maxScore || 100}
                 onChange={(e) => {
@@ -846,9 +881,8 @@ const ActivitiesPage = () => {
                 min={1}
                 max={1000}
                 step={1}
-                fullWidth
+                style={{ width: '100%' }}
                 disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
-                helperText={activityForm.quizId && !activityForm.overrideQuizSettings ? (t('synced_from_quiz') || 'Synced from quiz') : ''}
               />
             </div>
             
@@ -1014,12 +1048,6 @@ const ActivitiesPage = () => {
             checked={emailOptions.sendEmail}
             onChange={(checked) => handleEmailOptionChange('sendEmail', checked)}
           />
-          <ToggleSwitch
-            key="toggle-createAnnouncement"
-            label={t('create_announcement') || 'Create announcement'}
-            checked={emailOptions.createAnnouncement}
-            onChange={(checked) => handleEmailOptionChange('createAnnouncement', checked)}
-          />
           {emailOptions.sendEmail && (
         <div>
               <small>{t('language') || 'Language'}</small>
@@ -1064,10 +1092,62 @@ const ActivitiesPage = () => {
         </div>
       </form>
       
+      {/* Filters */}
+      <div style={{ 
+        padding: '1rem', 
+        background: 'var(--color-surface, #f9fafb)', 
+        borderRadius: '8px', 
+        marginBottom: '1rem',
+        border: '1px solid var(--color-border, #e5e7eb)'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: '1rem', 
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            programValue={activityProgramFilter}
+            subjectValue={activitySubjectFilter}
+            classValue={activityClassFilter}
+            onProgramChange={setActivityProgramFilter}
+            onSubjectChange={setActivitySubjectFilter}
+            onClassChange={setActivityClassFilter}
+            showLabels={false}
+          />
+          <Select
+            value={activityTypeFilter || ''}
+            onChange={(e) => setActivityTypeFilter(e.target.value)}
+            options={[
+              { value: '', label: t('all_types') || 'All Types' },
+              { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework' },
+              { value: ACTIVITY_TYPES.ASSIGNMENT, label: t('assignment') || 'Assignment' },
+              { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz' },
+              { value: ACTIVITY_TYPES.PROJECT, label: t('project') || 'Project' },
+              { value: ACTIVITY_TYPES.EXAM, label: t('exam') || 'Exam' },
+              { value: ACTIVITY_TYPES.OTHER, label: t('other') || 'Other' }
+            ]}
+            placeholder={t('all_types') || 'All Types'}
+            icon={getThemedIcon('ui', 'filter', 16, theme)}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearActivityFilters}
+            icon={getThemedIcon('ui', 'x', 16, theme)}
+          >
+            {t('clear_filters') || 'Clear Filters'}
+          </Button>
+        </div>
+      </div>
+      
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           key={`activities-grid-${lang}`}
-          rows={activities}
+          rows={filteredActivities}
           getRowId={(row) => row.docId || row.id}
           direction={lang === 'ar' ? 'rtl' : 'ltr'}
           lang={lang}

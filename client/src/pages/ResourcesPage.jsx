@@ -6,7 +6,7 @@ import { useToast } from '@ui';
 import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
-import { addResource, updateResource, deleteResource, getResources } from '@firebaseServices/activityService';
+import { addResource, updateResource, deleteResource, getResources } from '@firebaseServices/resourceService';
 import { notificationGateway } from '@firebaseServices/notificationGateway';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger.jsx';
@@ -46,6 +46,12 @@ const ResourcesPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   
+  // Filter state
+  const [resourceProgramFilter, setResourceProgramFilter] = useState('');
+  const [resourceSubjectFilter, setResourceSubjectFilter] = useState('');
+  const [resourceClassFilter, setResourceClassFilter] = useState('');
+  const [resourceTypeFilter, setResourceTypeFilter] = useState('');
+  
   const [resourceForm, setResourceForm] = useState({ 
     title: '', 
     title_en: '',
@@ -73,6 +79,7 @@ const ResourcesPage = () => {
   const titleArRef = useRef(null);
   const descEnRef = useRef(null);
   const descArRef = useRef(null);
+  const urlRef = useRef(null);
   
   // Sync refs when editing
   useEffect(() => {
@@ -80,6 +87,7 @@ const ResourcesPage = () => {
     if (titleArRef.current) titleArRef.current.value = resourceForm.title_ar || '';
     if (descEnRef.current) descEnRef.current.value = resourceForm.description_en || '';
     if (descArRef.current) descArRef.current.value = resourceForm.description_ar || '';
+    if (urlRef.current) urlRef.current.value = resourceForm.url || '';
   }, [editingResource]);
   
   const [resourceProgramFilter, setResourceProgramFilter] = useState('all');
@@ -148,6 +156,7 @@ const ResourcesPage = () => {
       title_ar: titleArRef.current?.value ?? resourceForm.title_ar,
       description_en: descEnRef.current?.value ?? resourceForm.description_en,
       description_ar: descArRef.current?.value ?? resourceForm.description_ar,
+      url: urlRef.current?.value ?? resourceForm.url,
     };
   }, [resourceForm]);
 
@@ -190,8 +199,8 @@ const ResourcesPage = () => {
         resourceData.createdBy = user?.id || 'unknown';
       }
       
-      const result = editingResource ?
-        await updateResource(editingResource.docId, resourceData) :
+      const result = editingResource && editingResource.docId ?
+        await updateResource(editingResource.docId, resourceData, resourceEmailOptions) :
         await addResource(resourceData);
 
       if (result.success) {
@@ -526,6 +535,9 @@ const ResourcesPage = () => {
     if (resourceCategoryFilter !== 'all') {
       return r.courseId === resourceCategoryFilter;
     }
+    if (resourceTypeFilter && resourceTypeFilter !== 'all' && r.type !== resourceTypeFilter) {
+      return false;
+    }
     return true;
   });
 
@@ -624,16 +636,17 @@ const ResourcesPage = () => {
         </div>
 
         <div className="form-row">
-          <UrlInput
-            placeholder={t('resource_url')}
-            value={resourceForm.url}
-            onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
+          <input
+            ref={urlRef}
+            type="url"
+            placeholder={t('resource_url') || 'Resource URL*'}
+            defaultValue={resourceForm.url}
+            className="dashboard-input"
             required
-            onOpen={(href) => window.open(href, '_blank')}
-            onCopy={() => toast?.showSuccess(t('copied') || 'Copied')}
-            onClear={() => setResourceForm({ ...resourceForm, url: '' })}
-            fullWidth
           />
+        </div>
+
+        <div className="form-row">
           <DatePicker
             type="datetime"
             value={resourceForm.dueDate || ''}
@@ -659,11 +672,6 @@ const ResourcesPage = () => {
             checked={resourceEmailOptions.sendEmail}
             onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, sendEmail: checked })}
           />
-          <ToggleSwitch
-            label={t('create_announcement_bell') || 'Create announcement (bell notification)'}
-            checked={resourceEmailOptions.createAnnouncement}
-            onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, createAnnouncement: checked })}
-          />
         </div>
 
         {/* Form Actions */}
@@ -675,6 +683,63 @@ const ResourcesPage = () => {
           </div>
         </div>
       </form>
+
+      {/* Filters */}
+      <div style={{ 
+        padding: '1rem', 
+        background: 'var(--color-surface, #f9fafb)', 
+        borderRadius: '8px', 
+        marginBottom: '1rem',
+        border: '1px solid var(--color-border, #e5e7eb)'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: '1rem', 
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            programValue={resourceProgramFilter}
+            subjectValue={resourceSubjectFilter}
+            classValue={resourceClassFilter}
+            onProgramChange={setResourceProgramFilter}
+            onSubjectChange={setResourceSubjectFilter}
+            onClassChange={setResourceClassFilter}
+            showLabels={false}
+          />
+          <Select
+            value={resourceTypeFilter || ''}
+            onChange={(e) => setResourceTypeFilter(e.target.value)}
+            options={[
+              { value: '', label: t('all_types') || 'All Types' },
+              { value: 'link', label: t('link') || 'Link' },
+              { value: 'file', label: t('file') || 'File' },
+              { value: 'video', label: t('video') || 'Video' },
+              { value: 'document', label: t('document') || 'Document' },
+              { value: 'image', label: t('image') || 'Image' },
+              { value: 'other', label: t('other') || 'Other' }
+            ]}
+            placeholder={t('all_types') || 'All Types'}
+            icon={getThemedIcon('ui', 'filter', 16, theme)}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setResourceProgramFilter('');
+              setResourceSubjectFilter('');
+              setResourceClassFilter('');
+              setResourceTypeFilter('');
+            }}
+            icon={getThemedIcon('ui', 'x', 16, theme)}
+          >
+            {t('clear_filters') || 'Clear Filters'}
+          </Button>
+        </div>
+      </div>
 
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid

@@ -195,6 +195,20 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
     }
 
+    // Notification Logs: for analytics and debugging
+    match /notificationLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // Notification Logs (underscore variant): for analytics and debugging
+    match /notification_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
     // Direct message rooms: users can create/read rooms they're part of
     match /directRooms/{roomId} {
       allow read: if isSignedIn() && (

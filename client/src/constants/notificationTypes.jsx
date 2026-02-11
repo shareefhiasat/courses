@@ -98,17 +98,26 @@ export const NOTIFICATION_CHANNELS = {
 export const NOTIFICATION_TRIGGERS = {
   // Academic / Course
   ACTIVITY_NEW: 'activity_new',
+  ACTIVITY_UPDATED: 'activity_updated',
   ACTIVITY_COMPLETE: 'activity_complete',
   ACTIVITY_GRADED: 'activity_graded',
   RESOURCE_NEW: 'resource_new',
+  RESOURCE_UPDATED: 'resource_updated',
   ANNOUNCEMENT_NEW: 'announcement_new',
+  ANNOUNCEMENT_UPDATED: 'announcement_updated',
   
   // Attendance & Behavior
   ATTENDANCE_RECORDED: 'attendance_recorded',
   ATTENDANCE_ABSENT: 'attendance_absent',
   BEHAVIOR_RECORDED: 'behavior_recorded',
+  BEHAVIOR_UPDATED: 'behavior_updated',
+  BEHAVIOR_DELETED: 'behavior_deleted',
   PENALTY_ISSUED: 'penalty_issued',
+  PENALTY_UPDATED: 'penalty_updated',
+  PENALTY_DELETED: 'penalty_deleted',
   PARTICIPATION_RECORDED: 'participation_recorded',
+  PARTICIPATION_UPDATED: 'participation_updated',
+  PARTICIPATION_DELETED: 'participation_deleted',
   
   // Quiz
   QUIZ_AVAILABLE: 'quiz_available',

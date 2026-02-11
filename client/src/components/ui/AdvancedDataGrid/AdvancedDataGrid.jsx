@@ -97,8 +97,12 @@ const AdvancedDataGrid = ({
 
   // Safely wrap column callbacks to avoid crashes when params is unexpected
   const safeColumns = useMemo(() => {
-    return (columns || []).map((col) => {
+    return (columns || []).map((col, index) => {
       const wrapped = { ...col };
+      // Ensure each column has a unique key
+      if (!wrapped.key) {
+        wrapped.key = wrapped.field || `column-${index}`;
+      }
       if (typeof col.renderCell === 'function') {
         wrapped.renderCell = (params) => col.renderCell(normalizeParams(params, col.field));
       }
@@ -219,11 +223,14 @@ const AdvancedDataGrid = ({
     URL.revokeObjectURL(url);
   };
 
+  // Detect theme from document
+  const isDarkMode = typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
+
   return (
     <Box sx={{ 
       position: 'relative', 
       width: '100%',
-      minHeight: '400px',
+      height: 'auto',
       maxHeight: '70vh',
       overflow: 'hidden'
     }}>
@@ -234,7 +241,7 @@ const AdvancedDataGrid = ({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.9)' : 'rgba(255, 255, 255, 0.9)',
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
@@ -255,14 +262,17 @@ const AdvancedDataGrid = ({
           border: 'none',
           overflow: 'hidden',
           maxHeight: '70vh',
-          direction: direction
+          direction: direction,
+          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+          color: isDarkMode ? '#f9fafb' : '#111827'
         }, 
         '& .MuiDataGrid-toolbarContainer': { 
           position: 'sticky', 
           top: 0, 
           zIndex: 10,
-          background: 'white',
-          borderBottom: '1px solid #e5e7eb'
+          background: isDarkMode ? '#111827' : '#ffffff',
+          borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+          color: isDarkMode ? '#f9fafb' : '#111827'
         }, 
         '& .MuiDataGrid-main': {
           overflow: 'hidden',

@@ -184,7 +184,7 @@ export const syncOfflineData = async (user, onlineActions = {}) => {
             
           case 'award_participation':
             // Handle participation sync
-            const participationRef = doc(collection(db, 'participation'));
+            const participationRef = doc(collection(db, 'participations'));
             await setDoc(participationRef, data);
             await removeFromSyncQueue(item.id);
             syncedCount++;

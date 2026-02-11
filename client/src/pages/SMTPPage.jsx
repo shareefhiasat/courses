@@ -3,7 +3,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Input, NumberInput } from '@ui';
+import { Button, Input } from '@ui';
 import { getSMTPConfig, updateSMTPConfig } from '@firebaseServices/emailService';
 
 const SMTPPage = ({ user, theme }) => {
@@ -79,8 +79,9 @@ const SMTPPage = ({ user, theme }) => {
               placeholder="smtp.gmail.com"
               fullWidth
             />
-            <NumberInput
+            <Input
               label={t('smtp_port')}
+              type="number"
               value={smtpConfig.port}
               onChange={(e) => setSmtpConfig({ ...smtpConfig, port: parseInt(e.target.value || '0') })}
               placeholder="587"

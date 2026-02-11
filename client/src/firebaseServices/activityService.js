@@ -140,7 +140,7 @@ export const addActivity = async (activityData) => {
   return { success: false, error: lastError?.message || 'Failed to save activity after multiple attempts' };
 };
 
-export const updateActivity = async (id, activityData) => {
+export const updateActivity = async (id, activityData, emailOptions = { sendEmail: true }) => {
   try {
     console.log('🔍 [SERVICE] updateActivity called with:', {
       id,
@@ -161,6 +161,39 @@ export const updateActivity = async (id, activityData) => {
       ...convertedData,
       updatedAt: serverTimestamp()
     });
+
+    // Send notifications for updated activity only if email is enabled
+    if (activityData.classId && emailOptions.sendEmail) {
+      try {
+        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', activityData.classId)));
+        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        
+        for (const studentId of studentIds) {
+          const { data: student } = await getUserById(studentId);
+          if (student && student.email) {
+            await notificationGateway.send(NOTIFICATION_TRIGGERS.ACTIVITY_UPDATED, {
+              userId: studentId,
+              role: 'student',
+              classId: activityData.classId,
+              title: 'Activity Updated',
+              message: `Activity "${activityData.title_en || activityData.title}" has been updated.`,
+              email: student.email,
+              activityId: id,
+              type: activityData.type,
+              variables: {
+                activityTitle: activityData.title_en || activityData.title,
+                activityType: activityData.type,
+                dueDate: activityData.dueDate,
+                classId: activityData.classId
+              }
+            });
+          }
+        }
+      } catch (notificationError) {
+        console.warn('Failed to send notifications for activity update:', notificationError);
+      }
+    }
+
     return { success: true };
   } catch (error) {
     console.error("Error updating activity:", error);
@@ -262,9 +295,43 @@ export const addAnnouncement = async (announcementData) => {
   }
 };
 
-export const updateAnnouncement = async (id, announcementData) => {
+export const updateAnnouncement = async (id, announcementData, emailOptions = { sendEmail: true }) => {
   try {
-    await updateDoc(doc(db, "announcements", id), announcementData);
+    await updateDoc(doc(db, "announcements", id), {
+      ...announcementData,
+      updatedAt: serverTimestamp()
+    });
+
+    // Send notifications for updated announcement only if email is enabled
+    if (announcementData.classId && emailOptions.sendEmail) {
+      try {
+        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', announcementData.classId)));
+        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        
+        for (const studentId of studentIds) {
+          const { data: student } = await getUserById(studentId);
+          if (student && student.email) {
+            await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_UPDATED, {
+              userId: studentId,
+              role: 'student',
+              classId: announcementData.classId,
+              title: 'Announcement Updated',
+              message: announcementData.title,
+              email: student.email,
+              announcementId: id,
+              variables: {
+                announcementTitle: announcementData.title,
+                announcementContent: announcementData.content,
+                classId: announcementData.classId
+              }
+            });
+          }
+        }
+      } catch (notificationError) {
+        console.warn('Failed to send notifications for announcement update:', notificationError);
+      }
+    }
+
     return { success: true };
   } catch (error) {
     console.error("Error updating announcement:", error);
@@ -422,7 +489,7 @@ export const getAllResources = async () => {
 
 export const addResource = async (resourceData) => {
   try {
-    const convertedData = convertDatesToTimestamps(resourceData);
+    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
     const docRef = await addDoc(collection(db, "resources"), {
       ...convertedData,
       createdAt: serverTimestamp(),
@@ -467,13 +534,50 @@ export const addResource = async (resourceData) => {
   }
 };
 
-export const updateResource = async (id, resourceData) => {
+export const updateResource = async (id, resourceData, emailOptions = { sendEmail: true }) => {
   try {
-    const convertedData = convertDatesToTimestamps(resourceData);
+    if (!id) {
+      throw new Error('Resource ID is required for update');
+    }
+    
+    const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
     await updateDoc(doc(db, "resources", id), {
       ...convertedData,
       updatedAt: serverTimestamp()
     });
+
+    // Send notifications for updated resource only if email is enabled
+    if (resourceData.classId && emailOptions.sendEmail) {
+      try {
+        const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('classId', '==', resourceData.classId)));
+        const studentIds = enrollmentsSnap.docs.map(d => d.data().userId);
+        
+        for (const studentId of studentIds) {
+          const { data: student } = await getUserById(studentId);
+          if (student && student.email) {
+            await notificationGateway.send(NOTIFICATION_TRIGGERS.RESOURCE_UPDATED, {
+              userId: studentId,
+              role: 'student',
+              classId: resourceData.classId,
+              title: 'Resource Updated',
+              message: `Resource "${resourceData.title_en || resourceData.title}" has been updated.`,
+              email: student.email,
+              resourceId: id,
+              url: resourceData.url,
+              variables: {
+                resourceTitle: resourceData.title_en || resourceData.title,
+                resourceUrl: resourceData.url,
+                resourceDescription: resourceData.description_en || resourceData.description,
+                classId: resourceData.classId
+              }
+            });
+          }
+        }
+      } catch (notificationError) {
+        console.warn('Failed to send notifications for resource update:', notificationError);
+      }
+    }
+
     return { success: true };
   } catch (error) {
     console.error("Error updating resource:", error);

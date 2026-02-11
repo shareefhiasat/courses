@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@firebaseServices/programService';
-import { Loading, Button, Input, Textarea, NumberInput, useToast, AdvancedDataGrid } from '@ui';
+import { Loading, Button, Input, Textarea, useToast, AdvancedDataGrid } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -322,26 +322,32 @@ const ProgramsManagementPage = () => {
             required
             dir="rtl"
           />
-          <NumberInput
+          <input
             ref={durationRef}
+            type="number"
             defaultValue={formData.duration_years}
             placeholder={t('duration_years_placeholder') || 'Duration (Years)'}
             min={1}
             max={10}
+            className="dashboard-input"
           />
-          <NumberInput
+          <input
             ref={minGPARef}
+            type="number"
             defaultValue={formData.minGPA}
             placeholder={t('minimum_gpa_placeholder') || 'Minimum GPA'}
             min={0}
             max={4}
             step={0.1}
+            className="dashboard-input"
           />
-          <NumberInput
+          <input
             ref={creditHoursRef}
+            type="number"
             defaultValue={formData.totalCreditHours}
             placeholder={t('total_credit_hours_placeholder') || 'Total Credit Hours'}
             min={1}
+            className="dashboard-input"
           />
         </div>
         <div className="form-row">
@@ -361,7 +367,7 @@ const ProgramsManagementPage = () => {
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
-            {t('save') || 'Save'}
+            {editingProgram ? (t('update') || 'Update') : (t('save') || 'Save')}
           </Button>
           {editingProgram && (
             <Button 

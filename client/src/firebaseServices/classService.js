@@ -2,12 +2,14 @@ import { db } from './config';
 import { 
   collection, 
   doc, 
+  getDoc, 
   getDocs, 
   addDoc, 
   updateDoc, 
   deleteDoc, 
   query, 
-  where 
+  where,
+  serverTimestamp 
 } from 'firebase/firestore';
 
 /**
@@ -136,3 +138,6 @@ export const getAllClasses = async () => {
     return { success: false, error: error.message };
   }
 };
+
+// Alias for getClassById for consistency with other services
+export const fetchClass = getClassById;

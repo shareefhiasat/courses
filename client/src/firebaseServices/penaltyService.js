@@ -16,6 +16,7 @@ import { db } from "./config";
 import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { RECORD_TYPES } from "@utils/sharedTypes";
+import { USER_ROLES } from "@constants/userRoles";
 import logger from "@utils/logger";
 import { logActivity, ACTIVITY_LOG_TYPES } from "./activityLogger";
 
@@ -131,6 +132,7 @@ export const createPenalty = async ({
   classId,
   studentId,
   subjectId = null,
+  programId = null,
   type = RECORD_TYPES.PENALTY,
   points = 0,
   reason = '',
@@ -152,6 +154,7 @@ export const createPenalty = async ({
       classId,
       studentId,
       ...(subjectId ? { subjectId } : {}),
+      ...(programId ? { programId } : {}),
       type,
       points,
       reason,
@@ -176,13 +179,13 @@ export const createPenalty = async ({
         // Use smart notification gateway
         await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_ISSUED, {
           userId: studentId,
-          role: 'student',
+          role: USER_ROLES.STUDENT,
           classId: classId,
           title: '⚠️ Penalty Recorded',
           message: `Penalty recorded for ${className || 'class'} on ${formattedDate}${description ? ` - ${description}` : ''}`,
           type: RECORD_TYPES.PENALTY,
           email: studentInfo?.email,
-          templateId: 'penaltyNotification', // Assuming this template exists or will be created
+          templateId: 'penaltyNotification',
           variables: {
             studentName: studentInfo?.displayName || studentInfo?.email || 'Student',
             className: className || 'Class',
@@ -249,6 +252,35 @@ export const updatePenalty = async (penaltyId, data) => {
       logger.warn('Failed to log penalty update:', logError);
     }
     
+    // Send update notification if student exists
+    if (existingData.studentId) {
+      try {
+        const formattedDate = new Date().toLocaleDateString('en-GB');
+        
+        // Get penalty type label
+        const penaltyTypeLabel = existingData.type || 'penalty';
+        
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_UPDATED, {
+          userId: existingData.studentId,
+          role: USER_ROLES.STUDENT,
+          classId: existingData.classId,
+          title: '✏️ Penalty Updated',
+          message: `Your penalty record has been updated on ${formattedDate}`,
+          type: RECORD_TYPES.PENALTY,
+          templateId: 'penaltyUpdateNotification',
+          variables: {
+            studentName: existingData.studentInfo?.displayName || existingData.studentInfo?.email || 'Student',
+            date: formattedDate,
+            penaltyType: penaltyTypeLabel,
+            updatedFields: Object.keys(updateFields).join(', '),
+            className: existingData.className || 'Class'
+          }
+        });
+      } catch (notifyError) {
+        console.warn('Failed to send penalty update notification via gateway:', notifyError);
+      }
+    }
+    
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -280,6 +312,34 @@ export const deletePenalty = async (penaltyId, penaltyData = null) => {
       });
     } catch (logError) {
       logger.warn('Failed to log penalty deletion:', logError);
+    }
+    
+    // Send deletion notification if student exists
+    if (dataToDelete?.studentId) {
+      try {
+        const formattedDate = new Date().toLocaleDateString('en-GB');
+        
+        // Get penalty type label
+        const penaltyTypeLabel = dataToDelete.type || 'penalty';
+        
+        await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_DELETED, {
+          userId: dataToDelete.studentId,
+          role: USER_ROLES.STUDENT,
+          classId: dataToDelete.classId,
+          title: '🗑️ Penalty Removed',
+          message: `Your penalty record has been removed on ${formattedDate}`,
+          type: RECORD_TYPES.PENALTY,
+          templateId: 'penaltyDeleteNotification',
+          variables: {
+            studentName: dataToDelete.studentInfo?.displayName || dataToDelete.studentInfo?.email || 'Student',
+            date: formattedDate,
+            penaltyType: penaltyTypeLabel,
+            className: dataToDelete.className || 'Class'
+          }
+        });
+      } catch (notifyError) {
+        console.warn('Failed to send penalty deletion notification via gateway:', notifyError);
+      }
     }
     
     return { success: true };

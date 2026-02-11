@@ -432,11 +432,21 @@ const AnalyticsDashboardPage = () => {
                   cursor: stat.onClick ? 'pointer' : 'default',
                   transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
                   border: '2px solid transparent',
-                  backgroundColor: theme === 'dark' ? 'var(--card-bg, #1f2937)' : 'var(--card-bg, #ffffff)',
-                  ':hover': {
-                    transform: stat.onClick ? 'translateY(-1px)' : 'none',
-                    boxShadow: stat.onClick ? (theme === 'dark' ? '0 2px 6px rgba(0, 0, 0, 0.3)' : '0 2px 6px rgba(0, 0, 0, 0.08)') : 'none',
-                    borderColor: config.iconColor
+                  backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                  borderRadius: '0.5rem'
+                }}
+                onMouseEnter={(e) => {
+                  if (stat.onClick) {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = theme === 'dark' ? '0 2px 6px rgba(0, 0, 0, 0.3)' : '0 2px 6px rgba(0, 0, 0, 0.08)';
+                    e.currentTarget.style.borderColor = config.iconColor;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (stat.onClick) {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = 'transparent';
                   }
                 }}
                 onClick={() => stat.onClick && stat.onClick()}

@@ -26,7 +26,7 @@ export const PENALTY_TYPES = [
     label_en: "Cheating",
     points: 10,
     icon: <AlertTriangle size={16} />,
-    color: "#fed7aa",
+    color: "#fca5a5",
     description_ar: "الغش في الاختبارات أو الواجبات باستخدام مواد غير مسموح بها",
     description_en: "Using unauthorized materials or methods during exams or assignments"
   },
@@ -36,7 +36,7 @@ export const PENALTY_TYPES = [
     label_en: "Cheat",
     points: 5,
     icon: <AlertTriangle size={16} />,
-    color: "#fed7aa",
+    color: "#fca5a5",
     description_ar: "محاولة الغش أو مساعدة الآخرين على الغش في الاختبارات",
     description_en: "Attempting to cheat or assisting others in cheating during exams"
   },
@@ -46,7 +46,7 @@ export const PENALTY_TYPES = [
     label_en: "Impersonation",
     points: 15,
     icon: <Users size={16} />,
-    color: "#fed7aa",
+    color: "#fca5a5",
     description_ar: "انتحال شخصية طالب آخر أو السماح لشخص آخر بانتحال شخصيتك",
     description_en: "Pretending to be another student or allowing someone to take your place"
   },
@@ -56,7 +56,7 @@ export const PENALTY_TYPES = [
     label_en: "Exam System Disruption",
     points: 8,
     icon: <XCircle size={16} />,
-    color: "#fed7aa",
+    color: "#fca5a5",
     description_ar: "إثارة الفوضى أو تعطيل سير الاختبار بشكل متعمد",
     description_en: "Causing disruption or intentionally interfering with exam proceedings"
   },
@@ -66,7 +66,7 @@ export const PENALTY_TYPES = [
     label_en: "Forgery in School Documents",
     points: 20,
     icon: <FileX size={16} />,
-    color: "#fed7aa",
+    color: "#fca5a5",
     description_ar: "تزوير التوقيعات أو الوثائق المدرسية الرسمية",
     description_en: "Forging signatures or official school documents"
   },
@@ -76,7 +76,7 @@ export const PENALTY_TYPES = [
     label_en: "Other Violations Disrupting Public Order",
     points: 5,
     icon: <HelpCircle size={16} />,
-    color: "#fed7aa",
+    color: "#fca5a5",
     description_ar: "أي مخالفات أخرى تؤثر على النظام العام للمدرسة",
     description_en: "Any other violations that disrupt the school's public order"
   },

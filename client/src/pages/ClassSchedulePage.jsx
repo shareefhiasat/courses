@@ -344,7 +344,7 @@ const ClassSchedulePage = () => {
                     padding: '0.75rem',
                     border: '1px solid var(--border)',
                     borderRadius: 8,
-                    background: isSelected ? 'rgba(102,126,234,0.12)' : '#fff',
+                    background: isSelected ? 'rgba(102,126,234,0.12)' : (theme === 'dark' ? '#1f2937' : '#fff'),
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
@@ -392,8 +392,8 @@ const ClassSchedulePage = () => {
                         padding: '0.75rem',
                         border: '1px solid var(--border)',
                         borderRadius: 8,
-                        background: schedule.frequency === opt.value ? '#800020' : '#fff',
-                        color: schedule.frequency === opt.value ? 'white' : 'inherit',
+                        background: schedule.frequency === opt.value ? '#800020' : (theme === 'dark' ? '#1f2937' : '#fff'),
+                        color: schedule.frequency === opt.value ? 'white' : (theme === 'dark' ? '#f9fafb' : 'inherit'),
                         fontWeight: 600,
                         cursor: 'pointer'
                       }}
@@ -423,8 +423,8 @@ const ClassSchedulePage = () => {
                           padding: '0.75rem 0.5rem',
                           border: '1px solid var(--border)',
                           borderRadius: 8,
-                          background: isSelected ? '#10b981' : '#fff',
-                          color: isSelected ? 'white' : 'inherit',
+                          background: isSelected ? '#10b981' : (theme === 'dark' ? '#1f2937' : '#fff'),
+                          color: isSelected ? 'white' : (theme === 'dark' ? '#f9fafb' : 'inherit'),
                           fontWeight: 600,
                           fontSize: 12,
                           cursor: canSelect ? 'pointer' : 'not-allowed',
@@ -449,7 +449,7 @@ const ClassSchedulePage = () => {
                     type="time"
                     value={schedule.startTime}
                     onChange={(e) => setSchedule({ ...schedule, startTime: e.target.value })}
-                    style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
+                    style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, background: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#f9fafb' : 'inherit' }}
                   />
                 </div>
                 <div>
@@ -472,7 +472,7 @@ const ClassSchedulePage = () => {
                     type="date"
                     value={newHoliday}
                     onChange={(e) => setNewHoliday(e.target.value)}
-                    style={{ flex: 1, padding: '0.5rem', border: '1px solid #f59e0b', borderRadius: 6, fontSize: 13 }}
+                    style={{ flex: 1, padding: '0.5rem', border: '1px solid #f59e0b', borderRadius: 6, fontSize: 13, background: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#f9fafb' : 'inherit' }}
                   />
                   <button onClick={addHoliday} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: 6, background: '#f59e0b', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {getThemedIcon('ui', 'plus', 16, theme)} Add
@@ -499,7 +499,7 @@ const ClassSchedulePage = () => {
                     type="date"
                     value={newAbsent}
                     onChange={(e) => setNewAbsent(e.target.value)}
-                    style={{ flex: 1, padding: '0.5rem', border: '1px solid #ef4444', borderRadius: 6, fontSize: 13 }}
+                    style={{ flex: 1, padding: '0.5rem', border: '1px solid #ef4444', borderRadius: 6, fontSize: 13, background: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#f9fafb' : 'inherit' }}
                   />
                   <button onClick={addAbsent} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: 6, background: '#ef4444', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {getThemedIcon('ui', 'plus', 16, theme)} Add

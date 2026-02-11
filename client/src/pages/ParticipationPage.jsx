@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect, NumberInput } from '@ui';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programService';
 import { getClassById } from '@firebaseServices/classService';
@@ -33,7 +33,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [participations, setParticipations] = useState([]);
   const [editingParticipation, setEditingParticipation] = useState(null);
-  const { deleteModal, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -41,6 +41,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [enrollments, setEnrollments] = useState([]);
   const [userCache, setUserCache] = useState({}); // Cache for user data fetched on demand
   const [formData, setFormData] = useState({
+    programId: '',
     studentId: '',
     classId: '',
     subjectId: '',
@@ -67,20 +68,23 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   // Refs for text inputs to prevent re-renders
   const descriptionRef = useRef(null);
   const commentRef = useRef(null);
+  const pointsRef = useRef(null);
 
   // Sync refs when editing
   useEffect(() => {
     if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
     if (commentRef.current) commentRef.current.value = formData.comment || '';
-  }, [editingParticipation, formData.description, formData.comment]);
+    if (pointsRef.current) pointsRef.current.value = formData.points || 1;
+  }, [editingParticipation, formData.description, formData.comment, formData.points]);
 
   // Read text values from refs into form state before submit
   const syncRefsToState = useCallback(() => {
     return {
       description: descriptionRef.current?.value ?? formData.description,
-      comment: commentRef.current?.value ?? formData.comment
+      comment: commentRef.current?.value ?? formData.comment,
+      points: parseInt(pointsRef.current?.value) || formData.points || 1
     };
-  }, [formData.description, formData.comment]);
+  }, [formData.description, formData.comment, formData.points]);
 
   // Memoized function to fetch user data on demand and cache it
   const fetchUser = useCallback(async (userId) => {
@@ -114,7 +118,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   useEffect(() => {
     loadParticipationsData();
-  }, [programFilter, subjectFilter, classFilter, typeFilter]);
+  }, [programFilter, subjectFilter, classFilter, typeFilter, classes, programs, subjects, toast, t]);
 
   // Load students when class changes
   useEffect(() => {
@@ -167,12 +171,21 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   };
 
   const loadParticipationsData = () => {
-    loadParticipations(
+    loadParticipations({
       setParticipations,
       setPageState,
       toast,
-      t
-    );
+      t,
+      classes,
+      programs,
+      subjects,
+      filters: {
+        programFilter,
+        subjectFilter,
+        classFilter,
+        typeFilter
+      }
+    });
   };
 
   const handleSubmit = useCallback(async (e) => {
@@ -197,9 +210,10 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         studentId: formData.studentId,
         classId: formData.classId,
         subjectId: subjectId,
+        programId: formData.programId || (subjects.find(s => (s.docId || s.id) === subjectId)?.programId),
         type: formData.type,
         description: textValues.description.trim(),
-        points: parseInt(formData.points) || 0,
+        points: textValues.points || 0,
         comment: textValues.comment.trim(),
         createdBy: user.uid,
         ...(editingParticipation ? {
@@ -258,7 +272,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       setEditingParticipation(null);
       resetForm();
-      loadParticipations();
+      loadParticipationsData();
     } catch (error) {
       logger.error('Failed to save participation:', error);
       toast.error(t('failed_to_save_participation') + ': ' + error.message);
@@ -270,6 +284,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const handleEdit = useCallback((participation) => {
     setEditingParticipation(participation);
     setFormData({
+      programId: participation.programId || '',
       studentId: participation.studentId || '',
       classId: participation.classId || '',
       subjectId: participation.subjectId || '',
@@ -281,7 +296,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   });
 
   const handleDelete = useCallback((participation) => {
-    deleteItem(participation, async () => {
+    deleteEntity('participation', participation, async () => {
       setParticipations(prev => prev.filter(p => p.docId !== participation.docId));
       try {
         const result = await deleteParticipation(participation.id, participation);
@@ -296,10 +311,11 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         toast?.showError(error.message);
       }
     });
-  }, [deleteItem, toast, t, loadParticipationsData]);
+  }, [deleteEntity, toast, t, loadParticipationsData]);
 
   const resetForm = () => {
     setFormData({
+      programId: '',
       studentId: '',
       classId: '',
       subjectId: '',
@@ -453,12 +469,43 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         const rowId = row.id || row.docId || params?.id;
         // Try to get from row first, then from params.value, then from participations state
         let subjectName = row.subjectName || params?.value;
+        
+        // If still not found, try to resolve from subjects array using subjectId
+        if (!subjectName || subjectName === 'N/A') {
+          const subjectId = row.subjectId;
+          if (subjectId) {
+            const subject = subjects.find(s => (s.docId || s.id) === subjectId);
+            if (subject) {
+              subjectName = lang === 'ar' ? (subject.name_ar || subject.name) : (subject.name_en || subject.name);
+            }
+          }
+        }
+        
+        // Final fallback from participations state
         if (!subjectName && rowId) {
           const foundRow = participations.find(p => (p.id || p.docId) === rowId);
           subjectName = foundRow?.subjectName;
         }
-        if (subjectName && subjectName !== 'N/A') {
-          return subjectName;
+        
+        return (subjectName && subjectName !== 'N/A') ? subjectName : 'N/A';
+      }
+    },
+    {
+      field: 'programName',
+      headerName: 'Program',
+      flex: 1,
+      minWidth: 150,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const rowId = row.id || row.docId || params?.id;
+        // Try to get from row first, then from params.value, then from participations state
+        let programName = row.programName || params?.value;
+        if (!programName && rowId) {
+          const foundRow = participations.find(p => (p.id || p.docId) === rowId);
+          programName = foundRow?.programName;
+        }
+        if (programName && programName !== 'N/A') {
+          return programName;
         }
         return 'N/A';
       }
@@ -518,7 +565,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             gap: '6px',
             padding: '4px 8px',
             borderRadius: '4px',
-            backgroundColor: participationType.color || '#f3f4f6',
+            backgroundColor: '#f3f4f6',
             color: '#374151',
             fontSize: '0.875rem',
             fontWeight: '500'
@@ -868,18 +915,21 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           />
         </div>
         <div className="form-row">
-          <NumberInput
-            value={formData.points}
-            onChange={(value) => setFormData({ ...formData, points: value })}
+          <input
+            ref={pointsRef}
+            type="number"
+            defaultValue={formData.points}
             placeholder="Points"
             min={-10}
             max={10}
             step={1}
+            className="dashboard-input"
+            style={{ width: '100%' }}
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {t('save') || 'Save'}
+            {editingParticipation ? (t('update') || 'Update') : (t('save') || 'Save')}
           </Button>
           {editingParticipation && (
             <Button 

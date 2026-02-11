@@ -32,7 +32,7 @@ import {
   // Additional icons from dashboard and chat pages
   Upload, RotateCw, SkipForward, Shuffle, ChevronLeft, ChevronRight, RotateCcw, Bot, Heart,
   // Missing icons from HomePage
-  Monitor, Code, Folder, Hourglass, Repeat,
+  Monitor, Code, Folder, Hourglass, Repeat, Droplet,
   // Notification settings icons
   Volume2, Vibrate,
   // Additional icons for CategoriesPage
@@ -48,7 +48,8 @@ export const ICON_TYPES = {
     inactive: <UserX size={16} />,
     suspended: <UserMinus size={16} />,
     pending: <Clock size={16} />,
-    deleted: <Trash size={16} />
+    deleted: <Trash size={16} />,
+    user_check: <UserCheck size={16} />
   },
   
   // User Role Icons
@@ -181,6 +182,8 @@ export const ICON_TYPES = {
     link: <Link size={16} />,
     video: <Video size={16} />,
     qr_code: <QrCode size={16} />,
+    code: <Code size={16} />,
+    droplet: <Droplet size={16} />,
     key: <KeyRound size={16} />,
     lock: <Lock size={16} />,
     unlock: <Key size={16} />,

@@ -61,8 +61,8 @@ export const notificationGateway = {
           channel: NOTIFICATION_CHANNELS.WEB,
           success: webResult.success,
           details: {
-            title,
-            message,
+            title: title || 'Notification',
+            message: message || 'A new notification is available',
             variables: details.variables
           }
         });
@@ -111,8 +111,8 @@ export const notificationGateway = {
           channel: NOTIFICATION_CHANNELS.EMAIL,
           success: emailResult.success,
           details: {
-            title: details.title,
-            message: details.message,
+            title: details.title || titleEn || 'Email Notification',
+            message: details.message || messageEn || 'An email has been sent',
             templateId,
             variables: {
               ...details.variables,

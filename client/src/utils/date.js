@@ -345,5 +345,6 @@ export const COMMON_DATE_FIELDS = {
   ACTIVITY: ['dueDate', 'startDate', 'endDate'],
   QUIZ: ['startDate', 'endDate', 'dueDate'],
   ENROLLMENT: ['enrollmentDate', 'completionDate'],
-  ATTENDANCE: ['date', 'checkInTime', 'checkOutTime']
+  ATTENDANCE: ['date', 'checkInTime', 'checkOutTime'],
+  resources: ['dueDate']
 };

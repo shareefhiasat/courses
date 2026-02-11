@@ -217,7 +217,7 @@ const StudentQuickActionModal = ({
       setSuccess('');
       
       // Create participation record
-      const participationRef = doc(collection(db, 'participation'));
+      const participationRef = doc(collection(db, 'participations'));
       const participationData = {
         studentId: student.uid,
         classId: selectedClass,

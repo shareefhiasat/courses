@@ -415,6 +415,8 @@ const Select = forwardRef(({
                     handleSelect(option.value);
                   };
 
+                  const isDarkMode = typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
+                  
                   return (
                     <div
                       key={`${option.value}-${index}`}
@@ -424,7 +426,7 @@ const Select = forwardRef(({
                       style={{ 
                         cursor: 'pointer',
                         padding: '8px 12px',
-                        backgroundColor: option.value === value ? '#f0f0f0' : 'transparent',
+                        backgroundColor: option.value === value ? (isDarkMode ? '#374151' : '#f0f0f0') : 'transparent',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px'

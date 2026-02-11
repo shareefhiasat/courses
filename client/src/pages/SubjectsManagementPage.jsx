@@ -8,7 +8,7 @@ import { getUsers } from '@firebaseServices/userService';
 import { getClasses } from '@firebaseServices/classService';
 import { getPrograms } from '@firebaseServices/programService';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@firebaseServices/subjectService';
-import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid } from '@ui';
+import { Loading, Button, Input, Select, useToast, AdvancedDataGrid } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { useTheme } from '@contexts/ThemeContext';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
@@ -335,15 +335,17 @@ const gridColumns = useMemo(() => [
             required
             dir="rtl"
           />
-          <NumberInput
+          <Input
             ref={creditHoursRef}
+            type="number"
             defaultValue={formData.creditHours}
             placeholder={t('credit_hours_subject') || 'Credit Hours'}
             min={1}
             max={6}
           />
-          <NumberInput
+          <Input
             ref={totalHoursRef}
+            type="number"
             defaultValue={formData.totalHours}
             placeholder={t('total_hours_subject') || 'Total Hours'}
             min={1}
@@ -371,8 +373,9 @@ const gridColumns = useMemo(() => [
             ]}
             required
           />
-          <NumberInput
+          <Input
             ref={hoursPerWeekRef}
+            type="number"
             defaultValue={formData.hoursPerWeek}
             placeholder={t('hours_per_week_placeholder') || 'Hours Per Week'}
             min={1}
@@ -383,7 +386,7 @@ const gridColumns = useMemo(() => [
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
-            {t('save') || 'Save'}
+            {editingSubject ? (t('update') || 'Update') : (t('save') || 'Save')}
           </Button>
           {editingSubject && (
             <Button 

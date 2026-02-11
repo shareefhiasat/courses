@@ -4,15 +4,15 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect, NumberInput } from '@ui';
+import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
-import { getPrograms, getSubjects } from '@firebaseServices/programService';
-import { getClasses } from '@firebaseServices/classService';
+import { getPrograms, getSubjects, fetchSubject, fetchProgram } from '@firebaseServices/programService';
+import { getClasses, fetchClass } from '@firebaseServices/classService';
 import { getEnrollments, getEnrollmentsByClass, getStudentsByClass } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
-import { getBehaviors, createBehavior, updateBehavior, deleteBehavior } from '@firebaseServices/behaviorService';
+import { getBehaviors, createBehavior, updateBehavior, deleteBehavior, loadBehaviors } from '@firebaseServices/behaviorService';
 import { getUserById } from '@firebaseServices/userService';
-import { formatQatarDateOnly } from '@utils/timezone';
+import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes.jsx';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { 
@@ -31,14 +31,14 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
   const [behaviors, setBehaviors] = useState([]);
   const [editingBehavior, setEditingBehavior] = useState(null);
-  const { deleteModal, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
-  const [userCache, setUserCache] = useState({}); // Cache for user data fetched on demand
   const [formData, setFormData] = useState({
+    programId: '',
     studentId: '',
     classId: '',
     subjectId: '',
@@ -65,40 +65,25 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   // Refs for text inputs to prevent re-renders
   const descriptionRef = useRef(null);
   const commentRef = useRef(null);
+  const pointsRef = useRef(null);
 
   // Sync refs when editing
   useEffect(() => {
     if (descriptionRef.current) descriptionRef.current.value = formData.description || '';
     if (commentRef.current) commentRef.current.value = formData.comment || '';
-  }, [editingBehavior, formData.description, formData.comment]);
+    if (pointsRef.current) pointsRef.current.value = formData.points || -1;
+  }, [editingBehavior, formData.description, formData.comment, formData.points]);
 
   // Read text values from refs into form state before submit
   const syncRefsToState = useCallback(() => {
     return {
       description: descriptionRef.current?.value ?? formData.description,
-      comment: commentRef.current?.value ?? formData.comment
+      comment: commentRef.current?.value ?? formData.comment,
+      points: parseInt(pointsRef.current?.value) || formData.points || -1
     };
-  }, [formData.description, formData.comment]);
+  }, [formData.description, formData.comment, formData.points]);
 
-  // Memoized function to fetch user data on demand and cache it
-  const fetchUser = useCallback(async (userId) => {
-    if (!userId || userCache[userId]) {
-      return userCache[userId];
-    }
-    
-    try {
-      const result = await getUserById(userId);
-      if (result.success) {
-        const userData = result.data;
-        setUserCache(prev => ({ ...prev, [userId]: userData }));
-        return userData;
-      }
-    } catch (err) {
-      logger.error('Failed to fetch user:', userId, err);
-    }
-    return null;
-  }, [userCache]);
-
+  
   // Filters
   const [programFilter, setProgramFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
@@ -114,8 +99,8 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, [isInstructor, isAdmin, isSuperAdmin]);
 
   useEffect(() => {
-    loadBehaviors();
-  }, [programFilter, subjectFilter, classFilter, typeFilter]);
+    loadBehaviorsData();
+  }, [programFilter, subjectFilter, classFilter, typeFilter, classes, programs, subjects, toast, t]);
 
   // Load students when class changes
   useEffect(() => {
@@ -139,6 +124,26 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     })();
   }, [formData.classId]);
 
+  // Load students when editing behavior changes (for edit mode)
+  useEffect(() => {
+    if (editingBehavior && editingBehavior.classId) {
+      (async () => {
+        try {
+          const result = await getStudentsByClass(editingBehavior.classId);
+          if (result.success) {
+            setStudents(result.data);
+          } else {
+            logger.error('Failed to load students for edit:', result.error);
+            setStudents([]);
+          }
+        } catch (error) {
+          logger.error('Failed to load students for edit:', error);
+          setStudents([]);
+        }
+      })();
+    }
+  }, [editingBehavior]);
+
   const loadData = async () => {
     try {
       const [classesRes, programsRes, subjectsRes, enrollmentsRes] = await Promise.all([
@@ -156,129 +161,27 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
   };
 
-  const loadBehaviors = async () => {
-    setPageState(PAGE_STATES.LOADING);
-    try {
-      const result = await getBehaviors();
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-      
-      let data = result.data.map(d => ({ id: d.id, docId: d.id, ...d }));
-      
-      // Enrich with student, class, subject info
-      const enriched = await Promise.all(data.map(async (behavior, idx) => {
-        // Create a new object to avoid mutation issues, ensuring id and docId are preserved
-        const enrichedBehavior = { 
-          ...behavior,
-          id: behavior.id || behavior.docId,
-          docId: behavior.docId || behavior.id
-        };
-        try {
-          // Initialize with N/A as fallback
-          enrichedBehavior.studentName = 'N/A';
-          enrichedBehavior.className = 'N/A';
-          enrichedBehavior.subjectName = 'N/A';
-          
-          if (enrichedBehavior.studentId) {
-            try {
-              const studentData = await fetchUser(enrichedBehavior.studentId);
-              if (studentData) {
-                enrichedBehavior.studentName = studentData.displayName || studentData.email || 'N/A';
-                enrichedBehavior.studentEmail = studentData.email;
-              }
-            } catch (err) {
-            }
-          }
-          
-          if (enrichedBehavior.classId) {
-            try {
-              const classData = await fetchClass(enrichedBehavior.classId);
-              if (classData) {
-                enrichedBehavior.className = classData.name || classData.code || 'N/A';
-                enrichedBehavior.classTerm = classData.term;
-                // If subjectId is missing, try to get it from class
-                if (!enrichedBehavior.subjectId && classData.subjectId) {
-                  enrichedBehavior.subjectId = classData.subjectId;
-                }
-              }
-            } catch (err) {
-            }
-          }
-          
-          // Load subject from behavior or class
-          const subjectIdToLoad = enrichedBehavior.subjectId;
-          if (subjectIdToLoad) {
-            try {
-              const subjectData = await fetchSubject(subjectIdToLoad);
-              if (subjectData) {
-                enrichedBehavior.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
-              }
-            } catch (err) {
-            }
-          }
-          
-          if (enrichedBehavior.createdBy) {
-            try {
-              const instructorData = await fetchUser(enrichedBehavior.createdBy);
-              if (instructorData) {
-                enrichedBehavior.instructorName = instructorData.displayName || instructorData.email;
-              }
-            } catch (err) {
-            }
-          }
-        } catch (err) {
-          logger.error('Failed to enrich behavior:', enrichedBehavior.id || enrichedBehavior.docId, err);
-        }
-        return enrichedBehavior;
-      }));
-      
-      // Apply filters (same logic as participations)
-      let filtered = enriched;
-      if (programFilter) {
-        filtered = filtered.filter(b => {
-          if (b.subjectId) {
-            const subject = subjects.find(s => (s.docId || s.id) === b.subjectId);
-            return subject?.programId === programFilter;
-          }
-          if (b.classId) {
-            const classItem = classes.find(c => (c.id || c.docId) === b.classId);
-            if (classItem?.subjectId) {
-              const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
-              return subject?.programId === programFilter;
-            }
-          }
-          return false;
-        });
-      }
-      if (subjectFilter) {
-        filtered = filtered.filter(b => {
-          if (b.subjectId) return b.subjectId === subjectFilter;
-          if (b.classId) {
-            const classItem = classes.find(c => (c.id || c.docId) === b.classId);
-            return classItem?.subjectId === subjectFilter;
-          }
-          return false;
-        });
-      }
-      if (classFilter) {
-        filtered = filtered.filter(b => b.classId === classFilter);
-      }
-      if (typeFilter !== 'all') {
-        filtered = filtered.filter(b => b.type === typeFilter);
-      }
-      
-      // Create a new array to ensure React detects the change
-      setBehaviors([...filtered]);
-      setPageState(PAGE_STATES.LOADED);
-    } catch (error) {
-      logger.error('Failed to load behaviors:', error);
-      toast.error(t('failed_to_load_behaviors') + ': ' + error.message);
-      setPageState(PAGE_STATES.ERROR);
-    } finally {
-      setPageState(PAGE_STATES.IDLE);
-    }
-  };
+  const loadBehaviorsData = () => {
+  loadBehaviors({
+    setBehaviors,
+    setPageState,
+    toast,
+    t,
+    classes,
+    programs,
+    subjects,
+    filters: {
+      programFilter,
+      subjectFilter,
+      classFilter,
+      typeFilter
+    },
+    getUserById,
+    fetchClass,
+    fetchSubject,
+    fetchProgram
+  });
+};
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -301,9 +204,10 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         studentId: formData.studentId,
         classId: formData.classId,
         subjectId: subjectId,
+        programId: formData.programId,
         type: formData.type,
         description: textValues.description.trim(),
-        points: parseInt(formData.points) || 0,
+        points: textValues.points || 0,
         comment: textValues.comment.trim(),
         createdBy: user.uid,
         performedBy: user.uid,
@@ -323,7 +227,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         
                 toast.success(t('behavior_updated'));
       } else {
-        const studentData = await fetchUser(formData.studentId);
+        const studentData = await getUserById(formData.studentId);
         const result = await createBehavior({
           ...behaviorData,
           studentInfo: studentData ? {
@@ -343,18 +247,19 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       setEditingBehavior(null);
       resetForm();
-      loadBehaviors();
+      loadBehaviorsData();
     } catch (error) {
       logger.error('Failed to save behavior:', error);
       toast.error(t('failed_to_save_behavior') + ': ' + error.message);
     } finally {
       setSaving(false);
     }
-  }, [formData, editingBehavior, descriptionRef, commentRef, t, toast, loadBehaviors]);
+  }, [formData, editingBehavior, descriptionRef, commentRef, t, toast, loadBehaviorsData]);
 
   const handleEdit = useCallback((behavior) => {
     setEditingBehavior(behavior);
     setFormData({
+      programId: behavior.programId || '',
       studentId: behavior.studentId || '',
       classId: behavior.classId || '',
       subjectId: behavior.subjectId || '',
@@ -366,7 +271,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   const handleDelete = useCallback((behavior) => {
-    deleteItem(behavior, async () => {
+    deleteEntity('behavior', behavior, async () => {
       setBehaviors(prev => prev.filter(b => b.docId !== behavior.docId));
       try {
         const result = await deleteBehavior(behavior.id);
@@ -376,17 +281,18 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
         
                 toast?.showSuccess(t('behavior_deleted'));
-        await loadBehaviors();
+        await loadBehaviorsData();
       } catch (error) {
         setBehaviors(prev => [...prev, behavior]);
         logger.error('Delete failed:', error);
         toast?.showError(error.message);
       }
     });
-  }, [deleteItem, toast, t, loadBehaviors]);
+  }, [deleteEntity, toast, t, loadBehaviorsData]);
 
   const resetForm = () => {
     setFormData({
+      programId: '',
       studentId: '',
       classId: '',
       subjectId: '',
@@ -432,20 +338,11 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
           if (user?.realName) {
             studentName = user.realName;
-                      } else if (user?.displayName) {
+          } else if (user?.displayName) {
             studentName = user.displayName;
-                      } else if (studentId && userCache[studentId]) {
-            // Try cached user data
-            const cachedUser = userCache[studentId];
-            if (cachedUser?.realName) {
-              studentName = cachedUser.realName;
-                          } else if (cachedUser?.displayName) {
-              studentName = cachedUser.displayName;
-                          }
-          } else if (studentId) {
-            // Fetch user data asynchronously (non-blocking)
-            fetchUser(studentId);
-                      }
+          } else {
+            studentName = studentEmail || 'Unknown Student';
+          }
         }
         
         // If not available, try to get from behaviors state
@@ -465,20 +362,8 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
             } else if (user?.displayName) {
               studentName = user.displayName;
               ('Behavior User Debug - Found displayName from students array (fallback):', user.displayName);
-            } else if (studentId && userCache[studentId]) {
-              // Try cached user data
-              const cachedUser = userCache[studentId];
-              if (cachedUser?.realName) {
-                studentName = cachedUser.realName;
-                ('Behavior User Debug - Found realName from cache (fallback):', cachedUser.realName);
-              } else if (cachedUser?.displayName) {
-                studentName = cachedUser.displayName;
-                ('Behavior User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
-              }
-            } else if (studentId) {
-              // Fetch user data asynchronously (non-blocking)
-              fetchUser(studentId);
-              ('Behavior User Debug - Triggered async fetch for studentId (fallback):', studentId);
+            } else {
+              studentName = studentEmail || 'Unknown Student';
             }
           }
         }
@@ -518,6 +403,26 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
+      field: 'programName',
+      headerName: 'Program',
+      flex: 1,
+      minWidth: 150,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const rowId = row.id || row.docId || params?.id;
+        // Try to get from row first, then from params.value, then from behaviors state
+        let programName = row.programName || params?.value;
+        if (!programName && rowId) {
+          const foundRow = behaviors.find(b => (b.id || b.docId) === rowId);
+          programName = foundRow?.programName;
+        }
+        if (programName && programName !== 'N/A') {
+          return programName;
+        }
+        return 'N/A';
+      }
+    },
+    {
       field: 'subjectName',
       headerName: 'Subject',
       flex: 1,
@@ -544,6 +449,25 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       renderCell: (params) => {
         const behaviorType = getBehaviorTypeById(params.value);
         return behaviorType ? (lang === 'ar' ? behaviorType.label_ar : behaviorType.label_en) : params.value;
+      }
+    },
+    {
+      field: 'description',
+      headerName: 'Description',
+      flex: 1.5,
+      minWidth: 200,
+      renderCell: (params) => {
+        const value = params?.value || '';
+        return (
+          <div style={{ 
+            maxWidth: '300px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }} title={value}>
+            {value || '—'}
+          </div>
+        );
       }
     },
     {
@@ -595,18 +519,18 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         if (params && typeof params === 'object' && params.seconds) {
           const date = new Date(params.seconds * 1000);
           ('Behavior Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
-          ('Behavior Date Debug - Formatted date:', formatQatarDateOnly(date));
+          ('Behavior Date Debug - Formatted date:', formatQatarDate(date));
           ('=== BEHAVIOR DATE DEBUG END ===');
-          return formatQatarDateOnly(date);
+          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         }
         
         // Check if params.value directly contains the timestamp
         if (params.value && typeof params.value === 'object' && params.value.seconds) {
           const date = new Date(params.value.seconds * 1000);
           ('Behavior Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
-          ('Behavior Date Debug - Formatted date:', formatQatarDateOnly(date));
+          ('Behavior Date Debug - Formatted date:', formatQatarDate(date));
           ('=== BEHAVIOR DATE DEBUG END ===');
-          return formatQatarDateOnly(date);
+          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         }
         
         // Fallback to original logic
@@ -629,7 +553,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           ('=== BEHAVIOR DATE DEBUG END ===');
           return 'Invalid Date';
         }
-        const formattedDate = formatQatarDateOnly(date);
+        const formattedDate = formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         ('Behavior Date Debug - Formatted date (fallback):', formattedDate);
         ('=== BEHAVIOR DATE DEBUG END ===');
         return formattedDate;
@@ -851,18 +775,21 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
         {/* First Row: Programs, Subjects, Classes */}
         <div className="form-row">
-          <NumberInput
-            value={formData.points}
-            onChange={(value) => setFormData({ ...formData, points: value })}
+          <input
+            ref={pointsRef}
+            type="number"
+            defaultValue={formData.points}
             placeholder="Points"
             min={-10}
             max={10}
             step={1}
+            className="dashboard-input"
+            style={{ width: '100%' }}
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={saving}>
-            {t('save') || 'Save'}
+            {editingBehavior ? (t('update') || 'Update') : (t('save') || 'Save')}
           </Button>
           {editingBehavior && (
             <Button 

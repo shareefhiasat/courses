@@ -21,7 +21,7 @@ export const BEHAVIOR_TYPES = [
     label_ar: 'التحدث في الصف', 
     label_en: 'Talk in Class', 
     icon: <MessageSquare size={16} />,
-    color: '#fca5a5',
+    color: '#fed7aa',
     points: -2
   },
   { 
@@ -29,7 +29,7 @@ export const BEHAVIOR_TYPES = [
     label_ar: 'النوم', 
     label_en: 'Sleep', 
     icon: <Bed size={16} />,
-    color: '#fca5a5',
+    color: '#fed7aa',
     points: -3
   },
   { 
@@ -37,7 +37,7 @@ export const BEHAVIOR_TYPES = [
     label_ar: 'طلبات الحمام المتكررة', 
     label_en: 'Frequent Bathroom Requests', 
     icon: <Users size={16} />,
-    color: '#fca5a5',
+    color: '#fed7aa',
     points: -1
   },
   { 
@@ -45,7 +45,7 @@ export const BEHAVIOR_TYPES = [
     label_ar: 'استخدام الهاتف', 
     label_en: 'Mobile Phone in Class', 
     icon: <Smartphone size={16} />,
-    color: '#fca5a5',
+    color: '#fed7aa',
     points: -2
   },
   { 
@@ -53,7 +53,7 @@ export const BEHAVIOR_TYPES = [
     label_ar: 'سلوك مشتت', 
     label_en: 'Disruptive Behavior', 
     icon: <AlertTriangle size={16} />,
-    color: '#fca5a5',
+    color: '#fed7aa',
     points: -3
   },
   { 
@@ -61,7 +61,7 @@ export const BEHAVIOR_TYPES = [
     label_ar: 'لغة غير لائقة', 
     label_en: 'Inappropriate Language', 
     icon: <XCircle size={16} />,
-    color: '#fca5a5',
+    color: '#fed7aa',
     points: -4
   },
   { 
@@ -69,7 +69,7 @@ export const BEHAVIOR_TYPES = [
     label_ar: 'أخرى', 
     label_en: 'Other', 
     icon: <HelpCircle size={16} />,
-    color: '#fca5a5',
+    color: '#fed7aa',
     points: 0
   }
 ];
