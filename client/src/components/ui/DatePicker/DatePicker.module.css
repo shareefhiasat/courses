@@ -48,8 +48,8 @@
 }
 
 [dir="rtl"] .iconWrapper {
-  right: auto;
-  left: 0.875rem;
+  left: auto;
+  right: 0.875rem;
 }
 
 .icon {

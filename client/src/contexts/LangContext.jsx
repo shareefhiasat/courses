@@ -554,6 +554,8 @@ const DICT = {
     image_url_help: 'Direct link to image file',
     max_score: 'Max Score',
     max_score_synced_from_quiz: 'Max score is synced from quiz. Enable "Override quiz settings" to edit.',
+    allow_retakes_synced_from_quiz: 'Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.',
+    synced_from_quiz: 'Synced from quiz',
     activity_url_label: 'Activity URL',
     activity_url_help: 'Link to the activity resource',
     activity_id: 'Activity ID',
@@ -970,6 +972,7 @@ const DICT = {
     // Grid headers / labels
     id_col: 'ID',
     title_en_col: 'Title (EN)',
+    title_ar_col: 'Title (AR)',
     title_col: 'Title',
     course_col: 'Course',
     type_col: 'Type',
@@ -2471,6 +2474,9 @@ const DICT = {
     required_remaining: 'المطلوب المتبقي',
     // Forms
     max_score: 'الدرجة الكاملة',
+      max_score_synced_from_quiz: 'الدرجة الكاملة متزامنة من الاختبار. قم بتفعيل "تجاوز إعدادات الاختبار" للتعديل.',
+    allow_retakes_synced_from_quiz: 'السماح بالإعادة متزامن من الاختبار. قم بتفعيل "تجاوز إعدادات الاختبار" للتعديل.',
+    synced_from_quiz: 'متزامن من الاختبار',
     show_to_students: 'إظهار للطلاب',
     allow_retakes: 'السماح بالإعادة',
     send_email_to_students: 'إرسال بريد للطلاب',
@@ -2756,6 +2762,7 @@ const DICT = {
     // Grid headers / labels
     id_col: 'المعرف',
     title_en_col: 'العنوان (إنجليزي)',
+    title_ar_col: 'العنوان (عربي)',
     title_col: 'العنوان',
     course_col: 'المقرر',
     type_col: 'النوع',

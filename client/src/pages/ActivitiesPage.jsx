@@ -324,10 +324,13 @@ const ActivitiesPage = () => {
       renderCell: (params) => {
         const row = params?.row || {};
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', alignItems: 'center' }}>
             <div style={{ color: getThemeColor('text.primary', theme) }}>
               {row.title_en || row.title || ''}
             </div>
+            {row.title_en && row.title_ar && (
+              <span style={{ color: getThemeColor('text.secondary', theme), fontSize: '10px' }}>•</span>
+            )}
             <div style={{ color: getThemeColor('text.secondary', theme), fontSize: '12px' }}>
               {row.title_ar || ''}
             </div>
@@ -339,11 +342,14 @@ const ActivitiesPage = () => {
       renderCell: (params) => {
         const row = params?.row || {};
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ color: getThemeColor('text.secondary', theme), fontSize: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', alignItems: 'center' }}>
+            <div style={{ color: getThemeColor('text.primary', theme), fontSize: '12px' }}>
               {row.title_ar || ''}
             </div>
-            <div style={{ color: getThemeColor('text.primary', theme), fontSize: '12px' }}>
+            {row.title_ar && row.title_en && (
+              <span style={{ color: getThemeColor('text.secondary', theme), fontSize: '10px' }}>•</span>
+            )}
+            <div style={{ color: getThemeColor('text.secondary', theme), fontSize: '12px' }}>
               {row.title_en || row.title || ''}
             </div>
           </div>
@@ -638,7 +644,7 @@ const ActivitiesPage = () => {
       valueFormatter: (params) => params.value ? (t('yes') || 'Yes') : (t('no') || 'No')
     },
     {
-      field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
+      field: 'actions', headerName: t('actions') || 'Actions', width: 150, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>
           <Button size="sm" variant="ghost" className="editHover" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => handleEditActivity(params.row)}>
@@ -827,38 +833,23 @@ const ActivitiesPage = () => {
                 onChange={(e) => handleFieldChange('image', e.target.value)}
                 fullWidth
               />
-              <div style={{ position: 'relative', width: '100%' }}>
-                <NumberInput
-                  placeholder={t('max_score') || 'Max Score'}
-                  value={activityForm.maxScore || 100}
-                  onChange={(e) => {
-                    if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                      toast?.showInfo?.('Max score is synced from quiz. Enable "Override quiz settings" to edit.');
-                      return;
-                    }
-                    handleFieldChange('maxScore', Math.max(1, Number.parseInt(e.target.value || '0', 10)));
-                  }}
-                  min={1}
-                  fullWidth
-                  disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
-                />
-                {activityForm.quizId && !activityForm.overrideQuizSettings && (
-                  <span 
-                    style={{ 
-                      position: 'absolute',
-                      right: '12px', 
-                      top: '50%', 
-                      transform: 'translateY(-50%)',
-                      color: '#ef4444',
-                      pointerEvents: 'none',
-                      zIndex: 10
-                    }} 
-                    title="Locked - synced from quiz"
-                  >
-                    {getThemedIcon('ui', 'lock', 16, theme)}
-                  </span>
-                )}
-              </div>
+              <NumberInput
+                placeholder="100"
+                value={activityForm.maxScore || 100}
+                onChange={(e) => {
+                  if (activityForm.quizId && !activityForm.overrideQuizSettings) {
+                    toast?.showInfo?.(t('max_score_synced_from_quiz') || 'Max score is synced from quiz. Enable "Override quiz settings" to edit.');
+                    return;
+                  }
+                  handleFieldChange('maxScore', Math.max(1, Number.parseInt(e.target.value || '0', 10)));
+                }}
+                min={1}
+                max={1000}
+                step={1}
+                fullWidth
+                disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
+                helperText={activityForm.quizId && !activityForm.overrideQuizSettings ? (t('synced_from_quiz') || 'Synced from quiz') : ''}
+              />
             </div>
             
             {/* Quiz Selector - Only show for quiz type */}
@@ -971,7 +962,7 @@ const ActivitiesPage = () => {
               checked={activityForm.allowRetake || false}
               onChange={(checked) => {
                 if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                  toast?.showInfo?.('Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.');
+                  toast?.showInfo?.(t('allow_retakes_synced_from_quiz') || 'Allow retakes is synced from quiz. Enable "Override quiz settings" to edit.');
                   return;
                 }
                 handleFieldChange('allowRetake', checked);
