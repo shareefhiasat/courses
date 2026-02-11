@@ -160,7 +160,7 @@ export default function QuizManagementPage() {
 
             // Log activity
             try {
-              await logActivity(ACTIVITY_TYPES.QUIZ_DELETED, {
+              await logActivity(ACTIVITY_LOG_TYPES.QUIZ_DELETED, {
                 quizId,
                 quizTitle: quiz?.title || quiz?.name || 'Unknown'
               });

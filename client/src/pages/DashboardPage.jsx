@@ -390,7 +390,7 @@ const DashboardPage = () => {
           {activeTab === 'resources' && <ResourcesPage />}
           {activeTab === 'categories' && <CategoriesPage isDashboardTab />}
           {activeTab === 'emailTemplates' && <EmailTemplatesPage />}
-          {/*{activeTab === 'notificationLogs' && <NotificationLogsPage />}*/}
+          {activeTab === 'notificationLogs' && <NotificationLogsPage />}
           {activeTab === 'allowlist' && <AllowlistPage />}
         </Suspense>
         </div>

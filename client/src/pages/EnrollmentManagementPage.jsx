@@ -109,7 +109,7 @@ const EnrollmentManagementPage = ({
           if (result.success) {
             // Log activity
             try {
-              await logActivity(ACTIVITY_TYPES.ENROLLMENT_CREATED, {
+              await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_CREATED, {
                 enrollmentId: result.id,
                 userId: enrollmentForm.userId,
                 classId: enrollmentForm.classId,
@@ -334,7 +334,7 @@ const EnrollmentManagementPage = ({
                         if (result.success) {
                           // Log activity
                           try {
-                            await logActivity(ACTIVITY_TYPES.ENROLLMENT_DELETED, {
+                            await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_DELETED, {
                               enrollmentId: enrollment.docId,
                               userId: enrollment.userId,
                               classId: enrollment.classId

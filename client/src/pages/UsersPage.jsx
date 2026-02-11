@@ -8,6 +8,7 @@ import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon } from '@constants/iconTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import { ACTIVITY_TYPES } from '@constants/activityTypes';
+import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { Button, Input, Select, ToggleSwitch, RibbonTabs, AdvancedDataGrid } from '@ui';
 
 const UsersPage = ({
@@ -93,7 +94,7 @@ const UsersPage = ({
         // Log activity
         try {
           const { logActivity } = await import('@firebaseServices/activityLogger');
-          await logActivity(ACTIVITY_TYPES.USER_UPDATED, {
+          await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
             userId: editingUser.docId,
             userEmail: userForm.email,
             userDisplayName: userForm.displayName,
@@ -186,7 +187,7 @@ const UsersPage = ({
         // Log activity
         try {
           const { logActivity } = await import('@firebaseServices/activityLogger');
-          await logActivity(ACTIVITY_TYPES.USER_UPDATED, {
+          await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
             userId: userId,
             userEmail: user.email,
             action: isCurrentlyDisabled ? 'enabled' : 'disabled'

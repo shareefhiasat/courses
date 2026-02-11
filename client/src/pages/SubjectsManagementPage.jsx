@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -8,7 +8,8 @@ import { getUsers } from '@firebaseServices/userService';
 import { getClasses } from '@firebaseServices/classService';
 import { getPrograms } from '@firebaseServices/programService';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@firebaseServices/subjectService';
-import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid, Card, CardBody } from '@ui';
+import { Loading, Button, Input, Select, NumberInput, useToast, AdvancedDataGrid } from '@ui';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { useTheme } from '@contexts/ThemeContext';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { ACTIVITY_TYPES } from '@constants';
@@ -24,7 +25,13 @@ const SubjectsManagementPage = () => {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingSubject, setEditingSubject] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: 'delete' });
+  const { deleteModal, deleteSubject: deleteSubjectModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  
+  // Refs for performance
+  const nameEnRef = useRef(null);
+  const nameArRef = useRef(null);
+  const descEnRef = useRef(null);
+  const descArRef = useRef(null);
   const [formData, setFormData] = useState({
     programId: '',
     code: '',
@@ -38,6 +45,15 @@ const SubjectsManagementPage = () => {
     hoursPerWeek: 3,
     requirementType: 'general_mandatory' // 'general_mandatory' | 'major_mandatory' | 'major_optional'
   });
+
+  const syncRefsToState = useCallback(() => {
+    return {
+      name_en: nameEnRef.current?.value ?? formData.name_en,
+      name_ar: nameArRef.current?.value ?? formData.name_ar,
+      description_en: descEnRef.current?.value ?? formData.description_en,
+      description_ar: descArRef.current?.value ?? formData.description_ar
+    };
+  }, [formData]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -63,34 +79,43 @@ const SubjectsManagementPage = () => {
   useEffect(() => {
     if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
       loadData();
-      logActivity(ACTIVITY_TYPES.SUBJECT_VIEWED);
+      logActivity(ACTIVITY_LOG_TYPES.SUBJECT_VIEWED, {});
     }
   }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+    console.time('[PERF] handleSubjectSubmit');
+    
+    // Sync refs
+    const textValues = syncRefsToState();
     
     // Validation
-    if (!formData.programId || !formData.code || !formData.name_en || !formData.name_ar) {
+    if (!formData.programId || !formData.code || !textValues.name_en || !textValues.name_ar) {
       toast.error(t('please_fill_required_fields_subject') || 'Please fill in all required fields');
       return;
     }
+
+    const subjectData = {
+      ...formData,
+      ...textValues
+    };
 
     setLoading(true);
     try {
       let result;
       if (editingSubject) {
-        result = await updateSubject(editingSubject.docId, formData);
+        result = await updateSubject(editingSubject.docId, subjectData);
       } else {
-        result = await createSubject(formData);
+        result = await createSubject(subjectData);
       }
 
       if (result.success) {
         // Log activity
         try {
-          await logActivity(editingSubject ? ACTIVITY_TYPES.SUBJECT_UPDATED : ACTIVITY_TYPES.SUBJECT_CREATED, {
+          await logActivity(editingSubject ? ACTIVITY_LOG_TYPES.SUBJECT_UPDATED : ACTIVITY_LOG_TYPES.SUBJECT_CREATED, {
             subjectId: editingSubject?.docId || result.id,
-            subjectName: formData.name_en,
+            subjectName: textValues.name_en,
             subjectCode: formData.code,
             programId: formData.programId
           });
@@ -103,13 +128,15 @@ const SubjectsManagementPage = () => {
         toast.error(result.error || t('operation_failed_subject') || 'Operation failed');
       }
     } catch (error) {
+      logger.error('Error saving subject:', error);
       toast.error(error.message);
     } finally {
       setLoading(false);
+      console.timeEnd('[PERF] handleSubjectSubmit');
     }
-  }, [editingSubject, formData, toast, t, loadData]);
+  }, [editingSubject, formData, toast, t, loadData, syncRefsToState]);
 
-  const handleEdit = (subject) => {
+  const handleEdit = useCallback((subject) => {
     setEditingSubject(subject);
     setFormData({
       programId: subject.programId || '',
@@ -125,40 +152,45 @@ const SubjectsManagementPage = () => {
       hoursPerWeek: subject.hoursPerWeek || 3,
       classIds: subject.classIds || []
     });
-  };
+    // Sync refs
+    if (nameEnRef.current) nameEnRef.current.value = subject.name_en || '';
+    if (nameArRef.current) nameArRef.current.value = subject.name_ar || '';
+    if (descEnRef.current) descEnRef.current.value = subject.description_en || '';
+    if (descArRef.current) descArRef.current.value = subject.description_ar || '';
+  }, []);
 
-  const handleDelete = (subject) => {
-    setDeleteModal({ open: true, item: subject });
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteModal.item) return;
-
-    setLoading(true);
-    try {
-      const result = await deleteSubject(deleteModal.item.docId);
-      if (result.success) {
-        // Log activity
-        try {
-          await logActivity(ACTIVITY_TYPES.SUBJECT_DELETED, {
-            subjectId: deleteModal.item.docId,
-            subjectName: deleteModal.item.name_en
-          });
-        } catch (e) { logger.warn('Failed to log activity:', e); }
-        toast.success(t('subject_deleted_successfully') || 'Subject deleted successfully');
-        loadData();
-      } else {
-        toast.error(result.error || t('failed_to_delete_subject') || 'Failed to delete subject');
+  const handleDelete = useCallback((subject) => {
+    deleteSubjectModal(subject, async () => {
+      // Optimistic update
+      setSubjects(prev => prev.filter(s => (s.docId || s.id) !== (subject.docId || subject.id)));
+      
+      try {
+        const result = await deleteSubject(subject.docId);
+        if (result.success) {
+          try {
+            await logActivity(ACTIVITY_LOG_TYPES.SUBJECT_DELETED, {
+              subjectId: subject.docId,
+              subjectName: subject.name_en,
+              subjectCode: subject.code
+            });
+          } catch (e) { logger.warn('Failed to log activity:', e); }
+          toast.success(t('subject_deleted_successfully') || 'Subject deleted successfully');
+          await loadData();
+        } else {
+          // Rollback
+          setSubjects(prev => [...prev, subject]);
+          toast.error(result.error || t('failed_to_delete_subject') || 'Failed to delete subject');
+        }
+      } catch (error) {
+        // Rollback
+        setSubjects(prev => [...prev, subject]);
+        logger.error('Error deleting subject:', error);
+        toast.error(error.message);
       }
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-      setDeleteModal({ open: false, item: null });
-    }
-  };
+    });
+  }, [deleteSubjectModal, toast, t, loadData]);
 
-  const resetForm = () => {
+const resetForm = () => {
     setFormData({
       programId: '',
       code: '',
@@ -173,6 +205,11 @@ const SubjectsManagementPage = () => {
       requirementType: 'general_mandatory',
       classIds: []
     });
+    // Reset refs
+    if (nameEnRef.current) nameEnRef.current.value = '';
+    if (nameArRef.current) nameArRef.current.value = '';
+    if (descEnRef.current) descEnRef.current.value = '';
+    if (descArRef.current) descArRef.current.value = '';
   };
 
   if (authLoading) {
@@ -183,68 +220,54 @@ const SubjectsManagementPage = () => {
     return <Navigate to="/" replace />;
   }
 
-  const columns = [
-    {
-      key: 'code',
-      label: t('code') || 'Code',
-      sortable: true
-    },
-    {
-      key: 'name_en',
-      label: t('name_en') || 'Name (EN)',
-      sortable: true
-    },
-    {
-      key: 'name_ar',
-      label: t('name_ar') || 'Name (AR)',
-      sortable: true
-    },
-    {
-      key: 'programId',
-      label: t('program') || 'Program',
-      render: (value) => {
-        const program = programs.find(p => p.docId === value);
-        return program ? (lang === 'ar' ? program.name_ar : program.name_en) : 'N/A';
+const gridColumns = useMemo(() => [
+    { 
+      field: 'code', 
+      headerName: t('code') || 'Code', 
+      width: 120,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const code = row.code || params?.value;
+        return code || '—';
       }
     },
+    { field: 'name_en', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
+    { field: 'name_ar', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
+    { field: 'creditHours', headerName: t('credits') || 'Credits', width: 100 },
+    { field: 'totalHours', headerName: t('total_hours') || 'Total Hours', width: 120 },
     {
-      key: 'creditHours',
-      label: t('credits') || 'Credits'
-    },
-    {
-      key: 'totalHours',
-      label: t('hours') || 'Hours'
-    },
-    {
-      key: 'type',
-      label: t('type') || 'Type',
-      render: (value) => {
+      field: 'type',
+      headerName: t('type') || 'Type',
+      width: 120,
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        const type = row.type || params?.value;
         const typeMap = { lecture: t('lecture') || 'Lecture', lab: t('lab') || 'Lab', mix: t('mix') || 'Mix' };
-        return typeMap[value] || value;
+        return type ? (typeMap[type] || type) : '—';
       }
     },
+    { field: 'hoursPerWeek', headerName: t('hours_per_week') || 'Hours/Week', width: 120 },
     {
-      key: 'hoursPerWeek',
-      label: t('hours_per_week') || 'Hours/Week'
-    },
-    {
-      key: 'actions',
-      label: t('actions') || 'Actions',
-      render: (_, subject) => (
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      field: 'actions',
+      headerName: t('actions') || 'Actions',
+      width: 200,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <div style={{ display: 'flex', gap: 8 }}>
           <Button
-            variant="ghost"
             size="sm"
+            variant="ghost"
             icon={getThemedIcon('ui', 'edit', 16, theme)}
-            onClick={() => handleEdit(subject)}
+            onClick={() => handleEdit(params.row)}
           >
             {t('edit') || 'Edit'}
           </Button>
           <Button
-            variant="ghost"
             size="sm"
+            variant="ghost"
             icon={getThemedIcon('ui', 'trash', 16, theme)}
-            onClick={() => handleDelete(subject)}
+            onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
             {t('delete') || 'Delete'}
@@ -252,7 +275,7 @@ const SubjectsManagementPage = () => {
         </div>
       )
     }
-  ];
+  ], [t, theme, handleEdit, handleDelete]);
 
   return (
     <div className={styles.container}>
@@ -280,14 +303,14 @@ const SubjectsManagementPage = () => {
             required
           />
           <Input
-            value={formData.name_en}
-            onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
+            ref={nameEnRef}
+            defaultValue={formData.name_en}
             placeholder={t('subject_name_en_placeholder') || 'Subject Name (English) * (e.g., Introduction to Programming)'}
             required
           />
           <Input
-            value={formData.name_ar}
-            onChange={(e) => setFormData({ ...formData, name_ar: e.target.value })}
+            ref={nameArRef}
+            defaultValue={formData.name_ar}
             placeholder={t('subject_name_ar_placeholder') || 'Subject Name (Arabic) * (e.g., مقدمة في البرمجة)'}
             required
             dir="rtl"
@@ -361,62 +384,7 @@ const SubjectsManagementPage = () => {
         <AdvancedDataGrid
             rows={subjects}
             getRowId={(row) => row.docId || row.id}
-            columns={[
-              { 
-                field: 'code', 
-                headerName: t('code') || 'Code', 
-                width: 120,
-                valueGetter: (params) => {
-                  const row = params?.row || {};
-                  const code = row.code || params?.value;
-                  return code || '—';
-                }
-              },
-              { field: 'name_en', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
-              { field: 'name_ar', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
-              { field: 'creditHours', headerName: t('credits') || 'Credits', width: 100 },
-              { field: 'totalHours', headerName: t('total_hours') || 'Total Hours', width: 120 },
-              {
-                field: 'type',
-                headerName: t('type') || 'Type',
-                width: 120,
-                valueGetter: (params) => {
-                  const row = params?.row || {};
-                  const type = row.type || params?.value;
-                  const typeMap = { lecture: t('lecture') || 'Lecture', lab: t('lab') || 'Lab', mix: t('mix') || 'Mix' };
-                  return type ? (typeMap[type] || type) : '—';
-                }
-              },
-              { field: 'hoursPerWeek', headerName: t('hours_per_week') || 'Hours/Week', width: 120 },
-              {
-                field: 'actions',
-                headerName: t('actions') || 'Actions',
-                width: 200,
-                sortable: false,
-                filterable: false,
-                renderCell: (params) => (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      icon={getThemedIcon('ui', 'edit', 16, theme)}
-                      onClick={() => handleEdit(params.row)}
-                    >
-                      {t('edit') || 'Edit'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      icon={getThemedIcon('ui', 'trash', 16, theme)}
-                      onClick={() => handleDelete(params.row)}
-                      style={{ color: '#dc2626' }}
-                    >
-                      {t('delete') || 'Delete'}
-                    </Button>
-                  </div>
-                )
-              }
-            ]}
+            columns={gridColumns}
             pageSize={10}
             pageSizeOptions={[10, 25, 50, 100]}
             checkboxSelection
@@ -428,37 +396,13 @@ const SubjectsManagementPage = () => {
         />
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteModal.open && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
-            <CardBody>
-              <h3>{t('delete_subject') || 'Delete Subject'}</h3>
-              <p>{t('delete_subject_confirmation') || `Are you sure you want to delete subject "${deleteModal.item?.name_en || 'this subject'}"?`}</p>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t('delete_warning') || 'This action cannot be undone.'}</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null })}>
-                  {t('cancel') || 'Cancel'}
-                </Button>
-                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }}>
-                  {t('delete') || 'Delete'}
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+      />
     </div>
   );
 };

@@ -2,47 +2,17 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getNotificationLogs } from '@firebaseServices/notificationService';
-import { formatDateTime } from '@utils/date';
+import { formatQatarStandard } from '@utils/qatarDate';
 import { Loading, Modal, Select, Button, Card, CardBody, Badge, AdvancedDataGrid, DatePicker, useToast } from '@ui';
-import { getNotificationTriggerOptions, getNotificationChannelOptions } from '@constants';
+import { getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS } from '@constants/notificationTypes';
+import { getThemedIcon } from '@constants/iconTypes';
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import './NotificationLogsPage.css';
 
 const NotificationLogsPage = () => {
-  let lang = 'en';
-  let t = (key, fallback) => {
-    // Fallback function that returns the key or fallback
-    return fallback || key;
-  };
-  
-  try {
-    const langContext = useLang();
-    if (langContext && typeof langContext.t === 'function') {
-      lang = langContext.lang || 'en';
-      t = langContext.t;
-    }
-  } catch (error) {
-    console.warn('useLang context not available:', error);
-    // Use fallback function already set above
-  }
+  const { t, lang } = useLang();
   const { theme } = useTheme();
-  
-  let toast = {
-    showSuccess: () => {},
-    showError: () => {},
-    showInfo: () => {},
-  };
-  
-  try {
-    const uiToast = useToast();
-    toast = {
-      showSuccess: uiToast.success,
-      showError: uiToast.error,
-      showInfo: uiToast.info,
-    };
-  } catch (error) {
-    console.warn('useToast hook not available:', error);
-  }
+  const toast = useToast();
   
   const [loading, setLoading] = useState(false);
   const [notificationLogs, setNotificationLogs] = useState([]);
@@ -55,8 +25,21 @@ const NotificationLogsPage = () => {
   const [selectedNotificationLog, setSelectedNotificationLog] = useState(null);
   const [notificationLogModalOpen, setNotificationLogModalOpen] = useState(false);
   
-  const triggerOptions = useMemo(() => getNotificationTriggerOptions(), []);
-  const channelOptions = useMemo(() => getNotificationChannelOptions(), []);
+  const triggerOptions = useMemo(() => {
+    const options = [{ value: '', label: t('all_triggers') || 'All Triggers' }];
+    Object.entries(NOTIFICATION_TRIGGERS).forEach(([key, value]) => {
+      options.push({ value, label: value.replace(/_/g, ' ').toUpperCase() });
+    });
+    return options;
+  }, [t]);
+  
+  const channelOptions = useMemo(() => {
+    const options = [{ value: '', label: t('all_channels') || 'All Channels' }];
+    Object.entries(NOTIFICATION_CHANNELS).forEach(([key, value]) => {
+      options.push({ value, label: value.toUpperCase() });
+    });
+    return options;
+  }, [t]);
   
   const loadData = async () => {
     setLoading(true);
@@ -89,7 +72,7 @@ const NotificationLogsPage = () => {
     {
       key: 'timestamp',
       label: t('timestamp', 'Timestamp'),
-      render: (value) => formatDateTime(value),
+      render: (value) => formatQatarStandard(value),
       sortable: true
     },
     {
@@ -152,12 +135,12 @@ const NotificationLogsPage = () => {
             />
             <DatePicker
               label={t('start_date', 'Start Date')}
-              value={notificationLogFilters.startDate}
+              value={notificationLogFilters.startDate || ''}
               onChange={(value) => handleFilterChange('startDate', value)}
             />
             <DatePicker
               label={t('end_date', 'End Date')}
-              value={notificationLogFilters.endDate}
+              value={notificationLogFilters.endDate || ''}
               onChange={(value) => handleFilterChange('endDate', value)}
             />
           </div>
@@ -195,7 +178,7 @@ const NotificationLogsPage = () => {
           <div style={{ padding: '1rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
               <strong>{t('timestamp', 'Timestamp')}:</strong>
-              <div>{formatDateTime(selectedNotificationLog.timestamp)}</div>
+              <div>{formatQatarStandard(selectedNotificationLog.timestamp)}</div>
 
               <strong>{t('trigger', 'Trigger')}:</strong>
               <div><Badge text={selectedNotificationLog.trigger} type="info" size="small" /></div>

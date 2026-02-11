@@ -333,7 +333,7 @@ const MarksEntryPage = () => {
   useEffect(() => {
     if (!authLoading && (isAdmin || isSuperAdmin || isInstructor)) {
       loadData();
-      logActivity(ACTIVITY_TYPES.MARK_ENTRY_VIEWED);
+      logActivity(ACTIVITY_LOG_TYPES.MARK_ENTRY_VIEWED);
     }
   }, [authLoading, isAdmin, isSuperAdmin, isInstructor, loadData]);
 
@@ -416,13 +416,13 @@ const MarksEntryPage = () => {
 
       if (result.success) {
         try {
-          await logActivity(result.isUpdate ? ACTIVITY_TYPES.MARK_ENTRY_UPDATED : ACTIVITY_TYPES.MARK_ENTRY_CREATED, {
+          await logActivity(result.isUpdate ? ACTIVITY_LOG_TYPES.MARK_ENTRY_UPDATED : ACTIVITY_LOG_TYPES.MARK_ENTRY_CREATED, {
             markEntryId: result.id,
             studentId: editingStudent.uid || editingStudent.docId || '',
             subjectId: selectedSubject.docId || selectedSubject.id || '',
             totalScore: calculateTotalScore()
           });
-        } catch (e) { console.warn('Failed to log activity:', e); }
+        } catch (e) { logger.warn('Failed to log activity:', e); }
         toast.success(t('marks_saved_successfully') || 'Marks saved successfully');
         setShowModal(false);
         setEditingStudent(null);

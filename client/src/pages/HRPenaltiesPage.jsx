@@ -125,21 +125,21 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     loadData();
     // Log page view
     try {
-      console.log('🔍 PENALTY VIEWING LOG - About to log activity:', {
+      logger.debug('🔍 PENALTY VIEWING LOG - About to log activity:', {
         timestamp: new Date(),
         timestampUTC: new Date().toISOString(),
         userTime: new Date().toLocaleString(),
         qatarTime: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' }),
         userId: user?.uid,
         userEmail: user?.email,
-        activityType: ACTIVITY_TYPES.PENALTY_VIEWED
+        activityType: ACTIVITY_LOG_TYPES.PENALTY_VIEWED
       });
       
-      logActivity(ACTIVITY_TYPES.PENALTY_VIEWED, {});
+      logActivity(ACTIVITY_LOG_TYPES.PENALTY_VIEWED, {});
       
-      console.log('✅ PENALTY VIEWING LOG - Activity logged successfully');
+      logger.debug('✅ PENALTY VIEWING LOG - Activity logged successfully');
     } catch (e) {
-      console.error('❌ PENALTY VIEWING LOG - Error logging activity:', e);
+      logger.error('❌ PENALTY VIEWING LOG - Error logging activity:', e);
     }
   }, [isHR, isAdmin, isSuperAdmin]);
 
@@ -358,7 +358,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Log activity
         if (result.success) {
           try {
-            await logActivity(ACTIVITY_TYPES.PENALTY_UPDATED, {
+            await logActivity(ACTIVITY_LOG_TYPES.PENALTY_UPDATED, {
               penaltyId: editingPenalty.docId || editingPenalty.id,
               studentId: penaltyData.studentId,
               classId: penaltyData.classId,
@@ -372,7 +372,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Log activity
         if (result.success) {
           try {
-            await logActivity(ACTIVITY_TYPES.PENALTY_CREATED, {
+            await logActivity(ACTIVITY_LOG_TYPES.PENALTY_CREATED, {
               penaltyId: result.id,
               studentId: penaltyData.studentId,
               classId: penaltyData.classId,
@@ -426,7 +426,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       if (result.success) {
         // Log activity
         try {
-          await logActivity(ACTIVITY_TYPES.PENALTY_DELETED, {
+          await logActivity(ACTIVITY_LOG_TYPES.PENALTY_DELETED, {
             penaltyId: deleteModal.item.docId || deleteModal.item.id,
             studentId: deleteModal.item.studentId,
             classId: deleteModal.item.classId,
@@ -544,7 +544,7 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           } else if (studentId) {
             // Fetch user data asynchronously (non-blocking)
             fetchUser(studentId);
-            console.log('HR Penalties User Debug - Triggered async fetch for studentId:', studentId);
+            logger.debug('HR Penalties User Debug - Triggered async fetch for studentId:', studentId);
           }
         }
         
@@ -554,40 +554,40 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           studentName = foundRow?.studentName;
           studentEmail = foundRow?.studentEmail;
           studentId = foundRow?.studentId;
-          console.log('HR Penalties User Debug - Found from penalties state:', { studentName, studentEmail, studentId });
+          logger.debug('HR Penalties User Debug - Found from penalties state:', { studentName, studentEmail, studentId });
           
           // Try to get realName from user data
           if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
             const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
             if (user?.realName) {
               studentName = user.realName;
-              console.log('HR Penalties User Debug - Found realName from students array (fallback):', user.realName);
+              logger.debug('HR Penalties User Debug - Found realName from students array (fallback):', user.realName);
             } else if (user?.displayName) {
               studentName = user.displayName;
-              console.log('HR Penalties User Debug - Found displayName from students array (fallback):', user.displayName);
+              logger.debug('HR Penalties User Debug - Found displayName from students array (fallback):', user.displayName);
             } else if (studentId && userCache[studentId]) {
               // Try cached user data
               const cachedUser = userCache[studentId];
               if (cachedUser?.realName) {
                 studentName = cachedUser.realName;
-                console.log('HR Penalties User Debug - Found realName from cache (fallback):', cachedUser.realName);
+                logger.debug('HR Penalties User Debug - Found realName from cache (fallback):', cachedUser.realName);
               } else if (cachedUser?.displayName) {
                 studentName = cachedUser.displayName;
-                console.log('HR Penalties User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
+                logger.debug('HR Penalties User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
               }
             } else if (studentId) {
               // Fetch user data asynchronously (non-blocking)
               fetchUser(studentId);
-              console.log('HR Penalties User Debug - Triggered async fetch for studentId (fallback):', studentId);
+              logger.debug('HR Penalties User Debug - Triggered async fetch for studentId (fallback):', studentId);
             }
           }
         }
         
         const displayName = studentName && studentName !== 'N/A' ? studentName : (studentEmail || 'N/A');
         
-        console.log('HR Penalties User Debug - Final displayName:', displayName);
-        console.log('HR Penalties User Debug - Final studentEmail:', studentEmail);
-        console.log('=== HR PENALTIES USER DEBUG END ===');
+        logger.debug('HR Penalties User Debug - Final displayName:', displayName);
+        logger.debug('HR Penalties User Debug - Final studentEmail:', studentEmail);
+        logger.debug('=== HR PENALTIES USER DEBUG END ===');
         
         // Format as "Name (email)" like enrollments, but only if we have both and they're different
         if (studentEmail && studentEmail !== displayName && !displayName.includes('@')) {
@@ -686,33 +686,33 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       width: 150,
       valueGetter: (params) => {
         // Debug logging for date investigation
-        console.log('=== HR PENALTIES DATE DEBUG ===');
-        console.log('HR Penalties Date Debug - params:', params);
-        console.log('HR Penalties Date Debug - params.value:', params.value);
-        console.log('HR Penalties Date Debug - params.row:', params.row);
+        logger.debug('=== HR PENALTIES DATE DEBUG ===');
+        logger.debug('HR Penalties Date Debug - params:', params);
+        logger.debug('HR Penalties Date Debug - params.value:', params.value);
+        logger.debug('HR Penalties Date Debug - params.row:', params.row);
         
         // Check if params directly contains the timestamp
         if (params && typeof params === 'object' && params.seconds) {
           const date = new Date(params.seconds * 1000);
-          console.log('HR Penalties Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
-          console.log('HR Penalties Date Debug - Formatted date:', formatQatarDateOnly(date));
-          console.log('=== HR PENALTIES DATE DEBUG END ===');
+          logger.debug('HR Penalties Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
+          logger.debug('HR Penalties Date Debug - Formatted date:', formatQatarDateOnly(date));
+          logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return formatQatarDateOnly(date);
         }
         
         // Check if params.value directly contains the timestamp
         if (params.value && typeof params.value === 'object' && params.value.seconds) {
           const date = new Date(params.value.seconds * 1000);
-          console.log('HR Penalties Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
-          console.log('HR Penalties Date Debug - Formatted date:', formatQatarDateOnly(date));
-          console.log('=== HR PENALTIES DATE DEBUG END ===');
+          logger.debug('HR Penalties Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
+          logger.debug('HR Penalties Date Debug - Formatted date:', formatQatarDateOnly(date));
+          logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return formatQatarDateOnly(date);
         }
         
         // Fallback to original logic
         if (!params.row.createdAt) {
-          console.log('HR Penalties Date Debug - No createdAt found, returning "No Date"');
-          console.log('=== HR PENALTIES DATE DEBUG END ===');
+          logger.debug('HR Penalties Date Debug - No createdAt found, returning "No Date"');
+          logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return 'No Date';
         }
         // Handle Firebase Timestamp properly
@@ -725,13 +725,13 @@ const HRPenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           date = new Date(params.row.createdAt);
         }
         if (isNaN(date.getTime())) {
-          console.log('HR Penalties Date Debug - Invalid date, returning "Invalid Date"');
-          console.log('=== HR PENALTIES DATE DEBUG END ===');
+          logger.debug('HR Penalties Date Debug - Invalid date, returning "Invalid Date"');
+          logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return 'Invalid Date';
         }
         const formattedDate = formatQatarDateOnly(date);
-        console.log('HR Penalties Date Debug - Formatted date (fallback):', formattedDate);
-        console.log('=== HR PENALTIES DATE DEBUG END ===');
+        logger.debug('HR Penalties Date Debug - Formatted date (fallback):', formattedDate);
+        logger.debug('=== HR PENALTIES DATE DEBUG END ===');
         return formattedDate;
       }
     },

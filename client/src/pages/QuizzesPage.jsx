@@ -532,7 +532,7 @@ export default function QuizzesPage() {
             }
 
             try {
-              await logActivity(ACTIVITY_TYPES.QUIZ_DELETED, {
+              await logActivity(ACTIVITY_LOG_TYPES.QUIZ_DELETED, {
                 quizId: quizIdToDelete,
                 quizTitle: quiz?.title || quiz?.name || 'Unknown'
               });

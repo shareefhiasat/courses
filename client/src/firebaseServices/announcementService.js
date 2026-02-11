@@ -36,7 +36,8 @@ export const getAnnouncements = async () => {
         docId: d.id,
         id: d.id,
         ...data,
-        createdAt: data.createdAt?.toDate()
+        // Keep Firestore timestamp as-is for Qatar date utilities to handle properly
+        createdAt: data.createdAt
       });
     });
     return { success: true, data: announcements };

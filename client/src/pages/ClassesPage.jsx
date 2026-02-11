@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -17,11 +17,9 @@ import {
   AdvancedDataGrid, 
   useToast, 
   YearSelect,
-  UserSelect,
-  Card,
-  CardBody
+  UserSelect
 } from '@ui';
-import { RibbonTabs } from '@ui';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import logger from '@utils/logger';
 
@@ -42,7 +40,12 @@ const ClassesPage = () => {
   // Form state
   const [classForm, setClassForm] = useState({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
   const [editingClass, setEditingClass] = useState(null);
-  const [activeClassFormTab, setActiveClassFormTab] = useState('basic');
+  const { deleteModal, deleteClass: deleteClassModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  
+  // Refs for performance
+  const nameRef = useRef(null);
+  const nameArRef = useRef(null);
+  const codeRef = useRef(null);
   
   // Filter state
   const [classProgramFilter, setClassProgramFilter] = useState('');
@@ -51,7 +54,6 @@ const ClassesPage = () => {
   
   // UI state
   const [loading, setLoading] = useState(false);
-  const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: null, onConfirm: null });
 
   // Load all data
   const loadData = async () => {
@@ -98,6 +100,14 @@ const ClassesPage = () => {
   const handleDropdownChange = (field, value) => {
     setClassForm(prev => ({ ...prev, [field]: value }));
   };
+
+  const syncRefsToState = useCallback(() => {
+    return {
+      name: nameRef.current?.value ?? classForm.name,
+      nameAr: nameArRef.current?.value ?? classForm.nameAr,
+      code: codeRef.current?.value ?? classForm.code
+    };
+  }, [classForm]);
   
   // Clear filters
   const handleClearFilters = () => {
@@ -112,44 +122,60 @@ const ClassesPage = () => {
     showInfo: uiToast.info,
   };
 
-  const handleClassSubmit = async (e) => {
+  const handleClassSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (!classForm.name.trim()) {
+    console.time('[PERF] handleClassSubmit');
+    
+    // Sync refs
+    const textValues = syncRefsToState();
+    
+    if (!textValues.name.trim()) {
       toast?.showError(t('class_name') + ' is required');
       return;
     }
 
+    const classData = {
+      ...classForm,
+      ...textValues
+    };
+
     setLoading(true);
     try {
       const result = editingClass ?
-        await updateClass(editingClass.docId, classForm) :
-        await addClass(classForm);
+        await updateClass(editingClass.docId, classData) :
+        await addClass(classData);
 
       if (result.success) {
         // Log activity
         try {
-          await logActivity(editingClass ? ACTIVITY_TYPES.CLASS_UPDATED : ACTIVITY_TYPES.CLASS_CREATED, {
+          await logActivity(editingClass ? ACTIVITY_LOG_TYPES.CLASS_UPDATED : ACTIVITY_LOG_TYPES.CLASS_CREATED, {
             classId: editingClass?.docId || result.id,
-            className: classForm.name,
-            classCode: classForm.code,
+            className: textValues.name,
+            classCode: textValues.code,
             subjectId: classForm.subjectId
           });
-        } catch (e) { }
+        } catch (e) { logger.warn('Failed to log activity:', e); }
         await loadData();
         setEditingClass(null);
         setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
+        // Clear refs
+        if (nameRef.current) nameRef.current.value = '';
+        if (nameArRef.current) nameArRef.current.value = '';
+        if (codeRef.current) codeRef.current.value = '';
         toast?.showSuccess(editingClass ? 'Class updated successfully!' : 'Class created successfully!');
       } else {
         toast?.showError('Error: ' + result.error);
       }
     } catch (error) {
+      logger.error('Error saving class:', error);
       toast?.showError('Error: ' + error.message);
     } finally {
       setLoading(false);
+      console.timeEnd('[PERF] handleClassSubmit');
     }
-  };
+  }, [classForm, editingClass, toast, t, syncRefsToState, loadData]);
 
-  const handleEdit = (params) => {
+  const handleEdit = useCallback((params) => {
     setEditingClass(params.row);
     setClassForm({
       id: params.row.id,
@@ -162,82 +188,54 @@ const ClassesPage = () => {
       programId: params.row.programId || '',
       classId: params.row.classId || ''
     });
-  };
+    // Sync refs
+    if (nameRef.current) nameRef.current.value = params.row.name || '';
+    if (nameArRef.current) nameArRef.current.value = params.row.nameAr || '';
+    if (codeRef.current) codeRef.current.value = params.row.code || '';
+  }, []);
 
-  const handleDelete = (params) => {
+  const handleDelete = useCallback((params) => {
     const classItem = params.row;
-    const classEnrollments = enrollments.filter(e => e.classId === classItem.docId);
-    const relatedActivities = activities.filter(a => (a.classId || '') === classItem.docId);
-    
-    setDeleteModal({
-      open: true,
-      item: classItem,
-      type: 'class',
-      classEnrollments,
-      relatedActivities
-    });
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteModal.item) return;
-
-    setLoading(true);
-    try {
+    deleteClassModal(classItem, async () => {
       // Optimistic update
-      const prevClasses = classes;
-      setClasses(prev => prev.filter(c => c.docId !== deleteModal.item.docId));
+      setClasses(prev => prev.filter(c => (c.docId || c.id) !== (classItem.docId || classItem.id)));
       
-      // deleteClass now handles cascade deletion of enrollments and attendance
-      const result = await deleteClass(deleteModal.item.docId);
-      if (result.success) {
-        // Log activity
-        try {
-          await logActivity(ACTIVITY_TYPES.CLASS_DELETED, {
-            classId: deleteModal.item.docId,
-            className: deleteModal.item.name
-          });
-        } catch (e) { }
-        await loadData();
-        toast?.showSuccess(`Class deleted successfully! Removed ${deleteModal.classEnrollments?.length || 0} enrollment(s) and related attendance records.`);
-        setDeleteModal({ open: false, item: null, type: null, classEnrollments: null, relatedActivities: null });
-      } else {
-        // Rollback on error
-        setClasses(prevClasses);
-        toast?.showError('Error deleting class: ' + result.error);
-        setDeleteModal({ open: false, item: null, type: null, classEnrollments: null, relatedActivities: null });
+      try {
+        const result = await deleteClass(classItem.docId);
+        if (result.success) {
+          try {
+            await logActivity(ACTIVITY_LOG_TYPES.CLASS_DELETED, {
+              classId: classItem.docId,
+              className: classItem.name,
+              classCode: classItem.code
+            });
+          } catch (e) { logger.warn('Failed to log activity:', e); }
+          toast?.showSuccess('Class deleted successfully!');
+          await loadData();
+        } else {
+          // Rollback
+          setClasses(prev => [...prev, classItem]);
+          toast?.showError('Error: ' + result.error);
+        }
+      } catch (error) {
+        // Rollback
+        setClasses(prev => [...prev, classItem]);
+        logger.error('Error deleting class:', error);
+        toast?.showError('Error: ' + error.message);
       }
-    } catch (error) {
-      // Rollback on error
-      setClasses(prevClasses);
-      toast?.showError('Error deleting class: ' + error.message);
-      setDeleteModal({ open: false, item: null, type: null, classEnrollments: null, relatedActivities: null });
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+  }, [deleteClassModal, enrollments, activities, toast, loadData]);
 
-  const handleCancelEdit = () => {
+const handleCancelEdit = useCallback(() => {
     setEditingClass(null);
     setClassForm({ id: '', name: '', nameAr: '', code: '', term: '', ownerEmail: '', subjectId: '', programId: '', classId: '' });
-    setActiveClassFormTab('basic');
-  };
+    // Clear refs
+    if (nameRef.current) nameRef.current.value = '';
+    if (nameArRef.current) nameArRef.current.value = '';
+    if (codeRef.current) codeRef.current.value = '';
+  }, []);
 
-  const handleTabNavigation = (direction) => {
-    if (direction === 'next') {
-      if (activeClassFormTab === 'basic') {
-        setActiveClassFormTab('academic');
-      } else if (activeClassFormTab === 'academic') {
-        // Save form when reaching the last tab
-        handleClassSubmit({ preventDefault: () => {} });
-      }
-    } else {
-      if (activeClassFormTab === 'academic') {
-        setActiveClassFormTab('basic');
-      }
-    }
-  };
-
-  const columns = [
+  const gridColumns = useMemo(() => [
     { field: 'name', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
     { 
       field: 'code', 
@@ -364,7 +362,7 @@ const ClassesPage = () => {
         </div>
       )
     }
-  ];
+  ], [subjects, users, theme, lang, t, handleEdit, handleDelete]);
 
   const filteredClasses = classes.filter(classItem => {
     if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;
@@ -390,48 +388,101 @@ const ClassesPage = () => {
         </div>
       )}
 
-      <RibbonTabs
-        categories={[
-          {
-            id: 'class-fields',
-            items: [
-              { key: 'basic', label: t('basic_info') || 'Basic Info', icon: getThemedIcon('ui', 'home', 14, theme) },
-              { key: 'academic', label: t('academic_info') || 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) }
-            ]
-          }
-        ]}
-        activeCategory="class-fields"
-        activeItem={activeClassFormTab}
-        onChange={({ item }) => setActiveClassFormTab(item)}
-      />
-      
       <form onSubmit={handleClassSubmit} className="dashboard-form">
-        {/* Form Actions - Show on all tabs - MOVED TO TOP */}
-        <div className="form-actions" style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'center' }}>
-            {activeClassFormTab !== 'basic' && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => handleTabNavigation('previous')}
-              >
-                {t('previous') || '← Previous'}
-              </Button>
-            )}
-            {activeClassFormTab === 'academic' && (
-              <Button type="submit" variant="primary" loading={loading}>
-                {(editingClass ? t('update') : t('save'))}
-              </Button>
-            )}
-            {activeClassFormTab !== 'academic' && (
-              <Button 
-                type="button" 
-                variant="secondary"
-                onClick={() => handleTabNavigation('next')}
-              >
-                {t('next') || 'Next →'}
-              </Button>
-            )}
+        {/* Basic Info */}
+        <div className="form-row wide-cols">
+          <Input
+            ref={nameRef}
+            placeholder={t('class_name')}
+            defaultValue={classForm.name}
+            required
+          />
+          <Input
+            ref={nameArRef}
+            placeholder={t('class_name_arabic')}
+            defaultValue={classForm.nameAr || ''}
+            dir="rtl"
+          />
+          <Input
+            ref={codeRef}
+            placeholder={t('class_code') + ' (' + t('optional') + ')'}
+            defaultValue={classForm.code}
+          />
+        </div>
+
+        {/* Academic Info */}
+        <div className="form-row">
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={classForm.programId}
+            selectedSubject={classForm.subjectId}
+            selectedClass={classForm.classId || ''}
+            onProgramChange={(programId) => setClassForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
+            onSubjectChange={(subjectId) => setClassForm(prev => ({ ...prev, subjectId, classId: '' }))}
+            onClassChange={(classId) => setClassForm(prev => ({ ...prev, classId }))}
+            showLabels={false}
+            required
+          />
+          <UserSelect
+            users={users}
+            enrollments={enrollments}
+            value={classForm.ownerEmail}
+            onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
+            placeholder={t('select_instructor') || 'Select Instructor'}
+            roleFilter={[USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR]}
+            includeAll={false}
+            showEnrollments={false}
+            showStatus={true}
+            useEmailAsValue={true}
+            searchable={true}
+            required
+          />
+        </div>
+        <div className="form-row compact-cols">
+          <Select
+            searchable
+            placeholder={t('term')}
+            value={classForm.term?.split(' ')[0] || ''}
+            onChange={e => {
+              const year = classForm.term?.split(' ')[1] || new Date().getFullYear();
+              setClassForm({ ...classForm, term: e.target.value ? `${e.target.value} ${year}` : '' });
+            }}
+            options={[
+              { value: '', label: t('term') || 'Select Term' },
+              { value: 'Fall', label: t('fall') || 'Fall' },
+              { value: 'Spring', label: t('spring') || 'Spring' },
+              { value: 'Summer', label: t('summer') || 'Summer' }
+            ]}
+            required
+          />
+          <div style={{ width: '100%' }}>
+            <YearSelect
+              value={classForm.term?.split(' ')[1] || ''}
+              onChange={e => {
+                const semester = classForm.term?.split(' ')[0] || '';
+                setClassForm({
+                  ...classForm,
+                  term: semester ? `${semester} ${e.target.value}` : e.target.value
+                });
+              }}
+              startYear={2024}
+              yearsAhead={5}
+              label={null}
+              placeholder={t('year') || 'Year'}
+              searchable
+              required
+            />
+          </div>
+        </div>
+
+        {/* Form Actions */}
+        <div className="form-actions">
+          <Button type="submit" variant="primary" loading={loading}>
+            {(editingClass ? t('update') : t('save'))}
+          </Button>
+          {editingClass && (
             <Button 
               type="button" 
               variant="outline" 
@@ -439,104 +490,8 @@ const ClassesPage = () => {
             >
               {t('cancel') || 'Cancel'}
             </Button>
-          </div>
+          )}
         </div>
-
-        {/* Basic Info Tab */}
-        {activeClassFormTab === 'basic' && (
-          <>
-            <div className="form-row wide-cols">
-              <Input
-                placeholder={t('class_name')}
-                value={classForm.name}
-                onChange={e => setClassForm({ ...classForm, name: e.target.value })}
-                required
-              />
-              <Input
-                placeholder={t('class_name_arabic')}
-                value={classForm.nameAr || ''}
-                onChange={e => setClassForm({ ...classForm, nameAr: e.target.value })}
-                dir="rtl"
-              />
-              <Input
-                placeholder={t('class_code') + ' (' + t('optional') + ')'}
-                value={classForm.code}
-                onChange={e => setClassForm({ ...classForm, code: e.target.value })}
-              />
-            </div>
-          </>
-        )}
-
-        {/* Academic Info Tab */}
-        {activeClassFormTab === 'academic' && (
-          <>
-            <div className="form-row">
-              <ProgramsSelect
-                programs={programs}
-                subjects={subjects}
-                classes={classes}
-                selectedProgram={classForm.programId}
-                selectedSubject={classForm.subjectId}
-                selectedClass={classForm.classId || ''}
-                onProgramChange={(programId) => setClassForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
-                onSubjectChange={(subjectId) => setClassForm(prev => ({ ...prev, subjectId, classId: '' }))}
-                onClassChange={(classId) => setClassForm(prev => ({ ...prev, classId }))}
-                showLabels={false}
-                required
-              />
-              <UserSelect
-                users={users}
-                enrollments={enrollments}
-                value={classForm.ownerEmail}
-                onChange={e => setClassForm({ ...classForm, ownerEmail: e.target.value })}
-                placeholder={t('select_instructor') || 'Select Instructor'}
-                roleFilter={[USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR]}
-                includeAll={false}
-                showEnrollments={false}
-                showStatus={true}
-                useEmailAsValue={true}
-                searchable={true}
-                required
-              />
-            </div>
-            <div className="form-row compact-cols">
-              <Select
-                searchable
-                placeholder={t('term')}
-                value={classForm.term?.split(' ')[0] || ''}
-                onChange={e => {
-                  const year = classForm.term?.split(' ')[1] || new Date().getFullYear();
-                  setClassForm({ ...classForm, term: e.target.value ? `${e.target.value} ${year}` : '' });
-                }}
-                options={[
-                  { value: '', label: t('term') || 'Select Term' },
-                  { value: 'Fall', label: t('fall') || 'Fall' },
-                  { value: 'Spring', label: t('spring') || 'Spring' },
-                  { value: 'Summer', label: t('summer') || 'Summer' }
-                ]}
-                required
-              />
-              <div style={{ width: '100%' }}>
-                <YearSelect
-                  value={classForm.term?.split(' ')[1] || ''}
-                  onChange={e => {
-                    const semester = classForm.term?.split(' ')[0] || '';
-                    setClassForm({
-                      ...classForm,
-                      term: semester ? `${semester} ${e.target.value}` : e.target.value
-                    });
-                  }}
-                  startYear={2024}
-                  yearsAhead={5}
-                  label={null}
-                  placeholder={t('year') || 'Year'}
-                  searchable
-                  required
-                />
-              </div>
-            </div>
-          </>
-        )}
       </form>
 
       {/* Filters for Classes */}
@@ -574,7 +529,7 @@ const ClassesPage = () => {
         <AdvancedDataGrid
           rows={filteredClasses}
           getRowId={(row) => row.docId || row.id}
-          columns={columns}
+          columns={gridColumns}
           pageSize={10}
           pageSizeOptions={[5, 10, 20, 50]}
           checkboxSelection
@@ -586,37 +541,13 @@ const ClassesPage = () => {
         />
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteModal.open && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <Card style={{ maxWidth: '400px', margin: '1rem' }}>
-            <CardBody>
-              <h3>{t('delete_class') || 'Delete Class'}</h3>
-              <p>{t('delete_class_confirmation') || `Are you sure you want to delete class "${deleteModal.item?.name || deleteModal.item?.code || 'this class'}"?`}</p>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>{t('delete_class_warning') || 'This will also remove all enrollments and attendance records for this class.'}</p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, type: null, classEnrollments: null, relatedActivities: null })}>
-                  {t('cancel') || 'Cancel'}
-                </Button>
-                <Button variant="primary" onClick={confirmDelete} style={{ backgroundColor: '#dc2626' }} loading={loading}>
-                  {t('delete') || 'Delete'}
-                </Button>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+      />
     </div>
   );
 };

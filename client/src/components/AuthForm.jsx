@@ -264,7 +264,7 @@ const AuthForm = () => {
             
             // Log user creation activity
             try {
-              await logActivity(ACTIVITY_TYPES.USER_CREATED, {
+              await logActivity(ACTIVITY_LOG_TYPES.USER_CREATED, {
                 userId: result.user.uid,
                 userEmail: email,
                 userDisplayName: displayName || null,

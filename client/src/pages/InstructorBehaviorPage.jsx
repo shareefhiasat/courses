@@ -88,7 +88,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
     loadData();
     // Log page view
     try {
-      logActivity(ACTIVITY_TYPES.BEHAVIOR_VIEWED, {});
+      logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_VIEWED, {});
     } catch (e) { }
   }, [isInstructor, isAdmin, isSuperAdmin]);
 
@@ -311,7 +311,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         
         // Log activity
         try {
-          await logActivity(ACTIVITY_TYPES.BEHAVIOR_UPDATED, {
+          await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_UPDATED, {
             behaviorId: editingBehavior.id,
             studentId: formData.studentId,
             classId: formData.classId,
@@ -338,7 +338,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
         
         // Log activity
         try {
-          await logActivity(ACTIVITY_TYPES.BEHAVIOR_CREATED, {
+          await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_CREATED, {
             behaviorId: result.id,
             studentId: formData.studentId,
             classId: formData.classId,
@@ -390,7 +390,7 @@ const InstructorBehaviorPage = ({ isDashboardTab = false, hideActions = false })
       
       // Log activity
       try {
-        await logActivity(ACTIVITY_TYPES.BEHAVIOR_DELETED, {
+        await logActivity(ACTIVITY_LOG_TYPES.BEHAVIOR_DELETED, {
           behaviorId: deleteModal.item.id,
           studentId: deleteModal.item.studentId,
           classId: deleteModal.item.classId,

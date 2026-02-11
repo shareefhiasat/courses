@@ -49,7 +49,7 @@ const LogsActivityPage = () => {
         setEnrollments(enrollmentsRes.data);
       }
     } catch (error) {
-      console.error('Error loading logs data:', error);
+      logger.error('Error loading logs data:', error);
       toast?.showError('Failed to load activity logs');
     } finally {
       setLoading(false);
@@ -552,7 +552,7 @@ const LogsActivityPage = () => {
                       toast?.showError('Failed to delete login logs: ' + result.error);
                     }
                   } catch (error) {
-                    console.error('Error deleting login logs:', error);
+                    logger.error('Error deleting login logs:', error);
                     toast?.showError('An error occurred while deleting login logs');
                   } finally {
                     setLoading(false);
@@ -604,7 +604,7 @@ const LogsActivityPage = () => {
               // For penalty viewing activities, use Qatar timezone and log details
               if (activityType === 'penalty_viewed') {
                 const qatarTimeAgo = getQatarTimeAgo(date);
-                console.log('🔍 PENALTY VIEWING DISPLAY - Rendering timestamp:', {
+                logger.debug('🔍 PENALTY VIEWING DISPLAY - Rendering timestamp:', {
                   rawTimestamp: timestamp,
                   convertedDate: date,
                   convertedDateUTC: date.toISOString(),

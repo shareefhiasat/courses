@@ -170,8 +170,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
               const userResult = await getUserById(enrichedParticipation.studentId);
               if (userResult.success) {
                 const studentData = userResult.data;
-                // console.log('InstructorParticipationPage: Student data from Firebase:', studentData);
-                // console.log('InstructorParticipationPage: displayName:', studentData.displayName, 'email:', studentData.email);
+                // logger.debug('InstructorParticipationPage: Student data from Firebase:', studentData);
+                // logger.debug('InstructorParticipationPage: displayName:', studentData.displayName, 'email:', studentData.email);
                 enrichedParticipation.studentName = studentData.displayName || studentData.email || 'N/A';
                 enrichedParticipation.studentEmail = studentData.email;
                 } else {
@@ -275,9 +275,9 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       }
       
       // Create a new array to ensure React detects the change
-      // console.log('InstructorParticipationPage: Setting participations with data:', filtered.length, 'items');
-      // console.log('InstructorParticipationPage: Sample participation data:', filtered[0]);
-      // console.log('InstructorParticipationPage: Full filtered array:', filtered);
+      // logger.debug('InstructorParticipationPage: Setting participations with data:', filtered.length, 'items');
+      // logger.debug('InstructorParticipationPage: Sample participation data:', filtered[0]);
+      // logger.debug('InstructorParticipationPage: Full filtered array:', filtered);
       setParticipations([...filtered]);
     } catch (error) {
       logger.error('Failed to load participations:', error);
@@ -324,7 +324,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         await updateDoc(doc(db, 'participations', editingParticipation.id), participationData);
         // Log activity
         try {
-          await logActivity(ACTIVITY_TYPES.PARTICIPATION_UPDATED, {
+          await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_UPDATED, {
             participationId: editingParticipation.id,
             studentId: formData.studentId,
             classId: formData.classId,
@@ -338,7 +338,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
         
         // Log activity
         try {
-          await logActivity(ACTIVITY_TYPES.PARTICIPATION_CREATED, {
+          await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_CREATED, {
             participationId: docRef.id,
             studentId: formData.studentId,
             classId: formData.classId,
@@ -406,7 +406,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       await deleteDoc(doc(db, 'participations', deleteModal.item.id));
       // Log activity
       try {
-        await logActivity(ACTIVITY_TYPES.PARTICIPATION_DELETED, {
+        await logActivity(ACTIVITY_LOG_TYPES.PARTICIPATION_DELETED, {
           participationId: deleteModal.item.id,
           studentId: deleteModal.item.studentId,
           classId: deleteModal.item.classId,
@@ -660,8 +660,8 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       headerName: 'Points',
       width: 100,
       valueGetter: (params) => {
-        // console.log('InstructorParticipationPage: Full params object:', params);
-        // console.log('InstructorParticipationPage: Using params.value directly:', params.value, 'type:', typeof params.value);
+        // logger.debug('InstructorParticipationPage: Full params object:', params);
+        // logger.debug('InstructorParticipationPage: Using params.value directly:', params.value, 'type:', typeof params.value);
         return Number(params.value) || 0;
       },
       renderCell: (params) => {
@@ -1184,7 +1184,7 @@ const InstructorParticipationPage = ({ isDashboardTab = false, hideActions = fal
       </div>
 
       <div className={styles.content}>
-        {/* console.log('InstructorParticipationPage: Grid receiving participations data:', participations) */}
+        {/* logger.debug('InstructorParticipationPage: Grid receiving participations data:', participations) */}
         <AdvancedDataGrid
           rows={participations}
           getRowId={(row) => row.docId || row.id}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -33,6 +33,12 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     order: 1
   });
   const [saving, setSaving] = useState(false);
+
+  // Refs for uncontrolled inputs
+  const nameEnRef = useRef(null);
+  const nameArRef = useRef(null);
+  const descEnRef = useRef(null);
+  const descArRef = useRef(null);
 
   // Dynamic form validation
   const formErrors = useMemo(() => {
@@ -307,7 +313,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   return (
     <div className={styles.container}>
-      {!isDashboardTab && editingCategory && (
+      {editingCategory && (
         <div style={{ 
           padding: '0.75rem 1rem', 
           background: '#fef3c7', 
@@ -322,19 +328,23 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )}
 
-      {!isDashboardTab && (
-        <form onSubmit={handleSubmit} className="dashboard-form">
+      <form onSubmit={handleSubmit} className="dashboard-form">
           <div className="form-row">
-            <Input
-              value={formData.name_en}
-              onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
+            <input
+              ref={nameEnRef}
+              type="text"
+              defaultValue={formData.name_en}
               placeholder={t('enter_name_english') || 'Enter name in English'}
+              className="dashboard-input"
               required
             />
-            <Input
-              value={formData.name_ar}
-              onChange={(e) => setFormData({ ...formData, name_ar: e.target.value })}
+            <input
+              ref={nameArRef}
+              type="text"
+              defaultValue={formData.name_ar}
               placeholder={t('enter_name_arabic') || 'Enter name in Arabic'}
+              className="dashboard-input"
+              style={{ direction: 'rtl' }}
               required
             />
             <Input
@@ -389,17 +399,20 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
             />
           </div>
           <div className="form-row">
-            <Textarea
-              value={formData.description_en}
-              onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
+            <textarea
+              ref={descEnRef}
+              defaultValue={formData.description_en}
               placeholder={t('enter_description_english') || 'Enter description in English'}
+              className="dashboard-textarea"
               rows={3}
             />
-            <Textarea
-              value={formData.description_ar}
-              onChange={(e) => setFormData({ ...formData, description_ar: e.target.value })}
+            <textarea
+              ref={descArRef}
+              defaultValue={formData.description_ar}
               placeholder={t('enter_description_arabic') || 'Enter description in Arabic'}
+              className="dashboard-textarea"
               rows={3}
+              style={{ direction: 'rtl' }}
             />
           </div>
           <div className="form-actions">
@@ -425,7 +438,6 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
             )}
           </div>
         </form>
-      )}
 
       {/* Dynamic Summary Chips */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -476,7 +488,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
             fontWeight: '500',
             color: theme === 'dark' ? '#c7d2fe' : '#4338ca'
           }}>
-            {getThemedIcon('ui', 'palette', 16, theme)}
+            {getThemedIcon('ui', 'droplet', 16, theme)}
             {categoryStats.withColors} {t('with_custom_colors') || 'Custom Colors'}
           </div>
         )}

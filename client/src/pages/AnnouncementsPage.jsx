@@ -8,9 +8,10 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, getQatarNow } from '@utils/qatarDate';
 import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programService.js';
 import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement as deleteAnnouncementService } from '@firebaseServices/announcementService';
-import { getUsers } from '@firebaseServices/userService';
-import { notifyAllUsers, notifyUsersByClass } from '@firebaseServices/notificationService';
-import { sendEmail } from '@firebaseServices/emailService';
+import { getUsers, getUserById } from '@firebaseServices/userService';
+import { notificationGateway } from '@firebaseServices/notificationGateway';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { Button, ToggleSwitch, Select } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -179,66 +180,37 @@ const AnnouncementsPage = () => {
           console.log('🔍 [SAVE] Announcement created successfully with ID:', result.id);
           toast?.showSuccess('Announcement created successfully');
           
-          // Send notifications only for new announcements
+          // Send notifications using notification gateway (only for new announcements)
           const { programId, subjectId, classId } = announcementData;
           
           try {
             if (classId) {
-              await notifyUsersByClass(
-                classId,
-                `📢 ${announcementData.title}`,
-                announcementData.content,
-                'announcement'
-              );
-            } else {
-              await notifyAllUsers(
-                `📢 ${announcementData.title}`,
-                announcementData.content,
-                'announcement'
-              );
+              const enrollmentsResult = await getEnrollments({ classId });
+              const studentIds = (enrollmentsResult.data || []).map(e => e.userId);
+              
+              for (const studentId of studentIds) {
+                const { data: student } = await getUserById(studentId);
+                if (student && student.email) {
+                  await notificationGateway.send(NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW, {
+                    userId: studentId,
+                    role: 'student',
+                    classId,
+                    email: student.email,
+                    lang: student.preferredLanguage || 'en',
+                    variables: {
+                      studentName: student.displayName || student.name || 'Student',
+                      announcementTitle: announcementData.title,
+                      announcementContent: announcementData.content
+                    }
+                  });
+                }
+              }
             }
           } catch (notifyError) {
             logger.warn('Failed to send notifications:', notifyError);
           }
 
-          // Optional email blast
-          if (emailOptions.sendEmail) {
-            try {
-              const buildBody = () => {
-                const en = announcementData.content?.trim();
-                const ar = announcementData.content_ar?.trim();
-                return [`<div>${en || ''}</div>`, ar ? `<hr/><div dir="rtl" style="text-align:right">${ar}</div>` : ''].join('');
-              };
-
-              let recipients = [];
-              if (classId) {
-                const classUsers = users.filter(u => u.enrollments?.some(e => e.classId === classId));
-                recipients = classUsers.map(u => u.email).filter(Boolean);
-              } else if (subjectId) {
-                const subjectUsers = users.filter(u => u.enrollments?.some(e => e.subjectId === subjectId));
-                recipients = subjectUsers.map(u => u.email).filter(Boolean);
-              } else if (programId) {
-                const programUsers = users.filter(u => u.enrollments?.some(e => e.programId === programId));
-                recipients = programUsers.map(u => u.email).filter(Boolean);
-              } else {
-                recipients = users.map(u => u.email).filter(Boolean);
-              }
-
-              if (recipients.length > 0) {
-                const sendRes = await sendEmail({
-                  to: recipients,
-                  subject: `📢 ${announcementData.title}`,
-                  html: buildBody(),
-                  type: 'announcement'
-                });
-                if (!sendRes.success) {
-                  logger.error('Email send failed:', sendRes.error);
-                }
-              }
-            } catch (emailError) {
-              logger.error('Email sending error:', emailError);
-            }
-          }
+          // Optional email blast removed - handled by notification gateway
         } else {
           throw new Error(result.error || 'Failed to create announcement');
         }
