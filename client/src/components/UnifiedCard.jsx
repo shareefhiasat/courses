@@ -222,7 +222,7 @@ const UnifiedCard = memo(({
                     cursor: 'default'
                   }}
               >
-                {getThemedIcon('ui', 'pin', 14, theme)}
+                getWhiteIcon('ui', 'pin', 14)
               </button>
           )}
           {(item.allowRetake || item.retakeAllowed) && (
@@ -420,7 +420,7 @@ const UnifiedCard = memo(({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                color: isDark ? '#94a3b8' : '#6b7280'
+                color: isDark ? '#94a3b8' : '#16a34a'
               }} title={t('created_at') || 'Created at'}>
                 {getThemedIcon('ui', 'add', 12, theme)}
                 <span>{formatDate(item.createdAt)}</span>
@@ -469,7 +469,7 @@ const UnifiedCard = memo(({
                   aria-label={t('start') || 'Start'}
                   title={t('start') || 'Start'}
               >
-                {getColoredIcon('ui', 'play', 14, '#16a34a', theme)}
+                getWhiteIcon('ui', 'play', 14)
               </Button>
           )}
 

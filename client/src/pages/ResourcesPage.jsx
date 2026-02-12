@@ -13,7 +13,7 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogge
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from '@firebaseServices/userService';
 import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker } from '@ui';
-import { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getResourceTypeConfig, getResourceTypeOptions, RESOURCE_TYPES } from '@constants/dashboardTypes.jsx';
 import { getCategories } from '@firebaseServices/categoryService';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
@@ -30,6 +30,7 @@ const ResourcesPage = () => {
   const { user } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const uiToast = useToast();
   const toast = {
     showSuccess: uiToast.success,
@@ -561,13 +562,14 @@ const ResourcesPage = () => {
       {editingResource && (
         <div style={{ 
           padding: '0.75rem 1rem', 
-          background: '#fef3c7', 
-          border: '1px solid #fbbf24', 
+          background: isDark ? '#78350f' : '#fef3c7', 
+          border: isDark ? '1px solid #92400e' : '1px solid #fbbf24', 
           borderRadius: '8px', 
           marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem'
+          gap: '0.5rem',
+          color: isDark ? '#fef3c7' : '#78350f'
         }}>
           {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_resource') || 'Editing Resource'}: {editingResource.title || editingResource.title_en}
         </div>
@@ -706,10 +708,11 @@ const ResourcesPage = () => {
         flexDirection: 'column',
         gap: '1rem', 
         marginBottom: '1rem', 
-        background: '#f8f9fa', 
+        background: isDark ? '#1f2937' : '#f8f9fa', 
         padding: '1rem', 
         borderRadius: 12, 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
+        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.05)', 
         width: '100%' 
       }}>
         {/* First row: Program, Subject, Class filters */}
@@ -797,12 +800,12 @@ const ResourcesPage = () => {
           gap: '0.5rem',
           padding: '0.5rem 0.75rem',
           marginBottom: '1rem',
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
+          background: isDark ? '#1e3a8a' : '#eff6ff',
+          border: isDark ? '1px solid #3b82f6' : '1px solid #bfdbfe',
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#1e40af'
+          color: isDark ? '#dbeafe' : '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
           {t('showing_filtered') || 'Showing'} {filteredResources.length} {t('of') || 'of'} {resources.length} {t('resources') || 'Resources'}
@@ -816,12 +819,12 @@ const ResourcesPage = () => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#f0f9ff', 
-          border: '1px solid #bae6fd', 
+          background: isDark ? '#1e3a8a' : '#f0f9ff', 
+          border: isDark ? '1px solid #3b82f6' : '1px solid #bae6fd', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#0369a1'
+          color: isDark ? '#dbeafe' : '#0369a1'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
           {resources.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
@@ -834,12 +837,12 @@ const ResourcesPage = () => {
             alignItems: 'center', 
             gap: '0.5rem', 
             padding: '0.5rem 0.75rem', 
-            background: '#fef3c7', 
-            border: '1px solid #fde68a', 
+            background: isDark ? '#78350f' : '#fef3c7', 
+            border: isDark ? '1px solid #92400e' : '1px solid #fde68a', 
             borderRadius: '9999px',
             fontSize: '0.875rem',
             fontWeight: '500',
-            color: '#92400e'
+            color: isDark ? '#fef3c7' : '#92400e'
           }}>
             {getThemedIcon('ui', 'file_text', 16, theme)}
             {resources.filter(r => r.type === RESOURCE_TYPES.DOCUMENT).length} {lang === 'ar' ? 'مستندات' : 'Documents'}
@@ -852,12 +855,12 @@ const ResourcesPage = () => {
             alignItems: 'center', 
             gap: '0.5rem', 
             padding: '0.5rem 0.75rem', 
-            background: '#fce7f3', 
-            border: '1px solid #fbcfe8', 
+            background: isDark ? '#831843' : '#fce7f3', 
+            border: isDark ? '1px solid #be185d' : '1px solid #fbcfe8', 
             borderRadius: '9999px',
             fontSize: '0.875rem',
             fontWeight: '500',
-            color: '#831843'
+            color: isDark ? '#fce7f3' : '#831843'
           }}>
             {getThemedIcon('ui', 'link', 16, theme)}
             {resources.filter(r => r.type === RESOURCE_TYPES.LINK).length} {lang === 'ar' ? 'روابط' : 'Links'}
@@ -870,12 +873,12 @@ const ResourcesPage = () => {
             alignItems: 'center', 
             gap: '0.5rem', 
             padding: '0.5rem 0.75rem', 
-            background: '#f0fdf4', 
-            border: '1px solid #bbf7d0', 
+            background: isDark ? '#14532d' : '#f0fdf4', 
+            border: isDark ? '1px solid #16a34a' : '1px solid #bbf7d0', 
             borderRadius: '9999px',
             fontSize: '0.875rem',
             fontWeight: '500',
-            color: '#166534'
+            color: isDark ? '#dcfce7' : '#166534'
           }}>
             {getThemedIcon('ui', 'video', 16, theme)}
             {resources.filter(r => r.type === RESOURCE_TYPES.VIDEO).length} {lang === 'ar' ? 'فيديوهات' : 'Videos'}
@@ -897,7 +900,14 @@ const ResourcesPage = () => {
         />
       </div>
 
-      {deleteModal}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        t={t}
+      />
     </div>
   );
 };

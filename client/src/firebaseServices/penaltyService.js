@@ -17,6 +17,7 @@ import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { RECORD_TYPES } from "@utils/sharedTypes";
 import { USER_ROLES } from "@constants/userRoles";
+import { PENALTY_TYPES } from "@constants/penaltyTypes";
 import logger from "@utils/logger";
 import { logActivity, ACTIVITY_LOG_TYPES } from "./activityLogger";
 
@@ -335,7 +336,8 @@ export const deletePenalty = async (penaltyId, penaltyData = null) => {
         const formattedDate = new Date().toLocaleDateString('en-GB');
         
         // Get penalty type label
-        const penaltyTypeLabel = dataToDelete.type || 'penalty';
+        const penaltyType = PENALTY_TYPES.find(pt => pt.id === dataToDelete.type);
+        const penaltyTypeLabel = penaltyType?.label_en || dataToDelete.type || 'penalty';
         
         await notificationGateway.send(NOTIFICATION_TRIGGERS.PENALTY_DELETED, {
           userId: dataToDelete.studentId,

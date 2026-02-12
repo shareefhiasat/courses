@@ -35,6 +35,7 @@ import ProgramsSelect from '@ui/Select/ProgramsSelect';
 const ActivitiesPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const { user } = useAuth();
   const toast = useToast();
   
@@ -729,13 +730,14 @@ const ActivitiesPage = () => {
       {editingActivity && (
         <div style={{ 
           padding: '0.75rem 1rem', 
-          background: '#fef3c7', 
-          border: '1px solid #fbbf24', 
+          background: isDark ? '#78350f' : '#fef3c7', 
+          border: isDark ? '1px solid #92400e' : '1px solid #fbbf24', 
           borderRadius: '8px', 
           marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem'
+          gap: '0.5rem',
+          color: isDark ? '#fef3c7' : '#78350f'
         }}>
           {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_activity') || 'Editing Activity'}: {editingActivity.title_en || editingActivity.title}
         </div>
@@ -1112,10 +1114,11 @@ const ActivitiesPage = () => {
         flexDirection: 'column',
         gap: '1rem', 
         marginBottom: '1rem', 
-        background: '#f8f9fa', 
+        background: isDark ? '#1f2937' : '#f8f9fa', 
         padding: '1rem', 
         borderRadius: 12, 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
+        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.05)', 
         width: '100%' 
       }}>
         {/* First row: Program, Subject, Class filters - spanning whole row */}
@@ -1201,12 +1204,12 @@ const ActivitiesPage = () => {
           gap: '0.5rem',
           padding: '0.5rem 0.75rem',
           marginBottom: '1rem',
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
+          background: isDark ? '#1e3a8a' : '#eff6ff',
+          border: isDark ? '1px solid #3b82f6' : '1px solid #bfdbfe',
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#1e40af'
+          color: isDark ? '#dbeafe' : '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
           {t('showing_filtered') || 'Showing'} {filteredActivities.length} {t('of') || 'of'} {activities.length} {t('activities') || 'Activities'}
@@ -1220,12 +1223,12 @@ const ActivitiesPage = () => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#f0f9ff', 
-          border: '1px solid #bae6fd', 
+          background: isDark ? '#1e3a8a' : '#f0f9ff', 
+          border: isDark ? '1px solid #3b82f6' : '1px solid #bae6fd', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#0369a1'
+          color: isDark ? '#dbeafe' : '#0369a1'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
           {activities.length} {t('total') || 'Total'}
@@ -1242,12 +1245,12 @@ const ActivitiesPage = () => {
               alignItems: 'center', 
               gap: '0.5rem', 
               padding: '0.5rem 0.75rem', 
-              background: '#fef3c7', 
-              border: '1px solid #fde68a', 
+              background: isDark ? '#78350f' : '#fef3c7', 
+              border: isDark ? '1px solid #92400e' : '1px solid #fde68a', 
               borderRadius: '9999px',
               fontSize: '0.875rem',
               fontWeight: '500',
-              color: '#92400e'
+              color: isDark ? '#fef3c7' : '#92400e'
             }}>
               {getThemedIcon('ui', config.icon, 16, theme)}
               {count} {config.text}
@@ -1266,12 +1269,12 @@ const ActivitiesPage = () => {
               alignItems: 'center', 
               gap: '0.5rem', 
               padding: '0.5rem 0.75rem', 
-              background: '#f0fdf4', 
-              border: '1px solid #bbf7d0', 
+              background: isDark ? '#14532d' : '#f0fdf4', 
+              border: isDark ? '1px solid #16a34a' : '1px solid #bbf7d0', 
               borderRadius: '9999px',
               fontSize: '0.875rem',
               fontWeight: '500',
-              color: '#166534'
+              color: isDark ? '#dcfce7' : '#166534'
             }}>
               {getThemedIcon('ui', config.icon, 16, theme)}
               {count} {config.text}

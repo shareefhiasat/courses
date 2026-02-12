@@ -3,15 +3,13 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, Select, useToast, AdvancedDataGrid, StudentSelect, ProgramsSelect } from '@ui';
+import { Button, Select, useToast, AdvancedDataGrid, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@firebaseServices/penaltyService';
 import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
-import { RECORD_TYPES } from '@utils/sharedTypes';
-import { getPrograms, getSubjects, getSubject, fetchProgram, fetchSubject } from '@firebaseServices/programService';
+import { getPrograms, getSubjects, getSubject, fetchProgram } from '@firebaseServices/programService';
 import { getClasses, getClassById } from '@firebaseServices/classService';
 import { getEnrollments, getStudentsByClass } from '@firebaseServices/enrollmentService';
-import { addNotification } from '@firebaseServices/notificationService';
 import { getAllUsers, getUserById, getUsersByIds } from '@firebaseServices/userService';
 import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDate } from '@utils/timezone';
@@ -19,7 +17,6 @@ import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } 
 import { 
   PAGE_STATES, 
   FORM_STATES,
-  COMMON_GRID_COLUMNS
 } from '@constants/pageTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ProgramsManagementPage.module.css';
@@ -448,18 +445,6 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         const result = await deletePenalty(penalty.docId || penalty.id);
         if (result.success) {
           toast?.showSuccess(t('penalty_deleted'));
-                    
-          // Send withdrawal notification
-          try {
-            await addNotification({
-              userId: penalty.studentId,
-              type: RECORD_TYPES.PENALTY,
-              title: 'Penalty Withdrawn',
-              message: `Your penalty for "${PENALTY_TYPES.find(pt => pt.id === penalty.type)?.label_en || penalty.type}" has been withdrawn.`,
-              data: { penaltyId: penalty.id, action: 'withdrawn' }
-            });
-          } catch (notifError) {
-          }
           await loadPenalties();
         } else {
           setPenalties(prev => [...prev, penalty]);
@@ -533,12 +518,6 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         const row = params?.row || {};
         const rowId = row.id || row.docId || params?.id;
         
-        // Debug logging for user investigation
-        logger.debug('=== HR PENALTIES USER DEBUG ===');
-        logger.debug('HR Penalties User Debug - Row data:', row);
-        logger.debug('HR Penalties User Debug - studentName from row:', row.studentName);
-        logger.debug('HR Penalties User Debug - studentEmail from row:', row.studentEmail);
-        logger.debug('HR Penalties User Debug - studentId from row:', row.studentId);
         
         // Get studentName and studentEmail from row first
         let studentName = row.studentName || params?.value;
@@ -551,19 +530,15 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
           if (user?.realName) {
             studentName = user.realName;
-            logger.debug('HR Penalties User Debug - Found realName from students array:', user.realName);
           } else if (user?.displayName) {
             studentName = user.displayName;
-            logger.debug('HR Penalties User Debug - Found displayName from students array:', user.displayName);
           } else if (studentId && userCache[studentId]) {
             // Try cached user data
             const cachedUser = userCache[studentId];
             if (cachedUser?.realName) {
               studentName = cachedUser.realName;
-              logger.debug('HR Penalties User Debug - Found realName from cache:', cachedUser.realName);
             } else if (cachedUser?.displayName) {
               studentName = cachedUser.displayName;
-              logger.debug('HR Penalties User Debug - Found displayName from cache:', cachedUser.displayName);
             }
           }
         }
@@ -574,36 +549,27 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           studentName = foundRow?.studentName;
           studentEmail = foundRow?.studentEmail;
           studentId = foundRow?.studentId;
-          logger.debug('HR Penalties User Debug - Found from penalties state:', { studentName, studentEmail, studentId });
           
           // Try to get realName from user data
           if (!studentName || studentName === 'N/A' || studentName.includes('@')) {
             const user = students.find(u => u.email === studentEmail || (u.docId || u.id) === studentId);
             if (user?.realName) {
               studentName = user.realName;
-              logger.debug('HR Penalties User Debug - Found realName from students array (fallback):', user.realName);
             } else if (user?.displayName) {
               studentName = user.displayName;
-              logger.debug('HR Penalties User Debug - Found displayName from students array (fallback):', user.displayName);
             } else if (studentId && userCache[studentId]) {
               // Try cached user data
               const cachedUser = userCache[studentId];
               if (cachedUser?.realName) {
                 studentName = cachedUser.realName;
-                logger.debug('HR Penalties User Debug - Found realName from cache (fallback):', cachedUser.realName);
               } else if (cachedUser?.displayName) {
                 studentName = cachedUser.displayName;
-                logger.debug('HR Penalties User Debug - Found displayName from cache (fallback):', cachedUser.displayName);
               }
             }
           }
         }
         
         const displayName = studentName && studentName !== 'N/A' ? studentName : (studentEmail || 'N/A');
-        
-        logger.debug('HR Penalties User Debug - Final displayName:', displayName);
-        logger.debug('HR Penalties User Debug - Final studentEmail:', studentEmail);
-        logger.debug('=== HR PENALTIES USER DEBUG END ===');
         
         // Format as "Name (email)" like enrollments, but only if we have both and they're different
         if (studentEmail && studentEmail !== displayName && !displayName.includes('@')) {
@@ -733,34 +699,21 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       headerName: t('date') || 'Date',
       width: 150,
       valueGetter: (params) => {
-        // Debug logging for date investigation
-        logger.debug('=== HR PENALTIES DATE DEBUG ===');
-        logger.debug('HR Penalties Date Debug - params:', params);
-        logger.debug('HR Penalties Date Debug - params.value:', params.value);
-        logger.debug('HR Penalties Date Debug - params.row:', params.row);
         
         // Check if params directly contains the timestamp
         if (params && typeof params === 'object' && params.seconds) {
           const date = new Date(params.seconds * 1000);
-          logger.debug('HR Penalties Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
-          logger.debug('HR Penalties Date Debug - Formatted date:', formatQatarDate(date));
-          logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         }
         
         // Check if params.value directly contains the timestamp
         if (params.value && typeof params.value === 'object' && params.value.seconds) {
           const date = new Date(params.value.seconds * 1000);
-          logger.debug('HR Penalties Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
-          logger.debug('HR Penalties Date Debug - Formatted date:', formatQatarDate(date));
-          logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
         }
         
         // Fallback to original logic
         if (!params.row.createdAt) {
-          logger.debug('HR Penalties Date Debug - No createdAt found, returning "No Date"');
-          logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return 'No Date';
         }
         // Handle Firebase Timestamp properly
@@ -773,13 +726,9 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           date = new Date(params.row.createdAt);
         }
         if (isNaN(date.getTime())) {
-          logger.debug('HR Penalties Date Debug - Invalid date, returning "Invalid Date"');
-          logger.debug('=== HR PENALTIES DATE DEBUG END ===');
           return 'Invalid Date';
         }
         const formattedDate = formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        logger.debug('HR Penalties Date Debug - Formatted date (fallback):', formattedDate);
-        logger.debug('=== HR PENALTIES DATE DEBUG END ===');
         return formattedDate;
       }
     },
@@ -1046,12 +995,59 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             className="flex-1"
           />
           <div style={{ minWidth: '200px' }}>
-            <StudentSelect
+            <Select
+              searchable
               value={studentFilter}
-              onChange={setStudentFilter}
-              enrollments={filteredEnrollmentsForSelect}
-              students={selectStudents}
-              placeholder={t('all_students') || 'All Students'}
+              onChange={(e) => setStudentFilter(e.target.value)}
+              options={[
+                { value: '', label: t('all_students') || 'All Students' },
+                ...selectStudents
+                  .map(u => {
+                    // Get user enrollments count
+                    const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
+                    const enrollmentCount = userEnrollments.length;
+                    
+                    // Get status utilities
+                    const status = getUserStatus(u, userEnrollments);
+                    const statusSummary = getUserStatusSummary(u, userEnrollments);
+                    const iconProps = getStatusIconProps(status);
+                    const IconComponent = () => {
+                      switch (iconProps.name) {
+                        case 'UserCheck': return getThemedIcon('user_status', 'active', 16, theme);
+                        case 'UserX': return getThemedIcon('user_status', 'deleted', 16, theme);
+                        case 'UserMinus': return getThemedIcon('user_status', 'archived', 16, theme);
+                        case 'AlertCircle': return getThemedIcon('ui', 'alert_triangle', 16, theme);
+                        default: return getThemedIcon('ui', 'info', 16, theme);
+                      }
+                    };
+                    
+                    const isDisabled = status === USER_STATUS.DELETED;
+                    
+                    return {
+                      value: u.docId || u.id,
+                      displayLabel: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown'),
+                      label: (
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          gap: 6,
+                          opacity: isDisabled ? 0.7 : 1
+                        }}>
+                          <IconComponent />
+                          <span style={{ 
+                            textDecoration: isDisabled ? 'line-through' : 'none',
+                            flex: 1
+                          }}>
+                            {u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')}
+                          </span>
+                        </div>
+                      ),
+                      disabled: isDisabled
+                    };
+                  })
+              ]}
+              showLabels={false}
+              className="flex-1"
             />
           </div>
           <div style={{ minWidth: '200px' }}>

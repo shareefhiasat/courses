@@ -11,7 +11,6 @@ import { getClassById } from '@firebaseServices/classService';
 import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
 import { getAllUsers, getUserById, getUsersByIds } from '@firebaseServices/userService';
-import { addNotification } from '@firebaseServices/notificationService';
 import { loadParticipations, createParticipation, updateParticipation, deleteParticipation } from '@firebaseServices/participationService';
 import { formatQatarDateOnly } from '@utils/timezone';
 import { Timestamp, serverTimestamp } from 'firebase/firestore';
@@ -317,26 +316,6 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
         const docRef = { id: result.id };
         
-        // Send notification to student (with error handling)
-        try {
-          const participationType = { label_en: getParticipationLabel(formData.type, 'en') || formData.type };
-          await addNotification({
-            userId: formData.studentId,
-            title: '✅ Participation Recorded',
-            message: t('participation_notification', { type: participationType.label_en || formData.type, description: formData.description }),
-            type: 'participation',
-            metadata: {
-              participationId: docRef.id,
-              type: formData.type,
-              classId: formData.classId,
-              subjectId: subjectId
-            },
-            data: { participationId: docRef.id, classId: formData.classId, subjectId: subjectId }
-          });
-        } catch (notifError) {
-          // Notification is optional - log but don't fail the operation
-            // Notification is optional - log but don't fail the operation
-        }
         toast.success(t('participation_recorded'));
       }
 
@@ -1050,12 +1029,59 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             className="flex-1"
           />
           <div style={{ minWidth: '200px' }}>
-            <StudentSelect
+            <Select
+              searchable
               value={studentFilter}
-              onChange={setStudentFilter}
-              enrollments={filteredEnrollmentsForSelect}
-              students={selectStudents}
-              placeholder={t('all_students') || 'All Students'}
+              onChange={(e) => setStudentFilter(e.target.value)}
+              options={[
+                { value: '', label: t('all_students') || 'All Students' },
+                ...selectStudents
+                  .map(u => {
+                    // Get user enrollments count
+                    const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
+                    const enrollmentCount = userEnrollments.length;
+                    
+                    // Get status utilities
+                    const status = getUserStatus(u, userEnrollments);
+                    const statusSummary = getUserStatusSummary(u, userEnrollments);
+                    const iconProps = getStatusIconProps(status);
+                    const IconComponent = () => {
+                      switch (iconProps.name) {
+                        case 'UserCheck': return getThemedIcon('user_status', 'active', 16, theme);
+                        case 'UserX': return getThemedIcon('user_status', 'deleted', 16, theme);
+                        case 'UserMinus': return getThemedIcon('user_status', 'archived', 16, theme);
+                        case 'AlertCircle': return getThemedIcon('ui', 'alert_triangle', 16, theme);
+                        default: return getThemedIcon('ui', 'info', 16, theme);
+                      }
+                    };
+                    
+                    const isDisabled = status === USER_STATUS.DELETED;
+                    
+                    return {
+                      value: u.docId || u.id,
+                      displayLabel: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown'),
+                      label: (
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          gap: 6,
+                          opacity: isDisabled ? 0.7 : 1
+                        }}>
+                          <IconComponent />
+                          <span style={{ 
+                            textDecoration: isDisabled ? 'line-through' : 'none',
+                            flex: 1
+                          }}>
+                            {u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')}
+                          </span>
+                        </div>
+                      ),
+                      disabled: isDisabled
+                    };
+                  })
+              ]}
+              showLabels={false}
+              className="flex-1"
             />
           </div>
           <div style={{ minWidth: '200px' }}>

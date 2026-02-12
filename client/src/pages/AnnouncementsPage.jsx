@@ -31,6 +31,7 @@ import logger from '@utils/logger';
 const AnnouncementsPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const { user } = useAuth();
   const toast = useToast();
   
@@ -435,13 +436,14 @@ const AnnouncementsPage = () => {
       {editingAnnouncement && (
         <div style={{
           padding: '0.75rem 1rem',
-          background: '#fef3c7',
-          border: '1px solid #fbbf24',
+          background: isDark ? '#78350f' : '#fef3c7',
+          border: isDark ? '1px solid #92400e' : '1px solid #fbbf24',
           borderRadius: '8px',
           marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem'
+          gap: '0.5rem',
+          color: isDark ? '#fef3c7' : '#78350f'
         }}>
           {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_announcement') || 'Editing Announcement'}: {editingAnnouncement.title}
         </div>
@@ -506,13 +508,9 @@ const AnnouncementsPage = () => {
 
         {/* Email Options */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '0.75rem',
-          padding: '1rem',
-          background: '#f0f8ff',
-          borderRadius: '8px',
-          border: '2px solid var(--color-primary, #800020)'
+          display: 'flex',
+          gap: '1rem',
+          alignItems: 'center'
         }}>
           <ToggleSwitch
             label={t('send_email_notification') || 'Send email notification'}
@@ -520,19 +518,18 @@ const AnnouncementsPage = () => {
             onChange={(checked) => handleEmailOptionChange('sendEmail', checked)}
           />
           {emailOptions.sendEmail && (
-            <div>
-              <Select
-                searchable
-                placeholder={t('language') || 'Language'}
-                value={emailOptions.emailLang}
-                onChange={(e) => handleEmailOptionChange('emailLang', e.target.value)}
-                options={[
-                  { value: 'en', label: lang === 'ar' ? 'الإنجليزية' : 'English' },
-                  { value: 'ar', label: lang === 'ar' ? 'العربية' : 'Arabic' },
-                  { value: 'both', label: lang === 'ar' ? 'ثنائي اللغة' : 'Bilingual' }
-                ]}
-              />
-            </div>
+            <Select
+              searchable
+              placeholder={t('language') || 'Language'}
+              value={emailOptions.emailLang}
+              onChange={(e) => handleEmailOptionChange('emailLang', e.target.value)}
+              options={[
+                { value: 'en', label: lang === 'ar' ? 'الإنجليزية' : 'English' },
+                { value: 'ar', label: lang === 'ar' ? 'العربية' : 'Arabic' },
+                { value: 'both', label: lang === 'ar' ? 'ثنائي اللغة' : 'Bilingual' }
+              ]}
+              style={{ minWidth: '150px' }}
+            />
           )}
         </div>
         
@@ -564,10 +561,11 @@ const AnnouncementsPage = () => {
         flexDirection: 'column',
         gap: '1rem', 
         marginBottom: '1rem', 
-        background: '#f8f9fa', 
+        background: isDark ? '#1f2937' : '#f8f9fa', 
         padding: '1rem', 
         borderRadius: 12, 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
+        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.05)', 
         width: '100%' 
       }}>
         <ProgramsSelect
@@ -628,12 +626,12 @@ const AnnouncementsPage = () => {
           gap: '0.5rem',
           padding: '0.5rem 0.75rem',
           marginBottom: '1rem',
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
+          background: isDark ? '#1e3a8a' : '#eff6ff',
+          border: isDark ? '1px solid #3b82f6' : '1px solid #bfdbfe',
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#1e40af'
+          color: isDark ? '#dbeafe' : '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
           {t('showing_filtered') || 'Showing'} {filteredAnnouncements.length} {t('of') || 'of'} {announcements.length} {t('announcements') || 'Announcements'}
@@ -647,12 +645,12 @@ const AnnouncementsPage = () => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#f0f9ff', 
-          border: '1px solid #bae6fd', 
+          background: isDark ? '#1e3a8a' : '#f0f9ff', 
+          border: isDark ? '1px solid #3b82f6' : '1px solid #bae6fd', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#0369a1'
+          color: isDark ? '#dbeafe' : '#0369a1'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
           {announcements.length} {t('total') || 'Total'}
@@ -664,12 +662,12 @@ const AnnouncementsPage = () => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#fef3c7', 
-          border: '1px solid #fde68a', 
+          background: isDark ? '#78350f' : '#fef3c7', 
+          border: isDark ? '1px solid #92400e' : '1px solid #fde68a', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#92400e'
+          color: isDark ? '#fef3c7' : '#92400e'
         }}>
           {getThemedIcon('ui', 'megaphone', 16, theme)}
           {announcements.filter(a => a.target === 'global').length} {lang === 'ar' ? 'عالمي' : 'Global'}
@@ -680,12 +678,12 @@ const AnnouncementsPage = () => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#fce7f3', 
-          border: '1px solid #fbcfe8', 
+          background: isDark ? '#831843' : '#fce7f3', 
+          border: isDark ? '1px solid #be185d' : '1px solid #fbcfe8', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#831843'
+          color: isDark ? '#fce7f3' : '#831843'
         }}>
           {getThemedIcon('ui', 'graduation_cap', 16, theme)}
           {announcements.filter(a => a.programId).length} {lang === 'ar' ? 'برامج' : 'Programs'}
@@ -696,12 +694,12 @@ const AnnouncementsPage = () => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#f0fdf4', 
-          border: '1px solid #bbf7d0', 
+          background: isDark ? '#14532d' : '#f0fdf4', 
+          border: isDark ? '1px solid #16a34a' : '1px solid #bbf7d0', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#166534'
+          color: isDark ? '#dcfce7' : '#166534'
         }}>
           {getThemedIcon('ui', 'book', 16, theme)}
           {announcements.filter(a => a.subjectId).length} {lang === 'ar' ? 'مواد' : 'Subjects'}
@@ -712,12 +710,12 @@ const AnnouncementsPage = () => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#e0f2fe', 
-          border: '1px solid #7dd3fc', 
+          background: isDark ? '#0c4a6e' : '#e0f2fe', 
+          border: isDark ? '1px solid #0ea5e9' : '1px solid #7dd3fc', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#0c4a6e'
+          color: isDark ? '#e0f2fe' : '#0c4a6e'
         }}>
           {getThemedIcon('ui', 'users', 16, theme)}
           {announcements.filter(a => a.classId).length} {lang === 'ar' ? 'فصول' : 'Classes'}
@@ -729,12 +727,12 @@ const AnnouncementsPage = () => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#f3e8ff', 
-          border: '1px solid #c4b5fd',
+          background: isDark ? '#581c87' : '#f3e8ff', 
+          border: isDark ? '1px solid #7c3aed' : '1px solid #c4b5fd', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#6b21a8'
+          color: isDark ? '#e9d5ff' : '#6b21a8'
         }}>
           {getThemedIcon('ui', 'mail', 16, theme)}
           {announcements.filter(a => a.sendEmail).length} {lang === 'ar' ? 'إشعارات البريد الإلكتروني' : 'Email Notifications'}
