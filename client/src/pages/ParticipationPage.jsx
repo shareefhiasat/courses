@@ -12,7 +12,8 @@ import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
 import { getAllUsers, getUserById, getUsersByIds } from '@firebaseServices/userService';
 import { loadParticipations, createParticipation, updateParticipation, deleteParticipation } from '@firebaseServices/participationService';
-import { formatQatarDateOnly, formatQatarStandard } from '@utils/timezone';
+import { formatQatarDateOnly } from '@utils/timezone';
+import { formatQatarStandard } from '@utils/qatarDate';
 import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationTypeById } from '@constants/participationTypes';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
@@ -396,7 +397,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const columns = useMemo(() => [
     {
       field: 'studentName',
-      headerName: 'User',
+      headerName: t('user') || 'User',
       flex: 1,
       minWidth: 200,
       renderCell: (params) => {
@@ -492,7 +493,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'className',
-      headerName: 'Class',
+      headerName: t('class') || 'Class',
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -515,7 +516,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'subjectName',
-      headerName: 'Subject',
+      headerName: t('subject') || 'Subject',
       flex: 1,
       minWidth: 120,
       valueGetter: (params) => {
@@ -546,7 +547,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'programName',
-      headerName: 'Program',
+      headerName: t('program') || 'Program',
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -577,7 +578,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'type',
-      headerName: 'Type',
+      headerName: t('type') || 'Type',
       width: 180,
       renderCell: (params) => {
         const participationType = getParticipationTypeById(params.value);
@@ -643,7 +644,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'points',
-      headerName: 'Points',
+      headerName: t('points') || 'Points',
       width: 100,
       valueGetter: (params) => {
         // logger.debug('InstructorParticipationPage: Full params object:', params);
@@ -669,14 +670,14 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'comment',
-      headerName: 'Comment',
+      headerName: t('comment') || 'Comment',
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => params.value || '—'
     },
     {
       field: 'createdAt',
-      headerName: 'Date',
+      headerName: t('date') || 'Date',
       width: 150,
       valueGetter: (params) => {
         // Debug logging for date investigation
@@ -759,7 +760,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     ...(hideActions ? [] : [{
       field: 'actions',
-      headerName: 'Actions',
+      headerName: t('actions') || 'Actions',
       width: 200,
       sortable: false,
       filterable: false,

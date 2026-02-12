@@ -105,9 +105,9 @@ const AppContent = () => {
   };
   
   return (
-    <div className="app">
-      <PageTracker />
-      <HelpProvider>
+    <HelpProvider>
+      <div className="app">
+        <PageTracker />
         {user && (
           <>
             <Navbar 
@@ -175,8 +175,8 @@ const AppContent = () => {
         </Routes>
         </Suspense>
         </main>
-      </HelpProvider>
-    </div>
+      </div>
+    </HelpProvider>
   );
 };
 

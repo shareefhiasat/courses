@@ -624,10 +624,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
         flexDirection: 'column',
         gap: '1rem', 
         marginBottom: '1rem', 
-        background: '#f8f9fa', 
+        background: theme === 'dark' ? '#1f2937' : '#f8f9fa', 
         padding: '1rem', 
         borderRadius: 12, 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.05)', 
+        border: theme === 'dark' ? '1px solid #374151' : 'none',
         width: '100%' 
       }}>
         {/* First line: Program filter */}
@@ -689,12 +690,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
           gap: '0.5rem',
           padding: '0.5rem 0.75rem',
           marginBottom: '1rem',
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
+          background: theme === 'dark' ? '#1e3a8a' : '#eff6ff',
+          border: theme === 'dark' ? '1px solid #3b82f6' : '1px solid #bfdbfe',
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#1e40af'
+          color: theme === 'dark' ? '#93c5fd' : '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
           {t('showing_filtered') || 'Showing'} {filteredUsers.length} {t('of') || 'of'} {users.length} {t('users') || 'Users'}
@@ -708,12 +709,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#f0f9ff', 
-          border: '1px solid #bae6fd', 
+          background: theme === 'dark' ? '#1e293b' : '#f0f9ff', 
+          border: theme === 'dark' ? '1px solid #475569' : '1px solid #bae6fd', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#0369a1'
+          color: theme === 'dark' ? '#94a3b8' : '#0369a1'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
           {users.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
@@ -725,12 +726,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#fef3c7', 
-          border: '1px solid #fde68a', 
+          background: theme === 'dark' ? '#451a03' : '#fef3c7', 
+          border: theme === 'dark' ? '1px solid #92400e' : '1px solid #fde68a', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#92400e'
+          color: theme === 'dark' ? '#fbbf24' : '#92400e'
         }}>
           {getRoleIconThemed(USER_ROLES.STUDENT)}
           {users.filter(u => u.role === USER_ROLES.STUDENT).length} {lang === 'ar' ? 'طلاب' : 'Students'}
@@ -741,12 +742,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#fce7f3', 
-          border: '1px solid #fbcfe8', 
+          background: theme === 'dark' ? '#831843' : '#fce7f3', 
+          border: theme === 'dark' ? '1px solid #f9a8d4' : '1px solid #fbcfe8', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#831843'
+          color: theme === 'dark' ? '#f9a8d4' : '#831843'
         }}>
           {getRoleIconThemed(USER_ROLES.INSTRUCTOR)}
           {users.filter(u => u.role === USER_ROLES.INSTRUCTOR).length} {lang === 'ar' ? 'مدرسين' : 'Instructors'}
@@ -757,12 +758,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#f0fdf4', 
-          border: '1px solid #bbf7d0', 
+          background: theme === 'dark' ? '#14532d' : '#f0fdf4', 
+          border: theme === 'dark' ? '1px solid #22c55e' : '1px solid #bbf7d0', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#166534'
+          color: theme === 'dark' ? '#22c55e' : '#166534'
         }}>
           {getRoleIconThemed(USER_ROLES.ADMIN)}
           {users.filter(u => u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.SUPER_ADMIN).length} {lang === 'ar' ? 'مدراء' : 'Admins'}
@@ -773,12 +774,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
           alignItems: 'center', 
           gap: '0.5rem', 
           padding: '0.5rem 0.75rem', 
-          background: '#e0f2fe', 
-          border: '1px solid #7dd3fc', 
+          background: theme === 'dark' ? '#0c4a6e' : '#e0f2fe', 
+          border: theme === 'dark' ? '1px solid #0ea5e9' : '1px solid #7dd3fc', 
           borderRadius: '9999px',
           fontSize: '0.875rem',
           fontWeight: '500',
-          color: '#0c4a6e'
+          color: theme === 'dark' ? '#0ea5e9' : '#0c4a6e'
         }}>
           {getRoleIconThemed(USER_ROLES.HR)}
           {users.filter(u => u.role === USER_ROLES.HR).length} {lang === 'ar' ? 'موارد بشرية' : 'HR'}
@@ -788,13 +789,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
       {editingUser && (
         <div style={{ 
           padding: '0.75rem 1rem', 
-          background: '#fef3c7', 
-          border: '1px solid #fbbf24', 
+          background: theme === 'dark' ? '#451a03' : '#fef3c7', 
+          border: theme === 'dark' ? '1px solid #92400e' : '1px solid #fbbf24', 
           borderRadius: '8px', 
           marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem'
+          gap: '0.5rem',
+          color: theme === 'dark' ? '#fbbf24' : '#92400e'
         }}>
           {getThemedIcon('ui', 'edit', 16, theme)} Editing User: {editingUser.displayName || editingUser.email}
         </div>
@@ -919,11 +921,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
         {pageState === PAGE_STATES.LOADING ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <Loading />
-            <p style={{ marginTop: '1rem', color: '#6b7280' }}>{t('loading_users') || 'Loading users...'}</p>
+            <p style={{ marginTop: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>{t('loading_users') || 'Loading users...'}</p>
           </div>
         ) : pageState === PAGE_STATES.ERROR ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <p style={{ color: '#ef4444' }}>{t('error_loading_users') || 'Error loading users'}</p>
+            <p style={{ color: theme === 'dark' ? '#f87171' : '#ef4444' }}>{t('error_loading_users') || 'Error loading users'}</p>
             <Button onClick={loadData} style={{ marginTop: '1rem' }}>
               {getThemedIcon('ui', 'refresh', 16, theme)} {t('retry') || 'Retry'}
             </Button>

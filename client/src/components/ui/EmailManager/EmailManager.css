@@ -1,8 +1,9 @@
 .email-manager {
-  background: #f8f9fa;
+  background: var(--panel, #f8f9fa);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1rem;
+  border: 1px solid var(--border, #e0e0e0);
 }
 
 .email-manager-header h3 {
@@ -39,7 +40,7 @@
 
 .description {
   margin: 0 0 1rem 0;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 0.9rem;
 }
 
@@ -83,9 +84,11 @@
 .email-input {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 6px;
   font-size: 1rem;
+  background: var(--panel, white);
+  color: var(--text, #212529);
 }
 
 .email-input:focus {
@@ -138,15 +141,15 @@
   min-height: 100px;
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 6px;
-  background: white;
+  background: var(--panel, white);
   padding: 1rem;
 }
 
 .no-emails {
   text-align: center;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-style: italic;
   padding: 2rem;
 }
@@ -160,8 +163,8 @@
 .email-tag {
   display: flex;
   align-items: center;
-  background: #e3f2fd;
-  border: 1px solid #bbdefb;
+  background: var(--chip-bg, #e3f2fd);
+  border: 1px solid var(--chip-border, #bbdefb);
   border-radius: 20px;
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
@@ -169,12 +172,12 @@
 }
 
 .email-tag:hover {
-  background: #bbdefb;
+  background: var(--chip-hover, #bbdefb);
 }
 
 .email-text {
   margin-right: 0.5rem;
-  color: #1976d2;
+  color: var(--chip-text, #1976d2);
 }
 
 .remove-btn {
@@ -202,7 +205,7 @@
 .email-count {
   margin-top: 1rem;
   text-align: right;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 0.9rem;
   font-weight: 600;
 }
