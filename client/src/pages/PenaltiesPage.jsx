@@ -178,8 +178,9 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, [isHR, isAdmin, isSuperAdmin]);
 
   useEffect(() => {
+    if (!isHR && !isAdmin && !isSuperAdmin) return;
     loadPenalties();
-  }, [programFilter, subjectFilter, classFilter, typeFilter]);
+  }, [isHR, isAdmin, isSuperAdmin]);
 
   // Load students when class changes
   useEffect(() => {
@@ -302,43 +303,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       }));
       
 
-      // Apply filters
-      let filtered = enriched;
-      if (programFilter) {
-        filtered = filtered.filter(p => {
-          if (p.subjectId) {
-            const subject = subjects.find(s => (s.docId || s.id) === p.subjectId);
-            return subject?.programId === programFilter;
-          }
-          if (p.classId) {
-            const classItem = classes.find(c => (c.id || c.docId) === p.classId);
-            if (classItem?.subjectId) {
-              const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
-              return subject?.programId === programFilter;
-            }
-          }
-          return false;
-        });
-      }
-      if (subjectFilter) {
-        filtered = filtered.filter(p => {
-          if (p.subjectId) return p.subjectId === subjectFilter;
-          if (p.classId) {
-            const classItem = classes.find(c => (c.id || c.docId) === p.classId);
-            return classItem?.subjectId === subjectFilter;
-          }
-          return false;
-        });
-      }
-      if (classFilter) {
-        filtered = filtered.filter(p => p.classId === classFilter);
-      }
-      if (typeFilter !== 'all') {
-        filtered = filtered.filter(p => p.type === typeFilter);
-      }
-
       // Create a new array to ensure React detects the change
-      setPenalties([...filtered]);
+      setPenalties([...enriched]);
     } catch (error) {
       logger.error('Failed to load penalties:', error);
       toast.error(t('failed_to_save_penalty') + ': ' + error.message);
@@ -480,6 +446,13 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       points: -1,
       comment: ''
     });
+    // Clear refs
+    if (descriptionRef.current) descriptionRef.current.value = '';
+    if (reasonRef.current) reasonRef.current.value = '';
+    if (noteRef.current) noteRef.current.value = '';
+    if (feedbackRef.current) feedbackRef.current.value = '';
+    if (commentRef.current) commentRef.current.value = '';
+    if (pointsRef.current) pointsRef.current.value = '-1';
     setEditingPenalty(null);
   };
 
@@ -1043,6 +1016,25 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           </div>
         </div>
       </div>
+
+      {filteredPenalties.length !== penalties.length && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          marginBottom: '1rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1e40af'
+        }}>
+          {getThemedIcon('ui', 'filter', 14, theme)}
+          {t('showing_filtered') || 'Showing'} {filteredPenalties.length} {t('of') || 'of'} {penalties.length} {t('penalties') || 'Penalties'}
+        </div>
+      )}
 
       {/* Summary Chips */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>

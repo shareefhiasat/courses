@@ -35,7 +35,7 @@ const toYmd = (tsOrDate) => {
 
 export const getPenalties = async (studentId = null, subjectId = null) => {
   try {
-    // console.log('🔧 getPenalties called with studentId:', studentId, 'subjectId:', subjectId);
+    logger.info('PENALTIES: Fetching penalties', { studentId, subjectId });
     
     let q;
     if (studentId && subjectId) {
@@ -148,6 +148,17 @@ export const createPenalty = async ({
   sendNotification = true
 }) => {
   try {
+    logger.info('PENALTIES: Creating penalty', {
+      classId,
+      studentId,
+      subjectId,
+      programId,
+      type,
+      points,
+      reason,
+      performedBy,
+      performedByName
+    });
     const todayStr = date || toYmd(new Date());
 
     const payload = {
@@ -216,13 +227,15 @@ export const createPenalty = async ({
 
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error('Error creating penalty record:', error);
+    logger.error('PENALTIES: Failed to create penalty', { error: error.message, penaltyData: { classId, studentId, type, points } });
     return { success: false, error: error.message };
   }
 };
 
 export const updatePenalty = async (penaltyId, data) => {
   try {
+    logger.info('PENALTIES: Updating penalty', { penaltyId, updatedBy: data.updatedBy, updateFields: Object.keys(data) });
+    
     const {
       updatedBy, // User ID who updated the penalty
       ...updateFields
@@ -289,6 +302,8 @@ export const updatePenalty = async (penaltyId, data) => {
 
 export const deletePenalty = async (penaltyId, penaltyData = null) => {
   try {
+    logger.info('PENALTIES: Deleting penalty', { penaltyId, hasPenaltyData: !!penaltyData });
+    
     // Get document data before deletion for logging
     let dataToDelete = penaltyData;
     if (!dataToDelete) {

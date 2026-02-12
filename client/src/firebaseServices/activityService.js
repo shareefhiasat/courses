@@ -22,12 +22,15 @@ import { convertDatesToTimestamps, COMMON_DATE_FIELDS } from '@utils/date.js';
 import { getUserById } from './userService';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
+import logger from '@utils/logger';
 
 // Convert date fields to timestamps for Firestore using centralized utility
 
 // Activities
 export const getActivities = async () => {
   try {
+    logger.info('ACTIVITY: Fetching all activities');
+    
     const querySnapshot = await getDocs(collection(db, "activities"));
     const activities = [];
     querySnapshot.forEach((d) => {
@@ -37,8 +40,11 @@ export const getActivities = async () => {
       }
       activities.push(activityData);
     });
+    
+    logger.info('ACTIVITY: Successfully fetched activities', { count: activities.length });
     return { success: true, data: activities };
   } catch (error) {
+    logger.error('ACTIVITY: Failed to fetch activities', { error: error.message });
     console.error("Error getting activities:", error);
     return { success: false, error: error.message };
   }
@@ -47,6 +53,15 @@ export const getActivities = async () => {
 export const addActivity = async (activityData) => {
   const maxRetries = 3;
   let lastError;
+  
+  logger.info('ACTIVITY: Creating new activity', {
+    title: activityData.title_en,
+    url: activityData.url,
+    type: activityData.type,
+    hasProgram: !!activityData.programId,
+    hasSubject: !!activityData.subjectId,
+    hasClass: !!activityData.classId
+  });
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -142,6 +157,18 @@ export const addActivity = async (activityData) => {
 
 export const updateActivity = async (id, activityData, emailOptions = { sendEmail: true }) => {
   try {
+    logger.info('ACTIVITY: Updating activity', {
+      activityId: id,
+      title: activityData.title_en,
+      url: activityData.url,
+      type: activityData.type,
+      hasDates: {
+        dueDate: !!activityData.dueDate,
+        startDate: !!activityData.startDate,
+        endDate: !!activityData.endDate
+      }
+    });
+    
     console.log('🔍 [SERVICE] updateActivity called with:', {
       id,
       title: activityData.title_en,
@@ -203,6 +230,8 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
 
 export const deleteActivity = async (id, activityData = null) => {
   try {
+    logger.info('ACTIVITY: Deleting activity', { activityId: id, hasActivityData: !!activityData });
+    
     await deleteDoc(doc(db, "activities", id));
     
     // Log activity deletion if activity data is provided
@@ -218,8 +247,10 @@ export const deleteActivity = async (id, activityData = null) => {
       }
     }
     
+    logger.info('ACTIVITY: Successfully deleted activity', { activityId: id });
     return { success: true };
   } catch (error) {
+    logger.error('ACTIVITY: Failed to delete activity', { error: error.message, activityId: id });
     console.error("Error deleting activity:", error);
     return { success: false, error: error.message };
   }
@@ -228,6 +259,8 @@ export const deleteActivity = async (id, activityData = null) => {
 // Announcements
 export const getAnnouncements = async () => {
   try {
+    logger.info('ANNOUNCEMENT: Fetching all announcements');
+    
     const q = query(
       collection(db, "announcements"),
       orderBy("createdAt", "desc")
@@ -242,8 +275,11 @@ export const getAnnouncements = async () => {
         createdAt: data.createdAt?.toDate()
       });
     });
+    
+    logger.info('ANNOUNCEMENT: Successfully fetched announcements', { count: announcements.length });
     return { success: true, data: announcements };
   } catch (error) {
+    logger.error('ANNOUNCEMENT: Failed to fetch announcements', { error: error.message });
     console.error("Error getting announcements:", error);
     return { success: false, error: error.message };
   }
@@ -251,11 +287,29 @@ export const getAnnouncements = async () => {
 
 export const addAnnouncement = async (announcementData) => {
   try {
+    logger.info('ANNOUNCEMENT: Creating new announcement', {
+      title: announcementData.title,
+      hasClassId: !!announcementData.classId,
+      hasProgramId: !!announcementData.programId,
+      hasSubjectId: !!announcementData.subjectId
+    });
+    
     const docRef = await addDoc(collection(db, "announcements"), {
       ...announcementData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_CREATED, {
+        announcementId: docRef.id,
+        title: announcementData.title,
+        classId: announcementData.classId
+      });
+    } catch (logError) {
+      logger.warn('ANNOUNCEMENT: Failed to log announcement creation:', logError);
+    }
 
     // Send notifications for new announcement
     if (announcementData.classId) {

@@ -29,7 +29,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   const toast = useToast();
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
-  const [behaviors, setBehaviors] = useState([]);
+  const [behaviorsRaw, setBehaviorsRaw] = useState([]);
   const [editingBehavior, setEditingBehavior] = useState(null);
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [classes, setClasses] = useState([]);
@@ -100,7 +100,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   useEffect(() => {
     loadBehaviorsData();
-  }, [programFilter, subjectFilter, classFilter, typeFilter, classes, programs, subjects, toast, t]);
+  }, [classes, programs, subjects, toast, t]);
 
   // Load students when class changes
   useEffect(() => {
@@ -162,26 +162,51 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   };
 
   const loadBehaviorsData = () => {
-  loadBehaviors({
-    setBehaviors,
-    setPageState,
-    toast,
-    t,
-    classes,
-    programs,
-    subjects,
-    filters: {
-      programFilter,
-      subjectFilter,
-      classFilter,
-      typeFilter
-    },
-    getUserById,
-    fetchClass,
-    fetchSubject,
-    fetchProgram
-  });
-};
+    loadBehaviors({
+      setBehaviors: setBehaviorsRaw,
+      setPageState,
+      toast,
+      t,
+      classes,
+      programs,
+      subjects,
+      filters: {},
+      getUserById,
+      fetchClass,
+      fetchSubject,
+      fetchProgram
+    });
+  };
+
+  const filteredBehaviors = useMemo(() => {
+    let filtered = [...behaviorsRaw];
+    if (programFilter) {
+      filtered = filtered.filter(b => {
+        if (b.subjectId) {
+          const subject = subjects.find(s => (s.docId || s.id) === b.subjectId);
+          return subject?.programId === programFilter;
+        }
+        return false;
+      });
+    }
+    if (subjectFilter) {
+      filtered = filtered.filter(b => {
+        if (b.subjectId) return b.subjectId === subjectFilter;
+        if (b.classId) {
+          const classItem = classes.find(c => (c.id || c.docId) === b.classId);
+          return classItem?.subjectId === subjectFilter;
+        }
+        return false;
+      });
+    }
+    if (classFilter) {
+      filtered = filtered.filter(b => b.classId === classFilter);
+    }
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(b => b.type === typeFilter);
+    }
+    return filtered;
+  }, [behaviorsRaw, programFilter, subjectFilter, classFilter, typeFilter, classes, subjects]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -301,6 +326,11 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       points: -1,
       comment: ''
     });
+    // Clear refs
+    if (descriptionRef.current) descriptionRef.current.value = '';
+    if (commentRef.current) commentRef.current.value = '';
+    if (pointsRef.current) pointsRef.current.value = '-1';
+    setEditingBehavior(null);
   };
 
   if (!isInstructor && !isAdmin && !isSuperAdmin) {
@@ -347,7 +377,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         
         // If not available, try to get from behaviors state
         if (!studentName && rowId) {
-          const foundRow = behaviors.find(b => (b.id || b.docId) === rowId);
+          const foundRow = behaviorsRaw.find(b => (b.id || b.docId) === rowId);
           studentName = foundRow?.studentName;
           studentEmail = foundRow?.studentEmail;
           studentId = foundRow?.studentId;
@@ -393,7 +423,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Try to get from row first, then from params.value, then from behaviors state
         let className = row.className || params?.value;
         if (!className && rowId) {
-          const foundRow = behaviors.find(b => (b.id || b.docId) === rowId);
+          const foundRow = behaviorsRaw.find(b => (b.id || b.docId) === rowId);
           className = foundRow?.className;
         }
         let text = className || 'N/A';
@@ -413,7 +443,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Try to get from row first, then from params.value, then from behaviors state
         let programName = row.programName || params?.value;
         if (!programName && rowId) {
-          const foundRow = behaviors.find(b => (b.id || b.docId) === rowId);
+          const foundRow = behaviorsRaw.find(b => (b.id || b.docId) === rowId);
           programName = foundRow?.programName;
         }
         if (programName && programName !== 'N/A') {
@@ -433,7 +463,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Try to get from row first, then from params.value, then from behaviors state
         let subjectName = row.subjectName || params?.value;
         if (!subjectName && rowId) {
-          const foundRow = behaviors.find(b => (b.id || b.docId) === rowId);
+          const foundRow = behaviorsRaw.find(b => (b.id || b.docId) === rowId);
           subjectName = foundRow?.subjectName;
         }
         if (subjectName && subjectName !== 'N/A') {
@@ -867,6 +897,25 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       </div>
 
+      {filteredBehaviors.length !== behaviorsRaw.length && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          marginBottom: '1rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1e40af'
+        }}>
+          {getThemedIcon('ui', 'filter', 14, theme)}
+          {t('showing_filtered') || 'Showing'} {filteredBehaviors.length} {t('of') || 'of'} {behaviorsRaw.length} {t('behaviors') || 'Behaviors'}
+        </div>
+      )}
+
       {/* Summary Chips */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div style={{ 
@@ -882,7 +931,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
-          {behaviors.length} Total
+          {behaviorsRaw.length} Total
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -897,7 +946,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'users', 16, theme)}
-          {new Set(behaviors.map(b => b.studentId)).size} Students
+          {new Set(behaviorsRaw.map(b => b.studentId)).size} Students
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -912,7 +961,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#166534'
         }}>
           {getThemedIcon('ui', 'trending_up', 16, theme)}
-          {behaviors.filter(b => (b.points || 0) > 0).reduce((sum, b) => sum + (b.points || 0), 0)} Positive
+          {behaviorsRaw.filter(b => (b.points || 0) > 0).reduce((sum, b) => sum + (b.points || 0), 0)} Positive
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -927,13 +976,13 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'trending_down', 16, theme)}
-          {behaviors.filter(b => (b.points || 0) < 0).reduce((sum, b) => sum + (b.points || 0), 0)} Negative
+          {behaviorsRaw.filter(b => (b.points || 0) < 0).reduce((sum, b) => sum + (b.points || 0), 0)} Negative
         </div>
       </div>
 
       <div className={styles.content}>
         <AdvancedDataGrid
-          rows={behaviors}
+          rows={filteredBehaviors}
           getRowId={(row) => row.docId || row.id}
           columns={columns}
           pageSize={10}

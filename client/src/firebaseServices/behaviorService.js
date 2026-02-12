@@ -47,6 +47,17 @@ export async function createBehavior({
   sendNotification = true
 }) {
   try {
+    logger.info('BEHAVIOR: Creating behavior record', {
+      classId,
+      studentId,
+      subjectId,
+      programId,
+      type,
+      points,
+      description,
+      performedBy,
+      performedByName
+    });
     const todayStr = date || toYmd(new Date());
 
     const payload = {
@@ -124,6 +135,8 @@ export async function createBehavior({
  */
 export async function updateBehavior(behaviorId, { updatedBy, ...updateData }) {
   try {
+    logger.info('BEHAVIOR: Updating behavior record', { behaviorId, updatedBy, updateFields: Object.keys(updateData) });
+    
     const docRef = doc(db, 'behaviors', behaviorId);
     
     // Get existing document to preserve history
@@ -197,6 +210,8 @@ export async function updateBehavior(behaviorId, { updatedBy, ...updateData }) {
  */
 export async function deleteBehavior(behaviorId, behaviorData = null) {
   try {
+    logger.info('BEHAVIOR: Deleting behavior record', { behaviorId, hasBehaviorData: !!behaviorData });
+    
     if (!behaviorId) {
       return { success: false, error: 'Behavior ID is required' };
     }

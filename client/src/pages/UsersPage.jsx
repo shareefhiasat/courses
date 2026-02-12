@@ -1,39 +1,491 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import logger from '@utils/logger';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon } from '@constants/iconTypes';
 import { USER_ROLES } from '@constants/userRoles';
-import { ACTIVITY_TYPES } from '@constants/activityTypes';
 import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
-import { Button, Input, Select, ToggleSwitch, RibbonTabs, AdvancedDataGrid } from '@ui';
+import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Loading, Card, CardBody } from '@ui';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import ProgramsSelect from '@ui/Select/ProgramsSelect';
+import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService } from '@firebaseServices/userService';
+import { getPrograms } from '@firebaseServices/programService';
+import { getClasses } from '@firebaseServices/classService';
+import { getSubjects } from '@firebaseServices/programService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { PAGE_STATES, FORM_STATES } from '@constants/pageTypes';
 
-const UsersPage = ({
-  users,
-  enrollments,
-  allowlist,
-  autoAddToAllowlist,
-  setAutoAddToAllowlist,
-  userForm,
-  setUserForm,
-  editingUser,
-  setEditingUser,
-  activeUserFormTab,
-  setActiveUserFormTab,
-  loading,
-  setLoading,
-  loadData,
-  userToDelete,
-  setUserToDelete,
-  setShowUserDeletionModal,
-  theme
-}) => {
+const UsersPage = ({ isDashboardTab = false }) => {
   const navigate = useNavigate();
   const { t } = useLang();
+  const { theme } = useTheme();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
   const toast = useToast();
+  
+  // Page state
+  const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
+  const [formState, setFormState] = useState(FORM_STATES.IDLE);
+  const [users, setUsers] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [enrollments, setEnrollments] = useState([]); // Add enrollments state
+  
+  // Form refs for performance (uncontrolled inputs)
+  const emailRef = useRef(null);
+  const displayNameRef = useRef(null);
+  const realNameRef = useRef(null);
+  const studentNumberRef = useRef(null);
+  const orderRef = useRef(null);
+  
+  // Allowlist state (previously was props)
+  const [autoAddToAllowlist, setAutoAddToAllowlist] = useState(true);
+  const [allowlist, setAllowlist] = useState([]);
+  
+  // Quick filters
+  const [programFilter, setProgramFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchFilter, setSearchFilter] = useState('');
+  
+  // Form state
+  const [editingUser, setEditingUser] = useState(null);
+  const [formData, setFormData] = useState({
+    email: '',
+    displayName: '',
+    realName: '',
+    role: USER_ROLES.STUDENT,
+    studentNumber: '',
+    order: ''
+  });
+  const [saving, setSaving] = useState(false);
+  
+  const { deleteModal, deleteUser, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // Load data function - must be defined before useEffect
+  const loadData = useCallback(async () => {
+    if (!isAdmin && !isSuperAdmin) {
+      setPageState(PAGE_STATES.ERROR);
+      return;
+    }
+    
+    setPageState(PAGE_STATES.LOADING);
+    try {
+      logger.info('USER_PAGE: Loading users and reference data');
+      
+      const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult] = await Promise.all([
+        getUsers(),
+        getPrograms(),
+        getClasses(),
+        getSubjects(),
+        getEnrollments()
+      ]);
+      
+      if (usersResult.success) {
+        setUsers(usersResult.data || []);
+        logger.info('USER_PAGE: Successfully loaded users', { count: usersResult.data?.length || 0 });
+      } else {
+        toast?.showError('Failed to load users: ' + usersResult.error);
+      }
+      
+      if (programsResult.success) {
+        setPrograms(programsResult.data || []);
+      }
+      
+      if (classesResult.success) {
+        setClasses(classesResult.data || []);
+      }
+      
+      if (subjectsResult.success) {
+        setSubjects(subjectsResult.data || []);
+      }
+      
+      if (enrollmentsResult.success) {
+        setEnrollments(enrollmentsResult.data || []);
+      }
+      
+      setPageState(PAGE_STATES.SUCCESS);
+    } catch (error) {
+      logger.error('USER_PAGE: Failed to load data', { error: error.message });
+      toast?.showError('Failed to load data: ' + error.message);
+      setPageState(PAGE_STATES.ERROR);
+    }
+  }, [isAdmin, isSuperAdmin, toast]);
+
+  // Load data on mount
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Handler functions - must be defined before gridColumns
+  const handleEditUser = useCallback((user) => {
+    setEditingUser(user);
+    setFormData({
+      email: user.email || '',
+      displayName: user.displayName || '',
+      realName: user.realName || '',
+      studentNumber: user.studentNumber || '',
+      order: user.order || '',
+      role: user.role || USER_ROLES.STUDENT
+    });
+  }, []);
+
+  const handleDeleteUser = useCallback((user) => {
+    deleteUser(user, async () => {
+      try {
+        const result = await deleteUserFromService(user.docId);
+        if (result.success) {
+          toast?.showSuccess('User deleted successfully');
+          await loadData();
+        } else {
+          toast?.showError('Error: ' + result.error);
+        }
+      } catch (error) {
+        toast?.showError('Error: ' + error.message);
+      }
+    });
+  }, [deleteUser, toast, loadData]);
+
+  const handleToggleUserStatus = useCallback(async (user) => {
+    try {
+      const userId = user.docId || user.id;
+      const isCurrentlyDisabled = user.disabled || user.isDisabled;
+      const result = await updateUser(userId, {
+        disabled: !isCurrentlyDisabled,
+        isDisabled: !isCurrentlyDisabled
+      });
+      if (result.success) {
+        // Log activity
+        try {
+          const { logActivity } = await import('@firebaseServices/activityLogger');
+          await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
+            userId: userId,
+            userEmail: user.email,
+            action: isCurrentlyDisabled ? 'enabled' : 'disabled'
+          });
+        } catch (e) { }
+        toast?.showSuccess(`User ${isCurrentlyDisabled ? 'enabled' : 'disabled'} successfully!`);
+        await loadData();
+      } else {
+        toast?.showError(result.error || 'Failed to update user');
+      }
+    } catch (error) {
+      logger.error('Error:', error);
+      toast?.showError('Failed: ' + error.message);
+    }
+  }, [toast, loadData]);
+
+  const handleResetPassword = useCallback(async (email) => {
+    try {
+      const { sendPasswordResetEmail } = await import('firebase/auth');
+      const { auth } = await import('@firebaseServices/config');
+      await sendPasswordResetEmail(auth, email);
+      toast?.showSuccess(`Password reset email sent to ${email}`);
+    } catch (error) {
+      logger.error('Error:', error);
+      toast?.showError('Failed: ' + error.message);
+    }
+  }, [toast]);
+
+  const openQRCodeInNewTab = useCallback((user) => {
+    const qrUrl = `/qr-code-display?studentNumber=${encodeURIComponent(user.studentNumber)}&name=${encodeURIComponent(user.displayName || user.email)}`;
+    window.open(qrUrl, '_blank', 'width=400,height=600');
+  }, []);
+
+  // Sync refs when editing
+  useEffect(() => {
+    if (emailRef.current) emailRef.current.value = formData.email || '';
+    if (displayNameRef.current) displayNameRef.current.value = formData.displayName || '';
+    if (realNameRef.current) realNameRef.current.value = formData.realName || '';
+    if (studentNumberRef.current) studentNumberRef.current.value = formData.studentNumber || '';
+    if (orderRef.current) orderRef.current.value = formData.order || '';
+  }, [editingUser, formData]);
+
+  // Read text values from refs into form state before submit
+  const syncRefsToState = useCallback(() => {
+    return {
+      email: emailRef.current?.value ?? formData.email,
+      displayName: displayNameRef.current?.value ?? formData.displayName,
+      realName: realNameRef.current?.value ?? formData.realName,
+      studentNumber: studentNumberRef.current?.value ?? formData.studentNumber,
+      order: orderRef.current?.value ?? formData.order
+    };
+  }, [formData]);
+
+  // Filter users based on all filters
+  const filteredUsers = useMemo(() => {
+    let filtered = [...users];
+    
+    // Search filter (email, displayName, realName, studentNumber)
+    if (searchFilter) {
+      const searchLower = searchFilter.toLowerCase();
+      filtered = filtered.filter(user => 
+        user.email?.toLowerCase().includes(searchLower) ||
+        user.displayName?.toLowerCase().includes(searchLower) ||
+        user.realName?.toLowerCase().includes(searchLower) ||
+        user.studentNumber?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Role filter
+    if (roleFilter && roleFilter !== 'all') {
+      filtered = filtered.filter(user => user.role === roleFilter);
+    }
+    
+    // Status filter (based on disabled status)
+    if (statusFilter && statusFilter !== 'all') {
+      filtered = filtered.filter(user => {
+        if (statusFilter === 'active') return !user.disabled;
+        if (statusFilter === 'disabled') return user.disabled;
+        return true;
+      });
+    }
+    
+    // Program filter - filter users enrolled in selected program
+    if (programFilter) {
+      filtered = filtered.filter(user => {
+        // Check if user has any enrollment in the selected program
+        return enrollments.some(enrollment => 
+          (enrollment.userId === user.docId || enrollment.userEmail === user.email) &&
+          enrollment.programId === programFilter
+        );
+      });
+    }
+    
+    // Class filter - filter users enrolled in selected class
+    if (classFilter) {
+      filtered = filtered.filter(user => {
+        // Check if user has any enrollment in the selected class
+        return enrollments.some(enrollment => 
+          (enrollment.userId === user.docId || enrollment.userEmail === user.email) &&
+          enrollment.classId === classFilter
+        );
+      });
+    }
+    
+    // Subject filter - filter users enrolled in selected subject
+    if (subjectFilter) {
+      filtered = filtered.filter(user => {
+        // Check if user has any enrollment in the selected subject
+        return enrollments.some(enrollment => 
+          (enrollment.userId === user.docId || enrollment.userEmail === user.email) &&
+          enrollment.subjectId === subjectFilter
+        );
+      });
+    }
+    
+    return filtered;
+  }, [users, enrollments, searchFilter, roleFilter, statusFilter, programFilter, classFilter, subjectFilter]);
+
+  // Memoized options for dropdowns
+  const roleOptions = useMemo(() => [
+    { value: 'all', label: t('all_roles') || 'All Roles' },
+    { value: USER_ROLES.SUPER_ADMIN, label: t('super_admin') || 'Super Admin' },
+    { value: USER_ROLES.ADMIN, label: t('admin') || 'Admin' },
+    { value: USER_ROLES.INSTRUCTOR, label: t('instructor') || 'Instructor' },
+    { value: USER_ROLES.HR, label: t('hr') || 'HR' },
+    { value: USER_ROLES.STUDENT, label: t('student') || 'Student' }
+  ], [t]);
+  
+  const statusOptions = useMemo(() => [
+    { value: 'all', label: t('all_status') || 'All Status' },
+    { value: 'active', label: t('active') || 'Active' },
+    { value: 'disabled', label: t('disabled') || 'Disabled' }
+  ], [t]);
+
+  // Memoized options for program, class, and subject filters
+  const programOptions = useMemo(() => [
+    { value: '', label: t('all_programs') || 'All Programs' },
+    ...programs.map(program => ({
+      value: program.docId || program.id,
+      label: program.title || program.name || program.programName || `Program ${program.docId?.slice(0, 8) || 'Unknown'}`
+    }))
+  ], [programs, t]);
+
+  const classOptions = useMemo(() => [
+    { value: '', label: t('all_classes') || 'All Classes' },
+    ...classes.map(cls => ({
+      value: cls.docId || cls.id,
+      label: cls.title || cls.name || cls.className || `Class ${cls.docId?.slice(0, 8) || 'Unknown'}`
+    }))
+  ], [classes, t]);
+
+  const subjectOptions = useMemo(() => [
+    { value: '', label: t('all_subjects') || 'All Subjects' },
+    ...subjects.map(subject => ({
+      value: subject.docId || subject.id,
+      label: subject.title || subject.name || subject.subjectName || `Subject ${subject.docId?.slice(0, 8) || 'Unknown'}`
+    }))
+  ], [subjects, t]);
+
+  // Memoized grid columns for performance
+  const gridColumns = useMemo(() => [
+    { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
+    { field: 'displayName', headerName: t('display_name_col'), flex: 1, minWidth: 180 },
+    {
+      field: 'studentNumber', 
+      headerName: t('student_number') || 'Student Number', 
+      width: 140,
+      renderCell: (params) => {
+        if (params.row.role === USER_ROLES.STUDENT) {
+          return (
+            <span style={{ 
+              fontFamily: 'monospace', 
+              fontSize: '0.875rem',
+              color: '#059669',
+              fontWeight: 600
+            }}>
+              {params.value || '—'}
+            </span>
+          );
+        }
+        return '—';
+      }
+    },
+    {
+      field: 'order', 
+      headerName: t('order') || 'Order', 
+      width: 80,
+      renderCell: (params) => {
+        if (params.row.role === USER_ROLES.STUDENT) {
+          return (
+            <span style={{ 
+              fontSize: '0.875rem',
+              color: params.value ? '#1f2937' : '#9ca3af',
+              fontWeight: params.value ? 600 : 400
+            }}>
+              {params.value || '—'}
+            </span>
+          );
+        }
+        return '—';
+      }
+    },
+    {
+      field: 'role', headerName: t('role_col'), width: 120,
+      renderCell: (params) => {
+        const role = params.value || USER_ROLES.STUDENT;
+        const roleIcons = {
+          [USER_ROLES.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 16, theme),
+          [USER_ROLES.ADMIN]: getThemedIcon('ui', 'shield', 16, theme),
+          [USER_ROLES.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 16, theme),
+          [USER_ROLES.HR]: getThemedIcon('ui', 'users', 16, theme),
+          [USER_ROLES.STUDENT]: getThemedIcon('ui', 'user', 16, theme)
+        };
+        const roleColors = {
+          [USER_ROLES.SUPER_ADMIN]: '#f59e0b',
+          [USER_ROLES.ADMIN]: '#4f46e5', 
+          [USER_ROLES.INSTRUCTOR]: '#0ea5e9',
+          [USER_ROLES.HR]: '#8b5cf6',
+          [USER_ROLES.STUDENT]: '#16a34a'
+        };
+        const normalizedRole = role.toLowerCase();
+        // Map role values to USER_ROLES constants for lookup
+        const roleKeyMap = {
+          'superadmin': USER_ROLES.SUPER_ADMIN,
+          'admin': USER_ROLES.ADMIN,
+          'instructor': USER_ROLES.INSTRUCTOR,
+          'hr': USER_ROLES.HR,
+          'student': USER_ROLES.STUDENT
+        };
+        const roleKey = roleKeyMap[normalizedRole] || USER_ROLES.STUDENT;
+        const icon = roleIcons[roleKey] || roleIcons[USER_ROLES.STUDENT];
+        const color = roleColors[roleKey] || roleColors[USER_ROLES.STUDENT];
+        
+        return (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ color }}>{icon}</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 500, textTransform: 'capitalize' }}>
+              {roleKey.replace('_', ' ')}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      field: 'status', headerName: t('status_col'), width: 100,
+      renderCell: (params) => {
+        const isDisabled = params.row.disabled || params.row.isDisabled;
+        if (isDisabled) {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
+              {getThemedIcon('ui', 'user_x', 14, theme)}
+              {t('status_disabled')}
+            </span>
+          );
+        } else {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-success, #28a745)', fontWeight: 500 }}>
+              {t('status_active')}
+            </span>
+          );
+        }
+      }
+    },
+    {
+      field: 'createdAt', headerName: t('joined'), width: 180,
+      valueGetter: (params) => params.value,
+      renderCell: (params) => {
+        if (!params.value) return (t('unknown') || 'Unknown');
+        const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
+        if (isNaN(date.getTime())) return (t('unknown') || 'Unknown');
+        return formatQatarDate(date);
+      }
+    },
+    {
+      field: 'actions', headerName: t('actions_col'), width: 280, sortable: false, filterable: false,
+      renderCell: (params) => (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button size="sm" variant="ghost" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => handleEditUser(params.row)}>
+            {t('edit') || 'Edit'}
+          </Button>
+          {(params.row.role || USER_ROLES.STUDENT) === USER_ROLES.STUDENT && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => openQRCodeInNewTab(params.row)}
+              title={t('view_qr_code') || 'View QR Code'}
+            >
+              {getThemedIcon('ui', 'qr_code', 16, theme)}
+            </Button>
+          )}
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => handleResetPassword(params.row.email)}
+            title={t('reset_password') || 'Reset Password'}
+          >
+            {getThemedIcon('ui', 'key_round', 16, theme)}
+          </Button>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            icon={params.row.disabled || params.row.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
+            style={{ color: params.row.disabled || params.row.isDisabled ? '#28a745' : '#dc2626' }}
+            onClick={() => handleToggleUserStatus(params.row)}
+            title={params.row.disabled || params.row.isDisabled ? 'Enable User' : 'Disable User'}
+          >
+            {params.row.disabled || params.row.isDisabled ? 'Enable' : 'Disable'}
+          </Button>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            icon={getThemedIcon('ui', 'trash', 16, theme)}
+            style={{ color: '#dc2626' }}
+            onClick={() => handleDeleteUser(params.row)}
+          >
+            {t('delete') || 'Delete'}
+          </Button>
+        </div>
+      )
+    }
+  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleResetPassword, handleToggleUserStatus, handleDeleteUser]);
 
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
@@ -61,21 +513,23 @@ const UsersPage = ({
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!userForm.email.trim()) {
+    const textValues = syncRefsToState();
+    
+    if (!textValues.email.trim()) {
       toast?.showError('Email is required');
       return;
     }
 
     // Validate student number is required for students
-    if (userForm.role === USER_ROLES.STUDENT && !userForm.studentNumber?.trim()) {
+    if (formData.role === USER_ROLES.STUDENT && !textValues.studentNumber?.trim()) {
       toast?.showError('Student number is required for students');
       return;
     }
 
     // Validate student number uniqueness for students
-    if (userForm.role === USER_ROLES.STUDENT && userForm.studentNumber?.trim()) {
+    if (formData.role === USER_ROLES.STUDENT && textValues.studentNumber?.trim()) {
       const isDuplicate = users.some(user => 
-        user.studentNumber === userForm.studentNumber.trim() && 
+        user.studentNumber === textValues.studentNumber.trim() && 
         user.docId !== editingUser?.docId
       );
       
@@ -85,36 +539,40 @@ const UsersPage = ({
       }
     }
 
-    setLoading(true);
+    setSaving(true);
     try {
+      const submitData = {
+        ...formData,
+        ...textValues
+      };
+      
       if (editingUser) {
-        const { updateUser } = await import('@firebaseServices/userService');
-        const result = await updateUser(editingUser.docId, userForm);
+        const result = await updateUser(editingUser.docId, submitData);
         if (!result.success) throw new Error(result.error || 'Failed to update user');
         // Log activity
         try {
           const { logActivity } = await import('@firebaseServices/activityLogger');
           await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
             userId: editingUser.docId,
-            userEmail: userForm.email,
-            userDisplayName: userForm.displayName,
-            userRole: userForm.role
+            userEmail: submitData.email,
+            userDisplayName: submitData.displayName,
+            userRole: submitData.role
           });
         } catch (e) { }
         toast?.showSuccess('User updated successfully!');
       } else {
         // Add to allowlist if checkbox is checked
-        if (autoAddToAllowlist && userForm.email) {
+        if (autoAddToAllowlist && submitData.email) {
           const { updateAllowlist } = await import('@firebaseServices/config');
-          const targetList = userForm.role === USER_ROLES.ADMIN ? 'adminEmails' : 'allowedEmails';
+          const targetList = submitData.role === USER_ROLES.ADMIN ? 'adminEmails' : 'allowedEmails';
           const currentEmails = allowlist[targetList] || [];
 
-          if (!currentEmails.includes(userForm.email)) {
+          if (!currentEmails.includes(submitData.email)) {
             const updatedAllowlist = {
               ...allowlist,
-              [targetList]: [...currentEmails, userForm.email]
+              [targetList]: [...currentEmails, submitData.email]
             };
-            setAutoAddToAllowlist(updatedAllowlist);
+            setAllowlist(updatedAllowlist);
 
             // Save to Firestore
             try {
@@ -123,122 +581,189 @@ const UsersPage = ({
               toast?.showWarning('Failed to update allowlist: ' + allowlistError.message);
             }
           }
-          toast?.showSuccess(`Invite prepared. ${userForm.email} added to ${userForm.role} allowlist. Ask them to sign up.`);
+          toast?.showSuccess(`Invite prepared. ${submitData.email} added to ${submitData.role} allowlist. Ask them to sign up.`);
         } else {
           toast?.showInfo('No changes saved. Provide an email or enable allowlist option.');
         }
       }
 
       await loadData();
-      setEditingUser(null);
-      setUserForm({ email: '', displayName: '', realName: '', studentNumber: '', order: '', role: USER_ROLES.STUDENT });
+      resetForm();
     } catch (error) {
       toast?.showError('Error: ' + error.message);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleEditUser = (user) => {
-    setEditingUser(user);
-    setUserForm({
-      email: user.email || '',
-      displayName: user.displayName || '',
-      realName: user.realName || '',
-      studentNumber: user.studentNumber || '',
-      order: user.order || '',
-      role: user.role || 'student'
-    });
-  };
-
-  const handleImpersonateUser = async (userId, userEmail) => {
-    const { impersonateUser } = await import('@firebaseServices/authService');
-    const result = await impersonateUser(userId);
-    if (result.success) {
-      toast?.showSuccess(t('impersonation_started') || 'Now viewing as student');
-      navigate('/');
-    } else {
-      toast?.showError(result.error || 'Failed to impersonate');
-    }
-  };
-
-  const handleResetPassword = async (email) => {
-    try {
-      const { sendPasswordResetEmail } = await import('firebase/auth');
-      const { auth } = await import('@firebaseServices/config');
-      await sendPasswordResetEmail(auth, email);
-      toast?.showSuccess(`Password reset email sent to ${email}`);
-    } catch (error) {
-      logger.error('Error:', error);
-      toast?.showError('Failed: ' + error.message);
-    }
-  };
-
-  const handleToggleUserStatus = async (user) => {
-    try {
-      const { updateUser } = await import('@firebaseServices/userService');
-      const userId = user.docId || user.id;
-      const isCurrentlyDisabled = user.disabled || user.isDisabled;
-      const result = await updateUser(userId, {
-        disabled: !isCurrentlyDisabled,
-        isDisabled: !isCurrentlyDisabled
-      });
-      if (result.success) {
-        // Log activity
-        try {
-          const { logActivity } = await import('@firebaseServices/activityLogger');
-          await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
-            userId: userId,
-            userEmail: user.email,
-            action: isCurrentlyDisabled ? 'enabled' : 'disabled'
-          });
-        } catch (e) { }
-        toast?.showSuccess(`User ${isCurrentlyDisabled ? 'enabled' : 'disabled'} successfully!`);
-        await loadData();
-      } else {
-        toast?.showError(result.error || 'Failed to update user');
-      }
-    } catch (error) {
-      logger.error('Error:', error);
-      toast?.showError('Failed: ' + error.message);
-    }
-  };
-
-  const handleDeleteUser = (user) => {
-    setUserToDelete(user);
-    setShowUserDeletionModal(true);
-  };
-
-  const openQRCodeInNewTab = (user) => {
-    const qrUrl = `/qr-code-display?studentNumber=${encodeURIComponent(user.studentNumber)}&name=${encodeURIComponent(user.displayName || user.email)}`;
-    window.open(qrUrl, '_blank', 'width=400,height=600');
-  };
-
-  const handleCancel = () => {
+  const resetForm = useCallback(() => {
     setEditingUser(null);
-    setUserForm({ email: '', displayName: '', role: USER_ROLES.STUDENT, studentNumber: '', order: '' });
-    setActiveUserFormTab('basic');
-  };
-
-  const handleTabNavigation = (direction) => {
-    if (direction === 'next') {
-      if (activeUserFormTab === 'basic') {
-        setActiveUserFormTab('academic');
-      } else if (activeUserFormTab === 'academic') {
-        setActiveUserFormTab('role');
-      }
-    } else {
-      if (activeUserFormTab === 'role') {
-        setActiveUserFormTab('academic');
-      } else if (activeUserFormTab === 'academic') {
-        setActiveUserFormTab('basic');
-      }
-    }
-  };
+    setFormData({
+      email: '',
+      displayName: '',
+      realName: '',
+      role: USER_ROLES.STUDENT,
+      studentNumber: '',
+      order: ''
+    });
+    // Clear refs
+    if (emailRef.current) emailRef.current.value = '';
+    if (displayNameRef.current) displayNameRef.current.value = '';
+    if (realNameRef.current) realNameRef.current.value = '';
+    if (studentNumberRef.current) studentNumberRef.current.value = '';
+    if (orderRef.current) orderRef.current.value = '';
+  }, []);
 
   return (
     <div className="users-page">
       <p style={{ color: '#555', marginBottom: '1rem' }}>{t('invite_users_blurb')}</p>
+
+      {/* Quick Filters */}
+      <div className="filters-container" style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        gap: '1rem', 
+        marginBottom: '1rem', 
+        background: '#f8f9fa', 
+        padding: '1rem', 
+        borderRadius: 12, 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        width: '100%' 
+      }}>
+        {/* First line: Program filter */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <ProgramsSelect
+            programs={programs}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={programFilter}
+            selectedSubject={subjectFilter}
+            selectedClass={classFilter}
+            onProgramChange={(programId) => setProgramFilter(programId)}
+            onSubjectChange={(subjectId) => setSubjectFilter(subjectId)}
+            onClassChange={(classId) => setClassFilter(classId)}
+            showClass={true}
+            showLabels={false}
+          />
+        </div>
+        
+        {/* Second line: Search + Role + Status */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Input
+            type="text"
+            placeholder={t('search_users') || 'Search by email, name, student number...'}
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
+            prefix={getThemedIcon('ui', 'search', 16, theme)}
+            style={{ minWidth: '250px', flex: 1 }}
+          />
+          
+          <Select
+            value={roleFilter || 'all'}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            options={roleOptions.map(option => ({
+              ...option,
+              label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {option.value !== 'all' && getRoleIconThemed(option.value)}
+                  {option.label}
+                </span>
+              )
+            }))}
+            placeholder={t('filter_by_role') || 'Filter by Role'}
+          />
+          
+          <Select
+            value={statusFilter || 'all'}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={statusOptions}
+            placeholder={t('filter_by_status') || 'Filter by Status'}
+          />
+        </div>
+      </div>
+      
+      {filteredUsers.length !== users.length && (
+        <div style={{ 
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          marginBottom: '1rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1e40af'
+        }}>
+          {getThemedIcon('ui', 'filter', 14, theme)}
+          {t('showing_filtered') || 'Showing'} {filteredUsers.length} {t('of') || 'of'} {users.length} {t('users') || 'Users'}
+        </div>
+      )}
+
+      {/* Summary Chips */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0f9ff', 
+          border: '1px solid #bae6fd', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#0369a1'
+        }}>
+          {getThemedIcon('ui', 'target', 16, theme)}
+          {users.length} {t('total') || 'Total'}
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef3c7', 
+          border: '1px solid #fde68a', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#92400e'
+        }}>
+          {getRoleIconThemed('STUDENT')}
+          {users.filter(u => u.role === 'STUDENT').length} {t('students') || 'Students'}
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fce7f3', 
+          border: '1px solid #fbcfe8', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#831843'
+        }}>
+          {getRoleIconThemed('INSTRUCTOR')}
+          {users.filter(u => u.role === 'INSTRUCTOR').length} {t('instructors') || 'Instructors'}
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0fdf4', 
+          border: '1px solid #bbf7d0', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#166534'
+        }}>
+          {getRoleIconThemed('ADMIN')}
+          {users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length} {t('admins') || 'Admins'}
+        </div>
+      </div>
 
       {editingUser && (
         <div style={{ 
@@ -255,124 +780,99 @@ const UsersPage = ({
         </div>
       )}
 
-      <RibbonTabs
-        categories={[
-          {
-            id: 'user-fields',
-            items: [
-              { key: 'basic', label: 'Basic Info', icon: getThemedIcon('ui', 'user', 14, theme) },
-              { key: 'academic', label: 'Academic Info', icon: getThemedIcon('ui', 'graduation_cap', 14, theme) },
-              { key: 'role', label: 'Role & Access', icon: getThemedIcon('ui', 'shield', 14, theme) }
-            ]
-          }
-        ]}
-        activeCategory="user-fields"
-        activeItem={activeUserFormTab}
-        onChange={({ category, item }) => setActiveUserFormTab(item)}
-      />
-      
       <form onSubmit={handleFormSubmit} className="dashboard-form">
-        {activeUserFormTab === 'basic' && (
-          <div className="form-row">
-            <Input
-              type="email"
-              placeholder={t('user_email_placeholder')}
-              value={userForm.email}
-              onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-              required
-            />
-            <Input
-              type="text"
-              placeholder={t('user_display_name_placeholder')}
-              value={userForm.displayName}
-              onChange={(e) => setUserForm({ ...userForm, displayName: e.target.value })}
-            />
-          </div>
-        )}
-
-        {activeUserFormTab === 'academic' && (
-          <div className="form-row">
-            <Input
-              type="text"
-              placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
-              value={userForm.realName || ''}
-              onChange={(e) => setUserForm({ ...userForm, realName: e.target.value })}
-            />
-            <Input
-              type="text"
-              placeholder={t('student_number_placeholder') || 'Student Number (Required)'}
-              value={userForm.studentNumber || ''}
-              onChange={(e) => setUserForm({ ...userForm, studentNumber: e.target.value })}
-              required
-            />
-            <Input
-              type="number"
-              placeholder={t('student_order_placeholder') || 'Order/Sequence (Optional)'}
-              value={userForm.order || ''}
-              onChange={(e) => setUserForm({ ...userForm, order: e.target.value })}
-              description={t('student_order_description') || 'Display order for student lists'}
-            />
-            <div /> {/* Empty div to maintain grid layout */}
-          </div>
-        )}
-
-        {activeUserFormTab === 'role' && (
-          <div className="form-row">
-            <Select
-              searchable
-              placeholder={t('role') || 'Role'}
-              value={userForm.role}
-              onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-              options={[
-                { value: USER_ROLES.STUDENT, label: (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: getRoleIconColor(USER_ROLES.STUDENT) }}>
-                      {getRoleIconThemed(USER_ROLES.STUDENT)}
-                    </span>
-                    {t('student') || 'Student'}
+        {/* Single continuous form - no tabs for performance */}
+        <div className="form-row">
+          <Input
+            ref={emailRef}
+            type="email"
+            defaultValue={formData.email}
+            placeholder={t('user_email_placeholder')}
+            required
+          />
+          <Input
+            ref={displayNameRef}
+            type="text"
+            defaultValue={formData.displayName}
+            placeholder={t('user_display_name_placeholder')}
+          />
+        </div>
+        
+        <div className="form-row">
+          <Input
+            ref={realNameRef}
+            type="text"
+            defaultValue={formData.realName}
+            placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
+          />
+          <Input
+            ref={studentNumberRef}
+            type="text"
+            defaultValue={formData.studentNumber}
+            placeholder={t('student_number_placeholder') || 'Student Number'}
+            required={formData.role === USER_ROLES.STUDENT}
+          />
+          <Input
+            ref={orderRef}
+            type="number"
+            defaultValue={formData.order}
+            placeholder={t('student_order_placeholder') || 'Order/Sequence'}
+            description={t('student_order_description') || 'Display order for student lists'}
+          />
+          <Select
+            searchable
+            placeholder={t('role') || 'Role'}
+            value={formData.role}
+            onChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+            options={[
+              { value: USER_ROLES.STUDENT, label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: getRoleIconColor(USER_ROLES.STUDENT) }}>
+                    {getRoleIconThemed(USER_ROLES.STUDENT)}
                   </span>
-                )},
-                { value: USER_ROLES.INSTRUCTOR, label: (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: getRoleIconColor(USER_ROLES.INSTRUCTOR) }}>
-                      {getRoleIconThemed(USER_ROLES.INSTRUCTOR)}
-                    </span>
-                    {t('instructor') || 'Instructor'}
+                  {t('student') || 'Student'}
+                </span>
+              )},
+              { value: USER_ROLES.INSTRUCTOR, label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: getRoleIconColor(USER_ROLES.INSTRUCTOR) }}>
+                    {getRoleIconThemed(USER_ROLES.INSTRUCTOR)}
                   </span>
-                )},
-                { value: USER_ROLES.HR, label: (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: getRoleIconColor(USER_ROLES.HR) }}>
-                      {getRoleIconThemed(USER_ROLES.HR)}
-                    </span>
-                    {t('hr') || 'HR'}
+                  {t('instructor') || 'Instructor'}
+                </span>
+              )},
+              { value: USER_ROLES.HR, label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: getRoleIconColor(USER_ROLES.HR) }}>
+                    {getRoleIconThemed(USER_ROLES.HR)}
                   </span>
-                )},
-                { value: USER_ROLES.ADMIN, label: (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: getRoleIconColor(USER_ROLES.ADMIN) }}>
-                      {getRoleIconThemed(USER_ROLES.ADMIN)}
-                    </span>
-                    {t('admin') || 'Admin'}
+                  {t('hr') || 'HR'}
+                </span>
+              )},
+              { value: USER_ROLES.ADMIN, label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: getRoleIconColor(USER_ROLES.ADMIN) }}>
+                    {getRoleIconThemed(USER_ROLES.ADMIN)}
                   </span>
-                )},
-                { value: USER_ROLES.SUPER_ADMIN, label: (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: getRoleIconColor(USER_ROLES.SUPER_ADMIN) }}>
-                      {getRoleIconThemed(USER_ROLES.SUPER_ADMIN)}
-                    </span>
-                    {t('super_admin') || 'Super Admin'}
+                  {t('admin') || 'Admin'}
+                </span>
+              )},
+              { value: USER_ROLES.SUPER_ADMIN, label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: getRoleIconColor(USER_ROLES.SUPER_ADMIN) }}>
+                    {getRoleIconThemed(USER_ROLES.SUPER_ADMIN)}
                   </span>
-                )},
-              ]}
-            />
-          </div>
-        )}
+                  {t('super_admin') || 'Super Admin'}
+                </span>
+              )},
+            ]}
+          />
+        </div>
 
         {!editingUser && (
           <div className="form-row flex-row">
             <ToggleSwitch
-              label="Auto-add email to student allowlist"
+              label="Auto-add email to allowlist"
               checked={autoAddToAllowlist}
               onChange={(checked) => setAutoAddToAllowlist(checked)}
             />
@@ -380,264 +880,60 @@ const UsersPage = ({
         )}
 
         <div className="form-actions">
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              {activeUserFormTab !== 'basic' && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleTabNavigation('prev')}
-                >
-                  {t('previous') || '← Previous'}
-                </Button>
-              )}
-              {activeUserFormTab !== 'role' && (
-                <Button 
-                  type="button" 
-                  variant="secondary"
-                  onClick={() => handleTabNavigation('next')}
-                >
-                  {t('next') || 'Next →'}
-                </Button>
-              )}
-              {activeUserFormTab === 'role' && (
-                <Button type="submit" variant="primary" loading={loading}>
-                  {(editingUser ? t('update') : t('save'))}
-                </Button>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleCancel}
-              >
-                {t('cancel') || 'Cancel'}
-              </Button>
-            </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <Button type="submit" variant="primary" loading={saving}>
+              {editingUser ? t('update') : t('save')}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={resetForm}
+            >
+              {t('cancel') || 'Cancel'}
+            </Button>
           </div>
         </div>
       </form>
 
       <div style={{ marginTop: '1rem' }}>
-        <AdvancedDataGrid
-          rows={users}
-          getRowId={(row) => row.docId || row.id}
-          columns={[
-            { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
-            { field: 'displayName', headerName: t('display_name_col'), flex: 1, minWidth: 180 },
-            {
-              field: 'studentNumber', 
-              headerName: t('student_number') || 'Student Number', 
-              width: 140,
-              renderCell: (params) => {
-                if (params.row.role === 'student') {
-                  return (
-                    <span style={{ 
-                      fontFamily: 'monospace', 
-                      fontSize: '0.875rem',
-                      color: '#059669',
-                      fontWeight: 600
-                    }}>
-                      {params.value || '—'}
-                    </span>
-                  );
-                }
-                return '—';
-              }
-            },
-            {
-              field: 'order', 
-              headerName: t('order') || 'Order', 
-              width: 80,
-              renderCell: (params) => {
-                if (params.row.role === 'student') {
-                  return (
-                    <span style={{ 
-                      fontSize: '0.875rem',
-                      color: params.value ? '#1f2937' : '#9ca3af',
-                      fontWeight: params.value ? 600 : 400
-                    }}>
-                      {params.value || '—'}
-                    </span>
-                  );
-                }
-                return '—';
-              }
-            },
-            {
-              field: 'role', headerName: t('role_col'), width: 120,
-              renderCell: (params) => {
-                const role = params.value || t('student');
-                const roleIcons = {
-                  'superadmin': getThemedIcon('ui', 'crown', 16, theme),
-                  'admin': getThemedIcon('ui', 'shield', 16, theme),
-                  'instructor': getThemedIcon('ui', 'book_open', 16, theme),
-                  'hr': getThemedIcon('ui', 'users', 16, theme),
-                  'student': getThemedIcon('ui', 'user', 16, theme)
-                };
-                const roleColors = {
-                  'superadmin': '#f59e0b',
-                  'admin': '#4f46e5', 
-                  'instructor': '#0ea5e9',
-                  'hr': '#8b5cf6',
-                  'student': '#16a34a'
-                };
-                const normalizedRole = role.toLowerCase();
-                const icon = roleIcons[normalizedRole] || roleIcons['student'];
-                const color = roleColors[normalizedRole] || roleColors['student'];
-                
-                return (
-                  <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '4px',
-                    color: color,
-                    fontWeight: 600
-                  }}>
-                    {/*{icon} */}
-                    {role}
-                  </span>
-                );
-              }
-            },
-            {
-              field: 'status', 
-              headerName: t('status'), 
-              width: 120,
-              renderCell: (params) => {
-                const isDisabled = params.row.disabled || params.row.isDisabled;
-                const isArchived = params.row.archived || params.row.deleted;
-                
-                if (isArchived) {
-                  return (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
-                      {/*{getThemedIcon('ui', 'archive', 16, theme)} */}
-                      {t('status_archived')}
-                    </span>
-                  );
-                } else if (isDisabled) {
-                  return (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
-                      {/*{getThemedIcon('ui', 'user_x', 16, theme)} */}
-                      {t('status_disabled')}
-                    </span>
-                  );
-                } else {
-                  return (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-success, #28a745)', fontWeight: 500 }}>
-                      {/*{getThemedIcon('ui', 'user_check', 16, theme)} */}
-                      {t('status_active')}
-                    </span>
-                  );
-                }
-              }
-            },
-            {
-              field: 'enrolledClasses', headerName: t('enrolled_classes_col'), width: 140,
-              valueGetter: (params) => {
-                const userId = params.row.docId || params.row.id;
-                const userEnrollments = enrollments.filter(e => {
-                  const enrollmentUserId = e.userId || e.userDocId;
-                  return enrollmentUserId === userId || (e.userEmail || e.email) === params.row.email;
-                });
-                return userEnrollments.length;
-              }
-            },
-            {
-              field: 'progress', headerName: t('progress'), width: 180,
-              renderCell: (params) => {
-                const userId = params.row.docId || params.row.id;
-                return (
-                  <a
-                    href={`/student-dashboard?userId=${userId}`}
-                    style={{ color: 'var(--color-primary, #800020)', textDecoration: 'none', fontWeight: 600 }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate(`/student-dashboard?userId=${userId}`);
-                    }}
-                  >
-                    View Dashboard →
-                  </a>
-                );
-              }
-            },
-            {
-              field: 'createdAt', headerName: t('joined'), width: 180,
-              valueGetter: (params) => params.value,
-              renderCell: (params) => {
-                if (!params.value) return (t('unknown') || 'Unknown');
-                const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
-                if (isNaN(date.getTime())) return (t('unknown') || 'Unknown');
-                return formatQatarDate(date);
-              }
-            },
-            {
-              field: 'actions', headerName: t('actions_col'), width: 280, sortable: false, filterable: false,
-              renderCell: (params) => (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <Button size="sm" variant="ghost" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => handleEditUser(params.row)}>
-                    {t('edit') || 'Edit'}
-                  </Button>
-                  {(params.row.role || 'student') === 'student' && (
-                    <Button 
-                      size="sm" 
-                      variant="primary" 
-                      onClick={() => handleImpersonateUser(params.row.docId || params.row.id, params.row.email)}
-                      title={t('impersonate_student') || 'View as Student'}
-                    >
-                      {getThemedIcon('ui', 'eye', 16, theme)}
-                    </Button>
-                  )}
-                  {(params.row.role || 'student') === 'student' && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => openQRCodeInNewTab(params.row)}
-                      title={t('view_qr_code') || 'View QR Code'}
-                    >
-                      {getThemedIcon('ui', 'qr_code', 16, theme)}
-                    </Button>
-                  )}
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => handleResetPassword(params.row.email)}
-                    title={t('reset_password') || 'Reset Password'}
-                  >
-                    {getThemedIcon('ui', 'key_round', 16, theme)}
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    icon={params.row.disabled || params.row.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
-                    style={{ color: params.row.disabled || params.row.isDisabled ? '#28a745' : '#dc2626' }}
-                    onClick={() => handleToggleUserStatus(params.row)}
-                    title={params.row.disabled || params.row.isDisabled ? 'Enable User' : 'Disable User'}
-                  >
-                    {params.row.disabled || params.row.isDisabled ? 'Enable' : 'Disable'}
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    icon={getThemedIcon('ui', 'trash', 16, theme)}
-                    style={{ color: '#dc2626' }}
-                    onClick={() => handleDeleteUser(params.row)}
-                  >
-                    {t('delete') || 'Delete'}
-                  </Button>
-                </div>
-              )
-            }
-          ]}
-          pageSize={10}
-          pageSizeOptions={[5, 10, 20, 50]}
-          checkboxSelection
-          exportFileName="users"
-          showExportButton
-          exportLabel={t('export') || 'Export'}
-        />
+        {pageState === PAGE_STATES.LOADING ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <Loading />
+            <p style={{ marginTop: '1rem', color: '#6b7280' }}>{t('loading_users') || 'Loading users...'}</p>
+          </div>
+        ) : pageState === PAGE_STATES.ERROR ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <p style={{ color: '#ef4444' }}>{t('error_loading_users') || 'Error loading users'}</p>
+            <Button onClick={loadData} style={{ marginTop: '1rem' }}>
+              {getThemedIcon('ui', 'refresh', 16, theme)} {t('retry') || 'Retry'}
+            </Button>
+          </div>
+        ) : (
+          <AdvancedDataGrid
+            rows={filteredUsers}
+            getRowId={(row) => row.docId || row.id}
+            columns={gridColumns}
+            pageSize={20}
+            pageSizeOptions={[10, 20, 50, 100]}
+            density="compact"
+            checkboxSelection
+            exportFileName="users"
+            showExportButton
+            exportLabel={t('export') || 'Export'}
+          />
+        )}
       </div>
+      
+      {/* Delete Modal */}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        loading={saving}
+        t={t}
+      />
     </div>
   );
 };

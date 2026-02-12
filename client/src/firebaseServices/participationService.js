@@ -47,6 +47,17 @@ export async function createParticipation({
   sendNotification = true
 }) {
   try {
+    logger.info('PARTICIPATION: Creating participation record', {
+      classId,
+      studentId,
+      subjectId,
+      programId,
+      type,
+      points,
+      description,
+      performedBy,
+      performedByName
+    });
     const todayStr = date || toYmd(new Date());
 
     const payload = {
@@ -125,6 +136,8 @@ export async function createParticipation({
  */
 export async function updateParticipation(participationId, { updatedBy, ...updateData }) {
   try {
+    logger.info('PARTICIPATION: Updating participation record', { participationId, updatedBy, updateFields: Object.keys(updateData) });
+    
     const docRef = doc(db, 'participations', participationId);
     
     // Get existing document to preserve history
@@ -199,6 +212,8 @@ export async function updateParticipation(participationId, { updatedBy, ...updat
  */
 export async function deleteParticipation(participationId, participationData = null) {
   try {
+    logger.info('PARTICIPATION: Deleting participation record', { participationId, hasParticipationData: !!participationData });
+    
     if (!participationId) {
       return { success: false, error: 'Participation ID is required' };
     }

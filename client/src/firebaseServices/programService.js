@@ -14,6 +14,8 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from './config';
+import logger from '@utils/logger';
+import { logActivity, ACTIVITY_LOG_TYPES } from './activityLogger';
 
 // Re-export getClasses from classService for convenience
 export { getClasses, addClass, updateClass, deleteClass, getClassById } from './classService';
@@ -24,6 +26,8 @@ export { getClasses, addClass, updateClass, deleteClass, getClassById } from './
  */
 export const getPrograms = async () => {
   try {
+    logger.info('PROGRAM: Fetching all programs');
+    
     const callId = Math.random().toString(36).substr(2, 9);
     // console.log(`🔍 [getPrograms-${callId}] Starting fetch...`);
     const q = query(collection(db, 'programs'), orderBy('name_en', 'asc'));
@@ -50,8 +54,11 @@ export const getPrograms = async () => {
     // console.log(`🔍 [getPrograms-${callId}] Final items array:`, items);
     // console.log(`🔍 [getPrograms-${callId}] Final items length:`, items.length);
     // console.log(`🔍 [getPrograms-${callId}] Returning result:`, { success: true, data: items });
+    
+    logger.info('PROGRAM: Successfully fetched programs', { count: items.length });
     return { success: true, data: items };
   } catch (error) {
+    logger.error('PROGRAM: Failed to fetch programs', { error: error.message });
     console.error(`❌ [getPrograms-${callId}] ERROR:`, error);
     console.error(`❌ [getPrograms-${callId}] Error message:`, error.message);
     console.error(`❌ [getPrograms-${callId}] Error stack:`, error.stack);

@@ -1,5 +1,7 @@
 import { doc, getDoc, query, collection, where, getDocs, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from './config';
+import logger from '@utils/logger';
+import { logActivity, ACTIVITY_LOG_TYPES } from './activityLogger';
 
 // Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
 const _ensureUserDocOnce = new Set();
@@ -12,12 +14,18 @@ const _ensureUserDocOnce = new Set();
 // Get user by ID (centralized)
 export const getUserById = async (userId) => {
   try {
+    logger.info('USER: Fetching user by ID', { userId });
+    
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {
+      logger.info('USER: Successfully fetched user', { userId });
       return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
     }
+    
+    logger.warn('USER: User not found', { userId });
     return { success: false, error: 'User not found' };
   } catch (error) {
+    logger.error('USER: Failed to fetch user', { error: error.message, userId });
     console.error('Error fetching user:', error);
     return { success: false, error: error.message };
   }
@@ -237,6 +245,13 @@ export const getUser = async (uid) => {
 // Add user function
 export const addUser = async (userData) => {
   try {
+    logger.info('USER: Creating new user', {
+      uid: userData?.uid,
+      email: userData?.email,
+      role: userData?.role,
+      displayName: userData?.displayName
+    });
+    
     // Enforce deterministic ID: uid is required
     if (!userData?.uid) {
       return { success: false, error: "uid is required for addUser" };
@@ -257,6 +272,8 @@ export const addUser = async (userData) => {
 // Update user function
 export const updateUser = async (id, userData) => {
   try {
+    logger.info('USER: Updating user', { userId: id, updateFields: Object.keys(userData) });
+    
     // Check if email is being changed
     const userRef = doc(db, "users", id);
     const userSnap = await getDoc(userRef);
@@ -272,8 +289,21 @@ export const updateUser = async (id, userData) => {
     }
     
     await updateDoc(userRef, userData);
+    
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
+        userId: id,
+        updateFields: Object.keys(userData)
+      });
+    } catch (logError) {
+      logger.warn('USER: Failed to log user update:', logError);
+    }
+    
+    logger.info('USER: Successfully updated user', { userId: id });
     return { success: true };
   } catch (error) {
+    logger.error('USER: Failed to update user', { error: error.message, userId: id });
     console.error("Error updating user:", error);
     return { success: false, error: error.message };
   }
@@ -282,9 +312,23 @@ export const updateUser = async (id, userData) => {
 // Delete user function
 export const deleteUser = async (id) => {
   try {
+    logger.info('USER: Deleting user', { userId: id });
+    
     await deleteDoc(doc(db, "users", id));
+    
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.USER_DELETED, {
+        userId: id
+      });
+    } catch (logError) {
+      logger.warn('USER: Failed to log user deletion:', logError);
+    }
+    
+    logger.info('USER: Successfully deleted user', { userId: id });
     return { success: true };
   } catch (error) {
+    logger.error('USER: Failed to delete user', { error: error.message, userId: id });
     console.error("Error deleting user:", error);
     return { success: false, error: error.message };
   }

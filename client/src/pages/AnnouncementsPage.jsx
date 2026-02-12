@@ -413,9 +413,9 @@ const AnnouncementsPage = () => {
   }
 
   const filteredAnnouncements = announcements.filter(announcement => {
-    if (announcementProgramFilter && announcementProgramFilter !== 'all' && announcement.programId !== announcementProgramFilter) return false;
-    if (announcementSubjectFilter && announcementSubjectFilter !== 'all' && announcement.subjectId !== announcementSubjectFilter) return false;
-    if (announcementClassFilter && announcementClassFilter !== 'all' && announcement.classId !== announcementClassFilter) return false;
+    if (announcementProgramFilter && announcement.programId !== announcementProgramFilter) return false;
+    if (announcementSubjectFilter && announcement.subjectId !== announcementSubjectFilter) return false;
+    if (announcementClassFilter && announcement.classId !== announcementClassFilter) return false;
     return true;
   });
 
@@ -548,43 +548,151 @@ const AnnouncementsPage = () => {
       </form>
 
       {/* Filters */}
-      <div style={{ 
+      <div className="filters-container" style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-start', 
+        gap: 12, 
+        flexWrap: 'wrap', 
+        marginBottom: '1rem', 
+        background: '#f8f9fa', 
         padding: '1rem', 
-        background: 'var(--color-surface, #f9fafb)', 
-        borderRadius: '8px', 
-        marginBottom: '1rem',
-        border: '1px solid var(--color-border, #e5e7eb)'
+        borderRadius: 12, 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        width: '100%' 
       }}>
+        <ProgramsSelect
+          programs={programs}
+          subjects={subjects}
+          classes={classes}
+          selectedProgram={announcementProgramFilter}
+          selectedSubject={announcementSubjectFilter}
+          selectedClass={announcementClassFilter}
+          onProgramChange={(programId) => setAnnouncementProgramFilter(programId)}
+          onSubjectChange={(subjectId) => setAnnouncementSubjectFilter(subjectId)}
+          onClassChange={(classId) => setAnnouncementClassFilter(classId)}
+          showClass={true}
+          showLabels={false}
+          style={{ width: '100%' }}
+        />
+      </div>
+      
+      {(announcementProgramFilter || announcementSubjectFilter || announcementClassFilter) && (
         <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
+          display: 'inline-flex',
           alignItems: 'center',
-          flexWrap: 'wrap'
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          marginBottom: '1rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1e40af'
         }}>
-          <ProgramsSelect
-            programs={programs}
-            subjects={subjects}
-            classes={classes}
-            programValue={announcementProgramFilter}
-            subjectValue={announcementSubjectFilter}
-            classValue={announcementClassFilter}
-            onProgramChange={setAnnouncementProgramFilter}
-            onSubjectChange={setAnnouncementSubjectFilter}
-            onClassChange={setAnnouncementClassFilter}
-            showLabels={false}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setAnnouncementProgramFilter('');
-              setAnnouncementSubjectFilter('');
-              setAnnouncementClassFilter('');
-            }}
-            icon={getThemedIcon('ui', 'x', 16, theme)}
-          >
-            {t('clear_filters') || 'Clear Filters'}
-          </Button>
+          {getThemedIcon('ui', 'filter', 14, theme)}
+          {t('showing_filtered') || 'Showing'} {filteredAnnouncements.length} {t('of') || 'of'} {announcements.length} {t('announcements') || 'Announcements'}
+        </div>
+      )}
+
+      {/* Summary Chips */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0f9ff', 
+          border: '1px solid #bae6fd', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#0369a1'
+        }}>
+          {getThemedIcon('ui', 'target', 16, theme)}
+          {announcements.length} {t('total') || 'Total'}
+        </div>
+        
+        {/* Target Type Chips */}
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef3c7', 
+          border: '1px solid #fde68a', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#92400e'
+        }}>
+          {getThemedIcon('ui', 'megaphone', 16, theme)}
+          {announcements.filter(a => a.target === 'global').length} {lang === 'ar' ? 'عالمي' : 'Global'}
+        </div>
+        
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fce7f3', 
+          border: '1px solid #fbcfe8', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#831843'
+        }}>
+          {getThemedIcon('ui', 'graduation_cap', 16, theme)}
+          {announcements.filter(a => a.programId).length} {lang === 'ar' ? 'برامج' : 'Programs'}
+        </div>
+        
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0fdf4', 
+          border: '1px solid #bbf7d0', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#166534'
+        }}>
+          {getThemedIcon('ui', 'book', 16, theme)}
+          {announcements.filter(a => a.subjectId).length} {lang === 'ar' ? 'مواد' : 'Subjects'}
+        </div>
+        
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#e0f2fe', 
+          border: '1px solid #7dd3fc', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#0c4a6e'
+        }}>
+          {getThemedIcon('ui', 'users', 16, theme)}
+          {announcements.filter(a => a.classId).length} {lang === 'ar' ? 'فصول' : 'Classes'}
+        </div>
+        
+        {/* Email Notification Chips */}
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f3e8ff', 
+          border: '1px solid #c4b5fd',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#6b21a8'
+        }}>
+          {getThemedIcon('ui', 'mail', 16, theme)}
+          {announcements.filter(a => a.sendEmail).length} {lang === 'ar' ? 'إشعارات البريد الإلكتروني' : 'Email Notifications'}
         </div>
       </div>
 
@@ -592,7 +700,7 @@ const AnnouncementsPage = () => {
         <AdvancedDataGrid
           key={`announcements-grid-${lang}`}
           rows={filteredAnnouncements}
-          getRowId={(row) => row.docId || row.id}
+          getRowId={(row) => row.docId || row.id || `announcement-${Math.random().toString(36).substr(2, 9)}`}
           direction={lang === 'ar' ? 'rtl' : 'ltr'}
           lang={lang}
           columns={gridColumns}

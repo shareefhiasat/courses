@@ -47,6 +47,7 @@ const ActivitiesPage = () => {
   const [activitySubjectFilter, setActivitySubjectFilter] = useState('');
   const [activityClassFilter, setActivityClassFilter] = useState('');
   const [activityTypeFilter, setActivityTypeFilter] = useState('');
+  const [activityDifficultyFilter, setActivityDifficultyFilter] = useState('');
   
   const [activityForm, setActivityForm] = useState({
     id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
@@ -324,6 +325,7 @@ const ActivitiesPage = () => {
     setActivitySubjectFilter('');
     setActivityClassFilter('');
     setActivityTypeFilter('');
+    setActivityDifficultyFilter('');
   };
 
   // Create options from local state (only keeping category options)
@@ -703,10 +705,11 @@ const ActivitiesPage = () => {
   ], [programs, subjects, classes, quizzes, theme, lang, t, handleEditActivity, toast, loadData]);
 
   const filteredActivities = activities.filter(activity => {
-    if (activityProgramFilter && activityProgramFilter !== 'all' && activity.programId !== activityProgramFilter) return false;
-    if (activitySubjectFilter && activitySubjectFilter !== 'all' && activity.subjectId !== activitySubjectFilter) return false;
-    if (activityClassFilter && activityClassFilter !== 'all' && activity.classId !== activityClassFilter) return false;
-    if (activityTypeFilter && activityTypeFilter !== 'all' && activity.type !== activityTypeFilter) return false;
+    if (activityProgramFilter && activity.programId !== activityProgramFilter) return false;
+    if (activitySubjectFilter && activity.subjectId !== activitySubjectFilter) return false;
+    if (activityClassFilter && activity.classId !== activityClassFilter) return false;
+    if (activityTypeFilter && activity.type !== activityTypeFilter) return false;
+    if (activityDifficultyFilter && activity.difficulty !== activityDifficultyFilter) return false;
     return true;
   });
 
@@ -1093,55 +1096,142 @@ const ActivitiesPage = () => {
       </form>
       
       {/* Filters */}
-      <div style={{ 
+      <div className="filters-container" style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        gap: '1rem', 
+        marginBottom: '1rem', 
+        background: '#f8f9fa', 
         padding: '1rem', 
-        background: 'var(--color-surface, #f9fafb)', 
-        borderRadius: '8px', 
-        marginBottom: '1rem',
-        border: '1px solid var(--color-border, #e5e7eb)'
+        borderRadius: 12, 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        width: '100%' 
       }}>
-        <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
-          <ProgramsSelect
-            programs={programs}
-            subjects={subjects}
-            classes={classes}
-            programValue={activityProgramFilter}
-            subjectValue={activitySubjectFilter}
-            classValue={activityClassFilter}
-            onProgramChange={setActivityProgramFilter}
-            onSubjectChange={setActivitySubjectFilter}
-            onClassChange={setActivityClassFilter}
-            showLabels={false}
-          />
+        {/* First row: Program, Subject, Class filters - spanning whole row */}
+        <ProgramsSelect
+          programs={programs}
+          subjects={subjects}
+          classes={classes}
+          selectedProgram={activityProgramFilter}
+          selectedSubject={activitySubjectFilter}
+          selectedClass={activityClassFilter}
+          onProgramChange={(programId) => setActivityProgramFilter(programId)}
+          onSubjectChange={(subjectId) => setActivitySubjectFilter(subjectId)}
+          onClassChange={(classId) => setActivityClassFilter(classId)}
+          showClass={true}
+          showLabels={false}
+          style={{ width: '100%' }}
+        />
+        
+        {/* Second row: Type and Difficulty filters */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <Select
             value={activityTypeFilter || ''}
             onChange={(e) => setActivityTypeFilter(e.target.value)}
             options={[
-              { value: '', label: t('all_types') || 'All Types' },
-              { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework' },
-              { value: ACTIVITY_TYPES.ASSIGNMENT, label: t('assignment') || 'Assignment' },
-              { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz' },
-              { value: ACTIVITY_TYPES.PROJECT, label: t('project') || 'Project' },
-              { value: ACTIVITY_TYPES.EXAM, label: t('exam') || 'Exam' },
-              { value: ACTIVITY_TYPES.OTHER, label: t('other') || 'Other' }
+              { value: '', label: t('all_types') || 'All Types', icon: getThemedIcon('ui', 'filter', 16, theme) },
+              ...getActivityTypeOptionsForDropdown(theme, lang)
             ]}
             placeholder={t('all_types') || 'All Types'}
-            icon={getThemedIcon('ui', 'filter', 16, theme)}
+            style={{ minWidth: '200px' }}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearActivityFilters}
-            icon={getThemedIcon('ui', 'x', 16, theme)}
-          >
-            {t('clear_filters') || 'Clear Filters'}
-          </Button>
+          <Select
+            value={activityDifficultyFilter || ''}
+            onChange={(e) => setActivityDifficultyFilter(e.target.value)}
+            options={[
+              { value: '', label: t('all_difficulties') || 'All Difficulties', icon: getThemedIcon('ui', 'filter', 16, theme) },
+              ...getDifficultyOptionsForDropdown(theme, lang)
+            ]}
+            placeholder={t('all_difficulties') || 'All Difficulties'}
+            style={{ minWidth: '200px' }}
+          />
         </div>
+      </div>
+      
+      {(activityProgramFilter || activitySubjectFilter || activityClassFilter || activityTypeFilter || activityDifficultyFilter) && (
+        <div style={{ 
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          marginBottom: '1rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1e40af'
+        }}>
+          {getThemedIcon('ui', 'filter', 14, theme)}
+          {t('showing_filtered') || 'Showing'} {filteredActivities.length} {t('of') || 'of'} {activities.length} {t('activities') || 'Activities'}
+        </div>
+      )}
+      
+      {/* Summary Chips */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0f9ff', 
+          border: '1px solid #bae6fd', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#0369a1'
+        }}>
+          {getThemedIcon('ui', 'target', 16, theme)}
+          {activities.length} {t('total') || 'Total'}
+        </div>
+        
+        {/* Activity Type Chips */}
+        {Object.entries(ACTIVITY_TYPES).map(([key, type]) => {
+          const config = getActivityTypeConfig(type, theme, lang);
+          const count = activities.filter(a => a.type === type).length;
+          if (count === 0) return null;
+          return (
+            <div key={type} style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: '#fef3c7', 
+              border: '1px solid #fde68a', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: '#92400e'
+            }}>
+              {getThemedIcon('ui', config.icon, 16, theme)}
+              {count} {config.text}
+            </div>
+          );
+        })}
+        
+        {/* Difficulty Chips */}
+        {Object.entries(DIFFICULTY_TYPES).map(([key, difficulty]) => {
+          const config = getDifficultyConfig(difficulty, theme, lang);
+          const count = activities.filter(a => a.difficulty === difficulty).length;
+          if (count === 0) return null;
+          return (
+            <div key={difficulty} style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: '#f0fdf4', 
+              border: '1px solid #bbf7d0', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: '#166534'
+            }}>
+              {getThemedIcon('ui', config.icon, 16, theme)}
+              {count} {config.text}
+            </div>
+          );
+        })}
       </div>
       
       <div style={{ marginTop: '1rem' }}>

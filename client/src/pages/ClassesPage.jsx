@@ -536,7 +536,17 @@ const handleCancelEdit = useCallback(() => {
       </form>
 
       {/* Filters for Classes */}
-      <div className="filters-container" style={{ display: 'flex', justifyContent: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>
+      <div className="filters-container" style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        gap: '1rem', 
+        marginBottom: '1rem', 
+        background: '#f8f9fa', 
+        padding: '1rem', 
+        borderRadius: 12, 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        width: '100%' 
+      }}>
         <ProgramsSelect
           programs={programs}
           subjects={subjects}
@@ -546,24 +556,78 @@ const handleCancelEdit = useCallback(() => {
           selectedClass=""
           onProgramChange={(programId) => setClassProgramFilter(programId)}
           onSubjectChange={(subjectId) => setClassSubjectFilter(subjectId)}
-          onClassChange={() => {}} // Not used in filters
-          showClass={false} // Hide class dropdown for filters
+          onClassChange={() => {}}
+          showClass={false}
           showLabels={false}
         />
-        <Select
-          value={classFilter || ''}
-          onChange={(e) => setClassFilter(e.target.value)}
-          options={[
-            { value: '', label: t('all_classes') || 'All Classes' },
-            ...(classes || []).map(c => ({
-              value: c.docId,
-              label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}${c.term ? ` - ${c.term}` : ''}`
-            }))
-          ]}
-          placeholder={t('all_classes') || 'All Classes'}
-          searchable
-          icon={getThemedIcon('ui', 'filter', 16, theme)}
-        />
+      </div>
+
+      {filteredClasses.length !== classes.length && (
+        <div style={{ 
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          marginBottom: '1rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1e40af'
+        }}>
+          {getThemedIcon('ui', 'filter', 14, theme)}
+          {t('showing_filtered') || 'Showing'} {filteredClasses.length} {t('of') || 'of'} {classes.length} {t('classes') || 'Classes'}
+        </div>
+      )}
+
+      {/* Summary Chips */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0f9ff', 
+          border: '1px solid #bae6fd', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#0369a1'
+        }}>
+          {getThemedIcon('ui', 'target', 16, theme)}
+          {classes.length} {t('total') || 'Total'}
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef3c7', 
+          border: '1px solid #fde68a', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#92400e'
+        }}>
+          {getThemedIcon('ui', 'book', 16, theme)}
+          {new Set(classes.map(c => c.subjectId)).size} {t('subjects') || 'Subjects'}
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0fdf4', 
+          border: '1px solid #bbf7d0', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#166534'
+        }}>
+          {getThemedIcon('ui', 'graduation_cap', 16, theme)}
+          {new Set(classes.map(c => c.programId)).size} {t('programs') || 'Programs'}
+        </div>
       </div>
 
       <div style={{ marginTop: '1rem' }}>

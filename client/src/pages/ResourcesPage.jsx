@@ -89,11 +89,6 @@ const ResourcesPage = () => {
     if (descArRef.current) descArRef.current.value = resourceForm.description_ar || '';
     if (urlRef.current) urlRef.current.value = resourceForm.url || '';
   }, [editingResource]);
-  
-  const [resourceProgramFilter, setResourceProgramFilter] = useState('all');
-  const [resourceSubjectFilter, setResourceSubjectFilter] = useState('all');
-  const [resourceClassFilter, setResourceClassFilter] = useState('all');
-  const [resourceCategoryFilter, setResourceCategoryFilter] = useState('all');
 
   // Load data on component mount
   useEffect(() => {
@@ -523,19 +518,16 @@ const ResourcesPage = () => {
       return true;
     }
     
-    if (resourceClassFilter !== 'all') {
-      return r.classId === resourceClassFilter;
+    if (resourceClassFilter && r.classId !== resourceClassFilter) {
+      return false;
     }
-    if (resourceSubjectFilter !== 'all') {
-      return r.subjectId === resourceSubjectFilter;
+    if (resourceSubjectFilter && r.subjectId !== resourceSubjectFilter) {
+      return false;
     }
-    if (resourceProgramFilter !== 'all') {
-      return r.programId === resourceProgramFilter;
+    if (resourceProgramFilter && r.programId !== resourceProgramFilter) {
+      return false;
     }
-    if (resourceCategoryFilter !== 'all') {
-      return r.courseId === resourceCategoryFilter;
-    }
-    if (resourceTypeFilter && resourceTypeFilter !== 'all' && r.type !== resourceTypeFilter) {
+    if (resourceTypeFilter && r.type !== resourceTypeFilter) {
       return false;
     }
     return true;
@@ -685,31 +677,36 @@ const ResourcesPage = () => {
       </form>
 
       {/* Filters */}
-      <div style={{ 
+      <div className="filters-container" style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        gap: '1rem', 
+        marginBottom: '1rem', 
+        background: '#f8f9fa', 
         padding: '1rem', 
-        background: 'var(--color-surface, #f9fafb)', 
-        borderRadius: '8px', 
-        marginBottom: '1rem',
-        border: '1px solid var(--color-border, #e5e7eb)'
+        borderRadius: 12, 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        width: '100%' 
       }}>
-        <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
+        {/* First row: Program, Subject, Class filters */}
+        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
             classes={classes}
-            programValue={resourceProgramFilter}
-            subjectValue={resourceSubjectFilter}
-            classValue={resourceClassFilter}
-            onProgramChange={setResourceProgramFilter}
-            onSubjectChange={setResourceSubjectFilter}
-            onClassChange={setResourceClassFilter}
+            selectedProgram={resourceProgramFilter}
+            selectedSubject={resourceSubjectFilter}
+            selectedClass={resourceClassFilter}
+            onProgramChange={(programId) => setResourceProgramFilter(programId)}
+            onSubjectChange={(subjectId) => setResourceSubjectFilter(subjectId)}
+            onClassChange={(classId) => setResourceClassFilter(classId)}
+            showClass={true}
             showLabels={false}
           />
+        </div>
+        
+        {/* Second row: Type filter */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <Select
             value={resourceTypeFilter || ''}
             onChange={(e) => setResourceTypeFilter(e.target.value)}
@@ -723,21 +720,91 @@ const ResourcesPage = () => {
               { value: 'other', label: t('other') || 'Other' }
             ]}
             placeholder={t('all_types') || 'All Types'}
-            icon={getThemedIcon('ui', 'filter', 16, theme)}
+            style={{ minWidth: '200px' }}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setResourceProgramFilter('');
-              setResourceSubjectFilter('');
-              setResourceClassFilter('');
-              setResourceTypeFilter('');
-            }}
-            icon={getThemedIcon('ui', 'x', 16, theme)}
-          >
-            {t('clear_filters') || 'Clear Filters'}
-          </Button>
+        </div>
+      </div>
+      
+      {filteredResources.length !== resources.length && (
+        <div style={{ 
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          marginBottom: '1rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1e40af'
+        }}>
+          {getThemedIcon('ui', 'filter', 14, theme)}
+          {t('showing_filtered') || 'Showing'} {filteredResources.length} {t('of') || 'of'} {resources.length} {t('resources') || 'Resources'}
+        </div>
+      )}
+
+      {/* Summary Chips */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0f9ff', 
+          border: '1px solid #bae6fd', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#0369a1'
+        }}>
+          {getThemedIcon('ui', 'target', 16, theme)}
+          {resources.length} {t('total') || 'Total'}
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fef3c7', 
+          border: '1px solid #fde68a', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#92400e'
+        }}>
+          {getThemedIcon('ui', 'link', 16, theme)}
+          {resources.filter(r => r.type === 'link').length} {t('links') || 'Links'}
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#fce7f3', 
+          border: '1px solid #fbcfe8', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#831843'
+        }}>
+          {getThemedIcon('ui', 'file', 16, theme)}
+          {resources.filter(r => r.type === 'file').length} {t('files') || 'Files'}
+        </div>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#f0fdf4', 
+          border: '1px solid #bbf7d0', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#166534'
+        }}>
+          {getThemedIcon('ui', 'video', 16, theme)}
+          {resources.filter(r => r.type === 'video').length} {t('videos') || 'Videos'}
         </div>
       </div>
 

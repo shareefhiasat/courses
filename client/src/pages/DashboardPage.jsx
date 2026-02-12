@@ -316,8 +316,8 @@ const DashboardPage = () => {
             // Fallback to blue if the CSS var is not defined
             options: {
               primaryColor: 'var(--color-primary, #1e90ff)',
-              textColor: '#000',
-              backgroundColor: '#fff',
+              textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+              backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
               overlayColor: 'rgba(0,0,0,0.5)'
             }
           }}

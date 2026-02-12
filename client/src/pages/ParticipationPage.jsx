@@ -31,7 +31,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const toast = useToast();
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
   const [formState, setFormState] = useState(FORM_STATES.IDLE);
-  const [participations, setParticipations] = useState([]);
+  const [participationsRaw, setParticipationsRaw] = useState([]);
   const [editingParticipation, setEditingParticipation] = useState(null);
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [classes, setClasses] = useState([]);
@@ -118,7 +118,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   useEffect(() => {
     loadParticipationsData();
-  }, [programFilter, subjectFilter, classFilter, typeFilter, classes, programs, subjects, toast, t]);
+  }, [classes, programs, subjects, toast, t]);
 
   // Load students when class changes
   useEffect(() => {
@@ -172,21 +172,46 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   const loadParticipationsData = () => {
     loadParticipations({
-      setParticipations,
+      setParticipations: setParticipationsRaw,
       setPageState,
       toast,
       t,
       classes,
       programs,
       subjects,
-      filters: {
-        programFilter,
-        subjectFilter,
-        classFilter,
-        typeFilter
-      }
+      filters: {}
     });
   };
+
+  const filteredParticipations = useMemo(() => {
+    let filtered = [...participationsRaw];
+    if (programFilter) {
+      filtered = filtered.filter(p => {
+        if (p.subjectId) {
+          const subject = subjects.find(s => (s.docId || s.id) === p.subjectId);
+          return subject?.programId === programFilter;
+        }
+        return false;
+      });
+    }
+    if (subjectFilter) {
+      filtered = filtered.filter(p => {
+        if (p.subjectId) return p.subjectId === subjectFilter;
+        if (p.classId) {
+          const classItem = classes.find(c => (c.id || c.docId) === p.classId);
+          return classItem?.subjectId === subjectFilter;
+        }
+        return false;
+      });
+    }
+    if (classFilter) {
+      filtered = filtered.filter(p => p.classId === classFilter);
+    }
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(p => p.type === typeFilter);
+    }
+    return filtered;
+  }, [participationsRaw, programFilter, subjectFilter, classFilter, typeFilter, classes, subjects]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -324,6 +349,11 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       points: 1,
       comment: ''
     });
+    // Clear refs
+    if (descriptionRef.current) descriptionRef.current.value = '';
+    if (commentRef.current) commentRef.current.value = '';
+    if (pointsRef.current) pointsRef.current.value = '1';
+    setEditingParticipation(null);
   };
 
   if (!isInstructor && !isAdmin && !isSuperAdmin) {
@@ -389,7 +419,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         
         // If not available, try to get from participations state
         if (!studentName && rowId) {
-          const foundRow = participations.find(p => (p.id || p.docId) === rowId);
+          const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
           studentName = foundRow?.studentName;
           studentEmail = foundRow?.studentEmail;
           studentId = foundRow?.studentId;
@@ -447,12 +477,12 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Try to get from row first, then from params.value, then from participations state
         let className = row.className || params?.value;
         if (!className && rowId) {
-          const foundRow = participations.find(p => (p.id || p.docId) === rowId);
+          const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
           className = foundRow?.className;
         }
         if (className && className !== 'N/A') {
           let text = className;
-          const classTerm = row.classTerm || (rowId ? participations.find(p => (p.id || p.docId) === rowId)?.classTerm : null);
+          const classTerm = row.classTerm || (rowId ? participationsRaw.find(p => (p.id || p.docId) === rowId)?.classTerm : null);
           if (classTerm) text += ` (${classTerm})`;
           return text;
         }
@@ -483,7 +513,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         
         // Final fallback from participations state
         if (!subjectName && rowId) {
-          const foundRow = participations.find(p => (p.id || p.docId) === rowId);
+          const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
           subjectName = foundRow?.subjectName;
         }
         
@@ -500,14 +530,25 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         const rowId = row.id || row.docId || params?.id;
         // Try to get from row first, then from params.value, then from participations state
         let programName = row.programName || params?.value;
+        
+        // If still not found, try to resolve from programs array using programId
+        if (!programName || programName === 'N/A') {
+          const programId = row.programId;
+          if (programId) {
+            const program = programs.find(p => (p.docId || p.id) === programId);
+            if (program) {
+              programName = lang === 'ar' ? (program.name_ar || program.name) : (program.name_en || program.name);
+            }
+          }
+        }
+        
+        // Final fallback from participations state
         if (!programName && rowId) {
-          const foundRow = participations.find(p => (p.id || p.docId) === rowId);
+          const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
           programName = foundRow?.programName;
         }
-        if (programName && programName !== 'N/A') {
-          return programName;
-        }
-        return 'N/A';
+        
+        return (programName && programName !== 'N/A') ? programName : 'N/A';
       }
     },
     {
@@ -644,7 +685,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         
         // If row is empty, try to find it in participations state
         if (!row || Object.keys(row).length === 0) {
-          const foundRow = participations.find(p => (p.id || p.docId) === rowId);
+          const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
           if (foundRow) {
             row = foundRow;
           }
@@ -1011,6 +1052,25 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       </div>
 
+      {filteredParticipations.length !== participationsRaw.length && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          marginBottom: '1rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1e40af'
+        }}>
+          {getThemedIcon('ui', 'filter', 14, theme)}
+          {t('showing_filtered') || 'Showing'} {filteredParticipations.length} {t('of') || 'of'} {participationsRaw.length} {t('participations') || 'Participations'}
+        </div>
+      )}
+
       {/* Summary Chips */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div style={{ 
@@ -1026,7 +1086,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
-          {participations.length} Total
+          {participationsRaw.length} Total
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1041,7 +1101,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'users', 16, theme)}
-          {new Set(participations.map(p => p.studentId)).size} Students
+          {new Set(participationsRaw.map(p => p.studentId)).size} Students
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1056,7 +1116,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#166534'
         }}>
           {getThemedIcon('ui', 'trending_up', 16, theme)}
-          {participations.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} Positive
+          {participationsRaw.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} Positive
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1071,14 +1131,14 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'trending_down', 16, theme)}
-          {participations.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} Negative
+          {participationsRaw.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} Negative
         </div>
       </div>
 
       <div className={styles.content}>
         {/* logger.debug('InstructorParticipationPage: Grid receiving participations data:', participations) */}
         <AdvancedDataGrid
-          rows={participations}
+          rows={filteredParticipations}
           getRowId={(row) => row.docId || row.id}
           columns={columns}
           pageSize={10}

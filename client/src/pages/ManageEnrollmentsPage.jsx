@@ -3,14 +3,13 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { db } from '@firebaseServices/config';
-import { collection, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc, query, where } from 'firebase/firestore';
-import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
+import { getEnrolledStudents, toggleStudentAccess as toggleStudentAccessService, getClassStatistics, enrollStudent, unenrollStudent } from '@firebaseServices/enrollmentManagementService';
 import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '@ui';
 import { FancyLoading } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
+import { USER_ROLES } from '@constants/userRoles';
 import styles from './ManageEnrollmentsPage.module.css';
 
 const ManageEnrollmentsPage = () => {
@@ -217,8 +216,8 @@ const ManageEnrollmentsPage = () => {
         // 1. They have an enrollment with role 'student', OR
         // 2. Their user doc has role 'student' (fallback)
         const isStudent = enrollmentForUser ? 
-          (enrollmentForUser.role === 'student' || enrollmentForUser.role === 'Student') :
-          (u.role === 'student' || u.role === 'Student');
+          (enrollmentForUser.role === USER_ROLES.STUDENT || enrollmentForUser.role === 'Student') :
+          (u.role === USER_ROLES.STUDENT || u.role === 'Student');
         
         // console.log('🔍 [ManageEnrollments] Processing user:', {
         //   userId,
@@ -297,23 +296,36 @@ const ManageEnrollmentsPage = () => {
   const toggleStudentAccess = async (studentId, currentlyDisabled) => {
     if (!selectedClass) return;
     try {
-      const classRef = doc(db, 'classes', selectedClass.id);
-      if (currentlyDisabled) {
-        // Enable access - remove from disabledStudents array
-        await updateDoc(classRef, {
-          disabledStudents: arrayRemove(studentId)
-        });
+      // Get student details for notifications
+      const student = students.find(s => (s.docId || s.id) === studentId);
+      
+      const result = await toggleStudentAccessService(
+        selectedClass.id, 
+        studentId, 
+        currentlyDisabled,
+        {
+          studentEmail: student?.email,
+          studentName: student?.displayName || student?.realName,
+          className: selectedClass.name || selectedClass.code,
+          instructorName: user?.displayName || user?.realName,
+          lang: t('lang') || 'en'
+        }
+      );
+      
+      if (result.success) {
+        const action = currentlyDisabled ? 'enabled' : 'disabled';
+        toast?.showSuccess(
+          t(`student_access_${action}_success`) || 
+          `Student access ${action} successfully${result.data.notificationSent ? ' and notification sent' : ''}`
+        );
+        // Reload students to reflect the change
+        await loadStudents(selectedClass.id);
       } else {
-        // Disable access - add to disabledStudents array
-        await updateDoc(classRef, {
-          disabledStudents: arrayUnion(studentId)
-        });
+        throw new Error(result.error);
       }
-      // Reload students
-      await loadStudents(selectedClass.id);
-    } catch (e) {
-      console.error('[ManageEnrollments] Error toggling access:', e);
-      toast.error(t('failed_to_update', { error: e?.message || 'unknown error' }) || 'Failed to update: ' + (e?.message || 'unknown error'));
+    } catch (error) {
+      logger.error('Failed to toggle student access:', error);
+      toast?.showError(t('failed_to_update_student_access') || 'Failed to update student access');
     }
   };
 

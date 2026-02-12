@@ -15,18 +15,25 @@ import { getUserById } from './userService';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { convertDatesToTimestamps, COMMON_DATE_FIELDS } from '@utils/date.js';
+import logger from '@utils/logger';
+import { logActivity, ACTIVITY_LOG_TYPES } from './activityLogger';
 
 // Get all resources
 export const getResources = async () => {
   try {
+    logger.info('RESOURCE: Fetching all resources');
+    
     const querySnapshot = await getDocs(collection(db, "resources"));
     const resources = [];
     querySnapshot.forEach((d) => {
       const resourceData = { docId: d.id, ...d.data() };
       resources.push(resourceData);
     });
+    
+    logger.info('RESOURCE: Successfully fetched resources', { count: resources.length });
     return { success: true, data: resources };
   } catch (error) {
+    logger.error('RESOURCE: Failed to fetch resources', { error: error.message });
     console.error("Error getting all resources:", error);
     return { success: false, error: error.message };
   }
@@ -52,12 +59,32 @@ export const getResourcesByClass = async (classId) => {
 // Add a new resource
 export const addResource = async (resourceData) => {
   try {
+    logger.info('RESOURCE: Creating new resource', {
+      title: resourceData.title_en || resourceData.title,
+      url: resourceData.url,
+      type: resourceData.type,
+      hasClassId: !!resourceData.classId,
+      hasProgramId: !!resourceData.programId,
+      hasSubjectId: !!resourceData.subjectId
+    });
+    
     const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
     const docRef = await addDoc(collection(db, "resources"), {
       ...convertedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    
+    // Log activity
+    try {
+      await logActivity(ACTIVITY_LOG_TYPES.RESOURCE_CREATED, {
+        resourceId: docRef.id,
+        title: resourceData.title_en || resourceData.title,
+        classId: resourceData.classId
+      });
+    } catch (logError) {
+      logger.warn('RESOURCE: Failed to log resource creation:', logError);
+    }
 
     // Send notifications for new resource
     if (resourceData.classId) {
