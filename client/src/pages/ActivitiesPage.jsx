@@ -1049,15 +1049,7 @@ const ActivitiesPage = () => {
         </div>
         
         {/* Email Notification Options */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '0.75rem',
-          padding: '1rem',
-          background: '#f0f8ff',
-          borderRadius: '8px',
-          border: '2px solid var(--color-primary, #800020)'
-        }}>
+
           <ToggleSwitch
             key="toggle-sendEmail"
             label={t('send_email_to_students') || 'Send email to students'}
@@ -1080,8 +1072,7 @@ const ActivitiesPage = () => {
               />
             </div>
           )}
-        </div>
-        
+
         {/* Form Actions */}
         <div className="form-actions">
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>

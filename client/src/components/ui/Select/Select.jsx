@@ -426,7 +426,8 @@ const Select = forwardRef(({
                       style={{ 
                         cursor: 'pointer',
                         padding: '8px 12px',
-                        backgroundColor: option.value === value ? (isDarkMode ? '#374151' : '#f0f0f0') : 'transparent',
+                        backgroundColor: option.value === value ? 'var(--primary-light, #eef2ff)' : 'transparent',
+                        color: option.value === value ? 'var(--primary, #800020)' : 'inherit',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px'

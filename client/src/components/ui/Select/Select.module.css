@@ -262,6 +262,16 @@
   font-weight: 500;
 }
 
+:global([data-theme="dark"]) .option.selected {
+  background: var(--primary-light, #374151);
+  color: var(--primary, #60a5fa);
+}
+
+:global([data-theme="dark"]) .option.selected:hover {
+  background: var(--primary-light, #4b5563);
+  color: var(--primary, #60a5fa);
+}
+
 .noOptions {
   padding: 16px 12px;
   text-align: center;

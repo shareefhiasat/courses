@@ -264,7 +264,7 @@ const AdvancedDataGrid = ({
           maxHeight: '70vh',
           direction: direction,
           backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-          color: isDarkMode ? '#f9fafb' : '#111827'
+          color: isDarkMode ? '#f9fafb !important' : '#111827 !important'
         }, 
         '& .MuiDataGrid-toolbarContainer': { 
           position: 'sticky', 
@@ -272,7 +272,7 @@ const AdvancedDataGrid = ({
           zIndex: 10,
           background: isDarkMode ? '#111827' : '#ffffff',
           borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
-          color: isDarkMode ? '#f9fafb' : '#111827'
+          color: isDarkMode ? '#f9fafb !important' : '#111827 !important'
         }, 
         '& .MuiDataGrid-main': {
           overflow: 'hidden',
@@ -285,23 +285,23 @@ const AdvancedDataGrid = ({
         '& .MuiDataGrid-columnHeaders': {
           textAlign: direction === 'rtl' ? 'right' : 'left',
           backgroundColor: isDarkMode ? '#111827' : '#ffffff',
-          color: isDarkMode ? '#f9fafb' : '#111827',
+          color: isDarkMode ? '#f9fafb !important' : '#111827 !important',
           borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb'
         },
         '& .MuiDataGrid-columnHeader': {
           backgroundColor: isDarkMode ? '#111827' : '#ffffff',
-          color: isDarkMode ? '#f9fafb' : '#111827',
+          color: isDarkMode ? '#f9fafb !important' : '#111827 !important',
           borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb'
         },
         '& .MuiDataGrid-columnHeaderTitle': {
-          color: isDarkMode ? '#f9fafb' : '#111827',
+          color: isDarkMode ? '#f9fafb !important' : '#111827 !important',
           fontWeight: 600
         },
         '& .MuiDataGrid-cell': {
           textAlign: direction === 'rtl' ? 'right' : 'left',
           justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start',
           backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-          color: isDarkMode ? '#f9fafb' : '#111827',
+          color: isDarkMode ? '#f9fafb !important' : '#111827 !important',
           borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb'
         },
         '& .MuiDataGrid-row': {
