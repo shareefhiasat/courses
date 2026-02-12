@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import './ThemeContext.css';
 
 const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
 
@@ -13,9 +14,18 @@ export const ThemeProvider = ({ children }) => {
       return 'light';
     }
   });
+  const [isThemeChanging, setIsThemeChanging] = useState(false);
+
+  useEffect(() => {
+    if (isThemeChanging) {
+      const timer = setTimeout(() => setIsThemeChanging(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isThemeChanging]);
 
   useEffect(() => {
     console.log('🎨 [ThemeContext] Theme changed to:', theme);
+    setIsThemeChanging(true);
     try {
       localStorage.setItem('app_theme', theme);
       console.log('💾 [ThemeContext] Saved to localStorage:', theme);
@@ -39,11 +49,19 @@ export const ThemeProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     theme,
+    isThemeChanging,
     toggleTheme: () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
-  }), [theme]);
+  }), [theme, isThemeChanging]);
 
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>
+      {children}
+      {isThemeChanging && (
+        <div className="theme-transition-overlay active">
+          <div className="loading-spinner" />
+        </div>
+      )}
+    </ThemeContext.Provider>
   );
 };
 

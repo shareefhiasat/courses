@@ -170,8 +170,8 @@ const UnifiedCard = memo(({
                   position: 'absolute',
                   top: 10,
                   [lang === 'ar' ? 'left' : 'right']: 10,
-                  background: 'white',
-                  border: '1px solid #e5e7eb',
+                  background: isDark ? '#374151' : 'white',
+                  border: isDark ? '1px solid #4b5563' : '1px solid #e5e7eb',
                   borderRadius: 20,
                   width: 32,
                   height: 32,
@@ -185,12 +185,12 @@ const UnifiedCard = memo(({
                   color: isBookmarked ? '#f5c518' : '#bbb'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f9fafb';
-                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.background = isDark ? '#4b5563' : '#f9fafb';
+                  e.currentTarget.style.borderColor = isDark ? '#6b7280' : '#d1d5db';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'white';
-                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.background = isDark ? '#374151' : 'white';
+                  e.currentTarget.style.borderColor = isDark ? '#4b5563' : '#e5e7eb';
                 }}
             >
               {isBookmarked ? (
@@ -222,7 +222,7 @@ const UnifiedCard = memo(({
                     cursor: 'default'
                   }}
               >
-                getThemedIcon('ui', 'pin', 14, theme)
+                {getThemedIcon('ui', 'pin', 14, theme)}
               </button>
           )}
           {(item.allowRetake || item.retakeAllowed) && (
@@ -342,7 +342,7 @@ const UnifiedCard = memo(({
           {/* Quiz-specific: Question count */}
           {(flavor === 'quiz' && item.questions?.length) && (
               <span style={{
-                background: '#f3e8ff',
+                background: isDark ? 'rgba(124, 58, 237, 0.2)' : '#f3e8ff',
                 color: '#7c3aed',
                 padding: '0.25rem 0.75rem',
                 borderRadius: 12,
@@ -358,7 +358,7 @@ const UnifiedCard = memo(({
           {/* Estimated time */}
           {item.estimatedTime && (
               <span style={{
-                background: '#fef3c7',
+                background: isDark ? 'rgba(217, 119, 6, 0.2)' : '#fef3c7',
                 color: '#d97706',
                 padding: '4px 8px',
                 borderRadius: 999,
@@ -376,7 +376,7 @@ const UnifiedCard = memo(({
           {/* Optional badge */}
           {item.optional && (
               <span style={{
-                background: '#fff3e0',
+                background: isDark ? 'rgba(245, 124, 0, 0.2)' : '#fff3e0',
                 color: '#f57c00',
                 padding: isMinified ? '4px 8px' : '6px 12px',
                 borderRadius: 999,
@@ -395,7 +395,7 @@ const UnifiedCard = memo(({
           {/* Required badge (for resources) */}
           {flavor === 'resource' && !item.optional && (
               <span style={{
-                background: '#fee2e2',
+                background: isDark ? 'rgba(185, 28, 28, 0.2)' : '#fee2e2',
                 color: '#b91c1c',
                 padding: isMinified ? '4px 8px' : '6px 12px',
                 borderRadius: 999,

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useTheme } from '@contexts/ThemeContext';
 
 /*
 Props:
@@ -9,10 +10,9 @@ Props:
 - className?: string
 */
 export default function RibbonTabs({ categories = [], activeCategory, activeItem, onChange, className = '' }) {
+  const { theme } = useTheme();
   const cat = categories.find(c => c.id === activeCategory) || categories[0] || { items: [] };
-  
-  // Detect dark mode
-  const isDarkMode = typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
+  const isDarkMode = theme === 'dark';
 
   return (
     <div className={className} style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '1rem', background: isDarkMode ? '#1f2937' : '#f8f9fa', padding: '1rem', borderRadius: 12, boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.05)', width: '100%' }}>

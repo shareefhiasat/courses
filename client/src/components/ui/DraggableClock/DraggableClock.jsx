@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Minus, Maximize2, Pin, PinOff } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { formatLocalizedDateTime } from '@utils/date';
 import './DraggableClock.css';
 
@@ -27,6 +28,8 @@ const DraggableClock = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPinned, setIsPinned] = useState(defaultPinned !== undefined ? defaultPinned : getStoredPinnedPreference());
   const { t, lang } = useLang();
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
   const dragRef = useRef(null);
   const startPos = useRef({ x: 0, y: 0 });
 

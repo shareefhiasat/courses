@@ -572,7 +572,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn" title={density==='compact'?'Normal View':'Compact View'}>
                 {density==='compact'?getThemedIcon('ui', 'zoom_in', 16, theme):getThemedIcon('ui', 'ruler', 16, theme)}
               </button>
-              <button onClick={()=>setTheme(t=>t==='light'?'dark':'light')} className="icon-btn" title={theme==='light'?'Dark':'Light'}>
+              <button onClick={toggleTheme} className="icon-btn" title={theme==='light'?'Dark':'Light'}>
                 {theme==='light'?getThemedIcon('ui', 'moon', 16, theme):getThemedIcon('ui', 'sun', 16, theme)}
               </button>
               

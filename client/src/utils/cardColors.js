@@ -7,29 +7,35 @@ import {getThemedIcon} from '@constants/iconTypes';
 
 /**
  * Get theme-aware color for icons
- * @param {string} defaultColor - Default color for light theme
+ * @param {string} baseColor - Base color from the card config
  * @param {string} theme - Current theme ('light' or 'dark')
  * @returns {string} Theme-appropriate color
  */
-const getThemeAwareColor = (defaultColor, theme = 'light') => {
-  // All icons should be the same color as the navbar - unified purple
-  const navbarPurple = '#8b5cf6'; // Same purple as navbar
-
-  return navbarPurple;
+const getThemeAwareColor = (baseColor, theme = 'light') => {
+  // Keep original icon colors - only backgrounds should change for theme
+  return baseColor;
 };
 
 /**
  * Get theme-aware background color for card icons
- * @param {string} defaultColor - Default color for light theme
+ * @param {string} baseColor - Base color from the card config
  * @param {string} theme - Current theme ('light' or 'dark')
  * @returns {string} Theme-appropriate background color
  */
-const getThemeAwareBgColor = (defaultColor, theme = 'light') => {
-  // All card backgrounds should use the same purple as the navbar
-  const navbarPurpleBg = theme === 'dark' ? 'rgba(139, 92, 246, 0.15)'
-      : 'rgba(139, 92, 246, 0.1)';
+const getThemeAwareBgColor = (baseColor, theme = 'light') => {
+  // Convert hex colors to rgba with appropriate opacity for theme
+  const colorMap = {
+    '#800020': theme === 'dark' ? 'rgba(128, 0, 32, 0.2)' : 'rgba(128, 0, 32, 0.1)',
+    '#ec4899': theme === 'dark' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(236, 72, 153, 0.1)',
+    '#6b7280': theme === 'dark' ? 'rgba(107, 114, 128, 0.2)' : 'rgba(107, 114, 128, 0.1)',
+    '#10b981': theme === 'dark' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)',
+    '#f59e0b': theme === 'dark' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.1)',
+    '#6366f1': theme === 'dark' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+    '#ef4444': theme === 'dark' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)',
+    '#8b5cf6': theme === 'dark' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.1)'
+  };
 
-  return navbarPurpleBg;
+  return colorMap[baseColor] || colorMap['#800020'];
 };
 
 /**

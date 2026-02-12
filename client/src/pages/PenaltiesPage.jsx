@@ -3,19 +3,18 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, Select, Loading, Input, Textarea, useToast, AdvancedDataGrid, StudentSelectOption, StudentSelect, Card, CardBody, ProgramsSelect } from '@ui';
+import { Button, Select, useToast, AdvancedDataGrid, StudentSelect, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { createPenalty, updatePenalty, deletePenalty, getPenalties } from '@firebaseServices/penaltyService';
 import { PENALTY_TYPES, PENALTY_TYPE_ICONS } from '@constants/penaltyTypes';
-import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getPrograms, getSubjects, getSubject, fetchProgram, fetchSubject } from '@firebaseServices/programService';
-import { getClasses, getClassById, fetchClass } from '@firebaseServices/classService';
-import { getEnrollments, getEnrollmentsByClass, getStudentsByClass } from '@firebaseServices/enrollmentService';
+import { getClasses, getClassById } from '@firebaseServices/classService';
+import { getEnrollments, getStudentsByClass } from '@firebaseServices/enrollmentService';
 import { addNotification } from '@firebaseServices/notificationService';
-import { getUserById } from '@firebaseServices/userService';
-import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
-import { formatQatarDateOnly, formatQatarDate } from '@utils/timezone';
+import { getAllUsers, getUserById, getUsersByIds } from '@firebaseServices/userService';
+import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
+import { formatQatarDate } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { 
   PAGE_STATES, 
@@ -26,7 +25,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import styles from './ProgramsManagementPage.module.css';
 
 const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
-  const { user, isHR, isAdmin, isSuperAdmin } = useAuth();
+  const { user, isHR, isAdmin, isSuperAdmin, isInstructor } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -40,6 +39,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
+  const [selectStudents, setSelectStudents] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [userCache, setUserCache] = useState({}); // Cache for user data fetched on demand
   const [formData, setFormData] = useState({
@@ -158,11 +158,36 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       // Instructors see students from their classes
       return enrollments.filter(enrollment => {
         const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
-        return classItem && classItem.ownerEmail === user.email;
+        return classItem && (
+          classItem.instructorId === user?.uid ||
+          classItem.ownerEmail === user?.email ||
+          classItem.instructor === user?.email
+        );
       });
     }
     return []; // Other roles see no students
-  }, [enrollments, classes, user.email, isHR, isAdmin, isSuperAdmin, isInstructor]);
+  }, [enrollments, classes, user?.uid, user?.email, isHR, isAdmin, isSuperAdmin, isInstructor]);
+
+  useEffect(() => {
+    const loadSelectStudents = async () => {
+      if (isSuperAdmin || isAdmin || isHR) {
+        const result = await getAllUsers({ studentsOnly: true });
+        setSelectStudents(result.success ? result.data : []);
+        return;
+      }
+      if (isInstructor) {
+        const enrollmentUserIds = enrollments
+          .map(e => e.userId || e.userDocId)
+          .filter(Boolean);
+        const result = await getUsersByIds(enrollmentUserIds);
+        const usersMap = result.success ? result.data : {};
+        setSelectStudents(Object.values(usersMap).filter(Boolean));
+        return;
+      }
+      setSelectStudents([]);
+    };
+    loadSelectStudents();
+  }, [enrollments, isSuperAdmin, isAdmin, isHR, isInstructor]);
 
   // Filters
   const [programFilter, setProgramFilter] = useState('');
@@ -172,7 +197,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [studentFilter, setStudentFilter] = useState('');
 
   useEffect(() => {
-    if (!isHR && !isAdmin && !isSuperAdmin) return;
+    if (!isHR && !isAdmin && !isSuperAdmin && !isInstructor) return;
     loadData();
     // Log page view
     try {
@@ -191,12 +216,12 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } catch (e) {
       logger.error('❌ PENALTY VIEWING LOG - Error logging activity:', e);
     }
-  }, [isHR, isAdmin, isSuperAdmin]);
+  }, [isHR, isAdmin, isSuperAdmin, isInstructor]);
 
   useEffect(() => {
-    if (!isHR && !isAdmin && !isSuperAdmin) return;
+    if (!isHR && !isAdmin && !isSuperAdmin && !isInstructor) return;
     loadPenalties();
-  }, [isHR, isAdmin, isSuperAdmin]);
+  }, [isHR, isAdmin, isSuperAdmin, isInstructor]);
 
   // Load students when class changes
   useEffect(() => {
@@ -1023,8 +1048,9 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <div style={{ minWidth: '200px' }}>
             <StudentSelect
               value={studentFilter}
-              onChange={(e) => setStudentFilter(e.target.value)}
+              onChange={setStudentFilter}
               enrollments={filteredEnrollmentsForSelect}
+              students={selectStudents}
               placeholder={t('all_students') || 'All Students'}
             />
           </div>

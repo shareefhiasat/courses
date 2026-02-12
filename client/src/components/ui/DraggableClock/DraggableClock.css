@@ -108,35 +108,35 @@
 }
 
 /* Dark mode */
-.dark .draggable-clock {
-  background: var(--panel-dark, #1f2937);
-  border-color: var(--border-dark, #374151);
+[data-theme="dark"] .draggable-clock {
+  background: #1f2937;
+  border-color: #374151;
 }
 
-.dark .clock-header {
-  background: var(--background-dark, #111827);
-  border-color: var(--border-dark, #374151);
+[data-theme="dark"] .clock-header {
+  background: #111827;
+  border-color: #374151;
 }
 
-.dark .clock-title {
-  color: var(--text-dark, #f9fafb);
+[data-theme="dark"] .clock-title {
+  color: #f9fafb;
 }
 
-.dark .control-btn {
-  color: var(--text-secondary-dark, #9ca3af);
+[data-theme="dark"] .control-btn {
+  color: #9ca3af;
 }
 
-.dark .control-btn:hover {
-  background: var(--hover-dark, #374151);
-  color: var(--text-dark, #f9fafb);
+[data-theme="dark"] .control-btn:hover {
+  background: #374151;
+  color: #f9fafb;
 }
 
-.dark .time-display {
-  color: var(--text-dark, #f9fafb);
+[data-theme="dark"] .time-display {
+  color: #f9fafb;
 }
 
-.dark .date-display {
-  color: var(--text-secondary-dark, #9ca3af);
+[data-theme="dark"] .date-display {
+  color: #9ca3af;
 }
 
 /* Pinned state styles - optimized for navbar */
@@ -191,11 +191,11 @@
 }
 
 /* Dark mode for pinned state */
-.dark .draggable-clock.pinned {
+[data-theme="dark"] .draggable-clock.pinned {
   background: transparent !important;
 }
 
-.dark .draggable-clock.pinned .clock-header {
+[data-theme="dark"] .draggable-clock.pinned .clock-header {
   background: transparent !important;
 }
 

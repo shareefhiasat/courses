@@ -6,6 +6,7 @@ import {
 import { arSD } from '@mui/x-data-grid/locales';
 import { Box } from '@mui/material';
 import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
+import { useTheme } from '@contexts/ThemeContext';
 import Loading from '../Loading';
 
 /**
@@ -32,6 +33,8 @@ const AdvancedDataGrid = ({
   lang = 'en', // 'en' or 'ar'
   ...rest
 }) => {
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
   // Store rows in a ref so we can access them in valueGetter
   const rowsRef = useRef(rows || []);
   rowsRef.current = rows || [];
@@ -223,9 +226,6 @@ const AdvancedDataGrid = ({
     URL.revokeObjectURL(url);
   };
 
-  // Detect theme from document
-  const isDarkMode = typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
-
   return (
     <Box sx={{ 
       position: 'relative', 
@@ -283,14 +283,33 @@ const AdvancedDataGrid = ({
           maxHeight: 'calc(70vh - 60px)'
         },
         '& .MuiDataGrid-columnHeaders': {
-          textAlign: direction === 'rtl' ? 'right' : 'left'
+          textAlign: direction === 'rtl' ? 'right' : 'left',
+          backgroundColor: isDarkMode ? '#111827' : '#ffffff',
+          color: isDarkMode ? '#f9fafb' : '#111827',
+          borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb'
+        },
+        '& .MuiDataGrid-columnHeader': {
+          backgroundColor: isDarkMode ? '#111827' : '#ffffff',
+          color: isDarkMode ? '#f9fafb' : '#111827',
+          borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb'
+        },
+        '& .MuiDataGrid-columnHeaderTitle': {
+          color: isDarkMode ? '#f9fafb' : '#111827',
+          fontWeight: 600
         },
         '& .MuiDataGrid-cell': {
           textAlign: direction === 'rtl' ? 'right' : 'left',
-          justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start'
+          justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start',
+          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+          color: isDarkMode ? '#f9fafb' : '#111827',
+          borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb'
         },
         '& .MuiDataGrid-row': {
-          direction: direction
+          direction: direction,
+          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+          '&:hover': {
+            backgroundColor: isDarkMode ? '#374151' : '#f9fafb'
+          }
         },
         // Ensure actions column is always visible in RTL
         '& .MuiDataGrid-cell[data-field="actions"]': {
@@ -309,8 +328,8 @@ const AdvancedDataGrid = ({
             onClick={handleExternalExport}
             style={{
               border:'1px solid #10b981',
-              background:'white',
-              color:'#059669',
+              background: isDarkMode ? '#1f2937' : 'white',
+              color: isDarkMode ? '#10b981' : '#059669',
               borderRadius:999,
               padding:'4px 10px',
               fontSize:'0.8rem',

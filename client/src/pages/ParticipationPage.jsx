@@ -10,7 +10,7 @@ import { getPrograms, getSubjects, getSubject } from '@firebaseServices/programS
 import { getClassById } from '@firebaseServices/classService';
 import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
-import { getUserById } from '@firebaseServices/userService';
+import { getAllUsers, getUserById, getUsersByIds } from '@firebaseServices/userService';
 import { addNotification } from '@firebaseServices/notificationService';
 import { loadParticipations, createParticipation, updateParticipation, deleteParticipation } from '@firebaseServices/participationService';
 import { formatQatarDateOnly } from '@utils/timezone';
@@ -25,7 +25,7 @@ import {
 import styles from './ProgramsManagementPage.module.css';
 
 const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
-  const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
+  const { user, isInstructor, isAdmin, isSuperAdmin, isHR } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -38,6 +38,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
+  const [selectStudents, setSelectStudents] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [userCache, setUserCache] = useState({}); // Cache for user data fetched on demand
   const [formData, setFormData] = useState({
@@ -107,18 +108,43 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   // Filter enrollments based on user role for student dropdown
   const filteredEnrollmentsForSelect = useMemo(() => {
-    if (isAdmin || isSuperAdmin) {
-      return enrollments; // Admins see all students
+    if (isAdmin || isSuperAdmin || isHR) {
+      return enrollments; // Admins/HR see all students
     }
     if (isInstructor) {
       // Instructors see students from their classes
       return enrollments.filter(enrollment => {
         const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
-        return classItem && classItem.ownerEmail === user.email;
+        return classItem && (
+          classItem.instructorId === user?.uid ||
+          classItem.ownerEmail === user?.email ||
+          classItem.instructor === user?.email
+        );
       });
     }
     return []; // Other roles see no students
-  }, [enrollments, classes, user.email, isAdmin, isSuperAdmin, isInstructor]);
+  }, [enrollments, classes, user?.uid, user?.email, isAdmin, isSuperAdmin, isHR, isInstructor]);
+
+  useEffect(() => {
+    const loadSelectStudents = async () => {
+      if (isSuperAdmin || isAdmin || isHR) {
+        const result = await getAllUsers({ studentsOnly: true });
+        setSelectStudents(result.success ? result.data : []);
+        return;
+      }
+      if (isInstructor) {
+        const enrollmentUserIds = enrollments
+          .map(e => e.userId || e.userDocId)
+          .filter(Boolean);
+        const result = await getUsersByIds(enrollmentUserIds);
+        const usersMap = result.success ? result.data : {};
+        setSelectStudents(Object.values(usersMap).filter(Boolean));
+        return;
+      }
+      setSelectStudents([]);
+    };
+    loadSelectStudents();
+  }, [enrollments, isSuperAdmin, isAdmin, isHR, isInstructor]);
 
   // Filters
   const [programFilter, setProgramFilter] = useState('');
@@ -128,9 +154,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const [studentFilter, setStudentFilter] = useState('');
 
   useEffect(() => {
-    if (!isInstructor && !isAdmin && !isSuperAdmin) return;
+    if (!isInstructor && !isAdmin && !isSuperAdmin && !isHR) return;
     loadData();
-  }, [isInstructor, isAdmin, isSuperAdmin]);
+  }, [isInstructor, isAdmin, isSuperAdmin, isHR]);
 
   useEffect(() => {
     loadParticipationsData();
@@ -1026,8 +1052,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           <div style={{ minWidth: '200px' }}>
             <StudentSelect
               value={studentFilter}
-              onChange={(e) => setStudentFilter(e.target.value)}
+              onChange={setStudentFilter}
               enrollments={filteredEnrollmentsForSelect}
+              students={selectStudents}
               placeholder={t('all_students') || 'All Students'}
             />
           </div>
