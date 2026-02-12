@@ -409,17 +409,6 @@ const handleCancelEdit = useCallback(() => {
   ], [subjects, users, theme, lang, t, handleEdit, handleDelete]);
 
   const filteredClasses = classes.filter(classItem => {
-    // Debug logging
-    if (classTermFilter === 'Fall' && classYearFilter === '2025') {
-      console.log('Debug - Filtering Fall 2025:', {
-        classItem: classItem.name || classItem.docId,
-        term: classItem.term,
-        year: classItem.year,
-        programId: classItem.programId,
-        subjectId: classItem.subjectId
-      });
-    }
-    
     if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;
     if (classSubjectFilter && classSubjectFilter !== 'all' && classItem.subjectId !== classSubjectFilter) return false;
     if (classFilter && classFilter !== 'all' && classItem.docId !== classFilter) return false;
@@ -586,18 +575,11 @@ const handleCancelEdit = useCallback(() => {
             onChange={(e) => setClassInstructorFilter(e.target.value)}
             options={[
               { value: '', label: lang === 'ar' ? 'جميع المدربين' : 'All Instructors', icon: getThemedIcon('ui', 'users', 16, theme) },
-              ...(() => {
-                console.log('🔍 [ClassesPage] All users:', users);
-                console.log('🔍 [ClassesPage] USER_ROLES.INSTRUCTOR:', USER_ROLES.INSTRUCTOR);
-                console.log('🔍 [ClassesPage] User roles:', users.map(u => ({ name: u.displayName || u.email, role: u.role })));
-                const instructors = users.filter(u => u.isInstructor === true);
-                console.log('🔍 [ClassesPage] Filtered instructors:', instructors);
-                return instructors.map(instructor => ({
+              ...users.filter(u => u.isInstructor === true).map(instructor => ({
                   value: instructor.email,
                   label: instructor.displayName || instructor.email,
                   icon: getThemedIcon('ui', 'user', 16, theme)
-                }));
-              })()
+                }))
             ]}
             placeholder={lang === 'ar' ? 'جميع المدربين' : 'All Instructors'}
             style={{ minWidth: '200px' }}

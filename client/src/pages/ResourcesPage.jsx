@@ -12,10 +12,10 @@ import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger.jsx';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from '@firebaseServices/userService';
-import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker, UrlInput } from '@ui';
-import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
-import { RECORD_TYPES } from '@utils/sharedTypes';
-import { getResourceTypeConfig, getResourceTypeOptions } from '@constants/dashboardTypes.jsx';
+import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker } from '@ui';
+import { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import { getResourceTypeConfig, getResourceTypeOptions, RESOURCE_TYPES } from '@constants/dashboardTypes.jsx';
+import { getCategories } from '@firebaseServices/categoryService';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import logger from '@utils/logger';
 
@@ -44,6 +44,7 @@ const ResourcesPage = () => {
   const [classes, setClasses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [users, setUsers] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   
   // Filter state
@@ -51,6 +52,7 @@ const ResourcesPage = () => {
   const [resourceSubjectFilter, setResourceSubjectFilter] = useState('');
   const [resourceClassFilter, setResourceClassFilter] = useState('');
   const [resourceTypeFilter, setResourceTypeFilter] = useState('');
+  const [resourceCategoryFilter, setResourceCategoryFilter] = useState('');
   const [resourceTitleEnFilter, setResourceTitleEnFilter] = useState('');
   const [resourceTitleArFilter, setResourceTitleArFilter] = useState('');
   const [resourceDescriptionEnFilter, setResourceDescriptionEnFilter] = useState('');
@@ -71,7 +73,8 @@ const ResourcesPage = () => {
     programId: '', 
     subjectId: '', 
     classId: '', 
-    courseId: '' 
+    courseId: '',
+    categoryId: ''
   });
   
   const [editingResource, setEditingResource] = useState(null);
@@ -108,14 +111,16 @@ const ResourcesPage = () => {
         classesResult,
         coursesResult,
         usersResult,
-        resourcesResult
+        resourcesResult,
+        categoriesResult
       ] = await Promise.all([
         getPrograms(),
         getSubjects(),
         getClasses(),
         getCourses(),
         getUsers(),
-        getResources()
+        getResources(),
+        getCategories()
       ]);
       
       if (programsResult.success) setPrograms(programsResult.data || []);
@@ -128,6 +133,7 @@ const ResourcesPage = () => {
       } else {
         logger.error('Failed to load resources:', resourcesResult.error);
       }
+      if (categoriesResult.success) setCategories(categoriesResult.data || []);
     } catch (error) {
       logger.error('Error loading data:', error);
       toast?.showError(t('error_loading_data') || 'Error loading data');
@@ -244,7 +250,7 @@ const ResourcesPage = () => {
         }
 
         await loadData();
-        setResourceForm({ title: '', title_en: '', title_ar: '', description: '', description_en: '', description_ar: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '' });
+        setResourceForm({ title: '', title_en: '', title_ar: '', description: '', description_en: '', description_ar: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '', categoryId: '' });
         if (titleEnRef.current) titleEnRef.current.value = '';
         if (titleArRef.current) titleArRef.current.value = '';
         if (descEnRef.current) descEnRef.current.value = '';
@@ -281,7 +287,8 @@ const ResourcesPage = () => {
       programId: params.row.programId || '',
       subjectId: params.row.subjectId || '',
       classId: params.row.classId || '',
-      courseId: params.row.courseId || ''
+      courseId: params.row.courseId || '',
+      categoryId: params.row.categoryId || ''
     });
   }, []);
 
@@ -319,7 +326,7 @@ const ResourcesPage = () => {
 
   const handleCancelEdit = useCallback(() => {
     setEditingResource(null);
-    setResourceForm({ title: '', title_en: '', title_ar: '', description: '', description_en: '', description_ar: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '' });
+    setResourceForm({ title: '', title_en: '', title_ar: '', description: '', description_en: '', description_ar: '', url: '', type: 'link', dueDate: '', optional: false, featured: false, programId: '', subjectId: '', classId: '', courseId: '', categoryId: '' });
     if (titleEnRef.current) titleEnRef.current.value = '';
     if (titleArRef.current) titleArRef.current.value = '';
     if (descEnRef.current) descEnRef.current.value = '';
@@ -517,6 +524,11 @@ const ResourcesPage = () => {
   ], [programs, subjects, classes, courses, theme, lang, t]);
 
   const filteredResources = resources.filter(r => {
+    // Apply type filter first (before public resources check)
+    if (resourceTypeFilter && r.type !== resourceTypeFilter) {
+      return false;
+    }
+    
     // If resource has no program/subject/class, it's public and should be included
     if (!r.programId && !r.subjectId && !r.classId && !r.courseId) {
       return true;
@@ -531,7 +543,7 @@ const ResourcesPage = () => {
     if (resourceProgramFilter && r.programId !== resourceProgramFilter) {
       return false;
     }
-    if (resourceTypeFilter && r.type !== resourceTypeFilter) {
+    if (resourceCategoryFilter && r.categoryId !== resourceCategoryFilter) {
       return false;
     }
     
@@ -580,13 +592,14 @@ const ResourcesPage = () => {
           <Select
             searchable
             placeholder={t('category_optional') || 'Category (Optional)'}
-            value={resourceForm.courseId || ''}
-            onChange={(e) => setResourceForm({ ...resourceForm, courseId: e.target.value })}
+            value={resourceForm.categoryId || ''}
+            onChange={(e) => setResourceForm({ ...resourceForm, categoryId: e.target.value })}
             options={[
-              { value: '', label: t('no_category') || 'No Category' },
-              ...courses.map(course => ({
-                value: course.docId,
-                label: lang === 'ar' ? (course.name_ar || course.name_en) : (course.name_en || course.name_ar)
+              { value: '', label: t('no_category') || 'No Category', icon: getThemedIcon('ui', 'folder', 16, theme) },
+              ...categories.map(category => ({
+                value: category.docId,
+                label: category.name || category.name_en || 'Unnamed Category',
+                icon: getThemedIcon('ui', category.icon || 'folder', 16, theme)
               })).sort((a, b) => a.label.localeCompare(b.label))
             ]}
           />
@@ -715,13 +728,28 @@ const ResourcesPage = () => {
           style={{ width: '100%' }}
         />
         
-        {/* Second row: Type filter */}
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        {/* Second row: Type and Category filters */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <Select
             value={resourceTypeFilter || ''}
             onChange={(e) => setResourceTypeFilter(e.target.value)}
             options={getResourceTypeOptions(theme)}
             placeholder={t('all_types') || 'All Types'}
+            style={{ minWidth: '200px' }}
+          />
+          
+          <Select
+            value={resourceCategoryFilter || ''}
+            onChange={(e) => setResourceCategoryFilter(e.target.value)}
+            options={[
+              { value: '', label: lang === 'ar' ? 'جميع الفئات' : 'All Categories', icon: getThemedIcon('ui', 'folder', 16, theme) },
+              ...categories.map(category => ({
+                value: category.docId,
+                label: category.name || category.name_en || 'Unnamed Category',
+                icon: getThemedIcon('ui', category.icon || 'folder', 16, theme)
+              }))
+            ]}
+            placeholder={lang === 'ar' ? 'جميع الفئات' : 'All Categories'}
             style={{ minWidth: '200px' }}
           />
         </div>
@@ -762,7 +790,7 @@ const ResourcesPage = () => {
         </div>
       </div>
       
-      {(resourceProgramFilter || resourceSubjectFilter || resourceClassFilter || resourceTypeFilter || resourceTitleEnFilter || resourceTitleArFilter || resourceDescriptionEnFilter || resourceDescriptionArFilter) && (
+      {(resourceProgramFilter || resourceSubjectFilter || resourceClassFilter || resourceTypeFilter || resourceCategoryFilter || resourceTitleEnFilter || resourceTitleArFilter || resourceDescriptionEnFilter || resourceDescriptionArFilter) && (
         <div style={{ 
           display: 'inline-flex',
           alignItems: 'center',
@@ -800,7 +828,7 @@ const ResourcesPage = () => {
         </div>
         
         {/* Resource Type Chips - Only show if count > 0 */}
-        {resources.filter(r => r.type === 'document').length > 0 && (
+        {resources.filter(r => r.type === RESOURCE_TYPES.DOCUMENT).length > 0 && (
           <div style={{ 
             display: 'inline-flex', 
             alignItems: 'center', 
@@ -814,11 +842,11 @@ const ResourcesPage = () => {
             color: '#92400e'
           }}>
             {getThemedIcon('ui', 'file_text', 16, theme)}
-            {resources.filter(r => r.type === 'document').length} {lang === 'ar' ? 'مستندات' : 'Documents'}
+            {resources.filter(r => r.type === RESOURCE_TYPES.DOCUMENT).length} {lang === 'ar' ? 'مستندات' : 'Documents'}
           </div>
         )}
         
-        {resources.filter(r => r.type === 'link').length > 0 && (
+        {resources.filter(r => r.type === RESOURCE_TYPES.LINK).length > 0 && (
           <div style={{ 
             display: 'inline-flex', 
             alignItems: 'center', 
@@ -832,11 +860,11 @@ const ResourcesPage = () => {
             color: '#831843'
           }}>
             {getThemedIcon('ui', 'link', 16, theme)}
-            {resources.filter(r => r.type === 'link').length} {lang === 'ar' ? 'روابط' : 'Links'}
+            {resources.filter(r => r.type === RESOURCE_TYPES.LINK).length} {lang === 'ar' ? 'روابط' : 'Links'}
           </div>
         )}
         
-        {resources.filter(r => r.type === 'video').length > 0 && (
+        {resources.filter(r => r.type === RESOURCE_TYPES.VIDEO).length > 0 && (
           <div style={{ 
             display: 'inline-flex', 
             alignItems: 'center', 
@@ -850,7 +878,7 @@ const ResourcesPage = () => {
             color: '#166534'
           }}>
             {getThemedIcon('ui', 'video', 16, theme)}
-            {resources.filter(r => r.type === 'video').length} {lang === 'ar' ? 'فيديوهات' : 'Videos'}
+            {resources.filter(r => r.type === RESOURCE_TYPES.VIDEO).length} {lang === 'ar' ? 'فيديوهات' : 'Videos'}
           </div>
         )}
       </div>
