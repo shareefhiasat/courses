@@ -170,6 +170,13 @@
   animation: slideDown 0.2s ease;
 }
 
+/* Dark mode for dropdown */
+:global([data-theme="dark"]) .dropdown {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -186,6 +193,11 @@
   position: relative;
   padding: 8px;
   border-bottom: 1px solid var(--border, #e5e7eb);
+}
+
+/* Dark mode for search container */
+:global([data-theme="dark"]) .searchContainer {
+  border-bottom: 1px solid #4b5563 !important;
 }
 
 .searchIcon {
@@ -211,6 +223,13 @@
   transition: border-color 0.2s ease;
   background: var(--input-bg, #ffffff);
   color: var(--text, #1f2937);
+}
+
+/* Dark mode for search input */
+:global([data-theme="dark"]) .searchInput {
+  background: #4b5563 !important;
+  border: 1px solid #6b7280 !important;
+  color: #f9fafb !important;
 }
 
 .searchInput:focus {
@@ -252,8 +271,18 @@
   color: var(--text, #1f2937);
 }
 
+/* Dark mode for options */
+:global([data-theme="dark"]) .option {
+  color: #f9fafb !important;
+}
+
 .option:hover {
   background: var(--hover-bg, #f3f4f6);
+}
+
+/* Dark mode for option hover */
+:global([data-theme="dark"]) .option:hover {
+  background: #4b5563 !important;
 }
 
 .option.selected {

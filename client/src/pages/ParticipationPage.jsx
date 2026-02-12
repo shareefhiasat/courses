@@ -213,6 +213,22 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   };
 
   const loadParticipationsData = () => {
+    // Only run if we have the required data
+    if (classes.length === 0 || programs.length === 0 || subjects.length === 0) {
+      console.log('🔍 [ParticipationPage] Skipping loadParticipationsData - missing data:', {
+        hasClasses: classes.length,
+        hasPrograms: programs.length,
+        hasSubjects: subjects.length
+      });
+      return;
+    }
+    
+    console.log('🔍 [ParticipationPage] Loading participations with data:', {
+      hasClasses: classes.length,
+      hasPrograms: programs.length,
+      hasSubjects: subjects.length
+    });
+    
     loadParticipations({
       setParticipations: setParticipationsRaw,
       setPageState,
@@ -221,12 +237,28 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       classes,
       programs,
       subjects,
-      filters: {}
+      filters: {},
+      lang // Pass the current language
     });
   };
 
   const filteredParticipations = useMemo(() => {
     let filtered = [...participationsRaw];
+    
+    // Debug: Show what data we're working with
+    console.log('🔍 [Filtered Participations] Starting with participationsRaw:', {
+      totalCount: participationsRaw.length,
+      firstItem: participationsRaw[0] ? {
+        docId: participationsRaw[0].docId,
+        programName: participationsRaw[0].programName,
+        programName_en: participationsRaw[0].programName_en,
+        programName_ar: participationsRaw[0].programName_ar,
+        subjectName: participationsRaw[0].subjectName,
+        subjectName_en: participationsRaw[0].subjectName_en,
+        subjectName_ar: participationsRaw[0].subjectName_ar
+      } : null
+    });
+    
     if (programFilter) {
       filtered = filtered.filter(p => {
         if (p.subjectId) {
@@ -255,6 +287,21 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (studentFilter) {
       filtered = filtered.filter(p => p.studentId === studentFilter);
     }
+    
+    console.log('🔍 [Filtered Participations] Final filtered data:', {
+      originalCount: participationsRaw.length,
+      filteredCount: filtered.length,
+      firstFilteredItem: filtered[0] ? {
+        docId: filtered[0].docId,
+        programName: filtered[0].programName,
+        programName_en: filtered[0].programName_en,
+        programName_ar: filtered[0].programName_ar,
+        subjectName: filtered[0].subjectName,
+        subjectName_en: filtered[0].subjectName_en,
+        subjectName_ar: filtered[0].subjectName_ar
+      } : null
+    });
+    
     return filtered;
   }, [participationsRaw, programFilter, subjectFilter, classFilter, typeFilter, studentFilter, classes, subjects]);
 
@@ -523,8 +570,10 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         const row = params?.row || {};
         const rowId = row.id || row.docId || params?.id;
         
-        // Try to get from row first, then from params.value, then from participations state
-        let subjectName = row.subjectName || params?.value;
+        // Try to get from enriched data first (language-aware)
+        let subjectName = lang === 'ar' 
+          ? (row.subjectName_ar || row.subjectName)
+          : (row.subjectName_en || row.subjectName);
         
         // If still not found, try to resolve from subjects array using subjectId
         if (!subjectName || subjectName === 'N/A') {
@@ -542,7 +591,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Final fallback from participations state
         if (!subjectName && rowId) {
           const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
-          subjectName = foundRow?.subjectName;
+          subjectName = lang === 'ar' 
+            ? (foundRow?.subjectName_ar || foundRow?.subjectName)
+            : (foundRow?.subjectName_en || foundRow?.subjectName);
         }
         
         return (subjectName && subjectName !== 'N/A') ? subjectName : 'N/A';
@@ -557,8 +608,20 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         const row = params?.row || {};
         const rowId = row.id || row.docId || params?.id;
         
-        // Try to get from row first, then from params.value, then from participations state
-        let programName = row.programName || params?.value;
+        // Debug: Show what data the grid column receives
+        console.log('🔍 [Grid Column] Program column data:', {
+          rowId,
+          programName: row.programName,
+          programName_en: row.programName_en,
+          programName_ar: row.programName_ar,
+          programId: row.programId,
+          currentLang: lang
+        });
+        
+        // Try to get from enriched data first (language-aware)
+        let programName = lang === 'ar' 
+          ? (row.programName_ar || row.programName)
+          : (row.programName_en || row.programName);
         
         // If still not found, try to resolve from programs array using programId
         if (!programName || programName === 'N/A') {
@@ -576,9 +639,12 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         // Final fallback from participations state
         if (!programName && rowId) {
           const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
-          programName = foundRow?.programName;
+          programName = lang === 'ar' 
+            ? (foundRow?.programName_ar || foundRow?.programName)
+            : (foundRow?.programName_en || foundRow?.programName);
         }
         
+        console.log('🔍 [Grid Column] Final program name:', programName);
         return (programName && programName !== 'N/A') ? programName : 'N/A';
       }
     },
@@ -801,7 +867,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions]);
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions, programs, subjects, students, userCache]);
 
   return (
     <div className={styles.container}>

@@ -86,6 +86,47 @@
   border-bottom: 1px solid #374151 !important;
 }
 
+/* Fix for specific cell backgrounds that might be overriding */
+[data-theme="dark"] .MuiDataGrid-cell.MuiDataGrid-cell--textLeft,
+[data-theme="dark"] .MuiDataGrid-cell.MuiDataGrid-cell--textRight,
+[data-theme="dark"] .MuiDataGrid-cell.MuiDataGrid-cell--textCenter {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+/* Fix for column headers that might still have white background */
+[data-theme="dark"] .MuiDataGrid-columnHeader.MuiDataGrid-columnHeader--sortable,
+[data-theme="dark"] .MuiDataGrid-columnHeader.MuiDataGrid-withBorderColor {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
+}
+
+/* Fix for any remaining white backgrounds in DataGrid */
+[data-theme="dark"] .MuiDataGrid-root,
+[data-theme="dark"] .MuiDataGrid-main,
+[data-theme="dark"] .MuiDataGrid-virtualScroller,
+[data-theme="dark"] .MuiDataGrid-virtualScrollerContent,
+[data-theme="dark"] .MuiDataGrid-viewport,
+[data-theme="dark"] .MuiDataGrid-renderingZone {
+  background-color: #1f2937 !important;
+}
+
+/* Fix for cell content that might have white background */
+[data-theme="dark"] .MuiDataGrid-cellContent,
+[data-theme="dark"] .MuiDataGrid-cellValue {
+  background-color: transparent !important;
+  color: #f9fafb !important;
+}
+
+/* Fix for type column and other specific columns */
+[data-theme="dark"] .MuiDataGrid-cell[data-field="type"],
+[data-theme="dark"] .MuiDataGrid-cell[data-field="programName"],
+[data-theme="dark"] .MuiDataGrid-cell[data-field="subjectName"],
+[data-theme="dark"] .MuiDataGrid-cell[data-field="className"] {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
 [data-theme="dark"] .MuiDataGrid-row {
   background-color: #1f2937 !important;
 }
@@ -110,4 +151,74 @@
 
 [data-theme="dark"] .btn:hover {
   background-color: #4b5563 !important;
+}
+
+/* ClassesPage Filters Dark Mode */
+[data-theme="dark"] .classes-tab .filters-container {
+  background: #1f2937 !important;
+  border: 1px solid #374151 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Dark mode for filter summary section */
+[data-theme="dark"] .classes-tab div[style*="background: #eff6ff"] {
+  background: #1e3a5f !important;
+  border: 1px solid #374151 !important;
+  color: #93c5fd !important;
+}
+
+/* Dark mode for summary chips */
+[data-theme="dark"] .classes-tab div[style*="background: #f0f9ff"] {
+  background: #1e3a5f !important;
+  border: 1px solid #374151 !important;
+  color: #93c5fd !important;
+}
+
+[data-theme="dark"] .classes-tab div[style*="background: #fef2f2"] {
+  background: #1e3a5f !important;
+  border: 1px solid #374151 !important;
+  color: #f87171 !important;
+}
+
+[data-theme="dark"] .classes-tab div[style*="background: #f0fdf4"] {
+  background: #1e3a5f !important;
+  border: 1px solid #374151 !important;
+  color: #34d399 !important;
+}
+
+/* Dark mode for Select components in filters */
+[data-theme="dark"] .classes-tab .filters-container .select-container,
+[data-theme="dark"] .classes-tab .filters-container .programs-select {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .classes-tab .filters-container .select-container:focus,
+[data-theme="dark"] .classes-tab .filters-container .programs-select:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Dark mode for Select dropdown options */
+[data-theme="dark"] .classes-tab .filters-container .select-option {
+  background: #374151 !important;
+  color: #f9fafb !important;
+  border-bottom: 1px solid #4b5563 !important;
+}
+
+[data-theme="dark"] .classes-tab .filters-container .select-option:hover {
+  background: #4b5563 !important;
+}
+
+/* Dark mode for ProgramsSelect component */
+[data-theme="dark"] .classes-tab .filters-container .programs-select-container {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+}
+
+[data-theme="dark"] .classes-tab .filters-container .programs-select-dropdown {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }

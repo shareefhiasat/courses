@@ -341,7 +341,8 @@ export async function loadParticipations({
   classes = [],
   programs = [],
   subjects = [],
-  filters = {}
+  filters = {},
+  lang = 'en' // Add lang parameter with default
 }) {
   try {
     setPageState('LOADING');
@@ -357,9 +358,26 @@ export async function loadParticipations({
     const enrichedParticipations = participations.map(participation => {
       const enriched = { ...participation };
       
+      console.log('🔍 [Participation Enrichment] Processing participation:', {
+        participationId: participation.docId,
+        classId: participation.classId,
+        hasClasses: classes.length,
+        hasSubjects: subjects.length,
+        hasPrograms: programs.length
+      });
+      
       // Get class information
       if (participation.classId) {
         const classItem = classes.find(c => (c.id || c.docId) === participation.classId);
+        console.log('🔍 [Participation Enrichment] Found class:', {
+          classId: participation.classId,
+          classItem: classItem ? {
+            name: classItem.name,
+            code: classItem.code,
+            subjectId: classItem.subjectId
+          } : null
+        });
+        
         if (classItem) {
           enriched.className = classItem.name || classItem.code || 'N/A';
           enriched.classTerm = classItem.term;
@@ -367,20 +385,82 @@ export async function loadParticipations({
           // Get subject information
           if (classItem.subjectId) {
             const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
+            console.log('🔍 [Participation Enrichment] Found subject:', {
+              subjectId: classItem.subjectId,
+              subject: subject ? {
+                name_en: subject.name_en,
+                name_ar: subject.name_ar,
+                programId: subject.programId
+              } : null
+            });
+            
             if (subject) {
-              enriched.subjectName = subject.name || subject.code || 'N/A';
+              // Store both name and ID for grid columns - use proper language fields
+              enriched.subjectName = lang === 'ar' 
+                ? (subject.name_ar || subject.name_en || subject.name || subject.code || 'N/A')
+                : (subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A');
+              enriched.subjectName_en = subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A';
+              enriched.subjectName_ar = subject.name_ar || subject.name_en || subject.name || subject.code || 'N/A';
+              enriched.subjectId = subject.docId || subject.id; // Add subject ID
+              
+              console.log('🔍 [Participation Enrichment] Subject names set:', {
+                subjectName_en: subject.name_en,
+                subjectName_ar: subject.name_ar,
+                enrichedSubjectName: enriched.subjectName
+              });
               
               // Get program information
               if (subject.programId) {
                 const program = programs.find(p => (p.docId || p.id) === subject.programId);
+                console.log('🔍 [Participation Enrichment] Found program:', {
+                  programId: subject.programId,
+                  program: program ? {
+                    name_en: program.name_en,
+                    name_ar: program.name_ar
+                  } : null
+                });
+                
                 if (program) {
-                  enriched.programName = program.name || program.code || 'N/A';
+                  // Store both name and ID for grid columns - use proper language fields
+                  enriched.programName = lang === 'ar'
+                    ? (program.name_ar || program.name_en || program.name || program.code || 'N/A')
+                    : (program.name_en || program.name_ar || program.name || program.code || 'N/A');
+                  enriched.programName_en = program.name_en || program.name_ar || program.name || program.code || 'N/A';
+                  enriched.programName_ar = program.name_ar || program.name_en || program.name || program.code || 'N/A';
+                  enriched.programId = program.docId || program.id; // Add program ID
+                  
+                  console.log('🔍 [Participation Enrichment] Program names set:', {
+                    programName_en: program.name_en,
+                    programName_ar: program.name_ar,
+                    enrichedProgramName: enriched.programName
+                  });
+                } else {
+                  console.log('❌ [Participation Enrichment] Program not found for ID:', subject.programId);
                 }
+              } else {
+                console.log('❌ [Participation Enrichment] Subject has no programId');
               }
+            } else {
+              console.log('❌ [Participation Enrichment] Subject not found for ID:', classItem.subjectId);
             }
+          } else {
+            console.log('❌ [Participation Enrichment] Class has no subjectId');
           }
+        } else {
+          console.log('❌ [Participation Enrichment] Class not found for ID:', participation.classId);
         }
+      } else {
+        console.log('❌ [Participation Enrichment] Participation has no classId');
       }
+      
+      console.log('✅ [Participation Enrichment] Final enriched data:', {
+        participationId: enriched.docId,
+        className: enriched.className,
+        subjectName: enriched.subjectName,
+        subjectId: enriched.subjectId,
+        programName: enriched.programName,
+        programId: enriched.programId
+      });
       
       return enriched;
     });
