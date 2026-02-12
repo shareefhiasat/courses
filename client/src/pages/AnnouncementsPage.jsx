@@ -12,7 +12,7 @@ import { getUsers, getUserById } from '@firebaseServices/userService';
 import { notificationGateway } from '@firebaseServices/notificationGateway';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
-import { Button, ToggleSwitch, Select } from '@ui';
+import { Button, ToggleSwitch, Select, Input } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
@@ -52,6 +52,10 @@ const AnnouncementsPage = () => {
   const [announcementProgramFilter, setAnnouncementProgramFilter] = useState('');
   const [announcementSubjectFilter, setAnnouncementSubjectFilter] = useState('');
   const [announcementClassFilter, setAnnouncementClassFilter] = useState('');
+  const [announcementTitleEnFilter, setAnnouncementTitleEnFilter] = useState('');
+  const [announcementTitleArFilter, setAnnouncementTitleArFilter] = useState('');
+  const [announcementContentEnFilter, setAnnouncementContentEnFilter] = useState('');
+  const [announcementContentArFilter, setAnnouncementContentArFilter] = useState('');
   
   const [emailOptions, setEmailOptions] = useState({
     sendEmail: false,
@@ -416,6 +420,13 @@ const AnnouncementsPage = () => {
     if (announcementProgramFilter && announcement.programId !== announcementProgramFilter) return false;
     if (announcementSubjectFilter && announcement.subjectId !== announcementSubjectFilter) return false;
     if (announcementClassFilter && announcement.classId !== announcementClassFilter) return false;
+    
+    // Text search filters
+    if (announcementTitleEnFilter && (!announcement.title || !announcement.title.toLowerCase().includes(announcementTitleEnFilter.toLowerCase()))) return false;
+    if (announcementTitleArFilter && (!announcement.title_ar || !announcement.title_ar.includes(announcementTitleArFilter))) return false;
+    if (announcementContentEnFilter && (!announcement.content || !announcement.content.toLowerCase().includes(announcementContentEnFilter.toLowerCase()))) return false;
+    if (announcementContentArFilter && (!announcement.content_ar || !announcement.content_ar.includes(announcementContentArFilter))) return false;
+    
     return true;
   });
 
@@ -550,9 +561,8 @@ const AnnouncementsPage = () => {
       {/* Filters */}
       <div className="filters-container" style={{ 
         display: 'flex', 
-        justifyContent: 'flex-start', 
-        gap: 12, 
-        flexWrap: 'wrap', 
+        flexDirection: 'column',
+        gap: '1rem', 
         marginBottom: '1rem', 
         background: '#f8f9fa', 
         padding: '1rem', 
@@ -574,9 +584,44 @@ const AnnouncementsPage = () => {
           showLabels={false}
           style={{ width: '100%' }}
         />
+        
+        {/* Third row: Title and Content filters */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Input
+            value={announcementTitleEnFilter}
+            onChange={(e) => setAnnouncementTitleEnFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالعنوان (إنجليزي)' : 'Search by Title (English)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'search', 16, theme)}
+          />
+          
+          <Input
+            value={announcementTitleArFilter}
+            onChange={(e) => setAnnouncementTitleArFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالعنوان (عربي)' : 'Search by Title (Arabic)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'search', 16, theme)}
+          />
+          
+          <Input
+            value={announcementContentEnFilter}
+            onChange={(e) => setAnnouncementContentEnFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالمحتوى (إنجليزي)' : 'Search by Content (English)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'file_text', 16, theme)}
+          />
+          
+          <Input
+            value={announcementContentArFilter}
+            onChange={(e) => setAnnouncementContentArFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالمحتوى (عربي)' : 'Search by Content (Arabic)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'file_text', 16, theme)}
+          />
+        </div>
       </div>
       
-      {(announcementProgramFilter || announcementSubjectFilter || announcementClassFilter) && (
+      {(announcementProgramFilter || announcementSubjectFilter || announcementClassFilter || announcementTitleEnFilter || announcementTitleArFilter || announcementContentEnFilter || announcementContentArFilter) && (
         <div style={{ 
           display: 'inline-flex',
           alignItems: 'center',

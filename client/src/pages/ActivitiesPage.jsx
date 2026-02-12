@@ -12,7 +12,7 @@ import { getPrograms, getSubjects, getClasses } from '@firebaseServices/programS
 import { getCategories } from '@firebaseServices/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@firebaseServices/activityService';
 import { getAllQuizzes } from '@firebaseServices/quizService';
-import { Select, DatePicker, Button, ToggleSwitch, UrlInput } from '@ui';
+import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
@@ -48,6 +48,10 @@ const ActivitiesPage = () => {
   const [activityClassFilter, setActivityClassFilter] = useState('');
   const [activityTypeFilter, setActivityTypeFilter] = useState('');
   const [activityDifficultyFilter, setActivityDifficultyFilter] = useState('');
+  const [activityTitleEnFilter, setActivityTitleEnFilter] = useState('');
+  const [activityTitleArFilter, setActivityTitleArFilter] = useState('');
+  const [activityDescriptionEnFilter, setActivityDescriptionEnFilter] = useState('');
+  const [activityDescriptionArFilter, setActivityDescriptionArFilter] = useState('');
   
   const [activityForm, setActivityForm] = useState({
     id: '', title_en: '', title_ar: '', description_en: '', description_ar: '',
@@ -710,6 +714,13 @@ const ActivitiesPage = () => {
     if (activityClassFilter && activity.classId !== activityClassFilter) return false;
     if (activityTypeFilter && activity.type !== activityTypeFilter) return false;
     if (activityDifficultyFilter && activity.difficulty !== activityDifficultyFilter) return false;
+    
+    // Text search filters
+    if (activityTitleEnFilter && (!activity.title_en || !activity.title_en.toLowerCase().includes(activityTitleEnFilter.toLowerCase()))) return false;
+    if (activityTitleArFilter && (!activity.title_ar || !activity.title_ar.includes(activityTitleArFilter))) return false;
+    if (activityDescriptionEnFilter && (!activity.description_en || !activity.description_en.toLowerCase().includes(activityDescriptionEnFilter.toLowerCase()))) return false;
+    if (activityDescriptionArFilter && (!activity.description_ar || !activity.description_ar.includes(activityDescriptionArFilter))) return false;
+    
     return true;
   });
 
@@ -1146,9 +1157,44 @@ const ActivitiesPage = () => {
             style={{ minWidth: '200px' }}
           />
         </div>
+        
+        {/* Third row: Title and Description filters */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Input
+            value={activityTitleEnFilter}
+            onChange={(e) => setActivityTitleEnFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالعنوان (إنجليزي)' : 'Search by Title (English)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'search', 16, theme)}
+          />
+          
+          <Input
+            value={activityTitleArFilter}
+            onChange={(e) => setActivityTitleArFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالعنوان (عربي)' : 'Search by Title (Arabic)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'search', 16, theme)}
+          />
+          
+          <Input
+            value={activityDescriptionEnFilter}
+            onChange={(e) => setActivityDescriptionEnFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالوصف (إنجليزي)' : 'Search by Description (English)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'file_text', 16, theme)}
+          />
+          
+          <Input
+            value={activityDescriptionArFilter}
+            onChange={(e) => setActivityDescriptionArFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالوصف (عربي)' : 'Search by Description (Arabic)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'file_text', 16, theme)}
+          />
+        </div>
       </div>
       
-      {(activityProgramFilter || activitySubjectFilter || activityClassFilter || activityTypeFilter || activityDifficultyFilter) && (
+      {(activityProgramFilter || activitySubjectFilter || activityClassFilter || activityTypeFilter || activityDifficultyFilter || activityTitleEnFilter || activityTitleArFilter || activityDescriptionEnFilter || activityDescriptionArFilter) && (
         <div style={{ 
           display: 'inline-flex',
           alignItems: 'center',

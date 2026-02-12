@@ -21,7 +21,7 @@ import { PAGE_STATES, FORM_STATES } from '@constants/pageTypes';
 
 const UsersPage = ({ isDashboardTab = false }) => {
   const navigate = useNavigate();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const { user, isAdmin, isSuperAdmin } = useAuth();
   const toast = useToast();
@@ -682,7 +682,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         </div>
       </div>
       
-      {filteredUsers.length !== users.length && (
+      {(programFilter || subjectFilter || classFilter || roleFilter || statusFilter) && (
         <div style={{ 
           display: 'inline-flex',
           alignItems: 'center',
@@ -716,8 +716,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
           color: '#0369a1'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
-          {users.length} {t('total') || 'Total'}
+          {users.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
         </div>
+        
+        {/* Role Chips - Always show counts */}
         <div style={{ 
           display: 'inline-flex', 
           alignItems: 'center', 
@@ -730,9 +732,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
           fontWeight: '500',
           color: '#92400e'
         }}>
-          {getRoleIconThemed('STUDENT')}
-          {users.filter(u => u.role === 'STUDENT').length} {t('students') || 'Students'}
+          {getRoleIconThemed(USER_ROLES.STUDENT)}
+          {users.filter(u => u.role === USER_ROLES.STUDENT).length} {lang === 'ar' ? 'طلاب' : 'Students'}
         </div>
+        
         <div style={{ 
           display: 'inline-flex', 
           alignItems: 'center', 
@@ -745,9 +748,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
           fontWeight: '500',
           color: '#831843'
         }}>
-          {getRoleIconThemed('INSTRUCTOR')}
-          {users.filter(u => u.role === 'INSTRUCTOR').length} {t('instructors') || 'Instructors'}
+          {getRoleIconThemed(USER_ROLES.INSTRUCTOR)}
+          {users.filter(u => u.role === USER_ROLES.INSTRUCTOR).length} {lang === 'ar' ? 'مدرسين' : 'Instructors'}
         </div>
+        
         <div style={{ 
           display: 'inline-flex', 
           alignItems: 'center', 
@@ -760,8 +764,24 @@ const UsersPage = ({ isDashboardTab = false }) => {
           fontWeight: '500',
           color: '#166534'
         }}>
-          {getRoleIconThemed('ADMIN')}
-          {users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length} {t('admins') || 'Admins'}
+          {getRoleIconThemed(USER_ROLES.ADMIN)}
+          {users.filter(u => u.role === USER_ROLES.ADMIN || u.role === USER_ROLES.SUPER_ADMIN).length} {lang === 'ar' ? 'مدراء' : 'Admins'}
+        </div>
+        
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.5rem', 
+          padding: '0.5rem 0.75rem', 
+          background: '#e0f2fe', 
+          border: '1px solid #7dd3fc', 
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#0c4a6e'
+        }}>
+          {getRoleIconThemed(USER_ROLES.HR)}
+          {users.filter(u => u.role === USER_ROLES.HR).length} {lang === 'ar' ? 'موارد بشرية' : 'HR'}
         </div>
       </div>
 

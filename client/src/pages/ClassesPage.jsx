@@ -51,6 +51,9 @@ const ClassesPage = () => {
   const [classProgramFilter, setClassProgramFilter] = useState('');
   const [classSubjectFilter, setClassSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
+  const [classInstructorFilter, setClassInstructorFilter] = useState('');
+  const [classTermFilter, setClassTermFilter] = useState('');
+  const [classYearFilter, setClassYearFilter] = useState('');
   
   // UI state
   const [loading, setLoading] = useState(false);
@@ -409,6 +412,9 @@ const handleCancelEdit = useCallback(() => {
     if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;
     if (classSubjectFilter && classSubjectFilter !== 'all' && classItem.subjectId !== classSubjectFilter) return false;
     if (classFilter && classFilter !== 'all' && classItem.docId !== classFilter) return false;
+    if (classInstructorFilter && classItem.ownerEmail !== classInstructorFilter) return false;
+    if (classTermFilter && classItem.term !== classTermFilter) return false;
+    if (classYearFilter && classItem.year !== classYearFilter) return false;
     return true;
   });
 
@@ -559,10 +565,62 @@ const handleCancelEdit = useCallback(() => {
           onClassChange={() => {}}
           showClass={false}
           showLabels={false}
+          style={{ width: '100%' }}
         />
+        
+        {/* Second row: Instructor, Term, Year filters */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Select
+            value={classInstructorFilter || ''}
+            onChange={(e) => setClassInstructorFilter(e.target.value)}
+            options={[
+              { value: '', label: lang === 'ar' ? 'جميع المدربين' : 'All Instructors', icon: getThemedIcon('ui', 'users', 16, theme) },
+              ...users.filter(u => u.role === USER_ROLES.INSTRUCTOR).map(instructor => ({
+                value: instructor.email,
+                label: instructor.displayName || instructor.email,
+                icon: getThemedIcon('ui', 'user', 16, theme)
+              }))
+            ]}
+            placeholder={lang === 'ar' ? 'جميع المدربين' : 'All Instructors'}
+            style={{ minWidth: '200px' }}
+          />
+          
+          <Select
+            value={classTermFilter || ''}
+            onChange={(e) => setClassTermFilter(e.target.value)}
+            options={[
+              { value: '', label: lang === 'ar' ? 'جميع الفصول' : 'All Terms', icon: getThemedIcon('ui', 'calendar', 16, theme) },
+              { value: 'Fall', label: lang === 'ar' ? 'خريف' : 'Fall', icon: getThemedIcon('ui', 'leaf', 16, theme) },
+              { value: 'Spring', label: lang === 'ar' ? 'ربيع' : 'Spring', icon: getThemedIcon('ui', 'flower', 16, theme) },
+              { value: 'Summer', label: lang === 'ar' ? 'صيف' : 'Summer', icon: getThemedIcon('ui', 'sun', 16, theme) },
+              { value: 'Winter', label: lang === 'ar' ? 'شتاء' : 'Winter', icon: getThemedIcon('ui', 'snowflake', 16, theme) }
+            ]}
+            placeholder={lang === 'ar' ? 'جميع الفصول' : 'All Terms'}
+            style={{ minWidth: '150px' }}
+          />
+          
+          <Select
+            value={classYearFilter || ''}
+            onChange={(e) => setClassYearFilter(e.target.value)}
+            options={[
+              { value: '', label: lang === 'ar' ? 'جميع السنوات' : 'All Years', icon: getThemedIcon('ui', 'calendar', 16, theme) },
+              ...Array.from({ length: 5 }, (_, i) => {
+                const year = new Date().getFullYear() - i;
+                return {
+                  value: year.toString(),
+                  label: year.toString(),
+                  icon: getThemedIcon('ui', 'calendar', 16, theme)
+                };
+              })
+            ]}
+            placeholder={lang === 'ar' ? 'جميع السنوات' : 'All Years'}
+            style={{ minWidth: '120px' }}
+          />
+        </div>
+        
       </div>
 
-      {filteredClasses.length !== classes.length && (
+      {(classProgramFilter || classSubjectFilter || classInstructorFilter || classTermFilter || classYearFilter) && (
         <div style={{ 
           display: 'inline-flex',
           alignItems: 'center',
@@ -596,7 +654,7 @@ const handleCancelEdit = useCallback(() => {
           color: '#0369a1'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
-          {classes.length} {t('total') || 'Total'}
+          {classes.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -611,7 +669,7 @@ const handleCancelEdit = useCallback(() => {
           color: '#92400e'
         }}>
           {getThemedIcon('ui', 'book', 16, theme)}
-          {new Set(classes.map(c => c.subjectId)).size} {t('subjects') || 'Subjects'}
+          {new Set(classes.map(c => c.subjectId)).size} {lang === 'ar' ? 'مواد' : 'Subjects'}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -626,7 +684,7 @@ const handleCancelEdit = useCallback(() => {
           color: '#166534'
         }}>
           {getThemedIcon('ui', 'graduation_cap', 16, theme)}
-          {new Set(classes.map(c => c.programId)).size} {t('programs') || 'Programs'}
+          {new Set(classes.map(c => c.programId)).size} {lang === 'ar' ? 'برامج' : 'Programs'}
         </div>
       </div>
 

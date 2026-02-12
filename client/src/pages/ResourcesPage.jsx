@@ -51,6 +51,10 @@ const ResourcesPage = () => {
   const [resourceSubjectFilter, setResourceSubjectFilter] = useState('');
   const [resourceClassFilter, setResourceClassFilter] = useState('');
   const [resourceTypeFilter, setResourceTypeFilter] = useState('');
+  const [resourceTitleEnFilter, setResourceTitleEnFilter] = useState('');
+  const [resourceTitleArFilter, setResourceTitleArFilter] = useState('');
+  const [resourceDescriptionEnFilter, setResourceDescriptionEnFilter] = useState('');
+  const [resourceDescriptionArFilter, setResourceDescriptionArFilter] = useState('');
   
   const [resourceForm, setResourceForm] = useState({ 
     title: '', 
@@ -530,6 +534,13 @@ const ResourcesPage = () => {
     if (resourceTypeFilter && r.type !== resourceTypeFilter) {
       return false;
     }
+    
+    // Text search filters
+    if (resourceTitleEnFilter && (!r.title_en || !r.title_en.toLowerCase().includes(resourceTitleEnFilter.toLowerCase()))) return false;
+    if (resourceTitleArFilter && (!r.title_ar || !r.title_ar.includes(resourceTitleArFilter))) return false;
+    if (resourceDescriptionEnFilter && (!r.description_en || !r.description_en.toLowerCase().includes(resourceDescriptionEnFilter.toLowerCase()))) return false;
+    if (resourceDescriptionArFilter && (!r.description_ar || !r.description_ar.includes(resourceDescriptionArFilter))) return false;
+    
     return true;
   });
 
@@ -689,43 +700,69 @@ const ResourcesPage = () => {
         width: '100%' 
       }}>
         {/* First row: Program, Subject, Class filters */}
-        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
-          <ProgramsSelect
-            programs={programs}
-            subjects={subjects}
-            classes={classes}
-            selectedProgram={resourceProgramFilter}
-            selectedSubject={resourceSubjectFilter}
-            selectedClass={resourceClassFilter}
-            onProgramChange={(programId) => setResourceProgramFilter(programId)}
-            onSubjectChange={(subjectId) => setResourceSubjectFilter(subjectId)}
-            onClassChange={(classId) => setResourceClassFilter(classId)}
-            showClass={true}
-            showLabels={false}
-          />
-        </div>
+        <ProgramsSelect
+          programs={programs}
+          subjects={subjects}
+          classes={classes}
+          selectedProgram={resourceProgramFilter}
+          selectedSubject={resourceSubjectFilter}
+          selectedClass={resourceClassFilter}
+          onProgramChange={(programId) => setResourceProgramFilter(programId)}
+          onSubjectChange={(subjectId) => setResourceSubjectFilter(subjectId)}
+          onClassChange={(classId) => setResourceClassFilter(classId)}
+          showClass={true}
+          showLabels={false}
+          style={{ width: '100%' }}
+        />
         
         {/* Second row: Type filter */}
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <Select
             value={resourceTypeFilter || ''}
             onChange={(e) => setResourceTypeFilter(e.target.value)}
-            options={[
-              { value: '', label: t('all_types') || 'All Types' },
-              { value: 'link', label: t('link') || 'Link' },
-              { value: 'file', label: t('file') || 'File' },
-              { value: 'video', label: t('video') || 'Video' },
-              { value: 'document', label: t('document') || 'Document' },
-              { value: 'image', label: t('image') || 'Image' },
-              { value: 'other', label: t('other') || 'Other' }
-            ]}
+            options={getResourceTypeOptions(theme)}
             placeholder={t('all_types') || 'All Types'}
             style={{ minWidth: '200px' }}
           />
         </div>
+        
+        {/* Third row: Title and Description filters */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Input
+            value={resourceTitleEnFilter}
+            onChange={(e) => setResourceTitleEnFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالعنوان (إنجليزي)' : 'Search by Title (English)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'search', 16, theme)}
+          />
+          
+          <Input
+            value={resourceTitleArFilter}
+            onChange={(e) => setResourceTitleArFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالعنوان (عربي)' : 'Search by Title (Arabic)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'search', 16, theme)}
+          />
+          
+          <Input
+            value={resourceDescriptionEnFilter}
+            onChange={(e) => setResourceDescriptionEnFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالوصف (إنجليزي)' : 'Search by Description (English)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'file_text', 16, theme)}
+          />
+          
+          <Input
+            value={resourceDescriptionArFilter}
+            onChange={(e) => setResourceDescriptionArFilter(e.target.value)}
+            placeholder={lang === 'ar' ? 'بحث بالوصف (عربي)' : 'Search by Description (Arabic)'}
+            style={{ minWidth: '250px' }}
+            prefixIcon={getThemedIcon('ui', 'file_text', 16, theme)}
+          />
+        </div>
       </div>
       
-      {filteredResources.length !== resources.length && (
+      {(resourceProgramFilter || resourceSubjectFilter || resourceClassFilter || resourceTypeFilter || resourceTitleEnFilter || resourceTitleArFilter || resourceDescriptionEnFilter || resourceDescriptionArFilter) && (
         <div style={{ 
           display: 'inline-flex',
           alignItems: 'center',
@@ -759,53 +796,63 @@ const ResourcesPage = () => {
           color: '#0369a1'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
-          {resources.length} {t('total') || 'Total'}
+          {resources.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
         </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fef3c7', 
-          border: '1px solid #fde68a', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#92400e'
-        }}>
-          {getThemedIcon('ui', 'link', 16, theme)}
-          {resources.filter(r => r.type === 'link').length} {t('links') || 'Links'}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fce7f3', 
-          border: '1px solid #fbcfe8', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#831843'
-        }}>
-          {getThemedIcon('ui', 'file', 16, theme)}
-          {resources.filter(r => r.type === 'file').length} {t('files') || 'Files'}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#f0fdf4', 
-          border: '1px solid #bbf7d0', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#166534'
-        }}>
-          {getThemedIcon('ui', 'video', 16, theme)}
-          {resources.filter(r => r.type === 'video').length} {t('videos') || 'Videos'}
-        </div>
+        
+        {/* Resource Type Chips - Only show if count > 0 */}
+        {resources.filter(r => r.type === 'document').length > 0 && (
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            padding: '0.5rem 0.75rem', 
+            background: '#fef3c7', 
+            border: '1px solid #fde68a', 
+            borderRadius: '9999px',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: '#92400e'
+          }}>
+            {getThemedIcon('ui', 'file_text', 16, theme)}
+            {resources.filter(r => r.type === 'document').length} {lang === 'ar' ? 'مستندات' : 'Documents'}
+          </div>
+        )}
+        
+        {resources.filter(r => r.type === 'link').length > 0 && (
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            padding: '0.5rem 0.75rem', 
+            background: '#fce7f3', 
+            border: '1px solid #fbcfe8', 
+            borderRadius: '9999px',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: '#831843'
+          }}>
+            {getThemedIcon('ui', 'link', 16, theme)}
+            {resources.filter(r => r.type === 'link').length} {lang === 'ar' ? 'روابط' : 'Links'}
+          </div>
+        )}
+        
+        {resources.filter(r => r.type === 'video').length > 0 && (
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            padding: '0.5rem 0.75rem', 
+            background: '#f0fdf4', 
+            border: '1px solid #bbf7d0', 
+            borderRadius: '9999px',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: '#166534'
+          }}>
+            {getThemedIcon('ui', 'video', 16, theme)}
+            {resources.filter(r => r.type === 'video').length} {lang === 'ar' ? 'فيديوهات' : 'Videos'}
+          </div>
+        )}
       </div>
 
       <div style={{ marginTop: '1rem' }}>
