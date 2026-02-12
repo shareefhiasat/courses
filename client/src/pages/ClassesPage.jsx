@@ -409,12 +409,23 @@ const handleCancelEdit = useCallback(() => {
   ], [subjects, users, theme, lang, t, handleEdit, handleDelete]);
 
   const filteredClasses = classes.filter(classItem => {
+    // Debug logging
+    if (classTermFilter === 'Fall' && classYearFilter === '2025') {
+      console.log('Debug - Filtering Fall 2025:', {
+        classItem: classItem.name || classItem.docId,
+        term: classItem.term,
+        year: classItem.year,
+        programId: classItem.programId,
+        subjectId: classItem.subjectId
+      });
+    }
+    
     if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;
     if (classSubjectFilter && classSubjectFilter !== 'all' && classItem.subjectId !== classSubjectFilter) return false;
     if (classFilter && classFilter !== 'all' && classItem.docId !== classFilter) return false;
     if (classInstructorFilter && classItem.ownerEmail !== classInstructorFilter) return false;
-    if (classTermFilter && classItem.term !== classTermFilter) return false;
-    if (classYearFilter && classItem.year !== classYearFilter) return false;
+    if (classTermFilter && !classItem.term.includes(classTermFilter)) return false;
+    if (classYearFilter && !classItem.term.includes(classYearFilter)) return false;
     return true;
   });
 
@@ -575,11 +586,18 @@ const handleCancelEdit = useCallback(() => {
             onChange={(e) => setClassInstructorFilter(e.target.value)}
             options={[
               { value: '', label: lang === 'ar' ? 'جميع المدربين' : 'All Instructors', icon: getThemedIcon('ui', 'users', 16, theme) },
-              ...users.filter(u => u.role === USER_ROLES.INSTRUCTOR).map(instructor => ({
-                value: instructor.email,
-                label: instructor.displayName || instructor.email,
-                icon: getThemedIcon('ui', 'user', 16, theme)
-              }))
+              ...(() => {
+                console.log('🔍 [ClassesPage] All users:', users);
+                console.log('🔍 [ClassesPage] USER_ROLES.INSTRUCTOR:', USER_ROLES.INSTRUCTOR);
+                console.log('🔍 [ClassesPage] User roles:', users.map(u => ({ name: u.displayName || u.email, role: u.role })));
+                const instructors = users.filter(u => u.isInstructor === true);
+                console.log('🔍 [ClassesPage] Filtered instructors:', instructors);
+                return instructors.map(instructor => ({
+                  value: instructor.email,
+                  label: instructor.displayName || instructor.email,
+                  icon: getThemedIcon('ui', 'user', 16, theme)
+                }));
+              })()
             ]}
             placeholder={lang === 'ar' ? 'جميع المدربين' : 'All Instructors'}
             style={{ minWidth: '200px' }}
@@ -590,10 +608,10 @@ const handleCancelEdit = useCallback(() => {
             onChange={(e) => setClassTermFilter(e.target.value)}
             options={[
               { value: '', label: lang === 'ar' ? 'جميع الفصول' : 'All Terms', icon: getThemedIcon('ui', 'calendar', 16, theme) },
-              { value: 'Fall', label: lang === 'ar' ? 'خريف' : 'Fall', icon: getThemedIcon('ui', 'leaf', 16, theme) },
-              { value: 'Spring', label: lang === 'ar' ? 'ربيع' : 'Spring', icon: getThemedIcon('ui', 'flower', 16, theme) },
+              { value: 'Fall', label: lang === 'ar' ? 'خريف' : 'Fall', icon: getThemedIcon('ui', 'calendar', 16, theme) },
+              { value: 'Spring', label: lang === 'ar' ? 'ربيع' : 'Spring', icon: getThemedIcon('ui', 'calendar', 16, theme) },
               { value: 'Summer', label: lang === 'ar' ? 'صيف' : 'Summer', icon: getThemedIcon('ui', 'sun', 16, theme) },
-              { value: 'Winter', label: lang === 'ar' ? 'شتاء' : 'Winter', icon: getThemedIcon('ui', 'snowflake', 16, theme) }
+              { value: 'Winter', label: lang === 'ar' ? 'شتاء' : 'Winter', icon: getThemedIcon('ui', 'moon', 16, theme) }
             ]}
             placeholder={lang === 'ar' ? 'جميع الفصول' : 'All Terms'}
             style={{ minWidth: '150px' }}
