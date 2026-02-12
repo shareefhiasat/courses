@@ -522,6 +522,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       valueGetter: (params) => {
         const row = params?.row || {};
         const rowId = row.id || row.docId || params?.id;
+        
         // Try to get from row first, then from params.value, then from participations state
         let subjectName = row.subjectName || params?.value;
         
@@ -531,7 +532,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           if (subjectId) {
             const subject = subjects.find(s => (s.docId || s.id) === subjectId);
             if (subject) {
-              subjectName = lang === 'ar' ? (subject.name_ar || subject.name) : (subject.name_en || subject.name);
+              subjectName = lang === 'ar' 
+                ? (subject.name_ar || subject.name_en || subject.name || subject.code || 'N/A')
+                : (subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A');
             }
           }
         }
@@ -553,6 +556,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       valueGetter: (params) => {
         const row = params?.row || {};
         const rowId = row.id || row.docId || params?.id;
+        
         // Try to get from row first, then from params.value, then from participations state
         let programName = row.programName || params?.value;
         
@@ -562,7 +566,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           if (programId) {
             const program = programs.find(p => (p.docId || p.id) === programId);
             if (program) {
-              programName = lang === 'ar' ? (program.name_ar || program.name) : (program.name_en || program.name);
+              programName = lang === 'ar' 
+                ? (program.name_ar || program.name_en || program.name || program.code || 'N/A')
+                : (program.name_en || program.name_ar || program.name || program.code || 'N/A');
             }
           }
         }

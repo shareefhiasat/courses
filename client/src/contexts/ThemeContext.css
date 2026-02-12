@@ -50,3 +50,64 @@
 .theme-transition-overlay *::after {
   transition: none !important;
 }
+
+/* Dark mode DataGrid header fixes */
+[data-theme="dark"] .MuiDataGrid-columnHeaders {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
+  border-bottom: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] .MuiDataGrid-columnHeader {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
+  border-bottom: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] .MuiDataGrid-columnHeaderTitle {
+  color: #f9fafb !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="dark"] .MuiDataGrid-toolbarContainer {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
+  border-bottom: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] .MuiDataGrid-root {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .MuiDataGrid-cell {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  border-bottom: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] .MuiDataGrid-row {
+  background-color: #1f2937 !important;
+}
+
+[data-theme="dark"] .MuiDataGrid-row:hover {
+  background-color: #374151 !important;
+}
+
+/* Dark mode for other UI components */
+[data-theme="dark"] .card,
+[data-theme="dark"] .panel {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+  border: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] .btn {
+  background-color: #374151 !important;
+  color: #f9fafb !important;
+  border: 1px solid #4b5563 !important;
+}
+
+[data-theme="dark"] .btn:hover {
+  background-color: #4b5563 !important;
+}

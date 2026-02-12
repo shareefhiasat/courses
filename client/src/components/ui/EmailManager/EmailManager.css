@@ -6,6 +6,73 @@
   border: 1px solid var(--border, #e0e0e0);
 }
 
+/* Dark mode styles */
+[data-theme="dark"] .email-manager {
+  background: #1f2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] .email-manager-header h3 {
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .description {
+  color: #d1d5db !important;
+}
+
+[data-theme="dark"] .search-section .search-input {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .search-section .search-input:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+[data-theme="dark"] .add-email-section input {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .add-email-section input:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+[data-theme="dark"] .btn {
+  background: #374151 !important;
+  border: 1px solid #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .btn:hover {
+  background: #4b5563 !important;
+}
+
+[data-theme="dark"] .email-list {
+  background: #1f2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] .email-item {
+  border-bottom: 1px solid #374151 !important;
+}
+
+[data-theme="dark"] .email-item:hover {
+  background: #374151 !important;
+}
+
+[data-theme="dark"] .email-item .email-address {
+  color: #f9fafb !important;
+}
+
+[data-theme="dark"] .email-item .email-role {
+  color: #d1d5db !important;
+}
+
 .email-manager-header h3 {
   margin: 0 0 0.5rem 0;
   color: var(--text, #333);
