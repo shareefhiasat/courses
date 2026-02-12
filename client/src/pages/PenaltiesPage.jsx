@@ -316,14 +316,18 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             try {
               const subjectData = await fetchSubjectData(subjectIdToLoad);
               if (subjectData) {
-                enrichedPenalty.subjectName = subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A';
+                enrichedPenalty.subjectName = lang === 'ar' 
+                  ? (subjectData.name_ar || subjectData.name_en || subjectData.code || 'N/A')
+                  : (subjectData.name_en || subjectData.name_ar || subjectData.code || 'N/A');
                 
                 // Load program from subject
                 if (subjectData.programId) {
                   try {
                     const programData = await fetchProgram(subjectData.programId);
                     if (programData) {
-                      enrichedPenalty.programName = programData.name_en || programData.name_ar || programData.code || 'N/A';
+                      enrichedPenalty.programName = lang === 'ar'
+                        ? (programData.name_ar || programData.name_en || programData.code || 'N/A')
+                        : (programData.name_en || programData.name_ar || programData.code || 'N/A');
                     }
                   } catch (err) {
                     enrichedPenalty.programName = 'N/A';
@@ -365,6 +369,9 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
     setSaving(true);
     try {
+      // Debug: Log formData to see what's being sent
+      logger.info('🔍 PENALTY SUBMISSION DEBUG - FormData:', formData);
+      
       // Get class to find subjectId
       const classData = await fetchClass(formData.classId);
       const subjectId = formData.subjectId || classData?.subjectId;
@@ -388,6 +395,9 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         sendInAppNotification: true,
         sendEmailNotification: false
       };
+
+      // Debug: Log penaltyData to see what's being sent to service
+      logger.info('🔍 PENALTY SUBMISSION DEBUG - PenaltyData:', penaltyData);
 
       let result;
       if (editingPenalty) {
@@ -419,7 +429,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     } finally {
       setSaving(false);
     }
-  }, [formData, editingPenalty, descriptionRef, feedbackRef, commentRef, t, toast, loadPenalties]);
+  }, [formData, editingPenalty, descriptionRef, feedbackRef, commentRef, t, toast, loadPenalties, setSaving]);
 
   const handleEdit = useCallback((penalty) => {
     setEditingPenalty(penalty);
@@ -632,14 +642,25 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         const rowId = row.id || row.docId || params?.id;
         // Try to get from row first, then from params.value, then from penalties state
         let subjectName = row.subjectName || params?.value;
+        
+        // If still not found, try to resolve from subjects array using subjectId
+        if (!subjectName || subjectName === 'N/A') {
+          const subjectId = row.subjectId;
+          if (subjectId) {
+            const subject = subjects.find(s => (s.docId || s.id) === subjectId);
+            if (subject) {
+              subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en || subject.code) : (subject.name_en || subject.name_ar || subject.code);
+            }
+          }
+        }
+        
+        // Final fallback from penalties state
         if (!subjectName && rowId) {
           const foundRow = penalties.find(p => (p.id || p.docId) === rowId);
           subjectName = foundRow?.subjectName;
         }
-        if (subjectName && subjectName !== 'N/A') {
-          return subjectName;
-        }
-        return 'N/A';
+        
+        return (subjectName && subjectName !== 'N/A') ? subjectName : 'N/A';
       }
     },
     {
@@ -769,7 +790,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions]);
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions, subjects]);
 
   return (
     <div className={styles.container}>
@@ -829,7 +850,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <Select
             searchable
             value={formData.studentId}
-            onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, studentId: e.target.value }))}
             options={[
               { value: '', label: t('select_student') || 'Select Student' },
               ...students
@@ -845,8 +866,8 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   const IconComponent = () => {
                     switch (iconProps.name) {
                       case 'UserCheck': return getThemedIcon('user_status', 'active', 24, theme);
-                      case 'UserX': return getThemedIcon('user_status', 'deleted', 24, theme);
-                      case 'UserMinus': return getThemedIcon('user_status', 'archived', 24, theme);
+                      case 'UserX': return getThemedIcon('user_status', 'inactive', 24, theme);
+                      case 'UserMinus': return getThemedIcon('user_status', 'suspended', 24, theme);
                       case 'AlertCircle': return getThemedIcon('ui', 'alert_triangle', 24, theme);
                       default: return getThemedIcon('ui', 'info', 24, theme);
                     }
@@ -896,7 +917,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         <div className="form-row">
           <Select
             value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
             options={[
               { value: '', label: t('select_type') || 'Select Type' },
               ...PENALTY_TYPES.map(pt => ({ value: pt.id, label: lang === 'ar' ? pt.label_ar : pt.label_en, icon: PENALTY_TYPE_ICONS[pt.id] }))

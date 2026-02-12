@@ -955,7 +955,7 @@ const ActivitiesPage = () => {
                   style={{ width: '100%' }}
                 />
                 {activityForm.quizId && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: '#f0f8ff', borderRadius: '6px' }}>
+                  <div>
                     <ToggleSwitch
                       label="Override quiz settings (retake, difficulty, total marks)"
                       checked={activityForm.overrideQuizSettings || false}

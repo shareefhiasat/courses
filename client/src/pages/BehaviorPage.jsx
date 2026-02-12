@@ -917,8 +917,8 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
                     const IconComponent = () => {
                       switch (iconProps.name) {
                         case 'UserCheck': return getThemedIcon('user_status', 'active', 16, theme);
-                        case 'UserX': return getThemedIcon('user_status', 'deleted', 16, theme);
-                        case 'UserMinus': return getThemedIcon('user_status', 'archived', 16, theme);
+                        case 'UserX': return getThemedIcon('user_status', 'inactive', 16, theme);
+                        case 'UserMinus': return getThemedIcon('user_status', 'suspended', 16, theme);
                         case 'AlertCircle': return getThemedIcon('ui', 'alert_triangle', 16, theme);
                         default: return getThemedIcon('ui', 'info', 16, theme);
                       }

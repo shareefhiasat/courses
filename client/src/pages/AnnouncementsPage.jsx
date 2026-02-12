@@ -270,7 +270,26 @@ const AnnouncementsPage = () => {
 
   // Memoize columns to prevent re-renders
   const gridColumns = useMemo(() => [
-    { field: 'title', headerName: 'Title', flex: 1, minWidth: 200 },
+    { 
+      field: 'title_en', 
+      headerName: 'Title (EN)', 
+      flex: 1, 
+      minWidth: 200,
+      renderCell: (params) => {
+        const title = params?.row?.title_en || params?.row?.title || params?.value || '';
+        return title || (t('no_title') || 'No title');
+      }
+    },
+    { 
+      field: 'title_ar', 
+      headerName: 'Title (AR)', 
+      flex: 1, 
+      minWidth: 200,
+      renderCell: (params) => {
+        const title = params?.row?.title_ar || '';
+        return title || (t('no_title') || 'No title');
+      }
+    },
     {
       field: 'content', headerName: 'Content', flex: 2, minWidth: 250,
       renderCell: (params) => params.value ? (params.value.length > 100 ? params.value.substring(0, 100) + '...' : params.value) : 'No content'
@@ -285,11 +304,7 @@ const AnnouncementsPage = () => {
         const program = programs.find(p => (p.docId || p.id) === programId);
         if (!program) return programId;
         const programName = lang === 'ar' ? (program.name_ar || program.name_en) : (program.name_en || program.name_ar);
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'target', 16, theme)} {programName}
-          </span>
-        );
+        return programName;
       }
     },
     {
@@ -302,11 +317,7 @@ const AnnouncementsPage = () => {
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
         if (!subject) return subjectId;
         const subjectName = lang === 'ar' ? (subject.name_ar || subject.name_en) : (subject.name_en || subject.name_ar);
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'book_open', 16, theme)} {subjectName}
-          </span>
-        );
+        return subjectName;
       }
     },
     {
@@ -318,37 +329,23 @@ const AnnouncementsPage = () => {
         if (!classId) return '—';
         const classItem = classes.find(c => (c.docId || c.id) === classId);
         if (!classItem) return classId;
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {getThemedIcon('ui', 'users', 16, theme)} {classItem.name}{classItem.code ? ` (${classItem.code})` : ''}
-          </span>
-        );
+        return `${classItem.name}${classItem.code ? ` (${classItem.code})` : ''}`;
       }
     },
     {
       field: 'target', headerName: 'Target', width: 120,
       renderCell: (params) => {
+         // TARGET CALCULATION LOGIC:
+         // Priority: Class > Subject > Program > Global
+         // 1. If classId exists → "Class" (most specific - targets students in a specific class)
+         // 2. If subjectId exists → "Subject" (targets students in a specific subject)  
+         // 3. If programId exists → "Program" (targets students in a specific program)
+         // 4. If none exist → "Global" (targets all users system-wide)
          const { programId, subjectId, classId } = params.row;
-         if (classId) return (
-           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-             {getThemedIcon('ui', 'users', 16, theme)} Class
-           </span>
-         );
-         if (subjectId) return (
-           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-             {getThemedIcon('ui', 'book_open', 16, theme)} Subject
-           </span>
-         );
-         if (programId) return (
-           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-             {getThemedIcon('ui', 'target', 16, theme)} Program
-           </span>
-         );
-         return (
-           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-             {getThemedIcon('ui', 'globe', 16, theme)} Global
-           </span>
-         );
+         if (classId) return 'Class';
+         if (subjectId) return 'Subject';
+         if (programId) return 'Program';
+         return 'Global';
       }
     },
     {

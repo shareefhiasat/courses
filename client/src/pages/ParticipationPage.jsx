@@ -12,7 +12,7 @@ import { getClasses } from '@firebaseServices/classService';
 import { getEnrollments, getEnrollmentsByClass } from '@firebaseServices/enrollmentService';
 import { getAllUsers, getUserById, getUsersByIds } from '@firebaseServices/userService';
 import { loadParticipations, createParticipation, updateParticipation, deleteParticipation } from '@firebaseServices/participationService';
-import { formatQatarDateOnly } from '@utils/timezone';
+import { formatQatarDateOnly, formatQatarStandard } from '@utils/timezone';
 import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationTypeById } from '@constants/participationTypes';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
@@ -346,7 +346,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   const handleDelete = useCallback((participation) => {
     deleteEntity('participation', participation, async () => {
-      setParticipations(prev => prev.filter(p => p.docId !== participation.docId));
+      setParticipationsRaw(prev => prev.filter(p => p.docId !== participation.docId));
       try {
         const result = await deleteParticipation(participation.id, participation);
         if (!result.success) {
@@ -355,7 +355,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         toast?.showSuccess(t('participation_deleted'));
         await loadParticipationsData();
       } catch (error) {
-        setParticipations(prev => [...prev, participation]);
+        setParticipationsRaw(prev => [...prev, participation]);
         logger.error('Delete failed:', error);
         toast?.showError(error.message);
       }
@@ -691,7 +691,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           logger.debug('Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
           logger.debug('Date Debug - Formatted date:', formatQatarDateOnly(date));
           logger.debug('=== END DATE DEBUG ===');
-          return formatQatarDateOnly(date);
+          return formatQatarStandard(date);
         }
         
         // Check if params.value directly contains the timestamp
@@ -700,7 +700,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           logger.debug('Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
           logger.debug('Date Debug - Formatted date:', formatQatarDateOnly(date));
           logger.debug('=== END DATE DEBUG ===');
-          return formatQatarDateOnly(date);
+          return formatQatarStandard(date);
         }
         
         // Fallback to original logic if params.value doesn't have timestamp
@@ -751,7 +751,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           logger.debug('=== END DATE DEBUG ===');
           return 'Invalid Date';
         }
-        const formattedDate = formatQatarDateOnly(date);
+        const formattedDate = formatQatarStandard(date);
         logger.debug('Date Debug - Formatted date:', formattedDate);
         logger.debug('=== END DATE DEBUG ===');
         return formattedDate;
@@ -864,10 +864,10 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                   const statusSummary = getUserStatusSummary(u, userEnrollments);
                   const iconProps = getStatusIconProps(status);
                   const iconMap = {
-                    'UserCheck': 'user_check',
-                    'UserX': 'user_x',
-                    'UserMinus': 'user_minus',
-                    'AlertCircle': 'alert_circle',
+                    'UserCheck': 'active',
+                    'UserX': 'inactive',
+                    'UserMinus': 'suspended',
+                    'AlertCircle': 'alert_triangle',
                     'Info': 'info'
                   };
                   const iconName = iconMap[iconProps.name] || 'user';
@@ -1048,8 +1048,8 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                     const IconComponent = () => {
                       switch (iconProps.name) {
                         case 'UserCheck': return getThemedIcon('user_status', 'active', 16, theme);
-                        case 'UserX': return getThemedIcon('user_status', 'deleted', 16, theme);
-                        case 'UserMinus': return getThemedIcon('user_status', 'archived', 16, theme);
+                        case 'UserX': return getThemedIcon('user_status', 'inactive', 16, theme);
+                        case 'UserMinus': return getThemedIcon('user_status', 'suspended', 16, theme);
                         case 'AlertCircle': return getThemedIcon('ui', 'alert_triangle', 16, theme);
                         default: return getThemedIcon('ui', 'info', 16, theme);
                       }

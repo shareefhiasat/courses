@@ -222,7 +222,7 @@ const UnifiedCard = memo(({
                     cursor: 'default'
                   }}
               >
-                getWhiteIcon('ui', 'pin', 14)
+                {getWhiteIcon('ui', 'pin', 14)}
               </button>
           )}
           {(item.allowRetake || item.retakeAllowed) && (
@@ -469,7 +469,7 @@ const UnifiedCard = memo(({
                   aria-label={t('start') || 'Start'}
                   title={t('start') || 'Start'}
               >
-                getWhiteIcon('ui', 'play', 14)
+                {getWhiteIcon('ui', 'play', 14)}
               </Button>
           )}
 

@@ -344,17 +344,47 @@ const ResourcesPage = () => {
 
   const gridColumns = useMemo(() => [
     { 
-      field: 'title', 
-      headerName: t('title_col'), 
+      field: 'title_en', 
+      headerName: 'Title (EN)', 
       flex: 1, 
       minWidth: 200,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        return row.title_en || row.title || params?.value || '';
-      },
       renderCell: (params) => {
-        const title = params?.row?.title_en || params?.row?.title || params?.value || '';
+        const title = params?.row?.title_en || params?.value || '';
         return title || (t('no_title') || 'No title');
+      }
+    },
+    { 
+      field: 'title_ar', 
+      headerName: 'Title (AR)', 
+      flex: 1, 
+      minWidth: 200,
+      renderCell: (params) => {
+        const title = params?.row?.title_ar || params?.value || '';
+        return title || (t('no_title') || 'No title');
+      }
+    },
+    {
+      field: 'url', 
+      headerName: 'Resource URL', 
+      flex: 1, 
+      minWidth: 250,
+      renderCell: (params) => {
+        const url = params?.row?.url || params?.value || '';
+        if (!url) return '—';
+        return (
+          <a 
+            href={url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              color: 'var(--color-primary, #800020)', 
+              textDecoration: 'underline',
+              wordBreak: 'break-all'
+            }}
+          >
+            {url.length > 50 ? url.substring(0, 50) + '...' : url}
+          </a>
+        );
       }
     },
     {
@@ -485,8 +515,41 @@ const ResourcesPage = () => {
       }
     },
     {
-      field: 'optional', headerName: t('required_col'), width: 120,
-      renderCell: (params) => params.value ? (t('required_optional') || 'Optional') : (t('required_yes') || 'Required')
+      field: 'optional', headerName: 'Optional', width: 100,
+      renderCell: (params) => (
+        <span style={{ 
+          color: params.value ? 'var(--color-success, #16a34a)' : 'var(--color-danger, #dc3545)',
+          fontWeight: params.value ? '600' : '400'
+        }}>
+          {params.value ? '✓' : '✗'}
+        </span>
+      )
+    },
+    {
+      field: 'featured', headerName: 'Featured', width: 100,
+      renderCell: (params) => (
+        <span style={{ 
+          color: params.value ? 'var(--color-warning, #ffc107)' : 'var(--text-muted, #6b7280)',
+          fontWeight: params.value ? '600' : '400'
+        }}>
+          {params.value ? '⭐' : '—'}
+        </span>
+      )
+    },
+    {
+      field: 'sendEmail', headerName: 'Email Sent', width: 120,
+      renderCell: (params) => {
+        // Check if email was sent (this might be stored differently, but for now we'll use the form state)
+        const sendEmail = params?.row?.sendEmail || false;
+        return (
+          <span style={{ 
+            color: sendEmail ? 'var(--color-info, #17a2b8)' : 'var(--text-muted, #6b7280)',
+            fontWeight: sendEmail ? '600' : '400'
+          }}>
+            {sendEmail ? '📧' : '—'}
+          </span>
+        );
+      }
     },
     {
       field: 'createdAt', headerName: 'Created', width: 180,
