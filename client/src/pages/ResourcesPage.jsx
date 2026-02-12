@@ -896,6 +896,8 @@ const ResourcesPage = () => {
           exportLabel={t('export') || 'Export'}
         />
       </div>
+
+      {deleteModal}
     </div>
   );
 };

@@ -149,11 +149,27 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     return null;
   }, []);
 
+  // Filter enrollments based on user role for student dropdown
+  const filteredEnrollmentsForSelect = useMemo(() => {
+    if (isHR || isAdmin || isSuperAdmin) {
+      return enrollments; // HR/Admins see all students
+    }
+    if (isInstructor) {
+      // Instructors see students from their classes
+      return enrollments.filter(enrollment => {
+        const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
+        return classItem && classItem.ownerEmail === user.email;
+      });
+    }
+    return []; // Other roles see no students
+  }, [enrollments, classes, user.email, isHR, isAdmin, isSuperAdmin, isInstructor]);
+
   // Filters
   const [programFilter, setProgramFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [studentFilter, setStudentFilter] = useState('');
 
   useEffect(() => {
     if (!isHR && !isAdmin && !isSuperAdmin) return;
@@ -478,6 +494,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (subjectFilter && penalty.subjectId !== subjectFilter) return false;
     if (classFilter && penalty.classId !== classFilter) return false;
     if (typeFilter !== 'all' && penalty.type !== typeFilter) return false;
+    if (studentFilter && penalty.studentId !== studentFilter) return false;
     return true;
   });
 
@@ -989,7 +1006,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       {/* Filters */}
       <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, alignItems: 'end' }}>
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
@@ -1003,6 +1020,14 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             showLabels={false}
             className="flex-1"
           />
+          <div style={{ minWidth: '200px' }}>
+            <StudentSelect
+              value={studentFilter}
+              onChange={(e) => setStudentFilter(e.target.value)}
+              enrollments={filteredEnrollmentsForSelect}
+              placeholder={t('all_students') || 'All Students'}
+            />
+          </div>
           <div style={{ minWidth: '200px' }}>
             <Select
               value={typeFilter}
@@ -1098,6 +1123,29 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           {getThemedIcon('ui', 'trending_down', 16, theme)}
           {penalties.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('negative') || 'Negative'}
         </div>
+        
+        {/* Type-specific counter chips */}
+        {PENALTY_TYPES.map(pt => {
+          const count = penalties.filter(p => p.type === pt.id).length;
+          if (count === 0) return null;
+          return (
+            <div key={pt.id} style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              padding: '0.5rem 0.75rem', 
+              background: '#fef3c7', 
+              border: '1px solid #fde68a', 
+              borderRadius: '9999px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: '#92400e'
+            }}>
+              {PENALTY_TYPE_ICONS[pt.id]}
+              {count} {lang === 'ar' ? pt.label_ar : pt.label_en}
+            </div>
+          );
+        })}
       </div>
 
       <div className={styles.content}>

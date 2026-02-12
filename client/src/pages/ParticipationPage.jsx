@@ -105,11 +105,27 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     return null;
   }, [userCache]);
 
+  // Filter enrollments based on user role for student dropdown
+  const filteredEnrollmentsForSelect = useMemo(() => {
+    if (isAdmin || isSuperAdmin) {
+      return enrollments; // Admins see all students
+    }
+    if (isInstructor) {
+      // Instructors see students from their classes
+      return enrollments.filter(enrollment => {
+        const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
+        return classItem && classItem.ownerEmail === user.email;
+      });
+    }
+    return []; // Other roles see no students
+  }, [enrollments, classes, user.email, isAdmin, isSuperAdmin, isInstructor]);
+
   // Filters
   const [programFilter, setProgramFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [studentFilter, setStudentFilter] = useState('');
 
   useEffect(() => {
     if (!isInstructor && !isAdmin && !isSuperAdmin) return;
@@ -210,8 +226,11 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (typeFilter !== 'all') {
       filtered = filtered.filter(p => p.type === typeFilter);
     }
+    if (studentFilter) {
+      filtered = filtered.filter(p => p.studentId === studentFilter);
+    }
     return filtered;
-  }, [participationsRaw, programFilter, subjectFilter, classFilter, typeFilter, classes, subjects]);
+  }, [participationsRaw, programFilter, subjectFilter, classFilter, typeFilter, studentFilter, classes, subjects]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -990,7 +1009,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
       {/* Filters */}
       <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, alignItems: 'end' }}>
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
@@ -1004,6 +1023,14 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             showLabels={false}
             className="flex-1"
           />
+          <div style={{ minWidth: '200px' }}>
+            <StudentSelect
+              value={studentFilter}
+              onChange={(e) => setStudentFilter(e.target.value)}
+              enrollments={filteredEnrollmentsForSelect}
+              placeholder={t('all_students') || 'All Students'}
+            />
+          </div>
           <div style={{ minWidth: '200px' }}>
             <Select
               value={typeFilter}
