@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
@@ -74,6 +74,35 @@ const EnrollmentManagementPage = ({
       classId: '' 
     }));
   };
+
+  const enrollmentRows = useMemo(() => {
+    return (enrollments || []).map((row) => {
+      const classItem = localClasses.find(c => (c.docId || c.id) === row.classId);
+      const subject = classItem?.subjectId
+        ? localSubjects.find(s => (s.docId || s.id) === classItem.subjectId)
+        : null;
+      const program = subject?.programId
+        ? localPrograms.find(p => (p.docId || p.id) === subject.programId)
+        : null;
+
+      const subjectName = subject
+        ? (subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A')
+        : 'N/A';
+      const programName = program
+        ? (program.name_en || program.name_ar || program.name || program.code || 'N/A')
+        : 'N/A';
+      const className = classItem
+        ? `${classItem.name || classItem.code || 'N/A'}${classItem.code ? ` (${classItem.code})` : ''}`
+        : 'N/A';
+
+      return {
+        ...row,
+        programNameDisplay: programName,
+        subjectNameDisplay: subjectName,
+        classNameDisplay: className
+      };
+    });
+  }, [enrollments, localClasses, localSubjects, localPrograms]);
 
   return (
     <div className="enrollments-section" style={{ marginTop: '2rem' }}>
@@ -192,7 +221,7 @@ const EnrollmentManagementPage = ({
       </form>
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
-          rows={enrollments}
+          rows={enrollmentRows}
           getRowId={(row) => row.docId || row.id}
           columns={[
           {
@@ -209,88 +238,19 @@ const EnrollmentManagementPage = ({
             }
           },
           {
-            field: 'programName',
+            field: 'programNameDisplay',
             headerName: t('program') || 'Program',
             flex: 1,
-            minWidth: 180,
-            valueGetter: (params) => {
-              // Try to get the program name directly from the row
-              const row = params.row || {};
-              const programName = row.programName || 
-                               (row.program && (row.program.name_en || row.program.name)) ||
-                               (row.programId && localPrograms.find(p => (p.docId || p.id) === row.programId)?.name_en);
-              return programName || params.value || '-';
-            },
-            renderCell: (params) => {
-              const row = params.row || {};
-              const programName = row.programName || 
-                               (row.program && (row.program.name_en || row.program.name)) ||
-                               (row.programId && localPrograms.find(p => (p.docId || p.id) === row.programId)?.name_en);
-              if (!programName && !params.value) {
-                return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {/*{getThemedIcon('ui', 'target', 16, theme)} */}
-                    -
-                  </span>
-                );
-              }
-              const finalProgramName = programName || params.value || '-';
-              return (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {/*{getThemedIcon('ui', 'target', 16, theme)} */}
-                  {finalProgramName}
-                </span>
-              );
-            }
+            minWidth: 180
           },
           {
-            field: 'subjectName',
+            field: 'subjectNameDisplay',
             headerName: t('subject_col') || 'Subject',
             flex: 1,
-            minWidth: 180,
-            valueGetter: (params) => {
-              // Try to get the subject name directly from the row
-              const row = params.row || {};
-              const subjectName = row.subjectName || 
-                               (row.subject && (row.subject.name_en || row.subject.name)) ||
-                               (row.subjectId && localSubjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
-              return subjectName || params.value || '-';
-            },
-            renderCell: (params) => {
-              const row = params.row || {};
-              const subjectName = row.subjectName || 
-                               (row.subject && (row.subject.name_en || row.subject.name)) ||
-                               (row.subjectId && localSubjects.find(s => (s.docId || s.id) === row.subjectId)?.name_en);
-              if (!subjectName && !params.value) {
-                return (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted, #6b7280)' }}>
-                    {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
-                    -
-                  </span>
-                );
-              }
-              const finalSubjectName = subjectName || params.value || '-';
-              return (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {/*{getThemedIcon('ui', 'book_open', 16, theme)} */}
-                  {finalSubjectName}
-                </span>
-              );
-            }
+            minWidth: 180
           },
           {
-            field: 'classId', headerName: t('class_col'), flex: 1, minWidth: 200,
-            renderCell: (params) => {
-              const classItem = localClasses.find(c => (c.docId || c.id) === params.value);
-              if (!classItem) return params.value;
-              const codePart = classItem.code ? ` (${classItem.code})` : '';
-              return (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {/*{getThemedIcon('ui', 'users', 16, theme)} */}
-                  {classItem.name}{codePart}
-                </span>
-              );
-            }
+            field: 'classNameDisplay', headerName: t('class_col'), flex: 1, minWidth: 200
           },
           {
             field: 'role', headerName: t('role_col'), width: 150,

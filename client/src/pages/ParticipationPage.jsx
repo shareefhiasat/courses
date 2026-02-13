@@ -244,21 +244,6 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 
   const filteredParticipations = useMemo(() => {
     let filtered = [...participationsRaw];
-    
-    // Debug: Show what data we're working with
-    console.log('🔍 [Filtered Participations] Starting with participationsRaw:', {
-      totalCount: participationsRaw.length,
-      firstItem: participationsRaw[0] ? {
-        docId: participationsRaw[0].docId,
-        programName: participationsRaw[0].programName,
-        programName_en: participationsRaw[0].programName_en,
-        programName_ar: participationsRaw[0].programName_ar,
-        subjectName: participationsRaw[0].subjectName,
-        subjectName_en: participationsRaw[0].subjectName_en,
-        subjectName_ar: participationsRaw[0].subjectName_ar
-      } : null
-    });
-    
     if (programFilter) {
       filtered = filtered.filter(p => {
         if (p.subjectId) {
@@ -287,23 +272,41 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (studentFilter) {
       filtered = filtered.filter(p => p.studentId === studentFilter);
     }
-    
-    console.log('🔍 [Filtered Participations] Final filtered data:', {
-      originalCount: participationsRaw.length,
-      filteredCount: filtered.length,
-      firstFilteredItem: filtered[0] ? {
-        docId: filtered[0].docId,
-        programName: filtered[0].programName,
-        programName_en: filtered[0].programName_en,
-        programName_ar: filtered[0].programName_ar,
-        subjectName: filtered[0].subjectName,
-        subjectName_en: filtered[0].subjectName_en,
-        subjectName_ar: filtered[0].subjectName_ar
-      } : null
-    });
-    
     return filtered;
   }, [participationsRaw, programFilter, subjectFilter, classFilter, typeFilter, studentFilter, classes, subjects]);
+
+  const gridRows = useMemo(() => {
+    return filteredParticipations.map((row) => {
+      const subjectFromRow = lang === 'ar'
+        ? (row.subjectName_ar || row.subjectName)
+        : (row.subjectName_en || row.subjectName);
+      const programFromRow = lang === 'ar'
+        ? (row.programName_ar || row.programName)
+        : (row.programName_en || row.programName);
+
+      let subjectDisplay = subjectFromRow;
+      if (!subjectDisplay || subjectDisplay === 'N/A') {
+        const subject = subjects.find(s => (s.docId || s.id) === row.subjectId);
+        subjectDisplay = lang === 'ar'
+          ? (subject?.name_ar || subject?.name_en || subject?.name || subject?.code || 'N/A')
+          : (subject?.name_en || subject?.name_ar || subject?.name || subject?.code || 'N/A');
+      }
+
+      let programDisplay = programFromRow;
+      if (!programDisplay || programDisplay === 'N/A') {
+        const program = programs.find(p => (p.docId || p.id) === row.programId);
+        programDisplay = lang === 'ar'
+          ? (program?.name_ar || program?.name_en || program?.name || program?.code || 'N/A')
+          : (program?.name_en || program?.name_ar || program?.name || program?.code || 'N/A');
+      }
+
+      return {
+        ...row,
+        subjectNameDisplay: subjectDisplay || 'N/A',
+        programNameDisplay: programDisplay || 'N/A'
+      };
+    });
+  }, [filteredParticipations, lang, subjects, programs]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -562,91 +565,16 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       }
     },
     {
-      field: 'subjectName',
+      field: 'subjectNameDisplay',
       headerName: t('subject') || 'Subject',
       flex: 1,
-      minWidth: 120,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const rowId = row.id || row.docId || params?.id;
-        
-        // Try to get from enriched data first (language-aware)
-        let subjectName = lang === 'ar' 
-          ? (row.subjectName_ar || row.subjectName)
-          : (row.subjectName_en || row.subjectName);
-        
-        // If still not found, try to resolve from subjects array using subjectId
-        if (!subjectName || subjectName === 'N/A') {
-          const subjectId = row.subjectId;
-          if (subjectId) {
-            const subject = subjects.find(s => (s.docId || s.id) === subjectId);
-            if (subject) {
-              subjectName = lang === 'ar' 
-                ? (subject.name_ar || subject.name_en || subject.name || subject.code || 'N/A')
-                : (subject.name_en || subject.name_ar || subject.name || subject.code || 'N/A');
-            }
-          }
-        }
-        
-        // Final fallback from participations state
-        if (!subjectName && rowId) {
-          const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
-          subjectName = lang === 'ar' 
-            ? (foundRow?.subjectName_ar || foundRow?.subjectName)
-            : (foundRow?.subjectName_en || foundRow?.subjectName);
-        }
-        
-        return (subjectName && subjectName !== 'N/A') ? subjectName : 'N/A';
-      }
+      minWidth: 120
     },
     {
-      field: 'programName',
+      field: 'programNameDisplay',
       headerName: t('program') || 'Program',
       flex: 1,
-      minWidth: 150,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const rowId = row.id || row.docId || params?.id;
-        
-        // Debug: Show what data the grid column receives
-        console.log('🔍 [Grid Column] Program column data:', {
-          rowId,
-          programName: row.programName,
-          programName_en: row.programName_en,
-          programName_ar: row.programName_ar,
-          programId: row.programId,
-          currentLang: lang
-        });
-        
-        // Try to get from enriched data first (language-aware)
-        let programName = lang === 'ar' 
-          ? (row.programName_ar || row.programName)
-          : (row.programName_en || row.programName);
-        
-        // If still not found, try to resolve from programs array using programId
-        if (!programName || programName === 'N/A') {
-          const programId = row.programId;
-          if (programId) {
-            const program = programs.find(p => (p.docId || p.id) === programId);
-            if (program) {
-              programName = lang === 'ar' 
-                ? (program.name_ar || program.name_en || program.name || program.code || 'N/A')
-                : (program.name_en || program.name_ar || program.name || program.code || 'N/A');
-            }
-          }
-        }
-        
-        // Final fallback from participations state
-        if (!programName && rowId) {
-          const foundRow = participationsRaw.find(p => (p.id || p.docId) === rowId);
-          programName = lang === 'ar' 
-            ? (foundRow?.programName_ar || foundRow?.programName)
-            : (foundRow?.programName_en || foundRow?.programName);
-        }
-        
-        console.log('🔍 [Grid Column] Final program name:', programName);
-        return (programName && programName !== 'N/A') ? programName : 'N/A';
-      }
+      minWidth: 150
     },
     {
       field: 'type',
@@ -1291,7 +1219,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       <div className={styles.content}>
         {/* logger.debug('InstructorParticipationPage: Grid receiving participations data:', participations) */}
         <AdvancedDataGrid
-          rows={filteredParticipations}
+          rows={gridRows}
           getRowId={(row) => row.docId || row.id}
           columns={columns}
           pageSize={10}
