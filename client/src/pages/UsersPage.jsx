@@ -288,7 +288,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   }, [toast]);
 
   const openQRCodeInNewTab = useCallback((user) => {
-    const qrUrl = `/qr-code-display?studentNumber=${encodeURIComponent(user.studentNumber)}&name=${encodeURIComponent(user.displayName || user.email)}`;
+    const qrUrl = `/qrcode/${encodeURIComponent(user.studentNumber)}`;
     window.open(qrUrl, '_blank', 'width=400,height=600');
   }, []);
 
@@ -1047,6 +1047,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         onConfirm={handleDeleteConfirm}
         entityType={deleteModal.entityType}
         entityName={deleteModal.entityName}
+        relatedRecords={deleteModal.relatedRecords}
         loading={saving}
         t={t}
       />

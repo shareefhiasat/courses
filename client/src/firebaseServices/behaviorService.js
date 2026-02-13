@@ -315,31 +315,7 @@ export const getBehaviors = async () => {
     const allBehaviors = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
     return { success: true, data: allBehaviors };
   } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get behaviors for a specific student and class
- * Used for enrollment delete warnings to show related behavior records.
- */
-export const getBehaviorsByStudentAndClass = async (studentId, classId) => {
-  try {
-    if (!studentId || !classId) {
-      return { success: true, data: [] };
-    }
-
-    const behaviorsRef = collection(db, 'behaviors');
-    const behaviorsQuery = query(
-      behaviorsRef,
-      where('studentId', '==', studentId),
-      where('classId', '==', classId)
-    );
-    const snapshot = await getDocs(behaviorsQuery);
-    const behaviors = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
-    return { success: true, data: behaviors };
-  } catch (error) {
-    logger.error('[BehaviorService] Error fetching behaviors by student and class:', error);
+    logger.error('BEHAVIOR_SERVICE: Error getting behaviors:', error);
     return { success: false, error: error.message };
   }
 };

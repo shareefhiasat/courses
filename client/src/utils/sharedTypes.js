@@ -10,14 +10,33 @@ import { ABSENCE_TYPES, getAbsenceTypeById, getAbsenceLabel, getAbsenceIcon, get
 import { PENALTY_TYPES, getPenaltyTypeById, getPenaltyLabel, getPenaltyIcon, getPenaltyColor } from '../constants/penaltyTypes';
 import { ATTENDANCE_STATUS_LABELS } from '../constants/attendanceTypes';
 
-// Record type constants for student logs and activities - MOVED HERE from constants/activityTypes.js
+// Record type constants for student logs, activities, and core entities
 export const RECORD_TYPES = {
+  // Core academic records
   ATTENDANCE: 'attendance',
   PENALTY: 'penalty', 
   PARTICIPATION: 'participation',
   BEHAVIOR: 'behavior',
   ACTIVITY: 'activity',
-  RESOURCE: 'resource'
+  RESOURCE: 'resource',
+
+  // User & catalog entities (used by delete modals and history views)
+  USER: 'user',
+  PROGRAM: 'program',
+  SUBJECT: 'subject',
+  CLASS: 'class',
+  CATEGORY: 'category',
+  QUIZ: 'quiz',
+  ENROLLMENT: 'enrollment',
+  ANNOUNCEMENT: 'announcement',
+  SUBMISSION: 'submission',
+  ASSIGNMENT: 'assignment',
+  COURSE: 'course',
+  MARK: 'mark',
+  GRADE: 'grade',
+  SCHEDULE: 'schedule',
+  EVENT: 'event',
+  NOTIFICATION: 'notification'
 };
 
 // General Status Constants - Phase 2
