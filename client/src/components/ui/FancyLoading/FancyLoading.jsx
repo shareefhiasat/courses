@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '@contexts/ThemeContext';
 import styles from './FancyLoading.module.css';
 
 /**
@@ -11,6 +12,7 @@ export const FancyLoading = ({
   fullscreen = false,
   standalone = false,
 }) => {
+  const { theme } = useTheme();
   const [brandLoadFailed, setBrandLoadFailed] = useState(false);
   
   const containerClass = fullscreen ? styles.fullscreen : (standalone ? styles.standalone : styles.container);
@@ -50,7 +52,7 @@ export const FancyLoading = ({
   }
 
   return (
-    <div className={containerClass}>
+    <div className={containerClass} data-theme={theme}>
       <div className={styles.brandWrapper}>
         {!brandLoadFailed ? (
           <img

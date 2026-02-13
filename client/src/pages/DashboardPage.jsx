@@ -16,14 +16,14 @@ const ResourcesPage = lazy(() => import('./ResourcesPage'));
 const ClassesPage = lazy(() => import('./ClassesPage'));
 const UsersPage = lazy(() => import('./UsersPage'));
 const LogsActivityPage = lazy(() => import('./LogsActivityPage'));
-const EnrollmentManagementPage = lazy(() => import('./EnrollmentManagementPage'));
+const EnrollmentsManagementPage = lazy(() => import('./EnrollmentsManagementPage'));
+const EnrollmentsPage = lazy(() => import('./EnrollmentsPage'));
 const ActivitiesPage = lazy(() => import('./ActivitiesPage'));
 const ScheduledReportsPage = lazy(() => import('./ScheduledReportsPage'));
 const ProgramsManagementPage = lazy(() => import('./ProgramsManagementPage'));
 const SubjectsManagementPage = lazy(() => import('./SubjectsManagementPage'));
 const MarksEntryPage = lazy(() => import('./MarksEntryPage'));
 const ClassSchedulePage = lazy(() => import('./ClassSchedulePage'));
-const ManageEnrollmentsPage = lazy(() => import('./ManageEnrollmentsPage'));
 const PenaltiesPage = lazy(() => import('./PenaltiesPage'));
 const ParticipationPage = lazy(() => import('./ParticipationPage'));
 const BehaviorPage = lazy(() => import('./BehaviorPage'));
@@ -36,9 +36,11 @@ const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();
+  
   // Joyride tour state
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
+
   // Memoized Joyride callback to persist tour completion
   const handleJoyrideCallback = useCallback((data) => {
     const { status } = data || {};
@@ -53,6 +55,7 @@ const DashboardPage = () => {
   }, [lang]);
   const navigate = useNavigate();
   const location = useLocation();
+
   const [activeTab, setActiveTab] = useState(() => {
     const saved = localStorage.getItem('dashboardActiveTab') || 'activities';
     return saved === 'courses' ? 'categories' : saved;
@@ -68,6 +71,7 @@ const DashboardPage = () => {
     };
     return map[localStorage.getItem('dashboardActiveTab') || 'activities'] || 'content';
   });
+
   const handleTabChange = useCallback((tab, { source = 'user', shouldEmit = true } = {}) => {
     if (!tab) {
       return;
@@ -125,6 +129,7 @@ const DashboardPage = () => {
       });
     }
   }, [navigate, location, t]);
+
   const latestHandleTabChange = useRef(handleTabChange);
   useEffect(() => {
     latestHandleTabChange.current = handleTabChange;
@@ -145,6 +150,9 @@ const DashboardPage = () => {
     window.addEventListener('dashboard-tab-change', handleTabChangeEvent);
     return () => window.removeEventListener('dashboard-tab-change', handleTabChangeEvent);
   }, [latestHandleTabChange]);
+
+  // Show loading while auth is initializing to prevent useAuth errors
+  // Note: Removed early return to avoid hooks order issues
   const ribbonCategories = [
     {
       id: 'content',
@@ -294,6 +302,11 @@ const DashboardPage = () => {
     </div>
     );
   }
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return <Loading />;
+  }
+
   return (
     <div className="dashboard-page" data-theme={theme}>
       {/* Compact header removed to save vertical space */}
@@ -365,8 +378,11 @@ const DashboardPage = () => {
             <ClassSchedulePage />
           )}
           {activeTab === 'manage-enrollments' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <ManageEnrollmentsPage />
+            <EnrollmentsPage />
           )}
+        </Suspense>
+        
+        <Suspense fallback={<Loading variant="inline" message={t('loading') || 'Loading...'} fancyVariant="dots" />}>
           {activeTab === 'hr-penalties' && (isSuperAdmin || isAdmin || isInstructor) && (
             <PenaltiesPage />
           )}
@@ -385,7 +401,7 @@ const DashboardPage = () => {
           {activeTab === 'classes' && (
             <ClassesPage />
           )}
-          {activeTab === 'enrollments' && <EnrollmentManagementPage />}
+          {activeTab === 'enrollments' && <EnrollmentsManagementPage />}
           {activeTab === 'users' && <UsersPage />}
           {activeTab === 'resources' && <ResourcesPage />}
           {activeTab === 'categories' && <CategoriesPage isDashboardTab />}

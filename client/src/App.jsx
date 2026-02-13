@@ -11,7 +11,6 @@ import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import { HelpProvider } from './contexts/HelpContext';
 import ActivityDetailPage from './pages/ActivityDetailPage';
-import EnrollmentsPage from './pages/EnrollmentsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import AttendancePage from './pages/AttendancePage';
@@ -23,7 +22,7 @@ import BehaviorPage from './pages/BehaviorPage';
 import InstructorQRScannerPage from './pages/InstructorQRScannerPage';
 import QRCodeDisplayPage from './pages/QRCodeDisplayPage';
 import ClassSchedulePage from './pages/ClassSchedulePage';
-import ManageEnrollmentsPage from './pages/ManageEnrollmentsPage';
+import EnrollmentsPage from './pages/EnrollmentsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import analytics from './utils/analytics.js';
 import RoleAccessPro from './pages/RoleAccessPro';
@@ -183,7 +182,7 @@ const AppContent = () => {
           <Route path="/instructor-behavior" element={<BehaviorPage />} />
           <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />
-          <Route path="/manage-enrollments" element={<ManageEnrollmentsPage />} />
+          <Route path="/manage-enrollments" element={<EnrollmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />
           <Route path="/role-access-pro" element={<RoleAccessPro />} />

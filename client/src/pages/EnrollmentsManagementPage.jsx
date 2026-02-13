@@ -17,7 +17,7 @@ import { toggleStudentAccess as toggleStudentAccessService } from '@firebaseServ
 import logger from '@utils/logger';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 
-const EnrollmentManagementPage = () => {
+const EnrollmentsManagementPage = () => {
   const { t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -781,4 +781,4 @@ const EnrollmentManagementPage = () => {
   );
 };
 
-export default EnrollmentManagementPage;
+export default EnrollmentsManagementPage;

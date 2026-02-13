@@ -1214,6 +1214,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         entityName={deleteModal.entityName}
         relatedRecords={deleteModal.relatedRecords}
         loading={saving}
+        theme={theme}
         t={t}
       />
     </div>

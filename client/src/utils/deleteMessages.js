@@ -17,38 +17,103 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
  * @returns {string} Formatted delete message
  */
 export const getDeleteMessage = (entityType, entityName, options = {}, t = (key) => key) => {
-  const { relatedRecords } = options;
+  const { relatedRecords, theme = 'light' } = options;
   const actualEntityName = entityName || t('this_item') || 'this item';
   
   // Special handling for entities with related records
   if (entityType === RECORD_TYPES.USER && relatedRecords) {
-    // Always show summary for users, even if counts are 0
-    const recordsList = Object.entries(relatedRecords)
-      .map(([type, count]) => {
-        const typeLabels = {
-          enrollments: t('enrollments') || 'Enrollments',
-          activities: t('activities') || 'Activities',
-          submissions: t('submissions') || 'Submissions',
-          attendance: t('attendance_records') || 'Attendance Records',
-          penalties: t('penalties') || 'Penalties',
-          grades: t('grades') || 'Grades',
-          assignments: t('assignments') || 'Assignments',
-          quizzes: t('quizzes') || 'Quizzes',
-          reports: t('reports') || 'Reports',
-          comments: t('comments') || 'Comments',
-          files: t('files') || 'Files',
-          participations: t('participations') || 'Participations',
-          behaviors: t('behaviors') || 'Behaviors'
-        };
-        return `${count} ${typeLabels[type] || type}`;
-      })
-      .join(', ');
+    // Create a formatted table for the related records using Lucide icons
+    const recordTypes = [
+      { key: 'enrollments', label: t('enrollments') || 'Enrollments', icon: 'book_open' },
+      { key: 'classes', label: t('classes') || 'Classes', icon: 'home' },
+      { key: 'attendance', label: t('attendance_records') || 'Attendance Records', icon: 'calendar' },
+      { key: 'penalties', label: t('penalties') || 'Penalties', icon: 'alert_triangle' },
+      { key: 'participations', label: t('participations') || 'Participations', icon: 'users' },
+      { key: 'behaviors', label: t('behaviors') || 'Behaviors', icon: 'bar_chart' },
+      { key: 'activities', label: t('activities') || 'Activities', icon: 'target' },
+      { key: 'submissions', label: t('submissions') || 'Submissions', icon: 'file_text' }
+    ];
 
+    const tableRows = recordTypes
+      .map(({ key, label, icon }) => {
+        const count = relatedRecords[key] || 0;
+        // Use simple SVG icons instead of React components
+        const iconMap = {
+          'book_open': '📚',
+          'home': '🏫', 
+          'calendar': '📅',
+          'alert_triangle': '⚠️',
+          'users': '👥',
+          'bar_chart': '📊',
+          'target': '🎯',
+          'file_text': '📄'
+        };
+        const iconHtml = iconMap[icon] || '📄';
+        return count > 0 ? `<tr><td class="icon-cell">${iconHtml}</td><td>${label}</td><td class="count-cell">${count}</td></tr>` : null;
+      })
+      .filter(Boolean)
+      .join('');
+
+    const tableHtml = `
+      <div style="margin: 16px 0;">
+        <style>
+          .delete-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+            overflow: hidden;
+            font-size: 14px;
+          }
+          .delete-table thead { 
+            background-color: #f9fafb; 
+            border-bottom: 1px solid #e5e7eb; 
+          }
+          .delete-table th { 
+            padding: 12px; 
+            text-align: left; 
+            font-weight: 600; 
+            color: #374151; 
+          }
+          .delete-table td { 
+            padding: 12px; 
+            border-bottom: 1px solid #f3f4f6;
+            color: #374151;
+          }
+          .delete-table tbody tr:last-child td { border-bottom: none; }
+          .delete-table tbody tr:nth-child(even) { background-color: #f9fafb; }
+          .delete-table .count-cell { text-align: right; font-weight: 600; color: #059669; }
+          .delete-table .icon-cell { font-size: 16px; }
+          
+          /* Dark mode */
+          [data-theme="dark"] .delete-table { border-color: #374151; }
+          [data-theme="dark"] .delete-table thead { background-color: #1f2937; border-color: #374151; }
+          [data-theme="dark"] .delete-table th { color: #f9fafb; }
+          [data-theme="dark"] .delete-table td { color: #d1d5db; border-color: #374151; }
+          [data-theme="dark"] .delete-table tbody tr:nth-child(even) { background-color: #1f2937; }
+          [data-theme="dark"] .delete-table .count-cell { color: #10b981; }
+        </style>
+        <table class="delete-table">
+          <thead>
+            <tr>
+              <th style="width: 40px;">Type</th>
+              <th>Item</th>
+              <th style="width: 80px;">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows || '<tr><td colspan="3" style="padding: 12px; text-align: center; color: #6b7280;">No related records found</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    
     // Try translation first
     const key = 'delete_user_with_records_msg';
     const translated = t(key, { 
       userName: actualEntityName,
-      records: recordsList
+      records: tableHtml
     });
 
     // If a real translation exists and is not just a placeholder, use it
@@ -60,8 +125,13 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
       return translated;
     }
 
-    // Fallback: always show a detailed English message with the records list
-    return `Are you sure you want to delete "${actualEntityName}"? This will also delete: ${recordsList}. This action cannot be undone.`;
+    // Fallback: always show a detailed message with the formatted table
+    return `<div style="line-height: 1.6;">
+      <p style="margin: 0 0 16px 0; font-weight: 500;">Are you sure you want to delete <strong>"${actualEntityName}"</strong>?</p>
+      <p style="margin: 0 0 8px 0; color: #6b7280;">This will also delete the following related records:</p>
+      ${tableHtml}
+      <p style="margin: 16px 0 0 0; color: #dc2626; font-weight: 500;">⚠️ This action cannot be undone.</p>
+    </div>`;
   }
 
   // Special handling for enrollment with related student records

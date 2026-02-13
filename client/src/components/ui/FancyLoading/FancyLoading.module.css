@@ -28,6 +28,12 @@
   animation: fadeIn 0.3s ease-in-out;
 }
 
+/* Dark mode support */
+[data-theme="dark"] .fullscreen,
+.dark .fullscreen {
+  background: rgba(0, 0, 0, 0.95);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

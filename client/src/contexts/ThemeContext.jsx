@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { FancyLoading } from '@ui';
 import './ThemeContext.css';
 
 const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
@@ -58,7 +59,7 @@ export const ThemeProvider = ({ children }) => {
       {children}
       {isThemeChanging && (
         <div className="theme-transition-overlay active">
-          <div className="loading-spinner" />
+          <FancyLoading standalone={true} />
         </div>
       )}
     </ThemeContext.Provider>

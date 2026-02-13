@@ -34,6 +34,7 @@ const DeleteModal = ({
   loading = false, 
   customTitle,
   customMessage,
+  theme = 'light',
   t = (key) => key 
 }) => {
   // Generate title and message using utilities
@@ -45,12 +46,7 @@ const DeleteModal = ({
   const getMessage = () => {
     if (customMessage) return customMessage;
     
-    // Debug: Log relatedRecords to see what's being passed
-    console.log('DeleteModal: relatedRecords', relatedRecords);
-    console.log('DeleteModal: entityType', entityType);
-    console.log('DeleteModal: entityName', entityName);
-    
-    return getDeleteMessage(entityType, entityName, { relatedRecords }, t);
+    return getDeleteMessage(entityType, entityName, { relatedRecords, theme }, t);
   };
 
   const handleConfirm = useCallback(async () => {
@@ -98,7 +94,7 @@ const DeleteModal = ({
       className="delete-modal compact-modal"
       titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
     >
-      <p>{getMessage()}</p>
+      <div dangerouslySetInnerHTML={{ __html: getMessage() }} />
     </Modal>
   );
 };

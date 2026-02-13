@@ -10,33 +10,13 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .theme-transition-overlay.active {
   opacity: 1;
-}
-
-.theme-transition-overlay .loading-spinner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(128, 0, 32, 0.2);
-  border-top: 3px solid #800020;
-  border-radius: 50%;
-  animation: theme-spin 0.8s linear infinite;
-}
-
-[data-theme="dark"] .theme-transition-overlay .loading-spinner {
-  border: 3px solid rgba(16, 185, 129, 0.2);
-  border-top: 3px solid #10b981;
-}
-
-@keyframes theme-spin {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 /* Smooth transitions for theme changes */
