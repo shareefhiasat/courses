@@ -38,7 +38,7 @@ const HomePage = memo(() => {
   // Mode: 'activities' | 'resources'
   const mode = searchParams.get('mode') || 'activities';
   
-  // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'lab' | 'project' (only used when mode === 'activities')
+  // Activity type: 'all' | 'quiz' | 'homework' | 'training' | 'labandproject' (only used when mode === 'activities')
   const [activityType, setActivityType] = useState('all');
   
   // Category filter for activities: '' | 'programming' | 'computing' | 'algorithm' | 'general'
@@ -276,7 +276,7 @@ const HomePage = memo(() => {
           (category === '' || (a.course || 'general') === category)
         );
       } else {
-        // Show filtered activities by type (homework, training, lab, project), also filtered by category
+        // Show filtered activities by type (homework, training, labandproject), also filtered by category
         filtered = activities.filter(a => 
           a.type === activityType && 
           a.show !== false && 
@@ -684,16 +684,10 @@ const HomePage = memo(() => {
                   badge: activityType === 'training' ? filteredItems.length : undefined
                 },
                 {
-                  value: 'lab',
-                  label: lang === 'en' ? 'Lab' : 'معمل',
-                  icon: activityType === 'lab' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
-                  badge: activityType === 'lab' ? filteredItems.length : undefined
-                },
-                {
-                  value: 'project',
-                  label: lang === 'en' ? 'Project' : 'مشروع',
-                  icon: activityType === 'project' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
-                  badge: activityType === 'project' ? filteredItems.length : undefined
+                  value: 'labandproject',
+                  label: lang === 'en' ? 'Lab & Project' : 'معمل ومشروع',
+                  icon: activityType === 'labandproject' ? getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, '#ffffff') : getIconWithColor('ui', getActivityTypeConfig('labandproject', theme, lang).icon, 16, primaryColor),
+                  badge: activityType === 'labandproject' ? filteredItems.length : undefined
                 }
               ]}
               activeTab={activityType}
@@ -875,7 +869,7 @@ const HomePage = memo(() => {
                 </div>
 
           {/* Row 2: Common Filter Chips - Show word+icon or icon-only based on view mode */}
-          <div data-tour="status-filters" className="filter-container filter-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+          <div data-tour="status-filters" className="filter-container filter-row" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
             {/* Status chips - word+icon (full) or icon-only (minified) */}
             {isMinified ? (
               <>
@@ -1094,9 +1088,9 @@ const HomePage = memo(() => {
               </div>
 
           {/* Row 3: Difficulty + Mode-specific + Icon toggles */}
-          <div className="filter-container filter-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="filter-container filter-row" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
             {/* Difficulty chips - Show first */}
-            <div data-tour="difficulty-filters" style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+            <div data-tour="difficulty-filters" style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
               <button
                 className="filter-button"
                 onClick={() => setDifficultyFilter('all')}
@@ -1152,7 +1146,7 @@ const HomePage = memo(() => {
 
             {/* Mode-specific type filters (only for resources now) */}
             {mode === 'resources' && (
-              <div data-tour="resource-type-filters" style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+              <div data-tour="resource-type-filters" style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setResourceTypeFilter('all')}
                   title={t('all_types') || 'All Types'}
@@ -1231,7 +1225,7 @@ const HomePage = memo(() => {
 
             {/* Class filter for quizzes */}
             {mode === 'activities' && activityType === 'quiz' && availableClasses.length > 0 && (
-              <div data-tour="class-filter" style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+              <div data-tour="class-filter" style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setClassFilter('all')}
                   style={{
@@ -1271,7 +1265,7 @@ const HomePage = memo(() => {
             )}
 
             {/* Icon toggles - Always icon-only, but show word+icon in full mode for bookmark/featured */}
-            <div style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap', marginLeft: 'auto' }}>
+            <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap', marginLeft: 'auto' }}>
               {isMinified ? (
                 <>
                   <button

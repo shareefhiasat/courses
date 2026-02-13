@@ -313,8 +313,9 @@
   .filter-button {
     flex-shrink: 0;
     min-width: fit-content;
-    font-size: 0.7rem !important;
-    padding: 3px 8px !important;
+    font-size: 0.75rem !important;
+    padding: 4px 8px !important;
+    line-height: 1 !important;
   }
 
   .filter-button.minified {

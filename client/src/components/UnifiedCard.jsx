@@ -3,6 +3,8 @@ import { Button } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getWhiteIcon, getIconWithColor, getColoredIcon } from '@constants/iconTypes';
+import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
+import { ACTIVITY_TYPES } from '@constants/activityTypes';
 
 /**
  * Unified card component for activities, quizzes, resources, and home page items
@@ -248,207 +250,215 @@ const UnifiedCard = memo(({
           )}
         </h3>
 
-        {/* Description */}
-        <p style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}>
-          {getDescription()}
-        </p>
+        {/* Content Area */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+          {/* Description */}
+          <p style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}>
+            {getDescription()}
+          </p>
 
-        {/* Metadata Chips */}
-        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-          {/* Level/Difficulty - styled like filter chips */}
-          {(item.level || item.difficulty) && (() => {
-            const levelColors = getLevelColors();
-            const level = (item.level || item.difficulty || '').toLowerCase();
-            let bg, fg, border;
-            if (level === 'beginner') {
-              bg = '#e8f5e9'; fg = '#2e7d32'; border = '#2e7d32';
-            } else if (level === 'intermediate') {
-              bg = '#fff7ed'; fg = '#b45309'; border = '#b45309';
-            } else if (level === 'advanced') {
-              bg = '#fee2e2'; fg = '#b91c1c'; border = '#b91c1c';
-            } else {
-              bg = levelColors.background || '#f3f4f6';
-              fg = levelColors.color || '#374151';
-              border = levelColors.color || '#374151';
-            }
-            return (
-                <span style={{
+          {/* Spacer to push content to bottom */}
+          <div style={{ flex: 1 }}></div>
+
+          {/* Metadata Chips - Anchored at bottom */}
+          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+            {/* Level/Difficulty - simplified like filter chips */}
+            {(item.level || item.difficulty) && (() => {
+              const level = (item.level || item.difficulty || '').toLowerCase();
+              let bg, fg, border;
+              if (level === DIFFICULTY_TYPES.BEGINNER) {
+                bg = '#dcfce7'; fg = '#166534'; border = '#166534';
+              } else if (level === DIFFICULTY_TYPES.INTERMEDIATE) {
+                bg = '#fed7aa'; fg = '#c2410c'; border = '#c2410c';
+              } else if (level === DIFFICULTY_TYPES.ADVANCED) {
+                bg = '#fecaca'; fg = '#dc2626'; border = '#dc2626';
+              } else {
+                bg = '#f3f4f6'; fg = '#374151'; border = '#374151';
+              }
+              return (
+                  <span className="filter-button" style={{
+                    padding: '4px 8px',
+                    borderRadius: 999,
+                    border: `1px solid ${border}`,
+                    background: bg,
+                    color: fg,
+                    fontSize: '0.75rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontWeight: 600,
+                    cursor: 'default'
+                  }}>
+                {getColoredIcon('ui', 'award', 12, fg, theme)}
+                <span>{getLevelLabel()}</span>
+              </span>
+              );
+            })()}
+
+            {/* Type - simplified like filter chips */}
+            {(() => {
+              const typeColors = getTypeColors();
+              const type = (item.type || '').toLowerCase();
+              let bg, fg, border;
+
+              if (flavor === 'resource') {
+                bg = typeColors.bg;
+                fg = typeColors.fg;
+                border = typeColors.border;
+              } else {
+                if (type === ACTIVITY_TYPES.TRAINING) {
+                  bg = typeColors.bg;
+                  fg = typeColors.fg;
+                  border = typeColors.border;
+                } else if (type === ACTIVITY_TYPES.HOMEWORK) {
+                  bg = '#fff3e0'; fg = '#f57c00'; border = '#f57c00';
+                } else if (type === ACTIVITY_TYPES.QUIZ) {
+                  bg = '#f3e8ff'; fg = '#7c3aed'; border = '#7c3aed';
+                } else {
+                  bg = typeColors.bg || '#f3f4f6';
+                  fg = typeColors.fg || '#374151';
+                  border = typeColors.border || '#374151';
+                }
+              }
+
+              return (
+                  <span
+                      className="filter-button"
+                      title={getTypeLabel()}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: 999,
+                        border: `1px solid ${border}`,
+                        background: bg,
+                        color: fg,
+                        fontSize: '0.75rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontWeight: 600,
+                        cursor: 'default'
+                      }}>
+                {getTypeIcon()}
+                    <span>{getTypeLabel()}</span>
+              </span>
+              );
+            })()}
+
+            {/* Quiz-specific: Question count */}
+            {(flavor === 'quiz' && item.questions?.length) && (
+                <span className="filter-button" style={{
+                  background: getTypeColors().bg,
+                  color: getTypeColors().fg,
                   padding: '4px 8px',
                   borderRadius: 999,
-                  border: `1px solid ${border}`,
-                  background: bg,
-                  color: fg,
                   fontSize: '0.75rem',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
-                  fontWeight: 600
+                  fontWeight: 600,
+                  cursor: 'default'
                 }}>
-              {getColoredIcon('ui', 'award', 12, fg, theme)}
-              <span>{getLevelLabel()}</span>
+              {getTypeIcon()} {item.questions.length} {t('questions') || 'questions'}
             </span>
-            );
-          })()}
+            )}
 
-          {/* Type - styled like filter chips - use theme color for resources and training */}
-          {(() => {
-            const typeColors = getTypeColors();
-            const type = (item.type || '').toLowerCase();
-            let bg, fg, border;
-
-            if (flavor === 'resource') {
-              // Use theme color for all resource types
-              bg = typeColors.bg;
-              fg = typeColors.fg;
-              border = typeColors.border;
-            } else {
-              // Activities - use theme color for training, keep others distinct
-              if (type === 'training') {
-                bg = typeColors.bg;
-                fg = typeColors.fg;
-                border = typeColors.border;
-              } else if (type === 'homework') {
-                bg = '#fff3e0'; fg = '#f57c00'; border = '#f57c00';
-              } else if (type === 'quiz') {
-                bg = '#f3e8ff'; fg = '#7c3aed'; border = '#7c3aed';
-              } else {
-                bg = typeColors.bg || '#f3f4f6';
-                fg = typeColors.fg || '#374151';
-                border = typeColors.border || '#374151';
-              }
-            }
-
-            return (
-                <span
-                    title={getTypeLabel()}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: 999,
-                      border: `1px solid ${border}`,
-                      background: bg,
-                      color: fg,
-                      fontSize: '0.75rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontWeight: 600
-                    }}>
-              {getTypeIcon()}
-                  <span>{getTypeLabel()}</span>
+            {/* Estimated time */}
+            {item.estimatedTime && (
+                <span className="filter-button" style={{
+                  background: isDark ? 'rgba(217, 119, 6, 0.2)' : '#fef3c7',
+                  color: '#d97706',
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px solid #d97706',
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 600,
+                  cursor: 'default'
+                }}>
+              {getColoredIcon('ui', 'clock', 12, '#d97706', theme)} {item.estimatedTime} {t('min') || 'min'}
             </span>
-            );
-          })()}
+            )}
 
-          {/* Quiz-specific: Question count */}
-          {(flavor === 'quiz' && item.questions?.length) && (
-              <span style={{
-                background: getTypeColors().bg,
-                color: getTypeColors().fg,
-                padding: '4px 8px',
-                borderRadius: 999,
-                fontSize: '0.75rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontWeight: 600
-              }}>
-            {getTypeIcon()} {item.questions.length} {t('questions') || 'questions'}
-          </span>
-          )}
-
-          {/* Estimated time */}
-          {item.estimatedTime && (
-              <span style={{
-                background: isDark ? 'rgba(217, 119, 6, 0.2)' : '#fef3c7',
-                color: '#d97706',
-                padding: '4px 8px',
-                borderRadius: 999,
-                border: '1px solid #d97706',
-                fontSize: '0.75rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontWeight: 600
-              }}>
-            {getColoredIcon('ui', 'clock', 12, '#d97706', theme)} {item.estimatedTime} {t('min') || 'min'}
-          </span>
-          )}
-
-          {/* Optional badge */}
-          {item.optional && (
-              <span style={{
-                background: isDark ? 'rgba(245, 124, 0, 0.2)' : '#fff3e0',
-                color: '#f57c00',
-                padding: '4px 8px',
-                borderRadius: 999,
-                border: '1px solid #f57c00',
-                fontSize: '0.75rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontWeight: 600
-              }}>
-            {getColoredIcon('ui', 'book_open', 10, '#f57c00', theme)}
+            {/* Optional badge */}
+            {item.optional && (
+                <span className="filter-button" style={{
+                  background: isDark ? 'rgba(245, 124, 0, 0.2)' : '#fff3e0',
+                  color: '#f57c00',
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px solid #f57c00',
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 600,
+                  cursor: 'default'
+                }}>
+              {getColoredIcon('ui', 'book_open', 10, '#f57c00', theme)}
                 {!isMinified && <span>{t('optional') || 'Optional'}</span>}
-          </span>
-          )}
+            </span>
+            )}
 
-          {/* Required badge (for resources) */}
-          {flavor === 'resource' && !item.optional && (
-              <span style={{
-                background: isDark ? 'rgba(185, 28, 28, 0.2)' : '#fee2e2',
-                color: '#b91c1c',
-                padding: '4px 8px',
-                borderRadius: 999,
-                border: '1px solid #b91c1c',
-                fontSize: '0.75rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontWeight: 600
-              }}>
-            {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}
+            {/* Required badge (for resources) */}
+            {flavor === 'resource' && !item.optional && (
+                <span className="filter-button" style={{
+                  background: isDark ? 'rgba(185, 28, 28, 0.2)' : '#fee2e2',
+                  color: '#b91c1c',
+                  padding: '4px 8px',
+                  borderRadius: 999,
+                  border: '1px solid #b91c1c',
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontWeight: 600,
+                  cursor: 'default'
+                }}>
+              {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}
                 {!isMinified && <span>{t('required') || 'Required'}</span>}
-          </span>
-          )}
-        </div>
+            </span>
+            )}
+          </div>
 
-        {/* Created Date & Completed Status & Due Date */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem', fontSize: '0.75rem' }}>
-          {/* Created Date */}
-          {item.createdAt && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                color: isDark ? '#94a3b8' : '#16a34a'
-              }} title={t('created_at') || 'Created at'}>
-                {getThemedIcon('ui', 'add', 12, theme)}
-                <span>{formatDate(item.createdAt)}</span>
-              </div>
-          )}
-          {isCompleted && completedAt && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                color: '#16a34a'
-              }} title={t('completed_at') || 'Completed at'}>
-                {getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)}
-                <span>{formatDate(completedAt)}</span>
-              </div>
-          )}
-          {dueDate && !isCompleted && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                color: '#dc2626'
-              }} title={t('due_date') || 'Due date'}>
-                {getColoredIcon('ui', 'calendar', 14, '#dc2626', theme)}
-                <span><strong>{t('due') || 'Due'}:</strong> {formatDate(dueDate)}</span>
-              </div>
-          )}
+          {/* Dates - Anchored at bottom, aligned with button height */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+            {/* Created Date */}
+            {item.createdAt && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: isDark ? '#94a3b8' : '#16a34a'
+                }} title={t('created_at') || 'Created at'}>
+                  {getThemedIcon('ui', 'add', 12, theme)}
+                  <span>{formatDate(item.createdAt)}</span>
+                </div>
+            )}
+            {isCompleted && completedAt && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: '#16a34a'
+                }} title={t('completed_at') || 'Completed at'}>
+                  {getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)}
+                  <span>{formatDate(completedAt)}</span>
+                </div>
+            )}
+            {dueDate && !isCompleted && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: '#dc2626'
+                }} title={t('due_date') || 'Due date'}>
+                  {getColoredIcon('ui', 'calendar', 14, '#dc2626', theme)}
+                  <span><strong>{t('due') || 'Due'}:</strong> {formatDate(dueDate)}</span>
+                </div>
+            )}
+          </div>
         </div>
 
         {/* Action Buttons - Icon only */}
