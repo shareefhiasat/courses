@@ -1,9 +1,21 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
+import { useTheme } from '@contexts/ThemeContext';
 
 const QRCodeDisplayPage = () => {
   const { studentId } = useParams();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  
+  // Get primary color from CSS variable
+  const getPrimaryColor = () => {
+    if (typeof window === 'undefined') return '#800020';
+    const root = document.documentElement;
+    return getComputedStyle(root).getPropertyValue('--color-primary').trim() || '#800020';
+  };
+
+  const primaryColor = getPrimaryColor();
   
   // Read from route params
   const studentNumber = studentId;
@@ -17,12 +29,8 @@ const QRCodeDisplayPage = () => {
       }
 
       try {
-        // Detect if dark mode is active
-        const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark' || 
-                          window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
         // Use theme-appropriate colors
-        const qrColors = isDarkMode ? {
+        const qrColors = isDark ? {
           dark: '#ffffff',  // White QR code for dark mode
           light: '#1f2937'  // Dark background for QR code
         } : {
@@ -37,20 +45,20 @@ const QRCodeDisplayPage = () => {
           color: qrColors
         });
 
-        // Theme-appropriate styling
-        const themeStyles = isDarkMode ? {
-          bodyBg: '#111827',
-          cardBg: '#1f2937',
-          cardBorder: '#374151',
-          textColor: '#f9fafb',
-          subTextColor: '#d1d5db',
+        // Theme-appropriate styling matching the second image
+        const themeStyles = isDark ? {
+          bodyBg: '#0f172a',
+          cardBg: '#1e293b',
+          cardBorder: primaryColor,
+          textColor: '#f8fafc',
+          subTextColor: '#cbd5e1',
           refColor: '#60a5fa'
         } : {
-          bodyBg: '#f3f4f6',
+          bodyBg: '#f8fafc',
           cardBg: '#ffffff',
-          cardBorder: '#800000',
-          textColor: '#111827',
-          subTextColor: '#6b7280',
+          cardBorder: primaryColor,
+          textColor: '#1e293b',
+          subTextColor: '#64748b',
           refColor: '#059669'
         };
 
@@ -60,60 +68,88 @@ const QRCodeDisplayPage = () => {
             <head>
               <title>QR Code - ${studentName || 'Student'}</title>
               <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { 
                   display: flex; 
                   flex-direction: column; 
                   align-items: center; 
                   justify-content: center; 
-                  height: 100vh; 
+                  min-height: 100vh; 
                   margin: 0; 
-                  font-family: sans-serif; 
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
                   background: ${themeStyles.bodyBg}; 
                   color: ${themeStyles.textColor};
                 }
                 .card { 
                   background: ${themeStyles.cardBg}; 
-                  padding: 2rem; 
-                  border-radius: 1rem; 
-                  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
+                  padding: 3rem 2rem; 
+                  border-radius: 1.5rem; 
+                  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); 
                   text-align: center; 
                   border: 4px solid ${themeStyles.cardBorder};
+                  max-width: 400px;
+                  margin: 2rem;
                 }
                 img { 
-                  width: 300px; 
-                  height: 300px; 
-                  margin-bottom: 1rem; 
-                  border-radius: 8px;
+                  width: 280px; 
+                  height: 280px; 
+                  margin-bottom: 1.5rem; 
+                  border-radius: 1rem;
                   background: ${qrColors.light};
-                  padding: 8px;
+                  padding: 12px;
+                  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
                 }
                 h1 { 
-                  margin: 0; 
+                  margin: 0 0 0.5rem 0; 
                   color: ${themeStyles.textColor}; 
-                  font-size: 1.5rem; 
+                  font-size: 1.75rem; 
+                  font-weight: 700;
                 }
                 p { 
-                  margin: 0.5rem 0 0; 
+                  margin: 0; 
                   color: ${themeStyles.subTextColor}; 
                   font-size: 1rem; 
+                  font-weight: 500;
                 }
                 .ref { 
-                  font-family: monospace; 
-                  font-weight: bold; 
+                  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace; 
+                  font-weight: 700; 
                   color: ${themeStyles.refColor}; 
                   margin-top: 0.5rem; 
-                  font-size: 1.2rem;
+                  font-size: 1.25rem;
+                  display: inline-block;
+                  padding: 0.25rem 0.75rem;
+                  background: ${isDark ? 'rgba(96, 165, 250, 0.1)' : 'rgba(5, 150, 105, 0.1)'};
+                  border-radius: 0.5rem;
+                  border: 1px solid ${isDark ? 'rgba(96, 165, 250, 0.2)' : 'rgba(5, 150, 105, 0.2)'};
                 }
                 @media print {
-                  body { background: white; color: black; }
-                  .card { 
-                    background: white; 
-                    box-shadow: none; 
-                    border: 2px solid #800000;
-                    color: black;
+                  body { 
+                    background: white !important; 
+                    color: black !important;
+                    margin: 0;
+                    padding: 1rem;
                   }
-                  .ref { color: #059669; }
-                  img { background: white; }
+                  .card { 
+                    background: white !important; 
+                    box-shadow: none !important; 
+                    border: 3px solid ${primaryColor} !important;
+                    color: black !important;
+                    padding: 2rem !important;
+                    margin: 0 !important;
+                    max-width: none !important;
+                  }
+                  .ref { 
+                    color: #059669 !important;
+                    background: transparent !important;
+                    border: none !important;
+                  }
+                  img { 
+                    background: white !important;
+                    box-shadow: none !important;
+                  }
+                  h1 { color: black !important; }
+                  p { color: #666 !important; }
                 }
               </style>
             </head>
@@ -121,7 +157,8 @@ const QRCodeDisplayPage = () => {
               <div class="card">
                 <img src="${qrDataUrl}" alt="QR Code" />
                 <h1>${studentName || 'Student'}</h1>
-                <p>Student Number: <span class="ref">${studentNumber}</span></p>
+                <p>Student Number</p>
+                <div class="ref">${studentNumber}</div>
               </div>
             </body>
           </html>
@@ -133,7 +170,7 @@ const QRCodeDisplayPage = () => {
     };
 
     generateAndDisplayQR();
-  }, [studentNumber]);
+  }, [studentNumber, isDark, primaryColor]);
 
   // No JSX - we write directly to document
   return null;

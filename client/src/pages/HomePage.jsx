@@ -795,31 +795,31 @@ const HomePage = memo(() => {
                 }}>
                 {stats.completed !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getThemedIcon('ui', 'check_circle', 14, theme)}
+                    {getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)}
                     <span style={{ fontWeight: 700, color: '#16a34a' }}>{stats.completed}</span>
                   </div>
                 )}
                 {stats.pending !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getThemedIcon('ui', 'hourglass', 14, theme)}
+                    {getColoredIcon('ui', 'hourglass', 14, '#f59e0b', theme)}
                     <span style={{ fontWeight: 700, color: '#f59e0b' }}>{stats.pending}</span>
                   </div>
                 )}
                 {stats.overdue !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getThemedIcon('ui', 'clock', 14, theme)}
+                    {getColoredIcon('ui', 'clock', 14, '#dc2626', theme)}
                     <span style={{ fontWeight: 700, color: '#dc2626' }}>{stats.overdue}</span>
                   </div>
                 )}
                 {stats.required !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getThemedIcon('ui', 'alert_circle', 14, theme)}
+                    {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}
                     <span style={{ fontWeight: 700, color: '#b91c1c' }}>{stats.required}</span>
                   </div>
                 )}
                 {stats.optional !== undefined && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getThemedIcon('ui', 'book_open', 14, theme)}
+                    {getColoredIcon('ui', 'book_open', 14, '#f57c00', theme)}
                     <span style={{ fontWeight: 700, color: '#f57c00' }}>{stats.optional}</span>
                   </div>
                 )}
@@ -880,12 +880,12 @@ const HomePage = memo(() => {
             {isMinified ? (
               <>
                 <button
-                  className={`filter-button ${isMinified ? 'minified' : ''}`}
+                  className="filter-button"
                   onClick={() => setCompletedFilter(v => !v)}
                   title={getStatusLabel(TASK_STATUS.COMPLETED, lang)}
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 32,
+                    height: 32,
                     borderRadius: 999,
                     border: '1px solid #bbf7d0',
                     background: completedFilter ? '#16a34a' : '#ecfdf5',
@@ -897,7 +897,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)}
+                  {getColoredIcon('ui', 'check_circle', 14, completedFilter ? '#fff' : '#16a34a', theme)}
                 </button>
                 
                 <button
@@ -905,8 +905,8 @@ const HomePage = memo(() => {
                   onClick={() => setPendingFilter(v => !v)}
                   title={getStatusLabel(TASK_STATUS.NOT_STARTED, lang)}
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 32,
+                    height: 32,
                     borderRadius: 999,
                     border: '1px solid #fde68a',
                     background: pendingFilter ? '#f59e0b' : '#fffbeb',
@@ -918,15 +918,15 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getColoredIcon('ui', 'hourglass', 14, '#f59e0b', theme)}
+                  {getColoredIcon('ui', 'hourglass', 14, pendingFilter ? '#fff' : '#f59e0b', theme)}
                 </button>
 
                 <button
                   onClick={() => setRequiredFilter(v => !v)}
                   title={t('required') || 'Required'}
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 32,
+                    height: 32,
                     borderRadius: 999,
                     border: '1px solid #fecaca',
                     background: requiredFilter ? '#b91c1c' : '#fee2e2',
@@ -938,7 +938,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}
+                  {getColoredIcon('ui', 'alert_circle', 14, requiredFilter ? '#fff' : '#b91c1c', theme)}
                 </button>
 
                 <button
@@ -946,8 +946,8 @@ const HomePage = memo(() => {
                   onClick={() => setOptionalFilter(v => !v)}
                   title={t('optional') || 'Optional'}
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 32,
+                    height: 32,
                     borderRadius: 999,
                     border: '1px solid #fed7aa',
                     background: optionalFilter ? '#f57c00' : '#fff3e0',
@@ -959,7 +959,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getColoredIcon('ui', 'book_open', 14, '#f57c00', theme)}
+                  {getColoredIcon('ui', 'book_open', 14, optionalFilter ? '#fff' : '#f57c00', theme)}
                 </button>
 
                 <button
@@ -967,8 +967,8 @@ const HomePage = memo(() => {
                   onClick={() => setOverdueFilter(v => !v)}
                   title={t('overdue') || 'Overdue'}
                   style={{
-                    width: 28,
-                    height: 28,
+                    width: 32,
+                    height: 32,
                     borderRadius: 999,
                     border: '1px solid #fecaca',
                     background: overdueFilter ? '#dc2626' : '#fee2e2',
@@ -980,7 +980,7 @@ const HomePage = memo(() => {
                     padding: 0
                   }}
                 >
-                  {getColoredIcon('ui', 'clock', 14, '#dc2626', theme)}
+                  {getColoredIcon('ui', 'clock', 14, overdueFilter ? '#fff' : '#dc2626', theme)}
                 </button>
               </>
             ) : (
@@ -989,7 +989,7 @@ const HomePage = memo(() => {
                   className="filter-button"
                   onClick={() => setCompletedFilter(v => !v)}
                   style={{
-                    padding: '4px 10px',
+                    padding: '4px 8px',
                     borderRadius: 999,
                     border: '1px solid #bbf7d0',
                     background: completedFilter ? '#16a34a' : '#ecfdf5',
@@ -1010,7 +1010,7 @@ const HomePage = memo(() => {
                   className="filter-button"
                   onClick={() => setPendingFilter(v => !v)}
                   style={{
-                    padding: '4px 10px',
+                    padding: '4px 8px',
                     borderRadius: 999,
                     border: '1px solid #fde68a',
                     background: pendingFilter ? '#f59e0b' : '#fffbeb',
@@ -1031,7 +1031,7 @@ const HomePage = memo(() => {
                   className="filter-button"
                   onClick={() => setRequiredFilter(v => !v)}
                   style={{
-                    padding: '4px 10px',
+                    padding: '4px 8px',
                     borderRadius: 999,
                     border: '1px solid #fecaca',
                     background: requiredFilter ? '#b91c1c' : '#fee2e2',
@@ -1052,7 +1052,7 @@ const HomePage = memo(() => {
                   className="filter-button"
                   onClick={() => setOptionalFilter(v => !v)}
                   style={{
-                    padding: '4px 10px',
+                    padding: '4px 8px',
                     borderRadius: 999,
                     border: '1px solid #fed7aa',
                     background: optionalFilter ? '#f57c00' : '#fff3e0',
@@ -1073,7 +1073,7 @@ const HomePage = memo(() => {
                   className="filter-button"
                   onClick={() => setOverdueFilter(v => !v)}
                   style={{
-                    padding: '4px 10px',
+                    padding: '4px 8px',
                     borderRadius: 999,
                     border: '1px solid #fecaca',
                     background: overdueFilter ? '#dc2626' : '#fee2e2',
