@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { checkStudentAccess } from './enrollmentManagementService';
+import { checkStudentAccess } from './enrollmentService';
 import logger from '@utils/logger';
 
 /**

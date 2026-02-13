@@ -13,7 +13,7 @@ import { getAttendanceByStudent } from '@firebaseServices/attendanceService';
 import { getPenalties } from '@firebaseServices/penaltyService';
 import { getBehaviors } from '@firebaseServices/behaviorService';
 import { getParticipations } from '@firebaseServices/participationService';
-import { toggleStudentAccess as toggleStudentAccessService } from '@firebaseServices/enrollmentManagementService';
+import { toggleStudentAccess as toggleStudentAccessService } from '@firebaseServices/enrollmentService';
 import logger from '@utils/logger';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 
@@ -517,13 +517,7 @@ const EnrollmentsManagementPage = () => {
                   <span style={{ 
                     display: 'inline-flex', 
                     alignItems: 'center', 
-                    gap: '6px',
-                    padding: '4px 8px',
-                    backgroundColor: theme === 'dark' ? '#1e40af' : '#dbeafe',
-                    color: theme === 'dark' ? '#93c5fd' : '#1e40af',
-                    borderRadius: '12px',
-                    fontSize: '0.875rem',
-                    fontWeight: '500'
+                    gap: '6px'
                   }}>
                     {getThemedIcon('ui', 'user', 14, theme)}
                     {t('student') || 'Student'}

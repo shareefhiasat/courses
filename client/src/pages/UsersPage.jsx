@@ -816,12 +816,15 @@ const UsersPage = ({ isDashboardTab = false }) => {
             try {
               await updateAllowlist(updatedAllowlist);
             } catch (allowlistError) {
-              toast?.showWarning('Failed to update allowlist: ' + allowlistError.message);
+              toast?.showWarning(t('failed_to_update_allowlist') + ': ' + allowlistError.message);
             }
           }
-          toast?.showSuccess(`Invite prepared. ${submitData.email} added to ${submitData.role} allowlist. Ask them to sign up.`);
+          toast?.showSuccess(t('invite_prepared_added_to_allowlist', { 
+            email: submitData.email, 
+            role: submitData.role 
+          }) || `Invite prepared. ${submitData.email} added to ${submitData.role} allowlist. ${t('ask_them_to_sign_up') || 'Ask them to sign up.'}`);
         } else {
-          toast?.showInfo('No changes saved. Provide an email or enable allowlist option.');
+          toast?.showInfo(t('no_changes_saved_provide_email_or_enable_allowlist') || 'No changes saved. Provide an email or enable allowlist option.');
         }
       }
 
@@ -900,7 +903,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             prefix={getThemedIcon('ui', 'search', 16, theme)}
-            style={{ minWidth: '300px', flex: 2 }}
+            style={{ minWidth: '300px', flex: 3 }}
           />
           
           <Select

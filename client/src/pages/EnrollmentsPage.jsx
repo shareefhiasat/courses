@@ -5,7 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
-import { getEnrolledStudents, toggleStudentAccess as toggleStudentAccessService } from '@firebaseServices/enrollmentManagementService';
+import { getEnrolledStudents, toggleStudentAccess as toggleStudentAccessService } from '@firebaseServices/enrollmentService';
 import { Container, Card, CardBody, Button, Input, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '@ui';
 import { FancyLoading } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
