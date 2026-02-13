@@ -13,7 +13,7 @@ import {
   updateDoc,
   setDoc
 } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 import { 
   CheckCircle, 
   XCircle, 
@@ -34,11 +34,11 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { Button, Input, Card, CardBody, Loading, Select } from '@ui';
-import { markAttendance } from '@firebaseServices/attendanceService';
-import { getPerformedByFields } from '@firebaseServices/userService';
-import { getClasses } from '@firebaseServices/classService';
-import { getEnrollments } from '@firebaseServices/enrollmentService';
-import { addNotification } from '@firebaseServices/notificationService';
+import { markAttendance } from '@services/business/attendanceService';
+import { getPerformedByFields } from '@services/business/userService';
+import { getClasses } from '@services/business/classService';
+import { getEnrollments } from '@services/business/enrollmentService';
+import { addNotification } from '@services/business/notificationService';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';

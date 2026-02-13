@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardBody, Select, Tabs, EmptyState } from '../ui';
 import { Inbox } from 'lucide-react';
 import TaskCard from './TaskCard';
-import styles from '../../pages/StudentDashboardPage.module.css';
+import styles from '../../pages/dashboard/StudentDashboardPage.module.css';
 
 export default function TasksView({ 
   filteredTasks, 

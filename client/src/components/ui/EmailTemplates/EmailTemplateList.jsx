@@ -6,7 +6,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { ToggleSwitch } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 import { Loading } from '@ui';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
@@ -93,7 +93,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const saveSetting = async (typeKey, enabled, templateId) => {
     try {
       const { setDoc, doc } = await import('firebase/firestore');
-      const { db } = await import('@firebaseServices/config');
+      const { db } = await import('@services/other/config');
       const ref = doc(db, 'config', 'emailSettings');
 
       // Map template type to trigger type
@@ -363,7 +363,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   setTestingEmail(template.id);
                                   try {
                                     const { httpsCallable } = await import('firebase/functions');
-                                    const { functions } = await import('@firebaseServices/config');
+                                    const { functions } = await import('@services/other/config');
                                     const sendTest = httpsCallable(functions, 'sendTestEmailTemplate');
                                     const vars = generateSampleVariables(template);
                                     const res = await sendTest({ templateId: template.id, variables: vars });

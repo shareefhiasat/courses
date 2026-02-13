@@ -5,8 +5,8 @@
  * Run this in the browser console when logged in as the user you want to modify.
  */
 
-import { db } from '@firebaseServices/config';
-import { auth } from '@firebaseServices/config';
+import { db } from '@services/other/config';
+import { auth } from '@services/other/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { USER_ROLES } from '@constants/userRoles';
 

@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import { doc, collection, setDoc } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 import { 
   generateReferenceId, 
   validateReferenceId,
@@ -172,8 +172,8 @@ export const syncOfflineData = async (user, onlineActions = {}) => {
         switch (type) {
           case 'mark_attendance':
             // Import markAttendance function dynamically to avoid circular dependency
-            const { markAttendance } = await import('../firebase/attendance');
-            const result = await markAttendance.default(data);
+            const { markAttendance } = await import('@services/business-services/attendanceBusinessService');
+            const result = await markAttendance(data);
             if (result.success) {
               await removeFromSyncQueue(item.id);
               syncedCount++;

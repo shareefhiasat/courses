@@ -7,11 +7,11 @@ import { X, Mail, Users, Zap, ChevronDown, ExternalLink, Trash2 } from 'lucide-r
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
-import { getAttendanceByStudent, deleteAttendance } from '@firebaseServices/attendanceService';
-import { getPenalties, deletePenalty } from '@firebaseServices/penaltyService';
-import { getParticipations, deleteParticipation } from '@firebaseServices/participationService';
-import { getBehaviors, deleteBehavior } from '@firebaseServices/behaviorService';
-import { getFunctions } from '@firebaseServices/config';
+import { getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
+import { getPenalties, deletePenalty } from '@services/business/penaltyService';
+import { getParticipations, deleteParticipation } from '@services/business/participationService';
+import { getBehaviors, deleteBehavior } from '@services/business/behaviorService';
+import { getFunctions } from '@services/other/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { FancyLoading } from '@ui';
 import { useAuth } from '@contexts/AuthContext';

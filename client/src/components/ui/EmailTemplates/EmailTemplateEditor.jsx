@@ -8,7 +8,7 @@ import { VariableHelper } from '@ui';
 import { Modal } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { collection, doc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 
 const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
   const toast = useToast();

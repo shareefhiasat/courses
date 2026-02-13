@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Badge, ProgressBar } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import styles from '../../pages/StudentDashboardPage.module.css';
+import styles from '../../pages/dashboard/StudentDashboardPage.module.css';
 
 export default function TaskCard({ task, navigate }) {
   const { theme } = useTheme();

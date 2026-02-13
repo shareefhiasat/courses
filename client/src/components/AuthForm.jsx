@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
-import { signIn, signUp, resetPassword } from '@firebaseServices/authService';
+import { db } from '@services/other/config';
+import { signIn, signUp, resetPassword } from '@services/business/authService';
 import { useNavigate } from 'react-router-dom';
-import { getAllowlist } from '@firebaseServices/configService';
+import { getAllowlist } from '@services/business/configService';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useColorTheme } from '../contexts/ColorThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useToast } from '@ui';
-import { logActivity, ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { ToggleSwitch } from '@ui';
 import { usePostHog } from 'posthog-js/react';
 import './AuthForm.css';
@@ -278,7 +278,7 @@ const AuthForm = () => {
             // Send welcome email
             try {
               const { httpsCallable } = await import('firebase/functions');
-              const { functions } = await import('@firebaseServices/config');
+              const { functions } = await import('@services/other/config');
               const sendWelcomeEmail = httpsCallable(functions, 'sendWelcomeEmail');
               await sendWelcomeEmail({
                 email: email,

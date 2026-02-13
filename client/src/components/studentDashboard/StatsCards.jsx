@@ -3,7 +3,7 @@ import { Card, CardBody, ProgressBar } from '../ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Target, Trophy, CalendarCheck } from 'lucide-react';
-import styles from '../../pages/StudentDashboardPage_NEW.module.css';
+import styles from '../../pages/dashboard/StudentDashboardPage.module.css';
 
 export default function StatsCards({ stats, attendanceStats }) {
   const { theme } = useTheme();

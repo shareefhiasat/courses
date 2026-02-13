@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Card, CardBody, Grid, ProgressBar } from '@ui';
-import styles from '../../pages/StudentDashboardPage_NEW.module.css';
+import styles from '../../pages/dashboard/StudentDashboardPage.module.css';
 
 export default function PerformanceView({ tasks, quizResults, submissions, classes }) {
   const performanceByType = useMemo(() => {

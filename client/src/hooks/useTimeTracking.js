@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { logLearningTime } from '@firebaseServices/studentProgressService';
+import { logLearningTime } from '@services/business/studentProgressService';
 
 /**
  * Hook to track time spent on a page and log to student progress

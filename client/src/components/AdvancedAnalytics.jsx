@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
-import { getPrograms, getSubjects } from '@firebaseServices/programService';
+import { getPrograms, getSubjects } from '@services/business/programService';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import BarChart from './charts/BarChart';
 import LineChart from './charts/LineChart';

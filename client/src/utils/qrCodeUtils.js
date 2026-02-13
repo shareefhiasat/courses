@@ -1,6 +1,6 @@
 import React from 'react';
 import { generateStudentQRCode } from '@utils/qrCode';
-import { getFunctions } from '@firebaseServices/config';
+import { getFunctions } from '@services/other/config';
 import logger from '@utils/logger';
 
 // Component for displaying QR code in new tab

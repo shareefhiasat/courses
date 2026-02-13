@@ -1,60 +1,73 @@
 // Centralized TypeScript Type Definitions
-// This file contains all common types and interfaces used across the application
+// Single source of truth for all application types
 
-// Base Types
-export type Theme = 'light' | 'dark';
+import { Timestamp } from 'firebase/firestore';
 
-export type Size = 'small' | 'medium' | 'large';
+// ============================================================================
+// FIREBASE COLLECTION TYPES (Database Models)
+// ============================================================================
 
-export type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+// User Management
+export type UserRole = 'STUDENT' | 'INSTRUCTOR' | 'ADMIN' | 'HR';
 
-// User Types
 export interface User {
-  docId?: string;
-  id?: string;
+  uid: string;
   email: string;
-  displayName?: string;
-  realName?: string;
-  name?: string;
+  displayName: string;
   role: UserRole;
-  status?: UserStatus;
-  avatar?: string;
-  phone?: string;
-  studentNumber?: string;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
+  photoURL?: string;
+  phoneNumber?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  lastLogin?: Timestamp;
+  isActive: boolean;
+  metadata?: Record<string, any>;
 }
 
-export type UserRole = 
-  | 'superadmin' 
-  | 'admin' 
-  | 'instructor' 
-  | 'hr' 
-  | 'student';
-
-export type UserStatus = 
-  | 'active' 
-  | 'inactive' 
-  | 'suspended' 
-  | 'pending' 
-  | 'deleted';
-
-// Class Types
-export interface Class {
-  docId?: string;
-  id?: string;
+// Academic Structures
+export interface Program {
+  docId: string;
   name: string;
+  nameAr?: string;
+  code: string;
   description?: string;
-  programId?: string;
-  subjectId?: string;
-  instructorId?: string;
-  instructorEmail?: string;
+  duration?: number;
+  credits?: number;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+}
+
+export interface Subject {
+  docId: string;
+  name: string;
+  nameAr?: string;
+  code: string;
+  description?: string;
+  credits?: number;
+  programId: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+}
+
+export interface Class {
+  docId: string;
+  name: string;
+  nameAr?: string;
+  programId: string;
+  subjectId: string;
+  instructorId: string;
   schedule?: ClassSchedule[];
+  room?: string;
   capacity?: number;
   enrolled?: number;
-  status?: ClassStatus;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
 }
 
 export interface ClassSchedule {
@@ -64,159 +77,54 @@ export interface ClassSchedule {
   room?: string;
 }
 
-export type ClassStatus = 'active' | 'inactive' | 'completed' | 'cancelled';
-
-// Program Types
-export interface Program {
-  docId?: string;
-  id?: string;
-  name: string;
-  description?: string;
-  duration?: string;
-  status?: ProgramStatus;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
-}
-
-export type ProgramStatus = 'active' | 'inactive' | 'archived';
-
-// Subject Types
-export interface Subject {
-  docId?: string;
-  id?: string;
-  name: string;
-  description?: string;
-  code?: string;
-  credits?: number;
-  programId?: string;
-  status?: SubjectStatus;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
-}
-
-export type SubjectStatus = 'active' | 'inactive' | 'archived';
-
-// Enrollment Types
+// Enrollment & Progress
 export interface Enrollment {
-  docId?: string;
-  id?: string;
+  docId: string;
   userId: string;
-  programId?: string;
+  programId: string;
   classId?: string;
   subjectId?: string;
-  status?: EnrollmentStatus;
-  enrolledAt?: Date | string;
-  completedAt?: Date | string;
+  status: EnrollmentStatus;
+  enrolledAt: Timestamp;
+  completedAt?: Timestamp;
   grade?: string | number;
   attendance?: AttendanceRecord[];
 }
 
-export type EnrollmentStatus = 
-  | 'active' 
-  | 'completed' 
-  | 'dropped' 
-  | 'suspended' 
-  | 'pending';
+export type EnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'DROPPED' | 'SUSPENDED' | 'PENDING';
 
-// Attendance Types
-export interface AttendanceRecord {
-  docId?: string;
-  id?: string;
-  userId: string;
-  classId: string;
-  date: string;
-  status: AttendanceStatus;
-  checkInTime?: string;
-  checkOutTime?: string;
-  notes?: string;
-  markedBy?: string;
-  location?: string;
-  deviceInfo?: string;
-}
-
-export type AttendanceStatus = 
-  | 'present' 
-  | 'late' 
-  | 'absent_no_excuse' 
-  | 'absent_with_excuse' 
-  | 'excused_leave' 
-  | 'human_case';
-
-// Activity Types
+// Activities & Assessments
 export interface Activity {
-  docId?: string;
-  id?: string;
+  docId: string;
   type: ActivityType;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  timestamp: Date | string;
-  details?: Record<string, any>;
-  userAgent?: string;
-  url?: string;
-}
-
-export type ActivityType = 
-  | 'login' 
-  | 'logout' 
-  | 'failed_login' 
-  | 'password_reset'
-  | 'quiz_start'
-  | 'quiz_submit'
-  | 'assignment_submit'
-  | 'attendance_mark'
-  | 'user_create'
-  | 'user_update'
-  | 'user_delete'
-  | 'class_create'
-  | 'class_update'
-  | 'class_delete';
-
-// Notification Types
-export interface Notification {
-  docId?: string;
-  id?: string;
-  type: NotificationType;
   title: string;
-  message: string;
-  userId?: string;
-  targetUserId?: string;
-  targetRole?: UserRole;
-  read: boolean;
-  archived: boolean;
-  createdAt: Date | string;
-  expiresAt?: Date | string;
-  actionUrl?: string;
+  description?: string;
+  assignedTo: string[];
+  classId?: string;
+  subjectId?: string;
+  dueDate?: Timestamp;
+  status: ActivityStatus;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
   metadata?: Record<string, any>;
 }
 
-export type NotificationType = 
-  | 'success' 
-  | 'warning' 
-  | 'error' 
-  | 'announcement' 
-  | 'grade' 
-  | 'activity' 
-  | 'message' 
-  | 'chat' 
-  | 'newsletter' 
-  | 'attendance' 
-  | 'absence' 
-  | 'penalty';
+export type ActivityType = 'ASSIGNMENT' | 'QUIZ' | 'PROJECT' | 'PRESENTATION' | 'READING';
+export type ActivityStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
 
-// Quiz Types
 export interface Quiz {
-  docId?: string;
-  id?: string;
+  docId: string;
   title: string;
   description?: string;
   questions: QuizQuestion[];
   duration?: number;
   attempts?: number;
   passingScore?: number;
-  status?: QuizStatus;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
+  status: QuizStatus;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
 }
 
 export interface QuizQuestion {
@@ -229,38 +137,63 @@ export interface QuizQuestion {
   explanation?: string;
 }
 
-export type QuestionType = 'multiple_choice' | 'true_false' | 'short_answer' | 'essay';
+export type QuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'ESSAY';
+export type QuizStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
-export type QuizStatus = 'draft' | 'published' | 'archived';
-
-// Submission Types
-export interface Submission {
-  docId?: string;
-  id?: string;
+export interface QuizSubmission {
+  docId: string;
   userId: string;
-  quizId?: string;
-  assignmentId?: string;
-  answers?: Record<string, any>;
+  quizId: string;
+  answers: Record<string, any>;
   score?: number;
   maxScore?: number;
-  status?: SubmissionStatus;
-  submittedAt?: Date | string;
-  gradedAt?: Date | string;
+  percentage?: number;
+  status: SubmissionStatus;
+  submittedAt: Timestamp;
+  gradedAt?: Timestamp;
   gradedBy?: string;
   feedback?: string;
 }
 
-export type SubmissionStatus = 
-  | 'draft' 
-  | 'submitted' 
-  | 'graded' 
-  | 'returned' 
-  | 'late';
+export type SubmissionStatus = 'DRAFT' | 'SUBMITTED' | 'GRADED' | 'RETURNED' | 'LATE';
 
-// Participation Types
-export interface Participation {
-  docId?: string;
-  id?: string;
+export interface Submission {
+  docId: string;
+  userId: string;
+  activityId?: string;
+  quizId?: string;
+  content?: string;
+  attachments?: string[];
+  score?: number;
+  maxScore?: number;
+  status: SubmissionStatus;
+  submittedAt: Timestamp;
+  gradedAt?: Timestamp;
+  gradedBy?: string;
+  feedback?: string;
+}
+
+// Attendance & Participation
+export interface AttendanceRecord {
+  docId: string;
+  userId: string;
+  classId: string;
+  date: string;
+  status: AttendanceStatus;
+  checkInTime?: Timestamp;
+  checkOutTime?: Timestamp;
+  notes?: string;
+  markedBy: string;
+  location?: string;
+  deviceInfo?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export type AttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT_NO_EXCUSE' | 'ABSENT_WITH_EXCUSE' | 'EXCUSED_LEAVE' | 'HUMAN_CASE';
+
+export interface ParticipationRecord {
+  docId: string;
   userId: string;
   classId: string;
   type: ParticipationType;
@@ -268,21 +201,13 @@ export interface Participation {
   description?: string;
   date: string;
   markedBy: string;
+  createdAt: Timestamp;
 }
 
-export type ParticipationType = 
-  | 'excellent' 
-  | 'good' 
-  | 'average' 
-  | 'poor' 
-  | 'question_answer' 
-  | 'project_work' 
-  | 'team_work';
+export type ParticipationType = 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR' | 'QUESTION_ANSWER' | 'PROJECT_WORK' | 'TEAM_WORK';
 
-// Behavior Types
-export interface Behavior {
-  docId?: string;
-  id?: string;
+export interface BehaviorRecord {
+  docId: string;
   userId: string;
   classId: string;
   type: BehaviorType;
@@ -290,22 +215,13 @@ export interface Behavior {
   description?: string;
   date: string;
   markedBy: string;
+  createdAt: Timestamp;
 }
 
-export type BehaviorType = 
-  | 'positive' 
-  | 'negative' 
-  | 'disruptive' 
-  | 'absent' 
-  | 'late' 
-  | 'sleeping' 
-  | 'phone_use' 
-  | 'not_participating';
+export type BehaviorType = 'POSITIVE' | 'NEGATIVE' | 'DISRUPTIVE' | 'ABSENT' | 'LATE' | 'SLEEPING' | 'PHONE_USE' | 'NOT_PARTICIPATING';
 
-// Penalty Types
-export interface Penalty {
-  docId?: string;
-  id?: string;
+export interface PenaltyRecord {
+  docId: string;
   userId: string;
   classId: string;
   type: PenaltyType;
@@ -313,24 +229,185 @@ export interface Penalty {
   description?: string;
   date: string;
   markedBy: string;
-  status?: PenaltyStatus;
+  status: PenaltyStatus;
+  createdAt: Timestamp;
 }
 
-export type PenaltyType = 
-  | 'cheating' 
-  | 'attempted_cheating' 
-  | 'impersonation' 
-  | 'exam_disruption' 
-  | 'forgery' 
-  | 'repetitive_absence_with_excuse' 
-  | 'repetitive_absence_without_excuse' 
-  | 'phone_use_during_exam' 
-  | 'plagiarism' 
-  | 'disruptive_behavior' 
-  | 'late_submission' 
-  | 'missing_deadline';
+export type PenaltyType = 'CHEATING' | 'ATTEMPTED_CHEATING' | 'IMPERSONATION' | 'EXAM_DISRUPTION' | 'FORGERY' | 'REPETITIVE_ABSENCE_WITH_EXCUSE' | 'REPETITIVE_ABSENCE_WITHOUT_EXCUSE' | 'PHONE_USE_DURING_EXAM' | 'PLAGIARISM' | 'DISRUPTIVE_BEHAVIOR' | 'LATE_SUBMISSION' | 'MISSING_DEADLINE';
+export type PenaltyStatus = 'ACTIVE' | 'RESOLVED' | 'APPEALED';
 
-export type PenaltyStatus = 'active' | 'resolved' | 'appealed';
+// Grading
+export interface GradeRecord {
+  docId: string;
+  userId: string;
+  classId?: string;
+  subjectId?: string;
+  activityId?: string;
+  quizId?: string;
+  grade: string | number;
+  percentage?: number;
+  maxGrade?: number;
+  gradedBy: string;
+  gradedAt: Timestamp;
+  feedback?: string;
+}
+
+// Communications
+export interface Announcement {
+  docId: string;
+  title: string;
+  message: string;
+  type: AnnouncementType;
+  targetAudience: string[];
+  classId?: string;
+  programId?: string;
+  status: AnnouncementStatus;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+  expiresAt?: Timestamp;
+}
+
+export type AnnouncementType = 'GENERAL' | 'URGENT' | 'ACADEMIC' | 'ADMINISTRATIVE' | 'EVENT';
+export type AnnouncementStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface ChatMessage {
+  docId: string;
+  senderId: string;
+  receiverId?: string;
+  groupId?: string;
+  content: string;
+  type: MessageType;
+  attachments?: string[];
+  read: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
+
+export interface Notification {
+  docId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  userId?: string;
+  targetUserId?: string;
+  targetRole?: UserRole;
+  read: boolean;
+  archived: boolean;
+  createdAt: Timestamp;
+  expiresAt?: Timestamp;
+  actionUrl?: string;
+  metadata?: Record<string, any>;
+}
+
+export type NotificationType = 'SUCCESS' | 'WARNING' | 'ERROR' | 'ANNOUNCEMENT' | 'GRADE' | 'ACTIVITY' | 'MESSAGE' | 'CHAT' | 'NEWSLETTER' | 'ATTENDANCE' | 'ABSENCE' | 'PENALTY';
+
+// Resources
+export interface Resource {
+  docId: string;
+  name: string;
+  description?: string;
+  type: ResourceType;
+  url?: string;
+  filePath?: string;
+  classId?: string;
+  subjectId?: string;
+  uploadedBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export type ResourceType = 'DOCUMENT' | 'VIDEO' | 'IMAGE' | 'LINK' | 'FOLDER';
+
+// Analytics & Reports
+export interface AnalyticsRecord {
+  docId: string;
+  type: AnalyticsType;
+  userId?: string;
+  classId?: string;
+  data: Record<string, any>;
+  createdAt: Timestamp;
+}
+
+export type AnalyticsType = 'LOGIN' | 'PAGE_VIEW' | 'QUIZ_ATTEMPT' | 'SUBMISSION' | 'ATTENDANCE';
+
+export interface ScheduledReport {
+  docId: string;
+  name: string;
+  type: ReportType;
+  schedule: string;
+  recipients: string[];
+  parameters?: Record<string, any>;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+}
+
+export type ReportType = 'ATTENDANCE' | 'GRADES' | 'PERFORMANCE' | 'ACTIVITY';
+
+// System
+export interface ActivityLog {
+  docId: string;
+  userId: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  details?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Timestamp;
+}
+
+export interface Category {
+  docId: string;
+  name: string;
+  nameAr?: string;
+  type: CategoryType;
+  parentId?: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+}
+
+export type CategoryType = 'ACADEMIC' | 'BEHAVIOR' | 'PENALTY' | 'PARTICIPATION' | 'SYSTEM';
+
+// Gamification
+export interface Badge {
+  docId: string;
+  name: string;
+  nameAr?: string;
+  description: string;
+  descriptionAr?: string;
+  icon?: string;
+  criteria: Record<string, any>;
+  points: number;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;
+}
+
+export interface UserBadge {
+  docId: string;
+  userId: string;
+  badgeId: string;
+  earnedAt: Timestamp;
+  metadata?: Record<string, any>;
+}
+
+// ============================================================================
+// UI & FORM TYPES (Not database models)
+// ============================================================================
+
+// Base Types
+export type Theme = 'light' | 'dark';
+export type Size = 'small' | 'medium' | 'large';
+export type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 
 // Form Types
 export interface FormField {
@@ -379,24 +456,10 @@ export type ValidationType =
   | 'max' 
   | 'pattern';
 
-// API Response Types
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
+// ============================================================================
+// FILTER & PAGINATION TYPES
+// ============================================================================
 
-export interface PaginatedResponse<T = any> extends ApiResponse<T> {
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-// Filter Types
 export interface FilterOption {
   value: string | number;
   label: string;
@@ -414,7 +477,10 @@ export interface SortOption {
   direction: 'asc' | 'desc';
 }
 
-// Component Props Types
+// ============================================================================
+// COMPONENT PROPS TYPES
+// ============================================================================
+
 export interface BaseComponentProps {
   className?: string;
   style?: React.CSSProperties;
@@ -433,23 +499,26 @@ export interface VariantProps {
   variant?: Variant;
 }
 
-// Utility Types
+// ============================================================================
+// UTILITY TYPES
+// ============================================================================
+
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
-
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-// Event Types
+// ============================================================================
+// EVENT & STATE TYPES
+// ============================================================================
+
 export interface CustomEvent<T = any> {
   type: string;
   payload?: T;
   timestamp: Date;
 }
 
-// State Management Types
 export interface LoadingState {
   loading: boolean;
   error?: string;
@@ -468,9 +537,32 @@ export interface FilterState {
   sortBy?: SortOption;
 }
 
-// Export all types for easy importing
+// ============================================================================
+// API RESPONSE TYPES
+// ============================================================================
+
+export interface ServiceResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  code?: string;
+  timestamp: number;
+}
+
+export interface PaginatedResponse<T = any> extends ServiceResponse<T> {
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// ============================================================================
+// REACT TYPE EXPORTS
+// ============================================================================
+
 export type {
-  // Re-export commonly used types
   ReactNode,
   CSSProperties,
   ChangeEvent,

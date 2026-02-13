@@ -5,7 +5,7 @@ import {
   ChevronRight, Inbox
 } from 'lucide-react';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
-import styles from '../../pages/StudentDashboardPage_NEW.module.css';
+import styles from '../../pages/dashboard/StudentDashboardPage.module.css';
 
 export default function OverviewView({ 
   urgentTasks, 

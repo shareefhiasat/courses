@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
 import { getStudentRank, getRankConfig } from '@constants/sharedConfig';
 import { Medal, ArrowUpRight } from 'lucide-react';

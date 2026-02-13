@@ -5,7 +5,7 @@ import {SeedDefaultTemplates} from "@ui";
 import { Loading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { collection, getDocs, query, limit } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 
 const EmailTemplates = () => {
   const { t } = useLang();

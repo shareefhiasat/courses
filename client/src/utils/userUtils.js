@@ -4,7 +4,7 @@
  */
 
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@firebaseServices/config";
+import { db } from "@services/other/config";
 import { 
   USER_ROLES, 
   getRoleDisplayName

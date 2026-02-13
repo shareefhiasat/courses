@@ -10,7 +10,7 @@ import {
   notifyGradeReleased,
   sendPushNotification,
   scheduleReminders
-} from '@firebaseServices/notificationService';
+} from '@services/business/notificationService';
 
 // Re-export all functions for backward compatibility
 export {

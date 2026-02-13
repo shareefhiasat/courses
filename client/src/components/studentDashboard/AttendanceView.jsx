@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
 import { useLang } from '../../contexts/LangContext';
-import styles from '../../pages/StudentDashboardPage_NEW.module.css';
+import styles from '../../pages/dashboard/StudentDashboardPage.module.css';
 
 export default function AttendanceView({ attendance, attendanceStats, classes }) {
   const { lang } = useLang();

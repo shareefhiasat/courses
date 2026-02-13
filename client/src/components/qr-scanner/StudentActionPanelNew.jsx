@@ -4,13 +4,13 @@ import { Button, Input } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { markAttendance } from '@firebaseServices/attendanceService';
+import { markAttendance } from '@services/business/attendanceService';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceIcon, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '@firebaseServices/userPreferenceService';
+import { getFavoriteBehaviors, addFavoriteBehavior, removeFavoriteBehavior } from '@services/business/userPreferenceService';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 

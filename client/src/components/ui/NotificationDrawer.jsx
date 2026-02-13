@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 import { useAuth } from '@contexts/AuthContext';
 import { 
   getNotifications, 
@@ -10,7 +10,7 @@ import {
   archiveNotification,
   markNotificationUnread,
   deleteNotification
-} from '@firebaseServices/notificationService';
+} from '@services/business/notificationService';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -22,8 +22,8 @@ import {
 } from '@constants/notificationTypes.jsx';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { getPrograms, getSubjects } from '@firebaseServices/programService';
-import { getClasses } from '@firebaseServices/classService';
+import { getPrograms, getSubjects } from '@services/business/programService';
+import { getClasses } from '@services/business/classService';
 import { formatDateTime } from '@utils/date';
 import { Button, Input, Select, Badge, ToggleSwitch } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';

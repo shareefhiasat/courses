@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { onAuthChange, signOutUser } from '@firebaseServices/authService';
+import { onAuthChange, signOutUser } from '@services/business/authService';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@firebaseServices/config';
+import { db } from '@services/other/config';
 import { getUserProfile } from '@utils/userUtils';
-import { getAllowlist } from '@firebaseServices/configService';
-import { ensureUserDoc } from '@firebaseServices/userService';
-import { addLoginLog } from '@firebaseServices/activityService';
-import { ActivityLogger } from '@firebaseServices/activityLogger.jsx';
+import { getAllowlist } from '@services/business/configService';
+import { ensureUserDoc } from '@services/business/userService';
+import { addLoginLog } from '@services/business/activityService';
+import { ActivityLogger } from '@services/other/activityLogger.jsx';
 import { canUserLogin, getUserStatus, getUserStatusSummary } from '../utils/userStatus';
 import { 
   USER_ROLES
@@ -206,7 +206,7 @@ export const AuthProvider = ({ children }) => {
               if (admin && !token.claims.admin && import.meta.env.PROD) {
                 try {
                   const { getFunctions, httpsCallable } = await import('firebase/functions');
-                  const { app } = await import('@firebaseServices/config');
+                  const { app } = await import('@services/other/config');
                   const functions = getFunctions(app);
                   const ensureAdminClaim = httpsCallable(functions, 'ensureAdminClaim');
                   await ensureAdminClaim({ email });

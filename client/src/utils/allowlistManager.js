@@ -5,8 +5,8 @@
  * since the security rules depend on either custom claims or allowlist.
  */
 
-import { db } from '@firebaseServices/config';
-import { auth } from '@firebaseServices/config';
+import { db } from '@services/other/config';
+import { auth } from '@services/other/config';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 /**

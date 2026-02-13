@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
-import { subscribeToNotifications } from '@firebaseServices/notificationService';
+import { subscribeToNotifications } from '@services/business/notificationService';
 import { useLang } from '@contexts/LangContext';
 import { NotificationDrawer } from '@ui';
 import { Bell } from 'lucide-react';
