@@ -320,6 +320,31 @@ export const getBehaviors = async () => {
 };
 
 /**
+ * Get behaviors for a specific student and class
+ * Used for enrollment delete warnings to show related behavior records.
+ */
+export const getBehaviorsByStudentAndClass = async (studentId, classId) => {
+  try {
+    if (!studentId || !classId) {
+      return { success: true, data: [] };
+    }
+
+    const behaviorsRef = collection(db, 'behaviors');
+    const behaviorsQuery = query(
+      behaviorsRef,
+      where('studentId', '==', studentId),
+      where('classId', '==', classId)
+    );
+    const snapshot = await getDocs(behaviorsQuery);
+    const behaviors = snapshot.docs.map(d => ({ docId: d.id, ...d.data() }));
+    return { success: true, data: behaviors };
+  } catch (error) {
+    logger.error('[BehaviorService] Error fetching behaviors by student and class:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Load behaviors from Firestore with enrichment
  * @param {Object} params - Parameters object
  * @param {Function} params.setBehaviors - Function to set behaviors state

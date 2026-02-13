@@ -17,6 +17,11 @@ import { getPrograms } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
 import { getSubjects } from '@firebaseServices/programService';
 import { getEnrollments } from '@firebaseServices/enrollmentService';
+import { getAttendanceByStudent } from '@firebaseServices/attendanceService';
+import { getPenalties } from '@firebaseServices/penaltyService';
+import { getBehaviors } from '@firebaseServices/behaviorService';
+import { getParticipations } from '@firebaseServices/participationService';
+import { getUserSubmissions } from '@firebaseServices/submissionService';
 import { PAGE_STATES, FORM_STATES } from '@constants/pageTypes';
 
 const UsersPage = ({ isDashboardTab = false }) => {
@@ -136,21 +141,110 @@ const UsersPage = ({ isDashboardTab = false }) => {
     });
   }, []);
 
-  const handleDeleteUser = useCallback((user) => {
-    deleteUser(user, async () => {
-      try {
-        const result = await deleteUserFromService(user.docId);
-        if (result.success) {
-          toast?.showSuccess('User deleted successfully');
-          await loadData();
-        } else {
-          toast?.showError('Error: ' + result.error);
-        }
-      } catch (error) {
-        toast?.showError('Error: ' + error.message);
+  const handleDeleteUser = useCallback(async (userToDelete) => {
+    const userId = userToDelete.docId || userToDelete.id;
+    const role = userToDelete.role || USER_ROLES.STUDENT;
+    const isStudentRole = role === USER_ROLES.STUDENT;
+
+    // Use already-loaded enrollments to compute enrollment and class counts
+    const userEnrollments = enrollments.filter(e => e.userId === userId);
+    const classesForUser = new Set(userEnrollments.map(e => e.classId)).size;
+
+    let attendanceTotal = 0;
+    let penaltiesTotal = 0;
+    let behaviorsTotal = 0;
+    let participationsTotal = 0;
+    let submissionsTotal = 0;
+    let activitiesCompleted = 0;
+
+    try {
+      const [attendanceRes, penaltiesRes, behaviorsRes, participationsRes, submissionsRes] = await Promise.all([
+        getAttendanceByStudent(userId),
+        getPenalties(userId),
+        getBehaviors(),
+        getParticipations(),
+        getUserSubmissions(userId)
+      ]);
+
+      if (attendanceRes?.success && Array.isArray(attendanceRes.data)) {
+        attendanceTotal = attendanceRes.data.length;
       }
-    });
-  }, [deleteUser, toast, loadData]);
+      if (penaltiesRes?.success && Array.isArray(penaltiesRes.data)) {
+        penaltiesTotal = penaltiesRes.data.length;
+      }
+      if (behaviorsRes?.success && Array.isArray(behaviorsRes.data)) {
+        behaviorsTotal = behaviorsRes.data.filter(b => b.studentId === userId).length;
+      }
+      if (participationsRes?.success && Array.isArray(participationsRes.data)) {
+        participationsTotal = participationsRes.data.filter(p => p.studentId === userId).length;
+      }
+      if (submissionsRes?.success && Array.isArray(submissionsRes.data)) {
+        submissionsTotal = submissionsRes.data.length;
+        activitiesCompleted = new Set(
+          submissionsRes.data
+            .map(s => s.activityId)
+            .filter(Boolean)
+        ).size;
+      }
+    } catch (error) {
+      logger.error('USER_PAGE: Failed to load related records for delete:', error);
+    }
+
+    const relatedRecords = {
+      enrollments: userEnrollments.length,
+      classes: classesForUser,
+      attendance: attendanceTotal,
+      penalties: penaltiesTotal,
+      participations: participationsTotal,
+      behaviors: behaviorsTotal,
+      activities: activitiesCompleted,
+      submissions: submissionsTotal
+    };
+
+    // Instructors and other staff must be soft-deleted (disabled), students can be fully deleted
+    if (!isStudentRole) {
+      deleteUser(userToDelete, async () => {
+        try {
+          const result = await updateUser(userId, {
+            disabled: true,
+            isDisabled: true
+          });
+          if (result.success) {
+            // Log activity
+            try {
+              const { logActivity } = await import('@firebaseServices/activityLogger');
+              await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
+                userId,
+                userEmail: userToDelete.email,
+                action: 'soft_deleted'
+              });
+            } catch (e) { }
+            toast?.showSuccess(t('user_soft_deleted_success') || 'User disabled (soft-deleted) successfully');
+            await loadData();
+          } else {
+            toast?.showError(result.error || 'Failed to disable user');
+          }
+        } catch (error) {
+          logger.error('USER_PAGE: Failed to soft delete user:', error);
+          toast?.showError('Error: ' + error.message);
+        }
+      }, relatedRecords);
+    } else {
+      deleteUser(userToDelete, async () => {
+        try {
+          const result = await deleteUserFromService(userId);
+          if (result.success) {
+            toast?.showSuccess('User deleted successfully');
+            await loadData();
+          } else {
+            toast?.showError('Error: ' + result.error);
+          }
+        } catch (error) {
+          toast?.showError('Error: ' + error.message);
+        }
+      }, relatedRecords);
+    }
+  }, [deleteUser, toast, loadData, enrollments]);
 
   const handleToggleUserStatus = useCallback(async (user) => {
     try {

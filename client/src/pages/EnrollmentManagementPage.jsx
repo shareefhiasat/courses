@@ -9,6 +9,11 @@ import { USER_ROLES } from '@constants';
 import { ACTIVITY_LOG_TYPES, logActivity } from '@firebaseServices/activityLogger';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
+import { getAttendanceByStudent } from '@firebaseServices/attendanceService';
+import { getPenalties } from '@firebaseServices/penaltyService';
+import { getBehaviors } from '@firebaseServices/behaviorService';
+import { getParticipations } from '@firebaseServices/participationService';
+import { toggleStudentAccess as toggleStudentAccessService } from '@firebaseServices/enrollmentManagementService';
 import logger from '@utils/logger';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 
@@ -16,7 +21,7 @@ const EnrollmentManagementPage = () => {
   const { t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
-  const { deleteModal: deleteModalState, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
 
   // Refs for form fields to avoid re-renders on keystroke
   const userSelectRef = useRef(null);
@@ -37,6 +42,10 @@ const EnrollmentManagementPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [programFilter, setProgramFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [studentFilter, setStudentFilter] = useState('');
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -108,8 +117,7 @@ const EnrollmentManagementPage = () => {
   }, [loadFilters]);
 
   // Memoized handler functions for dropdown changes
-  const handleEnrollmentProgramChange = useCallback((e) => {
-    const programId = e.target.value;
+  const handleEnrollmentProgramChange = useCallback((programId) => {
     setEnrollmentForm(prev => ({ 
       ...prev, 
       programId, 
@@ -118,8 +126,7 @@ const EnrollmentManagementPage = () => {
     }));
   }, [setEnrollmentForm]);
 
-  const handleEnrollmentSubjectChange = useCallback((e) => {
-    const subjectId = e.target.value;
+  const handleEnrollmentSubjectChange = useCallback((subjectId) => {
     setEnrollmentForm(prev => ({ 
       ...prev, 
       subjectId, 
@@ -198,6 +205,70 @@ const EnrollmentManagementPage = () => {
     });
   }, [enrollments, localClasses, localSubjects, localPrograms]);
 
+  // Only students should appear in the user dropdown (defensive in case role is missing)
+  const studentUsers = useMemo(() => {
+    return users.filter(u => {
+      const role = (u.role || '').toLowerCase();
+      return role === (USER_ROLES.STUDENT || 'student');
+    });
+  }, [users]);
+
+  const filteredEnrollmentRows = useMemo(() => {
+    let rows = enrollmentRows;
+
+    if (programFilter) {
+      rows = rows.filter(row => {
+        const classItem = localClasses.find(c => (c.docId || c.id) === row.classId);
+        const subject = classItem?.subjectId
+          ? localSubjects.find(s => (s.docId || s.id) === classItem.subjectId)
+          : null;
+        return subject?.programId === programFilter;
+      });
+    }
+
+    if (subjectFilter) {
+      rows = rows.filter(row => {
+        const classItem = localClasses.find(c => (c.docId || c.id) === row.classId);
+        if (classItem?.subjectId) return classItem.subjectId === subjectFilter;
+        return row.subjectId === subjectFilter;
+      });
+    }
+
+    if (classFilter) {
+      rows = rows.filter(row => row.classId === classFilter);
+    }
+
+    if (studentFilter) {
+      rows = rows.filter(row => row.userId === studentFilter);
+    }
+
+    return rows;
+  }, [enrollmentRows, localClasses, localSubjects, programFilter, subjectFilter, classFilter, studentFilter]);
+
+  const enrollmentSummary = useMemo(() => {
+    const total = filteredEnrollmentRows.length;
+    const uniqueStudents = new Set(filteredEnrollmentRows.map(r => r.userId)).size;
+    const uniqueClasses = new Set(filteredEnrollmentRows.map(r => r.classId)).size;
+
+    const programIds = new Set();
+    filteredEnrollmentRows.forEach(row => {
+      const classItem = localClasses.find(c => (c.docId || c.id) === row.classId);
+      const subject = classItem?.subjectId
+        ? localSubjects.find(s => (s.docId || s.id) === classItem.subjectId)
+        : null;
+      if (subject?.programId) {
+        programIds.add(subject.programId);
+      }
+    });
+
+    return {
+      total,
+      uniqueStudents,
+      uniqueClasses,
+      uniquePrograms: programIds.size
+    };
+  }, [filteredEnrollmentRows, localClasses, localSubjects]);
+
   return (
     <div className="enrollments-section" style={{ marginTop: '2rem' }}>
       {dataLoading ? (
@@ -221,7 +292,7 @@ const EnrollmentManagementPage = () => {
         <div className="form-row wide-cols">
           <UserSelect
             ref={userSelectRef}
-            users={users}
+            users={studentUsers}
             enrollments={enrollments}
             value={enrollmentForm.userId}
             onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
@@ -275,9 +346,112 @@ const EnrollmentManagementPage = () => {
           </Button>
         </div>
       </form>
+
+      {/* Filters */}
+      <div style={{ marginTop: '1rem', marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
+          <ProgramsSelect
+            programs={localPrograms}
+            subjects={localSubjects}
+            classes={localClasses}
+            selectedProgram={programFilter}
+            selectedSubject={subjectFilter}
+            selectedClass={classFilter}
+            onProgramChange={setProgramFilter}
+            onSubjectChange={setSubjectFilter}
+            onClassChange={setClassFilter}
+            showLabels={false}
+            className="flex-1"
+          />
+          <div style={{ minWidth: '220px' }}>
+            <Select
+              searchable
+              value={studentFilter}
+              onChange={(e) => setStudentFilter(e.target.value)}
+              options={[
+                { value: '', label: t('all_students') || 'All Students' },
+                ...studentUsers.map(u => ({
+                  value: u.docId || u.id,
+                  label: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')
+                }))
+              ]}
+              showLabels={false}
+              placeholder={t('filter_by_student') || 'Filter by student'}
+              className="flex-1"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Chips */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#1d4ed8'
+        }}>
+          {getThemedIcon('ui', 'layers', 16, theme)}
+          {(t('total_enrollments') || 'Total enrollments')}: {enrollmentSummary.total}
+        </div>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          background: '#ecfdf3',
+          border: '1px solid #bbf7d0',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#15803d'
+        }}>
+          {getThemedIcon('ui', 'user', 16, theme)}
+          {(t('unique_students') || 'Unique students')}: {enrollmentSummary.uniqueStudents}
+        </div>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 0.75rem',
+          background: '#fefce8',
+          border: '1px solid #fef9c3',
+          borderRadius: '9999px',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#854d0e'
+        }}>
+          {getThemedIcon('ui', 'home', 16, theme)}
+          {(t('unique_classes') || 'Unique classes')}: {enrollmentSummary.uniqueClasses}
+        </div>
+        {enrollmentSummary.uniquePrograms > 0 && (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 0.75rem',
+            background: '#f5f3ff',
+            border: '1px solid #ddd6fe',
+            borderRadius: '9999px',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: '#6d28d9'
+          }}>
+            {getThemedIcon('ui', 'grid', 16, theme)}
+            {(t('unique_programs') || 'Unique programs')}: {enrollmentSummary.uniquePrograms}
+          </div>
+        )}
+      </div>
+
       <div style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
-          rows={enrollmentRows}
+          rows={filteredEnrollmentRows}
           getRowId={(row) => row.docId || row.id}
           columns={[
           {
@@ -301,7 +475,7 @@ const EnrollmentManagementPage = () => {
           },
           {
             field: 'subjectNameDisplay',
-            headerName: t('subject_col') || 'Subject',
+            headerName: t('subject') || 'Subject',
             flex: 1,
             minWidth: 180
           },
@@ -320,76 +494,184 @@ const EnrollmentManagementPage = () => {
             }
           },
           {
-            field: 'createdAt', headerName: t('enrolled_col'), width: 180,
+            field: 'createdAt', headerName: t('enrolled_col'), width: 220,
             valueGetter: (params) => params.value,
-            renderCell: (params) => params.value ? formatQatarDateOnly(params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value))) : 'Unknown'
+            renderCell: (params) => {
+              if (!params.value) return 'Unknown';
+              const dateObj = params.value?.toDate
+                ? params.value.toDate()
+                : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
+              const dateStr = dateObj.toLocaleDateString('en-US', {
+                month: 'short', day: '2-digit', year: 'numeric'
+              });
+              const timeStr = dateObj.toLocaleTimeString('en-US', {
+                hour: 'numeric', minute: '2-digit', second: '2-digit'
+              });
+              return `${dateStr} at ${timeStr}`;
+            }
           },
           {
-            field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
-            renderCell: (params) => (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="deleteHover" 
-                  icon={getThemedIcon('ui', 'trash', 16, theme)} 
-                  style={{ color: '#dc2626' }} 
-                  onClick={() => {
-                    const enrollment = params.row;
-                    const user = users.find(u => (u.docId || u.id) === enrollment.userId);
-                    const classItem = localClasses.find(c => (c.docId || c.id) === enrollment.classId);
-                    // Submissions are quiz/activity submissions (student work)
-                    const userSubmissions = submissions.filter(s => s.userId === enrollment.userId && s.activityId);
-                    const relatedActivities = activities.filter(a => a.classId === enrollment.classId);
-                    // Create readable item name
-                    const userName = user ? (user.displayName || user.realName || user.email || 'Unknown User') : 'Unknown User';
-                    const className = classItem ? (classItem.name || classItem.code || 'Unknown Class') : 'Unknown Class';
-                    const itemName = `${userName} → ${className}`;
-                    
-                    deleteItem(
-                      { ...enrollment, _displayName: itemName },
-                      async () => {
-                        try {
-                          const { deleteEnrollment } = await import('@firebaseServices/enrollmentService');
-                          const result = await deleteEnrollment(enrollment.docId);
-                          if (result.success) {
-                            // Log activity
-                            try {
-                              await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_DELETED, {
-                                enrollmentId: enrollment.docId,
-                                userId: enrollment.userId,
-                                classId: enrollment.classId
-                              });
-                            } catch (error) {
-                              logger.warn('[EnrollmentManagementPage] Failed to log activity:', error);
-                            }
-                            await loadData();
-                            toast?.showSuccess(t('enrollment_removed_successfully') || 'Enrollment removed successfully!');
-                          } else {
-                            throw new Error(result.error);
-                          }
-                        } catch (error) {
-                          logger.error('[EnrollmentManagementPage] Error deleting enrollment:', error);
-                          throw error;
-                        }
-                      },
-                      {
-                        'Activity/Quiz Submissions': userSubmissions.map(s => ({
-                          ...s,
-                          _label: `Activity/Quiz Submission`
-                        })),
-                        'Related Activities': relatedActivities
-                      },
-                      userSubmissions.length > 0 
-                        ? t('enrollment_delete_warning') || `This enrollment has ${userSubmissions.length} activity/quiz submission(s) that should be deleted first.`
-                        : null
+            field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
+            renderCell: (params) => {
+              const enrollment = params.row;
+              const user = users.find(u => (u.docId || u.id) === enrollment.userId);
+              const classItem = localClasses.find(c => (c.docId || c.id) === enrollment.classId);
+              const userName = user ? (user.displayName || user.realName || user.email || 'Unknown User') : 'Unknown User';
+              const className = classItem ? (classItem.name || classItem.code || 'Unknown Class') : 'Unknown Class';
+              const isDisabled = Array.isArray(classItem?.disabledStudents) && classItem.disabledStudents.includes(enrollment.userId);
+
+              const handleToggleAccess = async () => {
+                if (!classItem) return;
+                try {
+                  const result = await toggleStudentAccessService(
+                    enrollment.classId,
+                    enrollment.userId,
+                    isDisabled,
+                    {
+                      studentEmail: user?.email,
+                      studentName: user?.displayName || user?.realName,
+                      className,
+                      instructorName: undefined,
+                      lang: t('lang') || 'en'
+                    }
+                  );
+
+                  if (result.success) {
+                    const action = isDisabled ? 'enabled' : 'disabled';
+                    toast?.showSuccess(
+                      t(`student_access_${action}_success`) ||
+                      `Student access ${action} successfully${result.data?.notificationSent ? ' and notification sent' : ''}`
                     );
-                  }}
-                >
-                  {t('delete') || 'Delete'}
-                </Button>
-              </div>
-            )
+                    await Promise.allSettled([loadFilters(), loadData()]);
+                  } else {
+                    throw new Error(result.error);
+                  }
+                } catch (error) {
+                  logger.error('[EnrollmentManagementPage] Failed to toggle student access:', error);
+                  toast?.showError(t('failed_to_update_student_access') || 'Failed to update student access');
+                }
+              };
+
+              const handleFullDelete = async () => {
+                // Submissions are quiz/activity submissions (student work) - scoped to this class
+                const userSubmissionsForClass = submissions.filter(
+                  s => s.userId === enrollment.userId && s.classId === enrollment.classId
+                );
+                const submissionsTotal = userSubmissionsForClass.length;
+                const activitiesCompleted = new Set(
+                  userSubmissionsForClass
+                    .map(s => s.activityId)
+                    .filter(Boolean)
+                ).size;
+
+                // Create readable item name for this specific enrollment
+                const itemName = `${userName} → ${className}`;
+
+                const enrollmentForModal = {
+                  ...enrollment,
+                  displayName: itemName
+                };
+
+                // Compute related record counts for this specific enrollment (class)
+                let attendanceTotal = 0;
+                let penaltiesTotal = 0;
+                let behaviorsTotal = 0;
+                let participationsTotal = 0;
+
+                try {
+                  const [attendanceRes, penaltiesRes, behaviorsRes, participationsRes] = await Promise.all([
+                    getAttendanceByStudent(enrollment.userId),
+                    getPenalties(enrollment.userId),
+                    getBehaviors(),
+                    getParticipations()
+                  ]);
+
+                  if (attendanceRes?.success && Array.isArray(attendanceRes.data)) {
+                    attendanceTotal = attendanceRes.data.filter(r => r.classId === enrollment.classId).length;
+                  }
+                  if (penaltiesRes?.success && Array.isArray(penaltiesRes.data)) {
+                    // Penalties may not always store classId, but when they do, prefer matching by class
+                    const penaltiesForClass = penaltiesRes.data.filter(p => !p.classId || p.classId === enrollment.classId);
+                    penaltiesTotal = penaltiesForClass.length;
+                  }
+                  if (behaviorsRes?.success && Array.isArray(behaviorsRes.data)) {
+                    behaviorsTotal = behaviorsRes.data.filter(
+                      b => b.studentId === enrollment.userId && b.classId === enrollment.classId
+                    ).length;
+                  }
+                  if (participationsRes?.success && Array.isArray(participationsRes.data)) {
+                    participationsTotal = participationsRes.data.filter(
+                      p => p.studentId === enrollment.userId && p.classId === enrollment.classId
+                    ).length;
+                  }
+                } catch (error) {
+                  logger.error('[EnrollmentManagementPage] Error loading related records for delete:', error);
+                }
+
+                deleteEntity(
+                  'enrollment',
+                  enrollmentForModal,
+                  async () => {
+                    try {
+                      const { deleteEnrollment } = await import('@firebaseServices/enrollmentService');
+                      const result = await deleteEnrollment(enrollment.docId);
+                      if (result.success) {
+                        // Log activity
+                        try {
+                          await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_DELETED, {
+                            enrollmentId: enrollment.docId,
+                            userId: enrollment.userId,
+                            classId: enrollment.classId
+                          });
+                        } catch (error) {
+                          logger.warn('[EnrollmentManagementPage] Failed to log activity:', error);
+                        }
+                        await loadData();
+                        toast?.showSuccess(t('enrollment_removed_successfully') || 'Enrollment removed successfully!');
+                      } else {
+                        throw new Error(result.error);
+                      }
+                    } catch (error) {
+                      logger.error('[EnrollmentManagementPage] Error deleting enrollment:', error);
+                      throw error;
+                    }
+                  },
+                  {
+                    relatedRecords: {
+                      attendance: attendanceTotal,
+                      penalties: penaltiesTotal,
+                      participations: participationsTotal,
+                      behaviors: behaviorsTotal,
+                      activities: activitiesCompleted,
+                      submissions: submissionsTotal
+                    }
+                  }
+                );
+              };
+
+              return (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button
+                    size="sm"
+                    variant={isDisabled ? 'primary' : 'outline'}
+                    icon={isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
+                    onClick={handleToggleAccess}
+                  >
+                    {isDisabled ? (t('enable_access') || 'Enable') : (t('disable_access') || 'Disable')}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="deleteHover" 
+                    icon={getThemedIcon('ui', 'trash', 16, theme)} 
+                    style={{ color: '#dc2626' }} 
+                    onClick={handleFullDelete}
+                  >
+                    {t('delete') || 'Delete'}
+                  </Button>
+                </div>
+              );
+            }
           }
         ]}
           pageSize={10}
@@ -401,11 +683,16 @@ const EnrollmentManagementPage = () => {
         />
       </div>
       
-      {/* Delete Modal */}
-      <DeleteModal 
-        modal={deleteModalState} 
-        onConfirm={handleDeleteConfirm} 
-        onHide={hideDeleteModal}
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={hideDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        entityType={deleteModal.entityType}
+        entityName={deleteModal.entityName}
+        relatedRecords={deleteModal.relatedRecords}
+        loading={loading}
+        t={t}
       />
         </>
       )}

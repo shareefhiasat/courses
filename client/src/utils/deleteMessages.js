@@ -52,6 +52,36 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
     }
   }
 
+  // Special handling for enrollment with related student records
+  if (entityType === 'enrollment' && relatedRecords) {
+    const hasRelatedRecords = Object.values(relatedRecords).some(count => count > 0);
+
+    if (hasRelatedRecords) {
+      const recordsList = Object.entries(relatedRecords)
+        .filter(([_, count]) => count > 0)
+        .map(([type, count]) => {
+          const typeLabels = {
+            enrollments: t('enrollments') || 'Enrollments',
+            classes: t('classes') || 'Classes',
+            activities: t('activities') || 'Activities',
+            submissions: t('submissions') || 'Submissions',
+            attendance: t('attendance_records') || 'Attendance Records',
+            penalties: t('penalties') || 'Penalties',
+            participations: t('participations') || 'Participations',
+            behaviors: t('behaviors') || 'Behaviors',
+            quizzes: t('quizzes') || 'Quizzes'
+          };
+          return `${count} ${typeLabels[type] || type}`;
+        })
+        .join(', ');
+
+      return t('delete_enrollment_with_records_msg', {
+        entityName: actualEntityName,
+        records: recordsList
+      }) || `Are you sure you want to delete the enrollment for "${actualEntityName}"? This student currently has: ${recordsList}. This action cannot be undone.`;
+    }
+  }
+
   // Special handling for program/subject/class with related items
   if (['program', 'subject', 'class'].includes(entityType) && relatedRecords) {
     const hasRelatedRecords = Object.values(relatedRecords).some(count => count > 0);
@@ -117,6 +147,16 @@ export const getDeleteTitle = (entityType, t = (key) => key) => {
     [RECORD_TYPES.BEHAVIOR]: t('behavior') || 'Behavior',
     [RECORD_TYPES.PENALTY]: t('penalty') || 'Penalty',
     [RECORD_TYPES.RESOURCE]: t('resource') || 'Resource',
+    [RECORD_TYPES.ENROLLMENT]: t('enrollment') || 'Enrollment',
+    [RECORD_TYPES.ANNOUNCEMENT]: t('announcement') || 'Announcement',
+    [RECORD_TYPES.SUBMISSION]: t('submission') || 'Submission',
+    [RECORD_TYPES.ASSIGNMENT]: t('assignment') || 'Assignment',
+    [RECORD_TYPES.COURSE]: t('course') || 'Course',
+    [RECORD_TYPES.MARK]: t('mark') || 'Mark',
+    [RECORD_TYPES.GRADE]: t('grade') || 'Grade',
+    [RECORD_TYPES.SCHEDULE]: t('schedule') || 'Schedule',
+    [RECORD_TYPES.EVENT]: t('event') || 'Event',
+    [RECORD_TYPES.NOTIFICATION]: t('notification') || 'Notification',
     // Common entity types
     'enrollment': t('enrollment') || 'Enrollment',
     'announcement': t('announcement') || 'Announcement',
