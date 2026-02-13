@@ -342,16 +342,17 @@ const UnifiedCard = memo(({
           {/* Quiz-specific: Question count */}
           {(flavor === 'quiz' && item.questions?.length) && (
               <span style={{
-                background: isDark ? 'rgba(124, 58, 237, 0.2)' : '#f3e8ff',
-                color: '#7c3aed',
-                padding: '0.25rem 0.75rem',
-                borderRadius: 12,
-                fontSize: '0.85rem',
+                background: getTypeColors().bg,
+                color: getTypeColors().fg,
+                padding: '4px 8px',
+                borderRadius: 999,
+                fontSize: '0.75rem',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6
+                gap: 4,
+                fontWeight: 600
               }}>
-            {getColoredIcon('ui', 'help_circle', 14, '#7c3aed', theme)} {item.questions.length} {t('questions') || 'questions'}
+            {getTypeIcon()} {item.questions.length} {t('questions') || 'questions'}
           </span>
           )}
 
@@ -378,16 +379,16 @@ const UnifiedCard = memo(({
               <span style={{
                 background: isDark ? 'rgba(245, 124, 0, 0.2)' : '#fff3e0',
                 color: '#f57c00',
-                padding: isMinified ? '4px 8px' : '6px 12px',
+                padding: '4px 8px',
                 borderRadius: 999,
                 border: '1px solid #f57c00',
-                fontSize: '0.85rem',
+                fontSize: '0.75rem',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: isMinified ? 0 : 6,
+                gap: 4,
                 fontWeight: 600
               }}>
-            {getColoredIcon('ui', 'book_open', 14, '#f57c00', theme)}
+            {getColoredIcon('ui', 'book_open', 10, '#f57c00', theme)}
                 {!isMinified && <span>{t('optional') || 'Optional'}</span>}
           </span>
           )}
@@ -397,13 +398,13 @@ const UnifiedCard = memo(({
               <span style={{
                 background: isDark ? 'rgba(185, 28, 28, 0.2)' : '#fee2e2',
                 color: '#b91c1c',
-                padding: isMinified ? '4px 8px' : '6px 12px',
+                padding: '4px 8px',
                 borderRadius: 999,
                 border: '1px solid #b91c1c',
-                fontSize: '0.85rem',
+                fontSize: '0.75rem',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: isMinified ? 0 : 6,
+                gap: 4,
                 fontWeight: 600
               }}>
             {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}

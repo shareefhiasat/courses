@@ -17,17 +17,44 @@ const QRCodeDisplayPage = () => {
       }
 
       try {
-        // Generate simple QR code
+        // Detect if dark mode is active
+        const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark' || 
+                          window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        // Use theme-appropriate colors
+        const qrColors = isDarkMode ? {
+          dark: '#ffffff',  // White QR code for dark mode
+          light: '#1f2937'  // Dark background for QR code
+        } : {
+          dark: '#000000',  // Black QR code for light mode
+          light: '#ffffff'  // White background for QR code
+        };
+
+        // Generate QR code with theme colors
         const qrDataUrl = await QRCode.toDataURL(studentNumber, {
           width: 300,
           margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
+          color: qrColors
         });
 
-        // Write simple HTML to document
+        // Theme-appropriate styling
+        const themeStyles = isDarkMode ? {
+          bodyBg: '#111827',
+          cardBg: '#1f2937',
+          cardBorder: '#374151',
+          textColor: '#f9fafb',
+          subTextColor: '#d1d5db',
+          refColor: '#60a5fa'
+        } : {
+          bodyBg: '#f3f4f6',
+          cardBg: '#ffffff',
+          cardBorder: '#800000',
+          textColor: '#111827',
+          subTextColor: '#6b7280',
+          refColor: '#059669'
+        };
+
+        // Write themed HTML to document
         document.body.innerHTML = `
           <html>
             <head>
@@ -41,42 +68,52 @@ const QRCodeDisplayPage = () => {
                   height: 100vh; 
                   margin: 0; 
                   font-family: sans-serif; 
-                  background: #f3f4f6; 
+                  background: ${themeStyles.bodyBg}; 
+                  color: ${themeStyles.textColor};
                 }
                 .card { 
-                  background: white; 
+                  background: ${themeStyles.cardBg}; 
                   padding: 2rem; 
                   border-radius: 1rem; 
                   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
                   text-align: center; 
-                  border: 4px solid #800000;
+                  border: 4px solid ${themeStyles.cardBorder};
                 }
                 img { 
                   width: 300px; 
                   height: 300px; 
                   margin-bottom: 1rem; 
                   border-radius: 8px;
+                  background: ${qrColors.light};
+                  padding: 8px;
                 }
                 h1 { 
                   margin: 0; 
-                  color: #111827; 
+                  color: ${themeStyles.textColor}; 
                   font-size: 1.5rem; 
                 }
                 p { 
                   margin: 0.5rem 0 0; 
-                  color: #6b7280; 
+                  color: ${themeStyles.subTextColor}; 
                   font-size: 1rem; 
                 }
                 .ref { 
                   font-family: monospace; 
                   font-weight: bold; 
-                  color: #059669; 
+                  color: ${themeStyles.refColor}; 
                   margin-top: 0.5rem; 
                   font-size: 1.2rem;
                 }
                 @media print {
-                  body { background: white; }
-                  .card { box-shadow: none; border: 2px solid #800000; }
+                  body { background: white; color: black; }
+                  .card { 
+                    background: white; 
+                    box-shadow: none; 
+                    border: 2px solid #800000;
+                    color: black;
+                  }
+                  .ref { color: #059669; }
+                  img { background: white; }
                 }
               </style>
             </head>

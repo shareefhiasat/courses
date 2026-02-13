@@ -43,6 +43,37 @@ import ScheduledReportsPage from './pages/ScheduledReportsPage';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
 import FancyLoading from './components/ui/FancyLoading/FancyLoading';
 
+// Handle MobX State Tree errors globally
+if (typeof window !== 'undefined') {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    // Suppress MobX State Tree errors
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('mobx-state-tree')) {
+      return;
+    }
+    if (args[0] && args[0].message && args[0].message.includes('mobx-state-tree')) {
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
+  // Handle unhandled errors
+  window.addEventListener('error', (event) => {
+    if (event.message && event.message.includes('mobx-state-tree')) {
+      event.preventDefault();
+      return false;
+    }
+  });
+
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason && event.reason.message && event.reason.message.includes('mobx-state-tree')) {
+      event.preventDefault();
+      return false;
+    }
+  });
+}
+
 // Lazy loaded heavy components
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const MarksEntryPage = lazy(() => import('./pages/MarksEntryPage'));
@@ -125,6 +156,10 @@ const AppContent = () => {
         <main className="main-content">
         <Suspense fallback={<FancyLoading fullscreen={true} />}>
         <Routes>
+          {/* Public routes - no authentication required */}
+          <Route path="/qrcode/:studentId" element={<QRCodeDisplayPage />} />
+          
+          {/* Authenticated routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           {/* ActivitiesPage, ResourcesPage, QuizResultsPage routes removed - unified in HomePage with ?mode= */}
@@ -147,9 +182,6 @@ const AppContent = () => {
           <Route path="/instructor-participation" element={<ParticipationPage />} />
           <Route path="/instructor-behavior" element={<BehaviorPage />} />
           <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
-          <Route path="/qrcode/:studentId" element={<QRCodeDisplayPage />} />
-          <Route path="/qrcode/:studentId/:classId" element={<QRCodeDisplayPage />} />
-          <Route path="/qrcode" element={<QRCodeDisplayPage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />
           <Route path="/manage-enrollments" element={<ManageEnrollmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />

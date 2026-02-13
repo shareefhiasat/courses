@@ -289,7 +289,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
   const openQRCodeInNewTab = useCallback((user) => {
     const qrUrl = `/qrcode/${encodeURIComponent(user.studentNumber)}`;
-    window.open(qrUrl, '_blank', 'width=400,height=600');
+    window.open(qrUrl, '_blank');
   }, []);
 
   // Sync refs when editing

@@ -7,6 +7,25 @@ const urlsToCache = [
   '/favicon.ico'
 ];
 
+// Error handling for MobX State Tree issues
+self.addEventListener('error', (event) => {
+  // Ignore MobX State Tree errors from extensions
+  if (event.message && event.message.includes('mobx-state-tree')) {
+    event.preventDefault();
+    console.warn('MobX State Tree error suppressed in service worker:', event.message);
+    return;
+  }
+});
+
+self.addEventListener('unhandledrejection', (event) => {
+  // Ignore MobX State Tree promise rejections
+  if (event.reason && event.reason.message && event.reason.message.includes('mobx-state-tree')) {
+    event.preventDefault();
+    console.warn('MobX State Tree promise rejection suppressed:', event.reason.message);
+    return;
+  }
+});
+
 // Install event - cache resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
