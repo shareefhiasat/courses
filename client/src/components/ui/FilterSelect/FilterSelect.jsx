@@ -44,7 +44,7 @@ const FilterSelect = ({
       return {
         value: itemValue,
         label: itemLabel,
-        icon: getThemedIcon('ui', config.allOption.icon, 16, theme)
+        icon: null // No icon for individual items, only for "All" option
       };
     })
   ];

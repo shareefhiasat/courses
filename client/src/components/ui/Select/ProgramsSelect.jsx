@@ -18,6 +18,7 @@ const ProgramsSelect = ({
   showLabels = true,
   disabled = false,
   className = '',
+  style = {},
 }) => {
   const { t, lang } = useLang();
 
@@ -58,7 +59,7 @@ const ProgramsSelect = ({
   ];
 
   return (
-    <div className={`flex flex-nowrap gap-2 ${className}`}>
+    <div className={`flex flex-nowrap gap-2 ${className}`} style={style}>
       <div className="flex-1 min-w-[150px]">
         <Select
           label={showLabels ? (t('program') || 'Program') : ''}

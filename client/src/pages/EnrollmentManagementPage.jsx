@@ -455,15 +455,22 @@ const EnrollmentManagementPage = () => {
           getRowId={(row) => row.docId || row.id}
           columns={[
           {
-            field: 'userId', headerName: t('user_col'), flex: 1, minWidth: 250,
+            field: 'userId', 
+            headerName: t('student') || 'Student', 
+            flex: 1.5, 
+            minWidth: 200,
             renderCell: (params) => {
               const user = users.find(u => (u.docId || u.id) === params.value);
               if (!user) return params.value;
               return (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  {/*{getThemedIcon('ui', 'user', 16, theme)} */}
-                  {user.displayName || user.realName || '—'}{user.email ? ` (${user.email})` : ''}
-                </span>
+                <div style={{ padding: '8px 0' }}>
+                  <div style={{ fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+                    {user.displayName || user.realName || '—'}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '2px' }}>
+                    {user.email || '—'}
+                  </div>
+                </div>
               );
             }
           },
@@ -471,26 +478,99 @@ const EnrollmentManagementPage = () => {
             field: 'programNameDisplay',
             headerName: t('program') || 'Program',
             flex: 1,
-            minWidth: 180
+            minWidth: 150,
+            renderCell: (params) => (
+              <div style={{ padding: '8px 0', fontWeight: '400' }}>
+                {params.value || '—'}
+              </div>
+            )
           },
           {
             field: 'subjectNameDisplay',
             headerName: t('subject') || 'Subject',
             flex: 1,
-            minWidth: 180
+            minWidth: 150,
+            renderCell: (params) => (
+              <div style={{ padding: '8px 0', fontWeight: '400' }}>
+                {params.value || '—'}
+              </div>
+            )
           },
           {
-            field: 'classNameDisplay', headerName: t('class_col'), flex: 1, minWidth: 200
+            field: 'classNameDisplay', 
+            headerName: t('class') || 'Class', 
+            flex: 1,
+            minWidth: 150,
+            renderCell: (params) => (
+              <div style={{ padding: '8px 0', fontWeight: '400' }}>
+                {params.value || '—'}
+              </div>
+            )
           },
           {
-            field: 'role', headerName: t('role_col'), width: 150,
+            field: 'role', 
+            headerName: t('role') || 'Role', 
+            width: 120,
             renderCell: (params) => {
               const roleMap = {
-                [USER_ROLES.STUDENT]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{getThemedIcon('ui', 'user', 16, theme)} Student</span>, // User icon for student role
-                'ta': <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👨‍🏫 TA</span>,
-                [USER_ROLES.INSTRUCTOR]: <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>👩‍🏫 Instructor</span>
+                [USER_ROLES.STUDENT]: (
+                  <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    padding: '4px 8px',
+                    backgroundColor: theme === 'dark' ? '#1e40af' : '#dbeafe',
+                    color: theme === 'dark' ? '#93c5fd' : '#1e40af',
+                    borderRadius: '12px',
+                    fontSize: '0.875rem',
+                    fontWeight: '500'
+                  }}>
+                    {getThemedIcon('ui', 'user', 14, theme)}
+                    {t('student') || 'Student'}
+                  </span>
+                ),
+                'ta': (
+                  <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    padding: '4px 8px',
+                    backgroundColor: theme === 'dark' ? '#7c3aed' : '#ede9fe',
+                    color: theme === 'dark' ? '#c4b5fd' : '#7c3aed',
+                    borderRadius: '12px',
+                    fontSize: '0.875rem',
+                    fontWeight: '500'
+                  }}>
+                    👨‍🏫 {t('ta') || 'TA'}
+                  </span>
+                ),
+                [USER_ROLES.INSTRUCTOR]: (
+                  <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    padding: '4px 8px',
+                    backgroundColor: theme === 'dark' ? '#059669' : '#d1fae5',
+                    color: theme === 'dark' ? '#6ee7b7' : '#059669',
+                    borderRadius: '12px',
+                    fontSize: '0.875rem',
+                    fontWeight: '500'
+                  }}>
+                    👩‍🏫 {t('instructor') || 'Instructor'}
+                  </span>
+                )
               };
-              return roleMap[params.value] || params.value;
+              return roleMap[params.value] || (
+                <span style={{ 
+                  padding: '4px 8px',
+                  backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6',
+                  color: theme === 'dark' ? '#d1d5db' : '#6b7280',
+                  borderRadius: '12px',
+                  fontSize: '0.875rem'
+                }}>
+                  {params.value}
+                </span>
+              );
             }
           },
           {
@@ -653,11 +733,12 @@ const EnrollmentManagementPage = () => {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <Button
                     size="sm"
-                    variant={isDisabled ? 'primary' : 'outline'}
+                    variant="ghost"
                     icon={isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
                     onClick={handleToggleAccess}
+                    style={{ border: 'none' }}
                   >
-                    {isDisabled ? (t('enable_access') || 'Enable') : (t('disable_access') || 'Disable')}
+                    {isDisabled ? (t('enable') || 'Enable') : (t('disable') || 'Disable')}
                   </Button>
                   <Button 
                     size="sm" 

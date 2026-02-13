@@ -134,7 +134,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       toast?.showError('Failed to load data: ' + error.message);
       setPageState(PAGE_STATES.ERROR);
     }
-  }, [isAdmin, isSuperAdmin, toast]);
+  }, [isAdmin, isSuperAdmin]);
 
   // Load data on mount
   useEffect(() => {
@@ -372,11 +372,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
       filtered = filtered.filter(user => user.role === roleFilter);
     }
     
-    // Status filter (based on disabled status)
+    // Status filter (based on centralized disabled helper)
     if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(user => {
-        if (statusFilter === 'active') return !user.disabled;
-        if (statusFilter === 'disabled') return user.disabled;
+        if (statusFilter === 'active') return !isUserDisabledAtUserLevel(user);
+        if (statusFilter === 'disabled') return isUserDisabledAtUserLevel(user);
         return true;
       });
     }
@@ -428,10 +428,33 @@ const UsersPage = ({ isDashboardTab = false }) => {
   ], [t]);
   
   const statusOptions = useMemo(() => [
-    { value: 'all', label: t('all_status') || 'All Status' },
-    { value: 'active', label: t('active') || 'Active' },
-    { value: 'disabled', label: t('disabled') || 'Disabled' }
-  ], [t]);
+    { 
+      value: 'all', 
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {t('all_status') || 'All Status'}
+        </span>
+      )
+    },
+    { 
+      value: 'active', 
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-success, #28a745)' }}>
+          {getThemedIcon('ui', 'check_circle', 16, theme)}
+          {t('active') || 'Active'}
+        </span>
+      )
+    },
+    { 
+      value: 'disabled', 
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-danger, #dc2626)' }}>
+          {getThemedIcon('ui', 'user_x', 16, theme)}
+          {t('disabled') || 'Disabled'}
+        </span>
+      )
+    }
+  ], [t, theme]);
 
   // Memoized options for program, class, and subject filters
   const programOptions = useMemo(() => [
@@ -601,9 +624,25 @@ const UsersPage = ({ isDashboardTab = false }) => {
       field: 'actions', headerName: t('actions_col'), width: 280, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Button size="sm" variant="ghost" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => handleEditUser(params.row)}>
-            {t('edit') || 'Edit'}
-          </Button>
+          {(() => {
+            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === USER_ROLES.SUPER_ADMIN;
+            const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === USER_ROLES.SUPER_ADMIN;
+            const canEdit = !isSuperAdminUser || currentUserIsSuperAdmin;
+            
+            return (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                icon={getThemedIcon('ui', 'edit', 16, theme)} 
+                onClick={() => handleEditUser(params.row)}
+                disabled={!canEdit}
+                title={canEdit ? (t('edit') || 'Edit') : 'Only Super Admin can edit Super Admin'}
+                style={{ opacity: canEdit ? 1 : 0.5 }}
+              >
+                {t('edit') || 'Edit'}
+              </Button>
+            );
+          })()}
           {(() => {
             // Check if user has student role from boolean flags
             const hasStudentRole = isStudent(params.row);
@@ -630,11 +669,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
               return (
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => canUseQR && openQRCodeInNewTab(params.row)}
                   title={title}
                   disabled={!canUseQR}
-                  style={{ opacity: canUseQR ? 1 : 0.5 }}
+                  style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
                 >
                   {getThemedIcon('ui', 'qr_code', 16, theme)}
                 </Button>
@@ -644,9 +683,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
           })()}
           <Button 
             size="sm" 
-            variant="outline" 
+            variant="ghost" 
             onClick={() => handleResetPassword(params.row.email)}
             title={t('reset_password') || 'Reset Password'}
+            style={{ border: 'none' }}
           >
             {getThemedIcon('ui', 'key_round', 16, theme)}
           </Button>
@@ -661,15 +701,25 @@ const UsersPage = ({ isDashboardTab = false }) => {
           >
             {isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
           </Button>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            icon={getThemedIcon('ui', 'trash', 16, theme)}
-            style={{ color: '#dc2626' }}
-            onClick={() => handleDeleteUser(params.row)}
-          >
-            {t('delete') || 'Delete'}
-          </Button>
+          {(() => {
+            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === USER_ROLES.SUPER_ADMIN;
+            const currentUserIsSuperAdmin = user?.isSuperAdmin || user?.role === USER_ROLES.SUPER_ADMIN;
+            const canDelete = !isSuperAdminUser || currentUserIsSuperAdmin;
+            
+            return (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                icon={getThemedIcon('ui', 'trash', 16, theme)}
+                style={{ color: '#dc2626', opacity: canDelete ? 1 : 0.5 }}
+                onClick={() => canDelete && handleDeleteUser(params.row)}
+                disabled={!canDelete}
+                title={canDelete ? (t('delete') || 'Delete') : 'Cannot delete Super Admin'}
+              >
+                {t('delete') || 'Delete'}
+              </Button>
+            );
+          })()}
         </div>
       )
     }
@@ -826,43 +876,23 @@ const UsersPage = ({ isDashboardTab = false }) => {
         border: theme === 'dark' ? '1px solid #374151' : 'none',
         width: '100%' 
       }}>
-        {/* First line: Program, Subject, Class, Role filters - full width */}
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', flex: 1 }}>
-            <ProgramsSelect
-              programs={programs}
-              subjects={subjects}
-              classes={classes}
-              selectedProgram={programFilter}
-              selectedSubject={subjectFilter}
-              selectedClass={classFilter}
-              onProgramChange={(programId) => setProgramFilter(programId)}
-              onSubjectChange={(subjectId) => setSubjectFilter(subjectId)}
-              onClassChange={(classId) => setClassFilter(classId)}
-              showClass={true}
-              showLabels={false}
-              style={{ flex: 1, minWidth: '200px' }}
-            />
-            
-            <Select
-              value={roleFilter || 'all'}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              options={roleOptions.map(option => ({
-                ...option,
-                label: (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {option.value !== 'all' && getRoleIconThemed(option.value)}
-                    {option.label}
-                  </span>
-                )
-              }))}
-              placeholder={t('filter_by_role') || 'Filter by Role'}
-              style={{ minWidth: '150px', flex: '0.5' }}
-            />
-          </div>
-        </div>
+        {/* First line: Program, Subject, Class filters - full width */}
+        <ProgramsSelect
+          programs={programs}
+          subjects={subjects}
+          classes={classes}
+          selectedProgram={programFilter}
+          selectedSubject={subjectFilter}
+          selectedClass={classFilter}
+          onProgramChange={(programId) => setProgramFilter(programId)}
+          onSubjectChange={(subjectId) => setSubjectFilter(subjectId)}
+          onClassChange={(classId) => setClassFilter(classId)}
+          showClass={true}
+          showLabels={false}
+          style={{ width: '100%' }}
+        />
         
-        {/* Second line: Search + Status */}
+        {/* Second line: Search + Role + Status */}
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           <Input
             type="text"
@@ -870,7 +900,23 @@ const UsersPage = ({ isDashboardTab = false }) => {
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             prefix={getThemedIcon('ui', 'search', 16, theme)}
-            style={{ minWidth: '250px', flex: 1 }}
+            style={{ minWidth: '300px', flex: 2 }}
+          />
+          
+          <Select
+            value={roleFilter || 'all'}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            options={roleOptions.map(option => ({
+              ...option,
+              label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {option.value !== 'all' && getRoleIconThemed(option.value)}
+                  {option.label}
+                </span>
+              )
+            }))}
+            placeholder={t('filter_by_role') || 'Filter by Role'}
+            style={{ minWidth: '200px', flex: 1 }}
           />
           
           <Select
@@ -878,7 +924,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             onChange={(e) => setStatusFilter(e.target.value)}
             options={statusOptions}
             placeholder={t('filter_by_status') || 'Filter by Status'}
-            style={{ minWidth: '150px' }}
+            style={{ minWidth: '200px', flex: 1 }}
           />
         </div>
       </div>

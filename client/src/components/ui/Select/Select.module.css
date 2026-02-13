@@ -286,14 +286,29 @@
 }
 
 .option.selected {
-  background: var(--primary-light, #eef2ff);
-  color: var(--color-primary, var(--primary, #4f46e5));
+  background: var(--primary-light, #eef2ff) !important;
+  color: var(--color-primary, var(--primary, #4f46e5)) !important;
   font-weight: 500;
 }
 
 :global([data-theme="dark"]) .option.selected {
   background: #1e3a8a !important;
   color: #93c5fd !important;
+  font-weight: 500;
+}
+
+/* Light mode - ensure theme primary color is used */
+:global([data-theme="light"]) .option.selected {
+  background: var(--primary-light, #eef2ff) !important;
+  color: var(--color-primary, var(--primary, #4f46e5)) !important;
+  font-weight: 500;
+}
+
+/* Fallback for any theme */
+.option.selected,
+.selected {
+  background: var(--primary-light, #eef2ff) !important;
+  color: var(--color-primary, var(--primary, #4f46e5)) !important;
   font-weight: 500;
 }
 
@@ -410,4 +425,30 @@
 }
 :global([data-theme="light"]) .option:hover {
   background: #f3f4f6;
+}
+
+/* Tooltip centering to prevent overflow */
+:global([title]) {
+  position: relative;
+}
+
+:global([title]:hover::after) {
+  content: attr(title);
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  margin-top: 4px;
+  max-width: 200px;
+  word-wrap: break-word;
+  white-space: normal;
+  text-align: center;
 }

@@ -44,6 +44,12 @@ const DeleteModal = ({
 
   const getMessage = () => {
     if (customMessage) return customMessage;
+    
+    // Debug: Log relatedRecords to see what's being passed
+    console.log('DeleteModal: relatedRecords', relatedRecords);
+    console.log('DeleteModal: entityType', entityType);
+    console.log('DeleteModal: entityName', entityName);
+    
     return getDeleteMessage(entityType, entityName, { relatedRecords }, t);
   };
 

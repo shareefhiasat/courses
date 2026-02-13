@@ -5,11 +5,14 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
+import { getEnrollments } from '@firebaseServices/enrollmentService';
 import { getEnrolledStudents, toggleStudentAccess as toggleStudentAccessService, getClassStatistics, enrollStudent, unenrollStudent } from '@firebaseServices/enrollmentManagementService';
 import { Container, Card, CardBody, Button, Input, Spinner, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '@ui';
 import { FancyLoading } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { USER_ROLES } from '@constants/userRoles';
+import { getDoc, doc, getDocs, collection } from 'firebase/firestore';
+import { db } from '@firebaseServices/config';
 import styles from './ManageEnrollmentsPage.module.css';
 
 const ManageEnrollmentsPage = () => {

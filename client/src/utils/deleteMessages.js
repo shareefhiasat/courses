@@ -44,10 +44,24 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
       })
       .join(', ');
 
-    return t('delete_user_with_records_msg', { 
+    // Try translation first
+    const key = 'delete_user_with_records_msg';
+    const translated = t(key, { 
       userName: actualEntityName,
       records: recordsList
-    }) || `Are you sure you want to delete "${actualEntityName}"? This will also delete: ${recordsList}. This action cannot be undone.`;
+    });
+
+    // If a real translation exists and is not just a placeholder, use it
+    if (
+      translated &&
+      translated !== key &&
+      translated.toLowerCase().trim() !== 'delete user with records msg'
+    ) {
+      return translated;
+    }
+
+    // Fallback: always show a detailed English message with the records list
+    return `Are you sure you want to delete "${actualEntityName}"? This will also delete: ${recordsList}. This action cannot be undone.`;
   }
 
   // Special handling for enrollment with related student records
