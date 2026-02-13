@@ -365,7 +365,7 @@ const DashboardPage = () => {
             <ClassSchedulePage />
           )}
           {activeTab === 'manage-enrollments' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <EnrollmentManagementPage />
+            <ManageEnrollmentsPage />
           )}
           {activeTab === 'hr-penalties' && (isSuperAdmin || isAdmin || isInstructor) && (
             <PenaltiesPage />

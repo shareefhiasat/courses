@@ -1,35 +1,85 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, UserSelect, RibbonTabs, AdvancedDataGrid } from '@ui';
+import { Button, Select, UserSelect, AdvancedDataGrid } from '@ui';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { USER_ROLES } from '@constants';
-import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
+import { ACTIVITY_LOG_TYPES, logActivity } from '@firebaseServices/activityLogger';
 import { getPrograms, getSubjects } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
+import logger from '@utils/logger';
+import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 
-const EnrollmentManagementPage = ({
-  enrollments,
-  users,
-  activities,
-  submissions,
-  enrollmentForm,
-  setEnrollmentForm,
-  activeEnrollmentTab,
-  setActiveEnrollmentTab,
-  deleteModal,
-  setDeleteModal,
-  loading,
-  setLoading,
-  loadData,
-  theme,
-  formatQatarDateOnly,
-  ensureString
-}) => {
+const EnrollmentManagementPage = () => {
   const { t } = useLang();
+  const { theme } = useTheme();
   const toast = useToast();
+  const { deleteModal: deleteModalState, deleteItem, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // Refs for form fields to avoid re-renders on keystroke
+  const userSelectRef = useRef(null);
+
+  // Internal state management
+  const [enrollments, setEnrollments] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [enrollmentForm, setEnrollmentForm] = useState({ 
+    userId: '', 
+    classId: '', 
+    role: USER_ROLES.STUDENT, 
+    programId: '', 
+    subjectId: '', 
+    year: '', 
+    term: '' 
+  });
+  const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Load all data
+  const loadData = useCallback(async () => {
+    setDataLoading(true);
+    try {
+      const [
+        enrollmentsResult,
+        usersResult,
+        activitiesResult,
+        submissionsResult
+      ] = await Promise.all([
+        import('@firebaseServices/enrollmentService').then(m => m.getEnrollments()),
+        import('@firebaseServices/userService').then(m => m.getUsers()),
+        import('@firebaseServices/activityService').then(m => m.getActivities()),
+        import('@firebaseServices/submissionService').then(m => m.getSubmissions())
+      ]);
+      
+      if (enrollmentsResult.success) setEnrollments(enrollmentsResult.data || []);
+      if (usersResult.success) setUsers(usersResult.data || []);
+      if (activitiesResult.success) setActivities(activitiesResult.data || []);
+      if (submissionsResult.success) setSubmissions(submissionsResult.data || []);
+    } catch (error) {
+      logger.error('[EnrollmentManagementPage] Error loading data:', error);
+      toast?.showError(t('failed_to_load_data') || 'Failed to load data');
+    } finally {
+      setDataLoading(false);
+    }
+  }, [t, toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Helper function for date formatting
+  const formatQatarDateOnly = (date) => {
+    if (!date) return 'Unknown';
+    const dateObj = date?.toDate ? date.toDate() : (date?.seconds ? new Date(date.seconds * 1000) : new Date(date));
+    return dateObj.toLocaleDateString('en-QA');
+  };
+
+  const ensureString = (value) => {
+    return value ? String(value) : '';
+  };
 
   // Local state for programs, subjects, and classes (NotificationDrawer pattern)
   const [localPrograms, setLocalPrograms] = useState([]);
@@ -37,26 +87,28 @@ const EnrollmentManagementPage = ({
   const [localClasses, setLocalClasses] = useState([]);
 
   // Load programs, subjects, and classes (NotificationDrawer pattern)
-  useEffect(() => {
-    const loadFilters = async () => {
-      try {
-        const [programsRes, subjectsRes, classesRes] = await Promise.all([
-          getPrograms(),
-          getSubjects(),
-          getClasses()
-        ]);
-        if (programsRes.success) setLocalPrograms(programsRes.data || []);
-        if (subjectsRes.success) setLocalSubjects(subjectsRes.data || []);
-        if (classesRes.success) setLocalClasses(classesRes.data || []);
-      } catch (error) {
-        console.error('🔍 [EnrollmentManagementPage] Error loading filters:', error);
-      }
-    };
-    loadFilters();
-  }, []);
+  const loadFilters = useCallback(async () => {
+    try {
+      const [programsRes, subjectsRes, classesRes] = await Promise.all([
+        getPrograms(),
+        getSubjects(),
+        getClasses()
+      ]);
+      if (programsRes.success) setLocalPrograms(programsRes.data || []);
+      if (subjectsRes.success) setLocalSubjects(subjectsRes.data || []);
+      if (classesRes.success) setLocalClasses(classesRes.data || []);
+    } catch (error) {
+      logger.error('[EnrollmentManagementPage] Error loading filters:', error);
+      toast?.showError(t('failed_to_load_filters') || 'Failed to load filters');
+    }
+  }, [t, toast]);
 
-  // Handler functions for dropdown changes
-  const handleEnrollmentProgramChange = (e) => {
+  useEffect(() => {
+    loadFilters();
+  }, [loadFilters]);
+
+  // Memoized handler functions for dropdown changes
+  const handleEnrollmentProgramChange = useCallback((e) => {
     const programId = e.target.value;
     setEnrollmentForm(prev => ({ 
       ...prev, 
@@ -64,16 +116,58 @@ const EnrollmentManagementPage = ({
       subjectId: '', 
       classId: '' 
     }));
-  };
+  }, [setEnrollmentForm]);
 
-  const handleEnrollmentSubjectChange = (e) => {
+  const handleEnrollmentSubjectChange = useCallback((e) => {
     const subjectId = e.target.value;
     setEnrollmentForm(prev => ({ 
       ...prev, 
       subjectId, 
       classId: '' 
     }));
-  };
+  }, [setEnrollmentForm]);
+
+  const handleEnrollmentSubmit = useCallback(async (e) => {
+    if (e) e.preventDefault();
+    
+    // Check if enrollment already exists
+    const existingEnrollment = enrollments.find(enrollment =>
+      enrollment.userId === enrollmentForm.userId && enrollment.classId === enrollmentForm.classId
+    );
+    if (existingEnrollment) {
+      toast?.showError(t('user_already_enrolled') || 'This user is already enrolled in this class');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const { addEnrollment } = await import('@firebaseServices/enrollmentService');
+      const result = await addEnrollment(enrollmentForm);
+      if (result.success) {
+        // Log activity
+        try {
+          await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_CREATED, {
+            enrollmentId: result.id,
+            userId: enrollmentForm.userId,
+            classId: enrollmentForm.classId,
+            role: enrollmentForm.role
+          });
+        } catch (error) {
+          logger.warn('[EnrollmentManagementPage] Failed to log activity:', error);
+        }
+        await loadData();
+        setEnrollmentForm({ userId: '', classId: '', role: USER_ROLES.STUDENT, programId: '', subjectId: '', year: '', term: '' });
+        toast?.showSuccess(t('enrollment_added_successfully') || 'Enrollment added successfully!');
+      } else {
+        toast?.showError(t('error') + ': ' + result.error);
+      }
+    } catch (error) {
+      logger.error('[EnrollmentManagementPage] Error adding enrollment:', error);
+      toast?.showError(t('error') + ': ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [enrollments, enrollmentForm, setLoading, loadData, setEnrollmentForm, toast, t]);
 
   const enrollmentRows = useMemo(() => {
     return (enrollments || []).map((row) => {
@@ -106,113 +200,75 @@ const EnrollmentManagementPage = ({
 
   return (
     <div className="enrollments-section" style={{ marginTop: '2rem' }}>
-      <RibbonTabs
-        categories={[
-          {
-            id: 'enrollment-fields',
-            items: [
-              { key: 'user', label: 'User Info', icon: getThemedIcon('ui', 'user', 14, theme) },
-              { key: 'class', label: 'Class Info', icon: getThemedIcon('ui', 'home', 14, theme) },
-              { key: 'role', label: 'Role', icon: getThemedIcon('ui', 'shield', 14, theme) }
-            ]
-          }
-        ]}
-        activeCategory="enrollment-fields"
-        activeItem={activeEnrollmentTab}
-        onChange={({ category, item }) => setActiveEnrollmentTab(item)}
-      />
-      <form onSubmit={async (e) => {
-        e.preventDefault();
-        // Check if enrollment already exists
-        const existingEnrollment = enrollments.find(e =>
-          e.userId === enrollmentForm.userId && e.classId === enrollmentForm.classId
-        );
-        if (existingEnrollment) {
-          toast?.showError('This user is already enrolled in this class');
-          return;
-        }
-        setLoading(true);
-        try {
-          const { addEnrollment } = await import('@firebaseServices/enrollmentService');
-          const result = await addEnrollment(enrollmentForm);
-          if (result.success) {
-            // Log activity
-            try {
-              await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_CREATED, {
-                enrollmentId: result.id,
-                userId: enrollmentForm.userId,
-                classId: enrollmentForm.classId,
-                role: enrollmentForm.role
-              });
-            } catch (e) { }
-            await loadData();
-            setEnrollmentForm({ userId: '', classId: '', role: USER_ROLES.STUDENT, programId: '', subjectId: '', year: '', term: '' });
-            toast?.showSuccess('Enrollment added successfully!');
-          } else {
-            toast?.showError('Error: ' + result.error);
-          }
-        } catch (error) {
-          toast?.showError('Error: ' + error.message);
-        } finally {
-          setLoading(false);
-        }
-      }} className="dashboard-form">
-        {/* User Info Tab */}
-        {activeEnrollmentTab === 'user' && (
-          <div className="form-row wide-cols">
-            <UserSelect
-              users={users}
-              enrollments={enrollments}
-              value={enrollmentForm.userId}
-              onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
-              placeholder={t('select_user') || 'Select User'}
-              roleFilter={[USER_ROLES.STUDENT]}
-              showEnrollments={true}
-              showStatus={true}
-              searchable={true}
-              required
-            />
+      {dataLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              border: '4px solid #f3f3f3', 
+              borderTop: '4px solid #3498db', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 1rem'
+            }}></div>
+            <div>{t('loading') || 'Loading...'}</div>
           </div>
-        )}
-        {/* Class Info Tab */}
-        {activeEnrollmentTab === 'class' && (
-          <div className="form-row wide-cols">
-            <ProgramsSelect
-              programs={localPrograms}
-              subjects={localSubjects}
-              classes={localClasses}
-              selectedProgram={enrollmentForm.programId}
-              selectedSubject={enrollmentForm.subjectId}
-              selectedClass={enrollmentForm.classId}
-              onProgramChange={(programId) => setEnrollmentForm(prev => ({ ...prev, programId, subjectId: '', classId: '' }))}
-              onSubjectChange={(subjectId) => setEnrollmentForm(prev => ({ ...prev, subjectId, classId: '' }))}
-              onClassChange={(classId) => setEnrollmentForm(prev => ({ ...prev, classId }))}
-              showLabels={false}
-              required
-            />
-          </div>
-        )}
-        {/* Role Tab */}
-        {activeEnrollmentTab === 'role' && (
-          <div className="form-row wide-cols">
-            <Select
-              searchable
-              placeholder={t('role') || 'Role'}
-              value={enrollmentForm.role}
-              onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
-              options={[
-                { value: USER_ROLES.STUDENT, label: (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#16a34a' }}>
-                      {getThemedIcon('ui', 'user', 16, theme)}
-                    </span>
-                    {t('student') || 'Student'}
+        </div>
+      ) : (
+        <>
+          <form onSubmit={handleEnrollmentSubmit} className="dashboard-form">
+        <div className="form-row wide-cols">
+          <UserSelect
+            ref={userSelectRef}
+            users={users}
+            enrollments={enrollments}
+            value={enrollmentForm.userId}
+            onChange={e => setEnrollmentForm({ ...enrollmentForm, userId: e.target.value })}
+            placeholder={t('select_user') || 'Select User'}
+            roleFilter={[USER_ROLES.STUDENT]}
+            showEnrollments={true}
+            showStatus={true}
+            searchable={true}
+            required
+          />
+        </div>
+        
+        <div className="form-row wide-cols">
+          <ProgramsSelect
+            programs={localPrograms}
+            subjects={localSubjects}
+            classes={localClasses}
+            selectedProgram={enrollmentForm.programId}
+            selectedSubject={enrollmentForm.subjectId}
+            selectedClass={enrollmentForm.classId}
+            onProgramChange={handleEnrollmentProgramChange}
+            onSubjectChange={handleEnrollmentSubjectChange}
+            onClassChange={(classId) => setEnrollmentForm(prev => ({ ...prev, classId }))}
+            showLabels={false}
+            required
+          />
+        </div>
+        
+        <div className="form-row wide-cols">
+          <Select
+            searchable
+            placeholder={t('role') || 'Role'}
+            value={enrollmentForm.role}
+            onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
+            options={[
+              { value: USER_ROLES.STUDENT, label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: '#16a34a' }}>
+                    {getThemedIcon('ui', 'user', 16, theme)}
                   </span>
-                )}
-              ]}
-            />
-          </div>
-        )}
+                  {t('student') || 'Student'}
+                </span>
+              )}
+            ]}
+          />
+        </div>
+        
         <div className="form-actions">
           <Button type="submit" variant="primary" disabled={loading} size="medium">
             {t('save') || 'Save'}
@@ -272,58 +328,64 @@ const EnrollmentManagementPage = ({
             field: 'actions', headerName: t('actions') || 'Actions', width: 120, sortable: false, filterable: false,
             renderCell: (params) => (
               <div style={{ display: 'flex', gap: 8 }}>
-                <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => { // Trash icon for delete enrollment action
-                  const enrollment = params.row;
-                  const user = users.find(u => (u.docId || u.id) === enrollment.userId);
-                  const classItem = localClasses.find(c => (c.docId || c.id) === enrollment.classId);
-                  // Submissions are quiz/activity submissions (student work)
-                  const userSubmissions = submissions.filter(s => s.userId === enrollment.userId && s.activityId);
-                  const relatedActivities = activities.filter(a => a.classId === enrollment.classId);
-                  // Create readable item name
-                  const userName = user ? (user.displayName || user.realName || user.email || 'Unknown User') : 'Unknown User';
-                  const className = classItem ? (classItem.name || classItem.code || 'Unknown Class') : 'Unknown Class';
-                  const itemName = `${userName} → ${className}`;
-                  setDeleteModal({
-                    open: true,
-                    item: { ...enrollment, _displayName: itemName },
-                    type: 'enrollment',
-                    onConfirm: async () => {
-                      try {
-                        const { deleteEnrollment } = await import('@firebaseServices/enrollmentService');
-                        const result = await deleteEnrollment(enrollment.docId);
-                        if (result.success) {
-                          // Log activity
-                          try {
-                            await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_DELETED, {
-                              enrollmentId: enrollment.docId,
-                              userId: enrollment.userId,
-                              classId: enrollment.classId
-                            });
-                          } catch (e) { }
-                          await loadData();
-                          toast?.showSuccess('Enrollment removed successfully!');
-                          setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-                        } else {
-                          toast?.showError('Error: ' + result.error);
-                          setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="deleteHover" 
+                  icon={getThemedIcon('ui', 'trash', 16, theme)} 
+                  style={{ color: '#dc2626' }} 
+                  onClick={() => {
+                    const enrollment = params.row;
+                    const user = users.find(u => (u.docId || u.id) === enrollment.userId);
+                    const classItem = localClasses.find(c => (c.docId || c.id) === enrollment.classId);
+                    // Submissions are quiz/activity submissions (student work)
+                    const userSubmissions = submissions.filter(s => s.userId === enrollment.userId && s.activityId);
+                    const relatedActivities = activities.filter(a => a.classId === enrollment.classId);
+                    // Create readable item name
+                    const userName = user ? (user.displayName || user.realName || user.email || 'Unknown User') : 'Unknown User';
+                    const className = classItem ? (classItem.name || classItem.code || 'Unknown Class') : 'Unknown Class';
+                    const itemName = `${userName} → ${className}`;
+                    
+                    deleteItem(
+                      { ...enrollment, _displayName: itemName },
+                      async () => {
+                        try {
+                          const { deleteEnrollment } = await import('@firebaseServices/enrollmentService');
+                          const result = await deleteEnrollment(enrollment.docId);
+                          if (result.success) {
+                            // Log activity
+                            try {
+                              await logActivity(ACTIVITY_LOG_TYPES.ENROLLMENT_DELETED, {
+                                enrollmentId: enrollment.docId,
+                                userId: enrollment.userId,
+                                classId: enrollment.classId
+                              });
+                            } catch (error) {
+                              logger.warn('[EnrollmentManagementPage] Failed to log activity:', error);
+                            }
+                            await loadData();
+                            toast?.showSuccess(t('enrollment_removed_successfully') || 'Enrollment removed successfully!');
+                          } else {
+                            throw new Error(result.error);
+                          }
+                        } catch (error) {
+                          logger.error('[EnrollmentManagementPage] Error deleting enrollment:', error);
+                          throw error;
                         }
-                      } catch (error) {
-                        toast?.showError('Error: ' + error.message);
-                        setDeleteModal({ open: false, item: null, type: null, onConfirm: null });
-                      }
-                    },
-                    relatedData: {
-                      'Activity/Quiz Submissions': userSubmissions.map(s => ({
-                        ...s,
-                        _label: `Activity/Quiz Submission`
-                      })),
-                      'Related Activities': relatedActivities
-                    },
-                    warningMessage: userSubmissions.length > 0 
-                      ? `This enrollment has ${userSubmissions.length} activity/quiz submission(s) that should be deleted first.`
-                      : null
-                  });
-                }}>
+                      },
+                      {
+                        'Activity/Quiz Submissions': userSubmissions.map(s => ({
+                          ...s,
+                          _label: `Activity/Quiz Submission`
+                        })),
+                        'Related Activities': relatedActivities
+                      },
+                      userSubmissions.length > 0 
+                        ? t('enrollment_delete_warning') || `This enrollment has ${userSubmissions.length} activity/quiz submission(s) that should be deleted first.`
+                        : null
+                    );
+                  }}
+                >
                   {t('delete') || 'Delete'}
                 </Button>
               </div>
@@ -338,6 +400,15 @@ const EnrollmentManagementPage = ({
           exportLabel={t('export') || 'Export'}
         />
       </div>
+      
+      {/* Delete Modal */}
+      <DeleteModal 
+        modal={deleteModalState} 
+        onConfirm={handleDeleteConfirm} 
+        onHide={hideDeleteModal}
+      />
+        </>
+      )}
     </div>
   );
 };
