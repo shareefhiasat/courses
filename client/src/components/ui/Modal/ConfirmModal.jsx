@@ -16,7 +16,7 @@ import { Button, Modal } from '@ui';
  * @param {string} props.confirmText - Text for confirm button (default: "Delete")
  * @param {string} props.cancelText - Text for cancel button (default: "Cancel")
  * @param {boolean} props.loading - Whether confirm action is loading
- * @param {'danger'|'primary'|'success'} props.variant - Button variant (default: "danger")
+ * @param {'danger'|'primary'|'secondary'|'outline'|'ghost'} props.variant - Button variant (default: "danger")
  * @param {string} props.size - Modal size (default: "small")
  */
 const ConfirmModal = ({ 
@@ -50,7 +50,6 @@ const ConfirmModal = ({
         variant={variant} 
         onClick={handleConfirm} 
         loading={loading}
-        style={variant === 'danger' ? { backgroundColor: '#dc2626' } : {}}
       >
         {confirmText}
       </Button>

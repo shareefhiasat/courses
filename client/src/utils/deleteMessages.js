@@ -22,34 +22,32 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
   
   // Special handling for entities with related records
   if (entityType === RECORD_TYPES.USER && relatedRecords) {
-    const hasRelatedRecords = Object.values(relatedRecords).some(count => count > 0);
-    
-    if (hasRelatedRecords) {
-      const recordsList = Object.entries(relatedRecords)
-        .filter(([_, count]) => count > 0)
-        .map(([type, count]) => {
-          const typeLabels = {
-            enrollments: t('enrollments') || 'Enrollments',
-            activities: t('activities') || 'Activities',
-            submissions: t('submissions') || 'Submissions',
-            attendance: t('attendance_records') || 'Attendance Records',
-            penalties: t('penalties') || 'Penalties',
-            grades: t('grades') || 'Grades',
-            assignments: t('assignments') || 'Assignments',
-            quizzes: t('quizzes') || 'Quizzes',
-            reports: t('reports') || 'Reports',
-            comments: t('comments') || 'Comments',
-            files: t('files') || 'Files'
-          };
-          return `${count} ${typeLabels[type] || type}`;
-        })
-        .join(', ');
+    // Always show summary for users, even if counts are 0
+    const recordsList = Object.entries(relatedRecords)
+      .map(([type, count]) => {
+        const typeLabels = {
+          enrollments: t('enrollments') || 'Enrollments',
+          activities: t('activities') || 'Activities',
+          submissions: t('submissions') || 'Submissions',
+          attendance: t('attendance_records') || 'Attendance Records',
+          penalties: t('penalties') || 'Penalties',
+          grades: t('grades') || 'Grades',
+          assignments: t('assignments') || 'Assignments',
+          quizzes: t('quizzes') || 'Quizzes',
+          reports: t('reports') || 'Reports',
+          comments: t('comments') || 'Comments',
+          files: t('files') || 'Files',
+          participations: t('participations') || 'Participations',
+          behaviors: t('behaviors') || 'Behaviors'
+        };
+        return `${count} ${typeLabels[type] || type}`;
+      })
+      .join(', ');
 
-      return t('delete_user_with_records_msg', { 
-        userName: actualEntityName,
-        records: recordsList
-      }) || `Are you sure you want to delete "${actualEntityName}"? This will also delete: ${recordsList}. This action cannot be undone.`;
-    }
+    return t('delete_user_with_records_msg', { 
+      userName: actualEntityName,
+      records: recordsList
+    }) || `Are you sure you want to delete "${actualEntityName}"? This will also delete: ${recordsList}. This action cannot be undone.`;
   }
 
   // Special handling for enrollment with related student records

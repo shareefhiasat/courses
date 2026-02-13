@@ -14,6 +14,7 @@ import { getAllUsers, getUserById, getUsersByIds } from '@firebaseServices/userS
 import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
 import { formatQatarDate } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
+import { isUserDisabled, getUserId, getUserDisplayNameSync } from '@firebaseServices/userService';
 import { 
   PAGE_STATES, 
   FORM_STATES,
@@ -873,12 +874,12 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                     }
                   };
                   
-                  const isDisabled = status === USER_STATUS.DELETED;
+                  const isDisabled = isUserDisabled(status);
                   const statusLabel = statusSummary?.label || status;
                   
                   return {
-                    value: u.docId || u.id,
-                    displayLabel: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown'),
+                    value: getUserId(u),
+                    displayLabel: getUserDisplayNameSync(u),
                     label: (
                       <div style={{ 
                         display: 'flex', 
@@ -1042,7 +1043,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                       }
                     };
                     
-                    const isDisabled = status === USER_STATUS.DELETED;
+                    const isDisabled = isUserDisabled(status);
                     
                     return {
                       value: u.docId || u.id,

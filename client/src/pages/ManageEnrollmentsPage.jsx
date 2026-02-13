@@ -649,7 +649,7 @@ const ManageEnrollmentsPage = () => {
                         size="sm"
                         icon={student.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
                       >
-                        {student.isDisabled ? (t('enable') || 'Enable') : (t('disable') || 'Disable')}
+                        {student.isDisabled ? 'Enable' : 'Disable'}
                       </Button>
                     </div>
                   ))}

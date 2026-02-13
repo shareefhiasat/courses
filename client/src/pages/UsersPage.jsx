@@ -9,10 +9,10 @@ import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon } from '@constants/iconTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import { ACTIVITY_LOG_TYPES } from '@firebaseServices/activityLogger';
-import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Loading, Card, CardBody } from '@ui';
+import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Loading, Card, CardBody, ConfirmModal } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
-import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService } from '@firebaseServices/userService';
+import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@firebaseServices/userService';
 import { getPrograms } from '@firebaseServices/programService';
 import { getClasses } from '@firebaseServices/classService';
 import { getSubjects } from '@firebaseServices/programService';
@@ -71,6 +71,16 @@ const UsersPage = ({ isDashboardTab = false }) => {
   });
   const [saving, setSaving] = useState(false);
   
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    confirmText: 'Confirm',
+    variant: 'primary'
+  });
+  
   const { deleteModal, deleteUser, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
 
   // Load data function - must be defined before useEffect
@@ -82,7 +92,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
     
     setPageState(PAGE_STATES.LOADING);
     try {
-      logger.info('USER_PAGE: Loading users and reference data');
+      logger.info('USER_PAGE: Loading users and reference data', { 
+        timestamp: new Date().toISOString(),
+        stackTrace: new Error().stack 
+      });
       
       const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult] = await Promise.all([
         getUsers(),
@@ -144,7 +157,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const handleDeleteUser = useCallback(async (userToDelete) => {
     const userId = userToDelete.docId || userToDelete.id;
     const role = userToDelete.role || USER_ROLES.STUDENT;
-    const isStudentRole = role === USER_ROLES.STUDENT;
+    const isStudentRole = isStudent(userToDelete);
 
     // Use already-loaded enrollments to compute enrollment and class counts
     const userEnrollments = enrollments.filter(e => e.userId === userId);
@@ -247,9 +260,25 @@ const UsersPage = ({ isDashboardTab = false }) => {
   }, [deleteUser, toast, loadData, enrollments]);
 
   const handleToggleUserStatus = useCallback(async (user) => {
-    try {
+    // Prevent disabling super admin
+    if (isAdminUser(user) && !isUserDisabledAtUserLevel(user)) {
+      toast?.showError('Cannot disable a Super Admin user');
+      return;
+    }
+
+    const isCurrentlyDisabled = isUserDisabledAtUserLevel(user);
+    const action = isCurrentlyDisabled ? 'enable' : 'disable';
+
+    // Show confirmation modal
+    setConfirmModal({
+      isOpen: true,
+      title: `${action.charAt(0).toUpperCase() + action.slice(1)} User`,
+      message: `Are you sure you want to ${action} this user?\n\nUser: ${user.displayName || user.email}\nRole: ${user.role || 'student'}`,
+      confirmText: `${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      variant: isCurrentlyDisabled ? 'primary' : 'danger',
+      onConfirm: async () => {
+        try {
       const userId = user.docId || user.id;
-      const isCurrentlyDisabled = user.disabled || user.isDisabled;
       const result = await updateUser(userId, {
         disabled: !isCurrentlyDisabled,
         isDisabled: !isCurrentlyDisabled
@@ -270,21 +299,33 @@ const UsersPage = ({ isDashboardTab = false }) => {
         toast?.showError(result.error || 'Failed to update user');
       }
     } catch (error) {
-      logger.error('Error:', error);
-      toast?.showError('Failed: ' + error.message);
-    }
+          logger.error('Error:', error);
+          toast?.showError('Failed: ' + error.message);
+        }
+      }
+    });
   }, [toast, loadData]);
 
   const handleResetPassword = useCallback(async (email) => {
-    try {
+    // Show confirmation modal
+    setConfirmModal({
+      isOpen: true,
+      title: 'Reset Password',
+      message: `Are you sure you want to reset the password for this user?\n\nAn email will be sent to: ${email}`,
+      confirmText: 'Reset Password',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
       const { sendPasswordResetEmail } = await import('firebase/auth');
       const { auth } = await import('@firebaseServices/config');
       await sendPasswordResetEmail(auth, email);
       toast?.showSuccess(`Password reset email sent to ${email}`);
     } catch (error) {
-      logger.error('Error:', error);
-      toast?.showError('Failed: ' + error.message);
-    }
+          logger.error('Error:', error);
+          toast?.showError('Failed: ' + error.message);
+        }
+      }
+    });
   }, [toast]);
 
   const openQRCodeInNewTab = useCallback((user) => {
@@ -316,14 +357,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const filteredUsers = useMemo(() => {
     let filtered = [...users];
     
-    // Search filter (email, displayName, realName, studentNumber)
+    // Search filter (email, displayName, realName)
     if (searchFilter) {
       const searchLower = searchFilter.toLowerCase();
       filtered = filtered.filter(user => 
         user.email?.toLowerCase().includes(searchLower) ||
         user.displayName?.toLowerCase().includes(searchLower) ||
-        user.realName?.toLowerCase().includes(searchLower) ||
-        user.studentNumber?.toLowerCase().includes(searchLower)
+        user.realName?.toLowerCase().includes(searchLower)
       );
     }
     
@@ -462,15 +502,28 @@ const UsersPage = ({ isDashboardTab = false }) => {
       }
     },
     {
-      field: 'role', headerName: t('role_col'), width: 120,
+      field: 'role', headerName: t('role_col'), width: 180,
       renderCell: (params) => {
-        const role = params.value || USER_ROLES.STUDENT;
+        // Get all roles from boolean flags
+        const userRoles = [];
+        if (params.row.isSuperAdmin) userRoles.push(USER_ROLES.SUPER_ADMIN);
+        if (params.row.isAdmin) userRoles.push(USER_ROLES.ADMIN);
+        if (params.row.isInstructor) userRoles.push(USER_ROLES.INSTRUCTOR);
+        if (params.row.isHR) userRoles.push(USER_ROLES.HR);
+        if (params.row.isStudent) userRoles.push(USER_ROLES.STUDENT);
+        
+        // Fallback to role field if no boolean flags
+        if (userRoles.length === 0) {
+          const fallbackRole = params.row.role || params.value || USER_ROLES.STUDENT;
+          userRoles.push(fallbackRole);
+        }
+        
         const roleIcons = {
-          [USER_ROLES.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 16, theme),
-          [USER_ROLES.ADMIN]: getThemedIcon('ui', 'shield', 16, theme),
-          [USER_ROLES.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 16, theme),
-          [USER_ROLES.HR]: getThemedIcon('ui', 'users', 16, theme),
-          [USER_ROLES.STUDENT]: getThemedIcon('ui', 'user', 16, theme)
+          [USER_ROLES.SUPER_ADMIN]: getThemedIcon('ui', 'crown', 14, theme),
+          [USER_ROLES.ADMIN]: getThemedIcon('ui', 'shield', 14, theme),
+          [USER_ROLES.INSTRUCTOR]: getThemedIcon('ui', 'book_open', 14, theme),
+          [USER_ROLES.HR]: getThemedIcon('ui', 'users', 14, theme),
+          [USER_ROLES.STUDENT]: getThemedIcon('ui', 'user', 14, theme)
         };
         const roleColors = {
           [USER_ROLES.SUPER_ADMIN]: '#f59e0b',
@@ -479,25 +532,24 @@ const UsersPage = ({ isDashboardTab = false }) => {
           [USER_ROLES.HR]: '#8b5cf6',
           [USER_ROLES.STUDENT]: '#16a34a'
         };
-        const normalizedRole = role.toLowerCase();
-        // Map role values to USER_ROLES constants for lookup
-        const roleKeyMap = {
-          'superadmin': USER_ROLES.SUPER_ADMIN,
-          'admin': USER_ROLES.ADMIN,
-          'instructor': USER_ROLES.INSTRUCTOR,
-          'hr': USER_ROLES.HR,
-          'student': USER_ROLES.STUDENT
-        };
-        const roleKey = roleKeyMap[normalizedRole] || USER_ROLES.STUDENT;
-        const icon = roleIcons[roleKey] || roleIcons[USER_ROLES.STUDENT];
-        const color = roleColors[roleKey] || roleColors[USER_ROLES.STUDENT];
         
         return (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ color }}>{icon}</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 500, textTransform: 'capitalize' }}>
-              {roleKey.replace('_', ' ')}
-            </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+            {userRoles.map((role, idx) => {
+              const icon = roleIcons[role] || roleIcons[USER_ROLES.STUDENT];
+              const color = roleColors[role] || roleColors[USER_ROLES.STUDENT];
+              const displayName = role.replace(/_/g, ' ');
+              
+              return (
+                <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span style={{ color }}>{icon}</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 500, textTransform: 'capitalize' }}>
+                    {displayName}
+                  </span>
+                  {idx < userRoles.length - 1 && <span style={{ color: '#9ca3af' }}>,</span>}
+                </span>
+              );
+            })}
           </div>
         );
       }
@@ -505,31 +557,44 @@ const UsersPage = ({ isDashboardTab = false }) => {
     {
       field: 'status', headerName: t('status_col'), width: 100,
       renderCell: (params) => {
-        const isDisabled = params.row.disabled || params.row.isDisabled;
+        const isDisabled = isUserDisabledAtUserLevel(params.row);
         if (isDisabled) {
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
               {getThemedIcon('ui', 'user_x', 14, theme)}
-              {t('status_disabled')}
+              {t('status_disabled') || 'Disabled'}
             </span>
           );
         } else {
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-success, #28a745)', fontWeight: 500 }}>
-              {t('status_active')}
+              {getThemedIcon('ui', 'check_circle', 14, theme)}
+              {t('status_active') || 'Active'}
             </span>
           );
         }
       }
     },
     {
-      field: 'createdAt', headerName: t('joined'), width: 180,
+      field: 'createdAt', headerName: t('joined'), width: 220,
       valueGetter: (params) => params.value,
       renderCell: (params) => {
         if (!params.value) return (t('unknown') || 'Unknown');
         const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
         if (isNaN(date.getTime())) return (t('unknown') || 'Unknown');
-        return formatQatarDate(date);
+        
+        // Format as: FEB 11, 2026 at 11:02:55 PM
+        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        const month = months[date.getMonth()];
+        const day = date.getDate();
+        const year = date.getFullYear();
+        const hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        
+        return `${month} ${day}, ${year} at ${displayHours}:${minutes}:${seconds} ${ampm}`;
       }
     },
     {
@@ -539,16 +604,44 @@ const UsersPage = ({ isDashboardTab = false }) => {
           <Button size="sm" variant="ghost" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => handleEditUser(params.row)}>
             {t('edit') || 'Edit'}
           </Button>
-          {(params.row.role || USER_ROLES.STUDENT) === USER_ROLES.STUDENT && (
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => openQRCodeInNewTab(params.row)}
-              title={t('view_qr_code') || 'View QR Code'}
-            >
-              {getThemedIcon('ui', 'qr_code', 16, theme)}
-            </Button>
-          )}
+          {(() => {
+            // Check if user has student role from boolean flags
+            const hasStudentRole = isStudent(params.row);
+            const isSuperAdminUser = params.row.isSuperAdmin || params.row.role === USER_ROLES.SUPER_ADMIN;
+            const isInstructorUser = params.row.isInstructor || params.row.role === USER_ROLES.INSTRUCTOR;
+
+            // Show QR code for students (functional), super admins, and instructors (disabled)
+            if (params.row.studentNumber && (hasStudentRole || isSuperAdminUser || isInstructorUser)) {
+              const canUseQR = hasStudentRole;
+              let title;
+              
+              if (canUseQR) {
+                title = t('view_qr_code') || 'View QR Code';
+              } else if (isSuperAdminUser && isInstructorUser) {
+                title = 'QR Code (Student only) - Super Admin & Instructor';
+              } else if (isSuperAdminUser) {
+                title = 'QR Code (Student only) - Super Admin';
+              } else if (isInstructorUser) {
+                title = 'QR Code (Student only) - Instructor';
+              } else {
+                title = 'QR Code (Student only)';
+              }
+              
+              return (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => canUseQR && openQRCodeInNewTab(params.row)}
+                  title={title}
+                  disabled={!canUseQR}
+                  style={{ opacity: canUseQR ? 1 : 0.5 }}
+                >
+                  {getThemedIcon('ui', 'qr_code', 16, theme)}
+                </Button>
+              );
+            }
+            return null;
+          })()}
           <Button 
             size="sm" 
             variant="outline" 
@@ -560,12 +653,13 @@ const UsersPage = ({ isDashboardTab = false }) => {
           <Button 
             size="sm" 
             variant="ghost" 
-            icon={params.row.disabled || params.row.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
-            style={{ color: params.row.disabled || params.row.isDisabled ? '#28a745' : '#dc2626' }}
+            icon={isUserDisabledAtUserLevel(params.row) ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)}
+            style={{ color: isUserDisabledAtUserLevel(params.row) ? '#28a745' : '#dc2626' }}
             onClick={() => handleToggleUserStatus(params.row)}
-            title={params.row.disabled || params.row.isDisabled ? 'Enable User' : 'Disable User'}
+            title={isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
+            disabled={isAdminUser(params.row) && !isUserDisabledAtUserLevel(params.row)}
           >
-            {params.row.disabled || params.row.isDisabled ? 'Enable' : 'Disable'}
+            {isUserDisabledAtUserLevel(params.row) ? 'Enable' : 'Disable'}
           </Button>
           <Button 
             size="sm" 
@@ -681,7 +775,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
       }
 
-      await loadData();
+      // Only reload if editing (not adding new user to allowlist)
+      if (editingUser) {
+        logger.info('USER_PAGE: Calling loadData after user update', {
+          timestamp: new Date().toISOString(),
+          userId: editingUser.docId
+        });
+        await loadData();
+      }
       resetForm();
     } catch (error) {
       toast?.showError('Error: ' + error.message);
@@ -725,28 +826,47 @@ const UsersPage = ({ isDashboardTab = false }) => {
         border: theme === 'dark' ? '1px solid #374151' : 'none',
         width: '100%' 
       }}>
-        {/* First line: Program filter */}
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <ProgramsSelect
-            programs={programs}
-            subjects={subjects}
-            classes={classes}
-            selectedProgram={programFilter}
-            selectedSubject={subjectFilter}
-            selectedClass={classFilter}
-            onProgramChange={(programId) => setProgramFilter(programId)}
-            onSubjectChange={(subjectId) => setSubjectFilter(subjectId)}
-            onClassChange={(classId) => setClassFilter(classId)}
-            showClass={true}
-            showLabels={false}
-          />
+        {/* First line: Program, Subject, Class, Role filters - full width */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', flex: 1 }}>
+            <ProgramsSelect
+              programs={programs}
+              subjects={subjects}
+              classes={classes}
+              selectedProgram={programFilter}
+              selectedSubject={subjectFilter}
+              selectedClass={classFilter}
+              onProgramChange={(programId) => setProgramFilter(programId)}
+              onSubjectChange={(subjectId) => setSubjectFilter(subjectId)}
+              onClassChange={(classId) => setClassFilter(classId)}
+              showClass={true}
+              showLabels={false}
+              style={{ flex: 1, minWidth: '200px' }}
+            />
+            
+            <Select
+              value={roleFilter || 'all'}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              options={roleOptions.map(option => ({
+                ...option,
+                label: (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {option.value !== 'all' && getRoleIconThemed(option.value)}
+                    {option.label}
+                  </span>
+                )
+              }))}
+              placeholder={t('filter_by_role') || 'Filter by Role'}
+              style={{ minWidth: '150px', flex: '0.5' }}
+            />
+          </div>
         </div>
         
-        {/* Second line: Search + Role + Status */}
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Second line: Search + Status */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           <Input
             type="text"
-            placeholder={t('search_users') || 'Search by email, name, student number...'}
+            placeholder={t('search_users') || 'Search by email or name...'}
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             prefix={getThemedIcon('ui', 'search', 16, theme)}
@@ -754,25 +874,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
           />
           
           <Select
-            value={roleFilter || 'all'}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            options={roleOptions.map(option => ({
-              ...option,
-              label: (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {option.value !== 'all' && getRoleIconThemed(option.value)}
-                  {option.label}
-                </span>
-              )
-            }))}
-            placeholder={t('filter_by_role') || 'Filter by Role'}
-          />
-          
-          <Select
             value={statusFilter || 'all'}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={statusOptions}
             placeholder={t('filter_by_status') || 'Filter by Status'}
+            style={{ minWidth: '150px' }}
           />
         </div>
       </div>
@@ -1025,18 +1131,31 @@ const UsersPage = ({ isDashboardTab = false }) => {
             </Button>
           </div>
         ) : (
-          <AdvancedDataGrid
-            rows={filteredUsers}
-            getRowId={(row) => row.docId || row.id}
-            columns={gridColumns}
-            pageSize={20}
-            pageSizeOptions={[10, 20, 50, 100]}
-            density="compact"
-            checkboxSelection
-            exportFileName="users"
-            showExportButton
-            exportLabel={t('export') || 'Export'}
-          />
+          <>
+            <ConfirmModal
+              isOpen={confirmModal.isOpen}
+              onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+              onConfirm={confirmModal.onConfirm}
+              title={confirmModal.title}
+              message={confirmModal.message}
+              confirmText={confirmModal.confirmText}
+              variant={confirmModal.variant}
+              size="small"
+            />
+            
+            <AdvancedDataGrid
+              rows={filteredUsers}
+              getRowId={(row) => row.docId || row.id}
+              columns={gridColumns}
+              pageSize={20}
+              pageSizeOptions={[10, 20, 50, 100]}
+              density="compact"
+              checkboxSelection
+              exportFileName="users"
+              showExportButton
+              exportLabel={t('export') || 'Export'}
+            />
+          </>
         )}
       </div>
       

@@ -2,6 +2,15 @@ import { doc, getDoc, query, collection, where, getDocs, setDoc, updateDoc, dele
 import { db } from './config';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from './activityLogger';
+import { USER_STATUS } from '@utils/userStatus';
+import { 
+  USER_ROLES, 
+  isAdmin as isRoleAdmin, 
+  isInstructor as isRoleInstructor, 
+  isStudent as isRoleStudent,
+  isHR as isRoleHR,
+  isSuperAdmin as isRoleSuperAdmin
+} from '@constants/userRoles';
 
 // Prevent duplicate ensureUserDoc writes during React StrictMode re-mounts
 const _ensureUserDocOnce = new Set();
@@ -480,5 +489,369 @@ export const getAllUsers = async (options = {}) => {
   } catch (error) {
     console.error('Error fetching all users:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// ===== USER UTILITY FUNCTIONS (Unified UI Logic) =====
+
+/**
+ * Check if a user should be disabled in UI components (select dropdowns, etc.)
+ * 
+ * @param {Object|string} user - User object or user status string
+ * @param {Array} enrollments - User's enrollments (optional, only used if user is an object)
+ * @returns {boolean} True if user should be disabled
+ */
+export const isUserDisabled = (user, enrollments = []) => {
+  try {
+    // If user is already a status string, use it directly
+    if (typeof user === 'string') {
+      return user === USER_STATUS.DELETED;
+    }
+
+    // If user is an object, determine status
+    if (user && typeof user === 'object') {
+      const status = user.status || 
+                    (user.deleted ? USER_STATUS.DELETED : null) ||
+                    (user.archived ? USER_STATUS.ARCHIVED : null) ||
+                    (user.disabled ? USER_STATUS.DISABLED : null);
+
+      return status === USER_STATUS.DELETED;
+    }
+
+    // Default to disabled for invalid user data
+    return true;
+  } catch (error) {
+    logger.error('Error checking if user is disabled:', error);
+    return true; // Fail safe to disabled
+  }
+};
+
+/**
+ * Check if a user should be disabled for selection (includes archived)
+ * More restrictive version used in some components
+ * 
+ * @param {Object|string} user - User object or user status string
+ * @param {Array} enrollments - User's enrollments (optional)
+ * @returns {boolean} True if user should be disabled for selection
+ */
+export const isUserDisabledForSelection = (user, enrollments = []) => {
+  try {
+    // If user is already a status string, use it directly
+    if (typeof user === 'string') {
+      return user === USER_STATUS.DELETED || user === USER_STATUS.ARCHIVED;
+    }
+
+    // If user is an object, determine status
+    if (user && typeof user === 'object') {
+      const status = user.status || 
+                    (user.deleted ? USER_STATUS.DELETED : null) ||
+                    (user.archived ? USER_STATUS.ARCHIVED : null) ||
+                    (user.disabled ? USER_STATUS.DISABLED : null);
+
+      return status === USER_STATUS.DELETED || status === USER_STATUS.ARCHIVED;
+    }
+
+    // Default to disabled for invalid user data
+    return true;
+  } catch (error) {
+    logger.error('Error checking if user is disabled for selection:', error);
+    return true; // Fail safe to disabled
+  }
+};
+
+/**
+ * Check if a user is deleted (most common check across components)
+ * 
+ * @param {Object|string} user - User object or user status string
+ * @returns {boolean} True if user is deleted
+ */
+export const isUserDeleted = (user) => {
+  try {
+    // If user is already a status string, use it directly
+    if (typeof user === 'string') {
+      return user === USER_STATUS.DELETED;
+    }
+
+    // If user is an object, check deleted flag or status
+    if (user && typeof user === 'object') {
+      return user.deleted === true || 
+             user.deletedAt !== undefined ||
+             user.status === USER_STATUS.DELETED;
+    }
+
+    // Default to deleted for invalid user data
+    return true;
+  } catch (error) {
+    logger.error('Error checking if user is deleted:', error);
+    return true; // Fail safe to deleted
+  }
+};
+
+/**
+ * Check if a user is disabled (at user level, not class level)
+ * 
+ * @param {Object} user - User object
+ * @returns {boolean} True if user is disabled
+ */
+export const isUserDisabledAtUserLevel = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return true;
+    }
+
+    return user.disabled === true || 
+           user.disabledAt !== undefined ||
+           user.status === USER_STATUS.DISABLED ||
+           user.isDisabled === true;
+  } catch (error) {
+    logger.error('Error checking if user is disabled at user level:', error);
+    return true; // Fail safe to disabled
+  }
+};
+
+/**
+ * Get user display name with fallbacks (synchronous version for UI)
+ * 
+ * @param {Object} user - User object
+ * @returns {string} Display name
+ */
+export const getUserDisplayNameSync = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return 'Unknown User';
+    }
+
+    return user.displayName || 
+           user.realName || 
+           user.name || 
+           user.email || 
+           'Unknown User';
+  } catch (error) {
+    logger.error('Error getting user display name:', error);
+    return 'Unknown User';
+  }
+};
+
+/**
+ * Get user ID with fallbacks
+ * 
+ * @param {Object} user - User object
+ * @returns {string} User ID
+ */
+export const getUserId = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return '';
+    }
+
+    return user.docId || 
+           user.id || 
+           user.uid || 
+           '';
+  } catch (error) {
+    logger.error('Error getting user ID:', error);
+    return '';
+  }
+};
+
+/**
+ * Common user option factory for select dropdowns
+ * 
+ * @param {Object} user - User object
+ * @param {Object} options - Additional options
+ * @param {boolean} options.includeArchived - Whether to include archived users (default: false)
+ * @param {Array} options.enrollments - User's enrollments for status determination
+ * @param {Function} options.t - Translation function
+ * @returns {Object} User option object for select components
+ */
+export const createUserSelectOption = (user, options = {}) => {
+  const { includeArchived = false, enrollments = [], t } = options;
+  
+  try {
+    const userId = getUserId(user);
+    const displayName = getUserDisplayNameSync(user);
+    
+    // Determine if user should be disabled
+    const isDisabled = includeArchived 
+      ? isUserDisabledForSelection(user, enrollments)
+      : isUserDisabled(user, enrollments);
+
+    return {
+      value: userId,
+      displayLabel: displayName,
+      user,
+      isDisabled,
+      // Additional commonly needed properties
+      email: user?.email || '',
+      status: user?.status || (user?.deleted ? USER_STATUS.DELETED : null),
+    };
+  } catch (error) {
+    logger.error('Error creating user select option:', error);
+    return {
+      value: getUserId(user) || '',
+      displayLabel: 'Error Loading User',
+      user,
+      isDisabled: true,
+      email: '',
+      status: USER_STATUS.DELETED,
+    };
+  }
+};
+
+/**
+ * Batch process users into select options
+ * 
+ * @param {Array} users - Array of user objects
+ * @param {Object} options - Options passed to createUserSelectOption
+ * @returns {Array} Array of user option objects
+ */
+export const createUserSelectOptions = (users, options = {}) => {
+  try {
+    if (!Array.isArray(users)) {
+      return [];
+    }
+
+    return users
+      .filter(user => user != null) // Filter out null/undefined
+      .map(user => createUserSelectOption(user, options))
+      .filter(option => option.value); // Filter out options without valid IDs
+  } catch (error) {
+    logger.error('Error creating user select options:', error);
+    return [];
+  }
+};
+
+/**
+ * Check if user has a specific role (wrapper for userRoles utility)
+ * 
+ * @param {Object} user - User object
+ * @param {string} role - Role to check
+ * @returns {boolean} True if user has the role
+ */
+export const hasUserRole = (user, role) => {
+  try {
+    if (!user || typeof user !== 'object' || !role) {
+      return false;
+    }
+
+    // Check if user has the specified role
+    return user.role === role || 
+           (Array.isArray(user.roles) && user.roles.includes(role));
+  } catch (error) {
+    logger.error('Error checking user role:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if user is a student (wrapper for userRoles utility)
+ * 
+ * @param {Object} user - User object
+ * @returns {boolean} True if user is a student
+ */
+export const isStudent = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return false;
+    }
+    return isRoleStudent(user.role);
+  } catch (error) {
+    logger.error('Error checking if user is student:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if user is an instructor (wrapper for userRoles utility)
+ * 
+ * @param {Object} user - User object
+ * @returns {boolean} True if user is an instructor
+ */
+export const isInstructor = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return false;
+    }
+    return isRoleInstructor(user.role);
+  } catch (error) {
+    logger.error('Error checking if user is instructor:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if user is an admin (wrapper for userRoles utility)
+ * 
+ * @param {Object} user - User object
+ * @returns {boolean} True if user is an admin
+ */
+export const isAdmin = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return false;
+    }
+    return isRoleAdmin(user.role);
+  } catch (error) {
+    logger.error('Error checking if user is admin:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if user is HR (wrapper for userRoles utility)
+ * 
+ * @param {Object} user - User object
+ * @returns {boolean} True if user is HR
+ */
+export const isHR = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return false;
+    }
+    return isRoleHR(user.role);
+  } catch (error) {
+    logger.error('Error checking if user is HR:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if user is enrolled in a specific class
+ * 
+ * @param {Object} user - User object
+ * @param {string} classId - Class ID to check
+ * @returns {boolean} True if user is enrolled in the class
+ */
+export const isUserEnrolledInClass = (user, classId) => {
+  try {
+    if (!user || typeof user !== 'object' || !classId) {
+      return false;
+    }
+
+    const enrolledClasses = user.enrolledClasses || [];
+    return Array.isArray(enrolledClasses) && enrolledClasses.includes(classId);
+  } catch (error) {
+    logger.error('Error checking class enrollment:', error);
+    return false;
+  }
+};
+
+/**
+ * Get user's enrollment count
+ * 
+ * @param {Object} user - User object
+ * @returns {number} Number of active enrollments
+ */
+export const getUserEnrollmentCount = (user) => {
+  try {
+    if (!user || typeof user !== 'object') {
+      return 0;
+    }
+
+    const enrolledClasses = user.enrolledClasses || [];
+    return Array.isArray(enrolledClasses) ? enrolledClasses.length : 0;
+  } catch (error) {
+    logger.error('Error getting user enrollment count:', error);
+    return 0;
   }
 };

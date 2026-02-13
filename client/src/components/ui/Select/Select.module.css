@@ -277,7 +277,7 @@
 }
 
 .option:hover {
-  background: var(--hover-bg, #f3f4f6);
+  background: var(--hover-bg, #f3f4f6) !important;
 }
 
 /* Dark mode for option hover */
@@ -287,7 +287,7 @@
 
 .option.selected {
   background: var(--primary-light, #eef2ff);
-  color: var(--primary, #800020);
+  color: var(--color-primary, var(--primary, #4f46e5));
   font-weight: 500;
 }
 
