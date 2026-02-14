@@ -1,8 +1,7 @@
-﻿import { useEffect, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, where, limit } from 'firebase/firestore';
-import { db } from '@services/other/config';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
+import { onLatestAnnouncementChange } from '@services/db/announcementDbService';
 
 export const useRealTimeUpdates = () => {
   const { user } = useAuth();
@@ -12,26 +11,17 @@ export const useRealTimeUpdates = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Real-time announcements listener - simplified to avoid infinite notifications
-    const announcementsQuery = query(
-      collection(db, 'announcements'),
-      orderBy('createdAt', 'desc'),
-      limit(1) // Only get the latest announcement
-    );
-
-    const unsubscribeAnnouncements = onSnapshot(announcementsQuery, (snapshot) => {
+    // Real-time announcements listener using centralized service
+    const unsubscribeAnnouncements = onLatestAnnouncementChange((announcement, changeType) => {
       // Skip initial load to prevent showing notifications for existing data
       if (initialLoadRef.current) {
         initialLoadRef.current = false;
         return;
       }
 
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const announcement = change.doc.data();
-          toast?.showSuccess(`📢 New Announcement: ${announcement.title}`);
-        }
-      });
+      if (changeType === 'added') {
+        toast?.showSuccess(`📢 New Announcement: ${announcement.title}`);
+      }
     });
 
     // Simplified notifications - remove complex query that needs indexes

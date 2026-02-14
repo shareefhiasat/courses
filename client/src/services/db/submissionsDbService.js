@@ -1,0 +1,197 @@
+/**
+ * Submissions Database Service
+ * 
+ * PURPOSE:
+ * Direct Firestore operations for submission records. This is the database layer
+ * and should NOT contain business logic.
+ * 
+ * COLLECTION: 'submissions'
+ * 
+ * @typedef {import('@types/index').Submission} Submission
+ * @typedef {import('@types/index').ServiceResponse} ServiceResponse
+ */
+
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  collection, 
+  query, 
+  where, 
+  getDocs,
+  orderBy,
+  limit,
+  serverTimestamp
+} from 'firebase/firestore';
+import { db } from '../other/config';
+import logger from '@utils/logger';
+
+/**
+ * Get submissions by user ID
+ * @param {string} userId - User ID
+ * @param {Object} options - Query options
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getSubmissionsByUser = async (userId, options = {}) => {
+  try {
+    const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    const q = query(
+      collection(db, 'submissions'),
+      where('userId', '==', userId),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const submissions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: submissions };
+  } catch (error) {
+    logger.error('[SubmissionsDbService] Error getting submissions by user:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get submissions by activity ID
+ * @param {string} activityId - Activity ID
+ * @param {Object} options - Query options
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getSubmissionsByActivity = async (activityId, options = {}) => {
+  try {
+    const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    const q = query(
+      collection(db, 'submissions'),
+      where('activityId', '==', activityId),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const submissions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: submissions };
+  } catch (error) {
+    logger.error('[SubmissionsDbService] Error getting submissions by activity:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get submission by ID
+ * @param {string} submissionId - Submission ID
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export const getSubmission = async (submissionId) => {
+  try {
+    const docSnap = await getDoc(doc(db, 'submissions', submissionId));
+    if (docSnap.exists()) {
+      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+    }
+    return { success: false, error: 'Submission not found' };
+  } catch (error) {
+    logger.error('[SubmissionsDbService] Error getting submission:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Create submission
+ * @param {Object} submissionData - Submission data
+ * @returns {Promise<{success: boolean, id?: string, error?: string}>}
+ */
+export const createSubmission = async (submissionData) => {
+  try {
+    const docRef = doc(collection(db, 'submissions'));
+    await setDoc(docRef, {
+      ...submissionData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    logger.error('[SubmissionsDbService] Error creating submission:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Update submission
+ * @param {string} submissionId - Submission ID
+ * @param {Object} submissionData - Updated submission data
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const updateSubmission = async (submissionId, submissionData) => {
+  try {
+    await updateDoc(doc(db, 'submissions', submissionId), {
+      ...submissionData,
+      updatedAt: serverTimestamp()
+    });
+    return { success: true };
+  } catch (error) {
+    logger.error('[SubmissionsDbService] Error updating submission:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Delete submission
+ * @param {string} submissionId - Submission ID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const deleteSubmission = async (submissionId) => {
+  try {
+    await deleteDoc(doc(db, 'submissions', submissionId));
+    return { success: true };
+  } catch (error) {
+    logger.error('[SubmissionsDbService] Error deleting submission:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get all submissions with filters
+ * @param {Object} filters - Query filters
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getSubmissions = async (filters = {}) => {
+  try {
+    const { 
+      userId,
+      activityId,
+      classId,
+      programId,
+      subjectId,
+      status,
+      limitCount = 100,
+      orderByField = 'createdAt',
+      orderDirection = 'desc'
+    } = filters;
+    
+    let conditions = [];
+    
+    if (userId) conditions.push(where('userId', '==', userId));
+    if (activityId) conditions.push(where('activityId', '==', activityId));
+    if (classId) conditions.push(where('classId', '==', classId));
+    if (programId) conditions.push(where('programId', '==', programId));
+    if (subjectId) conditions.push(where('subjectId', '==', subjectId));
+    if (status) conditions.push(where('status', '==', status));
+    
+    const q = query(
+      collection(db, 'submissions'),
+      ...conditions,
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const submissions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: submissions };
+  } catch (error) {
+    logger.error('[SubmissionsDbService] Error getting submissions:', error);
+    return { success: false, error: error.message };
+  }
+};

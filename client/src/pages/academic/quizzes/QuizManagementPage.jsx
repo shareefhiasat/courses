@@ -137,12 +137,9 @@ export default function QuizManagementPage() {
 
     // Check for related data (quiz submissions)
     try {
-      const submissionsQuery = query(
-        collection(db, 'quizSubmissions'),
-        where('quizId', '==', quizId)
-      );
-      const submissionsSnap = await getDocs(submissionsQuery);
-      const quizSubmissions = submissionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const submissionsResult = await getQuizSubmissions({ quizId });
+      const submissionsData = submissionsResult.success ? submissionsResult.data : [];
+      const quizSubmissions = submissionsData;
 
       // Create readable item name
       const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || 'Untitled Quiz');

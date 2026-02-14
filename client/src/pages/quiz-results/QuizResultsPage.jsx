@@ -1,14 +1,22 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, orderBy, doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, Modal, Input, Checkbox } from '@ui';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
+import { 
+  getQuizResults, 
+  getQuizResultsByUser, 
+  updateQuizResult, 
+  deleteQuizResult, 
+  batchUpdateQuizResults 
+} from '@services/business/quizResultsService';
+import { getQuizzes } from '@services/business/quizzesService';
+import { getQuizSubmissions } from '@services/business/quizSubmissionsService';
+import { getUsers } from '@services/business/userService';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import { addNotification } from '@services/business/notificationService';
 import { sendEmail } from '@services/business/emailService';
@@ -95,9 +103,8 @@ const QuizResultsPage = () => {
       setClasses(classesData);
 
       // Load quizzes - filter by accessible classes for instructors
-      let quizzesQuery = query(collection(db, 'quizzes'), orderBy('createdAt', 'desc'));
-      const quizzesSnap = await getDocs(quizzesQuery);
-      let quizzesData = quizzesSnap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
+      const quizzesResult = await getQuizzes();
+      let quizzesData = quizzesResult.success ? quizzesResult.data : [];
       
       // Filter quizzes for instructors
       if (isInstructor && !isAdmin && !isSuperAdmin) {
@@ -113,16 +120,18 @@ const QuizResultsPage = () => {
       if (isInstructor && !isAdmin && !isSuperAdmin) {
         // Get students from enrollments in accessible classes
         const accessibleClassIds = classesData.map(c => c.id || c.docId);
-        const enrollmentsSnap = await getDocs(
-          query(collection(db, 'enrollments'), where('classId', 'in', accessibleClassIds.slice(0, 10)))
+        const enrollmentsResult = await getEnrollments();
+        const enrollmentsData = enrollmentsResult.success ? enrollmentsResult.data : [];
+        const filteredEnrollments = enrollmentsData.filter(e => 
+          accessibleClassIds.slice(0, 10).includes(e.classId)
         );
-        const studentIds = new Set(enrollmentsSnap.docs.map(d => d.data().userId).filter(Boolean));
+        const studentIds = new Set(filteredEnrollments.map(e => e.userId).filter(Boolean));
         const studentsData = await Promise.all(
           Array.from(studentIds).slice(0, 50).map(async (studentId) => {
             try {
-              const studentDoc = await getDoc(doc(db, 'users', studentId));
-              if (studentDoc.exists()) {
-                return { id: studentId, docId: studentId, ...studentDoc.data() };
+              const usersResult = await getUsers();
+              if (usersResult.success) {
+                return usersResult.data.find(u => (u.docId || u.id) === studentId);
               }
             } catch (err) {
               logger.warn('Failed to load student:', studentId, err);
@@ -133,8 +142,8 @@ const QuizResultsPage = () => {
         setStudents(studentsData.filter(Boolean));
       } else {
         // Admin/HR: load all students
-        const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'student')));
-        const studentsData = studentsSnap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
+        const usersResult = await getUsers();
+        const studentsData = usersResult.success ? usersResult.data.filter(user => user.role === 'student') : [];
         setStudents(studentsData);
       }
     } catch (error) {
@@ -174,35 +183,18 @@ const QuizResultsPage = () => {
     setLoading(true);
     try {
       // Use quizSubmissions collection instead of quizResults (which doesn't exist in firestore rules)
-      let q;
-      
-      // Build query - handle orderBy carefully as it might fail if no index
-      try {
-        if (selectedQuiz !== 'all') {
-          q = query(
-            collection(db, 'quizSubmissions'),
-            where('quizId', '==', selectedQuiz),
-            orderBy('submittedAt', 'desc')
-          );
-        } else {
-          q = query(collection(db, 'quizSubmissions'), orderBy('submittedAt', 'desc'));
-        }
-      } catch (orderByError) {
-        // If orderBy fails (no index), try without it
-        logger.warn('OrderBy failed, trying without:', orderByError);
-        if (selectedQuiz !== 'all') {
-          q = query(collection(db, 'quizSubmissions'), where('quizId', '==', selectedQuiz));
-        } else {
-          q = query(collection(db, 'quizSubmissions'));
-        }
+      let filters = {};
+      if (selectedQuiz !== 'all') {
+        filters.quizId = selectedQuiz;
       }
       
-      const resultsSnap = await getDocs(q);
-      let results = resultsSnap.docs.map(d => {
-        const data = d.data();
+      const submissionsResult = await getQuizSubmissions(filters);
+      const submissionsData = submissionsResult.success ? submissionsResult.data : [];
+      let results = submissionsData.map(submission => {
+        const data = submission;
         return { 
-          id: d.id, 
-          docId: d.id, 
+          id: data.docId || data.id, 
+          docId: data.docId || data.id, 
           ...data,
           // Ensure we have required fields
           quizId: data.quizId || null,

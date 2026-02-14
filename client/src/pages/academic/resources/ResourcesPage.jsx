@@ -519,9 +519,12 @@ const ResourcesPage = () => {
       renderCell: (params) => (
         <span style={{ 
           color: params.value ? 'var(--color-success, #16a34a)' : 'var(--color-danger, #dc3545)',
-          fontWeight: params.value ? '600' : '400'
+          fontWeight: params.value ? '600' : '400',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px'
         }}>
-          {params.value ? '✓' : '✗'}
+          {params.value ? getThemedIcon('ui', 'check', 16, theme) : getThemedIcon('ui', 'x_circle', 16, theme)}
         </span>
       )
     },
@@ -530,9 +533,12 @@ const ResourcesPage = () => {
       renderCell: (params) => (
         <span style={{ 
           color: params.value ? 'var(--color-warning, #ffc107)' : 'var(--text-muted, #6b7280)',
-          fontWeight: params.value ? '600' : '400'
+          fontWeight: params.value ? '600' : '400',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px'
         }}>
-          {params.value ? '⭐' : '—'}
+          {params.value ? getThemedIcon('ui', 'star', 16, theme) : '—'}
         </span>
       )
     },
@@ -801,7 +807,7 @@ const ResourcesPage = () => {
             onChange={(e) => setResourceTypeFilter(e.target.value)}
             options={getResourceTypeOptions(theme)}
             placeholder={t('all_types') || 'All Types'}
-            style={{ minWidth: '200px' }}
+            style={{ minWidth: '300px', width: '300px' }}
           />
           
           <Select

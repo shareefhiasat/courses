@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Student Dashboard - Completely Revamped
  * Features: PDF/Image Export, Compact View Toggle, Smart UI/UX
  * Serves: Students, HR, Instructors, Admins
@@ -26,13 +26,32 @@ import {
   canParticipate,
   canViewDashboard
 } from '@utils/userStatus';
-import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { getAttendanceByStudent, getAttendanceStats } from '@services/business/attendanceService';
 import { getAbsences } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getStudentMarks } from '@services/business/gradingService';
 import { getSubjects, getPrograms } from '@services/business/programService';
+import { getEnrollments } from '@services/business/enrollmentService';
+import { getClasses } from '@services/business/classService';
+import { 
+  getActivitiesByClasses, 
+  getActivitiesByUser 
+} from '@services/business/activitiesService';
+import { 
+  getSubmissionsByUser 
+} from '@services/business/submissionsService';
+import { 
+  getQuizResultsByUser 
+} from '@services/business/quizResultsService';
+import { 
+  getParticipations 
+} from '@services/business/participationService';
+import { 
+  getBehaviors 
+} from '@services/business/behaviorService';
+import { 
+  getUsers 
+} from '@services/business/userService';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import styles from './StudentDashboardPage.module.css';
@@ -117,15 +136,8 @@ export default function StudentDashboardPage() {
       logger.debug('🔍 [StudentDashboard] Loading dashboard data for user ID:', targetUserId);
 
       // Load classes and enrollments
-      const enrollmentsQuery = query(
-        collection(db, 'enrollments'),
-        where('userId', '==', targetUserId)
-      );
-      const enrollmentsSnap = await getDocs(enrollmentsQuery);
-      const enrollmentsData = enrollmentsSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const enrollmentsResult = await getEnrollments({ userId: targetUserId });
+      const enrollmentsData = enrollmentsResult.success ? enrollmentsResult.data : [];
       
       logger.debug('🔍 [StudentDashboard] Found enrollments:', enrollmentsData.length, enrollmentsData);
       setEnrollments(enrollmentsData);
@@ -137,9 +149,12 @@ export default function StudentDashboardPage() {
         const classesData = [];
         for (const classId of classIds) {
           try {
-            const classDoc = await getDoc(doc(db, 'classes', classId));
-            if (classDoc.exists()) {
-              classesData.push({ id: classDoc.id, ...classDoc.data() });
+            const classResult = await getClasses();
+            if (classResult.success) {
+              const foundClass = classResult.data.find(c => (c.docId || c.id) === classId);
+              if (foundClass) {
+                classesData.push(foundClass);
+              }
             }
           } catch (err) {
             logger.warn('Failed to load class:', classId, err);
@@ -154,35 +169,17 @@ export default function StudentDashboardPage() {
           // Use 'in' query for up to 10 classes
           const limitedClassIds = classIds.slice(0, 10);
           try {
-            const activitiesQuery = query(collection(db, 'activities'), where('classId', 'in', limitedClassIds));
-            const activitiesSnap = await getDocs(activitiesQuery);
-            const activitiesData = activitiesSnap.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
+            const activitiesResult = await getActivitiesByClasses(limitedClassIds);
+            const activitiesData = activitiesResult.success ? activitiesResult.data : [];
             
             // Load submissions
-            const submissionsQuery = query(
-              collection(db, 'submissions'),
-              where('userId', '==', targetUserId)
-            );
-            const submissionsSnap = await getDocs(submissionsQuery);
-            const submissionsData = submissionsSnap.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
+            const submissionsResult = await getSubmissionsByUser(targetUserId);
+            const submissionsData = submissionsResult.success ? submissionsResult.data : [];
             setSubmissions(submissionsData);
 
             // Load quiz results
-            const quizResultsQuery = query(
-              collection(db, 'quizResults'),
-              where('userId', '==', targetUserId)
-            );
-            const quizResultsSnap = await getDocs(quizResultsQuery);
-            const quizResultsData = quizResultsSnap.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
+            const quizResultsResult = await getQuizResultsByUser(targetUserId);
+            const quizResultsData = quizResultsResult.success ? quizResultsResult.data : [];
             setQuizResults(quizResultsData);
 
             // Combine into tasks array
@@ -280,16 +277,8 @@ export default function StudentDashboardPage() {
 
       // Load participations - with permission handling
       try {
-        const participationsQuery = query(
-          collection(db, 'participations'),
-          where('studentId', '==', targetUserId),
-          orderBy('createdAt', 'desc')
-        );
-        const participationsSnap = await getDocs(participationsQuery);
-        const participationsData = participationsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const participationsResult = await getParticipations({ studentId: targetUserId });
+        const participationsData = participationsResult.success ? participationsResult.data : [];
         setParticipations(participationsData);
       } catch (error) {
         const message = String(error?.message || '').toLowerCase();
@@ -304,16 +293,8 @@ export default function StudentDashboardPage() {
 
       // Load behaviors - with permission handling
       try {
-        const behaviorsQuery = query(
-          collection(db, 'behaviors'),
-          where('studentId', '==', targetUserId),
-          orderBy('createdAt', 'desc')
-        );
-        const behaviorsSnap = await getDocs(behaviorsQuery);
-        const behaviorsData = behaviorsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const behaviorsResult = await getBehaviors({ studentId: targetUserId });
+        const behaviorsData = behaviorsResult.success ? behaviorsResult.data : [];
         setBehaviors(behaviorsData);
       } catch (error) {
         const message = String(error?.message || '').toLowerCase();
@@ -382,30 +363,31 @@ export default function StudentDashboardPage() {
       logger.log('🔍 [StudentDashboard] Loading students list...');
       
       // Load all students
-      const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'student')));
-      logger.log(`🔍 [StudentDashboard] Found ${usersSnap.size} students in collection`);
+      const usersResult = await getUsers();
+      const studentsData = usersResult.success ? usersResult.data.filter(user => user.role === 'student') : [];
+      logger.log(`🔍 [StudentDashboard] Found ${studentsData.length} students in collection`);
 
       // Load all enrollments
-      const enrollmentsSnap = await getDocs(collection(db, 'enrollments'));
-      logger.log(`🔍 [StudentDashboard] Found ${enrollmentsSnap.size} enrollments`);
+      const enrollmentsResult = await getEnrollments();
+      const enrollmentsData = enrollmentsResult.success ? enrollmentsResult.data : [];
+      logger.log(`🔍 [StudentDashboard] Found ${enrollmentsData.length} enrollments`);
 
       // Create a map of userId -> [enrollments]
       const enrollmentsByUser = {};
-      enrollmentsSnap.docs.forEach(doc => {
-        const data = doc.data();
-        const userId = data.userId;
+      enrollmentsData.forEach(enrollment => {
+        const userId = enrollment.userId;
         if (userId) {
           if (!enrollmentsByUser[userId]) {
             enrollmentsByUser[userId] = [];
           }
-          enrollmentsByUser[userId].push({ id: doc.id, ...data });
+          enrollmentsByUser[userId].push(enrollment);
         }
       });
 
-      const students = usersSnap.docs
-        .map(doc => {
-          const data = doc.data();
-          const studentId = doc.id;
+      const students = studentsData
+        .map(student => {
+          const data = student;
+          const studentId = student.docId || student.id;
           const studentEnrollments = enrollmentsByUser[studentId] || [];
           const hasEnrollments = studentEnrollments.length > 0;
           

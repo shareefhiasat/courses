@@ -362,9 +362,8 @@ export default function QuizzesPage() {
       if (newTotalScore !== originalTotalScore) {
         // Check for connected activities
         try {
-          const activitiesQuery = query(collection(db, 'activities'), where('quizId', '==', quizId));
-          const activitiesSnap = await getDocs(activitiesQuery);
-          const connectedActivities = activitiesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const activitiesResult = await getActivities();
+          const connectedActivities = activitiesResult.success ? activitiesResult.data.filter(a => a.quizId === quizId) : [];
           
           if (connectedActivities.length > 0) {
             const confirmMessage = `⚠️ WARNING: This quiz is connected to ${connectedActivities.length} activity/activities.\n\n` +
@@ -511,12 +510,9 @@ export default function QuizzesPage() {
     if (!quiz) return;
 
     try {
-      const submissionsQuery = query(
-        collection(db, 'quizSubmissions'),
-        where('quizId', '==', quizIdToDelete)
-      );
-      const submissionsSnap = await getDocs(submissionsQuery);
-      const quizSubmissions = submissionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const submissionsResult = await getQuizSubmissions({ quizId: quizIdToDelete });
+      const submissionsData = submissionsResult.success ? submissionsResult.data : [];
+      const quizSubmissions = submissionsData;
 
       const itemName = lang === 'ar' ? (quiz.title_ar || quiz.title_en || quiz.title || quiz.name || 'Untitled Quiz') : (quiz.title_en || quiz.title_ar || quiz.title || quiz.name || 'Untitled Quiz');
 

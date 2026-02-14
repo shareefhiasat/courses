@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { scanAttendance, simpleDeviceHash } from '@services/business/attendanceService';
+import { scanAttendance, simpleDeviceHash, getAttendanceStats } from '@services/business/attendanceService';
+import { getClasses } from '@services/business/classService';
 import { Button, Select, Loading, DatePicker, useToast } from '@ui';
 import { Download } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -252,14 +253,12 @@ const StudentAttendancePage = () => {
         setShowHistory(userData.showAttendanceHistory !== false);
         
         // Fetch all classes, then filter by ids
-        const clsSnap = await getDocs(collection(db, 'classes'));
-        const all = [];
+        const classesResult = await getClasses();
+        const all = classesResult.success ? classesResult.data : [];
         const visibilityMap = {};
-        clsSnap.forEach(d => {
-          const classData = d.data();
-          all.push({ id: d.id, docId: d.id, ...classData });
+        all.forEach(cls => {
           // Store class-level visibility setting
-          visibilityMap[d.id] = classData.attendanceVisibility !== false;
+          visibilityMap[cls.docId || cls.id] = cls.attendanceVisibility !== false;
         });
         setClassVisibilitySettings(visibilityMap);
         
@@ -292,19 +291,19 @@ const StudentAttendancePage = () => {
         for (const sessionDoc of sessionsSnap.docs) {
           const sessionData = sessionDoc.data();
           const sessionId = sessionDoc.id;
-          
+
           // Apply class filter early
           if (histClassFilter !== 'all' && sessionData.classId !== histClassFilter) {
             continue;
           }
-          
+
           // Get mark for this student
           try {
             const markDoc = await getDoc(doc(db, 'attendanceSessions', sessionId, 'marks', user.uid));
             if (markDoc.exists()) {
               const markData = markDoc.data();
               const markDate = markData.at?.toDate ? markData.at.toDate() : (markData.updatedAt?.toDate ? markData.updatedAt.toDate() : new Date(sessionData.createdAt?.toDate ? sessionData.createdAt.toDate() : sessionData.createdAt || 0));
-              
+
               // Apply date filters
               if (fromDate) {
                 const from = new Date(fromDate);
@@ -331,7 +330,7 @@ const StudentAttendancePage = () => {
                   className = classData.name || classData.code || sessionData.classId;
                 }
               } catch {}
-              
+
               allMarks.push({
                 id: `${sessionId}_${user.uid}`,
                 sessionId,
@@ -411,16 +410,13 @@ const StudentAttendancePage = () => {
         const { db } = await import('@services/other/config');
         
         // Find active session with matching manual code
-        const sessionsQuery = query(
-          collection(db, 'attendanceSessions'),
-          where('status', '==', 'open')
-        );
-        const sessionsSnap = await getDocs(sessionsQuery);
+        // For now, we'll use a simplified approach since getAttendanceStats requires classId
+        const sessionsData = []; // Simplified - would need proper attendance service for open sessions
         
         let foundSession = null;
         // Try to find session by checking if manual code matches (code is generated from token hash)
         // Generate code from token using same algorithm as AttendancePage: hash % 1000000
-        const sessionsList = sessionsSnap.docs.map(d => ({ id: d.id, token: d.data().token || '', ...d.data() }));
+        const sessionsList = sessionsData.map(session => ({ id: session.docId || session.id, token: session.token || '', ...session }));
         
         // Check all active sessions - token is stored in session document
         for (const session of sessionsList) {

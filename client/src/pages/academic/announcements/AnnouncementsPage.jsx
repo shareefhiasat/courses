@@ -17,7 +17,6 @@ import { Button, ToggleSwitch, Select, Input } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
-import logger from '@utils/logger';
 
 /**
  * AnnouncementsPage - Announcements management page

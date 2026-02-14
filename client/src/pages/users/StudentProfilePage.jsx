@@ -2,11 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { db } from '@services/other/config';
 import logger from '@utils/logger';
-import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '@services/business/badgeService';
+import { getPrograms, getSubjects } from '@services/business/programService';
+import { getClasses } from '@services/business/classService';
+import { getEnrollments } from '@services/business/enrollmentService';
+import { getUsers } from '@services/business/userService';
+import { getAttendanceByStudent } from '@services/business/attendanceService';
+import { getSubmissionsByUser } from '@services/business/submissionsService';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Loading, Select } from '@ui';
 import { StudentQRCodeDisplay } from '@ui';
@@ -171,28 +175,28 @@ const StudentProfilePage = () => {
   const loadAllClasses = async () => {
     try {
       // Load programs
-      const programsSnap = await getDocs(collection(db, 'programs'));
-      const programsData = programsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const programsResult = await getPrograms();
+      const programsData = programsResult.success ? programsResult.data : [];
       setPrograms(programsData);
       
       // Load subjects  
-      const subjectsSnap = await getDocs(collection(db, 'subjects'));
-      const subjectsData = subjectsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const subjectsResult = await getSubjects();
+      const subjectsData = subjectsResult.success ? subjectsResult.data : [];
       setSubjects(subjectsData);
       
-      let classesQuery = collection(db, 'classes');
+      // Load classes
+      const classesResult = await getClasses();
+      let classesData = classesResult.success ? classesResult.data : [];
       
       // If instructor (not admin/HR), filter by their classes only
       if (isInstructor && !isAdmin && !isHR) {
-        classesQuery = query(classesQuery, where('instructorId', '==', user.uid));
+        classesData = classesData.filter(c => c.instructorId === user.uid);
       }
       
-      const classesSnap = await getDocs(classesQuery);
-      const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setAllClasses(classes);
+      setAllClasses(classesData);
       
       // Load all enrolled students from these classes
-      await loadEnrolledStudents(classes.map(c => c.id));
+      await loadEnrolledStudents(classesData.map(c => c.id || c.docId));
     } catch (error) {
       console.error('Error loading classes:', error);
     }
@@ -201,25 +205,19 @@ const StudentProfilePage = () => {
   const loadEnrolledStudents = async (classIds) => {
     if (classIds.length === 0) return;
     try {
-      const enrollmentsQuery = query(
-        collection(db, 'enrollments'),
-        where('classId', 'in', classIds.slice(0, 10)) // Firestore 'in' limit is 10
+      const enrollmentsResult = await getEnrollments();
+      const enrollmentsData = enrollmentsResult.success ? enrollmentsResult.data : [];
+      const filteredEnrollments = enrollmentsData.filter(e => 
+        classIds.slice(0, 10).includes(e.classId)
       );
-      const enrollmentsSnap = await getDocs(enrollmentsQuery);
-      const studentIds = [...new Set(enrollmentsSnap.docs.map(d => d.data().userId))];
+      const studentIds = [...new Set(filteredEnrollments.map(e => e.userId))];
       
       // Load student user data
-      const students = [];
-      for (const uid of studentIds) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', uid));
-          if (userDoc.exists()) {
-            students.push({ uid, ...userDoc.data() });
-          }
-        } catch (e) {
-          console.warn('Error loading student:', uid, e);
-        }
-      }
+      const usersResult = await getUsers();
+      const allUsers = usersResult.success ? usersResult.data : [];
+      const students = allUsers.filter(user => 
+        studentIds.includes(user.docId || user.id) && user.role === 'student'
+      );
       setAllStudents(students);
     } catch (error) {
       console.error('Error loading enrolled students:', error);
@@ -229,9 +227,14 @@ const StudentProfilePage = () => {
   const loadStudentProfile = async () => {
     try {
       // Load student user data
-      const userDoc = await getDoc(doc(db, 'users', targetUserId));
-      if (userDoc.exists()) {
-        setStudentData({ uid: targetUserId, ...userDoc.data() });
+      const usersResult = await getUsers();
+      if (usersResult.success) {
+        const student = usersResult.data.find(u => (u.docId || u.id) === targetUserId);
+        if (student) {
+          setStudentData(student);
+        } else {
+          logger.warn('Student not found:', targetUserId);
+        }
       }
 
       // Load attendance data per class
@@ -287,15 +290,20 @@ const StudentProfilePage = () => {
     if (!q) { setSearchResults([]); return; }
     try {
       setSearchLoading(true);
-      // naive prefix search on email and displayName (requires composite indexes for prod scale)
-      const usersRef = collection(db, 'users');
-      const emailQ = query(usersRef, orderBy('email'), startAt(q), endAt(q + '\uf8ff'), limit(5));
-      const nameQ = query(usersRef, orderBy('displayName'), startAt(q), endAt(q + '\uf8ff'), limit(5));
-      const [emailSnap, nameSnap] = await Promise.all([getDocs(emailQ), getDocs(nameQ)]);
-      const map = new Map();
-      emailSnap.forEach(d => map.set(d.id, { uid: d.id, ...d.data() }));
-      nameSnap.forEach(d => map.set(d.id, { uid: d.id, ...d.data() }));
-      setSearchResults(Array.from(map.values()).slice(0, 8));
+      // Simple client-side search using all students data
+      const usersResult = await getUsers();
+      if (usersResult.success) {
+        const allStudents = usersResult.data.filter(user => user.role === 'student');
+        const searchQuery = q.toLowerCase();
+        
+        const filtered = allStudents.filter(student => 
+          (student.email && student.email.toLowerCase().includes(searchQuery)) ||
+          (student.displayName && student.displayName.toLowerCase().includes(searchQuery)) ||
+          (student.name && student.name.toLowerCase().includes(searchQuery))
+        ).slice(0, 8);
+        
+        setSearchResults(filtered);
+      }
     } catch (e) {
       console.warn('searchUsers:', e);
     } finally {
@@ -305,15 +313,14 @@ const StudentProfilePage = () => {
 
   const loadAttendanceData = async () => {
     try {
-      // Get all attendance sessions
-      const sessionsQuery = query(collection(db, 'attendanceSessions'));
-      const sessionsSnap = await getDocs(sessionsQuery);
+      // Get attendance data for the student
+      const attendanceResult = await getAttendanceByStudent(targetUserId);
+      const attendanceData = attendanceResult.success ? attendanceResult.data : [];
       
       const classAttendance = {};
 
-      for (const sessionDoc of sessionsSnap.docs) {
-        const sessionData = sessionDoc.data();
-        const classId = sessionData.classId;
+      for (const attendance of attendanceData) {
+        const classId = attendance.classId;
 
         // Apply filters
         if (filters.classId && classId !== filters.classId) continue;
@@ -374,11 +381,8 @@ const StudentProfilePage = () => {
   const loadPerformanceData = async () => {
     try {
       // Get all submissions for this student
-      const submissionsQuery = query(
-        collection(db, 'submissions'),
-        where('userId', '==', targetUserId)
-      );
-      const submissionsSnap = await getDocs(submissionsQuery);
+      const submissionsResult = await getSubmissionsByUser(targetUserId);
+      const submissionsData = submissionsResult.success ? submissionsResult.data : [];
 
       const performance = {
         homework: { completed: 0, total: 0, totalScore: 0, avgScore: 0 },
@@ -386,8 +390,8 @@ const StudentProfilePage = () => {
         training: { completed: 0, total: 0, totalScore: 0, avgScore: 0 },
       };
 
-      for (const subDoc of submissionsSnap.docs) {
-        const subData = subDoc.data();
+      for (const submission of submissionsData) {
+        const subData = submission;
         
         // Get activity type
         try {

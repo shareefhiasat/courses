@@ -1,14 +1,53 @@
-﻿import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../other/config';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from './userService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import logger from '@utils/logger';
 
 /**
  * Centralized Attendance Service - DRY Firebase attendance operations
  * This CONSOLIDATES functions from both attendance.js and attendanceService.js
  */
+
+// ===== ATTENDANCE SESSIONS OPERATIONS =====
+
+// Get attendance marks count for real-time updates
+export const listenAttendanceMarksCount = (sessionId, callback) => {
+  try {
+    const unsubscribe = onSnapshot(
+      collection(db, 'attendanceSessions', sessionId, 'marks'),
+      (snapshot) => {
+        callback(snapshot.size);
+      },
+      (error) => {
+        logger.error('Error listening to attendance marks:', error);
+      }
+    );
+    
+    return unsubscribe;
+  } catch (error) {
+    logger.error('Error setting up attendance marks listener:', error);
+    return () => {};
+  }
+};
+
+// Get attendance marks for export
+export const getAttendanceMarksForExport = async (sessionId) => {
+  try {
+    const q = query(collection(db, 'attendanceSessions', sessionId, 'marks'));
+    const querySnapshot = await getDocs(q);
+    const marks = querySnapshot.docs.map(doc => ({ 
+      uid: doc.id, 
+      ...doc.data() 
+    }));
+    return { success: true, data: marks };
+  } catch (error) {
+    logger.error('Error getting attendance marks for export:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 // ===== BASIC ATTENDANCE OPERATIONS (from attendanceService.js) =====
 

@@ -1,17 +1,19 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
 import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, CollapsibleDashboardSection, Tabs } from '@ui';
 import { InfoTooltip } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getActivities } from '@services/business/activityService';
+import { getEnrollments } from '@services/business/enrollmentService';
+import { getUsers } from '@services/business/userService';
+import { getQuizSubmissions } from '@services/business/quizSubmissionsService';
+import { getSubmissions } from '@services/business/submissionsService';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
 import styles from './QuizResultsPage.module.css';
 
@@ -96,16 +98,18 @@ const ReviewResultsPage = () => {
       // Load students - filter by accessible classes for instructors
       if (isInstructor && !isAdmin && !isSuperAdmin) {
         const accessibleClassIds = classesData.map(c => c.id || c.docId);
-        const enrollmentsSnap = await getDocs(
-          query(collection(db, 'enrollments'), where('classId', 'in', accessibleClassIds.slice(0, 10)))
+        const enrollmentsResult = await getEnrollments();
+        const enrollmentsData = enrollmentsResult.success ? enrollmentsResult.data : [];
+        const filteredEnrollments = enrollmentsData.filter(e => 
+          accessibleClassIds.slice(0, 10).includes(e.classId)
         );
-        const studentIds = new Set(enrollmentsSnap.docs.map(d => d.data().userId).filter(Boolean));
+        const studentIds = new Set(filteredEnrollments.map(e => e.userId).filter(Boolean));
         const studentsData = await Promise.all(
           Array.from(studentIds).slice(0, 50).map(async (studentId) => {
             try {
-              const studentDoc = await getDoc(doc(db, 'users', studentId));
-              if (studentDoc.exists()) {
-                return { id: studentId, docId: studentId, ...studentDoc.data() };
+              const usersResult = await getUsers();
+              if (usersResult.success) {
+                return usersResult.data.find(u => (u.docId || u.id) === studentId);
               }
             } catch (err) {
               logger.warn('Failed to load student:', studentId, err);
@@ -115,8 +119,8 @@ const ReviewResultsPage = () => {
         );
         setStudents(studentsData.filter(Boolean));
       } else {
-        const studentsSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'student')));
-        const studentsData = studentsSnap.docs.map(d => ({ id: d.id, docId: d.id, ...d.data() }));
+        const usersResult = await getUsers();
+        const studentsData = usersResult.success ? usersResult.data.filter(user => user.role === 'student') : [];
         setStudents(studentsData);
       }
     } catch (error) {
@@ -137,38 +141,26 @@ const ReviewResultsPage = () => {
     setLoading(true);
     try {
       // Load submissions based on mode
-      let collectionName = 'quizSubmissions'; // Default for quiz mode
-      if (mode === 'homework' || mode === 'training' || mode === 'labandproject') {
-        // For homework, training, and labandproject, we might use a different collection or filter by activity type
-        collectionName = 'submissions'; // Assuming there's a general submissions collection
+      let filters = {};
+      if (selectedActivity !== 'all') {
+        filters.activityId = selectedActivity;
       }
 
-      let q;
-      try {
-        if (selectedActivity !== 'all') {
-          q = query(
-            collection(db, collectionName),
-            where('activityId', '==', selectedActivity),
-            orderBy('submittedAt', 'desc')
-          );
-        } else {
-          q = query(collection(db, collectionName), orderBy('submittedAt', 'desc'));
-        }
-      } catch (orderByError) {
-        logger.warn('OrderBy failed, trying without:', orderByError);
-        if (selectedActivity !== 'all') {
-          q = query(collection(db, collectionName), where('activityId', '==', selectedActivity));
-        } else {
-          q = query(collection(db, collectionName));
-        }
+      let resultsData;
+      if (mode === 'quiz') {
+        const submissionsResult = await getQuizSubmissions(filters);
+        resultsData = submissionsResult.success ? submissionsResult.data : [];
+      } else {
+        // For homework, training, and labandproject, use general submissions
+        const submissionsResult = await getSubmissions(filters);
+        resultsData = submissionsResult.success ? submissionsResult.data : [];
       }
 
-      const resultsSnap = await getDocs(q);
-      let resultsData = resultsSnap.docs.map(d => {
-        const data = d.data();
+      let results = resultsData.map(submission => {
+        const data = submission;
         return {
-          id: d.id,
-          docId: d.id,
+          id: data.docId || data.id,
+          docId: data.docId || data.id,
           ...data,
           activityId: data.activityId || data.quizId || null,
           userId: data.userId || null,

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -17,6 +17,7 @@ import { getAnnouncements } from '@services/business/activityService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
+import logger from '@utils/logger';
 
 /**
  * AnalyticsDashboardPage - Dashboard Statistics Page

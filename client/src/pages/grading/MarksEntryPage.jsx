@@ -8,7 +8,7 @@ import { getSubjectMarksDistribution, setSubjectMarksDistribution, getStudentMar
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
-import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
 import { MARK_TYPES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
@@ -17,9 +17,6 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { CollapsibleSideWindow } from '@ui';
 import BehaviorPage from '../operations/behavior/BehaviorPage';
-import ParticipationPage from '../operations/behavior/ParticipationPage';
-import PenaltiesPage from '../operations/behavior/PenaltiesPage';
-import { ACTIVITY_TYPES } from '@constants';
 import styles from './MarksEntryPage.module.css';
 
 const MarksEntryPage = () => {

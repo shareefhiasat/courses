@@ -1,20 +1,6 @@
-﻿import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  setDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
-  writeBatch
-} from "firebase/firestore";
-import { db } from '../other/config';
+import { 
+  getActivities as getActivitiesFromDb
+} from '../db/activitiesDbService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { deleteCollection, deleteDocumentsByField } from './collectionManagementService';
 import { ACTIVITY_TYPE_OPTIONS } from '@constants/activityTypes';
@@ -23,6 +9,8 @@ import { getUserById } from './userService';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS, RECORD_TYPES } from '@constants';
 import logger from '@utils/logger';
+import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, where, Timestamp } from 'firebase/firestore';
+import { db } from '../other/config';
 
 // Convert date fields to timestamps for Firestore using centralized utility
 
@@ -31,18 +19,11 @@ export const getActivities = async () => {
   try {
     logger.info('ACTIVITY: Fetching all activities');
     
-    const querySnapshot = await getDocs(collection(db, "activities"));
-    const activities = [];
-    querySnapshot.forEach((d) => {
-      const activityData = { docId: d.id, ...d.data() };
-      if (activityData.createdAt?.toDate) {
-        activityData.createdAt = activityData.createdAt.toDate();
-      }
-      activities.push(activityData);
-    });
-    
-    logger.info('ACTIVITY: Successfully fetched activities', { count: activities.length });
-    return { success: true, data: activities };
+    const result = await getActivitiesFromDb();
+    if (result.success) {
+      logger.info('ACTIVITY: Successfully fetched activities', { count: result.data.length });
+    }
+    return result;
   } catch (error) {
     logger.error('ACTIVITY: Failed to fetch activities', { error: error.message });
     logger.error("Error getting activities:", error);

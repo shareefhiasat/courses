@@ -22,7 +22,6 @@ import {
 } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
-import logger from '@utils/logger';
 
 const ClassesPage = () => {
   const { t, lang } = useLang();

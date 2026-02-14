@@ -92,16 +92,12 @@ const AttendancePageEnhanced = () => {
     if (!(isAdmin || isInstructor || isHR)) return;
     (async () => {
       try {
-        const [classesSnap, programsRes, subjectsRes] = await Promise.all([
-          getDocs(collection(db, 'classes')),
+        const [classesResult, programsRes, subjectsRes] = await Promise.all([
+          getClasses(),
           getPrograms(),
           getSubjects()
         ]);
-        const opts = [];
-        classesSnap.forEach(d => {
-          const data = d.data() || {};
-          opts.push({ ...(data), id: d.id, docId: d.id });
-        });
+        const opts = classesResult.success ? classesResult.data : [];
         setClassOptions(opts);
         if (programsRes.success) setPrograms(programsRes.data || []);
         if (subjectsRes.success) setSubjects(subjectsRes.data || []);
@@ -140,15 +136,9 @@ const AttendancePageEnhanced = () => {
       setAttendanceCount(0);
       return;
     }
-    const unsubscribe = onSnapshot(
-      collection(db, 'attendanceSessions', sessionId, 'marks'),
-      (snapshot) => {
-        setAttendanceCount(snapshot.size);
-      },
-      (error) => {
-        console.error('[Attendance] Error listening to marks:', error);
-      }
-    );
+    const unsubscribe = listenAttendanceMarksCount(sessionId, (count) => {
+        setAttendanceCount(count);
+      });
     return () => unsubscribe();
   }, [sessionId]);
 
@@ -666,8 +656,8 @@ const AttendancePageEnhanced = () => {
                     icon={getThemedIcon('ui', 'download', 16, theme)}
                     onClick={async()=>{
                       try {
-                        const snap = await getDocs(collection(db, 'attendanceSessions', sessionId, 'marks'));
-                        const rows = snap.docs.map(d => ({ uid: d.id, ...(d.data()||{}) }));
+                        const result = await getAttendanceMarksForExport(sessionId);
+                        const rows = result.success ? result.data : [];
                         const headers = ['uid','status','deviceHash','scannedAt'];
                         const csvRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB')]);
                         const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');

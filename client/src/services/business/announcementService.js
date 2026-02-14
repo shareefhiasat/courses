@@ -1,16 +1,11 @@
-﻿import {
-  collection,
-  doc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  serverTimestamp
-} from "firebase/firestore";
-import { db } from '../other/config';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { 
+  getAnnouncements as getAnnouncementsFromDb,
+  createAnnouncement,
+  updateAnnouncement as updateAnnouncementInDb,
+  deleteAnnouncement as deleteAnnouncementFromDb
+} from '../db/announcementDbService';
+import logger from '@utils/logger';
 
 /**
  * Announcement Service
@@ -24,23 +19,11 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
  */
 export const getAnnouncements = async () => {
   try {
-    const q = query(
-      collection(db, "announcements"),
-      orderBy("createdAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
-    const announcements = [];
-    querySnapshot.forEach((d) => {
-      const data = d.data();
-      announcements.push({
-        docId: d.id,
-        id: d.id,
-        ...data,
-        // Keep Firestore timestamp as-is for Qatar date utilities to handle properly
-        createdAt: data.createdAt
-      });
-    });
-    return { success: true, data: announcements };
+    const result = await getAnnouncementsFromDb();
+    if (result.success) {
+      return { success: true, data: result.data };
+    }
+    return { success: false, error: result.error };
   } catch (error) {
     logger.error("Error getting announcements:", error);
     return { success: false, error: error.message };
@@ -54,27 +37,27 @@ export const getAnnouncements = async () => {
  */
 export const addAnnouncement = async (announcementData) => {
   try {
-    const docRef = await addDoc(collection(db, "announcements"), {
-      ...announcementData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-
-    // Log announcement creation (non-blocking)
-    try {
-      await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_CREATED, {
-        announcementId: docRef.id,
-        announcementTitle: announcementData.title,
-        target: announcementData.target,
-        programId: announcementData.programId,
-        subjectId: announcementData.subjectId,
-        classId: announcementData.classId
-      });
-    } catch (logError) {
-      logger.warn('Failed to log announcement creation:', logError);
+    const result = await createAnnouncement(announcementData);
+    
+    if (result.success) {
+      // Log announcement creation (non-blocking)
+      try {
+        await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_CREATED, {
+          announcementId: result.id,
+          announcementTitle: announcementData.title,
+          target: announcementData.target,
+          programId: announcementData.programId,
+          subjectId: announcementData.subjectId,
+          classId: announcementData.classId
+        });
+      } catch (logError) {
+        logger.warn('Failed to log announcement creation:', logError);
+      }
+      
+      return { success: true, id: result.id };
     }
-
-    return { success: true, id: docRef.id };
+    
+    return { success: false, error: result.error };
   } catch (error) {
     logger.error("Error adding announcement:", error);
     return { success: false, error: error.message };
@@ -89,22 +72,23 @@ export const addAnnouncement = async (announcementData) => {
  */
 export const updateAnnouncement = async (id, announcementData) => {
   try {
-    await updateDoc(doc(db, "announcements", id), {
-      ...announcementData,
-      updatedAt: serverTimestamp()
-    });
-
-    // Log announcement update
-    try {
-      await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_UPDATED, {
-        announcementId: id,
-        announcementTitle: announcementData.title
-      });
-    } catch (logError) {
-      logger.warn('Failed to log announcement update:', logError);
+    const result = await updateAnnouncementInDb(id, announcementData);
+    
+    if (result.success) {
+      // Log announcement update
+      try {
+        await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_UPDATED, {
+          announcementId: id,
+          announcementTitle: announcementData.title
+        });
+      } catch (logError) {
+        logger.warn('Failed to log announcement update:', logError);
+      }
+      
+      return { success: true };
     }
-
-    return { success: true };
+    
+    return { success: false, error: result.error };
   } catch (error) {
     logger.error("Error updating announcement:", error);
     return { success: false, error: error.message };
@@ -119,21 +103,25 @@ export const updateAnnouncement = async (id, announcementData) => {
  */
 export const deleteAnnouncement = async (id, announcementData = null) => {
   try {
-    await deleteDoc(doc(db, "announcements", id));
-
-    // Log announcement deletion
-    if (announcementData) {
-      try {
-        await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_DELETED, {
-          announcementId: id,
-          announcementTitle: announcementData.title
-        });
-      } catch (logError) {
-        logger.warn('Failed to log announcement deletion:', logError);
+    const result = await deleteAnnouncementFromDb(id);
+    
+    if (result.success) {
+      // Log announcement deletion
+      if (announcementData) {
+        try {
+          await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_DELETED, {
+            announcementId: id,
+            announcementTitle: announcementData.title
+          });
+        } catch (logError) {
+          logger.warn('Failed to log announcement deletion:', logError);
+        }
       }
+      
+      return { success: true };
     }
-
-    return { success: true };
+    
+    return { success: false, error: result.error };
   } catch (error) {
     logger.error("Error deleting announcement:", error);
     return { success: false, error: error.message };

@@ -18,6 +18,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
+import { GENERAL_STATUS } from '@utils/sharedTypes';
 import StudentActionPanel from './StudentActionPanel';
 import StudentActionPanelNew from './StudentActionPanelNew';
 import { generateReferenceId } from '@utils/qrCode';
@@ -301,10 +302,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     try {
       // Vibration for both success and error
       if (vibrationEnabled && navigator.vibrate) {
-        if (type === 'success') {
+        if (type === GENERAL_STATUS.SUCCESS) {
           // Short vibration for success
           navigator.vibrate(100);
-        } else if (type === 'error') {
+        } else if (type === GENERAL_STATUS.ERROR) {
           // Longer vibration pattern for error
           navigator.vibrate([200, 100, 200]);
         }
@@ -319,7 +320,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
 
-        if (type === 'success') {
+        if (type === GENERAL_STATUS.SUCCESS) {
           // Success sound: ascending tone
           oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
           oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
@@ -328,7 +329,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
           oscillator.start(audioContext.currentTime);
           oscillator.stop(audioContext.currentTime + 0.3);
-        } else if (type === 'error') {
+        } else if (type === GENERAL_STATUS.ERROR) {
           // Error sound: descending tone
           oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
           oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.2); // A3
@@ -340,7 +341,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }
 
       // Don't show toast notification - using modal system instead
-      // const message = type === 'success'
+      // const message = type === GENERAL_STATUS.SUCCESS
       //   ? (t('qr_scan_success') || 'QR Code scanned successfully!')
       //   : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
       //
@@ -358,10 +359,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
 
     setIsScanningLocked(true);
-    addDebugLog(`🔍 QR Code scanned: ${data}`, 'success');
+    addDebugLog(`🔍 QR Code scanned: ${data}`, GENERAL_STATUS.SUCCESS);
 
     // Play success feedback
-    playFeedbackSound('success');
+    playFeedbackSound(GENERAL_STATUS.SUCCESS);
 
     onScan(data);
     setRecentScans(prev => prev + 1);
@@ -750,12 +751,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       setShowManualInput(false);
       setManualStudentId('');
       addDebugLog(`📝 Manual student ID entered: ${manualStudentId.trim()}`, 'info');
-      playFeedbackSound('success');
+      playFeedbackSound(GENERAL_STATUS.SUCCESS);
     } else {
       // Student not found - show error message
       showResult('error', t('student_not_found'));
       addDebugLog(`❌ Student not found: ${manualStudentId.trim()}`, 'error');
-      playFeedbackSound('error');
+      playFeedbackSound(GENERAL_STATUS.ERROR);
     }
   }, [manualStudentId, selectedProgramId, selectedSubjectId, selectedClassId, t, addDebugLog, playFeedbackSound, students, showResult]);
 
