@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import Joyride from 'react-joyride';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
@@ -118,7 +118,7 @@ const JoyrideTour = ({
     console.debug('[JoyrideTour] Joyride callback:', data);
     
     if (data.status === 'finished' || data.status === 'skipped') {
-      console.log('[JoyrideTour] Tour finished/skipped');
+      logger.log('[JoyrideTour] Tour finished/skipped');
       
       // Save to localStorage if key is provided
       if (tourSeenKey) {
@@ -126,7 +126,7 @@ const JoyrideTour = ({
           localStorage.setItem(tourSeenKey, 'true');
           console.debug('[JoyrideTour] Saved tour seen key:', tourSeenKey);
         } catch (e) {
-          console.error('[JoyrideTour] Failed to save tour seen key:', e);
+          logger.error('[JoyrideTour] Failed to save tour seen key:', e);
         }
       }
       
@@ -160,3 +160,4 @@ const JoyrideTour = ({
 };
 
 export default JoyrideTour;
+

@@ -1,4 +1,4 @@
-import { db } from '../other/config';
+﻿import { db } from '../other/config';
 import { 
   collection, 
   doc, 
@@ -74,7 +74,7 @@ export const addEnrollment = async (data) => {
         });
       }
     } catch (e) {
-      console.warn("Failed to update student progress:", e);
+      logger.warn("Failed to update student progress:", e);
     }
 
     return { success: true, id: detId };
@@ -170,7 +170,7 @@ export const getStudentsByClass = async (classId) => {
     const students = studentsData.filter(Boolean);
     return { success: true, data: students };
   } catch (error) {
-    console.error('Error fetching students by class:', error);
+    logger.error('Error fetching students by class:', error);
     return { success: false, error: error.message };
   }
 };
@@ -567,3 +567,4 @@ export const getClassStatistics = async (classId) => {
     return { success: false, error: error.message };
   }
 };
+

@@ -1,4 +1,4 @@
-import { db } from '../other/config';
+﻿import { db } from '../other/config';
 import { 
   collection, 
   doc, 
@@ -59,3 +59,4 @@ export const getCourseById = async (courseId) => {
     return { success: false, error: error.message };
   }
 };
+

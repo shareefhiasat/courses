@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getFilterConfig, generateFilterOptions, getFilterPlaceholder } from '@constants/filterConfig';
@@ -24,7 +24,7 @@ const FilterSelect = ({
   const config = getFilterConfig(filterKey);
   
   if (!config) {
-    console.warn(`Filter config not found for key: ${filterKey}`);
+    logger.warn(`Filter config not found for key: ${filterKey}`);
     return null;
   }
 
@@ -52,3 +52,4 @@ const FilterSelect = ({
 };
 
 export default FilterSelect;
+

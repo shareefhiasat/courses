@@ -1,4 +1,4 @@
-import {
+﻿import {
   collection,
   doc,
   getDocs,
@@ -45,7 +45,7 @@ export const getActivities = async () => {
     return { success: true, data: activities };
   } catch (error) {
     logger.error('ACTIVITY: Failed to fetch activities', { error: error.message });
-    console.error("Error getting activities:", error);
+    logger.error("Error getting activities:", error);
     return { success: false, error: error.message };
   }
 };
@@ -65,7 +65,7 @@ export const addActivity = async (activityData) => {
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`🔍 [SERVICE] addActivity called (attempt ${attempt}/${maxRetries}):`, {
+      logger.log(`🔍 [SERVICE] addActivity called (attempt ${attempt}/${maxRetries}):`, {
         title: activityData.title_en,
         url: activityData.url,
         type: activityData.type,
@@ -75,7 +75,7 @@ export const addActivity = async (activityData) => {
       });
       
       const convertedData = activityData; // No date conversion - save as-is
-      console.log('🔍 [SERVICE] Saving data directly without conversion');
+      logger.log('🔍 [SERVICE] Saving data directly without conversion');
       
       // Add a small delay for retries
       if (attempt > 1) {
@@ -88,7 +88,7 @@ export const addActivity = async (activityData) => {
         updatedAt: serverTimestamp()
       });
 
-      console.log('🔍 [SERVICE] Activity saved to Firestore with ID:', docRef.id);
+      logger.log('🔍 [SERVICE] Activity saved to Firestore with ID:', docRef.id);
 
       // TODO: Fix notification gateway - temporarily disabled
       // Send notifications for new activity
@@ -118,15 +118,15 @@ export const addActivity = async (activityData) => {
       //       }
       //     }
       //   } catch (notifyError) {
-      //     console.warn('Failed to send activity notifications:', notifyError);
+      //     logger.warn('Failed to send activity notifications:', notifyError);
       //   }
       // }
 
       return { success: true, id: docRef.id };
     } catch (error) {
       lastError = error;
-      console.error(`🔍 [SERVICE] Error in addActivity (attempt ${attempt}/${maxRetries}):`, error);
-      console.error('🔍 [SERVICE] Error details:', {
+      logger.error(`🔍 [SERVICE] Error in addActivity (attempt ${attempt}/${maxRetries}):`, error);
+      logger.error('🔍 [SERVICE] Error details:', {
         message: error.message,
         code: error.code,
         name: error.name
@@ -139,7 +139,7 @@ export const addActivity = async (activityData) => {
                             error.code === 'deadline-exceeded';
       
       if (isNetworkError && attempt < maxRetries) {
-        console.log(`🔍 [SERVICE] Network error detected, retrying... (${attempt}/${maxRetries})`);
+        logger.log(`🔍 [SERVICE] Network error detected, retrying... (${attempt}/${maxRetries})`);
         continue;
       }
       
@@ -151,7 +151,7 @@ export const addActivity = async (activityData) => {
   }
   
   // If we get here, all attempts failed
-  console.error('🔍 [SERVICE] All retry attempts failed');
+  logger.error('🔍 [SERVICE] All retry attempts failed');
   return { success: false, error: lastError?.message || 'Failed to save activity after multiple attempts' };
 };
 
@@ -169,7 +169,7 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
       }
     });
     
-    console.log('🔍 [SERVICE] updateActivity called with:', {
+    logger.log('🔍 [SERVICE] updateActivity called with:', {
       id,
       title: activityData.title_en,
       url: activityData.url,
@@ -182,7 +182,7 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
     });
     
     const convertedData = activityData; // No date conversion - save as-is
-    console.log('🔍 [SERVICE] Saving data directly without conversion');
+    logger.log('🔍 [SERVICE] Saving data directly without conversion');
     
     await updateDoc(doc(db, "activities", id), {
       ...convertedData,
@@ -217,13 +217,13 @@ export const updateActivity = async (id, activityData, emailOptions = { sendEmai
           }
         }
       } catch (notificationError) {
-        console.warn('Failed to send notifications for activity update:', notificationError);
+        logger.warn('Failed to send notifications for activity update:', notificationError);
       }
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error updating activity:", error);
+    logger.error("Error updating activity:", error);
     return { success: false, error: error.message };
   }
 };
@@ -243,7 +243,7 @@ export const deleteActivity = async (id, activityData = null) => {
           activityType: activityData.type
         });
       } catch (logError) {
-        console.warn('Failed to log activity deletion:', logError);
+        logger.warn('Failed to log activity deletion:', logError);
       }
     }
     
@@ -251,7 +251,7 @@ export const deleteActivity = async (id, activityData = null) => {
     return { success: true };
   } catch (error) {
     logger.error('ACTIVITY: Failed to delete activity', { error: error.message, activityId: id });
-    console.error("Error deleting activity:", error);
+    logger.error("Error deleting activity:", error);
     return { success: false, error: error.message };
   }
 };
@@ -280,7 +280,7 @@ export const getAnnouncements = async () => {
     return { success: true, data: announcements };
   } catch (error) {
     logger.error('ANNOUNCEMENT: Failed to fetch announcements', { error: error.message });
-    console.error("Error getting announcements:", error);
+    logger.error("Error getting announcements:", error);
     return { success: false, error: error.message };
   }
 };
@@ -338,13 +338,13 @@ export const addAnnouncement = async (announcementData) => {
           }
         }
       } catch (notifyError) {
-        console.warn('Failed to send announcement notifications:', notifyError);
+        logger.warn('Failed to send announcement notifications:', notifyError);
       }
     }
 
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error("Error adding announcement:", error);
+    logger.error("Error adding announcement:", error);
     return { success: false, error: error.message };
   }
 };
@@ -382,13 +382,13 @@ export const updateAnnouncement = async (id, announcementData, emailOptions = { 
           }
         }
       } catch (notificationError) {
-        console.warn('Failed to send notifications for announcement update:', notificationError);
+        logger.warn('Failed to send notifications for announcement update:', notificationError);
       }
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error updating announcement:", error);
+    logger.error("Error updating announcement:", error);
     return { success: false, error: error.message };
   }
 };
@@ -398,7 +398,7 @@ export const deleteAnnouncement = async (id) => {
     await deleteDoc(doc(db, "announcements", id));
     return { success: true };
   } catch (error) {
-    console.error("Error deleting announcement:", error);
+    logger.error("Error deleting announcement:", error);
     return { success: false, error: error.message };
   }
 };
@@ -473,7 +473,7 @@ export const getResources = async (filters = {}, pagination = {}) => {
       hasMore: endIndex < resources.length
     };
   } catch (error) {
-    console.error("Error getting resources:", error);
+    logger.error("Error getting resources:", error);
     return { success: false, error: error.message };
   }
 };
@@ -514,7 +514,7 @@ export const getResourceCount = async (filters = {}) => {
     
     return { success: true, count: querySnapshot.size };
   } catch (error) {
-    console.error("Error getting resource count:", error);
+    logger.error("Error getting resource count:", error);
     return { success: false, error: error.message, count: 0 };
   }
 };
@@ -536,7 +536,7 @@ export const getAllResources = async () => {
     });
     return { success: true, data: resources };
   } catch (error) {
-    console.error("Error getting all resources:", error);
+    logger.error("Error getting all resources:", error);
     return { success: false, error: error.message };
   }
 };
@@ -577,13 +577,13 @@ export const addResource = async (resourceData) => {
           }
         }
       } catch (notifyError) {
-        console.warn('Failed to send resource notifications:', notifyError);
+        logger.warn('Failed to send resource notifications:', notifyError);
       }
     }
 
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error("Error adding resource:", error);
+    logger.error("Error adding resource:", error);
     return { success: false, error: error.message };
   }
 };
@@ -628,13 +628,13 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
           }
         }
       } catch (notificationError) {
-        console.warn('Failed to send notifications for resource update:', notificationError);
+        logger.warn('Failed to send notifications for resource update:', notificationError);
       }
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error updating resource:", error);
+    logger.error("Error updating resource:", error);
     return { success: false, error: error.message };
   }
 };
@@ -644,7 +644,7 @@ export const deleteResource = async (id) => {
     await deleteDoc(doc(db, "resources", id));
     return { success: true };
   } catch (error) {
-    console.error("Error deleting resource:", error);
+    logger.error("Error deleting resource:", error);
     return { success: false, error: error.message };
   }
 };
@@ -671,7 +671,7 @@ export const getLoginLogs = async () => {
     qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
-    console.error("Error getting login logs:", error);
+    logger.error("Error getting login logs:", error);
     return { success: false, error: error.message };
   }
 };
@@ -703,3 +703,4 @@ export const deleteLoginLogsByType = async (logType, onProgress = null) => {
 export const getActivityTypes = () => {
   return { success: true, data: ACTIVITY_TYPE_OPTIONS };
 };
+

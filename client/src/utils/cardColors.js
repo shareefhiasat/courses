@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Unified card configuration utility for dashboard cards and metrics
  * Provides consistent icons, colors, shapes, and localized labels across the application
  */
@@ -458,3 +458,4 @@ export const getCardIcon = (type) => {
   const config = getCardConfig(type);
   return config.icon;
 };
+

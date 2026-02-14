@@ -8,6 +8,7 @@ import App from './App.jsx';
 import { ToastProvider } from './components/ui';
 import { PostHogProvider } from 'posthog-js/react';
 import { initSentry } from './config/sentry.js';
+import logger from './utils/logger';
 
 // Initialize Sentry for error tracking
 initSentry();
@@ -37,7 +38,7 @@ const posthogOptions = {
 
 // Log PostHog status
 if (!posthogEnabled) {
-  console.log('🔧 PostHog disabled via VITE_POSTHOG_ENABLED=false');
+  logger.log('🔧 PostHog disabled via VITE_POSTHOG_ENABLED=false');
 }
 
 createRoot(document.getElementById('root')).render(
@@ -58,3 +59,4 @@ createRoot(document.getElementById('root')).render(
     )}
   </React.StrictMode>
 );
+

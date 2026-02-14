@@ -1,4 +1,4 @@
-import { 
+﻿import { 
   doc, 
   collection, 
   addDoc, 
@@ -53,7 +53,7 @@ export const submitActivity = async (userId, activityId, classId, data = {}) => 
       return { success: true, id: docRef.id, message: 'Activity submitted' };
     }
   } catch (error) {
-    console.error('Error submitting activity:', error);
+    logger.error('Error submitting activity:', error);
     return { success: false, error: error.message };
   }
 };
@@ -83,7 +83,7 @@ export const getUserSubmissions = async (userId, activityId = null) => {
     
     return { success: true, data: submissions };
   } catch (error) {
-    console.error('Error getting submissions:', error);
+    logger.error('Error getting submissions:', error);
     return { success: false, error: error.message };
   }
 };
@@ -104,7 +104,7 @@ export const getClassSubmissions = async (classId) => {
     
     return { success: true, data: submissions };
   } catch (error) {
-    console.error('Error getting class submissions:', error);
+    logger.error('Error getting class submissions:', error);
     return { success: false, error: error.message };
   }
 };
@@ -160,7 +160,7 @@ export const gradeSubmission = async (submissionId, score, feedback = '', graded
               activityId: submission.activityId || null,
             });
           } catch (pointsError) {
-            console.warn("Failed to award points for graded submission:", pointsError);
+            logger.warn("Failed to award points for graded submission:", pointsError);
           }
         }
       }
@@ -168,7 +168,7 @@ export const gradeSubmission = async (submissionId, score, feedback = '', graded
 
     return { success: true, message: 'Submission graded' };
   } catch (error) {
-    console.error('Error grading submission:', error);
+    logger.error('Error grading submission:', error);
     return { success: false, error: error.message };
   }
 };
@@ -227,7 +227,7 @@ export const canRetakeActivity = async (userId, activityId, activity) => {
     
     return { canRetake: true, attemptsLeft: maxRetakes - submissions.length + 1 };
   } catch (error) {
-    console.error('Error checking retake eligibility:', error);
+    logger.error('Error checking retake eligibility:', error);
     return { canRetake: false, reason: 'Error checking eligibility' };
   }
 };
@@ -292,7 +292,8 @@ export const getActivityProgress = async (userId, classId) => {
       }
     };
   } catch (error) {
-    console.error('Error getting activity progress:', error);
+    logger.error('Error getting activity progress:', error);
     return { success: false, error: error.message };
   }
 };
+

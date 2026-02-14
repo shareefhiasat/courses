@@ -1,4 +1,4 @@
-/**
+﻿/**
  * User Status Utility
  * 
  * Centralized system for managing and checking user status across the application.
@@ -232,4 +232,5 @@ export const getUserStatusSummary = (user, enrollments = []) => {
     description: getStatusDescription(status)
   };
 };
+
 

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { HistoryEntry } from './HistoryEntry';
 import { getAttendanceIcon, getAttendanceColor, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
@@ -42,7 +42,7 @@ export const HistorySection = ({
   const filterKey = type === RECORD_TYPES.PENALTY ? 'penalties' : type;
   const isActive = activeFilters[filterKey];
   
-  console.log('🔧 HistorySection:', {
+  logger.log('🔧 HistorySection:', {
     title,
     type,
     filterKey,
@@ -53,7 +53,7 @@ export const HistorySection = ({
   });
   
   if (!isActive || logs.length === 0) {
-    console.log('🔧 HistorySection - skipping due to inactive filter or empty logs:', {
+    logger.log('🔧 HistorySection - skipping due to inactive filter or empty logs:', {
       title,
       type,
       filterKey,
@@ -71,7 +71,7 @@ export const HistorySection = ({
     return timeB - timeA; // Newest first
   });
   
-  console.log('🔍 HistorySection sorting:', { 
+  logger.log('🔍 HistorySection sorting:', { 
     title, 
     type,
     originalLogsCount: logs.length,
@@ -102,25 +102,25 @@ export const HistorySection = ({
     }
     
     if (type === RECORD_TYPES.BEHAVIOR) {
-      console.log('🔍 HistorySection returning behavior icon');
+      logger.log('🔍 HistorySection returning behavior icon');
       return <ZapIcon style={{ width: '14px', height: '14px', color: getBehaviorColor(log.type) }} />;
     }
     
     if (type === RECORD_TYPES.PARTICIPATION) {
-      console.log('🔍 HistorySection returning participation icon');
+      logger.log('🔍 HistorySection returning participation icon');
       return <ParticipationIcon style={{ width: '14px', height: '14px', color: getParticipationColor(log.type) }} />;
     }
     
     if (type === RECORD_TYPES.PENALTY) {
-      console.log('🔍 HistorySection returning penalty icon');
+      logger.log('🔍 HistorySection returning penalty icon');
       return <PenaltyIcon style={{ width: '14px', height: '14px', color: getPenaltyColor(log.type) }} />;
     }
     
-    console.log('🔍 HistorySection returning fallback icon');
+    logger.log('🔍 HistorySection returning fallback icon');
     return icon;
   };
 
-  console.log('🔧 HistorySection - rendering section:', title);
+  logger.log('🔧 HistorySection - rendering section:', title);
 
   return (
     <div style={{ marginBottom: isMobile ? '0.25rem' : '0.5rem' }}>
@@ -142,3 +142,4 @@ export const HistorySection = ({
 };
 
 export default HistorySection;
+

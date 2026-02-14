@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronDown, Search, X, Filter } from 'lucide-react';
 import styles from './Select.module.css';
 import { getComponentStyles, generateCSSVariables } from '@constants/uiTheme';
+import logger from '../../../utils/logger';
 
 /**
  * Select Component
@@ -178,8 +179,8 @@ const Select = forwardRef(({
     : placeholder;
 
   const handleSelect = (optionValue) => {
-    console.log('🔵 [Select] handleSelect called with:', optionValue);
-    console.log('🔵 [Select] Current value before update:', value);
+    logger.log('🔵 [Select] handleSelect called with:', optionValue);
+    logger.log('🔵 [Select] Current value before update:', value);
     
     try {
       // Normalize the value to ensure it's a string
@@ -187,7 +188,7 @@ const Select = forwardRef(({
         ? String(optionValue) 
         : '';
       
-      console.log('🔵 [Select] Normalized value:', normalizedValue);
+      logger.log('🔵 [Select] Normalized value:', normalizedValue);
       
       // Create the event object
       const event = { 
@@ -204,11 +205,11 @@ const Select = forwardRef(({
         stopPropagation: () => {}
       };
       
-      console.log('🔵 [Select] Calling onChange with event:', event);
+      logger.log('🔵 [Select] Calling onChange with event:', event);
       
       // Call the onChange handler if it's a function
       if (typeof onChange === 'function') {
-        console.log('🔵 [Select] Calling onChange handler');
+        logger.log('🔵 [Select] Calling onChange handler');
         // Call with the event object that has both target.value and a direct value property
         const enhancedEvent = {
           ...event,
@@ -220,7 +221,7 @@ const Select = forwardRef(({
         };
         onChange(enhancedEvent);
       } else {
-        console.error('❌ [Select] onChange is not a function:', onChange);
+        logger.error('❌ [Select] onChange is not a function:', onChange);
       }
       
       // Close the dropdown and clear search
@@ -228,14 +229,14 @@ const Select = forwardRef(({
       setSearchTerm('');
       setIsPositioned(false);
       
-      console.log('✅ [Select] handleSelect completed for value:', normalizedValue);
+      logger.log('✅ [Select] handleSelect completed for value:', normalizedValue);
     } catch (error) {
-      console.error('❌ [Select] Error in handleSelect:', error);
+      logger.error('❌ [Select] Error in handleSelect:', error);
     }
   };
 
   const handleClear = (e) => {
-    console.log('🔄 [Select] handleClear called');
+    logger.log('🔄 [Select] handleClear called');
     e.stopPropagation();
     
     const event = {
@@ -249,12 +250,12 @@ const Select = forwardRef(({
       }
     };
     
-    console.log('🔄 [Select] Calling onChange with clear event:', event);
+    logger.log('🔄 [Select] Calling onChange with clear event:', event);
     
     if (typeof onChange === 'function') {
       onChange(event);
     } else {
-      console.error('❌ [Select] onChange is not a function in handleClear:', onChange);
+      logger.error('❌ [Select] onChange is not a function in handleClear:', onChange);
     }
   };
   const wrapperClasses = [
@@ -401,9 +402,9 @@ const Select = forwardRef(({
                   ].filter(Boolean).join(' ');
 
                   const handleOptionClick = (e) => {
-                    console.log('🟢 [Select] Option clicked:', option.value);
-                    console.log('🟢 [Select] Event:', e);
-                    console.log('🟢 [Select] Current target:', e.currentTarget);
+                    logger.log('🟢 [Select] Option clicked:', option.value);
+                    logger.log('🟢 [Select] Event:', e);
+                    logger.log('🟢 [Select] Current target:', e.currentTarget);
                     
                     // Prevent the event from bubbling up to document
                     e.stopPropagation();

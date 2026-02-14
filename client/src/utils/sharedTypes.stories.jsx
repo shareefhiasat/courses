@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { 
   TYPE_CATEGORIES, 
   getTypeLabel, 
@@ -248,3 +248,4 @@ export const FormattedDisplay = {
     )
   }
 };
+

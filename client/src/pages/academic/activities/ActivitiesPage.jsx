@@ -6,6 +6,7 @@ import { useToast } from '@ui';
 import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
+import logger from '@utils/logger';
 import { ACTIVITY_TYPES, getActivityTypeConfig, getActivityTypeOptionsForDropdown, getThemeColor } from '@constants';
 import { DIFFICULTY_TYPES, getDifficultyConfig, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
 import { getPrograms, getSubjects, getClasses } from '@services/business/programService.js';
@@ -106,7 +107,7 @@ const ActivitiesPage = () => {
       if (activitiesResult.success) setActivities(activitiesResult.data || []);
       if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error);
       toast?.showError('Failed to load data');
     } finally {
       setDataLoading(false);
@@ -147,7 +148,7 @@ const ActivitiesPage = () => {
   }, []);
 
   const handleEmailOptionChange = useCallback((field, value) => {
-    console.log('🔔 Activity bell toggle changed:', { field, value, previous: emailOptions[field] });
+    logger.log('🔔 Activity bell toggle changed:', { field, value, previous: emailOptions[field] });
     setEmailOptions(prev => ({ ...prev, [field]: value }));
   }, [emailOptions]);
 
@@ -183,14 +184,14 @@ const ActivitiesPage = () => {
 
   const handleActivitySubmit = useCallback(async (e) => {
     if (e) e.preventDefault();
-    console.time('[PERF] handleActivitySubmit');
+    logger.time('[PERF] handleActivitySubmit');
     setLoading(true);
     setFormErrors({});
 
     try {
       // Read text fields from refs (uncontrolled inputs)
       const textValues = syncRefsToState();
-      console.log('[FORM] Text values from refs:', textValues);
+      logger.log('[FORM] Text values from refs:', textValues);
 
       if (!textValues.title_en || textValues.title_en.trim() === '') {
         throw new Error('Activity title is required');
@@ -235,7 +236,7 @@ const ActivitiesPage = () => {
         const result = await addActivity(activityData);
         
         if (result.success) {
-          console.log('🔍 [SAVE] Activity created successfully with ID:', result.id);
+          logger.log('🔍 [SAVE] Activity created successfully with ID:', result.id);
           toast?.showSuccess('Activity created successfully');
         } else {
           throw new Error(result.error || 'Failed to create activity');
@@ -253,11 +254,11 @@ const ActivitiesPage = () => {
       setEditingActivity(null);
       setActiveActivityFormTab('basic');
     } catch (error) {
-      console.error('Error saving activity:', error);
+      logger.error('Error saving activity:', error);
       toast?.showError(error.message || 'Error saving activity');
     } finally {
       setLoading(false);
-      console.timeEnd('[PERF] handleActivitySubmit');
+      logger.timeEnd('[PERF] handleActivitySubmit');
     }
   }, [activityForm, editingActivity, user, toast, syncRefsToState, resetActivityForm]);
 

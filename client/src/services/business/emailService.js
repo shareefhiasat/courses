@@ -1,6 +1,46 @@
 /**
- * Email service with QStash integration for bulk sending
- * Configurable through environment variables
+ * Email Business Service
+ * 
+ * PURPOSE:
+ * Email service with QStash integration for bulk sending and Firebase
+ * Cloud Functions as fallback. This service handles all email-related
+ * business logic including template management, delivery tracking, and
+ * error handling.
+ * 
+ * USAGE:
+ * Import these functions in business services, UI components, or hooks.
+ * This service abstracts the complexity of email delivery.
+ * 
+ * ARCHITECTURE:
+ * - QStash for high-volume bulk email delivery
+ * - Firebase Cloud Functions as fallback
+ * - Template management and rendering
+ * - Delivery tracking and analytics
+ * - Error handling and retry logic
+ * 
+ * CONFIGURATION:
+ * - QStash token and signing key
+ * - Firebase functions configuration
+ * - Email templates in Firestore
+ * 
+ * EXAMPLES:
+ * ```javascript
+ * // In business service:
+ * import { sendEmail } from '@services/business/emailService';
+ * 
+ * const result = await sendEmail({
+ *   to: 'user@example.com',
+ *   template: 'welcome',
+ *   data: { userName: 'John' }
+ * });
+ * 
+ * if (result.success) {
+ *   logger.info('Email sent successfully');
+ * }
+ * ```
+ * 
+ * @author Service Layer Architecture
+ * @since v2.0.0
  */
 
 import logger from '@utils/logger';
@@ -381,3 +421,4 @@ export const getEmailTemplates = async () => {
 };
 
 export default emailService;
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { Input } from '@ui';
 import { Button } from '@ui';
@@ -117,7 +117,7 @@ const StudentRoster = React.memo(function StudentRoster({
         getBehaviors()
       ]);
       
-      console.log('🔧 fetchStudentHistory called getPenalties with studentId:', studentId);
+      logger.log('🔧 fetchStudentHistory called getPenalties with studentId:', studentId);
 
       const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
       const studentParticipations = (participationsResponse.success ? participationsResponse.data : []).filter(p => p.studentId === studentId);
@@ -234,7 +234,7 @@ const StudentRoster = React.memo(function StudentRoster({
         const dateA = a.time?.toDate ? a.time.toDate() : new Date(a.time);
         const dateB = b.time?.toDate ? b.time.toDate() : new Date(b.time);
         const result = dateB - dateA;
-        console.log('🔍 StudentRoster sort comparison:', {
+        logger.log('🔍 StudentRoster sort comparison:', {
           logA: { id: a.id, type: a.type, date: a.date, time: a.time, parsedDate: dateA },
           logB: { id: b.id, type: b.type, date: b.date, time: b.time, parsedDate: dateB },
           result
@@ -350,7 +350,7 @@ const StudentRoster = React.memo(function StudentRoster({
   // Listen for real-time activity updates
   useEffect(() => {
     const unsubscribeActivity = eventBus.on(EVENTS.ACTIVITY_UPDATE, () => {
-      // console.log('StudentRoster: Activity update received');
+      // logger.log('StudentRoster: Activity update received');
       // Refresh student history for all expanded students
       const expandedStudents = Array.from(expandedRows);
       expandedStudents.forEach(studentId => {
@@ -433,7 +433,7 @@ const StudentRoster = React.memo(function StudentRoster({
         });
 
     const unsubscribeBehavior = eventBus.on(EVENTS.BEHAVIOR_LOGGED, (data) => {
-      // console.log('StudentRoster: Behavior logged for', data.studentId);
+      // logger.log('StudentRoster: Behavior logged for', data.studentId);
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
       }
@@ -448,7 +448,7 @@ const StudentRoster = React.memo(function StudentRoster({
 
     const unsubscribeParticipation = eventBus.on(EVENTS.PARTICIPATION_ADDED,
         (data) => {
-          // console.log('StudentRoster: Participation added for', data.studentId);
+          // logger.log('StudentRoster: Participation added for', data.studentId);
           if (expandedRows.has(data.studentId)) {
             fetchStudentHistory(data.studentId);
           }
@@ -462,7 +462,7 @@ const StudentRoster = React.memo(function StudentRoster({
         });
 
     const unsubscribePenalty = eventBus.on(EVENTS.PENALTY_ASSIGNED, (data) => {
-      // console.log('StudentRoster: Penalty assigned for', data.studentId);
+      // logger.log('StudentRoster: Penalty assigned for', data.studentId);
       if (expandedRows.has(data.studentId)) {
         fetchStudentHistory(data.studentId);
       }
@@ -576,7 +576,7 @@ const StudentRoster = React.memo(function StudentRoster({
       const displayName = userProfile?.displayName || userProfile?.name || user?.displayName || user?.email || 'Unknown';
       
       // Debug: Log user objects to see what data is available
-      console.log('🔧 User objects:', {
+      logger.log('🔧 User objects:', {
         authUser: {
           uid: user?.uid,
           displayName: user?.displayName,
@@ -604,7 +604,7 @@ const StudentRoster = React.memo(function StudentRoster({
 
       if (result.success) {
         // Show success feedback
-        console.log(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, t, lang)}`);
+        logger.log(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, t, lang)}`);
         
         // Emit real-time event
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -630,10 +630,10 @@ const StudentRoster = React.memo(function StudentRoster({
         }
 
       } else {
-        console.error('Quick attendance failed:', result.error);
+        logger.error('Quick attendance failed:', result.error);
       }
     } catch (error) {
-      console.error('Quick attendance error:', error);
+      logger.error('Quick attendance error:', error);
     }
   }, [selectedClassId, user, lang, onRefresh]);
 
@@ -644,7 +644,7 @@ const StudentRoster = React.memo(function StudentRoster({
     }));
     try {
       // Email functionality would go here
-      console.log('Sending summary email to:', student.email);
+      logger.log('Sending summary email to:', student.email);
       // await sendStudentSummaryEmail(student.email, student.id);
       alert('Summary email sent successfully!');
     } catch (error) {
@@ -751,7 +751,7 @@ const StudentRoster = React.memo(function StudentRoster({
     return Object.values(grouped).sort((a, b) => {
       // Sort days by date (newest first)
       const result = new Date(b.date) - new Date(a.date);
-      console.log('🔍 StudentRoster day sort:', {
+      logger.log('🔍 StudentRoster day sort:', {
         dayA: { date: a.date, parsedDate: new Date(a.date) },
         dayB: { date: b.date, parsedDate: new Date(b.date) },
         result
@@ -1227,3 +1227,4 @@ const StudentRoster = React.memo(function StudentRoster({
 
 
 export default StudentRoster;
+

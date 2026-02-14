@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Question Bank Management (Phase 3.2)
  * Shared pool of reusable questions with tags and metadata
  */
@@ -35,7 +35,7 @@ export async function createQuestion(questionData) {
     
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error('Error creating question:', error);
+    logger.error('Error creating question:', error);
     return { success: false, error: error.message };
   }
 }
@@ -72,7 +72,7 @@ export async function getAllQuestions(filters = {}) {
     
     return { success: true, data: questions };
   } catch (error) {
-    console.error('Error fetching questions:', error);
+    logger.error('Error fetching questions:', error);
     return { success: false, error: error.message };
   }
 }
@@ -94,7 +94,7 @@ export async function getQuestion(questionId) {
       data: { id: docSnap.id, ...docSnap.data() } 
     };
   } catch (error) {
-    console.error('Error fetching question:', error);
+    logger.error('Error fetching question:', error);
     return { success: false, error: error.message };
   }
 }
@@ -129,7 +129,7 @@ export async function updateQuestion(questionId, updates) {
     
     return { success: true };
   } catch (error) {
-    console.error('Error updating question:', error);
+    logger.error('Error updating question:', error);
     return { success: false, error: error.message };
   }
 }
@@ -142,7 +142,7 @@ export async function deleteQuestion(questionId) {
     await deleteDoc(doc(db, COLLECTION, questionId));
     return { success: true };
   } catch (error) {
-    console.error('Error deleting question:', error);
+    logger.error('Error deleting question:', error);
     return { success: false, error: error.message };
   }
 }
@@ -171,7 +171,7 @@ export async function duplicateQuestion(questionId, newTitle) {
     
     return await createQuestion(duplicate);
   } catch (error) {
-    console.error('Error duplicating question:', error);
+    logger.error('Error duplicating question:', error);
     return { success: false, error: error.message };
   }
 }
@@ -203,7 +203,7 @@ export async function importQuestionsToQuiz(questionIds, quizId) {
     
     return { success: true, data: questions };
   } catch (error) {
-    console.error('Error importing questions:', error);
+    logger.error('Error importing questions:', error);
     return { success: false, error: error.message };
   }
 }
@@ -225,7 +225,7 @@ export async function searchQuestions(searchTerm) {
     
     return { success: true, data: filtered };
   } catch (error) {
-    console.error('Error searching questions:', error);
+    logger.error('Error searching questions:', error);
     return { success: false, error: error.message };
   }
 }
@@ -248,7 +248,7 @@ export async function getAllTags() {
       data: Array.from(tagsSet).sort() 
     };
   } catch (error) {
-    console.error('Error fetching tags:', error);
+    logger.error('Error fetching tags:', error);
     return { success: false, error: error.message };
   }
 }
@@ -282,7 +282,8 @@ export async function bulkImportQuestions(questions, createdBy) {
       } 
     };
   } catch (error) {
-    console.error('Error bulk importing questions:', error);
+    logger.error('Error bulk importing questions:', error);
     return { success: false, error: error.message };
   }
 }
+

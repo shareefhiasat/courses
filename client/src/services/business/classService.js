@@ -1,4 +1,4 @@
-import { db } from '../other/config';
+﻿import { db } from '../other/config';
 import { 
   collection, 
   doc, 
@@ -175,7 +175,7 @@ export const updateClassSchedule = async (classId, schedule) => {
     });
     return { success: true };
   } catch (error) {
-    console.error('Error updating class schedule:', error);
+    logger.error('Error updating class schedule:', error);
     return { success: false, error: error.message };
   }
 };
@@ -198,10 +198,11 @@ export const getAllClasses = async () => {
     });
     return { success: true, data };
   } catch (error) {
-    console.error('Error fetching classes:', error);
+    logger.error('Error fetching classes:', error);
     return { success: false, error: error.message };
   }
 };
 
 // Alias for getClassById for consistency with other services
 export const fetchClass = getClassById;
+

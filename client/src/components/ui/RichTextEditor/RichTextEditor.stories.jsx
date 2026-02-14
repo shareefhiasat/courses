@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import RichTextEditor from './RichTextEditor';
 
 export default {
@@ -66,5 +66,6 @@ export const ReadOnly = Template.bind({});
 ReadOnly.args = {
   label: 'Published Explanation',
   readOnly: true,
-  value: '<p><strong>Newton\'s Second Law</strong> states that <em>Force = Mass × Acceleration</em>.</p>',
+  value: '<p><strong>Newton\'s Second Law</strong> states that <em>Force = Mass Ã— Acceleration</em>.</p>',
 };
+

@@ -291,8 +291,6 @@ export const ICON_TYPES = {
     bot: <Bot size={16} />,
     heart: <Heart size={16} />,
     trash: <Trash size={16} />,
-    user: <User size={16} />,
-    key_round: <KeyRound size={16} />,
     copy: <Copy size={16} />,
     wrench: <Wrench size={16} />,
     clipboard: <Clipboard size={16} />,
@@ -323,9 +321,6 @@ export const ICON_TYPES = {
     gamepad2: <Gamepad2 size={16} />,
     timer: <Clock size={16} />,
     // Additional missing icons
-    log_in: <LogIn size={16} />,
-    stop: <X size={16} />,
-    api: <Globe size={16} />,
     alert_circle: <AlertCircle size={16} />,
     chevron_down: <ChevronDown size={16} />,
     chevron_up: <ChevronUp size={16} />,
@@ -340,17 +335,10 @@ export const ICON_TYPES = {
     cpu: <Monitor size={16} />,
     hard_drive: <Monitor size={16} />,
     wifi: <Globe size={16} />,
-    lock: <Lock size={16} />,
-    key: <Key size={16} />,
     bug: <AlertTriangle size={16} />,
     puzzle: <Package size={16} />,
     layers: <Layers size={16} />,
-    package: <Package size={16} />,
-    terminal: <Monitor size={16} />,
-    brain: <Monitor size={16} />,
-    target: <Target size={16} />,
-    bookmark: <Bookmark size={16} />,
-    tag: <Tag size={16} />
+    brain: <Monitor size={16} />
   }
 };
 

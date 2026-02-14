@@ -1,4 +1,4 @@
-import { 
+﻿import { 
   doc, 
   getDoc, 
   setDoc, 
@@ -60,7 +60,7 @@ export async function getStudentProgress(userId) {
       return { success: true, data: { id: userId, ...defaultProgress } };
     }
   } catch (error) {
-    console.error('Error getting student progress:', error);
+    logger.error('Error getting student progress:', error);
     return { success: false, error: error.message };
   }
 }
@@ -95,7 +95,7 @@ export async function updateProgressAfterQuiz(userId, quizData) {
     
     return { success: true };
   } catch (error) {
-    console.error('Error updating progress after quiz:', error);
+    logger.error('Error updating progress after quiz:', error);
     return { success: false, error: error.message };
   }
 }
@@ -154,7 +154,7 @@ export async function updateLearningStreak(userId) {
     
     return { success: true, streak: { current: newCurrent, longest: newLongest } };
   } catch (error) {
-    console.error('Error updating learning streak:', error);
+    logger.error('Error updating learning streak:', error);
     return { success: false, error: error.message };
   }
 }
@@ -211,7 +211,7 @@ export async function logLearningTime(userId, hours) {
     
     return { success: true };
   } catch (error) {
-    console.error('Error logging learning time:', error);
+    logger.error('Error logging learning time:', error);
     return { success: false, error: error.message };
   }
 }
@@ -231,7 +231,7 @@ export async function getAllStudentsProgress() {
     
     return { success: true, data: progressData };
   } catch (error) {
-    console.error('Error getting all students progress:', error);
+    logger.error('Error getting all students progress:', error);
     return { success: false, error: error.message };
   }
 }
@@ -264,7 +264,8 @@ export async function getClassStudentsProgress(classId) {
     
     return { success: true, data: progressData };
   } catch (error) {
-    console.error('Error getting class students progress:', error);
+    logger.error('Error getting class students progress:', error);
     return { success: false, error: error.message };
   }
 }
+

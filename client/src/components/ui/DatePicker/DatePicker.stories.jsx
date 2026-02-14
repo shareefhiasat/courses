@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import DatePicker from './DatePicker';
 
 export default {
@@ -56,7 +56,7 @@ const Template = (args) => {
         value={value}
         onChange={(isoString) => {
           setValue(isoString);
-          console.log('Selected date:', isoString);
+          logger.log('Selected date:', isoString);
         }}
       />
       <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#f0f0f0', borderRadius: 4, fontSize: '0.875rem' }}>
@@ -152,3 +152,4 @@ DarkMode.decorators = [
     </div>
   ),
 ];
+

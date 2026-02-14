@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+﻿import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -135,7 +135,7 @@ const EnrollmentsPage = () => {
       if (classesSnap.success) {
         setClasses(classesSnap.data);
       } else {
-        console.error('[EnrollmentsPage] Classes service error:', classesSnap.error);
+        logger.error('[EnrollmentsPage] Classes service error:', classesSnap.error);
         toast.error(classesSnap.error || t('failed_to_load_classes') || 'Failed to load classes');
       }
     } catch (e) {

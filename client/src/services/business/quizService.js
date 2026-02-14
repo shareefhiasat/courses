@@ -1,4 +1,4 @@
-import { db } from '../other/config';
+﻿import { db } from '../other/config';
 import {
   collection,
   doc,
@@ -68,13 +68,13 @@ export const createQuiz = async (quizData, userId) => {
           }
         }
       } catch (notifyError) {
-        console.warn('Failed to send quiz availability notifications:', notifyError);
+        logger.warn('Failed to send quiz availability notifications:', notifyError);
       }
     }
 
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error("Error creating quiz:", error);
+    logger.error("Error creating quiz:", error);
     return { success: false, error: error.message };
   }
 };
@@ -91,7 +91,7 @@ export const getQuiz = async (quizId) => {
       return { success: false, error: "Quiz not found" };
     }
   } catch (error) {
-    console.error("Error getting quiz:", error);
+    logger.error("Error getting quiz:", error);
     return { success: false, error: error.message };
   }
 };
@@ -113,7 +113,7 @@ export const getAllQuizzes = async () => {
     if (error?.code === "permission-denied") {
       return { success: false, error: "permission-denied", data: [] };
     }
-    console.error("Error getting quizzes:", error?.message || error);
+    logger.error("Error getting quizzes:", error?.message || error);
     return { success: false, error: error.message };
   }
 };
@@ -136,7 +136,7 @@ export const getQuizzesByCreator = async (userId) => {
 
     return { success: true, data: quizzes };
   } catch (error) {
-    console.error("Error getting quizzes by creator:", error);
+    logger.error("Error getting quizzes by creator:", error);
     return { success: false, error: error.message };
   }
 };
@@ -218,18 +218,18 @@ export const updateQuiz = async (quizId, updates) => {
 
       if (cascadeUpdates.length > 0) {
         await Promise.all(cascadeUpdates);
-        console.log(
+        logger.log(
           `[Cascade] Updated ${cascadeUpdates.length} related activities`
         );
       }
     } catch (cascadeError) {
-      console.warn("Failed to cascade update activities:", cascadeError);
+      logger.warn("Failed to cascade update activities:", cascadeError);
       // Don't fail the quiz update if cascade fails
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error updating quiz:", error);
+    logger.error("Error updating quiz:", error);
     return { success: false, error: error.message };
   }
 };
@@ -241,7 +241,7 @@ export const deleteQuiz = async (quizId) => {
     await deleteDoc(quizRef);
     return { success: true };
   } catch (error) {
-    console.error("Error deleting quiz:", error);
+    logger.error("Error deleting quiz:", error);
     return { success: false, error: error.message };
   }
 };
@@ -274,7 +274,7 @@ export const submitQuiz = async (submissionData) => {
                 ...d.data(),
               }));
             } catch (e) {
-              console.warn("Failed to load enrollments for quiz check:", e);
+              logger.warn("Failed to load enrollments for quiz check:", e);
             }
 
             if (!canParticipate(userData, enrollments)) {
@@ -286,12 +286,12 @@ export const submitQuiz = async (submissionData) => {
             }
           }
         } catch (error) {
-          console.warn("Failed to check user status for quiz:", error);
+          logger.warn("Failed to check user status for quiz:", error);
           // Continue anyway - don't block if status check fails
         }
       }
     } catch (error) {
-      console.warn("Failed to check user participation:", error);
+      logger.warn("Failed to check user participation:", error);
       // Continue anyway - don't block if status check fails
     }
 
@@ -383,7 +383,7 @@ export const submitQuiz = async (submissionData) => {
     });
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error("Error submitting quiz:", error);
+    logger.error("Error submitting quiz:", error);
     return { success: false, error: error.message };
   }
 };
@@ -406,7 +406,7 @@ export const getQuizSubmissions = async (quizId) => {
 
     return { success: true, data: submissions };
   } catch (error) {
-    console.error("Error getting quiz submissions:", error);
+    logger.error("Error getting quiz submissions:", error);
     return { success: false, error: error.message };
   }
 };
@@ -429,7 +429,7 @@ export const getStudentSubmissions = async (userId) => {
 
     return { success: true, data: submissions };
   } catch (error) {
-    console.error("Error getting student submissions:", error);
+    logger.error("Error getting student submissions:", error);
     return { success: false, error: error.message };
   }
 };
@@ -471,7 +471,7 @@ export const getQuizLeaderboard = async (quizId, limit = 10) => {
 
     return { success: true, data: topScores };
   } catch (error) {
-    console.error("Error getting quiz leaderboard:", error);
+    logger.error("Error getting quiz leaderboard:", error);
     return { success: false, error: error.message };
   }
 };
@@ -492,7 +492,7 @@ export const updateSubmissionScore = async (
     });
     return { success: true };
   } catch (error) {
-    console.error("Error updating submission score:", error);
+    logger.error("Error updating submission score:", error);
     return { success: false, error: error.message };
   }
 };
@@ -585,7 +585,7 @@ export const getQuizAnalytics = async (quizId) => {
       },
     };
   } catch (error) {
-    console.error("Error getting quiz analytics:", error);
+    logger.error("Error getting quiz analytics:", error);
     return { success: false, error: error.message };
   }
 };
@@ -622,7 +622,7 @@ export const duplicateQuizToClass = async (
     const newRef = await addDoc(quizzesRef, payload);
     return { success: true, id: newRef.id };
   } catch (error) {
-    console.error("Error duplicating quiz:", error);
+    logger.error("Error duplicating quiz:", error);
     return { success: false, error: error.message };
   }
 };
@@ -641,7 +641,7 @@ export const createQuizFolder = async (folderData, userId) => {
     });
     return { success: true, id: ref.id };
   } catch (error) {
-    console.error("Error creating quiz folder:", error);
+    logger.error("Error creating quiz folder:", error);
     return { success: false, error: error.message };
   }
 };
@@ -653,7 +653,8 @@ export const listQuizFolders = async () => {
     qs.forEach((d) => items.push({ id: d.id, ...d.data() }));
     return { success: true, data: items };
   } catch (error) {
-    console.error("Error listing quiz folders:", error);
+    logger.error("Error listing quiz folders:", error);
     return { success: false, error: error.message };
   }
 };
+

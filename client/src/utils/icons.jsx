@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Centralized SVG Icons Component Library
  * All SVG icons are centralized here for reusability across the application
  */
@@ -386,3 +386,4 @@ export const Icons = {
 };
 
 export default Icons;
+

@@ -1,4 +1,4 @@
-import {
+﻿import {
   collection,
   doc,
   getDocs,
@@ -42,7 +42,7 @@ export const getAnnouncements = async () => {
     });
     return { success: true, data: announcements };
   } catch (error) {
-    console.error("Error getting announcements:", error);
+    logger.error("Error getting announcements:", error);
     return { success: false, error: error.message };
   }
 };
@@ -71,12 +71,12 @@ export const addAnnouncement = async (announcementData) => {
         classId: announcementData.classId
       });
     } catch (logError) {
-      console.warn('Failed to log announcement creation:', logError);
+      logger.warn('Failed to log announcement creation:', logError);
     }
 
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error("Error adding announcement:", error);
+    logger.error("Error adding announcement:", error);
     return { success: false, error: error.message };
   }
 };
@@ -101,12 +101,12 @@ export const updateAnnouncement = async (id, announcementData) => {
         announcementTitle: announcementData.title
       });
     } catch (logError) {
-      console.warn('Failed to log announcement update:', logError);
+      logger.warn('Failed to log announcement update:', logError);
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error updating announcement:", error);
+    logger.error("Error updating announcement:", error);
     return { success: false, error: error.message };
   }
 };
@@ -129,13 +129,14 @@ export const deleteAnnouncement = async (id, announcementData = null) => {
           announcementTitle: announcementData.title
         });
       } catch (logError) {
-        console.warn('Failed to log announcement deletion:', logError);
+        logger.warn('Failed to log announcement deletion:', logError);
       }
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error deleting announcement:", error);
+    logger.error("Error deleting announcement:", error);
     return { success: false, error: error.message };
   }
 };
+

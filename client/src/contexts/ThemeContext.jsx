@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { FancyLoading } from '@ui';
 import './ThemeContext.css';
+import logger from '../utils/logger';
 
 const ThemeContext = createContext({ theme: 'dark', toggleTheme: () => {} });
 
@@ -25,26 +26,26 @@ export const ThemeProvider = ({ children }) => {
   }, [isThemeChanging]);
 
   useEffect(() => {
-    console.log('🎨 [ThemeContext] Theme changed to:', theme);
+    logger.log('🎨 [ThemeContext] Theme changed to:', theme);
     setIsThemeChanging(true);
     try {
       localStorage.setItem('app_theme', theme);
-      console.log('💾 [ThemeContext] Saved to localStorage:', theme);
+      logger.log('💾 [ThemeContext] Saved to localStorage:', theme);
     } catch (e) {
-      console.error('❌ [ThemeContext] Failed to save to localStorage:', e);
+      logger.error('❌ [ThemeContext] Failed to save to localStorage:', e);
     }
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
-    console.log('📄 [ThemeContext] Set data-theme attribute to:', theme);
+    logger.log('📄 [ThemeContext] Set data-theme attribute to:', theme);
     // Body background for immediate effect
     if (theme === 'light') {
       document.body.style.background = '#ffffff';
       document.body.style.color = '#111';
-      console.log('☀️ [ThemeContext] Applied light mode styles');
+      logger.log('☀️ [ThemeContext] Applied light mode styles');
     } else {
       document.body.style.background = '#0b1220';
       document.body.style.color = '#fff';
-      console.log('🌙 [ThemeContext] Applied dark mode styles');
+      logger.log('🌙 [ThemeContext] Applied dark mode styles');
     }
   }, [theme]);
 

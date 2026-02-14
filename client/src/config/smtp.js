@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SMTP Configuration Manager
  * 
  * Priority Order:
@@ -57,7 +57,7 @@ export const getSMTPConfig = async () => {
       };
     }
   } catch (error) {
-    console.warn('Failed to load SMTP config from Firestore:', error);
+    logger.warn('Failed to load SMTP config from Firestore:', error);
   }
 
   // Priority 4: Default to Gmail super admin (last resort)
@@ -133,3 +133,4 @@ export const getSMTPProvider = async () => {
   const config = await getSMTPConfig();
   return config.provider || 'custom';
 };
+

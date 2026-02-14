@@ -1,4 +1,4 @@
-import {
+﻿import {
   collection,
   doc,
   query,
@@ -28,7 +28,7 @@ export const chatService = {
       const data = userDoc.exists() ? userDoc.data() : {};
       return data.messageColor;
     } catch (error) {
-      console.error('Error getting user message color:', error);
+      logger.error('Error getting user message color:', error);
       return null;
     }
   },
@@ -46,7 +46,7 @@ export const chatService = {
       const data = userDoc.data() || {};
       return data.chatReads || {};
     } catch (error) {
-      console.error('Error getting user chat reads:', error);
+      logger.error('Error getting user chat reads:', error);
       return {};
     }
   },
@@ -60,7 +60,7 @@ export const chatService = {
       }, { merge: true });
       return new Date();
     } catch (error) {
-      console.error('Error updating user chat reads:', error);
+      logger.error('Error updating user chat reads:', error);
       throw error;
     }
   },
@@ -104,7 +104,7 @@ export const chatService = {
       
       return message;
     } catch (error) {
-      console.error('Error editing message:', error);
+      logger.error('Error editing message:', error);
       throw error;
     }
   },
@@ -138,7 +138,7 @@ export const chatService = {
         }
       }
     } catch (error) {
-      console.error('Error updating last message:', error);
+      logger.error('Error updating last message:', error);
     }
   },
 
@@ -149,7 +149,7 @@ export const chatService = {
         [`reactions.${userId}`]: reaction 
       });
     } catch (error) {
-      console.error('Error adding reaction:', error);
+      logger.error('Error adding reaction:', error);
       throw error;
     }
   },
@@ -161,7 +161,7 @@ export const chatService = {
         [`reactions.${userId}`]: deleteField() 
       });
     } catch (error) {
-      console.error('Error removing reaction:', error);
+      logger.error('Error removing reaction:', error);
       throw error;
     }
   },
@@ -179,7 +179,7 @@ export const chatService = {
           try {
             await deleteObject(ref(storage, message.voicePath));
           } catch (error) {
-            console.error('Error deleting voice file:', error);
+            logger.error('Error deleting voice file:', error);
           }
         }
         
@@ -187,14 +187,14 @@ export const chatService = {
           try {
             await deleteObject(ref(storage, message.filePath));
           } catch (error) {
-            console.error('Error deleting file attachment:', error);
+            logger.error('Error deleting file attachment:', error);
           }
         }
       }
       
       await deleteDoc(messageRef);
     } catch (error) {
-      console.error('Error deleting message:', error);
+      logger.error('Error deleting message:', error);
       throw error;
     }
   },
@@ -245,7 +245,7 @@ export const chatService = {
         }
       }
     } catch (error) {
-      console.error('Error updating last message after deletion:', error);
+      logger.error('Error updating last message after deletion:', error);
       throw error;
     }
   },
@@ -269,7 +269,7 @@ export const chatService = {
       
       return !starred;
     } catch (error) {
-      console.error('Error toggling room star:', error);
+      logger.error('Error toggling room star:', error);
       throw error;
     }
   },
@@ -296,7 +296,7 @@ export const chatService = {
             try {
               await deleteObject(ref(storage, message.voicePath));
             } catch (error) {
-              console.error('Error deleting voice file:', error);
+              logger.error('Error deleting voice file:', error);
             }
           }
           
@@ -304,7 +304,7 @@ export const chatService = {
             try {
               await deleteObject(ref(storage, message.filePath));
             } catch (error) {
-              console.error('Error deleting file attachment:', error);
+              logger.error('Error deleting file attachment:', error);
             }
           }
           
@@ -323,7 +323,7 @@ export const chatService = {
       
       return deletedCount;
     } catch (error) {
-      console.error('Error clearing chat messages:', error);
+      logger.error('Error clearing chat messages:', error);
       throw error;
     }
   },
@@ -345,7 +345,7 @@ export const chatService = {
           try {
             await deleteObject(ref(storage, message.voicePath));
           } catch (error) {
-            console.error('Error deleting voice file:', error);
+            logger.error('Error deleting voice file:', error);
           }
         }
         
@@ -353,7 +353,7 @@ export const chatService = {
           try {
             await deleteObject(ref(storage, message.filePath));
           } catch (error) {
-            console.error('Error deleting file attachment:', error);
+            logger.error('Error deleting file attachment:', error);
           }
         }
         
@@ -363,7 +363,7 @@ export const chatService = {
       // Delete the room itself
       await deleteDoc(doc(db, 'directRooms', roomId));
     } catch (error) {
-      console.error('Error deleting direct room:', error);
+      logger.error('Error deleting direct room:', error);
       throw error;
     }
   },
@@ -402,7 +402,7 @@ export const chatService = {
         });
       }
     } catch (error) {
-      console.error('Error syncing user enrollments:', error);
+      logger.error('Error syncing user enrollments:', error);
       throw error;
     }
   },
@@ -414,7 +414,7 @@ export const chatService = {
         enrolledClasses: arrayUnion(classId) 
       });
     } catch (error) {
-      console.error('Error syncing user enrollment:', error);
+      logger.error('Error syncing user enrollment:', error);
       throw error;
     }
   },
@@ -427,7 +427,7 @@ export const chatService = {
       }
       return '';
     } catch (error) {
-      console.error('Error getting class name:', error);
+      logger.error('Error getting class name:', error);
       return '';
     }
   },
@@ -537,7 +537,7 @@ export const chatService = {
       
       return added;
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       throw error;
     }
   },
@@ -557,7 +557,7 @@ export const chatService = {
       
       return roomId;
     } catch (error) {
-      console.error('Error creating DM room:', error);
+      logger.error('Error creating DM room:', error);
       throw error;
     }
   },
@@ -570,7 +570,7 @@ export const chatService = {
       const qs = await getDocs(q);
       return qs.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (error) {
-      console.error('Error getting user enrollments:', error);
+      logger.error('Error getting user enrollments:', error);
       return [];
     }
   },
@@ -581,7 +581,7 @@ export const chatService = {
       const added = await addDoc(collection(db, 'messages'), pollData);
       return added;
     } catch (error) {
-      console.error('Error creating poll message:', error);
+      logger.error('Error creating poll message:', error);
       throw error;
     }
   },
@@ -594,7 +594,7 @@ export const chatService = {
         [`pollVotes.${optionIndex}`]: arrayUnion(userId)
       });
     } catch (error) {
-      console.error('Error voting in poll:', error);
+      logger.error('Error voting in poll:', error);
       throw error;
     }
   },
@@ -607,7 +607,7 @@ export const chatService = {
         [`pollVotes.${optionIndex}`]: arrayRemove(userId)
       });
     } catch (error) {
-      console.error('Error removing poll vote:', error);
+      logger.error('Error removing poll vote:', error);
       throw error;
     }
   },
@@ -618,3 +618,4 @@ export const chatService = {
     return onSnapshot(roomsRef, callback);
   }
 };
+

@@ -4,6 +4,8 @@
  * Configure logging for different environments
  */
 
+import logger from '../utils/logger';
+
 const isDevelopment = import.meta.env.DEV;
 const isProduction = import.meta.env.PROD;
 
@@ -32,9 +34,9 @@ export const initializeLogger = (logger) => {
   // Configure Loggly for production
   if (LOGGLY_CONFIG.enabled && LOGGLY_CONFIG.token) {
     logger.configureLoggly(LOGGLY_CONFIG);
-    console.log('📊 Loggly logging enabled for production');
+    logger.log('📊 Loggly logging enabled for production');
   } else if (LOGGLY_CONFIG.enabled && !LOGGLY_CONFIG.token) {
-    console.warn('⚠️ Loggly enabled but no token provided. Set VITE_LOGGLY_TOKEN environment variable.');
+    logger.warn('⚠️ Loggly enabled but no token provided. Set VITE_LOGGLY_TOKEN environment variable.');
   }
   
   // Log initialization

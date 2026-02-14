@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Business Service Layer - Dashboard
  * Business logic for dashboard operations
  * Uses db-services for data access
@@ -106,7 +106,7 @@ export async function getStudentDashboard(userId) {
 
     return { success: true, data: dashboardData };
   } catch (error) {
-    console.error('[DashboardBusinessService] Error loading dashboard data:', error);
+    logger.error('[DashboardBusinessService] Error loading dashboard data:', error);
     return { success: false, error: error.message };
   }
 }
@@ -144,7 +144,7 @@ async function processEnrollments(enrollments, userId) {
           }
         }
       } catch (error) {
-        console.error('[DashboardBusinessService] Error processing enrollment:', error);
+        logger.error('[DashboardBusinessService] Error processing enrollment:', error);
       }
     } else if (enrollment.status === 'completed') {
       completedClasses.push(enrollment);
@@ -362,3 +362,4 @@ function calculateBehaviorInsights(participationRecords, behaviorRecords) {
 
   return { participationScore, behaviorScore };
 }
+

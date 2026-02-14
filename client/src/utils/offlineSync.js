@@ -1,6 +1,59 @@
+/**
+ * Offline Sync Utility
+ * 
+ * PURPOSE:
+ * Handles offline data synchronization for QR scanner operations. Stores
+ * attendance, participation, penalty, and behavior records locally when
+ * offline and syncs them when connectivity is restored.
+ * 
+ * USAGE:
+ * Import these functions in components that need offline capabilities.
+ * Automatically handles sync when online status changes.
+ * 
+ * ARCHITECTURE:
+ * - IndexedDB for local storage
+ * - Service-based sync operations
+ * - Automatic retry logic
+ * - Conflict resolution
+ * - Progress tracking
+ * 
+ * FEATURES:
+ * - Offline QR scanning and data capture
+ * - Automatic sync when online
+ * - Progress indicators and status updates
+ * - Error handling and retry logic
+ * - Data validation and conflict resolution
+ * 
+ * EXAMPLES:
+ * ```javascript
+ * import { storeOfflineScan, syncOfflineData, getSyncStatus } from '@utils/offlineSync';
+ * 
+ * // Store data when offline
+ * await storeOfflineScan({
+ *   type: 'mark_attendance',
+ *   data: { studentId: '123', classId: '456', status: 'present' }
+ * });
+ * 
+ * // Sync when online (automatic, but can be manual)
+ * const result = await syncOfflineData();
+ * 
+ * // Check sync status
+ * const status = getSyncStatus();
+ * logger.log(`Pending: ${status.pending}, Synced: ${status.synced}`);
+ * ```
+ * 
+ * STORAGE:
+ * - Uses IndexedDB with QRScannerDB
+ * - Separate stores for scans and sync queue
+ * - Automatic cleanup of old records
+ * 
+ * @author Utils Team
+ * @since v2.0.0
+ */
+
 import { openDB } from 'idb';
-import { doc, collection, setDoc } from 'firebase/firestore';
-import { db } from '@services/other/config';
+// Firebase imports are now handled dynamically in the sync functions
+import logger from './logger';
 import { 
   generateReferenceId, 
   validateReferenceId,
@@ -54,7 +107,7 @@ export const saveOfflineScan = async (scanData) => {
     await store.add(scan);
     return scan;
   } catch (error) {
-    console.error('Failed to save offline scan:', error);
+    logger.error('Failed to save offline scan:', error);
     throw error;
   }
 };
@@ -72,7 +125,7 @@ export const getOfflineScans = async () => {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Failed to get offline scans:', error);
+    logger.error('Failed to get offline scans:', error);
     return [];
   }
 };
@@ -94,7 +147,7 @@ export const addToSyncQueue = async (action) => {
     await store.add(queueItem);
     return queueItem;
   } catch (error) {
-    console.error('Failed to add to sync queue:', error);
+    logger.error('Failed to add to sync queue:', error);
     throw error;
   }
 };
@@ -112,7 +165,7 @@ export const getSyncQueue = async () => {
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Failed to get sync queue:', error);
+    logger.error('Failed to get sync queue:', error);
     return [];
   }
 };
@@ -126,7 +179,7 @@ export const removeFromSyncQueue = async (itemId) => {
     
     await store.delete(itemId);
   } catch (error) {
-    console.error('Failed to remove from sync queue:', error);
+    logger.error('Failed to remove from sync queue:', error);
     throw error;
   }
 };
@@ -145,7 +198,7 @@ export const markScanAsSynced = async (scanId) => {
       await store.put(scan);
     }
   } catch (error) {
-    console.error('Failed to mark scan as synced:', error);
+    logger.error('Failed to mark scan as synced:', error);
     throw error;
   }
 };
@@ -153,7 +206,7 @@ export const markScanAsSynced = async (scanId) => {
 // Sync offline data with server
 export const syncOfflineData = async (user, onlineActions = {}) => {
   if (!navigator.onLine) {
-    console.log('Device is offline, skipping sync');
+    logger.log('Device is offline, skipping sync');
     return { success: false, message: 'Device is offline' };
   }
   
@@ -171,8 +224,8 @@ export const syncOfflineData = async (user, onlineActions = {}) => {
         
         switch (type) {
           case 'mark_attendance':
-            // Import markAttendance function dynamically to avoid circular dependency
-            const { markAttendance } = await import('@services/business-services/attendanceBusinessService');
+            // Import attendance service dynamically to avoid circular dependency
+            const { markAttendance } = await import('@services/business/attendanceBusinessService');
             const result = await markAttendance(data);
             if (result.success) {
               await removeFromSyncQueue(item.id);
@@ -183,34 +236,46 @@ export const syncOfflineData = async (user, onlineActions = {}) => {
             break;
             
           case 'award_participation':
-            // Handle participation sync
-            const participationRef = doc(collection(db, 'participations'));
-            await setDoc(participationRef, data);
-            await removeFromSyncQueue(item.id);
-            syncedCount++;
+            // Handle participation sync using db-service
+            const { createParticipation } = await import('@services/db/participationDbService');
+            const participationResult = await createParticipation(data);
+            if (participationResult.success) {
+              await removeFromSyncQueue(item.id);
+              syncedCount++;
+            } else {
+              errors.push(`Failed to sync participation: ${participationResult.error}`);
+            }
             break;
             
           case 'issue_penalty':
-            // Handle penalty sync
-            const penaltyRef = doc(collection(db, 'penalties'));
-            await setDoc(penaltyRef, data);
-            await removeFromSyncQueue(item.id);
-            syncedCount++;
+            // Handle penalty sync using db-service
+            const { createPenalty } = await import('@services/db/penaltyDbService');
+            const penaltyResult = await createPenalty(data);
+            if (penaltyResult.success) {
+              await removeFromSyncQueue(item.id);
+              syncedCount++;
+            } else {
+              errors.push(`Failed to sync penalty: ${penaltyResult.error}`);
+            }
             break;
             
           case 'record_behavior':
-            // Handle behavior sync
-            const behaviorRef = doc(collection(db, 'behaviors'));
-            await setDoc(behaviorRef, data);
-            await removeFromSyncQueue(item.id);
-            syncedCount++;
+            // Handle behavior sync using db-service
+            const { createBehavior } = await import('@services/db/behaviorDbService');
+            const behaviorResult = await createBehavior(data);
+            if (behaviorResult.success) {
+              await removeFromSyncQueue(item.id);
+              syncedCount++;
+            } else {
+              errors.push(`Failed to sync behavior: ${behaviorResult.error}`);
+            }
             break;
             
           default:
             errors.push(`Unknown sync type: ${type}`);
         }
       } catch (error) {
-        console.error(`Failed to sync item ${item.id}:`, error);
+        logger.error(`Failed to sync item ${item.id}:`, error);
         errors.push(`Failed to sync ${item.type}: ${error.message}`);
       }
     }
@@ -236,7 +301,7 @@ export const syncOfflineData = async (user, onlineActions = {}) => {
     };
     
   } catch (error) {
-    console.error('Sync failed:', error);
+    logger.error('Sync failed:', error);
     return { 
       success: false, 
       message: error.message,
@@ -264,7 +329,7 @@ export const getOfflineStats = async () => {
         : null
     };
   } catch (error) {
-    console.error('Failed to get offline stats:', error);
+    logger.error('Failed to get offline stats:', error);
     return {
       totalScans: 0,
       syncedScans: 0,
@@ -292,7 +357,7 @@ export const clearOfflineData = async () => {
     
     return { success: true };
   } catch (error) {
-    console.error('Failed to clear offline data:', error);
+    logger.error('Failed to clear offline data:', error);
     return { success: false, error: error.message };
   }
 };
@@ -328,10 +393,10 @@ export const setupAutoSync = (user, syncInterval = 30000) => {
       try {
         const result = await syncOfflineData(user);
         if (result.success && result.syncedCount > 0) {
-          console.log(`Auto-synced ${result.syncedCount} items`);
+          logger.log(`Auto-synced ${result.syncedCount} items`);
         }
       } catch (error) {
-        console.error('Auto-sync failed:', error);
+        logger.error('Auto-sync failed:', error);
       }
     }
   };
@@ -355,3 +420,4 @@ export const setupAutoSync = (user, syncInterval = 30000) => {
     cleanup();
   };
 };
+

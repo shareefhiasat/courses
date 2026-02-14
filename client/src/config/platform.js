@@ -1,4 +1,4 @@
-// Smart platform URL configuration
+﻿// Smart platform URL configuration
 // Automatically detects localhost vs production
 
 export const getPlatformUrl = () => {
@@ -23,3 +23,4 @@ export default {
   getPlatformUrl,
   PLATFORM_URL
 };
+

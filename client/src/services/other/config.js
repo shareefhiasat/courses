@@ -3,6 +3,7 @@ import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence }
 import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import logger from '../../utils/logger';
 import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
 
 const firebaseConfig = {
@@ -24,10 +25,10 @@ export const auth = getAuth(app);
 // Set session persistence to LOCAL (never expires automatically)
 setPersistence(auth, browserLocalPersistence)
   .then(() => {
-    console.log('✅ Firebase session persistence set to LOCAL - sessions will persist across browser restarts');
+    logger.log('✅ Firebase session persistence set to LOCAL - sessions will persist across browser restarts');
   })
   .catch((error) => {
-    console.error('❌ Failed to set Firebase session persistence:', error);
+    logger.error('❌ Failed to set Firebase session persistence:', error);
     // Fallback to default behavior
   });
 
@@ -57,9 +58,9 @@ if (isLocalhost && USE_EMULATOR) {
   // Only connect if explicitly enabled
   try {
     connectFunctionsEmulator(functions, 'localhost', 5001);
-    console.log('✅ Connected to Functions Emulator');
+    logger.log('✅ Connected to Functions Emulator');
   } catch (e) {
-    console.log('⚠️ Functions Emulator connection failed:', e.message);
+    logger.log('⚠️ Functions Emulator connection failed:', e.message);
   }
   
   // Uncomment these if you want to use other emulators locally:
@@ -68,7 +69,8 @@ if (isLocalhost && USE_EMULATOR) {
   // connectStorageEmulator(storage, 'localhost', 9199);
   // connectDatabaseEmulator(rtdb, 'localhost', 9000);
 } else if (isLocalhost) {
-  console.log('🌐 Using production Firebase (no emulator)');
+  logger.log('🌐 Using production Firebase (no emulator)');
 }
 
 export default app;
+

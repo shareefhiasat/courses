@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Generic Delete Messages Utility
  * 
  * Provides standardized delete confirmation messages for different entity types.
@@ -386,3 +386,4 @@ export const resetDeleteModalState = () => ({
   entityName: '',
   onConfirm: null
 });
+

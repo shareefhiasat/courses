@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Consolidated User Utilities
  * Combines userHelpers.js, roleAccess.js, and other user-related utilities
  */
@@ -40,7 +40,7 @@ export const hasScreenAccess = async (
       const configSnap = await getDoc(configRef);
       screens = configSnap.exists() ? configSnap.data() : {};
     } catch (error) {
-      console.error('Error loading role screens:', error);
+      logger.error('Error loading role screens:', error);
       return false;
     }
   }
@@ -188,7 +188,7 @@ export async function getUserProfile(user) {
     const userDoc = await getDoc(userDocRef);
     return userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null;
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    logger.error('Error fetching user profile:', error);
     return null;
   }
 }
@@ -228,3 +228,4 @@ export default {
   getUserProfile,
   getUserDisplayNameAsync
 };
+

@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, collection, getDocs, serverTimestamp, runTransaction, updateDoc } from 'firebase/firestore';
+﻿import { doc, setDoc, getDoc, collection, getDocs, serverTimestamp, runTransaction, updateDoc } from 'firebase/firestore';
 import { db } from '../other/config';
 
 // =========================================================================
@@ -47,10 +47,10 @@ export async function getBadgeDefinitions() {
   } catch (error) {
     const code = (error && error.code) || '';
     if (code === 'permission-denied') {
-      console.warn('Badges: permission denied while loading definitions');
+      logger.warn('Badges: permission denied while loading definitions');
       return { success: false, error: 'permission-denied', data: [] };
     }
-    console.warn('Error getting badge definitions:', error?.message || error);
+    logger.warn('Error getting badge definitions:', error?.message || error);
     return { success: false, error: error?.message, data: [] };
   }
 }
@@ -67,10 +67,10 @@ export async function getUserBadges(userId) {
   } catch (error) {
     const code = (error && error.code) || '';
     if (code === 'permission-denied') {
-      console.warn('Badges: permission denied while loading user badges');
+      logger.warn('Badges: permission denied while loading user badges');
       return { success: false, error: 'permission-denied', data: [] };
     }
-    console.warn('Error getting user badges:', error?.message || error);
+    logger.warn('Error getting user badges:', error?.message || error);
     return { success: false, error: error?.message, data: [] };
   }
 }
@@ -91,10 +91,10 @@ export async function getUserStats(userId) {
   } catch (error) {
     const code = (error && error.code) || '';
     if (code === 'permission-denied') {
-      console.warn('Badges: permission denied while loading user stats');
+      logger.warn('Badges: permission denied while loading user stats');
       return { success: false, error: 'permission-denied', data: null };
     }
-    console.warn('Error getting user stats:', error?.message || error);
+    logger.warn('Error getting user stats:', error?.message || error);
     return { success: false, error: error?.message, data: null };
   }
 }
@@ -139,7 +139,7 @@ export async function awardManualMedal(studentIds, medal, reason, awardedBy) {
 
     return { success: true };
   } catch (error) {
-    console.error('Error awarding manual medal:', error);
+    logger.error('Error awarding manual medal:', error);
     return { success: false, error: error.message };
   }
 }
@@ -170,7 +170,8 @@ export async function processBadgeTrigger(userId, eventType, eventData = {}) {
     // Placeholder: extend with other event types later
     return { success: true, newBadges: [] };
   } catch (error) {
-    console.warn('processBadgeTrigger failed:', error?.message || error);
+    logger.warn('processBadgeTrigger failed:', error?.message || error);
     return { success: false, error: error?.message };
   }
 }
+

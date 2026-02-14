@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { adjustColor, normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import '../utils/themeDebug'; // Import debug utility
+import logger from '../utils/logger';
 
 const ColorThemeContext = createContext({
   primaryColor: DEFAULT_ACCENT,
@@ -108,7 +109,7 @@ export const ColorThemeProvider = ({ children }) => {
         // console.log('🎨 [ColorTheme] Saved to localStorage:', `accent_color_${user.uid}=${primaryColor}`);
       }
     } catch (e) {
-      console.error('🎨 [ColorTheme] Failed to save primary color preference:', e);
+      logger.error('🎨 [ColorTheme] Failed to save primary color preference:', e);
     }
 
     // Update CSS variables

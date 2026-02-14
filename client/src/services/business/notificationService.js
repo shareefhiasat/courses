@@ -16,6 +16,7 @@ import { db } from '../other/config';
 import { notificationGateway } from './notificationGateway';
 import { sendEmail } from './emailService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+import logger from '../../utils/logger';
 
 // ===== Notifications =====
 // Model: collection "notifications" documents { userId, title, message, type, read, createdAt, data? }
@@ -443,7 +444,7 @@ export async function logNotificationActivity(activity) {
     await addDoc(collection(db, 'notificationLogs'), logEntry);
     
     // Also log to console for development
-    console.log('🔔 Notification Activity:', {
+    logger.log('🔔 Notification Activity:', {
       trigger: activity.trigger,
       channel: activity.channel,
       userId: activity.userId,
@@ -453,7 +454,7 @@ export async function logNotificationActivity(activity) {
     
     return { success: true, logId: logEntry.id };
   } catch (error) {
-    console.error('Error logging notification activity:', error);
+    logger.error('Error logging notification activity:', error);
     return { success: false, error: error.message };
   }
 }

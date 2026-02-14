@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Firebase Allowlist Management Utility
  * 
  * This utility helps manage the Firebase allowlist for admin permissions
@@ -33,7 +33,7 @@ export async function getAllowlistConfig() {
       return { success: true, data: defaultAllowlist };
     }
   } catch (error) {
-    console.error('Error getting allowlist:', error);
+    logger.error('Error getting allowlist:', error);
     return { success: false, error: error.message };
   }
 }
@@ -54,7 +54,7 @@ export async function addToAdminAllowlist(email) {
     
     // Check if email is already in allowlist
     if (adminEmails.includes(email)) {
-      console.log('🔧 Email already in admin allowlist:', email);
+      logger.log('🔧 Email already in admin allowlist:', email);
       return { success: true, message: 'Email already in allowlist' };
     }
     
@@ -67,11 +67,11 @@ export async function addToAdminAllowlist(email) {
       updatedAt: new Date().toISOString()
     });
     
-    console.log('✅ Added email to admin allowlist:', email);
+    logger.log('✅ Added email to admin allowlist:', email);
     return { success: true, message: 'Email added to admin allowlist' };
     
   } catch (error) {
-    console.error('Error adding email to allowlist:', error);
+    logger.error('Error adding email to allowlist:', error);
     return { success: false, error: error.message };
   }
 }
@@ -99,11 +99,11 @@ export async function removeFromAdminAllowlist(email) {
       updatedAt: new Date().toISOString()
     });
     
-    console.log('✅ Removed email from admin allowlist:', email);
+    logger.log('✅ Removed email from admin allowlist:', email);
     return { success: true, message: 'Email removed from admin allowlist' };
     
   } catch (error) {
-    console.error('Error removing email from allowlist:', error);
+    logger.error('Error removing email from allowlist:', error);
     return { success: false, error: error.message };
   }
 }
@@ -115,11 +115,11 @@ export async function addCurrentUserToAllowlist() {
   const user = auth.currentUser;
   
   if (!user) {
-    console.error('❌ No user logged in');
+    logger.error('❌ No user logged in');
     return { success: false, error: 'No user logged in' };
   }
   
-  console.log('🔧 Adding current user to admin allowlist:', user.email);
+  logger.log('🔧 Adding current user to admin allowlist:', user.email);
   return await addToAdminAllowlist(user.email);
 }
 
@@ -138,7 +138,7 @@ export async function isEmailInAllowlist(email) {
     return adminEmails.includes(email);
     
   } catch (error) {
-    console.error('Error checking allowlist:', error);
+    logger.error('Error checking allowlist:', error);
     return false;
   }
 }
@@ -153,10 +153,11 @@ if (typeof window !== 'undefined') {
     isEmailInAllowlist
   };
   
-  // console.log('🔧 Allowlist utilities available in window.allowlistUtils');
-  // console.log('🔧 Usage:');
-  // console.log('  window.allowlistUtils.getAllowlistConfig()');
-  // console.log('  window.allowlistUtils.addCurrentUserToAllowlist()');
-  // console.log('  window.allowlistUtils.addToAdminAllowlist("email@example.com")');
-  // console.log('  window.allowlistUtils.isEmailInAllowlist("email@example.com")');
+  // logger.log('🔧 Allowlist utilities available in window.allowlistUtils');
+  // logger.log('🔧 Usage:');
+  // logger.log('  window.allowlistUtils.getAllowlistConfig()');
+  // logger.log('  window.allowlistUtils.addCurrentUserToAllowlist()');
+  // logger.log('  window.allowlistUtils.addToAdminAllowlist("email@example.com")');
+  // logger.log('  window.allowlistUtils.isEmailInAllowlist("email@example.com")');
 }
+

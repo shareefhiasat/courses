@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+﻿import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import logger from '@utils/logger';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@services/other/config';
@@ -275,3 +275,4 @@ export default function AnalyticsPage() {
     </Container>
   );
 }
+

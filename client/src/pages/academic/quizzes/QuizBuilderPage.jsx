@@ -378,7 +378,7 @@ export default function QuizBuilderPage() {
                     { id: targetQuizId, title: quizData.title, description: quizData.description, settings: quizData.settings },
                     studentsToNotify
                   );
-                  console.log(`Notified ${studentsToNotify.length} students about new quiz`);
+                  logger.log(`Notified ${studentsToNotify.length} students about new quiz`);
                 }
               }
             }

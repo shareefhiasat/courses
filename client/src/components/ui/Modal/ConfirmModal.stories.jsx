@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import ConfirmModal from './ConfirmModal';
 import Button from '../Button';
 
@@ -26,7 +26,7 @@ export const Basic = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          console.log('Confirmed!');
+          logger.log('Confirmed!');
           setIsOpen(false);
         }}
         title="Confirm Action"
@@ -49,7 +49,7 @@ export const DeleteConfirmation = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          console.log('Item deleted');
+          logger.log('Item deleted');
           setIsOpen(false);
         }}
         title="Delete Confirmation"
@@ -105,7 +105,7 @@ export const AllVariants = () => {
   };
 
   const handleConfirm = () => {
-    console.log(`${modal} confirmed`);
+    logger.log(`${modal} confirmed`);
     handleClose();
   };
 
@@ -180,7 +180,7 @@ export const DifferentSizes = () => {
           isOpen={!!size}
           onClose={() => setSize(null)}
           onConfirm={() => {
-            console.log(`${size} modal confirmed`);
+            logger.log(`${size} modal confirmed`);
             setSize(null);
           }}
           title={`${size.charAt(0).toUpperCase() + size.slice(1)} Confirmation`}
@@ -205,7 +205,7 @@ export const CompactDeleteConfirmation = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          console.log('Item deleted');
+          logger.log('Item deleted');
           setIsOpen(false);
         }}
         title="Delete Class"
@@ -257,7 +257,7 @@ export const CustomMessages = () => {
           isOpen={!!modalType}
           onClose={() => setModalType(null)}
           onConfirm={() => {
-            console.log(`${modalType} action confirmed`);
+            logger.log(`${modalType} action confirmed`);
             setModalType(null);
           }}
           {...modals[modalType]}
@@ -266,3 +266,4 @@ export const CustomMessages = () => {
     </>
   );
 };
+

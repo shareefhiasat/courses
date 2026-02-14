@@ -17,6 +17,7 @@ import {
 } from '../db-services/attendanceDbService.js';
 import { addNotification } from '../notificationService.js';
 import { sendEmail } from '../emailService.js';
+import logger from '../../utils/logger';
 import { getUserDisplayName } from '../userService.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes.js';
 import { RECORD_TYPES } from '@utils/sharedTypes.js';
@@ -58,10 +59,10 @@ export async function createAttendanceSession({ classId, subjectId, scheduledAt,
   try {
     // Use callable backend for QR rotation/session lifecycle
     const fn = httpsCallable(functions, 'attendanceCreateSession');
-    console.log('[AttendanceBusinessService] calling attendanceCreateSession', { classId, subjectId });
+    logger.log('[AttendanceBusinessService] calling attendanceCreateSession', { classId, subjectId });
     
     const res = await fn({ classId, subjectId });
-    console.log('[AttendanceBusinessService] attendanceCreateSession result', res?.data);
+    logger.log('[AttendanceBusinessService] attendanceCreateSession result', res?.data);
     
     const { data } = res || {}; 
     return { 

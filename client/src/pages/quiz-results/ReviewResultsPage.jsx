@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -378,7 +378,7 @@ const ReviewResultsPage = () => {
 
       setResults(filtered);
     } catch (error) {
-      console.error('Failed to load results:', error);
+      logger.error('Failed to load results:', error);
       toast?.error?.('Failed to load results: ' + error.message);
       setResults([]);
     } finally {
@@ -996,4 +996,5 @@ const ReviewResultsPage = () => {
 };
 
 export default ReviewResultsPage;
+
 

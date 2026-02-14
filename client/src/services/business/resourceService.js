@@ -1,4 +1,4 @@
-import {
+﻿import {
   collection,
   doc,
   addDoc,
@@ -34,7 +34,7 @@ export const getResources = async () => {
     return { success: true, data: resources };
   } catch (error) {
     logger.error('RESOURCE: Failed to fetch resources', { error: error.message });
-    console.error("Error getting all resources:", error);
+    logger.error("Error getting all resources:", error);
     return { success: false, error: error.message };
   }
 };
@@ -51,7 +51,7 @@ export const getResourcesByClass = async (classId) => {
     });
     return { success: true, data: resources };
   } catch (error) {
-    console.error("Error getting resources by class:", error);
+    logger.error("Error getting resources by class:", error);
     return { success: false, error: error.message };
   }
 };
@@ -114,13 +114,13 @@ export const addResource = async (resourceData) => {
           }
         }
       } catch (notificationError) {
-        console.warn('Failed to send notifications for new resource:', notificationError);
+        logger.warn('Failed to send notifications for new resource:', notificationError);
       }
     }
 
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error("Error adding resource:", error);
+    logger.error("Error adding resource:", error);
     return { success: false, error: error.message };
   }
 };
@@ -166,13 +166,13 @@ export const updateResource = async (id, resourceData, emailOptions = { sendEmai
           }
         }
       } catch (notificationError) {
-        console.warn('Failed to send notifications for resource update:', notificationError);
+        logger.warn('Failed to send notifications for resource update:', notificationError);
       }
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Error updating resource:", error);
+    logger.error("Error updating resource:", error);
     return { success: false, error: error.message };
   }
 };
@@ -183,7 +183,7 @@ export const deleteResource = async (id) => {
     await deleteDoc(doc(db, "resources", id));
     return { success: true };
   } catch (error) {
-    console.error("Error deleting resource:", error);
+    logger.error("Error deleting resource:", error);
     return { success: false, error: error.message };
   }
 };
@@ -199,7 +199,8 @@ export const getResourceById = async (id) => {
       return { success: false, error: 'Resource not found' };
     }
   } catch (error) {
-    console.error("Error getting resource by ID:", error);
+    logger.error("Error getting resource by ID:", error);
     return { success: false, error: error.message };
   }
 };
+

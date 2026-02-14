@@ -3,6 +3,7 @@ import { Select } from '@ui';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '../../../contexts/ThemeContext';
+import logger from '../../../utils/logger';
 import { getThemedIcon } from '@constants/iconTypes';
 import { VariableHelper } from '@ui';
 import { Modal } from '@ui';
@@ -396,11 +397,11 @@ const EmailTemplateEditor = ({ template, onSave, onCancel }) => {
               <button
                   type="button"
                   onClick={() => {
-                    console.log('🔍 Preview button clicked!');
-                    console.log('Current showPreview state:', showPreview);
-                    console.log('Form data:', formData);
+                    logger.log('🔍 Preview button clicked!');
+                    logger.log('Current showPreview state:', showPreview);
+                    logger.log('Form data:', formData);
                     setShowPreview(true);
-                    console.log('Set showPreview to true');
+                    logger.log('Set showPreview to true');
                   }}
                   style={{
                     padding: '12px 24px',

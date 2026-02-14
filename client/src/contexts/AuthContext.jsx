@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+﻿import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { onAuthChange, signOutUser } from '@services/business/authService';
 import { doc, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@services/other/config';
@@ -70,9 +70,9 @@ export const AuthProvider = ({ children }) => {
     const resetTimeout = () => {
       if (timeoutId) clearTimeout(timeoutId);
       lastActivityTime = Date.now();
-      // console.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
+      // logger.log(`[Auth] Session timeout reset - will logout at ${new Date(Date.now() + sessionTimeout).toLocaleTimeString()}`);
       timeoutId = setTimeout(async () => {
-        // console.log('[Auth] Session timeout reached - logging out user');
+        // logger.log('[Auth] Session timeout reached - logging out user');
         
         // Store logout reason with last activity info
         sessionStorage.setItem('logoutReason', 'session_timeout');
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
         try {
           await ActivityLogger.sessionTimeout();
         } catch (error) {
-          console.warn('Failed to log session timeout:', error);
+          logger.warn('Failed to log session timeout:', error);
         }
         // Sign out user
         await signOutUser(user);
@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }) => {
     // Reset timeout on user activity
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
     const handleActivity = () => {
-      // console.log('[Auth] User activity detected - resetting session timeout');
+      // logger.log('[Auth] User activity detected - resetting session timeout');
       resetTimeout();
     };
 
@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }) => {
       try {
         setUserProfile(JSON.parse(cached));
       } catch (e) {
-        console.warn('Failed to parse cached user profile');
+        logger.warn('Failed to parse cached user profile');
       }
     }
   }, []);
@@ -128,8 +128,8 @@ export const AuthProvider = ({ children }) => {
     let userDocUnsub = null;
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (!firebaseUser) {
-        // console.warn('[Auth] User signed out - Firebase auth state changed to null');
-        // console.warn('[Auth] Session storage at logout:', {
+        // logger.warn('[Auth] User signed out - Firebase auth state changed to null');
+        // logger.warn('[Auth] Session storage at logout:', {
         //   hasLoggedIn: sessionStorage.getItem('hasLoggedInThisSession'),
         //   sessionStart: sessionStorage.getItem('sessionStart'),
         //   userProfile: sessionStorage.getItem('userProfile') ? 'exists' : 'missing',
@@ -179,16 +179,16 @@ export const AuthProvider = ({ children }) => {
           try {
             const userProfile = await getUserProfile(firebaseUser);
             if (userProfile) {
-              // console.log('🔧 AuthContext loaded user profile:', userProfile);
-              // console.log('🔧 AuthContext userProfile.displayName:', userProfile.displayName);
-              // console.log('🔧 AuthContext userProfile.realName:', userProfile.realName);
+              // logger.log('🔧 AuthContext loaded user profile:', userProfile);
+              // logger.log('🔧 AuthContext userProfile.displayName:', userProfile.displayName);
+              // logger.log('🔧 AuthContext userProfile.realName:', userProfile.realName);
               userData.displayName = userProfile.displayName || userProfile.realName || userData.displayName;
-              // console.log('🔧 AuthContext final userData.displayName:', userData.displayName);
+              // logger.log('🔧 AuthContext final userData.displayName:', userData.displayName);
             } else {
-              console.log('🔧 AuthContext user profile does not exist');
+              logger.log('🔧 AuthContext user profile does not exist');
             }
           } catch (error) {
-            console.warn("Failed to load user document for display name:", error);
+            logger.warn("Failed to load user document for display name:", error);
           }
         } catch {}
 
@@ -213,7 +213,7 @@ export const AuthProvider = ({ children }) => {
                   try { await firebaseUser.getIdToken(true); } catch {}
                 } catch (e) {
                   // Silent in dev; logged only in prod
-                  if (import.meta.env.PROD) console.warn('ensureAdminClaim failed:', e?.message || e);
+                  if (import.meta.env.PROD) logger.warn('ensureAdminClaim failed:', e?.message || e);
                 }
               }
             }
@@ -229,21 +229,21 @@ export const AuthProvider = ({ children }) => {
         let profile = null;
         try {
           profile = await getUserProfile(firebaseUser);
-          // console.log('🔧 AuthContext getUserProfile result:', profile);
+          // logger.log('🔧 AuthContext getUserProfile result:', profile);
           if (profile) {
-            // console.log('🔧 AuthContext full profile data:', profile);
-            // console.log('🔧 AuthContext profile.role:', profile.role);
-            // console.log('🔧 AuthContext profile.isAdmin:', profile.isAdmin);
-            // console.log('🔧 AuthContext profile.isSuperAdmin:', profile.isSuperAdmin);
-            // console.log('🔧 AuthContext profile.isHR:', profile.isHR);
-            // console.log('🔧 AuthContext profile.isInstructor:', profile.isInstructor);
+            // logger.log('🔧 AuthContext full profile data:', profile);
+            // logger.log('🔧 AuthContext profile.role:', profile.role);
+            // logger.log('🔧 AuthContext profile.isAdmin:', profile.isAdmin);
+            // logger.log('🔧 AuthContext profile.isSuperAdmin:', profile.isSuperAdmin);
+            // logger.log('🔧 AuthContext profile.isHR:', profile.isHR);
+            // logger.log('🔧 AuthContext profile.isInstructor:', profile.isInstructor);
             
             adminFromDoc = isAdminCheck(profile.role) || profile.isAdmin === true;
             superAdminFromDoc = isSuperAdminCheck(profile.role) || profile.isSuperAdmin === true;
             hr = isHRCheck(profile.role) || profile.isHR === true;
             instructor = isInstructorCheck(profile.role) || profile.isInstructor === true;
             
-            // console.log('🔧 AuthContext role detection debug:', {
+            // logger.log('🔧 AuthContext role detection debug:', {
             //   profileRole: profile.role,
             //   isSuperAdminRole: isSuperAdminCheck(profile.role),
             //   profileIsSuperAdmin: profile.isSuperAdmin,
@@ -252,7 +252,7 @@ export const AuthProvider = ({ children }) => {
             //   'USER_ROLES.SUPER_ADMIN': USER_ROLES.SUPER_ADMIN
             // });
             
-            // console.log('🔧 AuthContext detected roles:', {
+            // logger.log('🔧 AuthContext detected roles:', {
             //   adminFromDoc,
             //   superAdminFromDoc,
             //   hr,
@@ -265,7 +265,7 @@ export const AuthProvider = ({ children }) => {
               const enrollmentsSnap = await getDocs(query(collection(db, 'enrollments'), where('userId', '==', firebaseUser.uid)));
               enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
             } catch (e) {
-              console.warn('Failed to load enrollments for status check:', e);
+              logger.warn('Failed to load enrollments for status check:', e);
             }
             
             // Check user status
@@ -274,7 +274,7 @@ export const AuthProvider = ({ children }) => {
             
             // Prevent deleted users from logging in
             if (!canUserLogin(profile)) {
-              console.warn('[Auth] User is deleted. Signing out.');
+              logger.warn('[Auth] User is deleted. Signing out.');
               await signOutUser();
               return;
             }
@@ -293,8 +293,8 @@ export const AuthProvider = ({ children }) => {
               ...profile
             };
             
-            // console.log('🔧 AuthContext final profile:', profile);
-            // console.log('🔧 AuthContext final profile.displayName:', profile.displayName);
+            // logger.log('🔧 AuthContext final profile:', profile);
+            // logger.log('🔧 AuthContext final profile.displayName:', profile.displayName);
             
             // Cache in sessionStorage
             sessionStorage.setItem('userProfile', JSON.stringify(profile));
@@ -310,14 +310,14 @@ export const AuthProvider = ({ children }) => {
             } catch {}
           }
         } catch (error) {
-          console.error('🔧 AuthContext error in role detection:', error);
-          console.error('🔧 AuthContext error stack:', error?.stack);
+          logger.error('🔧 AuthContext error in role detection:', error);
+          logger.error('🔧 AuthContext error stack:', error?.stack);
         }
 
         // If Firestore says admin, honor it (hot-fix for missing claims/allowlist)
         if (!admin && adminFromDoc) admin = true;
 
-        // console.log('🔧 AuthContext before final assignment:', {
+        // logger.log('🔧 AuthContext before final assignment:', {
         //   admin,
         //   adminFromDoc,
         //   superAdminFromDoc,
@@ -337,7 +337,7 @@ export const AuthProvider = ({ children }) => {
         else if (instructor) userRole = USER_ROLES.INSTRUCTOR;
         else userRole = USER_ROLES.STUDENT;
         
-        // console.log('🔧 AuthContext final role assignment:', {
+        // logger.log('🔧 AuthContext final role assignment:', {
         //   superAdminFromDoc,
         //   admin,
         //   hr,
@@ -364,13 +364,13 @@ export const AuthProvider = ({ children }) => {
           if (userDocUnsub) userDocUnsub();
           userDocUnsub = onSnapshot(doc(db, 'users', firebaseUser.uid), (snap) => {
             if (!snap.exists()) {
-              console.warn('[Auth] User doc removed. Signing out.');
+              logger.warn('[Auth] User doc removed. Signing out.');
               signOutUser();
             }
           });
         } catch {}
       } catch (error) {
-        console.warn('Auth init non-fatal error:', error?.message || error);
+        logger.warn('Auth init non-fatal error:', error?.message || error);
         setIsAdmin(false);
         setRole(USER_ROLES.STUDENT);
       }
@@ -421,7 +421,7 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      console.error('Impersonation error:', error);
+      logger.error('Impersonation error:', error);
       return { success: false, error: error.message };
     }
   };
@@ -463,3 +463,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+

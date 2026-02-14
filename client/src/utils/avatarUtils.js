@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Avatar Utilities
  * Extracted for DRY principle and reusability
  */
@@ -29,3 +29,4 @@ export const getAvatarInitials = (name) => {
   
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 };
+

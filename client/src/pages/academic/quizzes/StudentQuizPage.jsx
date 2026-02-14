@@ -455,9 +455,9 @@ export default function StudentQuizPage() {
           };
           localStorage.setItem(progressKey, JSON.stringify(progress));
           setLastSaved(new Date());
-          console.log('[Auto-save] Saved on navigation:', { from: currentQuestionIndex, to: targetIndex });
+          logger.log('[Auto-save] Saved on navigation:', { from: currentQuestionIndex, to: targetIndex });
         } catch (err) {
-          console.error('[Auto-save] Failed to save on navigation:', err);
+          logger.error('[Auto-save] Failed to save on navigation:', err);
         }
       }
     }
@@ -580,10 +580,10 @@ export default function StudentQuizPage() {
         classId: quiz.classId || null
       };
 
-      console.log('[Submit] Submitting quiz:', { quizId, userId: user?.uid, answersCount: Object.keys(detailedAnswers).length, score });
+      logger.log('[Submit] Submitting quiz:', { quizId, userId: user?.uid, answersCount: Object.keys(detailedAnswers).length, score });
       toast?.showInfo?.('Submitting quiz...');
       const result = await submitQuiz(submission);
-      console.log('[Submit] Result:', result);
+      logger.log('[Submit] Result:', result);
       
       if (result.success) {
         // Show retake feedback if applicable

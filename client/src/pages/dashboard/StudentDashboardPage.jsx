@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Student Dashboard - Completely Revamped
  * Features: PDF/Image Export, Compact View Toggle, Smart UI/UX
  * Serves: Students, HR, Instructors, Admins
@@ -90,7 +90,7 @@ export default function StudentDashboardPage() {
 
   useEffect(() => {
     if (user) {
-      console.log('🔍 [StudentDashboard] Current user:', { 
+      logger.log('🔍 [StudentDashboard] Current user:', { 
         uid: user.uid, 
         email: user.email,
         displayName: user.displayName,
@@ -265,7 +265,7 @@ export default function StudentDashboardPage() {
           setPenalties(penaltiesResult.data || []);
         }
       } catch (error) {
-        console.warn('Failed to load penalties:', error);
+        logger.warn('Failed to load penalties:', error);
       }
 
       // Load absences
@@ -275,7 +275,7 @@ export default function StudentDashboardPage() {
           setAbsences(absencesResult.data || []);
         }
       } catch (error) {
-        console.warn('Failed to load absences:', error);
+        logger.warn('Failed to load absences:', error);
       }
 
       // Load participations - with permission handling
@@ -295,10 +295,10 @@ export default function StudentDashboardPage() {
         const message = String(error?.message || '').toLowerCase();
         const code = error?.code || '';
         if (code === 'permission-denied' || message.includes('missing or insufficient permissions')) {
-          console.warn('StudentDashboard: permission denied for participations, showing empty');
+          logger.warn('StudentDashboard: permission denied for participations, showing empty');
           setParticipations([]);
         } else {
-          console.warn('Failed to load participations:', error);
+          logger.warn('Failed to load participations:', error);
         }
       }
 
@@ -319,10 +319,10 @@ export default function StudentDashboardPage() {
         const message = String(error?.message || '').toLowerCase();
         const code = error?.code || '';
         if (code === 'permission-denied' || message.includes('missing or insufficient permissions')) {
-          console.warn('StudentDashboard: permission denied for behaviors, showing empty');
+          logger.warn('StudentDashboard: permission denied for behaviors, showing empty');
           setBehaviors([]);
         } else {
-          console.warn('Failed to load behaviors:', error);
+          logger.warn('Failed to load behaviors:', error);
         }
       }
 
@@ -333,7 +333,7 @@ export default function StudentDashboardPage() {
           setStudentMarks(marksResult.data || []);
         }
       } catch (error) {
-        console.warn('Failed to load student marks:', error);
+        logger.warn('Failed to load student marks:', error);
       }
 
       // Load subjects and programs
@@ -349,7 +349,7 @@ export default function StudentDashboardPage() {
           setPrograms(programsResult.data || []);
         }
       } catch (error) {
-        console.warn('Failed to load subjects/programs:', error);
+        logger.warn('Failed to load subjects/programs:', error);
       }
 
     } catch (error) {
@@ -357,7 +357,7 @@ export default function StudentDashboardPage() {
       const code = error?.code || '';
 
       if (code === 'permission-denied' || message.includes('missing or insufficient permissions')) {
-        console.warn('StudentDashboard: permission denied, showing empty dashboard view');
+        logger.warn('StudentDashboard: permission denied, showing empty dashboard view');
         setTasks([]);
         setEnrollments([]);
         setQuizResults([]);
@@ -369,7 +369,7 @@ export default function StudentDashboardPage() {
         setBehaviors([]);
         setStudentMarks([]);
       } else {
-        console.error('Error loading dashboard:', error);
+        logger.error('Error loading dashboard:', error);
         toast?.error?.('Failed to load dashboard data');
       }
     } finally {
@@ -379,15 +379,15 @@ export default function StudentDashboardPage() {
 
   const loadStudentsList = async () => {
     try {
-      console.log('🔍 [StudentDashboard] Loading students list...');
+      logger.log('🔍 [StudentDashboard] Loading students list...');
       
       // Load all students
       const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'student')));
-      console.log(`🔍 [StudentDashboard] Found ${usersSnap.size} students in collection`);
+      logger.log(`🔍 [StudentDashboard] Found ${usersSnap.size} students in collection`);
 
       // Load all enrollments
       const enrollmentsSnap = await getDocs(collection(db, 'enrollments'));
-      console.log(`🔍 [StudentDashboard] Found ${enrollmentsSnap.size} enrollments`);
+      logger.log(`🔍 [StudentDashboard] Found ${enrollmentsSnap.size} enrollments`);
 
       // Create a map of userId -> [enrollments]
       const enrollmentsByUser = {};
@@ -426,7 +426,7 @@ export default function StudentDashboardPage() {
           };
         });
 
-      console.log('🔍 [StudentDashboard] Processed students:', students.map(s => ({
+      logger.log('🔍 [StudentDashboard] Processed students:', students.map(s => ({
         id: s.id,
         name: s.displayName,
         email: s.email,
@@ -440,7 +440,7 @@ export default function StudentDashboardPage() {
       if (user) {
         const currentUserInList = students.find(s => s.id === user.uid);
         if (currentUserInList) {
-          console.log('🔍 [StudentDashboard] Current user status:', {
+          logger.log('🔍 [StudentDashboard] Current user status:', {
             id: currentUserInList.id,
             email: currentUserInList.email,
             status: currentUserInList.status,
@@ -449,7 +449,7 @@ export default function StudentDashboardPage() {
             canViewDashboard: currentUserInList.statusSummary?.canViewDashboard
           });
         } else {
-          console.log('🔍 [StudentDashboard] Current user not found in students list:', {
+          logger.log('🔍 [StudentDashboard] Current user not found in students list:', {
             uid: user.uid,
             email: user.email,
             role: user.role
@@ -459,7 +459,7 @@ export default function StudentDashboardPage() {
       
       setStudentsList(students);
     } catch (error) {
-      console.error('Error loading students:', error);
+      logger.error('Error loading students:', error);
       setStudentsList([]);
     }
   };
@@ -606,7 +606,7 @@ export default function StudentDashboardPage() {
       pdf.save(`student-dashboard-${displayName}-${new Date().toISOString().split('T')[0]}.pdf`);
       toast.success('Dashboard exported to PDF successfully!');
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', error);
       toast.error('Failed to export PDF: ' + error.message);
     } finally {
       setExporting(false);
@@ -633,7 +633,7 @@ export default function StudentDashboardPage() {
       link.click();
       toast.success('Dashboard exported to image successfully!');
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', error);
       toast.error('Failed to export image: ' + error.message);
     } finally {
       setExporting(false);
@@ -677,7 +677,7 @@ export default function StudentDashboardPage() {
                   value={selectedStudent || ''}
                   onChange={(e) => {
                     const value = e?.target?.value || e?.value || e || '';
-                    console.log('🔍 [StudentDashboard] User selected:', value);
+                    logger.log('🔍 [StudentDashboard] User selected:', value);
                     setSelectedStudent(value || null);
                   }}
                   options={[
@@ -1740,3 +1740,4 @@ export default function StudentDashboardPage() {
     </div>
   );
 }
+

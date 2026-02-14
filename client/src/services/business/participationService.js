@@ -229,7 +229,7 @@ export async function deleteParticipation(participationId, participationData = n
     }
     
     await deleteDoc(doc(db, 'participations', participationId));
-    console.log('[Participation] Deleted participation record:', participationId);
+    logger.log('[Participation] Deleted participation record:', participationId);
     
     // Log activity
     try {

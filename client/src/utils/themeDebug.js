@@ -3,6 +3,8 @@
  * Add this script to browser console or include in development builds
  */
 
+import logger from './logger';
+
 export const debugThemeVariables = () => {
   // console.group('🎨 [Theme Debug] CSS Variables Analysis');
   
@@ -82,7 +84,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Real-time monitoring
 export const startThemeMonitoring = () => {
-  // console.log('🎨 [Theme Debug] Starting real-time monitoring...');
+  logger.log('🎨 [Theme Debug] Starting real-time monitoring...');
   
   // Monitor CSS variable changes
   const observer = new MutationObserver((mutations) => {
@@ -91,11 +93,11 @@ export const startThemeMonitoring = () => {
         const root = document.documentElement;
         const primaryColor = root.style.getPropertyValue('--color-primary');
         if (primaryColor) {
-          // console.log('🎨 [Theme Debug] CSS variable changed:', {
-          //   '--color-primary': primaryColor,
-          //   '--brand': root.style.getPropertyValue('--brand'),
-          //   timestamp: new Date().toISOString()
-          // });
+          logger.log('🎨 [Theme Debug] CSS variable changed:', {
+            '--color-primary': primaryColor,
+            '--brand': root.style.getPropertyValue('--brand'),
+            timestamp: new Date().toISOString()
+          });
         }
       }
     });

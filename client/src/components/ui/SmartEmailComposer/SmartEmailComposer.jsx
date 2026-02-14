@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Modal, Button, Input, Textarea, Select, Card, CardBody } from '@ui';
 
 const SmartEmailComposer = ({ open, onClose, onSend }) => {
@@ -20,7 +20,7 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
       setType('general');
       onClose();
     } catch (error) {
-      console.error('Failed to send email:', error);
+      logger.error('Failed to send email:', error);
     } finally {
       setLoading(false);
     }
@@ -82,3 +82,4 @@ const SmartEmailComposer = ({ open, onClose, onSend }) => {
 };
 
 export default SmartEmailComposer;
+

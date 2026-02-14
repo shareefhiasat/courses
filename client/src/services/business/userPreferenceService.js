@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+﻿import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../other/config';
 
 /**
@@ -17,7 +17,7 @@ export const getUserPreferences = async (userId) => {
     
     return {};
   } catch (error) {
-    console.error('Error getting user preferences:', error);
+    logger.error('Error getting user preferences:', error);
     return {};
   }
 };
@@ -36,7 +36,7 @@ export const updateUserPreferences = async (userId, preferences) => {
     });
     return true;
   } catch (error) {
-    console.error('Error updating user preferences:', error);
+    logger.error('Error updating user preferences:', error);
     return false;
   }
 };
@@ -57,7 +57,7 @@ export const addFavoriteStudent = async (userId, studentId) => {
     });
     return true;
   } catch (error) {
-    console.error('Error adding favorite student:', error);
+    logger.error('Error adding favorite student:', error);
     return false;
   }
 };
@@ -78,7 +78,7 @@ export const removeFavoriteStudent = async (userId, studentId) => {
     });
     return true;
   } catch (error) {
-    console.error('Error removing favorite student:', error);
+    logger.error('Error removing favorite student:', error);
     return false;
   }
 };
@@ -93,7 +93,7 @@ export const getFavoriteStudents = async (userId) => {
     const preferences = await getUserPreferences(userId);
     return preferences.favoriteStudents || [];
   } catch (error) {
-    console.error('Error getting favorite students:', error);
+    logger.error('Error getting favorite students:', error);
     return [];
   }
 };
@@ -114,7 +114,7 @@ export const addFavoriteBehavior = async (userId, behaviorId) => {
     });
     return true;
   } catch (error) {
-    console.error('Error adding favorite behavior:', error);
+    logger.error('Error adding favorite behavior:', error);
     return false;
   }
 };
@@ -135,7 +135,7 @@ export const removeFavoriteBehavior = async (userId, behaviorId) => {
     });
     return true;
   } catch (error) {
-    console.error('Error removing favorite behavior:', error);
+    logger.error('Error removing favorite behavior:', error);
     return false;
   }
 };
@@ -150,7 +150,8 @@ export const getFavoriteBehaviors = async (userId) => {
     const preferences = await getUserPreferences(userId);
     return preferences.favoriteBehaviors || [];
   } catch (error) {
-    console.error('Error getting favorite behaviors:', error);
+    logger.error('Error getting favorite behaviors:', error);
     return [];
   }
 };
+

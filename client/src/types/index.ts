@@ -1,83 +1,129 @@
-// Centralized TypeScript Type Definitions
-// Single source of truth for all application types
+// ============================================================================
+// CENTRALIZED TYPESCRIPT TYPE DEFINITIONS
+// ============================================================================
+// Single source of truth for all application types across the LMS platform
+// 
+// ARCHITECTURE:
+// - Database Models: Types representing Firestore collections (lines 13-410)
+// - UI Types: Component props and form types (lines 412-510)
+// - Utility Types: Helper types for TypeScript operations (lines 512-567)
+// 
+// USAGE:
+// - Import types: import { User, UserRole, AttendanceRecord } from '@types/index'
+// - Do NOT create duplicate types in other files
+// - All Firebase collection types MUST be defined here
+// - Use these types in both DB services and business services
+// - UI components should use these types for props validation
+// 
+// MAINTENANCE:
+// - When adding new Firestore collections, add types in Database Models section
+// - Keep comments synchronized with actual field usage
+// - Update ServiceResponse type usage across all service layers
 
 import { Timestamp } from 'firebase/firestore';
 
 // ============================================================================
 // FIREBASE COLLECTION TYPES (Database Models)
 // ============================================================================
+// These types represent the exact structure of Firestore collections.
+// 
+// USAGE IN SERVICES:
+// - DB Services: Use these types for function parameters and return values
+// - Business Services: Use these types + add business logic validation
+// - Components: Receive these types from hooks/services
+// 
+// FIELD CONVENTIONS:
+// - docId: Firestore document ID (always string)
+// - createdAt/updatedAt: Firestore Timestamp objects
+// - Foreign keys end with 'Id' (userId, classId, programId)
+// - Optional fields marked with '?'
+// - Arrays for relationships (assignedTo: string[])
 
-// User Management
+// ============================================================================
+// USER MANAGEMENT TYPES
+// ============================================================================
+
+/**
+ * User roles in the LMS system
+ * - STUDENT: Can view courses, submit assignments, track progress
+ * - INSTRUCTOR: Can manage classes, grade submissions, mark attendance
+ * - ADMIN: Full system access, user management, system configuration
+ * - HR: Human resources access, reports, employee management
+ */
 export type UserRole = 'STUDENT' | 'INSTRUCTOR' | 'ADMIN' | 'HR';
 
 export interface User {
-  uid: string;
-  email: string;
-  displayName: string;
-  role: UserRole;
-  photoURL?: string;
-  phoneNumber?: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  lastLogin?: Timestamp;
-  isActive: boolean;
-  metadata?: Record<string, any>;
+  uid: string;                    // Firebase Auth UID
+  email: string;                  // User email (unique)
+  displayName: string;            // Display name for UI
+  role: UserRole;                 // System role for permissions
+  photoURL?: string;              // Profile picture URL
+  phoneNumber?: string;           // Contact number
+  createdAt: Timestamp;           // Account creation time
+  updatedAt: Timestamp;           // Last profile update
+  lastLogin?: Timestamp;          // Last login tracking
+  isActive: boolean;              // Account status (soft delete)
+  metadata?: Record<string, any>; // Additional user data
 }
 
-// Academic Structures
+// ============================================================================
+// ACADEMIC STRUCTURE TYPES
+// ============================================================================
 export interface Program {
-  docId: string;
-  name: string;
-  nameAr?: string;
-  code: string;
-  description?: string;
-  duration?: number;
-  credits?: number;
-  isActive: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  createdBy: string;
+  docId: string;                  // Firestore document ID
+  name: string;                   // Program name (English)
+  nameAr?: string;                // Program name (Arabic)
+  code: string;                   // Unique program code
+  description?: string;           // Program description
+  duration?: number;              // Duration in months/years
+  credits?: number;               // Total credit hours
+  isActive: boolean;              // Program status
+  createdAt: Timestamp;          // Creation timestamp
+  updatedAt: Timestamp;          // Last update timestamp
+  createdBy: string;              // Creator user ID
 }
 
 export interface Subject {
-  docId: string;
-  name: string;
-  nameAr?: string;
-  code: string;
-  description?: string;
-  credits?: number;
-  programId: string;
-  isActive: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  createdBy: string;
+  docId: string;                  // Firestore document ID
+  name: string;                   // Subject name (English)
+  nameAr?: string;                // Subject name (Arabic)
+  code: string;                   // Subject code
+  description?: string;           // Subject description
+  credits?: number;               // Credit hours
+  programId: string;               // Parent program ID
+  isActive: boolean;              // Subject status
+  createdAt: Timestamp;          // Creation timestamp
+  updatedAt: Timestamp;          // Last update timestamp
+  createdBy: string;              // Creator user ID
 }
 
 export interface Class {
-  docId: string;
-  name: string;
-  nameAr?: string;
-  programId: string;
-  subjectId: string;
-  instructorId: string;
-  schedule?: ClassSchedule[];
-  room?: string;
-  capacity?: number;
-  enrolled?: number;
-  isActive: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  createdBy: string;
+  docId: string;                  // Firestore document ID
+  name: string;                   // Class name (English)
+  nameAr?: string;                // Class name (Arabic)
+  programId: string;              // Parent program ID
+  subjectId: string;              // Parent subject ID
+  instructorId: string;           // Assigned instructor ID
+  schedule?: ClassSchedule[];     // Class schedule array
+  room?: string;                  // Classroom location
+  capacity?: number;              // Maximum students
+  enrolled?: number;              // Current enrollment count
+  isActive: boolean;              // Class status
+  createdAt: Timestamp;          // Creation timestamp
+  updatedAt: Timestamp;          // Last update timestamp
+  createdBy: string;              // Creator user ID
 }
 
 export interface ClassSchedule {
-  day: string;
-  startTime: string;
-  endTime: string;
-  room?: string;
+  day: string;                    // Day of week (Monday, Tuesday, etc.)
+  startTime: string;              // Start time (HH:MM format)
+  endTime: string;                // End time (HH:MM format)
+  room?: string;                  // Room for this session
 }
 
-// Enrollment & Progress
+// ============================================================================
+// ENROLLMENT & PROGRESS TYPES
+// ============================================================================
 export interface Enrollment {
   docId: string;
   userId: string;
@@ -93,7 +139,9 @@ export interface Enrollment {
 
 export type EnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'DROPPED' | 'SUSPENDED' | 'PENDING';
 
-// Activities & Assessments
+// ============================================================================
+// ACTIVITIES & ASSESSMENTS TYPES
+// ============================================================================
 export interface Activity {
   docId: string;
   type: ActivityType;
@@ -173,7 +221,10 @@ export interface Submission {
   feedback?: string;
 }
 
-// Attendance & Participation
+// ============================================================================
+// ATTENDANCE, PARTICIPATION, BEHAVIOR & PENALTY TYPES
+// ============================================================================
+// These types are used by the QR Scanner and student tracking systems
 export interface AttendanceRecord {
   docId: string;
   userId: string;
@@ -190,6 +241,15 @@ export interface AttendanceRecord {
   updatedAt: Timestamp;
 }
 
+/**
+ * Attendance status values
+ * - PRESENT: Student attended on time
+ * - LATE: Student arrived late
+ * - ABSENT_NO_EXCUSE: Student absent without valid reason
+ * - ABSENT_WITH_EXCUSE: Student absent with valid documentation
+ * - EXCUSED_LEAVE: Pre-approved absence
+ * - HUMAN_CASE: Special circumstances requiring HR attention
+ */
 export type AttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT_NO_EXCUSE' | 'ABSENT_WITH_EXCUSE' | 'EXCUSED_LEAVE' | 'HUMAN_CASE';
 
 export interface ParticipationRecord {
@@ -236,7 +296,9 @@ export interface PenaltyRecord {
 export type PenaltyType = 'CHEATING' | 'ATTEMPTED_CHEATING' | 'IMPERSONATION' | 'EXAM_DISRUPTION' | 'FORGERY' | 'REPETITIVE_ABSENCE_WITH_EXCUSE' | 'REPETITIVE_ABSENCE_WITHOUT_EXCUSE' | 'PHONE_USE_DURING_EXAM' | 'PLAGIARISM' | 'DISRUPTIVE_BEHAVIOR' | 'LATE_SUBMISSION' | 'MISSING_DEADLINE';
 export type PenaltyStatus = 'ACTIVE' | 'RESOLVED' | 'APPEALED';
 
-// Grading
+// ============================================================================
+// GRADING TYPES
+// ============================================================================
 export interface GradeRecord {
   docId: string;
   userId: string;
@@ -252,7 +314,9 @@ export interface GradeRecord {
   feedback?: string;
 }
 
-// Communications
+// ============================================================================
+// COMMUNICATIONS TYPES
+// ============================================================================
 export interface Announcement {
   docId: string;
   title: string;
@@ -304,7 +368,9 @@ export interface Notification {
 
 export type NotificationType = 'SUCCESS' | 'WARNING' | 'ERROR' | 'ANNOUNCEMENT' | 'GRADE' | 'ACTIVITY' | 'MESSAGE' | 'CHAT' | 'NEWSLETTER' | 'ATTENDANCE' | 'ABSENCE' | 'PENALTY';
 
-// Resources
+// ============================================================================
+// RESOURCE MANAGEMENT TYPES
+// ============================================================================
 export interface Resource {
   docId: string;
   name: string;
@@ -321,7 +387,9 @@ export interface Resource {
 
 export type ResourceType = 'DOCUMENT' | 'VIDEO' | 'IMAGE' | 'LINK' | 'FOLDER';
 
-// Analytics & Reports
+// ============================================================================
+// ANALYTICS & REPORTING TYPES
+// ============================================================================
 export interface AnalyticsRecord {
   docId: string;
   type: AnalyticsType;
@@ -348,7 +416,9 @@ export interface ScheduledReport {
 
 export type ReportType = 'ATTENDANCE' | 'GRADES' | 'PERFORMANCE' | 'ACTIVITY';
 
-// System
+// ============================================================================
+// SYSTEM & LOGGING TYPES
+// ============================================================================
 export interface ActivityLog {
   docId: string;
   userId: string;
@@ -376,7 +446,9 @@ export interface Category {
 
 export type CategoryType = 'ACADEMIC' | 'BEHAVIOR' | 'PENALTY' | 'PARTICIPATION' | 'SYSTEM';
 
-// Gamification
+// ============================================================================
+// GAMIFICATION TYPES
+// ============================================================================
 export interface Badge {
   docId: string;
   name: string;
@@ -403,6 +475,8 @@ export interface UserBadge {
 // ============================================================================
 // UI & FORM TYPES (Not database models)
 // ============================================================================
+// These types are for UI components only and do NOT represent database collections.
+// Use these for component props, form validation, and UI state management.
 
 // Base Types
 export type Theme = 'light' | 'dark';
@@ -540,6 +614,20 @@ export interface FilterState {
 // ============================================================================
 // API RESPONSE TYPES
 // ============================================================================
+// Standard response format for all service layer functions.
+// 
+// USAGE:
+// - All DB service functions should return ServiceResponse<T>
+// - All business service functions should return ServiceResponse<T>
+// - Components check response.success before accessing response.data
+// 
+// EXAMPLE:
+// const result = await getUserById(userId);
+// if (result.success) {
+//   console.log(result.data); // User object
+// } else {
+//   console.error(result.error); // Error message
+// }
 
 export interface ServiceResponse<T = any> {
   success: boolean;

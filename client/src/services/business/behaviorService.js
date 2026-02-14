@@ -227,7 +227,7 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
     }
     
     await deleteDoc(doc(db, 'behaviors', behaviorId));
-    console.log('[Behavior] Deleted behavior record:', behaviorId);
+    logger.log('[Behavior] Deleted behavior record:', behaviorId);
     
     // Log activity
     try {

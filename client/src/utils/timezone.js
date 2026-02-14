@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Timezone Utilities for Qatar (UTC+3)
  * Default system timezone for all date/time operations
  */
@@ -137,4 +137,5 @@ export function qatarDateToTimestamp(qatarDate) {
   const utcDate = fromZonedTime(qatarDate, QATAR_TIMEZONE);
   return Timestamp.fromDate(utcDate);
 }
+
 

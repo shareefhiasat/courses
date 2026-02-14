@@ -1,7 +1,40 @@
 /**
- * Database Service Layer - Attendance
- * Direct database operations for attendance data
- * No business logic - pure CRUD operations
+ * Attendance Database Service
+ * 
+ * PURPOSE:
+ * Direct Firestore operations for attendance records. This is the database layer
+ * and should NOT contain business logic. All business logic should be in the
+ * corresponding business service layer.
+ * 
+ * USAGE:
+ * Import these functions in business services or other db-services only.
+ * Do NOT import directly in UI components - use business services instead.
+ * 
+ * ARCHITECTURE:
+ * - CRUD operations for attendance records
+ * - Query operations for reporting and analytics
+ * - Real-time listeners for live updates
+ * - No business logic or validation (handled by business layer)
+ * 
+ * COLLECTION: 'attendance'
+ * 
+ * EXAMPLES:
+ * ```javascript
+ * // In business service:
+ * import { createAttendance, getAttendanceByStudent } from '@services/db/attendanceDbService';
+ * 
+ * const result = await createAttendance(attendanceData);
+ * if (result.success) {
+ *   // Handle success, send notifications, etc.
+ * }
+ * ```
+ * 
+ * @typedef {import('@types/index').AttendanceRecord} AttendanceRecord
+ * @typedef {import('@types/index').AttendanceStatus} AttendanceStatus
+ * @typedef {import('@types/index').ServiceResponse} ServiceResponse
+ * 
+ * @author Service Layer Architecture
+ * @since v2.0.0
  */
 
 import { 
@@ -79,7 +112,7 @@ export const getAttendanceRecords = async (filters = {}) => {
 
     return { success: true, data: records };
   } catch (error) {
-    console.error('[AttendanceDbService] Error getting attendance records:', error);
+    logger.error('[AttendanceDbService] Error getting attendance records:', error);
     return { success: false, error: error.message };
   }
 };
@@ -103,7 +136,7 @@ export const getAttendanceRecord = async (attendanceId) => {
       return { success: false, error: 'Attendance record not found' };
     }
   } catch (error) {
-    console.error('[AttendanceDbService] Error getting attendance record:', error);
+    logger.error('[AttendanceDbService] Error getting attendance record:', error);
     return { success: false, error: error.message };
   }
 };
@@ -126,7 +159,7 @@ export const setAttendanceRecord = async (attendanceId, attendanceData) => {
     await setDoc(docRef, dataWithTimestamp, { merge: true });
     return { success: true };
   } catch (error) {
-    console.error('[AttendanceDbService] Error setting attendance record:', error);
+    logger.error('[AttendanceDbService] Error setting attendance record:', error);
     return { success: false, error: error.message };
   }
 };
@@ -148,7 +181,7 @@ export const updateAttendanceRecord = async (attendanceId, updateData) => {
     await updateDoc(docRef, dataWithTimestamp);
     return { success: true };
   } catch (error) {
-    console.error('[AttendanceDbService] Error updating attendance record:', error);
+    logger.error('[AttendanceDbService] Error updating attendance record:', error);
     return { success: false, error: error.message };
   }
 };
@@ -164,7 +197,7 @@ export const deleteAttendanceRecord = async (attendanceId) => {
     await deleteDoc(docRef);
     return { success: true };
   } catch (error) {
-    console.error('[AttendanceDbService] Error deleting attendance record:', error);
+    logger.error('[AttendanceDbService] Error deleting attendance record:', error);
     return { success: false, error: error.message };
   }
 };
@@ -204,7 +237,7 @@ export const getAttendanceStats = async (classId, dateRange = null) => {
 
     return { success: true, data: stats };
   } catch (error) {
-    console.error('[AttendanceDbService] Error getting attendance stats:', error);
+    logger.error('[AttendanceDbService] Error getting attendance stats:', error);
     return { success: false, error: error.message };
   }
 };
@@ -259,7 +292,8 @@ export const onAttendanceRecordsChange = (filters = {}, callback) => {
 
     return unsubscribe;
   } catch (error) {
-    console.error('[AttendanceDbService] Error setting up listener:', error);
+    logger.error('[AttendanceDbService] Error setting up listener:', error);
     return () => {}; // Return empty function as fallback
   }
 };
+

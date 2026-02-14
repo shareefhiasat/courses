@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, SidebarOpen, QrCode, Mail, ExternalLink, Users, Trophy, AlertCircle } from 'lucide-react';
@@ -465,7 +465,7 @@ const StudentTableRow = ({
                 try {
                   onStudentAction(student);
                 } catch (error) {
-                  console.error('Error calling onStudentAction:', error);
+                  logger.error('Error calling onStudentAction:', error);
                 }
               }}
               title={t('actions')}
@@ -668,3 +668,4 @@ const StudentTableRow = ({
 };
 
 export default StudentTableRow;
+

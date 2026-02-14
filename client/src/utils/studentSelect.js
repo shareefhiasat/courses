@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+﻿import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { getUserStatusSummary } from './userStatus';
 
@@ -51,7 +51,7 @@ export const fetchClassStudentsWithStatus = async (classId) => {
         userData: studentData
       };
     } catch (error) {
-      console.warn('[studentSelect] Failed to load student metadata', studentId, error);
+      logger.warn('[studentSelect] Failed to load student metadata', studentId, error);
       return null;
     }
   }));
@@ -85,3 +85,4 @@ export const buildStudentOptionMeta = (student) => {
     searchText: searchSegments.join(' ').toLowerCase()
   };
 };
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Data Helper Functions
  * Provides utilities for general data type operations and validations
  */
@@ -17,7 +17,7 @@ export const safeJsonParse = (jsonString, fallback = null) => {
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    console.warn('Failed to parse JSON:', error);
+    logger.warn('Failed to parse JSON:', error);
     return fallback;
   }
 };
@@ -32,7 +32,7 @@ export const safeJsonStringify = (data, fallback = '{}') => {
   try {
     return JSON.stringify(data);
   } catch (error) {
-    console.warn('Failed to stringify JSON:', error);
+    logger.warn('Failed to stringify JSON:', error);
     return fallback;
   }
 };
@@ -168,3 +168,4 @@ export default {
   debounce,
   throttle
 };
+

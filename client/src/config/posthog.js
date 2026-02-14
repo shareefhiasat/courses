@@ -1,4 +1,5 @@
 import posthog from 'posthog-js';
+import logger from '../utils/logger';
 
 /**
  * Initialize PostHog for product analytics and feature flags
@@ -15,7 +16,7 @@ export const initPostHog = () => {
   
   // Only initialize if API key is provided
   if (!apiKey) {
-    console.warn('PostHog API key not found. Analytics is disabled.');
+    logger.warn('PostHog API key not found. Analytics is disabled.');
     return null;
   }
 
@@ -42,9 +43,9 @@ export const initPostHog = () => {
     loaded: (posthog) => {
       if (environment === 'development' && !import.meta.env.VITE_POSTHOG_DEBUG) {
         posthog.opt_out_capturing();
-        console.log('📊 PostHog initialized but capturing disabled in development');
+        logger.log('📊 PostHog initialized but capturing disabled in development');
       } else {
-        console.log(`✅ PostHog initialized (${environment})`);
+        logger.log(`✅ PostHog initialized (${environment})`);
       }
     },
   });

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from '
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
+import logger from '@utils/logger';
 const { getThemedIcon, getColoredIcon, deriveIconColor, getIconWithColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
 import { Tabs } from '@ui';
@@ -22,7 +23,6 @@ import { getDifficultyConfig } from '@constants/difficultyTypes';
 import { Loading, Card, CardBody } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
 import AuthForm from '@/components/AuthForm';
-import logger from '@utils/logger';
 import './HomePage.css';
 
 const HomePage = memo(() => {
@@ -1497,13 +1497,13 @@ const HomePage = memo(() => {
                               window.open(item.url, '_blank');
                             } else {
                               // Handle other resource types
-                              console.log('Start resource:', item);
+                              logger.log('Start resource:', item);
                             }
                           }
                         }}
                         onDetails={(item) => {
                           // Handle details view
-                          console.log('Show details for:', item);
+                          logger.log('Show details for:', item);
                         }}
                         onComplete={(item) => {
                           // Handle resource completion
@@ -1528,7 +1528,7 @@ const HomePage = memo(() => {
         activityType={activityType}
         tourSeenKey={tourSeenKey}
         onTourFinish={() => {
-          console.log('[HomePage] Tour finished/skipped, setting runTour to false');
+          logger.log('[HomePage] Tour finished/skipped, setting runTour to false');
           setRunTour(false);
         }}
       />

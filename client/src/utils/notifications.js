@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Sound and Vibration Utility
  * Handles mobile notification sounds and vibration that work even when phone is asleep
  */
@@ -40,7 +40,7 @@ class NotificationManager {
         
         return true;
       } catch (error) {
-        console.error('Failed to initialize audio context:', error);
+        logger.error('Failed to initialize audio context:', error);
         return false;
       }
     }
@@ -57,7 +57,7 @@ class NotificationManager {
       this.permissions.notification = permission;
       return permission === 'granted';
     } catch (error) {
-      console.error('Failed to request notification permission:', error);
+      logger.error('Failed to request notification permission:', error);
       return false;
     }
   }
@@ -127,7 +127,7 @@ class NotificationManager {
 
       return true;
     } catch (error) {
-      console.error('Failed to play notification sound:', error);
+      logger.error('Failed to play notification sound:', error);
       return false;
     }
   }
@@ -173,7 +173,7 @@ class NotificationManager {
       navigator.vibrate(vibratePattern);
       return true;
     } catch (error) {
-      console.error('Failed to vibrate:', error);
+      logger.error('Failed to vibrate:', error);
       return false;
     }
   }
@@ -222,7 +222,7 @@ class NotificationManager {
 
       return true;
     } catch (error) {
-      console.error('Failed to show browser notification:', error);
+      logger.error('Failed to show browser notification:', error);
       return false;
     }
   }
@@ -276,7 +276,7 @@ class NotificationManager {
         this.permissions = { ...this.permissions, ...permissions };
       }
     } catch (error) {
-      console.error('Failed to load stored permissions:', error);
+      logger.error('Failed to load stored permissions:', error);
     }
   }
 
@@ -318,3 +318,4 @@ if (typeof window !== 'undefined') {
 
 export default notificationManager;
 export { NotificationManager };
+

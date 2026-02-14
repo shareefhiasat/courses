@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Button } from '@ui';
 import { Star, ChevronDown, ChevronRight, Trash2, Users, Trophy, AlertCircle, Settings, BarChart3, QrCode, Mail, SidebarOpen, ExternalLink } from 'lucide-react';
 import StudentRosterHistory from './StudentRosterHistory';
@@ -393,7 +393,7 @@ const StudentCard = ({
             try {
               onStudentAction(student);
             } catch (error) {
-              console.error('Error calling onStudentAction:', error);
+              logger.error('Error calling onStudentAction:', error);
             }
           }}
           style={isMobile ? {} : { flex: 1 }}
@@ -459,3 +459,4 @@ const StudentCard = ({
 };
 
 export default StudentCard;
+

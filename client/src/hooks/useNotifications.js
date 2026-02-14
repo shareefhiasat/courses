@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
@@ -32,7 +32,7 @@ export const useNotifications = () => {
         }));
       }
     } catch (error) {
-      console.error('Failed to load notification settings:', error);
+      logger.error('Failed to load notification settings:', error);
     }
   }, [user]);
 
@@ -50,7 +50,7 @@ export const useNotifications = () => {
       setSettings(newSettings);
       return true;
     } catch (error) {
-      console.error('Failed to save notification settings:', error);
+      logger.error('Failed to save notification settings:', error);
       return false;
     }
   }, [user]);
@@ -76,7 +76,7 @@ export const useNotifications = () => {
 
       await saveSettings(newSettings);
     } catch (error) {
-      console.error('Failed to initialize notifications:', error);
+      logger.error('Failed to initialize notifications:', error);
     } finally {
       setIsInitializing(false);
     }
@@ -131,3 +131,4 @@ export const useNotifications = () => {
 };
 
 export default useNotifications;
+

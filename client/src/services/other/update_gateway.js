@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 
 // Read the original file
 const content = fs.readFileSync('notificationGateway.js', 'utf8');
@@ -46,4 +46,5 @@ const updatedContent = content.replace(
 // Write the updated content back to the file
 fs.writeFileSync('notificationGateway.js', updatedContent, 'utf8');
 
-console.log('Updated notificationGateway.js to include email logging in notification_logs collection');
+logger.log('Updated notificationGateway.js to include email logging in notification_logs collection');
+

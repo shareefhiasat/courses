@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
@@ -36,8 +36,8 @@ import { getClasses } from '@services/business/classService';
 const NotificationsPage = () => {
   const { user } = useAuth();
   const { t, lang } = useLang();
-  console.log('Current lang:', lang);
-  console.log('t function test:', t('all_types'));
+  logger.log('Current lang:', lang);
+  logger.log('t function test:', t('all_types'));
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
@@ -473,7 +473,7 @@ const NotificationsPage = () => {
             }}
             options={(() => {
               const options = getNotificationTypeOptions(t, lang);
-              console.log('Notification type options:', options);
+              logger.log('Notification type options:', options);
               return options;
             })()}
             size="small"

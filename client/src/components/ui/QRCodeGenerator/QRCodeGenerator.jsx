@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { Download, Copy, Share2 } from 'lucide-react';
 
@@ -39,7 +39,7 @@ export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) 
           url: url
         });
       } catch (err) {
-        console.log('Share cancelled');
+        logger.log('Share cancelled');
       }
     } else {
       handleCopyLink();
@@ -140,3 +140,4 @@ export default function QRCodeGenerator({ url, title = 'QR Code', size = 256 }) 
     </div>
   );
 }
+

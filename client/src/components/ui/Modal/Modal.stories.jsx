@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import Modal from './Modal';
 import Button from '../Button';
 import Input from '../Input';
@@ -95,7 +95,7 @@ export const FormModal = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    logger.log('Form submitted:', formData);
     setIsOpen(false);
   };
 
@@ -144,7 +144,7 @@ export const DeleteConfirmation = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleDelete = () => {
-    console.log('Item deleted');
+    logger.log('Item deleted');
     setIsOpen(false);
   };
 
@@ -359,3 +359,4 @@ export const ModalVariations = () => {
     </>
   );
 };
+

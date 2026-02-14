@@ -1,5 +1,6 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
+import logger from '../utils/logger';
 
 /**
  * Initialize Sentry for error tracking and performance monitoring
@@ -16,13 +17,13 @@ export const initSentry = () => {
   
   // Check if Sentry is explicitly disabled
   if (!enabled) {
-    console.log('🔧 Sentry disabled via VITE_SENTRY_ENABLED=false');
+    logger.log('🔧 Sentry disabled via VITE_SENTRY_ENABLED=false');
     return;
   }
   
   // Only initialize if DSN is provided
   if (!dsn) {
-    console.warn('Sentry DSN not found. Error tracking is disabled.');
+    logger.warn('Sentry DSN not found. Error tracking is disabled.');
     return;
   }
 
@@ -83,7 +84,7 @@ export const initSentry = () => {
     },
   });
   
-  console.log(`✅ Sentry initialized (${environment})`);
+  logger.log(`✅ Sentry initialized (${environment})`);
 };
 
 /**
@@ -137,3 +138,4 @@ export const addBreadcrumb = (message, data = {}) => {
 };
 
 export default Sentry;
+

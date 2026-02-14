@@ -3,6 +3,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { db } from '@services/other/config';
+import logger from '@utils/logger';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, startAt, endAt } from 'firebase/firestore';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getUserBadges, getUserStats, getBadgeDefinitions } from '@services/business/badgeService';
@@ -24,8 +25,8 @@ const StudentProfilePage = () => {
   
   // Debug studentData when it changes
   useEffect(() => {
-    console.log('StudentProfilePage - studentData updated:', studentData);
-    console.log('StudentProfilePage - studentData.role:', studentData?.role);
+    logger.log('StudentProfilePage - studentData updated:', studentData);
+    logger.log('StudentProfilePage - studentData.role:', studentData?.role);
   }, [studentData]);
   const [attendanceData, setAttendanceData] = useState([]);
   const [performanceData, setPerformanceData] = useState({
@@ -708,7 +709,7 @@ const StudentProfilePage = () => {
         </div>
 
         {/* QR Code Display - Show for student profiles */}
-        {console.log('QR Code check - studentData:', studentData, 'role:', studentData?.role) || (
+        {logger.log('QR Code check - studentData:', studentData, 'role:', studentData?.role) || (
           <div className="mb-6">
             <StudentQRCodeDisplay 
               studentId={targetUserId} 

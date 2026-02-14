@@ -3,6 +3,7 @@ import { collection, getDocs, query, where, orderBy, Timestamp, doc, getDoc } fr
 import { db } from '@services/other/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useLang } from '../contexts/LangContext';
+import logger from '../utils/logger';
 import { useTheme } from '../contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
@@ -87,7 +88,7 @@ export default function AdvancedAnalytics() {
           setUserAccentColor(DEFAULT_ACCENT);
         }
       } catch (e) {
-        console.warn('[AdvancedAnalytics] Error loading accent color:', e);
+        logger.warn('[AdvancedAnalytics] Error loading accent color:', e);
         setUserAccentColor(DEFAULT_ACCENT);
       }
     };
@@ -113,7 +114,7 @@ export default function AdvancedAnalytics() {
   
   // Debug log
   useEffect(() => {
-    console.log('🎨 [AdvancedAnalytics] Accent color:', accentColor, 'userAccentColor:', userAccentColor, 'DEFAULT_ACCENT:', DEFAULT_ACCENT);
+    logger.log('🎨 [AdvancedAnalytics] Accent color:', accentColor, 'userAccentColor:', userAccentColor, 'DEFAULT_ACCENT:', DEFAULT_ACCENT);
   }, [accentColor, userAccentColor]);
   
   const [loading, setLoading] = useState(true);
@@ -194,7 +195,7 @@ export default function AdvancedAnalytics() {
         } catch (e) {
           const code = e && (e.code || e.message || '').toString();
           if (code.includes('permission-denied')) errors[key] = 'permission-denied';
-          console.warn(`Analytics: failed to load ${key}:`, e);
+          logger.warn(`Analytics: failed to load ${key}:`, e);
         }
       };
 
@@ -226,7 +227,7 @@ export default function AdvancedAnalytics() {
       setRawData(next);
       setPermErrors(errors);
     } catch (error) {
-      console.error('Failed to load analytics data:', error);
+      logger.error('Failed to load analytics data:', error);
     } finally {
       setLoading(false);
       setLastUpdatedAt(Date.now());
@@ -263,7 +264,7 @@ export default function AdvancedAnalytics() {
         ]);
       }
     } catch (e) {
-      console.warn('Failed to load saved widgets:', e);
+      logger.warn('Failed to load saved widgets:', e);
     }
   };
 
@@ -271,7 +272,7 @@ export default function AdvancedAnalytics() {
     try {
       localStorage.setItem('analytics_widgets', JSON.stringify(widgets));
     } catch (e) {
-      console.warn('Failed to save widgets:', e);
+      logger.warn('Failed to save widgets:', e);
     }
   };
 

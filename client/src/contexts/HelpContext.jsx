@@ -4,6 +4,7 @@ import { useLang } from './LangContext';
 import { ABSENCE_TYPES } from '../constants/absenceTypes';
 import { PENALTY_TYPES } from '../constants/penaltyTypes.jsx';
 import { PARTICIPATION_TYPES } from '../constants/participationTypes.jsx';
+import logger from '../utils/logger';
 
 const HelpContext = createContext();
 
@@ -1150,7 +1151,7 @@ export const HelpProvider = ({ children }) => {
       help = helpContent[helpKey];
       // console.log(`[HelpContext] getHelpForRoute - Case 1: helpContent[helpKey] =`, help);
       if (!help) {
-        console.warn(`[HelpContext] No specific help content found for dashboard tab: ${tab}`);
+        logger.warn(`[HelpContext] No specific help content found for dashboard tab: ${tab}`);
         // Try to find help for similar tabs
         if (tab === 'hr-penalties') {
           help = helpContent['/dashboard?tab=hr-penalties'] || helpContent['/hr-penalties'];
@@ -1256,7 +1257,7 @@ export const HelpProvider = ({ children }) => {
           setIsOpen(true);
           // console.log('[HelpContext] Help drawer should now be open');
         } else {
-          console.warn('[HelpContext] No help content found, using default');
+          logger.warn('[HelpContext] No help content found, using default');
           setCurrentHelp(defaultHelp);
           setIsOpen(true);
         }

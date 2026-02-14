@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -50,7 +50,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
 
       setTemplates(templateList);
     } catch (error) {
-      console.error('Error loading templates:', error);
+      logger.error('Error loading templates:', error);
       toast?.showError('Failed to load templates: ' + error.message);
     } finally {
       setLoading(false);
@@ -68,7 +68,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
         setSettings({});
       }
     } catch (e) {
-      console.error('Error loading email settings:', e);
+      logger.error('Error loading email settings:', e);
     }
   };
 
@@ -111,7 +111,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       await setDoc(ref, next, { merge: true });
       toast?.showSuccess(enabled ? (t('email_notifications_enabled') || 'Email notifications enabled') : (t('email_notifications_disabled') || 'Email notifications disabled'));
     } catch (e) {
-      console.error('Error saving setting:', e);
+      logger.error('Error saving setting:', e);
       toast?.showError(t('failed_to_save_setting') + ': ' + e.message);
     }
   };
@@ -182,7 +182,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       toast?.showSuccess(t('template_deleted_successfully') || 'Template deleted successfully!');
       loadTemplates();
     } catch (error) {
-      console.error('Error deleting template:', error);
+      logger.error('Error deleting template:', error);
       toast?.showError(t('failed_to_delete_template') + ': ' + error.message);
     }
   };
@@ -202,7 +202,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       toast?.showSuccess(t('template_duplicated_successfully') || 'Template duplicated successfully!');
       loadTemplates();
     } catch (error) {
-      console.error('Error duplicating template:', error);
+      logger.error('Error duplicating template:', error);
       toast?.showError(t('failed_to_duplicate_template') + ': ' + error.message);
     }
   };
@@ -373,7 +373,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                       toast?.showError(t('failed_to_send_test_email') || 'Failed to send test email');
                                     }
                                   } catch (err) {
-                                    console.error(err);
+                                    logger.error(err);
                                     toast?.showError(t('failed_to_send_test_email') + ': ' + err.message);
                                   } finally {
                                     setTestingEmail(null);
@@ -475,3 +475,4 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
 };
 
 export default EmailTemplateList;
+

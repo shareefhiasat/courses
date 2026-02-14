@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Analytics and logging utility with PostHog integration
  * Configurable through environment variables
  */
@@ -17,7 +17,7 @@ class AnalyticsManager {
     // Check if analytics is enabled
     this.enabled = import.meta.env.VITE_PUBLIC_POSTHOG_ENABLED !== 'false';
     
-    console.log('🔍 PostHog Debug - Analytics Manager:', {
+    logger.log('🔍 PostHog Debug - Analytics Manager:', {
       enabled: this.enabled,
       envKey: import.meta.env.VITE_PUBLIC_POSTHOG_KEY,
       envHost: import.meta.env.VITE_PUBLIC_POSTHOG_HOST
@@ -63,14 +63,14 @@ class AnalyticsManager {
 
   // Track custom events using usePostHog hook pattern
   track(eventName, properties = {}) {
-    console.log('🔍 PostHog Debug - Track called:', {
+    logger.log('🔍 PostHog Debug - Track called:', {
       eventName,
       properties,
       enabled: this.enabled
     });
     
     if (!this.enabled) {
-      console.log('🔍 PostHog Debug - Track blocked: Analytics disabled');
+      logger.log('🔍 PostHog Debug - Track blocked: Analytics disabled');
       return;
     }
 
@@ -78,7 +78,7 @@ class AnalyticsManager {
       // Use global PostHog instance from PostHogProvider
       const posthog = window.posthog;
       if (!posthog) {
-        console.log('🔍 PostHog Debug - Track blocked: No PostHog instance');
+        logger.log('🔍 PostHog Debug - Track blocked: No PostHog instance');
         return;
       }
 
@@ -89,7 +89,7 @@ class AnalyticsManager {
         ...properties,
       };
 
-      console.log('🔍 PostHog Debug - Sending event:', {
+      logger.log('🔍 PostHog Debug - Sending event:', {
         eventName,
         enrichedProperties
       });
@@ -97,21 +97,21 @@ class AnalyticsManager {
       posthog.capture(eventName, enrichedProperties);
       logger.debug(`Event tracked: ${eventName}`, enrichedProperties);
     } catch (error) {
-      console.error('❌ PostHog track error:', error);
+      logger.error('❌ PostHog track error:', error);
       logger.error('Failed to track event:', error);
     }
   }
 
   // Track page views
   pageview(path = null, properties = {}) {
-    console.log('🔍 PostHog Debug - Pageview called:', {
+    logger.log('🔍 PostHog Debug - Pageview called:', {
       path,
       properties,
       enabled: this.enabled
     });
     
     if (!this.enabled) {
-      console.log('🔍 PostHog Debug - Pageview blocked: Analytics disabled');
+      logger.log('🔍 PostHog Debug - Pageview blocked: Analytics disabled');
       return;
     }
 
@@ -119,7 +119,7 @@ class AnalyticsManager {
       // Use global PostHog instance from PostHogProvider
       const posthog = window.posthog;
       if (!posthog) {
-        console.log('🔍 PostHog Debug - Pageview blocked: No PostHog instance');
+        logger.log('🔍 PostHog Debug - Pageview blocked: No PostHog instance');
         return;
       }
 
@@ -131,7 +131,7 @@ class AnalyticsManager {
         ...properties,
       };
 
-      console.log('🔍 PostHog Debug - Sending pageview:', {
+      logger.log('🔍 PostHog Debug - Sending pageview:', {
         pagePath,
         enrichedProperties
       });
@@ -139,7 +139,7 @@ class AnalyticsManager {
       posthog.capture('$pageview', enrichedProperties);
       logger.debug(`Page view tracked: ${pagePath}`);
     } catch (error) {
-      console.error('❌ PostHog pageview error:', error);
+      logger.error('❌ PostHog pageview error:', error);
       logger.error('Failed to track page view:', error);
     }
   }
@@ -345,3 +345,4 @@ class AnalyticsManager {
 const analytics = new AnalyticsManager();
 
 export default analytics;
+

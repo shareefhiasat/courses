@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
@@ -24,7 +24,7 @@ const FilterSelect = ({
   
   const config = FILTER_CONFIGS[filterKey];
   if (!config) {
-    console.warn(`FilterSelect: No configuration found for filterKey "${filterKey}"`);
+    logger.warn(`FilterSelect: No configuration found for filterKey "${filterKey}"`);
     return null;
   }
 
@@ -70,3 +70,4 @@ const FilterSelect = ({
 };
 
 export default FilterSelect;
+

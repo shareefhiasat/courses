@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
 import { HistoryEntry } from './HistoryEntry';
@@ -21,9 +21,9 @@ const StudentHistory = React.memo(({
   studentId,
   lang = 'en'
 }) => {
-  console.log('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
-  console.log('🔧 StudentHistory expandedDays:', expandedDays);
-  console.log('🔧 StudentHistory activeFilters:', activeFilters);
+  logger.log('🔧 StudentHistory rendering with groupedLogs:', groupedLogs);
+  logger.log('🔧 StudentHistory expandedDays:', expandedDays);
+  logger.log('🔧 StudentHistory activeFilters:', activeFilters);
   
   return groupedLogs.map((dayGroup, dayIndex) => {
     const dateStr = formatLocalizedDate(dayGroup.date, t);
@@ -36,7 +36,7 @@ const StudentHistory = React.memo(({
     };
     const hasVisibleItems = filteredCounts.attendance + filteredCounts.participation + filteredCounts.behavior + filteredCounts.penalties > 0;
     
-    console.log('🔧 StudentHistory dayGroup:', {
+    logger.log('🔧 StudentHistory dayGroup:', {
       date: dayGroup.date,
       isDayExpanded,
       filteredCounts,
@@ -49,7 +49,7 @@ const StudentHistory = React.memo(({
     });
     
     if (!hasVisibleItems) {
-      console.log('🔧 StudentHistory - skipping day due to no visible items:', dayGroup.date);
+      logger.log('🔧 StudentHistory - skipping day due to no visible items:', dayGroup.date);
       return null;
     }
     
@@ -85,7 +85,7 @@ const StudentHistory = React.memo(({
                 return timeB - timeA; // Newest first
               });
 
-              console.log('🔍 Combined timeline logs:', allLogs.map(log => ({
+              logger.log('🔍 Combined timeline logs:', allLogs.map(log => ({
                 time: log.time,
                 type: log.logType,
                 label: log.label
@@ -164,3 +164,4 @@ const StudentHistory = React.memo(({
 StudentHistory.displayName = 'StudentHistory';
 
 export default StudentHistory;
+

@@ -6,6 +6,8 @@ export const getTimeFormatPreference = () => {
   }
 };
 
+import logger from './logger';
+
 export const formatDate = (value) => {
   if (!value) return '';
   const d = value?.seconds ? new Date(value.seconds * 1000) : new Date(value);
@@ -232,7 +234,7 @@ export const convertDatesToTimestamps = (data, dateFields = ['dueDate', 'startDa
         converted[fieldName] = new TimestampConstructor(new Date(data[fieldName]));
       } catch (error) {
         // If it fails, keep the original value
-        console.log(`Keeping original date for ${fieldName}:`, data[fieldName]);
+        logger.log(`Keeping original date for ${fieldName}:`, data[fieldName]);
       }
     }
   });

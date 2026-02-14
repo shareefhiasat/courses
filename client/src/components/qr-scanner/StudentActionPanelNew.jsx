@@ -27,7 +27,7 @@ export default function StudentActionPanelNew({
   selectedDate,
   sendNotifications = false,
   onToggleNotifications,
-  initialTab = RECORD_TYPES.PARTICIPATION // Default to participation tab
+  initialTab = RECORD_TYPES.PARTICIPATION
 }) {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -53,10 +53,9 @@ export default function StudentActionPanelNew({
   const [showEmailDropdown, setShowEmailDropdown] = useState(false);
   const [sendingQRCode, setSendingQRCode] = useState(false);
   const [sendingSummary, setSendingSummary] = useState(false);
-  const [activeTab, setActiveTab] = useState(initialTab); // RECORD_TYPES.BEHAVIOR, RECORD_TYPES.PARTICIPATION, RECORD_TYPES.PENALTY
-  const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [viewMode, setViewMode] = useState('list');
 
-  // Load favorite behaviors from user preferences
   useEffect(() => {
     const loadFavoriteBehaviors = async () => {
       if (user) {
@@ -71,22 +70,18 @@ export default function StudentActionPanelNew({
     loadFavoriteBehaviors();
   }, [user]);
 
-  // Get current attendance status
   const attendanceStatus = useMemo(() => {
-    // If we have a direct status from student, use it
     const status = student?.attendance;
     
-    // Check if status is actually a valid attendance status (not the default absent_no_excuse)
     if (status && status !== 'absent_no_excuse') {
       const statusInfo = ATTENDANCE_STATUS_LABELS[status];
       if (statusInfo) {
-        console.log('🔧 Using direct attendance status:', status, statusInfo);
+        logger.log('🔧 Using direct attendance status:', status, statusInfo);
         return statusInfo;
       }
     }
     
-    // If no valid attendance status, show None
-    console.log('🔧 No valid attendance found - showing None');
+    logger.log('🔧 No valid attendance found - showing None');
     return {
       en: t('none') || 'None',
       ar: t('none') || 'لا شيء',
@@ -104,15 +99,12 @@ export default function StudentActionPanelNew({
   }, []);
 
   const renderIcon = (iconName, style = {}) => {
-    // Try to get icon from behavior types first
     const behaviorIcon = getBehaviorIcon(iconName);
     const behaviorColor = getBehaviorColor(iconName);
     
-    // Try to get icon from participation types
     const participationIcon = getParticipationIcon(iconName);
     const participationColor = getParticipationColor(iconName);
     
-    // Determine which type and color to use
     let finalIconName = iconName;
     let finalColor = style.color || '#374151';
     
@@ -158,7 +150,6 @@ export default function StudentActionPanelNew({
 
   const filteredOptions = useMemo(() => {
     return options.filter(option => {
-      // Filter based on attendance status - only if attendanceStatus exists
       if (attendanceStatus && attendanceStatus.en === 'None') {
         return option.category !== RECORD_TYPES.ATTENDANCE;
       }
@@ -166,7 +157,6 @@ export default function StudentActionPanelNew({
     });
   }, [options, attendanceStatus]);
 
-  // Clear selected actions when attendance status is None
   useEffect(() => {
     if (attendanceStatus && attendanceStatus.en === 'None') {
       setSelectedActions([]);
@@ -216,18 +206,15 @@ export default function StudentActionPanelNew({
     setIsSubmitting(true);
     
     try {
-      // Prepare actions with points override
       const actionsWithPoints = selectedActions.map(action => ({
         ...action,
         points: actionPoints[action.id] || action.points || 0
       }));
       
-      // Group actions by category and call appropriate handlers
       const behaviorActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.BEHAVIOR);
       const participationActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PARTICIPATION);
       const penaltyActions = actionsWithPoints.filter(action => action.category === RECORD_TYPES.PENALTY);
       
-      // Call appropriate handlers
       if (behaviorActions.length > 0) {
         await onBehaviorSubmit(student.docId || student.id, behaviorActions, internalNote, actionPoints);
       }
@@ -242,7 +229,7 @@ export default function StudentActionPanelNew({
       setInternalNote('');
       setActionPoints({});
       showSuccess(t('actions_saved_successfully'));
-      onClose(); // Close panel after successful save
+      onClose();
     } catch (error) {
       logger.error('Error saving actions:', error);
       showError(t('failed_to_save_actions'));
@@ -262,7 +249,6 @@ export default function StudentActionPanelNew({
 
   return (
     <>
-      {/* Overlay */}
       <div
         style={{
           position: 'fixed',
@@ -290,7 +276,6 @@ export default function StudentActionPanelNew({
         maxHeight: '100%',
         overflow: 'hidden'
       }}>
-      {/* Header */}
       <div style={{ padding: '0.8rem', borderBottom: '1px solid #e5e7eb' }}>
         <div style={{
           display: 'flex',
@@ -327,7 +312,6 @@ export default function StudentActionPanelNew({
                         background: attendanceStatus.color,
                         borderRadius: '9999px'
                       }} />
-                      {/* Only show text for attendance status if it's not 'present' */}
                       {student?.attendance !== 'present' && attendanceStatus && (
                         <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                           {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
@@ -403,9 +387,7 @@ export default function StudentActionPanelNew({
         </div>
       </div>
 
-      {/* Action Sections */}
       <div style={{ flex: 1, overflow: 'auto', padding: '0.5rem' }}>
-        {/* Tab Navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', position: 'relative' }}>
           <button
             onClick={() => setActiveTab(RECORD_TYPES.PARTICIPATION)}
@@ -487,7 +469,6 @@ export default function StudentActionPanelNew({
           </div>
         </div>
 
-        {/* Select Reason Grid */}
         <div style={{ marginBottom: '0.5rem', marginTop: '1rem' }}>
           <div style={{
             display: viewMode === 'grid' ? 'grid' : 'flex',
@@ -496,21 +477,17 @@ export default function StudentActionPanelNew({
             gap: viewMode === 'grid' ? '0.25rem' : '0.125rem'
           }}>
             {options.filter(option => {
-              // Filter options based on active tab
               if (activeTab === RECORD_TYPES.BEHAVIOR) return option.category === RECORD_TYPES.BEHAVIOR;
               if (activeTab === RECORD_TYPES.PARTICIPATION) return option.category === RECORD_TYPES.PARTICIPATION;
               if (activeTab === RECORD_TYPES.PENALTY) return option.category === RECORD_TYPES.PENALTY;
               return true;
             }).sort((a, b) => {
-              // Sort favorites to the top
               const aIsFavorite = favoriteBehaviors.includes(a.id);
               const bIsFavorite = favoriteBehaviors.includes(b.id);
               
               if (aIsFavorite && !bIsFavorite) return -1;
               if (!aIsFavorite && bIsFavorite) return 1;
               
-              // Then sort by most recently used (if we have timestamp data) or by label
-              // For now, sort by label to maintain consistent order
               const aLabel = lang === 'ar' ? (a.label_ar || a.label_en) : a.label_en;
               const bLabel = lang === 'ar' ? (b.label_ar || b.label_en) : b.label_en;
               return aLabel.localeCompare(bLabel);
@@ -561,7 +538,6 @@ export default function StudentActionPanelNew({
                     }}>
                       {lang === 'ar' ? (option.label_ar || option.label_en) : option.label_en}
                     </span>
-                    {/* Only show points for behavior, participation, and penalty options, not attendance */}
                     {option.category !== RECORD_TYPES.ATTENDANCE && (
                       <div style={{
                         fontSize: viewMode === 'grid' ? '0.75rem' : '0.8125rem',
@@ -594,7 +570,6 @@ export default function StudentActionPanelNew({
                     {getThemedIcon('ui', 'star', 12, theme)}
                   </button>
                   
-                  {/* Points Controls - Always show when selected */}
                   {isSelected && (
                     <div style={{
                       marginTop: '0.25rem',
@@ -607,12 +582,11 @@ export default function StudentActionPanelNew({
                         onClick={(e) => {
                           e.stopPropagation();
                           const currentValue = actionPoints[option.id] || 0;
-                          // Allow only negative values for behavior and penalty, only positive for participation
                           let newValue;
                           if (option.category === RECORD_TYPES.PARTICIPATION) {
-                            newValue = Math.max(0, currentValue - 1); // Don't go below 0 for participation
+                            newValue = Math.max(0, currentValue - 1);
                           } else {
-                            newValue = Math.max(-10, currentValue - 1); // Allow negative for behavior/penalty
+                            newValue = Math.max(-10, currentValue - 1);
                           }
                           handlePointsChange(option.id, newValue);
                         }}
@@ -654,12 +628,11 @@ export default function StudentActionPanelNew({
                         onClick={(e) => {
                           e.stopPropagation();
                           const currentValue = actionPoints[option.id] || 0;
-                          // Allow only positive values for participation, only negative for behavior/penalty
                           let newValue;
                           if (option.category === RECORD_TYPES.PARTICIPATION) {
-                            newValue = Math.min(10, currentValue + 1); // Allow positive for participation
+                            newValue = Math.min(10, currentValue + 1);
                           } else {
-                            newValue = Math.min(0, currentValue + 1); // Don't go above 0 for behavior/penalty
+                            newValue = Math.min(0, currentValue + 1);
                           }
                           handlePointsChange(option.id, newValue);
                         }}
@@ -689,7 +662,6 @@ export default function StudentActionPanelNew({
           </div>
         </div>
 
-        {/* Internal Note Section - Hide for attendance tab */}
         {activeTab !== RECORD_TYPES.ATTENDANCE && (
           <div style={{ marginBottom: '1.5rem' }}>
             <h4 style={{
@@ -717,7 +689,6 @@ export default function StudentActionPanelNew({
 
       </div>
 
-      {/* Action Buttons - Hide for attendance tab */}
       {activeTab !== RECORD_TYPES.ATTENDANCE && (
       <div style={{ padding: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>

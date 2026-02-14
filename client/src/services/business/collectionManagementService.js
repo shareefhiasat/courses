@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
+﻿import { collection, doc, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '../other/config';
 
 /**
@@ -60,7 +60,7 @@ export const deleteCollection = async (collectionName, onProgress = null, option
         retryCount = 0;
         
       } catch (batchError) {
-        console.error(`Batch deletion failed (batch ${Math.floor(i/batchSize) + 1}):`, batchError);
+        logger.error(`Batch deletion failed (batch ${Math.floor(i/batchSize) + 1}):`, batchError);
         retryCount++;
         
         if (retryCount >= maxRetries) {
@@ -81,7 +81,7 @@ export const deleteCollection = async (collectionName, onProgress = null, option
     };
     
   } catch (error) {
-    console.error(`Error deleting collection ${collectionName}:`, error);
+    logger.error(`Error deleting collection ${collectionName}:`, error);
     return { 
       success: false, 
       error: error.message,
@@ -108,7 +108,7 @@ export const getCollectionStats = async (collectionName) => {
       sizeEstimate
     };
   } catch (error) {
-    console.error(`Error getting stats for collection ${collectionName}:`, error);
+    logger.error(`Error getting stats for collection ${collectionName}:`, error);
     return {
       count: 0,
       sizeEstimate: 'Unknown',
@@ -189,7 +189,7 @@ export const archiveOldDocuments = async (
     };
     
   } catch (error) {
-    console.error(`Error archiving documents from ${sourceCollection}:`, error);
+    logger.error(`Error archiving documents from ${sourceCollection}:`, error);
     return { 
       success: false, 
       error: error.message,
@@ -260,7 +260,7 @@ export const deleteDocumentsByField = async (
     };
     
   } catch (error) {
-    console.error(`Error deleting documents by field from ${collectionName}:`, error);
+    logger.error(`Error deleting documents by field from ${collectionName}:`, error);
     return { 
       success: false, 
       error: error.message,
@@ -268,3 +268,4 @@ export const deleteDocumentsByField = async (
     };
   }
 };
+

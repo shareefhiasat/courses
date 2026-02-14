@@ -1,4 +1,4 @@
-/**
+﻿/**
  * User Role Management Utility
  * 
  * This script helps set user roles in Firebase for development.
@@ -22,12 +22,12 @@ export async function setUserRole(userId, role, additionalRoles = {}) {
     const userDoc = await getDoc(userDocRef);
     
     if (!userDoc.exists()) {
-      console.error('❌ User document does not exist for:', userId);
+      logger.error('❌ User document does not exist for:', userId);
       return { success: false, error: 'User document not found' };
     }
     
     const currentData = userDoc.data();
-    console.log('🔧 Current user data:', currentData);
+    logger.log('🔧 Current user data:', currentData);
     
     // Update user document with role information
     const updatedData = {
@@ -46,11 +46,11 @@ export async function setUserRole(userId, role, additionalRoles = {}) {
     
     await setDoc(userDocRef, updatedData, { merge: true });
     
-    console.log('✅ User role updated successfully:', updatedData);
+    logger.log('✅ User role updated successfully:', updatedData);
     return { success: true, data: updatedData };
     
   } catch (error) {
-    console.error('❌ Error updating user role:', error);
+    logger.error('❌ Error updating user role:', error);
     return { success: false, error: error.message };
   }
 }
@@ -62,11 +62,11 @@ export async function makeCurrentUserSuperAdmin() {
   const user = auth.currentUser;
   
   if (!user) {
-    console.error('❌ No user logged in');
+    logger.error('❌ No user logged in');
     return { success: false, error: 'No user logged in' };
   }
   
-  console.log('🔧 Making current user super admin:', user.uid);
+  logger.log('🔧 Making current user super admin:', user.uid);
   return await setUserRole(user.uid, USER_ROLES.SUPER_ADMIN);
 }
 
@@ -77,11 +77,11 @@ export async function makeCurrentUserInstructor() {
   const user = auth.currentUser;
   
   if (!user) {
-    console.error('❌ No user logged in');
+    logger.error('❌ No user logged in');
     return { success: false, error: 'No user logged in' };
   }
   
-  console.log('🔧 Making current user instructor:', user.uid);
+  logger.log('🔧 Making current user instructor:', user.uid);
   return await setUserRole(user.uid, USER_ROLES.INSTRUCTOR);
 }
 
@@ -92,11 +92,11 @@ export async function makeCurrentUserSuperAdminAndInstructor() {
   const user = auth.currentUser;
   
   if (!user) {
-    console.error('❌ No user logged in');
+    logger.error('❌ No user logged in');
     return { success: false, error: 'No user logged in' };
   }
   
-  console.log('🔧 Making current user super admin AND instructor:', user.uid);
+  logger.log('🔧 Making current user super admin AND instructor:', user.uid);
   return await setUserRole(user.uid, USER_ROLES.SUPER_ADMIN, {
     isInstructor: true  // Additional flag for instructor
   });
@@ -109,7 +109,7 @@ export async function checkCurrentUserRole() {
   const user = auth.currentUser;
   
   if (!user) {
-    console.error('❌ No user logged in');
+    logger.error('❌ No user logged in');
     return { success: false, error: 'No user logged in' };
   }
   
@@ -118,12 +118,12 @@ export async function checkCurrentUserRole() {
     const userDoc = await getDoc(userDocRef);
     
     if (!userDoc.exists()) {
-      console.error('❌ User document does not exist');
+      logger.error('❌ User document does not exist');
       return { success: false, error: 'User document not found' };
     }
     
     const userData = userDoc.data();
-    console.log('🔧 Current user role data:', {
+    logger.log('🔧 Current user role data:', {
       uid: user.uid,
       email: user.email,
       role: userData.role,
@@ -137,7 +137,7 @@ export async function checkCurrentUserRole() {
     return { success: true, data: userData };
     
   } catch (error) {
-    console.error('❌ Error checking user role:', error);
+    logger.error('❌ Error checking user role:', error);
     return { success: false, error: error.message };
   }
 }
@@ -152,10 +152,11 @@ if (typeof window !== 'undefined') {
     checkCurrentUserRole
   };
   
-  // console.log('🔧 User role utilities available in window.userRoleUtils');
-  // console.log('🔧 Usage:');
-  // console.log('  window.userRoleUtils.checkCurrentUserRole()');
-  // console.log('  window.userRoleUtils.makeCurrentUserSuperAdmin()');
-  // console.log('  window.userRoleUtils.makeCurrentUserInstructor()');
-  // console.log('  window.userRoleUtils.makeCurrentUserSuperAdminAndInstructor()');
+  // logger.log('🔧 User role utilities available in window.userRoleUtils');
+  // logger.log('🔧 Usage:');
+  // logger.log('  window.userRoleUtils.checkCurrentUserRole()');
+  // logger.log('  window.userRoleUtils.makeCurrentUserSuperAdmin()');
+  // logger.log('  window.userRoleUtils.makeCurrentUserInstructor()');
+  // logger.log('  window.userRoleUtils.makeCurrentUserSuperAdminAndInstructor()');
 }
+

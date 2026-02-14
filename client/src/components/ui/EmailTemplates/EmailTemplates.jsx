@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import EmailTemplateList from './EmailTemplateList';
 import EmailTemplateEditor from './EmailTemplateEditor';
 import {SeedDefaultTemplates} from "@ui";
@@ -26,7 +26,7 @@ const EmailTemplates = () => {
       const snapshot = await getDocs(q);
       setHasTemplates(!snapshot.empty);
     } catch (error) {
-      console.error('Error checking templates:', error);
+      logger.error('Error checking templates:', error);
       setHasTemplates(false);
     } finally {
       setChecking(false);
@@ -100,3 +100,4 @@ const EmailTemplates = () => {
 };
 
 export default EmailTemplates;
+

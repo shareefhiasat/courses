@@ -122,7 +122,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         const videoDevices = deviceList.filter(device => device.kind === 'videoinput');
         setDevices(videoDevices);
       } catch (err) {
-        console.error('Error getting devices:', err);
+        logger.error('Error getting devices:', err);
       }
     };
     getDevices();
@@ -260,7 +260,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       id: Date.now() + Math.random()
     };
     setDebugLogs(prev => [logEntry, ...prev].slice(0, 50)); // Keep last 50 logs
-    console.log(`[${timestamp}] ${message}`);
+    logger.log(`[${timestamp}] ${message}`);
   }, []);
 
   // Show result modal function - Enhanced for attendance types
@@ -346,7 +346,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       //
       // addToast(message, type);
     } catch (error) {
-      console.warn('Could not play feedback sound:', error);
+      logger.warn('Could not play feedback sound:', error);
     }
   }, [soundEnabled, vibrationEnabled, t]);
 
@@ -836,7 +836,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Handle behavior/participation submission
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note) => {
-    console.log('🔧 handleBehaviorSubmit called with:', { studentId, actions, note });
+    logger.log('🔧 handleBehaviorSubmit called with:', { studentId, actions, note });
 
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -857,7 +857,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         if (action.category === RECORD_TYPES.BEHAVIOR) {
           const behaviorTypeId = action.id || action.type;
           if (!behaviorTypeId || behaviorTypeId === RECORD_TYPES.BEHAVIOR) {
-            console.error('🔧 Invalid behavior type detected:', { action });
+            logger.error('🔧 Invalid behavior type detected:', { action });
             throw new Error('Invalid behavior type: must be a specific behavior type');
           }
 
@@ -877,7 +877,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         } else if (action.category === RECORD_TYPES.PARTICIPATION) {
           const participationTypeId = action.id || action.type;
           if (!participationTypeId || participationTypeId === RECORD_TYPES.PARTICIPATION) {
-            console.error('🔧 Invalid participation type detected:', { action });
+            logger.error('🔧 Invalid participation type detected:', { action });
             throw new Error('Invalid participation type: must be a specific participation type');
           }
 
@@ -920,14 +920,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Success message is handled by StudentActionPanelNew
     } catch (error) {
-      console.error('Error submitting behavior/participation:', error);
+      logger.error('Error submitting behavior/participation:', error);
       showError('Failed to record actions');
     }
   }, [selectedClassId, selectedSubjectId, selectedClassName, user]);
 
   // Handle penalty submission
   const handlePenaltySubmit = useCallback(async (studentId, penalties, note) => {
-    console.log('🔧 handlePenaltySubmit called with:', { studentId, penalties, note });
+    logger.log('🔧 handlePenaltySubmit called with:', { studentId, penalties, note });
 
     try {
       // Get performedBy fields using shared service
@@ -935,23 +935,23 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       
       // Process each penalty
       for (const penalty of penalties) {
-        console.log('🔧 Processing penalty:', penalty);
-        console.log('🔧 penalty.id:', penalty.id);
-        console.log('🔧 penalty.type:', penalty.type);
+        logger.log('🔧 Processing penalty:', penalty);
+        logger.log('🔧 penalty.id:', penalty.id);
+        logger.log('🔧 penalty.type:', penalty.type);
 
         const today = new Date().toISOString().split('T')[0];
 
         // Ensure we always use the correct penalty type ID
         const penaltyTypeId = penalty.id || penalty.type;
-        console.log('🔧 penaltyTypeId extracted:', penaltyTypeId);
-        console.log('🔧 penalty object:', JSON.stringify(penalty, null, 2));
+        logger.log('🔧 penaltyTypeId extracted:', penaltyTypeId);
+        logger.log('🔧 penalty object:', JSON.stringify(penalty, null, 2));
 
         if (!penaltyTypeId || penaltyTypeId === RECORD_TYPES.PENALTY) {
-          console.error('🔧 Invalid penalty type detected:', { penalty, penaltyTypeId });
+          logger.error('🔧 Invalid penalty type detected:', { penalty, penaltyTypeId });
           throw new Error('Invalid penalty type: must be a specific penalty type like "cheating", not "penalty"');
         }
 
-        console.log('🔧 About to create penalty with type:', penaltyTypeId);
+        logger.log('🔧 About to create penalty with type:', penaltyTypeId);
 
         await createPenalty({
           classId: selectedClassId,
@@ -969,7 +969,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           className: selectedClassName || ''
         });
 
-        console.log('🔧 Penalty saved successfully');
+        logger.log('🔧 Penalty saved successfully');
       }
 
       // Emit events for real-time updates
@@ -985,7 +985,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Success message is handled by StudentActionPanelNew
     } catch (error) {
-      console.error('Error submitting penalty:', error);
+      logger.error('Error submitting penalty:', error);
       showError('Failed to record penalty');
     }
   }, [selectedClassId, selectedSubjectId, user, findStudentData, selectedClassName]);
@@ -1020,11 +1020,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
     // Get the latest students state at the time of execution
     const currentStudents = students;
-    console.log('🔧 fetchRecentActivity captured students:', currentStudents.length);
+    logger.log('🔧 fetchRecentActivity captured students:', currentStudents.length);
 
     // Early return if no students available
     if (currentStudents.length === 0) {
-      console.log('🔧 No students available in fetchRecentActivity - returning');
+      logger.log('🔧 No students available in fetchRecentActivity - returning');
       setRecentActivity([]);
       setActivityLoading(false);
       return;
@@ -1082,11 +1082,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Create a map of studentId to student name from captured students
       const studentMap = {};
-      console.log('🔧 Creating student map from', currentStudents.length, 'students');
+      logger.log('🔧 Creating student map from', currentStudents.length, 'students');
 
       // Only create student map if we have students
       if (currentStudents.length === 0) {
-        console.log('🔧 No students available for mapping - returning empty activity');
+        logger.log('🔧 No students available for mapping - returning empty activity');
         // Return early with empty activity
         setRecentActivity([]);
         setActivityLoading(false);
@@ -1112,7 +1112,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         });
       });
 
-      console.log('🔧 QRScanner student map created:', {
+      logger.log('🔧 QRScanner student map created:', {
         totalStudents: currentStudents.length,
         studentMapEntries: Object.entries(studentMap).map(([key, value]) => ({ key, value })),
         availableStudentIds: currentStudents.map(s => s.id)
@@ -1162,9 +1162,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           });
           if (foundStudent) {
             studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
-            console.log('🔧 Found student by reference/Firebase ID:', studentId, '->', studentName);
+            logger.log('🔧 Found student by reference/Firebase ID:', studentId, '->', studentName);
           } else {
-            console.log('🔧 Student not found for ID:', studentId, 'Available students:', students.map(s => ({ id: s.id, refId: generateReferenceId(s.id), name: s.displayName })));
+            logger.log('🔧 Student not found for ID:', studentId, 'Available students:', students.map(s => ({ id: s.id, refId: generateReferenceId(s.id), name: s.displayName })));
           }
         }
 
@@ -1615,7 +1615,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         showSuccess('Attendance marked successfully');
       } catch (error) {
-        console.error('Error marking attendance:', error);
+        logger.error('Error marking attendance:', error);
         showError('Failed to mark attendance');
       }
     }
@@ -1680,13 +1680,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   useEffect(() => {
     // Only fetch if we have a valid classId (not 'all') AND students
     if (classId && classId !== 'all' && students && students.length > 0) {
-      console.log('🔧 Fetching activity - classId:', classId, 'students:', students.length);
+      logger.log('🔧 Fetching activity - classId:', classId, 'students:', students.length);
       // Use a timeout to ensure the latest students state is captured
       setTimeout(() => {
         fetchRecentActivity();
       }, 50);
     } else {
-      console.log('🔧 Skipping activity fetch - classId:', classId, 'students:', students?.length || 0);
+      logger.log('🔧 Skipping activity fetch - classId:', classId, 'students:', students?.length || 0);
       // Clear activity when conditions aren't met
       setRecentActivity([]);
       setActivityLoading(false);
@@ -1702,7 +1702,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Add debug logging for props
   useEffect(() => {
-    console.log('🔧 QRScanner props updated:', {
+    logger.log('🔧 QRScanner props updated:', {
       studentsLength: students?.length || 0,
       selectedProgramId,
       selectedSubjectId,
@@ -2052,13 +2052,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                 <button
                     onClick={() => {
-                      console.log('🔧 Manual refresh button clicked');
+                      logger.log('🔧 Manual refresh button clicked');
                       // Force refresh with current students
                       if (students && students.length > 0) {
-                        console.log('🔧 Manual refresh - students available:', students.length);
+                        logger.log('🔧 Manual refresh - students available:', students.length);
                         fetchRecentActivity();
                       } else {
-                        console.log('🔧 Manual refresh - no students available');
+                        logger.log('🔧 Manual refresh - no students available');
                         showResult('error', 'No students available to refresh');
                       }
                     }}
@@ -2131,7 +2131,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   {/*    variant="ghost"*/}
                   {/*    size="icon"*/}
                   {/*    onClick={() => {*/}
-                  {/*      console.log('🔧 Refresh button clicked - fetching recent activity'); // Debug*/}
+                  {/*      logger.log('🔧 Refresh button clicked - fetching recent activity'); // Debug*/}
                   {/*      fetchRecentActivity();*/}
                   {/*    }}*/}
                   {/*    title={t('refresh_activity')}*/}
@@ -2900,7 +2900,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/* Second Row: Secondary Actions */}
                     <button
                         onClick={async () => {
-                          console.log('⚡ Add penalty');
+                          logger.log('⚡ Add penalty');
                           addDebugLog('⚡ Adding penalty', 'info');
 
                           setActionLoading(true);
@@ -2998,7 +2998,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                     <button
                         onClick={async () => {
-                          console.log('👥 Open participation actions');
+                          logger.log('👥 Open participation actions');
                           addDebugLog('👥 Opening participation actions', 'info');
 
                           setActionLoading(true);
@@ -3106,7 +3106,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/* Details Button - Opens StudentActionPanel */}
                     <button
                         onClick={async () => {
-                          console.log('📋 Open student details');
+                          logger.log('📋 Open student details');
                           addDebugLog('📋 Opening student details', 'info');
 
                           setActionLoading(true);
@@ -3114,8 +3114,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                           try {
                             // Debug logging to understand the data structure
-                            console.log('🔍 Debug - lastScannedStudent:', lastScannedStudent);
-                            console.log('🔍 Debug - students array length:', students?.length);
+                            logger.log('🔍 Debug - lastScannedStudent:', lastScannedStudent);
+                            logger.log('🔍 Debug - students array length:', students?.length);
                             
                             // Try to get student reference from multiple sources
                             let studentReferenceId = null;
@@ -3123,29 +3123,29 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             // First try from lastScannedStudent
                             if (lastScannedStudent?.referenceId) {
                               studentReferenceId = lastScannedStudent.referenceId;
-                              console.log('🔍 Found referenceId from lastScannedStudent:', studentReferenceId);
+                              logger.log('🔍 Found referenceId from lastScannedStudent:', studentReferenceId);
                             }
                             // Try from lastScannedStudent.studentId
                             else if (lastScannedStudent?.studentId) {
                               studentReferenceId = lastScannedStudent.studentId;
-                              console.log('🔍 Found studentId from lastScannedStudent:', studentReferenceId);
+                              logger.log('🔍 Found studentId from lastScannedStudent:', studentReferenceId);
                             }
                             // Try to find student by name from the activity
                             else if (activity?.studentName && students?.length > 0) {
-                              console.log('🔍 Searching for student by name:', activity.studentName);
+                              logger.log('🔍 Searching for student by name:', activity.studentName);
                               const foundStudent = students.find(s => 
                                 s.name === activity.studentName || 
                                 s.displayName === activity.studentName ||
                                 s.email === activity.studentName
                               );
-                              console.log('🔍 Found student by name:', foundStudent);
+                              logger.log('🔍 Found student by name:', foundStudent);
                               if (foundStudent?.studentId) {
                                 studentReferenceId = foundStudent.studentId;
-                                console.log('🔍 Found studentId from name lookup:', studentReferenceId);
+                                logger.log('🔍 Found studentId from name lookup:', studentReferenceId);
                               }
                             }
                             
-                            console.log('🔍 Final studentReferenceId:', studentReferenceId);
+                            logger.log('🔍 Final studentReferenceId:', studentReferenceId);
                             
                             if (studentReferenceId) {
                               const studentData = await processStudentData(studentReferenceId);
@@ -3228,7 +3228,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/* Actions Button - Opens StudentActionPanelNew */}
                     <button
                         onClick={async () => {
-                          console.log('🎯 Open student actions');
+                          logger.log('🎯 Open student actions');
                           addDebugLog('🎯 Opening student actions', 'info');
 
                           setActionLoading(true);
@@ -3342,7 +3342,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/* Clear Today's Scans Button - 1/3 width */}
                     <button
                         onClick={() => {
-                          console.log('🗑️ Clear today\'s scans');
+                          logger.log('🗑️ Clear today\'s scans');
                           addDebugLog('🗑️ Clearing all scans for today', 'warning');
                           setShowClearConfirmModal(true);
                         }}
@@ -3395,7 +3395,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {/* Cancel Button - 2/3 width */}
                     <button
                         onClick={async () => {
-                          console.log('❌ Cancel scan action');
+                          logger.log('❌ Cancel scan action');
                           setShowScanDialog(false);
                         }}
                         style={{

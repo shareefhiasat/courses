@@ -1,4 +1,4 @@
-import { doc, getDoc, query, collection, where, getDocs, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+﻿import { doc, getDoc, query, collection, where, getDocs, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
@@ -35,7 +35,7 @@ export const getUserById = async (userId) => {
     return { success: false, error: 'User not found' };
   } catch (error) {
     logger.error('USER: Failed to fetch user', { error: error.message, userId });
-    console.error('Error fetching user:', error);
+    logger.error('Error fetching user:', error);
     return { success: false, error: error.message };
   }
 };
@@ -49,7 +49,7 @@ export const getUserByStudentNumber = async (studentNumber) => {
     }
     return { success: false, error: 'Student not found' };
   } catch (error) {
-    console.error('Error fetching student by number:', error);
+    logger.error('Error fetching student by number:', error);
     return { success: false, error: error.message };
   }
 };
@@ -60,7 +60,7 @@ export const userExists = async (userId) => {
     const userDoc = await getDoc(doc(db, 'users', userId));
     return userDoc.exists();
   } catch (error) {
-    console.error('Error checking user existence:', error);
+    logger.error('Error checking user existence:', error);
     return false;
   }
 };
@@ -74,7 +74,7 @@ export const getUserPreferences = async (userId) => {
     }
     return { success: false, error: 'User not found' };
   } catch (error) {
-    console.error('Error fetching user preferences:', error);
+    logger.error('Error fetching user preferences:', error);
     return { success: false, error: error.message };
   }
 };
@@ -90,7 +90,7 @@ export const getUsersByRole = async (role) => {
     });
     return { success: true, data: users };
   } catch (error) {
-    console.error('Error fetching users by role:', error);
+    logger.error('Error fetching users by role:', error);
     return { success: false, error: error.message };
   }
 };
@@ -115,7 +115,7 @@ export const searchUsers = async (searchTerm) => {
     });
     return { success: true, data: users };
   } catch (error) {
-    console.error('Error searching users:', error);
+    logger.error('Error searching users:', error);
     return { success: false, error: error.message };
   }
 };
@@ -133,7 +133,7 @@ export async function getUserProfile(user) {
     const userResult = await getUserById(user.uid);
     return userResult.success ? userResult.data : null;
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    logger.error('Error fetching user profile:', error);
     return null;
   }
 }
@@ -202,7 +202,7 @@ export const ensureUserDoc = async (uid, data = {}) => {
     // Ignore permission-denied to avoid noisy console during restricted environments
     const code = error && (error.code || "").toString();
     if (code === "permission-denied") {
-      console.warn("ensureUserDoc permission denied for uid:", uid);
+      logger.warn("ensureUserDoc permission denied for uid:", uid);
       return { success: false, error: "permission-denied" };
     }
     return { success: false, error: error.message };
@@ -219,7 +219,7 @@ export const getUsers = async () => {
     });
     return { success: true, data: users };
   } catch (error) {
-    console.error("Error getting users:", error);
+    logger.error("Error getting users:", error);
     return { success: false, error: error.message };
   }
 };
@@ -246,7 +246,7 @@ export const getUser = async (uid) => {
       },
     };
   } catch (error) {
-    console.error("Error getting user:", error);
+    logger.error("Error getting user:", error);
     return { success: false, error: error.message };
   }
 };
@@ -273,7 +273,7 @@ export const addUser = async (userData) => {
     );
     return { success: true, id: uid };
   } catch (error) {
-    console.error("Error adding user:", error);
+    logger.error("Error adding user:", error);
     return { success: false, error: error.message };
   }
 };
@@ -293,7 +293,7 @@ export const updateUser = async (id, userData) => {
         const { ActivityLogger } = await import('../other/activityLogger');
         await ActivityLogger.emailChange();
       } catch (error) {
-        console.warn('Failed to log email change activity:', error);
+        logger.warn('Failed to log email change activity:', error);
       }
     }
     
@@ -313,7 +313,7 @@ export const updateUser = async (id, userData) => {
     return { success: true };
   } catch (error) {
     logger.error('USER: Failed to update user', { error: error.message, userId: id });
-    console.error("Error updating user:", error);
+    logger.error("Error updating user:", error);
     return { success: false, error: error.message };
   }
 };
@@ -338,7 +338,7 @@ export const deleteUser = async (id) => {
     return { success: true };
   } catch (error) {
     logger.error('USER: Failed to delete user', { error: error.message, userId: id });
-    console.error("Error deleting user:", error);
+    logger.error("Error deleting user:", error);
     return { success: false, error: error.message };
   }
 };
@@ -422,7 +422,7 @@ export const deleteUserCascade = async (uid) => {
     await deleteDoc(doc(db, "users", uid));
     return { success: true };
   } catch (error) {
-    console.error("Error deleting user cascade:", error);
+    logger.error("Error deleting user cascade:", error);
     return { success: false, error: error.message };
   }
 };
@@ -447,7 +447,7 @@ export const getUsersByIds = async (userIds) => {
         }
         return { id: userId, data: null };
       } catch (error) {
-        console.error(`Error fetching user ${userId}:`, error);
+        logger.error(`Error fetching user ${userId}:`, error);
         return { id: userId, data: null };
       }
     });
@@ -462,7 +462,7 @@ export const getUsersByIds = async (userIds) => {
 
     return { success: true, data: userMap };
   } catch (error) {
-    console.error('Error fetching users in bulk:', error);
+    logger.error('Error fetching users in bulk:', error);
     return { success: false, error: error.message };
   }
 };
@@ -487,7 +487,7 @@ export const getAllUsers = async (options = {}) => {
 
     return { success: true, data: users };
   } catch (error) {
-    console.error('Error fetching all users:', error);
+    logger.error('Error fetching all users:', error);
     return { success: false, error: error.message };
   }
 };
@@ -855,3 +855,4 @@ export const getUserEnrollmentCount = (user) => {
     return 0;
   }
 };
+

@@ -6,6 +6,7 @@ import Navbar from './components/ui/Navbar/Navbar';
 import { ErrorBoundary, HelpDrawer, CollapsibleSideWindow, NotificationDrawer, RankDisplay, RankHistory, VariableHelper, StudentQRCodeDisplay, StudentQuickActionModal, ToastProvider, useToast, SideDrawer } from '@ui';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ColorThemeProvider } from './contexts/ColorThemeContext';
+import logger from './utils/logger';
 import HomePage from './pages/auth/HomePage';
 import LoginPage from './pages/auth/LoginPage';
 import ChatPage from './pages/communications/chat/ChatPage';
@@ -28,10 +29,8 @@ import analytics from './utils/analytics.js';
 import RoleAccessPro from './pages/system/RoleAccessPro';
 import StudentProfilePage from './pages/users/StudentProfilePage';
 import StudentDashboardPage from './pages/dashboard/StudentDashboardPage';
-import CourseProgressDetailPage from './pages/to-revise/CourseProgressDetailPage';
 import QuizzesPage from './pages/academic/quizzes/QuizzesPage';
 import QuizPreviewPage from './pages/academic/quizzes/QuizPreviewPage';
-import MyEnrollmentsPage from './pages/to-revise/MyEnrollmentsPage';
 import StudentQuizPage from './pages/academic/quizzes/StudentQuizPage';
 import QuestionBankPage from './pages/academic/quizzes/QuestionBankPage';
 import QuizResultsPage from './pages/quiz-results/QuizResultsPage';
@@ -89,7 +88,7 @@ function PageTracker() {
   const location = useLocation();
   
   useEffect(() => {
-    console.log('🔍 PageTracker - Route changed:', {
+    logger.log('🔍 PageTracker - Route changed:', {
       pathname: location.pathname,
       search: location.search,
       hash: location.hash,
@@ -104,7 +103,7 @@ function PageTracker() {
         timestamp: new Date().toISOString()
       });
     } else {
-      // console.log('🔍 PageTracker - PostHog not ready yet');
+      // logger.log('🔍 PageTracker - PostHog not ready yet');
     }
   }, [location]);
   
@@ -189,8 +188,8 @@ const AppContent = () => {
           {/* Redirect old student-profile to new unified dashboard */}
           <Route path="/student-profile" element={<StudentProfilePage />} />
           <Route path="/student-dashboard" element={<StudentDashboardPage />} />
-          <Route path="/my-enrollments" element={<MyEnrollmentsPage />} />
-          <Route path="/course-progress/:courseId" element={<CourseProgressDetailPage />} />
+          <Route path="/my-enrollments" element={<EnrollmentsPage />} />
+          <Route path="/course-progress/:courseId" element={<StudentDashboardPage />} />
           <Route path="/quizzes" element={<QuizzesPage />} />
           <Route path="/quiz-management" element={<Navigate to="/quizzes" replace />} />
           <Route path="/quiz-builder" element={<Navigate to="/quizzes?mode=add" replace />} />
@@ -232,3 +231,4 @@ function App() {
 }
 
 export default App;
+

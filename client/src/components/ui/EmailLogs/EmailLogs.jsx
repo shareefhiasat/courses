@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
@@ -61,7 +61,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
         if (data && typeof data === 'object') {
           logList.push({ id: doc.id, ...data });
         } else {
-          console.warn('[EmailLogs] Skipping invalid document:', doc.id, data);
+          logger.warn('[EmailLogs] Skipping invalid document:', doc.id, data);
         }
       });
 
@@ -75,7 +75,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
       if (match && match[0]) {
         setMissingIndexUrl(match[0]);
       } else {
-        console.error('Error loading logs:', error);
+        logger.error('Error loading logs:', error);
         toast?.showError('Failed to load email logs: ' + (error?.message || ''));
       }
     } finally {
@@ -99,7 +99,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
   const gridRows = filteredLogs
   .map((log, index) => {
     if (!log || typeof log !== 'object') {
-      console.warn('[EmailLogs] Skipping malformed log row:', log);
+      logger.warn('[EmailLogs] Skipping malformed log row:', log);
       return null;
     }
 
@@ -286,7 +286,7 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
                   padding: '3rem 2rem 2rem'
                 }}
                 onClick={() => {
-                  console.log('Closing email log preview overlay');
+                  logger.log('Closing email log preview overlay');
                   setShowPreview(false);
                   setSelectedLog(null);
                 }}
@@ -413,3 +413,4 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
 };
 
 export default EmailLogs;
+

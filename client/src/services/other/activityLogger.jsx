@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Activity Logger - Centralized activity tracking
  * Logs all user activities with display names (not emails)
  */
@@ -157,7 +157,7 @@ export async function logActivity(type, details = {}, userId = null) {
     const currentUser = userId || userProfile.uid;
 
     if (!currentUser) {
-      console.warn("[Activity Logger] No user ID available");
+      logger.warn("[Activity Logger] No user ID available");
       return { success: false, error: "No user ID" };
     }
 
@@ -180,7 +180,7 @@ export async function logActivity(type, details = {}, userId = null) {
     
     return { success: true };
   } catch (error) {
-    console.error("[Activity Logger] Error logging activity:", error);
+    logger.error("[Activity Logger] Error logging activity:", error);
     return { success: false, error: error.message };
   }
 }
@@ -495,3 +495,4 @@ export const ACTIVITY_LOG_LABELS = {
   save_action: "Save Action",
   export_action: "Export Action",
 };
+

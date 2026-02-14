@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
@@ -53,7 +53,7 @@ const RankHistory = ({ studentId }) => {
       
       setHistory(records);
     } catch (error) {
-      console.error('Error loading rank history:', error);
+      logger.error('Error loading rank history:', error);
     } finally {
       setLoading(false);
     }
@@ -219,3 +219,4 @@ const RankHistory = ({ studentId }) => {
 };
 
 export default RankHistory;
+

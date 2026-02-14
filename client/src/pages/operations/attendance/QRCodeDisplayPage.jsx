@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { useTheme } from '@contexts/ThemeContext';
@@ -164,7 +164,7 @@ const QRCodeDisplayPage = () => {
           </html>
         `;
       } catch (error) {
-        console.error('Error generating QR code:', error);
+        logger.error('Error generating QR code:', error);
         document.body.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; color: red;">Failed to generate QR code</div>';
       }
     };

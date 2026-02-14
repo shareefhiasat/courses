@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Validation Helper Functions
  * Provides utilities for data validation and error handling
  */
@@ -236,3 +236,4 @@ export default {
   validatePoints,
   validateFileSize
 };
+

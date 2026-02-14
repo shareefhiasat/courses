@@ -153,7 +153,7 @@ const InstructorQRScannerPage = () => {
 
   // Handle QR scanner minimization changes
   const handleScannerMinimizeChange = useCallback((isMinimized) => {
-    console.log('🔧 QR Scanner minimization changed:', isMinimized); // Debug
+    logger.log('🔧 QR Scanner minimization changed:', isMinimized); // Debug
     setIsScannerMinimized(isMinimized);
   }, []);
 
@@ -685,7 +685,7 @@ const InstructorQRScannerPage = () => {
       }
 
       setStudents(studentsWithData);
-      console.log('🔧 loadStudents completed - set', studentsWithData.length, 'students');
+      logger.log('🔧 loadStudents completed - set', studentsWithData.length, 'students');
     } catch (error) {
       logger.error('[QR Scanner] Error loading students:', error);
       setStudents([]);

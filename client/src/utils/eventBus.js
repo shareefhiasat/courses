@@ -1,4 +1,4 @@
-// Simple event bus for real-time updates
+﻿// Simple event bus for real-time updates
 class EventBus {
   constructor() {
     this.events = {};
@@ -47,3 +47,4 @@ export const EVENTS = {
   REFRESH_ROSTER: 'refresh_roster',
   REFRESH_TODAY_ACTIVITY: 'refresh_today_activity'
 };
+

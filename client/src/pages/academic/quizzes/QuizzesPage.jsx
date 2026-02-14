@@ -212,7 +212,7 @@ export default function QuizzesPage() {
   useEffect(() => {
     if (activeQuestionIndex >= 0 && quizData.questions[activeQuestionIndex]) {
       const question = quizData.questions[activeQuestionIndex];
-      console.log('[QuestionChange] Active question changed:', {
+      logger.log('[QuestionChange] Active question changed:', {
         activeQuestionIndex,
         questionId: question.id,
         questionText: question.question?.substring(0, 50),
@@ -405,7 +405,7 @@ export default function QuizzesPage() {
         const result = await createQuiz(quizData, user.uid);
         if (result.success) {
           targetQuizId = result.id;
-          console.log('[Save] Quiz created successfully:', targetQuizId);
+          logger.log('[Save] Quiz created successfully:', targetQuizId);
           toast?.showSuccess?.('Quiz created successfully!');
           setViewMode('list');
           loadQuizzes();
@@ -483,13 +483,13 @@ export default function QuizzesPage() {
               }
             }
           } catch (notifyError) {
-            console.warn('Failed to send quiz notifications:', notifyError);
+            logger.warn('Failed to send quiz notifications:', notifyError);
           }
         }
       }
 
     } catch (error) {
-      console.error('Error saving quiz:', error);
+      logger.error('Error saving quiz:', error);
       toast?.showError?.('Failed to save quiz: ' + error.message);
     } finally {
       setSaving(false);
@@ -497,7 +497,7 @@ export default function QuizzesPage() {
   };
 
   const handleEdit = (quiz) => {
-    console.log('Edit quiz clicked:', quiz);
+    logger.log('Edit quiz clicked:', quiz);
     setViewMode('edit');
     navigate(`/quizzes?id=${quiz.id}`, { replace: true });
     // Load quiz immediately
@@ -661,25 +661,25 @@ export default function QuizzesPage() {
   };
 
   const updateOption = useCallback((questionIndex, optionId, updates) => {
-    console.log('[UpdateOption] Called:', { questionIndex, optionId, updates, timestamp: new Date().toISOString() });
+    logger.log('[UpdateOption] Called:', { questionIndex, optionId, updates, timestamp: new Date().toISOString() });
     
     setQuizData(prev => {
       const currentQuestion = prev.questions[questionIndex];
       if (!currentQuestion) {
-        console.warn('[UpdateOption] Question not found at index:', questionIndex);
+        logger.warn('[UpdateOption] Question not found at index:', questionIndex);
         return prev;
       }
 
       const optionIndex = currentQuestion.options.findIndex(opt => opt.id === optionId);
       if (optionIndex === -1) {
-        console.warn('[UpdateOption] Option not found:', { optionId, availableIds: currentQuestion.options.map(o => o.id) });
+        logger.warn('[UpdateOption] Option not found:', { optionId, availableIds: currentQuestion.options.map(o => o.id) });
         return prev;
       }
 
       const updatedOptions = currentQuestion.options.map((opt, idx) => {
         if (opt.id === optionId) {
           const updated = { ...opt, ...updates };
-          console.log('[UpdateOption] Updating option:', { 
+          logger.log('[UpdateOption] Updating option:', { 
             before: { id: opt.id, text: opt.text?.substring(0, 50) }, 
             after: { id: updated.id, text: updated.text?.substring(0, 50) },
             index: idx
@@ -695,7 +695,7 @@ export default function QuizzesPage() {
         options: updatedOptions
       };
 
-      console.log('[UpdateOption] State updated:', {
+      logger.log('[UpdateOption] State updated:', {
         questionIndex,
         questionId: currentQuestion.id,
         optionsCount: updatedOptions.length,
@@ -1518,7 +1518,7 @@ export default function QuizzesPage() {
                           value={quizData.questions[activeQuestionIndex]?.type || QUESTION_TYPES.MULTIPLE_CHOICE}
                           onChange={(e) => {
                             const newType = e.target.value;
-                            console.log('[QuestionType] Changing type:', {
+                            logger.log('[QuestionType] Changing type:', {
                               from: quizData.questions[activeQuestionIndex]?.type,
                               to: newType,
                               activeQuestionIndex
@@ -1529,9 +1529,9 @@ export default function QuizzesPage() {
                                 type: newType,
                                 options: getDefaultOptions(newType)
                               });
-                              console.log('[QuestionType] Type updated successfully');
+                              logger.log('[QuestionType] Type updated successfully');
                             } else {
-                              console.error('[QuestionType] No current question found');
+                              logger.error('[QuestionType] No current question found');
                             }
                           }}
                           options={Object.entries(QUESTION_TYPE_INFO).map(([value, info]) => ({

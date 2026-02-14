@@ -1,4 +1,4 @@
-import { db } from '../other/config';
+﻿import { db } from '../other/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { addNotification } from './notificationService';
 import { sendEmail } from './emailService';
@@ -133,13 +133,13 @@ export const notificationGateway = {
 
       // 4. Future: Handle SMS/WhatsApp
       if (settings.sms && details.phoneNumber) {
-        console.log('SMS channel not yet implemented');
+        logger.log('SMS channel not yet implemented');
       }
 
       // 5. Success
       return { success: true, trigger, results };
     } catch (error) {
-      console.error(`Error in notificationGateway for trigger ${trigger}:`, error);
+      logger.error(`Error in notificationGateway for trigger ${trigger}:`, error);
       return { success: false, error: error.message };
     }
   },
@@ -197,8 +197,9 @@ export const notificationGateway = {
       
       return settings[role]?.[trigger] || { web: true, email: true }; 
     } catch (error) {
-      console.warn('Failed to load notification settings, falling back to defaults:', error);
+      logger.warn('Failed to load notification settings, falling back to defaults:', error);
       return { web: true, email: true };
     }
   }
 };
+

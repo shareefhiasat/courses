@@ -1,4 +1,4 @@
-const DEFAULT_ACCENT = '#810c29'; // Use primary color as default to avoid flash
+﻿const DEFAULT_ACCENT = '#810c29'; // Use primary color as default to avoid flash
 
 const sanitizeHex = (value) => {
   if (!value) return null;
@@ -116,4 +116,5 @@ export const hexToRgbString = (value, fallback = '102, 126, 234') => {
 export const trySanitizeHexColor = (value) => sanitizeHex(value);
 
 export { DEFAULT_ACCENT };
+
 

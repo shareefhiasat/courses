@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import DeleteModal from './DeleteModal';
 import Button from '../Button';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -50,7 +50,7 @@ export const DeleteAttendance = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          console.log('Attendance record deleted');
+          logger.log('Attendance record deleted');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.ATTENDANCE}
@@ -75,7 +75,7 @@ export const DeleteParticipation = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          console.log('Participation record deleted');
+          logger.log('Participation record deleted');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.PARTICIPATION}
@@ -100,7 +100,7 @@ export const DeleteBehavior = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          console.log('Behavior record deleted');
+          logger.log('Behavior record deleted');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.BEHAVIOR}
@@ -125,7 +125,7 @@ export const DeletePenalty = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          console.log('Penalty record deleted');
+          logger.log('Penalty record deleted');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.PENALTY}
@@ -198,7 +198,7 @@ export const AllActivityTypes = () => {
           isOpen={!!modalType}
           onClose={() => setModalType(null)}
           onConfirm={() => {
-            console.log(`${modalType.label} record deleted for ${modalType.student}`);
+            logger.log(`${modalType.label} record deleted for ${modalType.student}`);
             setModalType(null);
           }}
           deleteType={modalType.type}
@@ -224,7 +224,7 @@ export const NoStudentName = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onConfirm={() => {
-          console.log('Record deleted without specific student');
+          logger.log('Record deleted without specific student');
           setIsOpen(false);
         }}
         deleteType={RECORD_TYPES.ATTENDANCE}
@@ -235,3 +235,4 @@ export const NoStudentName = () => {
     </>
   );
 };
+

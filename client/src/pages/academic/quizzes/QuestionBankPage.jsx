@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Question Bank Page
  * Manage reusable questions library
  */
@@ -149,7 +149,7 @@ export default function QuestionBankPage() {
         toast.error('Failed to delete question');
       }
     } catch (error) {
-      console.error('Error deleting question:', error);
+      logger.error('Error deleting question:', error);
       toast.error('Error deleting question');
     }
   };

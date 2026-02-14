@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useHelp } from '@contexts/HelpContext';
 import { useLang } from '@contexts/LangContext';
 import { X, Search, ChevronDown, ChevronUp, ChevronsUpDown, ChevronsUp } from 'lucide-react';
@@ -15,7 +15,7 @@ const HelpDrawer = () => {
 
   // Reset state when help content changes or when drawer is opened
   useEffect(() => {
-    // console.log('HelpDrawer - currentHelp changed or drawer opened:', {
+    // logger.log('HelpDrawer - currentHelp changed or drawer opened:', {
     //   isOpen,
     //   title: currentHelp?.title,
     //   contentLength: currentHelp?.content?.length,
@@ -23,20 +23,20 @@ const HelpDrawer = () => {
     // });
     
     if (currentHelp && isOpen) {
-      // console.log('Resetting HelpDrawer state for new help content');
+      // logger.log('Resetting HelpDrawer state for new help content');
       setSearchTerm('');
       setExpandedSections({});
       
       // Always update the filtered content when the drawer is opened or help content changes
       const newContent = Array.isArray(currentHelp.content) ? currentHelp.content : [];
-      // console.log('Setting new filtered content with', newContent.length, 'sections');
+      // logger.log('Setting new filtered content with', newContent.length, 'sections');
       setFilteredContent(newContent);
     }
   }, [currentHelp, isOpen, currentHelp?._timestamp]);
   
   // Handle search filtering and content updates
   useEffect(() => {
-    // console.log('HelpDrawer - Search effect running', {
+    // logger.log('HelpDrawer - Search effect running', {
     //   isOpen,
     //   hasHelpContent: !!currentHelp?.content,
     //   searchTerm,
@@ -44,26 +44,26 @@ const HelpDrawer = () => {
     // });
     
     if (!isOpen) {
-      // console.log('HelpDrawer - Drawer is closed, skipping filter');
+      // logger.log('HelpDrawer - Drawer is closed, skipping filter');
       return;
     }
     
     if (!currentHelp?.content) {
-      // console.log('HelpDrawer - No help content available');
+      // logger.log('HelpDrawer - No help content available');
       setFilteredContent([]);
       return;
     }
     
     // If there's no search term, use the current help content directly
     if (!searchTerm.trim()) {
-      // console.log('HelpDrawer - No search term, using full help content');
+      // logger.log('HelpDrawer - No search term, using full help content');
       setFilteredContent(Array.isArray(currentHelp.content) ? currentHelp.content : []);
       return;
     }
     
     // Only filter if we have a search term and content
     const filterContent = () => {
-      // console.log('Filtering content with searchTerm:', searchTerm);
+      // logger.log('Filtering content with searchTerm:', searchTerm);
       const filtered = currentHelp.content.map(section => {
         if (!section.items || !Array.isArray(section.items)) return null;
         
@@ -75,7 +75,7 @@ const HelpDrawer = () => {
         return filteredItems.length > 0 ? { ...section, items: filteredItems } : null;
       }).filter(Boolean); // Remove null/undefined sections
       
-      // console.log('Filtered content result:', {
+      // logger.log('Filtered content result:', {
       //   originalSections: currentHelp.content.length,
       //   filteredSections: filtered.length,
       //   hasSearchTerm: !!searchTerm
@@ -251,7 +251,7 @@ const HelpDrawer = () => {
         );
       });
     } catch (error) {
-      console.error('[HelpDrawer] Error rendering help content:', error);
+      logger.error('[HelpDrawer] Error rendering help content:', error);
       return (
         <div style={{ 
           padding: '1rem',
@@ -505,3 +505,4 @@ const HelpDrawer = () => {
 };
 
 export default HelpDrawer;
+

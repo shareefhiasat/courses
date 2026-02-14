@@ -1,4 +1,4 @@
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
+﻿import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../other/config';
 import { notificationGateway } from './notificationGateway';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
@@ -24,7 +24,7 @@ export const getTodayAttendanceStatus = async (classId, studentId) => {
     }
     return { success: false, data: null };
   } catch (error) {
-    console.error('Error checking today\'s attendance:', error);
+    logger.error('Error checking today\'s attendance:', error);
     return { success: false, error: error.message };
   }
 };
@@ -38,7 +38,7 @@ export const isStudentMarkedToday = async (classId, studentIdentifier) => {
     
     return existingDoc.exists();
   } catch (error) {
-    console.error('Error checking if student marked today:', error);
+    logger.error('Error checking if student marked today:', error);
     return false;
   }
 };
@@ -80,7 +80,7 @@ export const markAttendance = async (attendanceData) => {
               }
             });
           }
-        } catch (e) { console.warn('Notify failed', e); }
+        } catch (e) { logger.warn('Notify failed', e); }
       }
 
       return { success: true, id: attendanceDocId, action: 'updated' };
@@ -114,13 +114,13 @@ export const markAttendance = async (attendanceData) => {
               }
             });
           }
-        } catch (e) { console.warn('Notify failed', e); }
+        } catch (e) { logger.warn('Notify failed', e); }
       }
 
       return { success: true, id: newDocRef.id, action: 'created' };
     }
   } catch (error) {
-    console.error('Error marking attendance:', error);
+    logger.error('Error marking attendance:', error);
     return { success: false, error: error.message };
   }
 };
@@ -147,7 +147,7 @@ export const getAttendanceByClass = async (classId, date) => {
     
     return { success: true, data: attendanceRecords };
   } catch (error) {
-    console.error('Error fetching class attendance:', error);
+    logger.error('Error fetching class attendance:', error);
     return { success: false, error: error.message };
   }
 };
@@ -176,7 +176,7 @@ export const getAttendanceByStudent = async (studentId, startDate = null, endDat
     
     return { success: true, data: attendanceRecords };
   } catch (error) {
-    console.error('Error fetching student attendance:', error);
+    logger.error('Error fetching student attendance:', error);
     return { success: false, error: error.message };
   }
 };
@@ -218,7 +218,7 @@ export const getAttendanceStats = async (classId, startDate = null, endDate = nu
     
     return { success: true, data: stats };
   } catch (error) {
-    console.error('Error calculating attendance stats:', error);
+    logger.error('Error calculating attendance stats:', error);
     return { success: false, error: error.message };
   }
 };
@@ -247,7 +247,7 @@ export const quickMarkAttendance = async ({
     
     return await markAttendance(attendanceData);
   } catch (error) {
-    console.error('Error quick marking attendance:', error);
+    logger.error('Error quick marking attendance:', error);
     return { success: false, error: error.message };
   }
 };
@@ -266,7 +266,7 @@ export const deleteAttendance = async (attendanceId) => {
     
     return { success: true, message: 'Attendance record deleted successfully' };
   } catch (error) {
-    console.error('Error deleting attendance:', error);
+    logger.error('Error deleting attendance:', error);
     return { success: false, error: error.message };
   }
 };
@@ -299,7 +299,7 @@ export const getStudentAttendanceHistory = async (classId, studentId, limit = 30
     
     return { success: true, data: attendanceRecords.slice(0, limit) };
   } catch (error) {
-    console.error('Error fetching attendance history:', error);
+    logger.error('Error fetching attendance history:', error);
     return { success: false, error: error.message };
   }
 };
@@ -356,7 +356,7 @@ export const rosterQuickAction = async (studentId, classId, status, user, notes 
 
     return { success: true, data: { id: newDocRef.id, ...attendanceData } };
   } catch (error) {
-    console.error('Error in roster quick action:', error);
+    logger.error('Error in roster quick action:', error);
     return { success: false, error: error.message };
   }
 };
@@ -424,12 +424,12 @@ export async function createSession({ classId, subjectId, scheduledAt, createdBy
     const { httpsCallable } = await import('firebase/functions');
     const { functions } = await import('../other/config');
     const fn = httpsCallable(functions, 'attendanceCreateSession');
-    console.log('[Attendance/api] calling attendanceCreateSession', { classId, subjectId });
+    logger.log('[Attendance/api] calling attendanceCreateSession', { classId, subjectId });
     
     const { data } = await fn({ classId, subjectId, scheduledAt, createdBy });
     return { success: true, data: { id: data?.sessionId, token: data?.token, rotationSeconds: data?.rotationSeconds, endAt: data?.endAt } };
   } catch (error) {
-    console.error('Error creating session:', error);
+    logger.error('Error creating session:', error);
     return { success: false, error: error.message };
   }
 }
@@ -447,7 +447,7 @@ export async function listOpenSessions({ classId }) {
     const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     return { success: true, data: sessions };
   } catch (error) {
-    console.error('Error listing open sessions:', error);
+    logger.error('Error listing open sessions:', error);
     return { success: false, error: error.message };
   }
 }
@@ -463,7 +463,7 @@ export function listenAttendanceSession(sessionId, cb) {
     const ref = doc(db, 'attendanceSessions', sessionId);
     return onSnapshot(ref, (snap) => cb(snap.exists() ? { id: snap.id, ...snap.data() } : null));
   } catch (error) {
-    console.error('Error listening to session:', error);
+    logger.error('Error listening to session:', error);
     return () => {}; // Return empty unsubscribe function
   }
 }
@@ -478,12 +478,12 @@ export async function closeAttendanceSession(sessionId) {
     const { httpsCallable } = await import('firebase/functions');
     const { functions } = await import('../other/config');
     const fn = httpsCallable(functions, 'attendanceCloseSession');
-    console.log('[Attendance/api] calling attendanceCloseSession', { sid: sessionId });
+    logger.log('[Attendance/api] calling attendanceCloseSession', { sid: sessionId });
     
     const res = await fn({ sid: sessionId });
     return { success: true, data: res?.data };
   } catch (error) {
-    console.error('Error closing session:', error);
+    logger.error('Error closing session:', error);
     return { success: false, error: error.message };
   }
 }
@@ -498,7 +498,7 @@ export async function scanAttendance(payload) {
     const { httpsCallable } = await import('firebase/functions');
     const { functions } = await import('../other/config');
     const fn = httpsCallable(functions, 'attendanceScan');
-    console.log('[Attendance/api] calling attendanceScan', payload);
+    logger.log('[Attendance/api] calling attendanceScan', payload);
     
     const { data } = await fn(payload);
     if (!data?.success) {
@@ -506,7 +506,7 @@ export async function scanAttendance(payload) {
     }
     return { success: true, data: data.data };
   } catch (error) {
-    console.error('Error scanning attendance:', error);
+    logger.error('Error scanning attendance:', error);
     return { success: false, error: error.message };
   }
 }
@@ -525,7 +525,8 @@ export function simpleDeviceHash() {
     }
     return h.toString(36);
   } catch (error) {
-    console.error('Error generating device hash:', error);
+    logger.error('Error generating device hash:', error);
     return 'unknown';
   }
 }
+

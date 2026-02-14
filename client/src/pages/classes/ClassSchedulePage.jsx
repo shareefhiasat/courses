@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+﻿import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import logger from '@utils/logger';
 
 // Global logger fallback to prevent ReferenceError in components
 if (typeof window !== 'undefined' && !window.logger) {
   window.logger = {
-    error: (...args) => console.error('[Logger]', ...args),
-    warn: (...args) => console.warn('[Logger]', ...args),
-    info: (...args) => console.info('[Logger]', ...args),
+    error: (...args) => logger.error('[Logger]', ...args),
+    warn: (...args) => logger.warn('[Logger]', ...args),
+    info: (...args) => logger.info('[Logger]', ...args),
     debug: (...args) => console.debug('[Logger]', ...args),
   };
 }
@@ -550,3 +550,4 @@ const ClassSchedulePage = () => {
 };
 
 export default ClassSchedulePage;
+

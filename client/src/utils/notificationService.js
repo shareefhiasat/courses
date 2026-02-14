@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Service - High-level notification utilities
  * Re-exports from Firebase notificationService for unified access
  */
@@ -21,3 +21,4 @@ export {
   sendPushNotification,
   scheduleReminders
 };
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -100,7 +100,7 @@ const AnalyticsDashboardPage = () => {
         if (participationsRes.success) setParticipations(participationsRes.data || []);
         
       } catch (error) {
-        console.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
+        logger.error('🔍 [AnalyticsDashboardPage] Error loading data:', error);
       } finally {
         setLoading(false);
       }
@@ -128,13 +128,13 @@ const AnalyticsDashboardPage = () => {
         const result = await getResourceCount(filters);
         if (result.success) {
           setResourceCount(result.count);
-          console.log('🔍 [AnalyticsDashboardPage] Server-side resource count:', result.count);
+          logger.log('🔍 [AnalyticsDashboardPage] Server-side resource count:', result.count);
         } else {
-          console.error('🔍 [AnalyticsDashboardPage] Error fetching resource count:', result.error);
+          logger.error('🔍 [AnalyticsDashboardPage] Error fetching resource count:', result.error);
           setResourceCount(0);
         }
       } catch (error) {
-        console.error('🔍 [AnalyticsDashboardPage] Exception fetching resource count:', error);
+        logger.error('🔍 [AnalyticsDashboardPage] Exception fetching resource count:', error);
         setResourceCount(0);
       } finally {
         setLoadingResourceCount(false);
@@ -511,3 +511,4 @@ const AnalyticsDashboardPage = () => {
 };
 
 export default AnalyticsDashboardPage;
+

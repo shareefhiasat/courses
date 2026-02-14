@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot, where, limit } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { useAuth } from '@contexts/AuthContext';
@@ -45,3 +45,4 @@ export const useRealTimeUpdates = () => {
 };
 
 export default useRealTimeUpdates;
+

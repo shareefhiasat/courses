@@ -1,4 +1,4 @@
-export function adjustColor(hexColor, amount) {
+﻿export function adjustColor(hexColor, amount) {
   if (!hexColor || typeof hexColor !== 'string') return hexColor;
   const hex = hexColor.replace('#', '');
   if (hex.length !== 6) return hexColor;
@@ -11,3 +11,4 @@ export function adjustColor(hexColor, amount) {
   const toHex = (n) => n.toString(16).padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
+

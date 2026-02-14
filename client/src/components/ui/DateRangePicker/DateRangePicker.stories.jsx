@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import DateRangePicker from './DateRangePicker';
 
 export default {
@@ -39,7 +39,7 @@ const Template = (args) => {
         toDate={dates.toDate}
         onChange={(newDates) => {
           setDates(newDates);
-          console.log('Date range changed:', newDates);
+          logger.log('Date range changed:', newDates);
         }}
       />
       <div style={{ marginTop: '1rem', padding: '1rem', background: '#f5f5f5a3', borderRadius: '8px', fontSize: '0.875rem' }}>
@@ -117,4 +117,5 @@ Disabled.args = {
   clearable: true,
   numberOfMonths: 2,
 };
+
 

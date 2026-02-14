@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -200,7 +200,7 @@ const StudentQuickActionModal = ({
       }
       
     } catch (error) {
-      console.error('Attendance marking failed:', error);
+      logger.error('Attendance marking failed:', error);
       setError(error.message || 'Failed to mark attendance');
     } finally {
       setLoading(false);
@@ -258,7 +258,7 @@ const StudentQuickActionModal = ({
       setParticipationDelta(1);
       
     } catch (error) {
-      console.error('Participation awarding failed:', error);
+      logger.error('Participation awarding failed:', error);
       setError(error.message || 'Failed to award participation');
     } finally {
       setLoading(false);
@@ -322,7 +322,7 @@ const StudentQuickActionModal = ({
       setPenaltyPoints(1);
       
     } catch (error) {
-      console.error('Penalty issuance failed:', error);
+      logger.error('Penalty issuance failed:', error);
       setError(error.message || 'Failed to issue penalty');
     } finally {
       setLoading(false);
@@ -387,7 +387,7 @@ const StudentQuickActionModal = ({
       setBehaviorSeverity('medium');
       
     } catch (error) {
-      console.error('Behavior recording failed:', error);
+      logger.error('Behavior recording failed:', error);
       setError(error.message || 'Failed to record behavior');
     } finally {
       setLoading(false);
@@ -536,4 +536,5 @@ const StudentQuickActionModal = ({
 };
 
 export default StudentQuickActionModal;
+
 

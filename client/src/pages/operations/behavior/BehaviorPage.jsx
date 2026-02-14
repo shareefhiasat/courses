@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -1110,3 +1110,4 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
 };
 
 export default BehaviorPage;
+

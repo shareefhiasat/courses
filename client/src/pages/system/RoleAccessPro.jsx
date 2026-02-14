@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { db } from '@services/other/config';
@@ -97,7 +97,7 @@ export default function RoleAccessPro() {
       if (notifySnap.exists()) setNotificationSettings(notifySnap.data());
       else setNotificationSettings({});
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       setRoleScreens(defaultRoleScreens);
     } finally {
       setLoading(false);
@@ -115,7 +115,7 @@ export default function RoleAccessPro() {
       
       toast.success(t('role_access_updated') || 'Role access and notification settings saved');
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error('Error saving settings');
     } finally {
       setSaving(false);
@@ -400,3 +400,4 @@ export default function RoleAccessPro() {
     </Container>
   );
 }
+

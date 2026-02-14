@@ -3,6 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
+import logger from '@utils/logger';
 import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, getQatarNow } from '@utils/qatarDate';
@@ -153,7 +154,7 @@ const AnnouncementsPage = () => {
     try {
       // Read text fields from refs (uncontrolled inputs)
       const textValues = syncRefsToState();
-      console.log('[FORM] Text values from refs:', textValues);
+      logger.log('[FORM] Text values from refs:', textValues);
 
       if (!textValues.title || textValues.title.trim() === '') {
         throw new Error('Announcement title is required');
@@ -188,7 +189,7 @@ const AnnouncementsPage = () => {
         const result = await addAnnouncement(announcementData);
         
         if (result.success) {
-          console.log('🔍 [SAVE] Announcement created successfully with ID:', result.id);
+          logger.log('🔍 [SAVE] Announcement created successfully with ID:', result.id);
           toast?.showSuccess('Announcement created successfully');
           
           // Send notifications using notification gateway (only for new announcements)

@@ -1,4 +1,4 @@
-import { 
+﻿import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   updateProfile,
@@ -27,7 +27,7 @@ export const signUp = async (email, password, displayName) => {
         await updateProfile(result.user, { displayName: displayName.trim() });
       } catch (e) {
         // Non-fatal: continue even if profile update fails
-        console.warn('Failed to set displayName on signup:', e);
+        logger.warn('Failed to set displayName on signup:', e);
       }
     }
     return { success: true, user: result.user };
@@ -53,7 +53,7 @@ export const signOutUser = async (user = null) => {
       try {
         await ActivityLogger.logout();
       } catch (error) {
-        console.warn('Failed to log logout activity:', error);
+        logger.warn('Failed to log logout activity:', error);
       }
     }
     
@@ -72,7 +72,7 @@ export const resetPassword = async (email) => {
     try {
       await ActivityLogger.passwordChange();
     } catch (error) {
-      console.warn('Failed to log password change activity:', error);
+      logger.warn('Failed to log password change activity:', error);
     }
     
     return { success: true };
@@ -84,3 +84,4 @@ export const resetPassword = async (email) => {
 export const onAuthChange = (callback) => {
   return onAuthStateChanged(auth, callback);
 };
+

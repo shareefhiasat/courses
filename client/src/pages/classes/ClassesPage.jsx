@@ -3,6 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import logger from '@utils/logger';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getUsers } from '@services/business/userService';
@@ -77,7 +78,7 @@ const ClassesPage = () => {
       if (usersRes?.success) {
         setUsers(usersRes.data || []);
         // Debug: Log users and their roles
-        console.log('🔍 [ClassesPage] Loaded users:', usersRes.data?.map(u => ({
+        logger.log('🔍 [ClassesPage] Loaded users:', usersRes.data?.map(u => ({
           email: u.email,
           displayName: u.displayName || u.name,
           role: u.role,
@@ -87,7 +88,7 @@ const ClassesPage = () => {
       if (enrollmentsRes?.success) setEnrollments(enrollmentsRes.data || []);
       if (activitiesRes?.success) setActivities(activitiesRes.data || []);
     } catch (error) {
-      console.error('🔍 [ClassesPage] Error loading data:', error);
+      logger.error('🔍 [ClassesPage] Error loading data:', error);
       toast?.showError('Error loading data');
     } finally {
       setLoading(false);

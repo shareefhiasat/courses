@@ -160,7 +160,7 @@ const AttendancePageEnhanced = () => {
       setErr('');
       logger.debug('[Attendance] startSession clicked', { classId, uid: user?.uid });
       const { id } = await createSession({ classId, createdBy: user.uid });
-      console.log('[Attendance] createSession returned', { id });
+      logger.log('[Attendance] createSession returned', { id });
       if (!id) throw new Error('No session id returned from backend');
       setSession({ id });
       setSessionId(id);

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { logLearningTime } from '@services/business/studentProgressService';
 
@@ -48,7 +48,7 @@ export function useTimeTracking(pageName, enabled = true) {
       if (totalTime > 10000 && user?.uid) {
         const hours = totalTime / (1000 * 60 * 60); // Convert to hours
         logLearningTime(user.uid, hours).catch(err => {
-          console.warn('Failed to log learning time:', err);
+          logger.warn('Failed to log learning time:', err);
         });
       }
 
@@ -58,3 +58,4 @@ export function useTimeTracking(pageName, enabled = true) {
     };
   }, [user?.uid, pageName, enabled]);
 }
+

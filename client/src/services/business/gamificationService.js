@@ -1,4 +1,4 @@
-import { 
+﻿import { 
   collection, 
   doc, 
   getDocs, 
@@ -82,7 +82,7 @@ export const awardPoints = async (pointsData) => {
 
     return { success: true, data: results };
   } catch (error) {
-    console.error("Error awarding points:", error);
+    logger.error("Error awarding points:", error);
     return { success: false, error: error.message };
   }
 };
@@ -100,7 +100,7 @@ export const getStudentPoints = async (studentId) => {
     qs.forEach((d) => points.push({ id: d.id, ...d.data() }));
     return { success: true, data: points };
   } catch (error) {
-    console.error("Error getting student points:", error);
+    logger.error("Error getting student points:", error);
     return { success: false, error: error.message };
   }
 };
@@ -118,7 +118,7 @@ export const getClassPoints = async (classId) => {
     qs.forEach((d) => points.push({ id: d.id, ...d.data() }));
     return { success: true, data: points };
   } catch (error) {
-    console.error("Error getting class points:", error);
+    logger.error("Error getting class points:", error);
     return { success: false, error: error.message };
   }
 };
@@ -160,7 +160,7 @@ export const getClassLeaderboard = async (classId) => {
     
     return { success: true, data: leaderboard };
   } catch (error) {
-    console.error("Error getting class leaderboard:", error);
+    logger.error("Error getting class leaderboard:", error);
     return { success: false, error: error.message };
   }
 };
@@ -183,7 +183,7 @@ export const saveSkill = async (skillData) => {
     }
     return { success: true };
   } catch (error) {
-    console.error("Error saving skill:", error);
+    logger.error("Error saving skill:", error);
     return { success: false, error: error.message };
   }
 };
@@ -197,7 +197,7 @@ export const getClassSkills = async (classId) => {
     qs.forEach((d) => skills.push({ id: d.id, ...d.data() }));
     return { success: true, data: skills };
   } catch (error) {
-    console.error("Error getting class skills:", error);
+    logger.error("Error getting class skills:", error);
     return { success: false, error: error.message };
   }
 };
@@ -208,7 +208,8 @@ export const deleteSkill = async (skillId) => {
     await deleteDoc(doc(db, "skills", skillId));
     return { success: true };
   } catch (error) {
-    console.error("Error deleting skill:", error);
+    logger.error("Error deleting skill:", error);
     return { success: false, error: error.message };
   }
 };
+

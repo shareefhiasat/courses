@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -314,11 +314,11 @@ const QuizResultsPage = () => {
                 enrichedResult.programName = programData.name_en || programData.name_ar || programData.code || 'N/A';
               }
             } catch (err) {
-              console.warn('Failed to load program:', enrichedResult.subjectProgramId, err);
+              logger.warn('Failed to load program:', enrichedResult.subjectProgramId, err);
             }
           }
         } catch (err) {
-          console.warn('Failed to enrich result:', err);
+          logger.warn('Failed to enrich result:', err);
         }
         return enrichedResult;
       }));
@@ -359,11 +359,11 @@ const QuizResultsPage = () => {
       
       // Log for debugging
       if (filtered.length === 0 && results.length > 0) {
-        console.log('Results filtered out:', { total: results.length, filtered: filtered.length });
+        logger.log('Results filtered out:', { total: results.length, filtered: filtered.length });
       }
     } catch (error) {
-      console.error('Failed to load quiz results:', error);
-      console.error('Error details:', {
+      logger.error('Failed to load quiz results:', error);
+      logger.error('Error details:', {
         code: error.code,
         message: error.message,
         stack: error.stack
@@ -588,7 +588,7 @@ const QuizResultsPage = () => {
       setEditingResult(null);
       setOverrideScore('');
     } catch (error) {
-      console.error('Error overriding score:', error);
+      logger.error('Error overriding score:', error);
       toast.error('Failed to override score: ' + error.message);
     }
   };
@@ -618,7 +618,7 @@ const QuizResultsPage = () => {
 
       toast.success('Result approved successfully');
     } catch (error) {
-      console.error('Error approving result:', error);
+      logger.error('Error approving result:', error);
       toast.error('Failed to approve result: ' + error.message);
     }
   };
@@ -690,7 +690,7 @@ const QuizResultsPage = () => {
 
       toast.success('Notification sent successfully');
     } catch (error) {
-      console.error('Error sending notification:', error);
+      logger.error('Error sending notification:', error);
       toast.error('Failed to send notification: ' + error.message);
     }
   };
@@ -744,7 +744,7 @@ const QuizResultsPage = () => {
         setBulkActionModal({ open: false, action: null });
       }
     } catch (error) {
-      console.error('Error bulk approving:', error);
+      logger.error('Error bulk approving:', error);
       toast.error('Failed to approve results: ' + error.message);
     }
   };
@@ -1134,3 +1134,4 @@ const QuizResultsPage = () => {
 };
 
 export default QuizResultsPage;
+

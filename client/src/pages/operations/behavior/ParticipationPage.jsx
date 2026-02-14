@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -214,7 +214,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
   const loadParticipationsData = () => {
     // Only run if we have the required data
     if (classes.length === 0 || programs.length === 0 || subjects.length === 0) {
-      console.log('🔍 [ParticipationPage] Skipping loadParticipationsData - missing data:', {
+      logger.log('🔍 [ParticipationPage] Skipping loadParticipationsData - missing data:', {
         hasClasses: classes.length,
         hasPrograms: programs.length,
         hasSubjects: subjects.length
@@ -222,7 +222,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       return;
     }
     
-    console.log('🔍 [ParticipationPage] Loading participations with data:', {
+    logger.log('🔍 [ParticipationPage] Loading participations with data:', {
       hasClasses: classes.length,
       hasPrograms: programs.length,
       hasSubjects: subjects.length
@@ -1247,3 +1247,4 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
 };
 
 export default ParticipationPage;
+

@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc, setDoc, serverTimestamp, collection, query, where, orderBy, getDocs } from "firebase/firestore";
+﻿import { doc, getDoc, updateDoc, setDoc, serverTimestamp, collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { db } from '../other/config';
 import { 
   CONFIG_TYPES, 
@@ -61,7 +61,7 @@ export const getConfig = async (type, lang = 'en') => {
       };
     }
   } catch (error) {
-    console.error(`Error getting config for ${type}:`, error);
+    logger.error(`Error getting config for ${type}:`, error);
     return { success: false, error: error.message };
   }
 };
@@ -101,7 +101,7 @@ export const updateConfig = async (type, configData, userId = null) => {
     
     return { success: true };
   } catch (error) {
-    console.error(`Error updating config for ${type}:`, error);
+    logger.error(`Error updating config for ${type}:`, error);
     return { success: false, error: error.message };
   }
 };
@@ -143,7 +143,7 @@ export const setConfig = async (type, configData, userId = null) => {
     
     return { success: true };
   } catch (error) {
-    console.error(`Error setting config for ${type}:`, error);
+    logger.error(`Error setting config for ${type}:`, error);
     return { success: false, error: error.message };
   }
 };
@@ -166,7 +166,7 @@ export const getAllConfigs = async (lang = 'en') => {
     
     return { success: true, data: configs };
   } catch (error) {
-    console.error("Error getting all configs:", error);
+    logger.error("Error getting all configs:", error);
     return { success: false, error: error.message };
   }
 };
@@ -257,7 +257,7 @@ export const getScheduledReports = async (userId = null) => {
     });
     return { success: true, data: items };
   } catch (error) {
-    console.error("Error getting scheduled reports:", error);
+    logger.error("Error getting scheduled reports:", error);
     return { success: false, error: error.message };
   }
 };
@@ -276,7 +276,7 @@ export const addScheduledReport = async (reportData) => {
     });
     return { success: true, id: docRef.id };
   } catch (error) {
-    console.error("Error adding scheduled report:", error);
+    logger.error("Error adding scheduled report:", error);
     return { success: false, error: error.message };
   }
 };
@@ -295,7 +295,7 @@ export const updateScheduledReport = async (id, reportData) => {
     });
     return { success: true };
   } catch (error) {
-    console.error("Error updating scheduled report:", error);
+    logger.error("Error updating scheduled report:", error);
     return { success: false, error: error.message };
   }
 };
@@ -310,7 +310,8 @@ export const deleteScheduledReport = async (id) => {
     await deleteDoc(doc(db, "scheduledReports", id));
     return { success: true };
   } catch (error) {
-    console.error("Error deleting scheduled report:", error);
+    logger.error("Error deleting scheduled report:", error);
     return { success: false, error: error.message };
   }
 };
+

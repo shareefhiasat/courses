@@ -3,6 +3,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { signIn, signUp, resetPassword } from '@services/business/authService';
 import { useNavigate } from 'react-router-dom';
+import logger from '../utils/logger';
 import { getAllowlist } from '@services/business/configService';
 import { useLang } from '../contexts/LangContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -124,7 +125,7 @@ const AuthForm = () => {
     setMessage('');
 
     // Track form submission start
-    console.log('🔍 PostHog - Form submission started:', {
+    logger.log('🔍 PostHog - Form submission started:', {
       mode,
       email: email.substring(0, 5) + '...',
       timestamp: new Date().toISOString()
@@ -176,7 +177,7 @@ const AuthForm = () => {
       if (mode === 'reset') {
         const result = await resetPassword(email);
         if (result.success) {
-          console.log('🔍 PostHog - Password reset successful:', {
+          logger.log('🔍 PostHog - Password reset successful:', {
             email: email.substring(0, 5) + '...',
             timestamp: new Date().toISOString()
           });
@@ -188,7 +189,7 @@ const AuthForm = () => {
           
           setMessage(tr('reset_email_sent', 'Password reset email sent! Check your inbox.', 'تم إرسال بريد إعادة التعيين! تحقق من صندوقك.'));
         } else {
-          console.log('🔍 PostHog - Password reset failed:', {
+          logger.log('🔍 PostHog - Password reset failed:', {
             email: email.substring(0, 5) + '...',
             error: result.error,
             timestamp: new Date().toISOString()
@@ -241,7 +242,7 @@ const AuthForm = () => {
         
         const result = await signUp(email, password, displayName);
         if (result.success) {
-          console.log('🔍 PostHog - Sign up successful:', {
+          logger.log('🔍 PostHog - Sign up successful:', {
             email: email.substring(0, 5) + '...',
             displayName: displayName || 'N/A',
             timestamp: new Date().toISOString()
@@ -272,7 +273,7 @@ const AuthForm = () => {
                 userStudentNumber: studentNumber || null
               });
             } catch (logError) {
-              console.warn('Failed to log user creation activity:', logError);
+              logger.warn('Failed to log user creation activity:', logError);
             }
             
             // Send welcome email
@@ -286,14 +287,14 @@ const AuthForm = () => {
                 userId: result.user.uid
               });
             } catch (emailError) {
-              console.log('Welcome email not sent:', emailError);
+              logger.log('Welcome email not sent:', emailError);
               // Don't block signup if email fails
             }
           } catch {}
           setMessage(tr('signup_success', '✅ Account created successfully! Redirecting...', '✅ تم إنشاء الحساب بنجاح! سيتم التحويل...'));
           setTimeout(() => navigate('/'), 1500);
         } else {
-          console.log('🔍 PostHog - Sign up failed:', {
+          logger.log('🔍 PostHog - Sign up failed:', {
             email: email.substring(0, 5) + '...',
             error: result.error,
             timestamp: new Date().toISOString()
@@ -309,7 +310,7 @@ const AuthForm = () => {
         }
       } else {
         // Login mode
-        console.log('🔍 PostHog - Login attempt:', {
+        logger.log('🔍 PostHog - Login attempt:', {
           email: email.substring(0, 5) + '...',
           rememberMe,
           timestamp: new Date().toISOString()
@@ -317,7 +318,7 @@ const AuthForm = () => {
         
         const result = await signIn(email, password);
         if (result.success) {
-          console.log('🔍 PostHog - Login successful:', {
+          logger.log('🔍 PostHog - Login successful:', {
             email: email.substring(0, 5) + '...',
             userId: result.user.uid,
             timestamp: new Date().toISOString()
@@ -348,7 +349,7 @@ const AuthForm = () => {
           }
           setTimeout(() => navigate('/'), 1000);
         } else {
-          console.log('🔍 PostHog - Login failed:', {
+          logger.log('🔍 PostHog - Login failed:', {
             email: email.substring(0, 5) + '...',
             error: result.error,
             timestamp: new Date().toISOString()
@@ -364,8 +365,8 @@ const AuthForm = () => {
         }
       }
     } catch (err) {
-      console.error('Auth error:', err);
-      console.log('🔍 PostHog - Auth error:', {
+      logger.error('Auth error:', err);
+      logger.log('🔍 PostHog - Auth error:', {
         mode,
         email: email.substring(0, 5) + '...',
         error: err.message || err,
@@ -549,7 +550,7 @@ const AuthForm = () => {
             className="auth-button"
             disabled={loading}
             onClick={() => {
-              console.log('🔍 PostHog - Auth button clicked:', {
+              logger.log('🔍 PostHog - Auth button clicked:', {
                 mode,
                 email: email.substring(0, 5) + '...',
                 timestamp: new Date().toISOString()

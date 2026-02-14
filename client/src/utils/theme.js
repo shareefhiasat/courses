@@ -1,4 +1,4 @@
-import { normalizeHexColor, adjustColor, hexToRgbString, DEFAULT_ACCENT } from './color';
+﻿import { normalizeHexColor, adjustColor, hexToRgbString, DEFAULT_ACCENT } from './color';
 
 // Apply a given color as the global brand color by updating CSS variables on :root
 export const applyAccentColorGlobally = (color) => {
@@ -16,4 +16,5 @@ export const applyAccentColorGlobally = (color) => {
   // Notify any listeners that accent color has changed
   window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: { color: accent } }));
 };
+
 

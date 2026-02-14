@@ -17,8 +17,8 @@ import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { RECORD_TYPES } from "@utils/sharedTypes";
 import { USER_ROLES } from "@constants/userRoles";
+import logger from '../../utils/logger';
 import { PENALTY_TYPES } from "@constants/penaltyTypes";
-import logger from "@utils/logger";
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 
 const toYmd = (tsOrDate) => {
@@ -95,7 +95,7 @@ export const getPenalties = async (studentId = null, subjectId = null) => {
     // console.log('🔧 getPenalties - total penalties found:', items.length, 'for studentId:', studentId);
     return { success: true, data: items };
   } catch (error) {
-    console.error('🔧 Error in getPenalties:', error);
+    logger.error('🔧 Error in getPenalties:', error);
     return { success: false, error: error.message };
   }
 };

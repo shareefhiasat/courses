@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { Button, Modal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getDeleteMessage, getDeleteTitle, createDeleteModalState, resetDeleteModalState } from '@utils/deleteMessages';
@@ -55,7 +55,7 @@ const DeleteModal = ({
         await onConfirm();
         onClose();
       } catch (error) {
-        console.error('Delete operation failed:', error);
+        logger.error('Delete operation failed:', error);
         // Still close modal on error
         onClose();
       }
@@ -120,7 +120,7 @@ export const useDeleteModal = (t = (key) => key) => {
         await deleteModal.onConfirm();
         hideDeleteModal();
       } catch (error) {
-        console.error('Delete operation failed:', error);
+        logger.error('Delete operation failed:', error);
         // Still close modal on error
         hideDeleteModal();
       }
@@ -196,3 +196,4 @@ export const useDeleteModal = (t = (key) => key) => {
 };
 
 export default DeleteModal;
+

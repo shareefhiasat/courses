@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { useAuth } from '@contexts/AuthContext';
@@ -259,7 +259,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
       try {
         await triggerNotification('default', 'Test Notification', 'This is a test browser notification!');
       } catch (error) {
-        console.error('Failed to send test notification:', error);
+        logger.error('Failed to send test notification:', error);
       }
     }
   };
@@ -917,4 +917,5 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
 };
 
 export default NotificationDrawer;
+
 
