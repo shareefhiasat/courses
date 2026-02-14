@@ -1,21 +1,14 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  setDoc,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-} from "firebase/firestore";
-import { db } from '../other/config';
 import { notificationGateway } from "./notificationGateway";
 import { sendEmail } from '@services/business/emailService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+import { getEnrollment } from '@services/db/enrollmentsDbService';
+import { setEnrollment } from '@services/db/enrollmentsDbService';
+import { setStudentMarks as setStudentMarksDb } from '@services/db/enrollmentsDbService';
+import { getStudentMarks as getStudentMarksDb } from '@services/db/enrollmentsDbService';
+import { getAllClassSubjectMarks as getAllClassSubjectMarksDb } from '@services/db/enrollmentsDbService';
+import { getSubjectMarksDistribution as getSubjectMarksDistributionDb } from '@services/db/enrollmentsDbService';
+import { setSubjectMarksDistribution as setSubjectMarksDistributionDb } from '@services/db/enrollmentsDbService';
+import { USER_ROLES } from '@constants/userRoles';
 
 /**
  * GPA Grading Rules
@@ -288,15 +281,29 @@ export const setProgramGradingRules = async (programId, rules) => {
 };
 
 /**
- * Subject Marks Distribution
+ * Get all marks for a class and subject - Business Logic Wrapper
+ * @param {string} subjectId - Subject ID
+ * @param {string} classId - Class ID
+ * @returns {Promise<{success: boolean, data: Object, error?: string}>}
+ */
+export const getAllClassSubjectMarks = async (subjectId, classId) => {
+  try {
+    const result = await getAllClassSubjectMarksDb(subjectId, classId);
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Subject Marks Distribution - Business Logic Wrapper
  * Define how marks are distributed across different components
  */
 export const getSubjectMarksDistribution = async (subjectId) => {
   try {
-    const docRef = doc(db, "subjectMarksDistribution", subjectId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
+    const result = await getSubjectMarksDistributionDb(subjectId);
+    if (result.success) {
+      return result;
     }
     // Return default distribution
     return {
@@ -330,17 +337,11 @@ export const setSubjectMarksDistribution = async (subjectId, distribution) => {
       return { success: false, error: "Marks distribution must total 100%" };
     }
 
-    const docRef = doc(db, "subjectMarksDistribution", subjectId);
-    await setDoc(
-      docRef,
-      {
-        ...distribution,
-        total: 100,
-        updatedAt: Timestamp.now(),
-      },
-      { merge: true }
-    );
-    return { success: true };
+    const result = await setSubjectMarksDistributionDb(subjectId, {
+      ...distribution,
+      total: 100,
+    });
+    return result;
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -360,17 +361,42 @@ export const getStudentMarks = async (
   academicYear = null
 ) => {
   try {
+    // If we have studentId, subjectId, and classId, get marks from marks collection
+    if (studentId && subjectId && classId) {
+      const marksResult = await getStudentMarksDb(studentId, subjectId, classId);
+      if (marksResult.success) {
+        // Transform to array format for backward compatibility
+        return { 
+          success: true, 
+          data: [{
+            docId: marksResult.data.docId,
+            studentId: studentId,
+            subjectId: subjectId,
+            semester: marksResult.data.semester || null,
+            academicYear: marksResult.data.academicYear || null,
+            marks: marksResult.data.marks || {},
+            totalScore: marksResult.data.totalScore || 0,
+            grade: marksResult.data.grade || "",
+            points: marksResult.data.points || 0,
+            isRetake: marksResult.data.isRetake || false,
+            instructorId: marksResult.data.instructorId || null,
+            createdAt: marksResult.data.createdAt || null,
+            updatedAt: marksResult.data.updatedAt || null,
+          }]
+        };
+      }
+    }
+
     // If we have studentId and classId, get marks from enrollment document
     if (studentId && classId) {
       const enrollmentId = `${studentId}_${classId}`;
-      const enrollmentRef = doc(db, "enrollments", enrollmentId);
-      const enrollmentSnap = await getDoc(enrollmentRef);
+      const enrollmentResult = await getEnrollment(enrollmentId);
 
-      if (!enrollmentSnap.exists()) {
+      if (!enrollmentResult.success) {
         return { success: true, data: [] };
       }
 
-      const enrollmentData = enrollmentSnap.data();
+      const enrollmentData = enrollmentResult.data;
       const marksData = enrollmentData.marks || {};
 
       // Transform marks object to array format for backward compatibility
@@ -417,37 +443,7 @@ export const getStudentMarks = async (
       return { success: true, data: items };
     }
 
-    // Fallback: query old studentMarks collection for backward compatibility
-    let q = query(collection(db, "studentMarks"));
-    const conditions = [];
-
-    if (studentId) {
-      conditions.push(where("studentId", "==", studentId));
-    }
-    if (subjectId) {
-      conditions.push(where("subjectId", "==", subjectId));
-    }
-    if (semester) {
-      conditions.push(where("semester", "==", semester));
-    }
-    if (academicYear) {
-      conditions.push(where("academicYear", "==", academicYear));
-    }
-
-    if (conditions.length > 0) {
-      q = query(
-        collection(db, "studentMarks"),
-        ...conditions,
-        orderBy("updatedAt", "desc")
-      );
-    } else {
-      q = query(collection(db, "studentMarks"), orderBy("updatedAt", "desc"));
-    }
-
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return { success: false, error: "Insufficient parameters provided" };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -479,7 +475,7 @@ export const saveStudentMarks = async (marksData) => {
     }
 
     // Calculate total score based on distribution
-    const distResult = await getSubjectMarksDistribution(subjectId);
+    const distResult = await getSubjectMarksDistributionDb(subjectId);
     if (!distResult.success) {
       return { success: false, error: "Failed to get marks distribution" };
     }
@@ -505,23 +501,22 @@ export const saveStudentMarks = async (marksData) => {
 
     // Get or create enrollment
     const enrollmentId = `${studentId}_${classId}`;
-    const enrollmentRef = doc(db, "enrollments", enrollmentId);
-    const enrollmentSnap = await getDoc(enrollmentRef);
-
+    const enrollmentResult = await getEnrollment(enrollmentId);
+    
     let enrollmentData = {};
     let isUpdate = false;
 
-    if (enrollmentSnap.exists()) {
-      enrollmentData = enrollmentSnap.data();
+    if (enrollmentResult.success) {
+      enrollmentData = enrollmentResult.data;
       isUpdate = true;
     } else {
       // Create enrollment if it doesn't exist
       enrollmentData = {
         userId: studentId,
         classId: classId,
-        role: "student",
-        createdAt: Timestamp.now(),
+        role: USER_ROLES.STUDENT,
       };
+      await setEnrollment(enrollmentId, enrollmentData);
     }
 
     // Check if enrollment is retake
@@ -550,22 +545,39 @@ export const saveStudentMarks = async (marksData) => {
         points: gpaResult.points,
         isRetake,
         instructorId: instructorId || null,
-        updatedAt: Timestamp.now(),
         createdAt: isUpdate
-          ? enrollmentData.marks?.[subjectId]?.createdAt || Timestamp.now()
-          : Timestamp.now(),
+          ? enrollmentData.marks?.[subjectId]?.createdAt || null
+          : null,
       },
     };
 
     // Update enrollment document with marks
-    await updateDoc(enrollmentRef, {
+    await setEnrollment(enrollmentId, {
       ...enrollmentData,
       marks: {
         ...(enrollmentData.marks || {}),
         ...marksObject,
       },
-      updatedAt: Timestamp.now(),
     });
+
+    // Also save marks to separate marks collection for easier lookup
+    const marksRecordData = {
+      studentId,
+      subjectId,
+      classId,
+      semester: semester || null,
+      academicYear: academicYear || null,
+      marks: marksObject[subjectId].marks,
+      totalScore: marksObject[subjectId].totalScore,
+      grade: marksObject[subjectId].grade,
+      points: marksObject[subjectId].points,
+      isRetake,
+      instructorId: instructorId || null,
+      programId: enrollmentData.programId || null,
+      role: enrollmentData.role || USER_ROLES.STUDENT,
+    };
+
+    await setStudentMarksDb(studentId, subjectId, classId, marksRecordData);
 
     // Prepare marks record for notifications
     const marksRecord = {

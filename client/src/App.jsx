@@ -74,7 +74,7 @@ if (typeof window !== 'undefined') {
 
 // Lazy loaded heavy components
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
-const MarksEntryPage = lazy(() => import('./pages/grading/MarksEntryPage'));
+const EnrollmentsMarksPage = lazy(() => import('./pages/grading/EnrollmentsMarksPage'));
 import './App.css';
 import './styles/colors.css';
 import './styles/theme.css';
@@ -199,7 +199,7 @@ const AppContent = () => {
           {/* Programs & Subjects Management */}
           <Route path="/programs" element={<ProgramsManagementPage />} />
           <Route path="/subjects" element={<SubjectsManagementPage />} />
-          <Route path="/marks-entry" element={<MarksEntryPage />} />
+          <Route path="/marks-entry" element={<EnrollmentsMarksPage />} />
           <Route path="/scheduled-reports" element={<ScheduledReportsPage />} />
           {/* Class Story removed */}
         </Routes>

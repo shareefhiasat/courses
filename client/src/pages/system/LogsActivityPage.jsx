@@ -8,6 +8,48 @@ import { Button, Input, Select, UserSelect, DateRangeSlider, AdvancedDataGrid, M
 import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@services/business/activityService';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
+import { 
+  LogIn, 
+  LogOut, 
+  Clock, 
+  User, 
+  KeyRound, 
+  Mail, 
+  Shield, 
+  Eye, 
+  EyeOff, 
+  AlertTriangle, 
+  Play, 
+  CheckCircle, 
+  RotateCw, 
+  Save, 
+  Upload, 
+  Star, 
+  MessageSquare, 
+  Bookmark, 
+  Download, 
+  Send, 
+  Inbox, 
+  PlusCircle, 
+  Edit, 
+  Trash, 
+  LayoutDashboard, 
+  BarChart, 
+  Activity, 
+  Calculator, 
+  FileText, 
+  BookOpen, 
+  Pointer, 
+  X, 
+  UserPlus, 
+  UserMinus, 
+  UserCheck, 
+  UserX, 
+  Search,
+  Monitor,
+  Globe,
+  Zap
+} from 'lucide-react';
 
 const LogsActivityPage = () => {
   const { t } = useLang();
@@ -280,142 +322,142 @@ const LogsActivityPage = () => {
   const getActivityLogTypeConfig = (type, theme) => {
     const configs = {
       // Authentication & Security
-      login: { icon: getThemedIcon('ui', 'log_in', 16, theme), label: 'Login' },
-      logout: { icon: getThemedIcon('ui', 'log_out', 16, theme), label: 'Logout' },
-      session_timeout: { icon: getThemedIcon('ui', 'clock_x', 16, theme), label: 'Session Timeout' },
-      profile_update: { icon: getThemedIcon('ui', 'user', 16, theme), label: 'Profile Update' },
-      password_change: { icon: getThemedIcon('ui', 'key_round', 16, theme), label: 'Password Change' },
-      email_change: { icon: getThemedIcon('ui', 'mail', 16, theme), label: 'Email Change' },
-      role_change: { icon: getThemedIcon('ui', 'shield', 16, theme), label: 'Role Change' },
-      impersonation_start: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Impersonation Start' },
-      impersonation_end: { icon: getThemedIcon('ui', 'eye_off', 16, theme), label: 'Impersonation End' },
-      security_alert: { icon: getThemedIcon('ui', 'alert_triangle', 16, theme), label: 'Security Alert' },
-      api_access: { icon: getThemedIcon('ui', 'api', 16, theme), label: 'API Access' },
+      login: { icon: <LogIn size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Login' },
+      logout: { icon: <LogOut size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Logout' },
+      session_timeout: { icon: <Clock size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Session Timeout' },
+      profile_update: { icon: <User size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Profile Update' },
+      password_change: { icon: <KeyRound size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Password Change' },
+      email_change: { icon: <Mail size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Email Change' },
+      role_change: { icon: <Shield size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Role Change' },
+      impersonation_start: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Impersonation Start' },
+      impersonation_end: { icon: <EyeOff size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Impersonation End' },
+      security_alert: { icon: <AlertTriangle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Security Alert' },
+      api_access: { icon: <Activity size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'API Access' },
 
       // Quiz & Assessment Activities
-      quiz_started: { icon: getThemedIcon('ui', 'play', 16, theme), label: 'Quiz Started' },
-      quiz_submitted: { icon: getThemedIcon('ui', 'check_circle', 16, theme), label: 'Quiz Submitted' },
-      quiz_retake: { icon: getThemedIcon('ui', 'rotate_cw', 16, theme), label: 'Quiz Retake' },
-      quiz_saved: { icon: getThemedIcon('ui', 'save', 16, theme), label: 'Quiz Saved' },
-      quiz_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Quiz Viewed' },
+      quiz_started: { icon: <Play size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Started' },
+      quiz_submitted: { icon: <CheckCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Submitted' },
+      quiz_retake: { icon: <RotateCw size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Retake' },
+      quiz_saved: { icon: <Save size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Saved' },
+      quiz_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Viewed' },
 
       // Assignment Activities
-      assignment_started: { icon: getThemedIcon('ui', 'play', 16, theme), label: 'Assignment Started' },
-      assignment_submitted: { icon: getThemedIcon('ui', 'upload', 16, theme), label: 'Assignment Submitted' },
-      assignment_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Assignment Viewed' },
+      assignment_started: { icon: <Play size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Assignment Started' },
+      assignment_submitted: { icon: <Upload size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Assignment Submitted' },
+      assignment_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Assignment Viewed' },
 
       // Grading & Feedback
-      submission_graded: { icon: getThemedIcon('ui', 'star', 16, theme), label: 'Submission Graded' },
-      feedback_given: { icon: getThemedIcon('ui', 'message_square', 16, theme), label: 'Feedback Given' },
+      submission_graded: { icon: <Star size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Submission Graded' },
+      feedback_given: { icon: <MessageSquare size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Feedback Given' },
 
       // Resource Activities
-      resource_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Resource Viewed' },
-      resource_completed: { icon: getThemedIcon('ui', 'check_circle', 16, theme), label: 'Resource Completed' },
-      resource_bookmarked: { icon: getThemedIcon('ui', 'bookmark', 16, theme), label: 'Resource Bookmarked' },
-      resource_downloaded: { icon: getThemedIcon('ui', 'download', 16, theme), label: 'Resource Downloaded' },
+      resource_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Resource Viewed' },
+      resource_completed: { icon: <CheckCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Resource Completed' },
+      resource_bookmarked: { icon: <Bookmark size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Resource Bookmarked' },
+      resource_downloaded: { icon: <Download size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Resource Downloaded' },
 
       // Attendance
-      attendance_marked: { icon: getThemedIcon('attendance_status', 'present', 16, theme), label: 'Attendance Marked' },
+      attendance_marked: { icon: <CheckCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Attendance Marked' },
 
       // Communication & Announcements
-      message_sent: { icon: getThemedIcon('ui', 'send', 16, theme), label: 'Message Sent' },
-      message_received: { icon: getThemedIcon('ui', 'inbox', 16, theme), label: 'Message Received' },
-      announcement_read: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Announcement Read' },
-      announcement_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Announcement Created' },
-      announcement_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Announcement Updated' },
-      announcement_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Announcement Deleted' },
+      message_sent: { icon: <Send size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Message Sent' },
+      message_received: { icon: <Inbox size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Message Received' },
+      announcement_read: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Announcement Read' },
+      announcement_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Announcement Created' },
+      announcement_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Announcement Updated' },
+      announcement_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Announcement Deleted' },
 
       // Navigation & Views
-      dashboard_viewed: { icon: getThemedIcon('ui', 'layout_dashboard', 16, theme), label: 'Dashboard Viewed' },
-      analytics_viewed: { icon: getThemedIcon('ui', 'bar_chart', 16, theme), label: 'Analytics Viewed' },
-      activity_viewed: { icon: getThemedIcon('ui', 'activity', 16, theme), label: 'Activity Viewed' },
+      dashboard_viewed: { icon: <LayoutDashboard size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Dashboard Viewed' },
+      analytics_viewed: { icon: <BarChart size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Analytics Viewed' },
+      activity_viewed: { icon: <Activity size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Activity Viewed' },
 
       // Tools & Utilities
-      calculator_opened: { icon: getThemedIcon('ui', 'calculator', 16, theme), label: 'Calculator Opened' },
-      scratch_pad_opened: { icon: getThemedIcon('ui', 'file_text', 16, theme), label: 'Scratch Pad Opened' },
-      formula_sheet_opened: { icon: getThemedIcon('ui', 'book_open', 16, theme), label: 'Formula Sheet Opened' },
+      calculator_opened: { icon: <Calculator size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Calculator Opened' },
+      scratch_pad_opened: { icon: <FileText size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Scratch Pad Opened' },
+      formula_sheet_opened: { icon: <BookOpen size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Formula Sheet Opened' },
 
       // Notifications
-      notification_clicked: { icon: getThemedIcon('ui', 'cursor', 16, theme), label: 'Notification Clicked' },
-      notification_dismissed: { icon: getThemedIcon('ui', 'x', 16, theme), label: 'Notification Dismissed' },
+      notification_clicked: { icon: <Pointer size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Notification Clicked' },
+      notification_dismissed: { icon: <X size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Notification Dismissed' },
 
       // Class Activities
-      class_joined: { icon: getThemedIcon('ui', 'user_plus', 16, theme), label: 'Class Joined' },
-      class_left: { icon: getThemedIcon('ui', 'user_minus', 16, theme), label: 'Class Left' },
+      class_joined: { icon: <UserPlus size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Class Joined' },
+      class_left: { icon: <UserMinus size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Class Left' },
 
       // Admin & Management Activities
-      user_created: { icon: getThemedIcon('ui', 'user_plus', 16, theme), label: 'User Created' },
-      user_updated: { icon: getThemedIcon('ui', 'user_check', 16, theme), label: 'User Updated' },
-      user_deleted: { icon: getThemedIcon('ui', 'user_x', 16, theme), label: 'User Deleted' },
-      quiz_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Quiz Created' },
-      quiz_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Quiz Deleted' },
-      quiz_published: { icon: getThemedIcon('ui', 'send', 16, theme), label: 'Quiz Published' },
+      user_created: { icon: <UserPlus size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'User Created' },
+      user_updated: { icon: <UserCheck size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'User Updated' },
+      user_deleted: { icon: <UserX size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'User Deleted' },
+      quiz_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Created' },
+      quiz_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Deleted' },
+      quiz_published: { icon: <Send size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Quiz Published' },
 
       // Activity CRUD
-      activity_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Activity Created' },
-      activity_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Activity Updated' },
-      activity_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Activity Deleted' },
+      activity_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Activity Created' },
+      activity_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Activity Updated' },
+      activity_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Activity Deleted' },
 
       // Penalties CRUD
-      penalty_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Penalty Created' },
-      penalty_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Penalty Updated' },
-      penalty_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Penalty Deleted' },
-      penalty_viewed: { icon: getThemedIcon('penalty_type', 'eye', 16, theme), label: 'Penalty Viewed' },
-      penalty_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Penalty Searched' },
+      penalty_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Penalty Created' },
+      penalty_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Penalty Updated' },
+      penalty_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Penalty Deleted' },
+      penalty_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Penalty Viewed' },
+      penalty_searched: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Penalty Searched' },
 
       // Participation CRUD
-      participation_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Participation Created' },
-      participation_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Participation Updated' },
-      participation_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Participation Deleted' },
-      participation_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Participation Viewed' },
-      participation_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Participation Searched' },
+      participation_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Participation Created' },
+      participation_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Participation Updated' },
+      participation_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Participation Deleted' },
+      participation_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Participation Viewed' },
+      participation_searched: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Participation Searched' },
 
       // Behavior CRUD
-      behavior_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Behavior Created' },
-      behavior_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Behavior Updated' },
-      behavior_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Behavior Deleted' },
-      behavior_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Behavior Viewed' },
-      behavior_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Behavior Searched' },
+      behavior_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Behavior Created' },
+      behavior_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Behavior Updated' },
+      behavior_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Behavior Deleted' },
+      behavior_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Behavior Viewed' },
+      behavior_searched: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Behavior Searched' },
 
       // Class CRUD
-      class_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Class Created' },
-      class_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Class Updated' },
-      class_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Class Deleted' },
-      class_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Class Viewed' },
-      class_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Class Searched' },
+      class_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Class Created' },
+      class_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Class Updated' },
+      class_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Class Deleted' },
+      class_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Class Viewed' },
+      class_searched: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Class Searched' },
 
       // Subject CRUD
-      subject_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Subject Created' },
-      subject_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Subject Updated' },
-      subject_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Subject Deleted' },
-      subject_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Subject Viewed' },
-      subject_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Subject Searched' },
+      subject_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Subject Created' },
+      subject_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Subject Updated' },
+      subject_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Subject Deleted' },
+      subject_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Subject Viewed' },
+      subject_searched: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Subject Searched' },
 
       // Program CRUD
-      program_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Program Created' },
-      program_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Program Updated' },
-      program_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Program Deleted' },
-      program_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Program Viewed' },
-      program_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Program Searched' },
+      program_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Program Created' },
+      program_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Program Updated' },
+      program_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Program Deleted' },
+      program_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Program Viewed' },
+      program_searched: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Program Searched' },
 
       // Enrollment CRUD
-      enrollment_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Enrollment Created' },
-      enrollment_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Enrollment Updated' },
-      enrollment_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Enrollment Deleted' },
-      enrollment_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Enrollment Viewed' },
-      enrollment_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Enrollment Searched' },
+      enrollment_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Enrollment Created' },
+      enrollment_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Enrollment Updated' },
+      enrollment_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Enrollment Deleted' },
+      enrollment_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Enrollment Viewed' },
+      enrollment_searched: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Enrollment Searched' },
 
       // Mark Entry CRUD
-      mark_entry_created: { icon: getThemedIcon('ui', 'plus_circle', 16, theme), label: 'Mark Entry Created' },
-      mark_entry_updated: { icon: getThemedIcon('ui', 'edit', 16, theme), label: 'Mark Entry Updated' },
-      mark_entry_deleted: { icon: getThemedIcon('ui', 'trash', 16, theme), label: 'Mark Entry Deleted' },
-      mark_entry_viewed: { icon: getThemedIcon('ui', 'eye', 16, theme), label: 'Mark Entry Viewed' },
-      mark_entry_searched: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Mark Entry Searched' },
+      mark_entry_created: { icon: <PlusCircle size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Mark Entry Created' },
+      mark_entry_updated: { icon: <Edit size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Mark Entry Updated' },
+      mark_entry_deleted: { icon: <Trash size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Mark Entry Deleted' },
+      mark_entry_viewed: { icon: <Eye size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Mark Entry Viewed' },
+      mark_entry_searched: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Mark Entry Searched' },
 
       // Generic Actions
-      search_performed: { icon: getThemedIcon('ui', 'search', 16, theme), label: 'Search Performed' },
-      save_action: { icon: getThemedIcon('ui', 'save', 16, theme), label: 'Save Action' },
-      export_action: { icon: getThemedIcon('ui', 'download', 16, theme), label: 'Export Action' }
+      search_performed: { icon: <Search size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Search Performed' },
+      save_action: { icon: <Save size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Save Action' },
+      export_action: { icon: <Download size={16} color={theme === 'dark' ? '#fff' : '#374151'} />, label: 'Export Action' }
     };
     return configs[type] || configs.login;
   };
@@ -512,7 +554,7 @@ const LogsActivityPage = () => {
             variant="outline" 
             size="small" 
             title={t('refresh') || 'Refresh'}
-            icon={getThemedIcon('ui', 'refresh', 16, theme)}
+            icon={getThemedIcon('ui', 'refresh', 16)}
           >
             Refresh
           </Button>
@@ -564,7 +606,7 @@ const LogsActivityPage = () => {
             variant="danger" 
             size="small" 
             title="Delete All Logs"
-            icon={getThemedIcon('ui', 'trash', 16, theme)}
+            icon={<Trash size={16} color="#dc2626" />}
           >
             Delete All
           </Button>
@@ -576,7 +618,12 @@ const LogsActivityPage = () => {
         columns={[
           {
             field: 'type', 
-            headerName: t('type_col'), 
+            headerName: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Activity size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
+                {t('type_col') || 'Type'}
+              </span>
+            ), 
             width: 200,
             renderCell: (params) => {
               const type = params.value || 'login';
@@ -590,7 +637,12 @@ const LogsActivityPage = () => {
           },
           {
             field: 'timestamp', 
-            headerName: t('when'), 
+            headerName: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
+                {t('when') || 'When'}
+              </span>
+            ), 
             width: 180,
             valueGetter: (params) => params.value,
             renderCell: (params) => {
@@ -621,32 +673,63 @@ const LogsActivityPage = () => {
           },
           {
             field: 'userName', 
-            headerName: t('user_col'), 
+            headerName: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <User size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
+                {t('user_col') || 'User'}
+              </span>
+            ), 
             flex: 1, 
             minWidth: 150,
-            renderCell: (params) => params.value || '—'
+            renderCell: (params) => (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <User size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                {params.value || '—'}
+              </span>
+            )
           },
           {
             field: 'userEmail', 
-            headerName: t('email_col'), 
+            headerName: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Mail size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
+                {t('email_col') || 'Email'}
+              </span>
+            ), 
             flex: 1, 
             minWidth: 200,
-            renderCell: (params) => params.value || '—'
+            renderCell: (params) => (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Mail size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                {params.value || '—'}
+              </span>
+            )
           },
           {
             field: 'userAgent', 
-            headerName: t('user_agent_col'), 
+            headerName: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Monitor size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
+                {t('user_agent_col') || 'User Agent'}
+              </span>
+            ), 
             flex: 2, 
             minWidth: 300,
             renderCell: (params) => (
-              <div style={{ maxWidth: 520, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ maxWidth: 520, overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Monitor size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
                 {params.value || '—'}
               </div>
             )
           },
           {
             field: 'details',
-            headerName: t('description_col'),
+            headerName: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
+                {t('description_col') || 'Description'}
+              </span>
+            ),
             flex: 1,
             minWidth: 200,
             renderCell: (params) => {
@@ -655,16 +738,28 @@ const LogsActivityPage = () => {
               // Show relevant details based on activity type
               const type = params.row.type;
               let detailText = '';
+              let detailIcon = null;
+              
               if (type === 'login' && details.ip) {
                 detailText = `IP: ${details.ip}`;
+                detailIcon = <Globe size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />;
               } else if (type === 'logout' && details.sessionDuration) {
                 detailText = `Session: ${details.sessionDuration}`;
+                detailIcon = <Clock size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />;
               } else if (details.action) {
                 detailText = details.action;
+                detailIcon = <Zap size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />;
               } else if (details.message) {
                 detailText = details.message;
+                detailIcon = <MessageSquare size={14} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />;
               }
-              return detailText || JSON.stringify(details);
+              
+              return (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  {detailIcon}
+                  {detailText || JSON.stringify(details)}
+                </span>
+              );
             }
           }
         ]}

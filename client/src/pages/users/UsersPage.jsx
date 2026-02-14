@@ -333,6 +333,47 @@ const UsersPage = ({ isDashboardTab = false }) => {
     window.open(qrUrl, '_blank');
   }, []);
 
+  const handleSendQRCodeEmail = useCallback(async (user) => {
+    try {
+      // Show confirmation modal
+      setConfirmModal({
+        isOpen: true,
+        title: 'Send QR Code Email',
+        message: `Are you sure you want to send the QR code to this student?\n\nStudent: ${user.displayName || user.email}\nEmail: ${user.email}`,
+        confirmText: 'Send QR Code',
+        variant: 'primary',
+        onConfirm: async () => {
+          try {
+            const { sendQRCodeEmailToStudent } = await import('@services/business/qrCodeEmailService');
+            const result = await sendQRCodeEmailToStudent(user);
+            
+            if (result.success) {
+              toast?.showSuccess('QR code email sent successfully to ' + user.email);
+              
+              // Log activity
+              try {
+                const { logActivity } = await import('@services/other/activityLogger');
+                await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
+                  userId: user.docId || user.id,
+                  userEmail: user.email,
+                  action: 'qr_code_email_sent'
+                });
+              } catch (e) { }
+            } else {
+              toast?.showError('Failed to send QR code email: ' + result.error);
+            }
+          } catch (error) {
+            logger.error('Error sending QR code email:', error);
+            toast?.showError('Error: ' + error.message);
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Error preparing QR code email:', error);
+      toast?.showError('Error: ' + error.message);
+    }
+  }, [toast]);
+
   // Sync refs when editing
   useEffect(() => {
     if (emailRef.current) emailRef.current.value = formData.email || '';
@@ -667,16 +708,28 @@ const UsersPage = ({ isDashboardTab = false }) => {
               }
               
               return (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => canUseQR && openQRCodeInNewTab(params.row)}
-                  title={title}
-                  disabled={!canUseQR}
-                  style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
-                >
-                  {getThemedIcon('ui', 'qr_code', 16, theme)}
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => canUseQR && openQRCodeInNewTab(params.row)}
+                    title={title}
+                    disabled={!canUseQR}
+                    style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
+                  >
+                    {getThemedIcon('ui', 'qr_code', 16, theme)}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => canUseQR && handleSendQRCodeEmail(params.row)}
+                    title={canUseQR ? 'Send QR Code Email' : 'QR Code Email (Student only)'}
+                    disabled={!canUseQR}
+                    style={{ opacity: canUseQR ? 1 : 0.5, border: 'none' }}
+                  >
+                    {getThemedIcon('ui', 'mail', 16, theme)}
+                  </Button>
+                </>
               );
             }
             return null;
@@ -723,7 +776,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         </div>
       )
     }
-  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleResetPassword, handleToggleUserStatus, handleDeleteUser]);
+  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleToggleUserStatus, handleDeleteUser]);
 
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {

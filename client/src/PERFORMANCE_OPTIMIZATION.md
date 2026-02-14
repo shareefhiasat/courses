@@ -5,7 +5,7 @@
 ### ✅ Phase 1: Critical Performance Improvements
 
 1. **Lazy Loading Implementation**
-   - Added `React.lazy()` for heavy components: `DashboardPage`, `AdvancedAnalytics`, `MarksEntryPage`
+   - Added `React.lazy()` for heavy components: `DashboardPage`, `AdvancedAnalytics`, `EnrollmentsMarksPage`
    - Wrapped routes in `Suspense` with `FancyLoading` fallback (preserves QAF rotating logo)
    - Reduced initial bundle size by ~30-40%
 

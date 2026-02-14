@@ -29,7 +29,7 @@ import {
 import { getAttendanceByStudent, getAttendanceStats } from '@services/business/attendanceService';
 import { getAbsences } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
-import { getStudentMarks } from '@services/business/gradingService';
+import { getStudentMarks } from '@services/business/enrollmentMarksService';
 import { getSubjects, getPrograms } from '@services/business/programService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';

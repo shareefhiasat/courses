@@ -22,7 +22,7 @@ const ActivitiesPage = lazy(() => import('../academic/activities/ActivitiesPage'
 const ScheduledReportsPage = lazy(() => import('../feedback/reports/ScheduledReportsPage'));
 const ProgramsManagementPage = lazy(() => import('../academic/programs/ProgramsManagementPage'));
 const SubjectsManagementPage = lazy(() => import('../academic/subjects/SubjectsManagementPage'));
-const MarksEntryPage = lazy(() => import('../grading/MarksEntryPage'));
+const EnrollmentsMarksPage = lazy(() => import('../grading/EnrollmentsMarksPage'));
 const ClassSchedulePage = lazy(() => import('../academic/classes/ClassSchedulePage'));
 const PenaltiesPage = lazy(() => import('../penalty/PenaltiesPage'));
 const ParticipationPage = lazy(() => import('../participation/ParticipationPage'));
@@ -372,7 +372,7 @@ const DashboardPage = () => {
             <SubjectsManagementPage />
           )}
           {activeTab === 'marks' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <MarksEntryPage />
+            <EnrollmentsMarksPage />
           )}
           {activeTab === 'classschedule' && (isSuperAdmin || isAdmin || isInstructor) && (
             <ClassSchedulePage />

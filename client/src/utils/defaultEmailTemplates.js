@@ -1245,4 +1245,91 @@ export const defaultTemplates = [
     `,
     variables: ["recipientName", "className", "className_ar", "label", "label_ar", "points", "notes", "notes_ar", "link", "siteName", "currentDate"],
   },
+
+  {
+    id: "student_qr_code",
+    name: "Student QR Code Email - Bilingual",
+    type: "qr_code",
+    subject: "🎓 Your Student QR Code | رمز الطالب الخاص بك",
+    html: `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 30px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">🎓 Your Student QR Code | رمز الطالب الخاص بك</h1>
+  </div>
+  
+  <!-- Content -->
+  <div style="padding: 30px; background: #ffffff;">
+    <!-- Student Info -->
+    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center;">
+      <h2 style="color: #1f2937; margin: 0 0 10px 0; font-size: 20px;">{{studentName}}</h2>
+      <p style="color: #6b7280; font-size: 16px; margin: 0;">Student ID: {{studentId}}</p>
+      <p style="color: #6b7280; font-size: 14px; margin: 5px 0 0 0;">{{studentEmail}}</p>
+    </div>
+    
+    <!-- QR Code Section -->
+    <div style="text-align: center; margin: 25px 0;">
+      <div style="display: inline-block; padding: 20px; background: white; border: 2px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <img src="{{qrCodeImage}}" alt="Student QR Code" style="width: 200px; height: 200px; display: block;" />
+        <p style="color: #6b7280; font-size: 12px; margin: 10px 0 0 0;">Scan for quick attendance</p>
+      </div>
+    </div>
+    
+    <!-- Instructions English -->
+    <div style="background: #fffbeb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      <h3 style="color: #059669; margin: 0 0 15px 0; font-size: 18px;">📱 How to use your QR code:</h3>
+      <ol style="color: #374151; font-size: 15px; line-height: 1.8; padding-left: 20px; margin: 0;">
+        <li style="margin-bottom: 10px;">Show this QR code to your instructor for attendance tracking</li>
+        <li style="margin-bottom: 10px;">Keep it saved on your mobile device for easy access</li>
+        <li style="margin-bottom: 10px;">This QR code contains your student ID and profile information</li>
+        <li style="margin-bottom: 0;">If you lose this email, contact administration for a new QR code</li>
+      </ol>
+    </div>
+    
+    <!-- Instructions Arabic -->
+    <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; direction: rtl; margin-bottom: 25px;">
+      <h3 style="color: #047857; margin: 0 0 15px 0; font-size: 18px;">📱 كيفية استخدام رمز الاستجابة السريعة:</h3>
+      <ol style="color: #374151; font-size: 15px; line-height: 1.8; padding-right: 20px; margin: 0;">
+        <li style="margin-bottom: 10px;">أظهر هذا الرمز لمدربك لتتبع الحضور</li>
+        <li style="margin-bottom: 10px;">احفظه على جهازك المحمول للوصول السريع</li>
+        <li style="margin-bottom: 10px;">يحتوي هذا الرمز على معرف الطالب ومعلومات الملف الشخصي</li>
+        <li style="margin-bottom: 0;">إذا فقدت هذا البريد الإلكتروني، تواصل مع الإدارة للحصول على رمز جديد</li>
+      </ol>
+    </div>
+    
+    <!-- Important Note -->
+    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+      <p style="color: #92400e; margin: 0; font-size: 14px; text-align: center;">
+        <strong>⚠️ Important:</strong> Keep this QR code secure. Do not share it with others.
+      </p>
+      <p style="color: #92400e; margin: 10px 0 0 0; font-size: 14px; text-align: center; direction: rtl;">
+        <strong>⚠️ هام:</strong> احتفظ بهذا الرمز بشكل آمن. لا تشاركه مع الآخرين.
+      </p>
+    </div>
+    
+    <!-- Contact Info -->
+    <div style="text-align: center; margin-top: 30px;">
+      <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
+        If you have any questions, please contact:<br>
+        📧 support@cslh.qa | 📞 +974 XXXX XXXX
+      </p>
+      <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0; direction: rtl;">
+        إذا كان لديك أي أسئلة، يرجى التواصل مع:<br>
+        📧 support@cslh.qa | 📞 +974 XXXX XXXX
+      </p>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5; border-top: 1px solid #e5e7eb;">
+    <p style="margin: 0 0 5px 0;">This is an automated email from {{siteName}}.</p>
+    <p style="margin: 0 0 5px 0;">If you did not request this QR code, please contact support immediately.</p>
+    <p style="margin: 5px 0 0 0; direction: rtl;">هذا بريد إلكتروني تلقائي من {{siteName}}.</p>
+    <p style="margin: 5px 0 0 0; direction: rtl;">إذا لم تطلب هذا الرمز، يرجى التواصل مع الدعم الفوري.</p>
+    <p style="margin: 15px 0 0 0; font-weight: bold;">{{currentDate}} (Qatar Time UTC+3)</p>
+  </div>
+</div>
+    `,
+    variables: ["studentName", "studentId", "studentEmail", "qrCodeImage", "siteName", "currentDate"],
+  },
 ];

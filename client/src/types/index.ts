@@ -50,7 +50,13 @@ import { Timestamp } from 'firebase/firestore';
  * - ADMIN: Full system access, user management, system configuration
  * - HR: Human resources access, reports, employee management
  */
-export type UserRole = 'STUDENT' | 'INSTRUCTOR' | 'ADMIN' | 'HR';
+// Import from constants to maintain single source of truth
+import { USER_ROLES } from '../constants/userRoles';
+
+export type UserRole = keyof typeof USER_ROLES;
+
+// Re-export for JavaScript compatibility
+export { USER_ROLES as UserRole };
 
 export interface User {
   uid: string;                    // Firebase Auth UID

@@ -20,7 +20,7 @@ This directory contains all Firebase service files and utilities that are common
 - `programService.js` - Program management
 - `quizService.js` - Quiz operations
 - `submissionService.js` - Assignment submissions
-- `gradingService.js` - Grade management
+- `enrollmentMarksService.js` - Enrollment and marks management
 - `badgeService.js` - Badge system
 - `studentProgressService.js` - Student progress tracking
 - `userPreferenceService.js` - User preferences
@@ -59,3 +59,39 @@ import { logActivity } from '@firebaseServices/activityLogger.jsx';
 - **Consistent aliasing**: `@firebaseServices/` matches folder name exactly
 - **Easy discovery**: Developers know where to find Firebase-related code
 - **Maintainable structure**: Logical grouping of related functionality
+- **Proper separation of concerns**: Business services use DB services, never direct Firebase
+- **Type safety**: All services use shared types from `@types/index`
+- **Consolidated architecture**: Enrollment and marks operations unified
+- **Clean naming**: Service names clearly indicate their purpose and scope
+
+## 🏗️ Recent Architecture Improvements
+
+### Service Layer Refactoring
+- **Merged services**: `marksDbService.js` + `marksDistributionDbService.js` → `enrollmentsDbService.js`
+- **Renamed services**: `gradingService.js` → `enrollmentMarksService.js`
+- **Business logic separation**: All database operations go through DB services layer
+
+### Data Flow Pattern
+```
+UI Components → Business Services → DB Services → Firestore
+```
+
+### Key Principles
+- **No direct Firebase calls** in business services
+- **Shared types** for all role definitions and data structures
+- **Composite key structure** for marks lookup: `${studentId}_${classId}_${subjectId}`
+- **Error handling** with consistent ServiceResponse pattern
+
+### File Structure
+```
+📁 services/
+├── 📁 business/           # Business logic and validation
+│   ├── enrollmentMarksService.js  # Enrollment & marks management
+│   ├── attendanceService.js       # Attendance operations
+│   └── ...
+├── 📁 db/                # Direct Firestore operations only
+│   ├── enrollmentsDbService.js    # All enrollment/marks DB ops
+│   ├── userDbService.js           # User DB operations
+│   └── ...
+└── 📁 other/             # Utilities and configurations
+```
