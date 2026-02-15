@@ -3,6 +3,7 @@ import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useColorTheme } from '@contexts/ColorThemeContext';
 import { getAllClasses, updateClassSchedule } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getUserByEmail } from '@services/business/userService';
@@ -15,12 +16,16 @@ const ClassSchedulePage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
+  const { primaryColor } = useColorTheme(); // Simple! Gets color from localStorage
   const toast = useToast();
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [instructors, setInstructors] = useState({}); // Map email -> user data
   const [selectedClass, setSelectedClass] = useState(null);
+
+  // Debug log to show current primaryColor
+  console.log('[ClassSchedule] Primary color from ColorTheme:', primaryColor);
   const [programFilter, setProgramFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [classFilter, setClassFilter] = useState('all');
@@ -403,9 +408,12 @@ const ClassSchedulePage = () => {
                     padding: '0.75rem',
                     border: '1px solid var(--border)',
                     borderRadius: 8,
-                    background: isSelected ? 'rgba(102,126,234,0.12)' : (theme === 'dark' ? '#1f2937' : '#fff'),
+                    background: isSelected ? `${primaryColor}20` : (theme === 'dark' ? '#1f2937' : '#fff'),
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      background: isSelected ? `${primaryColor}30` : (theme === 'dark' ? '#374151' : '#f9fafb')
+                    }
                   }}
                 >
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{cls.name || cls.code}</div>
@@ -463,10 +471,13 @@ const ClassSchedulePage = () => {
                         padding: '0.75rem',
                         border: '1px solid var(--border)',
                         borderRadius: 8,
-                        background: schedule.frequency === opt.value ? '#800020' : (theme === 'dark' ? '#1f2937' : '#fff'),
-                        color: schedule.frequency === opt.value ? 'white' : (theme === 'dark' ? '#f9fafb' : 'inherit'),
+                        background: schedule.frequency === opt.value ? primaryColor : (theme === 'dark' ? '#1f2937' : '#fff'),
+                        color: schedule.frequency === opt.value ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
                         fontWeight: 600,
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        '&:hover': {
+                          background: schedule.frequency === opt.value ? primaryColor : (theme === 'dark' ? '#374151' : '#f9fafb')
+                        }
                       }}
                     >
                       {opt.label}
@@ -494,12 +505,15 @@ const ClassSchedulePage = () => {
                           padding: '0.75rem 0.5rem',
                           border: '1px solid var(--border)',
                           borderRadius: 8,
-                          background: isSelected ? '#10b981' : (theme === 'dark' ? '#1f2937' : '#fff'),
-                          color: isSelected ? 'white' : (theme === 'dark' ? '#f9fafb' : 'inherit'),
+                          background: isSelected ? primaryColor : (theme === 'dark' ? '#1f2937' : '#fff'),
+                          color: isSelected ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
                           fontWeight: 600,
                           fontSize: 12,
                           cursor: canSelect ? 'pointer' : 'not-allowed',
-                          opacity: canSelect ? 1 : 0.5
+                          opacity: canSelect ? 1 : 0.5,
+                          '&:hover': {
+                            background: isSelected ? primaryColor : (theme === 'dark' ? '#374151' : '#f9fafb')
+                          }
                         }}
                       >
                         {dayOption.label}
@@ -598,7 +612,7 @@ const ClassSchedulePage = () => {
                   padding: '1rem',
                   border: 'none',
                   borderRadius: 8,
-                  background: schedule.days.length === 0 ? '#9ca3af' : '#16a34a',
+                  background: schedule.days.length === 0 ? '#9ca3af' : primaryColor,
                   color: 'white',
                   fontWeight: 600,
                   fontSize: 16,
