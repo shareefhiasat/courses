@@ -48,54 +48,35 @@ import analytics from '@utils/analytics';
 
 class EmailService {
   constructor() {
-    // Force QStash to be enabled with hardcoded values from .env
-    this.qstashEnabled = false;
-    this.qstashUrl = 'https://qstash.upstash.io';
-    this.qstashToken = 'eyJVc2VySUQiOiI0MjcwMWQ0OC0xMDMyLTQ2ZTktOTBhMS1jNDZiYmFhZWI3YzMiLCJQYXNzd29yZCI6IjQ0N2U1MjQ3OGZmYTQ2NzE4ZTliNTc2MGY0YTAyMjQzIn0=';
-    this.currentSigningKey = 'sig_6dQXyNHTZgxKueAnGNzXBN3pD8Sw';
-    this.nextSigningKey = 'sig_6akXANeA5nSwCQimnNH4z3kLHuRW';
-    this.fallbackEnabled = import.meta.env.VITE_EMAIL_FALLBACK_ENABLED !== 'false';
-    this.maxBatchSize = parseInt(import.meta.env.VITE_QSTASH_MAX_BATCH_SIZE) || 100;
-    this.retryAttempts = parseInt(import.meta.env.VITE_QSTASH_RETRY_ATTEMPTS) || 3;
+    // QStash is server-side only - client should use Firebase functions
+    this.qstashEnabled = false; // Always use server-side email service
+    this.fallbackEnabled = true; // Use Firebase functions fallback
     
-    // SMTP credentials for QStash (from functions/.env)
-    this.smtpHost = 'smtp.gmail.com';
-    this.smtpPort = 587;
-    this.smtpUser = 'shareef.hiasat@gmail.com';
-    this.smtpPassword = 'lnrn mgqw pftt xnbn';
-    this.smtpSenderName = 'QAF Learning Hub (Test)';
-    this.smtpSecure = false;
+    // Email Configuration from environment variables
+    this.defaultFromEmail = import.meta.env.VITE_DEFAULT_FROM_EMAIL || '';
+    this.defaultReplyTo = import.meta.env.VITE_DEFAULT_REPLY_TO || '';
+    this.testEmail = import.meta.env.VITE_TEST_EMAIL || '';
+    
+    // Note: SMTP credentials are handled server-side in Firebase functions
+    // Client-side should NOT have access to SMTP passwords
     
     // Don't call initialize() here - it will be called lazily
   }
 
   initialize() {
-    console.log('🔍 DEBUG: Environment Variables Loaded:');
-    console.log('🔍 DEBUG: - VITE_QSTASH_ENABLED:', import.meta.env.VITE_QSTASH_ENABLED);
-    console.log('🔍 DEBUG: - VITE_QSTASH_URL:', import.meta.env.VITE_QSTASH_URL);
-    console.log('🔍 DEBUG: - VITE_QSTASH_TOKEN:', import.meta.env.VITE_QSTASH_TOKEN ? '[MASKED]' : 'undefined');
-    console.log('🔍 DEBUG: - VITE_QSTASH_CURRENT_SIGNING_KEY:', import.meta.env.VITE_QSTASH_CURRENT_SIGNING_KEY ? '[MASKED]' : 'undefined');
-    console.log('🔍 DEBUG: - VITE_QSTASH_NEXT_SIGNING_KEY:', import.meta.env.VITE_QSTASH_NEXT_SIGNING_KEY ? '[MASKED]' : 'undefined');
-    console.log('🔍 DEBUG: - VITE_DEFAULT_FROM_EMAIL:', import.meta.env.VITE_DEFAULT_FROM_EMAIL);
-    console.log('🔍 DEBUG: - VITE_DEFAULT_REPLY_TO:', import.meta.env.VITE_DEFAULT_REPLY_TO);
-    console.log('🔍 DEBUG: - VITE_TEST_EMAIL:', import.meta.env.VITE_TEST_EMAIL);
-    
-    console.log('🔍 DEBUG: QStash Configuration:');
-    console.log('🔍 DEBUG: - qstashEnabled:', this.qstashEnabled);
-    console.log('🔍 DEBUG: - qstashUrl:', this.qstashUrl);
-    console.log('🔍 DEBUG: - qstashToken:', !!this.qstashToken);
-    console.log('🔍 DEBUG: SMTP Configuration:');
-    console.log('🔍 DEBUG: - smtpHost:', this.smtpHost);
-    console.log('🔍 DEBUG: - smtpPort:', this.smtpPort);
-    console.log('🔍 DEBUG: - smtpUser:', this.smtpUser);
-    console.log('🔍 DEBUG: - smtpPassword:', !!this.smtpPassword);
-    console.log('🔍 DEBUG: - smtpSecure:', this.smtpSecure);
-    console.log('🔍 DEBUG: - smtpSenderName:', this.smtpSenderName);
-    
+    // Secure logging - no sensitive data exposed
     if (this.qstashEnabled && (!this.qstashUrl || !this.qstashToken)) {
       logger.warn('QStash enabled but missing configuration');
       this.qstashEnabled = false;
     }
+    
+    logger.info('EmailService initialized', {
+      qstashEnabled: this.qstashEnabled,
+      qstashUrl: this.qstashUrl,
+      hasToken: !!this.qstashToken,
+      fallbackEnabled: this.fallbackEnabled,
+      defaultFromEmail: this.defaultFromEmail ? '[CONFIGURED]' : '[NOT_SET]'
+    });
 
     if (this.qstashEnabled) {
       logger.info('QStash email service initialized');
@@ -316,7 +297,7 @@ class EmailService {
 
       // Add delay between batches to avoid rate limiting
       if (i < batches.length - 1) {
-        const delay = parseInt(import.meta.env.VITE_QSTASH_BATCH_DELAY) || 1000;
+        const delay = 1000; // Fixed delay for client-side batching
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

@@ -24,7 +24,9 @@
     "test:e2e:smoke": "playwright test --config=tests/e2e/playwright.config.js --grep @smoke",
     "test:e2e:report": "playwright show-report",
     "lint": "cd client && npm run lint",
-    "lint:fix": "cd client && npm run lint -- --fix"
+    "lint:fix": "cd client && npm run lint -- --fix",
+    "setup:env": "powershell -ExecutionPolicy Bypass -File setup-env.ps1",
+    "setup:env:unix": "bash setup-env.sh"
   },
   "keywords": [
     "react",
