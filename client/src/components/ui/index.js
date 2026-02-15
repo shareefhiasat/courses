@@ -8,6 +8,7 @@ export { ToastProvider, useToast } from './Toast';
 export { default as Spinner } from './Spinner';
 export { default as Modal, ConfirmModal } from './Modal';
 export { default as DeleteModal, useDeleteModal } from './DeleteModal';
+export { default as QREmailModal, useQREmailModal } from './QREmailModal/QREmailModal';
 export { default as Tabs } from './Tabs';
 export { default as JoyrideTour } from './JoyrideTour';
 export { default as StoryboardChip } from './StoryboardChip/StoryboardChip';
@@ -20,6 +21,7 @@ export { default as Avatar } from './Avatar';
 export { default as Tooltip } from './Tooltip';
 export { default as ProgressBar } from './ProgressBar';
 export { default as Accordion } from './Accordion';
+export { default as Calendar } from './Calendar';
 
 // History Components
 export { StudentHistory } from './history';

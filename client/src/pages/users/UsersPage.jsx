@@ -11,6 +11,7 @@ import { USER_ROLES } from '@constants/userRoles';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Loading, Card, CardBody, ConfirmModal } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
+import QREmailModal, { useQREmailModal } from '@ui/QREmailModal/QREmailModal';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { getUsers, addUser, updateUser, deleteUser as deleteUserFromService, isUserDisabledAtUserLevel, isStudent, isAdmin as isAdminUser } from '@services/business/userService';
 import { getPrograms } from '@services/business/programService';
@@ -82,6 +83,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   });
   
   const { deleteModal, deleteUser, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+  const { isOpen: isQREmailModalOpen, student: qrEmailStudent, showQREmailModal, hideQREmailModal } = useQREmailModal(t);
 
   // Load data function - must be defined before useEffect
   const loadData = useCallback(async () => {
@@ -333,46 +335,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
     window.open(qrUrl, '_blank');
   }, []);
 
-  const handleSendQRCodeEmail = useCallback(async (user) => {
-    try {
-      // Show confirmation modal
-      setConfirmModal({
-        isOpen: true,
-        title: 'Send QR Code Email',
-        message: `Are you sure you want to send the QR code to this student?\n\nStudent: ${user.displayName || user.email}\nEmail: ${user.email}`,
-        confirmText: 'Send QR Code',
-        variant: 'primary',
-        onConfirm: async () => {
-          try {
-            const { sendQRCodeEmailToStudent } = await import('@services/business/qrCodeEmailService');
-            const result = await sendQRCodeEmailToStudent(user);
-            
-            if (result.success) {
-              toast?.showSuccess('QR code email sent successfully to ' + user.email);
-              
-              // Log activity
-              try {
-                const { logActivity } = await import('@services/other/activityLogger');
-                await logActivity(ACTIVITY_LOG_TYPES.USER_UPDATED, {
-                  userId: user.docId || user.id,
-                  userEmail: user.email,
-                  action: 'qr_code_email_sent'
-                });
-              } catch (e) { }
-            } else {
-              toast?.showError('Failed to send QR code email: ' + result.error);
-            }
-          } catch (error) {
-            logger.error('Error sending QR code email:', error);
-            toast?.showError('Error: ' + error.message);
-          }
-        }
-      });
-    } catch (error) {
-      logger.error('Error preparing QR code email:', error);
-      toast?.showError('Error: ' + error.message);
-    }
-  }, [toast]);
+  const handleSendQRCodeEmail = useCallback((user) => {
+    showQREmailModal(user);
+  }, [showQREmailModal]);
 
   // Sync refs when editing
   useEffect(() => {
@@ -1272,6 +1237,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
         relatedRecords={deleteModal.relatedRecords}
         loading={saving}
         theme={theme}
+        t={t}
+      />
+      
+      {/* QR Email Modal */}
+      <QREmailModal
+        isOpen={isQREmailModalOpen}
+        onClose={hideQREmailModal}
+        student={qrEmailStudent}
         t={t}
       />
     </div>

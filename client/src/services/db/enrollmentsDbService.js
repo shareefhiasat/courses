@@ -42,7 +42,7 @@ import logger from '@utils/logger';
 export const getStudentMarks = async (studentId, subjectId, classId) => {
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
-    const docSnap = await getDoc(doc(db, 'marks', compositeKey));
+    const docSnap = await getDoc(doc(db, 'studentMarks', compositeKey));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -62,7 +62,7 @@ export const getStudentMarks = async (studentId, subjectId, classId) => {
 export const getAllClassSubjectMarks = async (subjectId, classId) => {
   try {
     const q = query(
-      collection(db, 'marks'), 
+      collection(db, 'studentMarks'), 
       where('subjectId', '==', subjectId),
       where('classId', '==', classId)
     );
@@ -95,7 +95,7 @@ export const setStudentMarks = async (studentId, subjectId, classId, marksData) 
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
     await setDoc(
-      doc(db, 'marks', compositeKey),
+      doc(db, 'studentMarks', compositeKey),
       {
         ...marksData,
         studentId,
@@ -124,7 +124,7 @@ export const setStudentMarks = async (studentId, subjectId, classId, marksData) 
 export const updateStudentMarks = async (studentId, subjectId, classId, updateData) => {
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
-    await updateDoc(doc(db, 'marks', compositeKey), {
+    await updateDoc(doc(db, 'studentMarks', compositeKey), {
       ...updateData,
       updatedAt: serverTimestamp()
     });
@@ -145,7 +145,7 @@ export const updateStudentMarks = async (studentId, subjectId, classId, updateDa
 export const deleteStudentMarks = async (studentId, subjectId, classId) => {
   try {
     const compositeKey = `${studentId}_${classId}_${subjectId}`;
-    await deleteDoc(doc(db, 'marks', compositeKey));
+    await deleteDoc(doc(db, 'studentMarks', compositeKey));
     return { success: true };
   } catch (error) {
     logger.error('[MarksDbService] Error deleting student marks:', error);
@@ -162,7 +162,7 @@ export const deleteStudentMarks = async (studentId, subjectId, classId) => {
  */
 export const getSubjectMarksDistribution = async (subjectId) => {
   try {
-    const docSnap = await getDoc(doc(db, 'marksDistribution', subjectId));
+    const docSnap = await getDoc(doc(db, 'subjectMarksDistribution', subjectId));
     if (docSnap.exists()) {
       return { success: true, data: { docId: docSnap.id, ...docSnap.data() } };
     }
@@ -182,7 +182,7 @@ export const getSubjectMarksDistribution = async (subjectId) => {
 export const setSubjectMarksDistribution = async (subjectId, distributionData) => {
   try {
     await setDoc(
-      doc(db, 'marksDistribution', subjectId),
+      doc(db, 'subjectMarksDistribution', subjectId),
       {
         ...distributionData,
         subjectId,
@@ -206,7 +206,7 @@ export const setSubjectMarksDistribution = async (subjectId, distributionData) =
  */
 export const updateSubjectMarksDistribution = async (subjectId, updateData) => {
   try {
-    await updateDoc(doc(db, 'marksDistribution', subjectId), {
+    await updateDoc(doc(db, 'subjectMarksDistribution', subjectId), {
       ...updateData,
       updatedAt: serverTimestamp()
     });
@@ -224,7 +224,7 @@ export const updateSubjectMarksDistribution = async (subjectId, updateData) => {
  */
 export const deleteSubjectMarksDistribution = async (subjectId) => {
   try {
-    await deleteDoc(doc(db, 'marksDistribution', subjectId));
+    await deleteDoc(doc(db, 'subjectMarksDistribution', subjectId));
     return { success: true };
   } catch (error) {
     logger.error('[MarksDbService] Error deleting subject marks distribution:', error);
@@ -238,7 +238,7 @@ export const deleteSubjectMarksDistribution = async (subjectId) => {
  */
 export const getAllMarksDistributions = async () => {
   try {
-    const querySnapshot = await getDocs(collection(db, 'marksDistribution'));
+    const querySnapshot = await getDocs(collection(db, 'subjectMarksDistribution'));
     const distributions = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     return { success: true, data: distributions };
   } catch (error) {

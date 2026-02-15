@@ -10,7 +10,7 @@ import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import { RibbonTabs } from '@ui';
 import './DashboardPage.css';
 
-const CategoriesPage = lazy(() => import('../system/CategoriesPage'));
+const CategoriesPage = lazy(() => import('../CategoriesPage'));
 const AnnouncementsPage = lazy(() => import('../academic/announcements/AnnouncementsPage'));
 const ResourcesPage = lazy(() => import('../academic/resources/ResourcesPage'));
 const ClassesPage = lazy(() => import('../academic/classes/ClassesPage'));
@@ -22,10 +22,10 @@ const ActivitiesPage = lazy(() => import('../academic/activities/ActivitiesPage'
 const ScheduledReportsPage = lazy(() => import('../feedback/reports/ScheduledReportsPage'));
 const ProgramsManagementPage = lazy(() => import('../academic/programs/ProgramsManagementPage'));
 const SubjectsManagementPage = lazy(() => import('../academic/subjects/SubjectsManagementPage'));
-const EnrollmentsMarksPage = lazy(() => import('../grading/EnrollmentsMarksPage'));
+const EnrollmentsMarksPage = lazy(() => import('../academic/enrollments/grading/EnrollmentsMarksPage'));
 const ClassSchedulePage = lazy(() => import('../academic/classes/ClassSchedulePage'));
-const PenaltiesPage = lazy(() => import('../penalty/PenaltiesPage'));
-const ParticipationPage = lazy(() => import('../participation/ParticipationPage'));
+const PenaltiesPage = lazy(() => import('../operations/penalty/PenaltiesPage'));
+const ParticipationPage = lazy(() => import('../operations/participation/ParticipationPage'));
 const BehaviorPage = lazy(() => import('../operations/behavior/BehaviorPage'));
 const AnalyticsDashboardPage = lazy(() => import('../feedback/analytics/AnalyticsDashboardPage'));
 const AllowlistPage = lazy(() => import('../system/AllowlistPage'));
@@ -129,6 +129,37 @@ const DashboardPage = () => {
       });
     }
   }, [navigate, location, t]);
+
+  // Upload default email templates to Firestore (smart upload - only missing templates)
+  const uploadDefaultEmailTemplates = useCallback(async () => {
+    try {
+      // Import the templates service
+      const templatesServiceModule = await import('@services/business/templatesService');
+      const { uploadDefaultTemplates: uploadTemplatesService } = templatesServiceModule;
+      
+      // Call the service method
+      const result = await uploadTemplatesService();
+      
+      // Show user-friendly message
+      if (result.message) {
+        alert(result.message);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Upload function error:', error);
+      alert('Error uploading templates: ' + error.message);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
+  // Make the function available globally for debugging
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.uploadDefaultEmailTemplates = uploadDefaultEmailTemplates;
+      console.log('🔧 Upload function available: window.uploadDefaultEmailTemplates()');
+    }
+  }, [uploadDefaultEmailTemplates]);
 
   const latestHandleTabChange = useRef(handleTabChange);
   useEffect(() => {

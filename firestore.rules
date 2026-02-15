@@ -470,5 +470,22 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
     }
+
+    // Email Templates: Admin can read/write, others can read
+    match /emailTemplates/{templateId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Emails: Users can read their own emails, admins can read all
+    match /emails/{emailId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        request.auth.uid == resource.data.userId ||
+        request.auth.token.email == resource.data.recipientEmail
+      );
+      allow create: if isSignedIn(); // Allow any signed-in user to create email records for tracking
+      allow update: if isAdmin();
+    }
   }
 }

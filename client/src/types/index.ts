@@ -50,10 +50,13 @@ import { Timestamp } from 'firebase/firestore';
  * - ADMIN: Full system access, user management, system configuration
  * - HR: Human resources access, reports, employee management
  */
-// Import from constants to maintain single source of truth
 import { USER_ROLES } from '../constants/userRoles';
 
-export type UserRole = keyof typeof USER_ROLES;
+/**
+ * UserRole type definition
+ * Using lowercase strings to match the JavaScript constants
+ */
+export type UserRole = 'admin' | 'super_admin' | 'instructor' | 'hr' | 'student';
 
 // Re-export for JavaScript compatibility
 export { USER_ROLES as UserRole };

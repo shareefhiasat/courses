@@ -129,6 +129,7 @@ export const NOTIFICATION_TRIGGERS = {
   ENROLLMENT_CANCELLED: 'enrollment_cancelled',
   WELCOME_SIGNUP: 'welcome_signup',
   PASSWORD_RESET: 'password_reset',
+  QR_CODE_SENT: 'qr_code_sent',
   
   // Communication
   CHAT_MESSAGE: 'chat_message',

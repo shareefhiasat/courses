@@ -320,3 +320,7 @@ async function generatePDF(html) {
 const sendEmailFunctions = require('./sendEmailV2');
 exports.sendEmail = sendEmailFunctions.sendEmail;
 exports.testEmail = sendEmailFunctions.testEmail;
+
+// Export QR code email function
+const qrCodeEmailFunctions = require('./sendQRCodeEmail');
+exports.sendQRCodeEmail = qrCodeEmailFunctions.sendQRCodeEmail;

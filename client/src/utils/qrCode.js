@@ -341,6 +341,106 @@ export const getQRCodeStats = async (referenceId) => {
   };
 };
 
+/**
+ * Generate QR URL for student
+ * Uses your existing route: /qrcode/{studentNumber}
+ */
+export const generateQRUrl = (studentId, studentNumber) => {
+  // Use studentNumber directly since your route expects that
+  const refId = studentNumber || studentId?.slice(-4) || '1';
+  return `${window.location.origin}/qrcode/${refId}`;
+};
+
+/**
+ * Get QR info without sending email
+ */
+export const getQRInfo = (studentId, studentNumber) => {
+  const refId = studentNumber || studentId?.slice(-4) || '1';
+  const qrUrl = generateQRUrl(studentId, studentNumber);
+  
+  return {
+    referenceId: refId,
+    qrUrl,
+    pageUrl: `${window.location.origin}/qrcode/${refId}`,
+    instructions: [
+      'Click the link to view your QR code instantly',
+      'No login required',
+      'Works on any device',
+      'Can be printed for offline use'
+    ]
+  };
+};
+
+/**
+ * Send QR URL via email service
+ * Uses notification gateway instead of direct Firebase function
+ */
+export const sendQRUrlEmail = async (studentEmail, studentName, studentId, studentNumber, studentRole = 'student') => {
+  try {
+    console.log('🎯 DEBUG: Sending QR URL via notification gateway');
+    console.log('📧 DEBUG: Email:', studentEmail);
+    console.log('👤 DEBUG: Student:', studentName);
+    console.log('🆔 DEBUG: Student ID:', studentId);
+    console.log('🔢 DEBUG: Student Number:', studentNumber);
+    
+    const { qrUrl, referenceId } = getQRInfo(studentId, studentNumber);
+    
+    console.log('🔗 DEBUG: Generated QR URL:', qrUrl);
+    console.log('📋 DEBUG: Reference ID:', referenceId);
+    
+    // Use notification gateway instead of direct Firebase function
+    console.log('🔍 DEBUG: Using notification gateway...');
+    const { notificationGateway } = await import('../services/business/notificationGateway');
+    const { NOTIFICATION_TRIGGERS } = await import('../constants/notificationTypes');
+    const { EMAIL_TEMPLATE_TYPES } = await import('../constants/templateTypes');
+    
+    const result = await notificationGateway.send(NOTIFICATION_TRIGGERS.QR_CODE_SENT, {
+      userId: studentId,
+      role: studentRole, // Use the provided role
+      email: studentEmail,
+      templateId: EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT, // Use constant instead of hardcoded string
+      variables: {
+        studentName: studentName || 'Student',
+        studentId: studentId,
+        studentEmail: studentEmail, // Add missing studentEmail
+        qrCodeImage: qrUrl, // Template expects qrCodeImage, not qrCodeDataURL
+        qrCodeDataURL: qrUrl, // Keep for backward compatibility
+        qrCodeUrl: qrUrl, // Also send as qrCodeUrl for clarity
+        siteName: 'QAF Learning Hub',
+        currentDate: new Date().toLocaleDateString(), // Add missing currentDate
+        referenceId: referenceId,
+        siteUrl: window.location.origin,
+        instructions: `
+          1. Click the link below to view your QR code instantly
+          2. No login required - works immediately
+          3. Bookmark for easy access
+          4. Show QR code to instructor for attendance
+          5. Print if needed for offline use
+        `
+      },
+      type: 'success'
+    });
+    
+    console.log('📊 DEBUG: Notification gateway result:', result);
+    console.log('✅ DEBUG: QR URL email sent successfully via notification gateway!');
+    console.log('🔍 DEBUG: Template used:', EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT);
+    console.log('🔍 DEBUG: Variables sent:', {
+      studentName: studentName || 'Student',
+      studentId: studentId,
+      studentEmail: studentEmail,
+      qrCodeImage: qrUrl,
+      siteName: 'QAF Learning Hub',
+      currentDate: new Date().toLocaleDateString()
+    });
+    
+    return { success: result.success, qrUrl, result };
+    
+  } catch (error) {
+    console.error('❌ DEBUG: Failed to send QR URL email:', error);
+    throw error;
+  }
+};
+
 export default {
   generateReferenceId,
   validateReferenceId,
@@ -352,5 +452,8 @@ export default {
   QR_SCANNER_CONFIG,
   checkCameraAvailability,
   requestCameraPermission,
-  getQRCodeStats
+  getQRCodeStats,
+  generateQRUrl,
+  getQRInfo,
+  sendQRUrlEmail
 };

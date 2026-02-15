@@ -1,8 +1,9 @@
-﻿import { db } from '../other/config';
+import { db } from '../other/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { addNotification } from './notificationService';
 import { sendEmail } from './emailService';
 import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
+import { EMAIL_TEMPLATE_TYPES } from '@constants/templateTypes';
 import { DICT } from '@contexts/LangContext';
 import { logNotificationActivity } from './notificationService';
 
@@ -71,27 +72,33 @@ export const notificationGateway = {
       // 3. Handle Email Notification (Bilingual Support)
       // Check if trigger has a mapped template or use provided one
       const templateId = details.templateId || this.getMappedTemplate(trigger);
+      
+      console.log('🔍 DEBUG: Notification gateway - trigger:', trigger);
+      console.log('🔍 DEBUG: Notification gateway - provided templateId:', details.templateId);
+      console.log('🔍 DEBUG: Notification gateway - getMappedTemplate() result:', this.getMappedTemplate(trigger));
+      console.log('🔍 DEBUG: Notification gateway - final templateId:', templateId);
+      console.log('🔍 DEBUG: Notification gateway - email settings check:', settings.email);
+      console.log('🔍 DEBUG: Notification gateway - recipient email:', details.email);
+      console.log('🔍 DEBUG: Notification gateway - will send email:', !!(settings.email && details.email && templateId));
 
       if (settings.email && details.email && templateId) {
         // Get bilingual content for email templates
-        const titleEn = this.getLocalizedText('en', `notify.${trigger}.title`, details.variables) || details.title;
-        const messageEn = this.getLocalizedText('en', `notify.${trigger}.message`, details.variables) || details.message;
-        const titleAr = this.getLocalizedText('ar', `notify.${trigger}.title`, details.variables) || details.title;
-        const messageAr = this.getLocalizedText('ar', `notify.${trigger}.message`, details.variables) || details.message;
+        const titleEn = this.getLocalizedText('en', `notify.${trigger}.title`, details.variables) || details.title || '🎓 Your Student QR Code';
+        const messageEn = this.getLocalizedText('en', `notify.${trigger}.message`, details.variables) || details.message || 'Your QR code is ready! Click the link to access it instantly.';
+        const titleAr = this.getLocalizedText('ar', `notify.${trigger}.title`, details.variables) || details.title || '🎓 رمز الطالب الخاص بك';
+        const messageAr = this.getLocalizedText('ar', `notify.${trigger}.message`, details.variables) || details.message || 'رمز الاستجابة السريعة جاهز! انقر على الرابط للوصول إليه فوراً.';
 
         const emailResult = await sendEmail({
           to: details.email,
           templateId: templateId,
+          userId: userId, // Pass userId for Firestore rules
           variables: {
             ...details.variables,
-            // Bilingual content variables (camelCase)
+            // Bilingual content variables (camelCase) - for reference only
             titleEn: titleEn,
             titleAr: titleAr,
             messageEn: messageEn,
             messageAr: messageAr,
-            // Fallback variables (for backward compatibility)
-            title: titleEn,
-            message: messageEn,
             // System variables
             siteName: 'QAF Learning Hub',
             siteUrl: window.location.origin,
@@ -168,20 +175,28 @@ export const notificationGateway = {
    * Map triggers to default email templates if not explicitly provided
    */
   getMappedTemplate(trigger) {
+    console.log('🔍 DEBUG: getMappedTemplate called with trigger:', trigger);
+    
     const mapping = {
-      [NOTIFICATION_TRIGGERS.ACTIVITY_NEW]: 'activityNew',
-      [NOTIFICATION_TRIGGERS.ACTIVITY_GRADED]: 'activityGraded',
-      [NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW]: 'announcementNew',
-      [NOTIFICATION_TRIGGERS.RESOURCE_NEW]: 'resourceNew',
-      [NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE]: 'quizAvailable',
-      [NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED]: 'attendanceNotification',
-      [NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT]: 'attendanceNotification',
-      [NOTIFICATION_TRIGGERS.PENALTY_ISSUED]: 'penaltyNotification',
-      [NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED]: 'behaviorNotification',
-      [NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED]: 'participationNotification',
-      [NOTIFICATION_TRIGGERS.PASSWORD_RESET]: 'passwordReset',
-      [NOTIFICATION_TRIGGERS.CHAT_MESSAGE]: 'chatMessage'
+      [NOTIFICATION_TRIGGERS.ACTIVITY_NEW]: 'activity_default',
+      [NOTIFICATION_TRIGGERS.ACTIVITY_GRADED]: 'activity_graded_default',
+      [NOTIFICATION_TRIGGERS.ANNOUNCEMENT_NEW]: 'announcement_default',
+      [NOTIFICATION_TRIGGERS.RESOURCE_NEW]: 'resource_default',
+      [NOTIFICATION_TRIGGERS.QUIZ_AVAILABLE]: 'quiz_default', // Simplified naming
+      [NOTIFICATION_TRIGGERS.ATTENDANCE_RECORDED]: 'attendance_default', // Simplified naming
+      [NOTIFICATION_TRIGGERS.ATTENDANCE_ABSENT]: 'attendance_default',
+      [NOTIFICATION_TRIGGERS.PENALTY_ISSUED]: 'penalty_default', // Simplified naming
+      [NOTIFICATION_TRIGGERS.BEHAVIOR_RECORDED]: 'behavior_default', // Simplified naming
+      [NOTIFICATION_TRIGGERS.PARTICIPATION_RECORDED]: 'participation_default', // Simplified naming
+      [NOTIFICATION_TRIGGERS.ENROLLMENT_CONFIRMED]: EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT, // Use constant
+      [NOTIFICATION_TRIGGERS.QR_CODE_SENT]: EMAIL_TEMPLATE_TYPES.QR_CODE_STUDENT, // Use constant
+      [NOTIFICATION_TRIGGERS.PASSWORD_RESET]: EMAIL_TEMPLATE_TYPES.PASSWORD_DEFAULT, // Use constant
+      [NOTIFICATION_TRIGGERS.CHAT_MESSAGE]: 'chat_digest_default'
     };
+    
+    console.log('🔍 DEBUG: Full template mapping:', mapping);
+    console.log('🔍 DEBUG: Mapping result for trigger:', trigger, '=>', mapping[trigger]);
+    
     return mapping[trigger] || null;
   },
 

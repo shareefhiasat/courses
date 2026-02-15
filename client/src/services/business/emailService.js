@@ -48,19 +48,50 @@ import analytics from '@utils/analytics';
 
 class EmailService {
   constructor() {
-    this.qstashEnabled = import.meta.env.VITE_QSTASH_ENABLED !== 'false';
-    this.qstashUrl = import.meta.env.VITE_QSTASH_URL;
-    this.qstashToken = import.meta.env.VITE_QSTASH_TOKEN;
-    this.currentSigningKey = import.meta.env.VITE_QSTASH_CURRENT_SIGNING_KEY;
-    this.nextSigningKey = import.meta.env.VITE_QSTASH_NEXT_SIGNING_KEY;
+    // Force QStash to be enabled with hardcoded values from .env
+    this.qstashEnabled = false;
+    this.qstashUrl = 'https://qstash.upstash.io';
+    this.qstashToken = 'eyJVc2VySUQiOiI0MjcwMWQ0OC0xMDMyLTQ2ZTktOTBhMS1jNDZiYmFhZWI3YzMiLCJQYXNzd29yZCI6IjQ0N2U1MjQ3OGZmYTQ2NzE4ZTliNTc2MGY0YTAyMjQzIn0=';
+    this.currentSigningKey = 'sig_6dQXyNHTZgxKueAnGNzXBN3pD8Sw';
+    this.nextSigningKey = 'sig_6akXANeA5nSwCQimnNH4z3kLHuRW';
     this.fallbackEnabled = import.meta.env.VITE_EMAIL_FALLBACK_ENABLED !== 'false';
     this.maxBatchSize = parseInt(import.meta.env.VITE_QSTASH_MAX_BATCH_SIZE) || 100;
     this.retryAttempts = parseInt(import.meta.env.VITE_QSTASH_RETRY_ATTEMPTS) || 3;
     
-    this.initialize();
+    // SMTP credentials for QStash (from functions/.env)
+    this.smtpHost = 'smtp.gmail.com';
+    this.smtpPort = 587;
+    this.smtpUser = 'shareef.hiasat@gmail.com';
+    this.smtpPassword = 'lnrn mgqw pftt xnbn';
+    this.smtpSenderName = 'QAF Learning Hub (Test)';
+    this.smtpSecure = false;
+    
+    // Don't call initialize() here - it will be called lazily
   }
 
   initialize() {
+    console.log('🔍 DEBUG: Environment Variables Loaded:');
+    console.log('🔍 DEBUG: - VITE_QSTASH_ENABLED:', import.meta.env.VITE_QSTASH_ENABLED);
+    console.log('🔍 DEBUG: - VITE_QSTASH_URL:', import.meta.env.VITE_QSTASH_URL);
+    console.log('🔍 DEBUG: - VITE_QSTASH_TOKEN:', import.meta.env.VITE_QSTASH_TOKEN ? '[MASKED]' : 'undefined');
+    console.log('🔍 DEBUG: - VITE_QSTASH_CURRENT_SIGNING_KEY:', import.meta.env.VITE_QSTASH_CURRENT_SIGNING_KEY ? '[MASKED]' : 'undefined');
+    console.log('🔍 DEBUG: - VITE_QSTASH_NEXT_SIGNING_KEY:', import.meta.env.VITE_QSTASH_NEXT_SIGNING_KEY ? '[MASKED]' : 'undefined');
+    console.log('🔍 DEBUG: - VITE_DEFAULT_FROM_EMAIL:', import.meta.env.VITE_DEFAULT_FROM_EMAIL);
+    console.log('🔍 DEBUG: - VITE_DEFAULT_REPLY_TO:', import.meta.env.VITE_DEFAULT_REPLY_TO);
+    console.log('🔍 DEBUG: - VITE_TEST_EMAIL:', import.meta.env.VITE_TEST_EMAIL);
+    
+    console.log('🔍 DEBUG: QStash Configuration:');
+    console.log('🔍 DEBUG: - qstashEnabled:', this.qstashEnabled);
+    console.log('🔍 DEBUG: - qstashUrl:', this.qstashUrl);
+    console.log('🔍 DEBUG: - qstashToken:', !!this.qstashToken);
+    console.log('🔍 DEBUG: SMTP Configuration:');
+    console.log('🔍 DEBUG: - smtpHost:', this.smtpHost);
+    console.log('🔍 DEBUG: - smtpPort:', this.smtpPort);
+    console.log('🔍 DEBUG: - smtpUser:', this.smtpUser);
+    console.log('🔍 DEBUG: - smtpPassword:', !!this.smtpPassword);
+    console.log('🔍 DEBUG: - smtpSecure:', this.smtpSecure);
+    console.log('🔍 DEBUG: - smtpSenderName:', this.smtpSenderName);
+    
     if (this.qstashEnabled && (!this.qstashUrl || !this.qstashToken)) {
       logger.warn('QStash enabled but missing configuration');
       this.qstashEnabled = false;
@@ -80,12 +111,19 @@ class EmailService {
     const startTime = Date.now();
     
     try {
+      console.log('🔍 DEBUG: Email service - qstashEnabled:', this.qstashEnabled);
+      console.log('🔍 DEBUG: Email service - qstashUrl:', !!this.qstashUrl);
+      console.log('🔍 DEBUG: Email service - qstashToken:', !!this.qstashToken);
+      
       if (this.qstashEnabled) {
+        console.log('🔍 DEBUG: Attempting QStash send...');
         return await this.sendViaQStash(emailData);
       } else {
+        console.log('🔍 DEBUG: Using fallback send...');
         return await this.sendViaFallback(emailData);
       }
     } catch (error) {
+      console.log('🔍 DEBUG: Email service error, falling back to Firebase functions:', error);
       analytics.trackEmailOperation('send_single', 1, false, { error: error.message });
       logger.error('Failed to send single email:', error);
       throw error;
@@ -119,45 +157,137 @@ class EmailService {
   }
 
   /**
+   * Get email template by ID
+   */
+  async getEmailTemplate(templateId) {
+    try {
+      console.log('🔍 DEBUG: Fetching template from Firestore:', templateId);
+      
+      // Import Firebase functions dynamically
+      const { collection, getDocs, query, where } = await import('firebase/firestore');
+      const { db } = await import('../other/config');
+      
+      // Query for template by ID field
+      const templatesRef = collection(db, 'emailTemplates');
+      const q = query(templatesRef, where('id', '==', templateId));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        console.log('🔍 DEBUG: Template not found:', templateId);
+        return { success: false, error: 'Template not found' };
+      }
+      
+      const templateDoc = querySnapshot.docs[0];
+      const template = { id: templateDoc.id, ...templateDoc.data() };
+      
+      console.log('🔍 DEBUG: Template found:', template.name);
+      return { success: true, template };
+      
+    } catch (error) {
+      console.error('❌ DEBUG: Error fetching template:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Replace template variables with actual values
+   */
+  replaceTemplateVariables(template, variables) {
+    console.log('🔍 DEBUG: Replacing variables in template');
+    console.log('🔍 DEBUG: Available variables:', Object.keys(variables));
+    
+    let result = template;
+    
+    // Replace all variables in the template
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      result = result.replace(regex, value || '');
+    });
+    
+    console.log('🔍 DEBUG: Template variables replaced');
+    return result;
+  }
+
+  /**
    * Send via QStash
    */
   async sendViaQStash(emailData) {
-    const payload = {
-      to: emailData.to,
-      subject: emailData.subject,
-      html: emailData.html,
-      text: emailData.text || '',
-      from: emailData.from || import.meta.env.VITE_DEFAULT_FROM_EMAIL,
-      replyTo: emailData.replyTo || import.meta.env.VITE_DEFAULT_REPLY_TO,
-      priority: emailData.priority || 'normal',
-      headers: emailData.headers || {},
-    };
-
-    const response = await fetch(this.qstashUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.qstashToken}`,
-        'Content-Type': 'application/json',
-        'Upstash-Delay': emailData.delay || '0s',
-        'Upstash-Cron': emailData.cron || null,
-        'Upstash-Retries': this.retryAttempts.toString(),
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`QStash API error: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    logger.info('Email sent via QStash:', { messageId: result.messageId, to: emailData.to });
+    console.log('🔍 DEBUG: sendViaQStash called with:', emailData);
     
-    return {
-      success: true,
-      messageId: result.messageId,
-      provider: 'qstash',
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      // Get template content if templateId is provided
+      let html = emailData.html;
+      let subject = emailData.subject;
+      
+      if (emailData.templateId && !html) {
+        console.log('🔍 DEBUG: Fetching template for QStash:', emailData.templateId);
+        const templateResult = await this.getEmailTemplate(emailData.templateId);
+        
+        if (templateResult.success && templateResult.template) {
+          const template = templateResult.template;
+          console.log('🔍 DEBUG: Template found for QStash:', template.name);
+          
+          // Replace variables in template
+          html = this.replaceTemplateVariables(template.html, emailData.data || emailData.variables || {});
+          subject = this.replaceTemplateVariables(template.subject, emailData.data || emailData.variables || {});
+        } else {
+          console.warn('🔍 DEBUG: Template not found for QStash, using fallback');
+          html = emailData.variables?.message || emailData.variables?.messageEn || '<p>Email message</p>';
+          subject = emailData.variables?.title || emailData.variables?.titleEn || 'Email Notification';
+        }
+      }
+      
+      const payload = {
+        to: emailData.to,
+        subject: subject,
+        html: html,
+        text: emailData.text || html.replace(/<[^>]*>/g, ''),
+        from: emailData.from || import.meta.env.VITE_DEFAULT_FROM_EMAIL,
+        replyTo: emailData.replyTo || import.meta.env.VITE_DEFAULT_REPLY_TO,
+        priority: emailData.priority || 'normal',
+        headers: emailData.headers || {},
+        // Include SMTP credentials for QStash to use
+        smtp: {
+          host: this.smtpHost,
+          port: this.smtpPort,
+          user: this.smtpUser,
+          password: this.smtpPassword,
+          secure: this.smtpSecure,
+          senderName: this.smtpSenderName
+        }
+      };
+
+      console.log('🔍 DEBUG: QStash payload:', payload);
+
+      const response = await fetch(this.qstashUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.qstashToken}`,
+          'Content-Type': 'application/json',
+          'Upstash-Delay': emailData.delay || '0s',
+          'Upstash-Cron': emailData.cron || null,
+          'Upstash-Retries': this.retryAttempts.toString(),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`QStash API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      logger.info('Email sent via QStash:', { messageId: result.messageId, to: emailData.to });
+      
+      return {
+        success: true,
+        messageId: result.messageId,
+        provider: 'qstash',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('❌ DEBUG: QStash failed:', error);
+      throw error;
+    }
   }
 
   /**
@@ -211,31 +341,72 @@ class EmailService {
   async sendViaFallback(emailData) {
     // Direct Firebase/SMTP implementation
     try {
+            
       // Import Firebase functions dynamically
       const { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp } = await import('firebase/firestore');
       const { httpsCallable } = await import('firebase/functions');
-      const { functions } = await import('../other/config');
+      const { functions, db } = await import('../other/config');
+      
+      // Handle both notification gateway format and direct format
+      let subject = emailData.subject || emailData.variables?.title || emailData.variables?.titleEn || 'Email Notification';
+      const template = emailData.template || emailData.templateId || 'custom';
+      const data = emailData.data || emailData.variables || {};
+      
+      // Fetch template for sending
+      if (emailData.templateId) {
+        const templateResult = await this.getEmailTemplate(emailData.templateId);
+        
+        if (templateResult.success && templateResult.template) {
+          const templateData = templateResult.template;
+          // Replace variables for final content
+          const finalHtml = this.replaceTemplateVariables(templateData.html, data);
+          const finalSubject = this.replaceTemplateVariables(templateData.subject, data);
+          
+          // Update subject with template subject
+          subject = finalSubject;
+        }
+      }
       
       // Store email in Firestore for tracking
       const emailRef = await addDoc(collection(db, 'emails'), {
         to: emailData.to,
-        subject: emailData.subject,
-        template: emailData.template || 'custom',
-        data: emailData.data || {},
+        subject: subject,
+        template: template,
+        data: data,
         status: 'pending',
         createdAt: serverTimestamp(),
-        provider: 'fallback'
+        provider: 'fallback',
+        // Add fields required for Firestore rules
+        userId: emailData.userId || null,
+        recipientEmail: emailData.to
       });
 
-      // Call Firebase function to send email
-      const sendEmailFn = httpsCallable(functions, 'sendEmail');
-      const result = await sendEmailFn({
-        to: emailData.to,
-        subject: emailData.subject,
-        template: emailData.template,
-        data: emailData.data || {},
-        messageId: emailRef.id
-      });
+      // For QR code emails, use the dedicated QR function that works
+      let result;
+      if (emailData.templateId === 'qr_code_student') {
+        const sendQREmailFn = httpsCallable(functions, 'sendQRCodeEmail');
+        
+        const qrPayload = {
+          to: emailData.to,
+          templateId: emailData.templateId,
+          variables: data,
+          messageId: emailRef.id
+        };
+        
+        result = await sendQREmailFn(qrPayload);
+      } else {
+        // Use generic email function for other templates
+        const sendEmailFn = httpsCallable(functions, 'sendEmail');
+        
+        const payload = {
+          to: emailData.to,
+          templateId: emailData.templateId,
+          variables: data,
+          messageId: emailRef.id
+        };
+        
+        result = await sendEmailFn(payload);
+      }
 
       // Update status
       await updateDoc(emailRef, {
@@ -254,6 +425,11 @@ class EmailService {
       };
     } catch (error) {
       logger.error('Fallback email failed:', error);
+      console.error('❌ DEBUG: Fallback email error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -390,35 +566,123 @@ class EmailService {
   }
 }
 
+// Create singleton instance (lazy initialization)
+let emailServiceInstance = null;
+
 // Create singleton instance
-const emailService = new EmailService();
+const getEmailService = () => {
+  if (!emailServiceInstance) {
+    emailServiceInstance = new EmailService();
+    emailServiceInstance.initialize(); // Initialize when first used
+  }
+  return emailServiceInstance;
+};
 
 // Named exports for backward compatibility
 export const sendEmail = async (emailData) => {
-  return await emailService.sendSingleEmail(emailData);
+  console.log('🔍 DEBUG: sendEmail called with:', emailData);
+  console.log('🔍 DEBUG: Email data keys:', Object.keys(emailData));
+  console.log('🔍 DEBUG: Has templateId:', !!emailData.templateId);
+  console.log('🔍 DEBUG: Has subject:', !!emailData.subject);
+  console.log('🔍 DEBUG: Has variables:', !!emailData.variables);
+  console.log('🔍 DEBUG: Variables keys:', emailData.variables ? Object.keys(emailData.variables) : 'none');
+  
+  const service = getEmailService();
+  return await service.sendSingleEmail(emailData);
 };
 
 export const getEmailTemplates = async () => {
   try {
+    console.log('🔍 DEBUG: Loading email templates...');
+    console.log('🔍 DEBUG: Querying collection: emailTemplates');
+    console.log('🔍 DEBUG: Query: orderBy("name", "asc")');
+    
     // Import Firebase functions dynamically
     const { getDocs, collection, query, orderBy } = await import('firebase/firestore');
     const { db } = await import('../other/config');
     
     const templatesRef = collection(db, 'emailTemplates');
-    const q = query(templatesRef, orderBy('name', 'asc'));
-    const querySnapshot = await getDocs(q);
+    console.log('🔍 DEBUG: Templates ref created:', templatesRef.path);
     
-    const templates = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const q = query(templatesRef, orderBy('name', 'asc'));
+    console.log('🔍 DEBUG: Query constructed:', q);
+    
+    const querySnapshot = await getDocs(q);
+    console.log('🔍 DEBUG: Query executed, docs count:', querySnapshot.docs.length);
+    console.log('🔍 DEBUG: Query snapshot metadata:', {
+      hasPendingWrites: querySnapshot.metadata.hasPendingWrites,
+      fromCache: querySnapshot.metadata.fromCache
+    });
+    
+    const templates = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log('📋 DEBUG: Processing doc:', doc.id, 'data keys:', Object.keys(data));
+      return {
+        id: doc.id,
+        ...data
+      };
+    });
+    
+    console.log('📋 DEBUG: Templates found:', templates.length);
+    console.log('📋 DEBUG: All template IDs:', templates.map(t => t.id));
+    console.log('📋 DEBUG: All template names:', templates.map(t => t.name || t.id));
+    console.log('📋 DEBUG: Full template data:', templates);
+    
+    // Check which expected templates are missing
+    const expected = [
+      'activity_complete_default',
+      'activity_default', 
+      'activity_graded_default',
+      'announcement_default',
+      'chat_digest_default',
+      'enrollment_default',
+      'qr_code_student',
+      'resource_default',
+      'student_qr_code'
+    ];
+    
+    const found = templates.map(t => t.id);
+    const missing = expected.filter(id => !found.includes(id));
+    
+    console.log('📋 DEBUG: Expected templates:', expected);
+    console.log('📋 DEBUG: Found template IDs:', found);
+    console.log('⚠️ DEBUG: Missing templates:', missing);
+    
+    if (missing.length > 0) {
+      console.warn('⚠️ DEBUG: Missing templates:', missing);
+      console.warn('💡 DEBUG: You may need to add these templates to Firestore');
+    } else {
+      console.log('✅ DEBUG: All expected templates found!');
+    }
+    
+    // Check specifically for student_qr_code
+    const studentQRTemplate = templates.find(t => t.id === 'student_qr_code');
+    if (studentQRTemplate) {
+      console.log('✅ DEBUG: student_qr_code template found:', studentQRTemplate);
+    } else {
+      console.warn('❌ DEBUG: student_qr_code template NOT found!');
+      console.warn('💡 DEBUG: Available templates that might be QR-related:', 
+        templates.filter(t => t.id.toLowerCase().includes('qr') || t.name?.toLowerCase().includes('qr'))
+      );
+      
+      // Show all available templates for debugging
+      console.log('📋 DEBUG: ALL AVAILABLE TEMPLATES:');
+      templates.forEach((template, index) => {
+        console.log(`  ${index + 1}. ID: "${template.id}", Name: "${template.name || 'N/A'}"`);
+      });
+    }
     
     return { success: true, data: templates };
   } catch (error) {
-    logger.error('Failed to get email templates:', error);
+    console.error('❌ DEBUG: Failed to get email templates:', error);
+    console.error('❌ DEBUG: Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     return { success: false, error: error.message };
   }
 };
 
-export default emailService;
+export default getEmailService;
 

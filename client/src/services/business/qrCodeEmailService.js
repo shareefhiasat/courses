@@ -119,6 +119,12 @@ export const sendQRCodeEmail = async (studentId, studentEmail) => {
       userFriendlyMessage = 'Email service temporarily unavailable. Please try again later.';
     } else if (error.code === 'permission-denied') {
       userFriendlyMessage = 'You do not have permission to send QR code emails';
+    } else if (error.code === 'functions/internal') {
+      userFriendlyMessage = 'Email service is currently experiencing technical difficulties. Please try again later or contact support if the issue persists.';
+    } else if (error.message && error.message.includes('CORS')) {
+      userFriendlyMessage = 'Network error: Unable to connect to email service. Please check your connection and try again.';
+    } else if (error.message && error.message.includes('ERR_FAILED')) {
+      userFriendlyMessage = 'Network connection failed. Please check your internet connection and try again.';
     } else if (error.message) {
       userFriendlyMessage = error.message;
     }
@@ -135,29 +141,33 @@ export const sendQRCodeEmail = async (studentId, studentEmail) => {
 /**
  * Send QR code email with additional student data
  * @param {Object} student - Student object with id, email, displayName, etc.
+ * @param {string} [customEmail] - Optional custom email address to send to instead of student's default email
  * @returns {Promise<Object>} - Result object with success status
  */
-export const sendQRCodeEmailToStudent = async (student) => {
+export const sendQRCodeEmailToStudent = async (student, customEmail) => {
   if (!student) {
     throw new Error('Student object is required');
   }
 
   const studentId = student.docId || student.id;
   const studentEmail = student.email;
+  const targetEmail = customEmail || studentEmail;
   const studentName = student.displayName || student.realName || 'Student';
 
-  if (!studentId || !studentEmail) {
-    throw new Error('Student must have ID and email');
+  if (!studentId || !targetEmail) {
+    throw new Error('Student must have ID and target email');
   }
 
   logger.info('QR_CODE_EMAIL: Sending QR code email to student', {
     studentId,
     studentEmail,
+    targetEmail,
+    customEmail: !!customEmail,
     studentName,
     timestamp: new Date().toISOString()
   });
 
-  return await sendQRCodeEmail(studentId, studentEmail);
+  return await sendQRCodeEmail(studentId, targetEmail);
 };
 
 /**

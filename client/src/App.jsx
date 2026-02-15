@@ -7,8 +7,8 @@ import { ErrorBoundary, HelpDrawer, CollapsibleSideWindow, NotificationDrawer, R
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ColorThemeProvider } from './contexts/ColorThemeContext';
 import logger from './utils/logger';
-import HomePage from './pages/auth/HomePage';
-import LoginPage from './pages/auth/LoginPage';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/system/LoginPage';
 import ChatPage from './pages/communications/chat/ChatPage';
 import { HelpProvider } from './contexts/HelpContext';
 import ActivityDetailPage from './pages/academic/activities/ActivityDetailPage';
@@ -17,24 +17,25 @@ import ProfileSettingsPage from './pages/users/ProfileSettingsPage';
 import AttendancePage from './pages/operations/attendance/AttendancePage';
 import StudentAttendancePage from './pages/operations/attendance/StudentAttendancePage';
 import HRAttendancePage from './pages/operations/attendance/HRAttendancePage';
-import PenaltiesPage from './pages/penalty/PenaltiesPage';
-import ParticipationPage from './pages/participation/ParticipationPage';
+import PenaltiesPage from './pages/operations/penalty/PenaltiesPage';
+import ParticipationPage from './pages/operations/participation/ParticipationPage';
 import BehaviorPage from './pages/operations/behavior/BehaviorPage';
 import InstructorQRScannerPage from './pages/operations/attendance/InstructorQRScannerPage';
 import QRCodeDisplayPage from './pages/operations/attendance/QRCodeDisplayPage';
 import ClassSchedulePage from './pages/academic/classes/ClassSchedulePage';
+import ScheduleOverviewPage from './pages/academic/schedules/ScheduleOverviewPage';
 import EnrollmentsPage from './pages/academic/enrollments/EnrollmentsPage';
 import AnalyticsPage from './pages/feedback/analytics/AnalyticsPage';
 import analytics from './utils/analytics.js';
 import RoleAccessPro from './pages/system/RoleAccessPro';
 import StudentProfilePage from './pages/users/StudentProfilePage';
 import StudentDashboardPage from './pages/dashboard/StudentDashboardPage';
-import QuizzesPage from './pages/academic/quizzes/QuizzesPage';
-import QuizPreviewPage from './pages/academic/quizzes/QuizPreviewPage';
-import StudentQuizPage from './pages/academic/quizzes/StudentQuizPage';
-import QuestionBankPage from './pages/academic/quizzes/QuestionBankPage';
-import QuizResultsPage from './pages/quiz-results/QuizResultsPage';
-import ReviewResultsPage from './pages/quiz-results/ReviewResultsPage';
+import QuizzesPage from './pages/quizzes/QuizzesPage';
+import QuizPreviewPage from './pages/quizzes/QuizPreviewPage';
+import StudentQuizPage from './pages/quizzes/StudentQuizPage';
+import QuestionBankPage from './pages/quizzes/QuestionBankPage';
+import QuizResultsPage from './pages/quizzes/quiz-results/QuizResultsPage';
+import ReviewResultsPage from './pages/quizzes/quiz-results/ReviewResultsPage';
 import ProgramsManagementPage from './pages/academic/programs/ProgramsManagementPage';
 import SubjectsManagementPage from './pages/academic/subjects/SubjectsManagementPage';
 import ScheduledReportsPage from './pages/feedback/reports/ScheduledReportsPage';
@@ -74,7 +75,7 @@ if (typeof window !== 'undefined') {
 
 // Lazy loaded heavy components
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
-const EnrollmentsMarksPage = lazy(() => import('./pages/grading/EnrollmentsMarksPage'));
+const EnrollmentsMarksPage = lazy(() => import('./pages/academic/enrollments/grading/EnrollmentsMarksPage'));
 import './App.css';
 import './styles/colors.css';
 import './styles/theme.css';
@@ -181,6 +182,7 @@ const AppContent = () => {
           <Route path="/instructor-behavior" element={<BehaviorPage />} />
           <Route path="/qr-scanner" element={<InstructorQRScannerPage />} />
           <Route path="/class-schedules" element={<ClassSchedulePage />} />
+          <Route path="/schedule-overview" element={<ScheduleOverviewPage />} />
           <Route path="/manage-enrollments" element={<EnrollmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/advanced-analytics" element={<AdvancedAnalytics />} />

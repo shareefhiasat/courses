@@ -78,13 +78,32 @@ function renderEmailTemplate(templateHtml, variables = {}, siteUrl = 'https://yo
  */
 async function getEmailTemplate(db, templateId) {
   try {
-    const templateDoc = await db.collection('emailTemplates').doc(templateId).get();
+    console.log('DEBUG: Firebase function - Looking for template with id:', templateId);
     
-    if (!templateDoc.exists) {
-      throw new Error(`Template ${templateId} not found`);
+    // Look for template by 'id' field (same as client side)
+    const templateQuery = await db.collection('emailTemplates')
+      .where('id', '==', templateId)
+      .limit(1)
+      .get();
+    
+    if (templateQuery.empty) {
+      console.log('DEBUG: Firebase function - Template not found with id field, trying document ID...');
+      
+      // Fallback: try by document ID
+      const templateDoc = await db.collection('emailTemplates').doc(templateId).get();
+      
+      if (!templateDoc.exists) {
+        console.error('DEBUG: Firebase function - Template not found by id field or document ID:', templateId);
+        throw new Error(`Template ${templateId} not found`);
+      }
+      
+      console.log('DEBUG: Firebase function - Template found by document ID');
+      return templateDoc.data();
     }
     
-    return templateDoc.data();
+    const template = templateQuery.docs[0].data();
+    console.log('DEBUG: Firebase function - Template found by id field:', template.name);
+    return template;
   } catch (error) {
     console.error('Error getting template:', error);
     throw error;
