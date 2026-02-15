@@ -17,22 +17,25 @@ import { notificationGateway } from './notificationGateway';
 import { sendEmail } from './emailService';
 import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import logger from '../../utils/logger';
+import { 
+  getNotifications as getNotificationsFromDb,
+  getNotification as getNotificationFromDb,
+  createNotification as createNotificationToDb,
+  markNotificationAsRead as markNotificationAsReadInDb,
+  markAllNotificationsAsRead as markAllNotificationsAsReadInDb,
+  archiveNotification as archiveNotificationInDb,
+  deleteNotification as deleteNotificationFromDb,
+  onNotificationsChange as onNotificationsChangeFromDb
+} from '../db/notificationDbService';
 
 // ===== Notifications =====
 // Model: collection "notifications" documents { userId, title, message, type, read, createdAt, data? }
 
 export const getNotifications = async (userId) => {
   try {
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach(d => items.push({ id: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return await getNotificationsFromDb(userId);
   } catch (error) {
+    logger.error('Error getting notifications:', error);
     return { success: false, error: error.message };
   }
 };

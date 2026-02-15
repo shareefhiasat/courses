@@ -206,3 +206,106 @@ export const onAnnouncementsChange = (callback, options = {}) => {
     return () => {};
   }
 };
+
+/**
+ * Get announcements by class
+ * @param {string} classId - Class ID
+ * @param {Object} options - Query options
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getAnnouncementsByClass = async (classId, options = {}) => {
+  try {
+    const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    const q = query(
+      collection(db, 'announcements'),
+      where('classId', '==', classId),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const announcements = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: announcements };
+  } catch (error) {
+    logger.error('[AnnouncementDbService] Error getting announcements by class:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get announcements by program
+ * @param {string} programId - Program ID
+ * @param {Object} options - Query options
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getAnnouncementsByProgram = async (programId, options = {}) => {
+  try {
+    const { limitCount = 50, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    const q = query(
+      collection(db, 'announcements'),
+      where('programId', '==', programId),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const announcements = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: announcements };
+  } catch (error) {
+    logger.error('[AnnouncementDbService] Error getting announcements by program:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get active announcements
+ * @param {Object} options - Query options
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getActiveAnnouncements = async (options = {}) => {
+  try {
+    const { limitCount = 100, orderByField = 'createdAt', orderDirection = 'desc' } = options;
+    
+    const q = query(
+      collection(db, 'announcements'),
+      where('isActive', '==', true),
+      orderBy(orderByField, orderDirection),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const announcements = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: announcements };
+  } catch (error) {
+    logger.error('[AnnouncementDbService] Error getting active announcements:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Search announcements
+ * @param {string} searchTerm - Search term
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const searchAnnouncements = async (searchTerm) => {
+  try {
+    // This would typically require a full-text search index
+    // For now, get all announcements and filter client-side
+    const result = await getAnnouncements({ limitCount: 1000 });
+    if (!result.success) {
+      return result;
+    }
+    
+    const filteredAnnouncements = result.data.filter(announcement => 
+      announcement.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      announcement.content?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    return { success: true, data: filteredAnnouncements };
+  } catch (error) {
+    logger.error('[AnnouncementDbService] Error searching announcements:', error);
+    return { success: false, error: error.message };
+  }
+};

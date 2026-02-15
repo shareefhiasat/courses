@@ -21,6 +21,7 @@ import {
   query, 
   where, 
   getDocs,
+  orderBy,
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../other/config';
@@ -55,6 +56,22 @@ export const getProgram = async (programId) => {
     return { success: false, error: 'Program not found' };
   } catch (error) {
     logger.error('[ProgramDbService] Error getting program:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get all programs sorted by name
+ * @returns {Promise<{success: boolean, data: Array, error?: string}>}
+ */
+export const getProgramsSorted = async () => {
+  try {
+    const q = query(collection(db, 'programs'), orderBy('name_en', 'asc'));
+    const querySnapshot = await getDocs(q);
+    const programs = querySnapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+    return { success: true, data: programs };
+  } catch (error) {
+    logger.error('[ProgramDbService] Error getting programs sorted:', error);
     return { success: false, error: error.message };
   }
 };

@@ -1,18 +1,15 @@
-import { db } from '../other/config';
+import logger from '@utils/logger';
+import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { 
   collection, 
   doc, 
-  getDoc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
   query, 
-  where,
-  serverTimestamp 
+  where, 
+  getDocs, 
+  deleteDoc 
 } from 'firebase/firestore';
-import logger from '@utils/logger';
-import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { db } from '../other/config';
+import { getClasses as getClassesFromDb, createClass as createClassToDb, updateClass as updateClassInDb, deleteClass as deleteClassFromDb, getClass as getClassByIdFromDb } from '../db/classDbService';
 
 /**
  * Class Service
@@ -22,11 +19,7 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 // Get all classes
 export const getClasses = async () => {
   try {
-    const qs = await getDocs(collection(db, "classes"));
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    
-    return { success: true, data: items };
+    return await getClassesFromDb();
   } catch (error) {
     logger.error('CLASS: Failed to fetch classes', { error: error.message });
     return { success: false, error: error.message };
@@ -38,16 +31,12 @@ export const addClass = async (data) => {
   try {
     logger.info('CLASS: Creating new class', { className: data.name, classCode: data.code });
     
-    const ref = await addDoc(collection(db, "classes"), {
-      ...data,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+    const result = await createClassToDb(data);
     
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.CLASS_CREATED, {
-        classId: ref.id,
+        classId: result.id,
         className: data.name,
         classCode: data.code
       });
@@ -55,8 +44,8 @@ export const addClass = async (data) => {
       logger.warn('CLASS: Failed to log class creation:', logError);
     }
     
-    logger.info('CLASS: Successfully created class', { classId: ref.id, className: data.name });
-    return { success: true, id: ref.id };
+    logger.info('CLASS: Successfully created class', { classId: result.id, className: data.name });
+    return result;
   } catch (error) {
     logger.error('CLASS: Failed to create class', { error: error.message, classData: { name: data.name, code: data.code } });
     return { success: false, error: error.message };
@@ -68,10 +57,7 @@ export const updateClass = async (id, data) => {
   try {
     logger.info('CLASS: Updating class', { classId: id, updateFields: Object.keys(data) });
     
-    await updateDoc(doc(db, "classes", id), {
-      ...data,
-      updatedAt: serverTimestamp()
-    });
+    const result = await updateClassInDb(id, data);
     
     // Log activity
     try {
@@ -84,7 +70,7 @@ export const updateClass = async (id, data) => {
     }
     
     logger.info('CLASS: Successfully updated class', { classId: id });
-    return { success: true };
+    return result;
   } catch (error) {
     logger.error('CLASS: Failed to update class', { error: error.message, classId: id });
     return { success: false, error: error.message };
@@ -148,11 +134,7 @@ export const deleteClass = async (id) => {
 // Get class by ID
 export const getClassById = async (id) => {
   try {
-    const classDoc = await getDoc(doc(db, "classes", id));
-    if (classDoc.exists()) {
-      return { success: true, data: { docId: classDoc.id, ...classDoc.data() } };
-    }
-    return { success: false, error: "Class not found" };
+    return await getClassByIdFromDb(id);
   } catch (error) {
     return { success: false, error: error.message };
   }

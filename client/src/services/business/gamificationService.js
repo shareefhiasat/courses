@@ -1,4 +1,4 @@
-﻿import { 
+import { 
   collection, 
   doc, 
   getDocs, 
@@ -14,6 +14,20 @@
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import { getStudentRank } from '@constants/sharedConfig';
+import logger from '@utils/logger';
+import { 
+  getStudentGamification as getStudentGamificationFromDb,
+  setStudentGamification as setStudentGamificationToDb,
+  awardPoints as awardPointsToDb,
+  updateStudentRank as updateStudentRankInDb,
+  getLeaderboard as getLeaderboardFromDb,
+  getClassLeaderboard as getClassLeaderboardFromDb,
+  getStudentAchievements as getStudentAchievementsFromDb,
+  awardAchievement as awardAchievementToDb,
+  updateStudentSkills as updateStudentSkillsInDb,
+  getTopStudents as getTopStudentsFromDb,
+  initializeStudentGamification as initializeStudentGamificationToDb
+} from '../db/gamificationDbService';
 
 /**
  * Gamification Service

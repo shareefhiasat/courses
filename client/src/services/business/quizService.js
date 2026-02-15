@@ -1,4 +1,4 @@
-﻿import { db } from '../other/config';
+import { db } from '../other/config';
 import {
   collection,
   doc,
@@ -18,12 +18,18 @@ import { notificationGateway } from "./notificationGateway";
 import { NOTIFICATION_TRIGGERS } from "@constants/notificationTypes";
 import { getUserById } from "./userService";
 import { RECORD_TYPES } from "@utils/sharedTypes";
+import { 
+  getQuizzes as getQuizzesFromDb,
+  getQuiz as getQuizFromDb,
+  createQuiz as createQuizToDb,
+  updateQuiz as updateQuizInDb,
+  deleteQuiz as deleteQuizFromDb
+} from '../db/quizzesDbService';
 
 // Create a new quiz
 export const createQuiz = async (quizData, userId) => {
   try {
-    const quizzesRef = collection(db, "quizzes");
-    const docRef = await addDoc(quizzesRef, {
+    const quizDataWithMetadata = {
       ...quizData,
       visibility: quizData?.visibility || "private", // 'private' | 'class' | 'public'
       allowAnonymous: !!quizData?.allowAnonymous,
@@ -37,7 +43,9 @@ export const createQuiz = async (quizData, userId) => {
       createdBy: userId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    });
+    };
+
+    const result = await createQuizToDb(quizDataWithMetadata);
 
     // Notify students about new quiz availability if it's assigned to classes
     const classIds = Array.isArray(quizData?.assignedClassIds) ? quizData.assignedClassIds : (quizData?.classId ? [quizData.classId] : []);

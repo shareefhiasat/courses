@@ -6,6 +6,14 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { 
+  createParticipation as createParticipationToDb,
+  getParticipation as getParticipationFromDb,
+  updateParticipation as updateParticipationInDb,
+  deleteParticipation as deleteParticipationFromDb,
+  getParticipationsByStudent as getParticipationsByStudentFromDb,
+  getParticipationsByClass as getParticipationsByClassFromDb
+} from '../db/participationDbService';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;

@@ -15,6 +15,16 @@ import {
   deleteAttendanceRecord, 
   getAttendanceStats 
 } from '../db-services/attendanceDbService.js';
+import { 
+  getAttendanceSessions as getAttendanceSessionsFromDb,
+  getOpenAttendanceSessions as getOpenAttendanceSessionsFromDb,
+  getAttendanceSession as getAttendanceSessionFromDb,
+  createAttendanceSession as createAttendanceSessionToDb,
+  updateAttendanceSession as updateAttendanceSessionInDb,
+  deleteAttendanceSession as deleteAttendanceSessionFromDb,
+  closeAttendanceSession as closeAttendanceSessionInDb,
+  finalizeAttendanceSession as finalizeAttendanceSessionInDb
+} from '../db/attendanceSessionsDbService.js';
 import { addNotification } from '../notificationService.js';
 import { sendEmail } from '../emailService.js';
 import logger from '../../utils/logger';
@@ -131,13 +141,9 @@ export async function finalizeAttendanceSession({ classId, sessionId, absentUids
  */
 export async function listOpenAttendanceSessions({ classId }) {
   try {
-    const col = collection(db, 'classes', classId, 'sessions');
-    const q = query(col, where('status', '==', 'open'));
-    const snap = await getDocs(q);
-    const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    return { success: true, data: sessions };
+    return await getOpenAttendanceSessionsFromDb(classId);
   } catch (error) {
-    console.error('[AttendanceBusinessService] Error listing open sessions:', error);
+    logger.error('[AttendanceBusinessService] Error listing open sessions:', error);
     return { success: false, error: error.message };
   }
 }
@@ -149,16 +155,9 @@ export async function listOpenAttendanceSessions({ classId }) {
  */
 export async function getAttendanceSession({ classId, sessionId }) {
   try {
-    const ref = doc(db, 'classes', classId, 'sessions', sessionId);
-    const snap = await getDoc(ref);
-    
-    if (snap.exists()) {
-      return { success: true, data: { id: snap.id, ...snap.data() } };
-    } else {
-      return { success: false, error: 'Session not found' };
-    }
+    return await getAttendanceSessionFromDb(classId, sessionId);
   } catch (error) {
-    console.error('[AttendanceBusinessService] Error getting session:', error);
+    logger.error('[AttendanceBusinessService] Error getting session:', error);
     return { success: false, error: error.message };
   }
 }

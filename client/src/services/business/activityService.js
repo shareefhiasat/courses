@@ -1,6 +1,44 @@
 import { 
-  getActivities as getActivitiesFromDb
+  getActivities as getActivitiesFromDb,
+  createActivity as createActivityToDb,
+  updateActivity as updateActivityInDb,
+  deleteActivity as deleteActivityFromDb
 } from '../db/activitiesDbService';
+import { 
+  getAnnouncements as getAnnouncementsFromDb,
+  getAnnouncement as getAnnouncementFromDb,
+  createAnnouncement as createAnnouncementToDb,
+  updateAnnouncement as updateAnnouncementInDb,
+  deleteAnnouncement as deleteAnnouncementFromDb,
+  getAnnouncementsByClass as getAnnouncementsByClassFromDb,
+  getAnnouncementsByProgram as getAnnouncementsByProgramFromDb,
+  getActiveAnnouncements as getActiveAnnouncementsFromDb,
+  searchAnnouncements as searchAnnouncementsFromDb
+} from '../db/announcementDbService';
+import { 
+  getResources as getResourcesFromDb,
+  getResource as getResourceFromDb,
+  createResource as createResourceToDb,
+  updateResource as updateResourceInDb,
+  deleteResource as deleteResourceFromDb,
+  getResourcesByClass as getResourcesByClassFromDb,
+  getResourcesBySubject as getResourcesBySubjectFromDb,
+  getResourcesByType as getResourcesByTypeFromDb,
+  searchResources as searchResourcesFromDb,
+  getResourceCount as getResourceCountFromDb
+} from '../db/resourceDbService';
+import { 
+  getActivityLogs as getActivityLogsFromDb,
+  getActivityLog as getActivityLogFromDb,
+  createActivityLog as createActivityLogToDb,
+  getActivityLogsByUser as getActivityLogsByUserFromDb,
+  getActivityLogsByType as getActivityLogsByTypeFromDb,
+  getActivityLogsByDateRange as getActivityLogsByDateRangeFromDb,
+  getLoginLogs as getLoginLogsFromDb,
+  deleteActivityLog as deleteActivityLogFromDb,
+  deleteAllActivityLogs as deleteAllActivityLogsFromDb,
+  searchActivityLogs as searchActivityLogsFromDb
+} from '../db/activityLogDbService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { deleteCollection, deleteDocumentsByField } from './collectionManagementService';
 import { ACTIVITY_TYPE_OPTIONS } from '@constants/activityTypes';
@@ -63,13 +101,15 @@ export const addActivity = async (activityData) => {
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
       
-      const docRef = await addDoc(collection(db, "activities"), {
+      const activityDataWithTimestamps = {
         ...convertedData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      });
+      };
 
-      logger.log('🔍 [SERVICE] Activity saved to Firestore with ID:', docRef.id);
+      const result = await createActivityToDb(activityDataWithTimestamps);
+
+      logger.log('🔍 [SERVICE] Activity saved to Firestore with ID:', result.id);
 
       // TODO: Fix notification gateway - temporarily disabled
       // Send notifications for new activity
@@ -242,23 +282,11 @@ export const getAnnouncements = async () => {
   try {
     logger.info('ANNOUNCEMENT: Fetching all announcements');
     
-    const q = query(
-      collection(db, "announcements"),
-      orderBy("createdAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
-    const announcements = [];
-    querySnapshot.forEach((d) => {
-      const data = d.data();
-      announcements.push({
-        id: d.id,
-        ...data,
-        createdAt: data.createdAt?.toDate()
-      });
-    });
-    
-    logger.info('ANNOUNCEMENT: Successfully fetched announcements', { count: announcements.length });
-    return { success: true, data: announcements };
+    const result = await getAnnouncementsFromDb();
+    if (result.success) {
+      logger.info('ANNOUNCEMENT: Successfully fetched announcements', { count: result.data.length });
+    }
+    return result;
   } catch (error) {
     logger.error('ANNOUNCEMENT: Failed to fetch announcements', { error: error.message });
     logger.error("Error getting announcements:", error);
@@ -275,16 +303,12 @@ export const addAnnouncement = async (announcementData) => {
       hasSubjectId: !!announcementData.subjectId
     });
     
-    const docRef = await addDoc(collection(db, "announcements"), {
-      ...announcementData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+    const result = await createAnnouncementToDb(announcementData);
     
     // Log activity
     try {
       await logActivity(ACTIVITY_LOG_TYPES.ANNOUNCEMENT_CREATED, {
-        announcementId: docRef.id,
+        announcementId: result.id,
         title: announcementData.title,
         classId: announcementData.classId
       });
@@ -503,19 +527,7 @@ export const getResourceCount = async (filters = {}) => {
 // Legacy function for backward compatibility (gets all resources)
 export const getAllResources = async () => {
   try {
-    const q = query(collection(db, "resources"), orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    const resources = [];
-    querySnapshot.forEach((d) => {
-      const data = d.data();
-      resources.push({
-        id: d.id,
-        ...data,
-        createdAt: data.createdAt?.toDate(),
-        updatedAt: data.updatedAt?.toDate()
-      });
-    });
-    return { success: true, data: resources };
+    return await getResourcesFromDb();
   } catch (error) {
     logger.error("Error getting all resources:", error);
     return { success: false, error: error.message };
@@ -525,11 +537,13 @@ export const getAllResources = async () => {
 export const addResource = async (resourceData) => {
   try {
     const convertedData = convertDatesToTimestamps(resourceData, COMMON_DATE_FIELDS.resources || ['dueDate'], Timestamp);
-    const docRef = await addDoc(collection(db, "resources"), {
+    const resourceWithTimestamps = {
       ...convertedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
-    });
+    };
+
+    const result = await createResourceToDb(resourceWithTimestamps);
 
     // Send notifications for new resource
     if (resourceData.classId) {
@@ -646,11 +660,7 @@ export const addLoginLog = async (log = {}) => {
 
 export const getLoginLogs = async () => {
   try {
-    const q = query(collection(db, "activityLogs"), orderBy("timestamp", "desc"));
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return await getLoginLogsFromDb();
   } catch (error) {
     logger.error("Error getting login logs:", error);
     return { success: false, error: error.message };
@@ -663,11 +673,17 @@ export const getLoginLogs = async () => {
  * @returns {Promise<{success: boolean, deletedCount?: number, error?: string}>}
  */
 export const deleteAllLoginLogs = async (onProgress = null) => {
-  return await deleteCollection('activityLogs', onProgress, {
-    batchSize: 400,
-    delayBetweenBatches: 100,
-    maxRetries: 3
-  });
+  try {
+    return await deleteAllActivityLogsFromDb({
+      batchSize: 400,
+      delayBetweenBatches: 100,
+      maxRetries: 3,
+      onProgress
+    });
+  } catch (error) {
+    logger.error('Error deleting all login logs:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 /**

@@ -1,5 +1,18 @@
-﻿import { doc, setDoc, getDoc, collection, getDocs, serverTimestamp, runTransaction, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, serverTimestamp, runTransaction, updateDoc } from 'firebase/firestore';
 import { db } from '../other/config';
+import logger from '@utils/logger';
+import { 
+  getBadges as getBadgesFromDb,
+  getBadge as getBadgeFromDb,
+  createBadge as createBadgeToDb,
+  updateBadge as updateBadgeInDb,
+  deleteBadge as deleteBadgeFromDb,
+  getBadgesByCategory as getBadgesByCategoryFromDb,
+  getUserBadges as getUserBadgesFromDb,
+  awardBadgeToUser as awardBadgeToUserToDb,
+  updateUserBadgeProgress as updateUserBadgeProgressInDb,
+  removeBadgeFromUser as removeBadgeFromUserFromDb
+} from '../db/badgeDbService';
 
 // =========================================================================
 // BADGE SYSTEM - FIRESTORE HELPER

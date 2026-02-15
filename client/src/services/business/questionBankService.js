@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Question Bank Management (Phase 3.2)
  * Shared pool of reusable questions with tags and metadata
  */
@@ -17,6 +17,21 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import logger from '@utils/logger';
+import { 
+  getQuestions as getQuestionsFromDb,
+  getQuestion as getQuestionFromDb,
+  createQuestion as createQuestionToDb,
+  updateQuestion as updateQuestionInDb,
+  deleteQuestion as deleteQuestionFromDb,
+  getQuestionsBySubject as getQuestionsBySubjectFromDb,
+  getQuestionsByDifficulty as getQuestionsByDifficultyFromDb,
+  getQuestionsByType as getQuestionsByTypeFromDb,
+  searchQuestions as searchQuestionsFromDb,
+  getQuestionsByTags as getQuestionsByTagsFromDb,
+  getRandomQuestions as getRandomQuestionsFromDb,
+  updateQuestionUsage as updateQuestionUsageInDb
+} from '../db/questionBankDbService';
 
 const COLLECTION = 'questionBank';
 
@@ -25,15 +40,13 @@ const COLLECTION = 'questionBank';
  */
 export async function createQuestion(questionData) {
   try {
-    const docRef = await addDoc(collection(db, COLLECTION), {
+    const questionWithMetadata = {
       ...questionData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
       version: 1,
       usageCount: 0
-    });
+    };
     
-    return { success: true, id: docRef.id };
+    return await createQuestionToDb(questionWithMetadata);
   } catch (error) {
     logger.error('Error creating question:', error);
     return { success: false, error: error.message };

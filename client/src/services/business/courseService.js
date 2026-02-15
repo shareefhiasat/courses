@@ -1,4 +1,4 @@
-﻿import { db } from '../other/config';
+import { db } from '../other/config';
 import { 
   collection, 
   doc, 
@@ -8,6 +8,18 @@ import {
   query, 
   orderBy 
 } from 'firebase/firestore';
+import logger from '@utils/logger';
+import { 
+  getCourses as getCoursesFromDb,
+  getCourse as getCourseFromDb,
+  createCourse as createCourseToDb,
+  updateCourse as updateCourseInDb,
+  setCourse as setCourseToDb,
+  deleteCourse as deleteCourseFromDb,
+  getActiveCourses as getActiveCoursesFromDb,
+  getCoursesByProgram as getCoursesByProgramFromDb,
+  searchCourses as searchCoursesFromDb
+} from '../db/courseDbService';
 
 /**
  * Course Service
@@ -17,12 +29,9 @@ import {
 // Get all courses
 export const getCourses = async () => {
   try {
-    const q = query(collection(db, "courses"), orderBy("order", "asc"));
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return await getCoursesFromDb();
   } catch (error) {
+    logger.error('Error getting courses:', error);
     return { success: false, error: error.message };
   }
 };
@@ -30,8 +39,7 @@ export const getCourses = async () => {
 // Set/update course
 export const setCourse = async (courseId, data) => {
   try {
-    await setDoc(doc(db, "courses", courseId), data, { merge: true });
-    return { success: true };
+    return await setCourseToDb(courseId, data);
   } catch (error) {
     return { success: false, error: error.message };
   }

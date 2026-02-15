@@ -78,6 +78,28 @@ export const getUserByStudentNumber = async (studentNumber) => {
 };
 
 /**
+ * Get user by email
+ * @param {string} email - User email
+ * @returns {Promise<{success: boolean, data?: Object, error?: string}>}
+ */
+export const getUserByEmail = async (email) => {
+  try {
+    const q = query(collection(db, 'users'), where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const userDoc = querySnapshot.docs[0];
+      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
+    }
+    
+    return { success: false, error: 'User not found' };
+  } catch (error) {
+    logger.error('[UserDbService] Error getting user by email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Get users by role
  * @param {string} role - User role
  * @returns {Promise<{success: boolean, data: Array, error?: string}>}

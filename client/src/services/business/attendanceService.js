@@ -5,6 +5,14 @@ import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes';
 import { getUserById } from './userService';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
+import { 
+  getAttendanceRecords as getAttendanceRecordsFromDb,
+  getAttendanceRecord as getAttendanceRecordFromDb,
+  setAttendanceRecord as setAttendanceRecordToDb,
+  updateAttendanceRecord as updateAttendanceRecordInDb,
+  deleteAttendanceRecord as deleteAttendanceRecordFromDb,
+  getAttendanceStats as getAttendanceStatsFromDb
+} from '../db/attendanceDbService';
 
 /**
  * Centralized Attendance Service - DRY Firebase attendance operations
@@ -171,20 +179,7 @@ export const markAttendance = async (attendanceData) => {
  */
 export const getAttendanceByClass = async (classId, date) => {
   try {
-    const attendanceRef = collection(db, 'attendance');
-    const q = query(
-      attendanceRef,
-      where('classId', '==', classId),
-      where('date', '==', date)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const attendanceRecords = [];
-    querySnapshot.forEach((doc) => {
-      attendanceRecords.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return { success: true, data: attendanceRecords };
+    return await getAttendanceRecords({ classId, date });
   } catch (error) {
     logger.error('Error fetching class attendance:', error);
     return { success: false, error: error.message };
@@ -196,24 +191,7 @@ export const getAttendanceByClass = async (classId, date) => {
  */
 export const getAttendanceByStudent = async (studentId, startDate = null, endDate = null) => {
   try {
-    const attendanceRef = collection(db, 'attendance');
-    let q = query(attendanceRef, where('studentId', '==', studentId));
-    
-    if (startDate || endDate) {
-      // Add date range filters if provided
-      const constraints = [];
-      if (startDate) constraints.push(where('date', '>=', startDate));
-      if (endDate) constraints.push(where('date', '<=', endDate));
-      q = query(attendanceRef, where('studentId', '==', studentId), ...constraints);
-    }
-    
-    const querySnapshot = await getDocs(q);
-    const attendanceRecords = [];
-    querySnapshot.forEach((doc) => {
-      attendanceRecords.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return { success: true, data: attendanceRecords };
+    return await getAttendanceRecords({ studentId, startDate, endDate });
   } catch (error) {
     logger.error('Error fetching student attendance:', error);
     return { success: false, error: error.message };
@@ -226,36 +204,7 @@ export const getAttendanceByStudent = async (studentId, startDate = null, endDat
  */
 export const getAttendanceStats = async (classId, startDate = null, endDate = null) => {
   try {
-    const attendanceRef = collection(db, 'attendance');
-    let q = query(attendanceRef, where('classId', '==', classId));
-    
-    if (startDate || endDate) {
-      const constraints = [];
-      if (startDate) constraints.push(where('date', '>=', startDate));
-      if (endDate) constraints.push(where('date', '<=', endDate));
-      q = query(attendanceRef, where('classId', '==', classId), ...constraints);
-    }
-    
-    const querySnapshot = await getDocs(q);
-    const attendanceRecords = [];
-    querySnapshot.forEach((doc) => {
-      attendanceRecords.push({ id: doc.id, ...doc.data() });
-    });
-    
-    // Calculate statistics
-    const stats = {
-      total: attendanceRecords.length,
-      present: attendanceRecords.filter(r => r.status === 'present').length,
-      late: attendanceRecords.filter(r => r.status === 'late').length,
-      absent: attendanceRecords.filter(r => r.status === 'absent').length,
-      excused: attendanceRecords.filter(r => r.status === 'excused').length,
-      absent_no_excuse: attendanceRecords.filter(r => r.status === 'absent_no_excuse').length,
-      absent_with_excuse: attendanceRecords.filter(r => r.status === 'absent_with_excuse').length,
-      excused_leave: attendanceRecords.filter(r => r.status === 'excused_leave').length,
-      human_case: attendanceRecords.filter(r => r.status === 'human_case').length
-    };
-    
-    return { success: true, data: stats };
+    return await getAttendanceStatsFromDb(classId, startDate, endDate);
   } catch (error) {
     logger.error('Error calculating attendance stats:', error);
     return { success: false, error: error.message };
@@ -300,10 +249,7 @@ export const deleteAttendance = async (attendanceId) => {
       return { success: false, error: 'Attendance ID is required' };
     }
     
-    const docRef = doc(db, 'attendance', attendanceId);
-    await deleteDoc(docRef);
-    
-    return { success: true, message: 'Attendance record deleted successfully' };
+    return await deleteAttendanceRecordFromDb(attendanceId);
   } catch (error) {
     logger.error('Error deleting attendance:', error);
     return { success: false, error: error.message };

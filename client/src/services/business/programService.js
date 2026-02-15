@@ -16,6 +16,7 @@ import {
 import { db } from '../other/config';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { getProgramsSorted } from '../db/programDbService';
 
 // Re-export getClasses from classService for convenience
 export { getClasses, addClass, updateClass, deleteClass, getClassById } from './classService';
@@ -26,16 +27,7 @@ export { getClasses, addClass, updateClass, deleteClass, getClassById } from './
  */
 export const getPrograms = async () => {
   try {
-    const q = query(collection(db, 'programs'), orderBy('name_en', 'asc'));
-    const qs = await getDocs(q);
-    
-    const items = [];
-    qs.docs.forEach((d) => {
-      const programData = { docId: d.id, ...d.data() };
-      items.push(programData);
-    });
-    
-    return { success: true, data: items };
+    return await getProgramsSorted();
   } catch (error) {
     logger.error('PROGRAM: Failed to fetch programs', { error: error.message });
     return { success: false, error: error.message };

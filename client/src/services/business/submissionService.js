@@ -1,4 +1,4 @@
-﻿import { 
+import { 
   doc, 
   collection, 
   addDoc, 
@@ -13,6 +13,15 @@
 } from 'firebase/firestore';
 import { db } from '../other/config';
 import { SUBMISSION_STATUS } from '@utils/sharedTypes';
+import { 
+  getSubmissionsByUser as getSubmissionsByUserFromDb,
+  getSubmissionsByActivity as getSubmissionsByActivityFromDb,
+  getSubmission as getSubmissionFromDb,
+  createSubmission as createSubmissionToDb,
+  updateSubmission as updateSubmissionInDb,
+  deleteSubmission as deleteSubmissionFromDb,
+  getSubmissions as getSubmissionsFromDb
+} from '../db/submissionsDbService';
 
 // Submit activity completion
 export const submitActivity = async (userId, activityId, classId, data = {}) => {

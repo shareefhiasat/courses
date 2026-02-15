@@ -1,4 +1,4 @@
-﻿import {
+import {
   collection,
   doc,
   query,
@@ -18,15 +18,28 @@
 } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../other/config';
+import logger from '@utils/logger';
+import { 
+  getChatRoom as getChatRoomFromDb,
+  createChatRoom as createChatRoomToDb,
+  updateChatRoom as updateChatRoomInDb,
+  getChatRoomsByUser as getChatRoomsByUserFromDb,
+  getChatMessages as getChatMessagesFromDb,
+  sendChatMessage as sendChatMessageToDb,
+  deleteChatMessage as deleteChatMessageFromDb,
+  subscribeToChatMessages as subscribeToChatMessagesFromDb,
+  subscribeToChatRoom as subscribeToChatRoomFromDb,
+  getUserMessageColor as getUserMessageColorFromDb,
+  updateUserMessageColor as updateUserMessageColorInDb
+} from '../db/chatDbService';
 
 // Chat Service - Centralized chat operations
 export const chatService = {
   // User operations
   async getUserMessageColor(userId) {
     try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      const data = userDoc.exists() ? userDoc.data() : {};
-      return data.messageColor;
+      const result = await getUserMessageColorFromDb(userId);
+      return result.success ? result.data : null;
     } catch (error) {
       logger.error('Error getting user message color:', error);
       return null;

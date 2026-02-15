@@ -1,22 +1,28 @@
-﻿import { db } from '../other/config';
 import { 
-  collection, 
   doc, 
-  getDocs, 
   getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
   query, 
   where, 
+  getDocs, 
+  collection,
   Timestamp, 
   arrayUnion, 
   increment, 
   serverTimestamp 
 } from 'firebase/firestore';
+import { db } from '../other/config';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { notificationGateway } from './notificationGateway';
 import logger from '@utils/logger';
+import { 
+  getEnrollments as getEnrollmentsFromDb,
+  getEnrollmentsByUser as getEnrollmentsByUserFromDb,
+  getEnrollmentsByClass as getEnrollmentsByClassFromDb,
+  getEnrollment as getEnrollmentFromDb,
+  setEnrollment as setEnrollmentToDb,
+  updateEnrollment as updateEnrollmentInDb,
+  deleteEnrollment as deleteEnrollmentFromDb
+} from '../db/enrollmentDbService';
 
 /**
  * Unified Enrollment Service
@@ -34,11 +40,9 @@ import logger from '@utils/logger';
 // Get all enrollments
 export const getEnrollments = async () => {
   try {
-    const qs = await getDocs(collection(db, "enrollments"));
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return await getEnrollmentsFromDb();
   } catch (error) {
+    logger.error('ENROLLMENT: Failed to fetch enrollments', { error: error.message });
     return { success: false, error: error.message };
   }
 };
@@ -115,12 +119,9 @@ export const deleteEnrollment = async (id) => {
 // Get enrollments by user ID
 export const getEnrollmentsByUser = async (userId) => {
   try {
-    const q = query(collection(db, "enrollments"), where("userId", "==", userId));
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return await getEnrollmentsByUserFromDb(userId);
   } catch (error) {
+    logger.error('ENROLLMENT: Failed to fetch enrollments by user', { error: error.message, userId });
     return { success: false, error: error.message };
   }
 };
@@ -128,12 +129,9 @@ export const getEnrollmentsByUser = async (userId) => {
 // Get enrollments by class ID
 export const getEnrollmentsByClass = async (classId) => {
   try {
-    const q = query(collection(db, "enrollments"), where("classId", "==", classId));
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return await getEnrollmentsByClassFromDb(classId);
   } catch (error) {
+    logger.error('ENROLLMENT: Failed to fetch enrollments by class', { error: error.message, classId });
     return { success: false, error: error.message };
   }
 };

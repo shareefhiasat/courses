@@ -1,4 +1,4 @@
-﻿import { 
+import { 
   collection, 
   doc, 
   getDocs, 
@@ -12,6 +12,16 @@
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import { 
+  getSubjects as getSubjectsFromDb,
+  getSubject as getSubjectFromDb,
+  createSubject as createSubjectToDb,
+  updateSubject as updateSubjectInDb,
+  deleteSubject as deleteSubjectFromDb,
+  getSubjectsByProgram as getSubjectsByProgramFromDb,
+  getActiveSubjects as getActiveSubjectsFromDb,
+  searchSubjects as searchSubjectsFromDb
+} from '../db/subjectDbService';
 
 /**
  * Subjects Collection
@@ -19,11 +29,7 @@ import { db } from '../other/config';
  */
 export const getSubjects = async () => {
   try {
-    const q = query(collection(db, 'subjects'), orderBy('name_en', 'asc'));
-    const qs = await getDocs(q);
-    const items = [];
-    qs.forEach(d => items.push({ docId: d.id, ...d.data() }));
-    return { success: true, data: items };
+    return await getSubjectsFromDb();
   } catch (error) {
     return { success: false, error: error.message };
   }

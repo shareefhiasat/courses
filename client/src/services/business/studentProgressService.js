@@ -1,4 +1,4 @@
-﻿import { 
+import { 
   doc, 
   getDoc, 
   setDoc, 
@@ -11,17 +11,27 @@
   increment
 } from 'firebase/firestore';
 import { db } from '../other/config';
+import logger from '@utils/logger';
+import { 
+  getStudentProgress as getStudentProgressFromDb,
+  setStudentProgress as setStudentProgressToDb,
+  updateStudentProgress as updateStudentProgressInDb,
+  incrementStudentProgress as incrementStudentProgressInDb,
+  getAllStudentProgress as getAllStudentProgressFromDb,
+  getStudentProgressByClass as getStudentProgressByClassFromDb,
+  deleteStudentProgress as deleteStudentProgressFromDb,
+  initializeStudentProgress as initializeStudentProgressToDb
+} from '../db/studentProgressDbService';
 
 /**
  * Get student progress data
  */
 export async function getStudentProgress(userId) {
   try {
-    const docRef = doc(db, 'studentProgress', userId);
-    const docSnap = await getDoc(docRef);
+    const result = await getStudentProgressFromDb(userId);
     
-    if (docSnap.exists()) {
-      return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
+    if (result.success) {
+      return result;
     } else {
       // Initialize default progress if doesn't exist
       const defaultProgress = {
@@ -56,7 +66,7 @@ export async function getStudentProgress(userId) {
         updatedAt: serverTimestamp()
       };
       
-      await setDoc(docRef, defaultProgress);
+      await initializeStudentProgressToDb(userId);
       return { success: true, data: { id: userId, ...defaultProgress } };
     }
   } catch (error) {

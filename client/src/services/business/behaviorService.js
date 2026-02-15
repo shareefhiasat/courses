@@ -6,6 +6,14 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { 
+  createBehavior as createBehaviorToDb,
+  getBehavior as getBehaviorFromDb,
+  updateBehavior as updateBehaviorInDb,
+  deleteBehavior as deleteBehaviorFromDb,
+  getBehaviorsByStudent as getBehaviorsByStudentFromDb,
+  getBehaviorsByClass as getBehaviorsByClassFromDb
+} from '../db/behaviorDbService';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;

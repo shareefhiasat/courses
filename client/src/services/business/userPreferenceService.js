@@ -1,5 +1,6 @@
-﻿import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../other/config';
+import logger from '@utils/logger';
 
 /**
  * Get user preferences from Firestore

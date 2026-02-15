@@ -2,6 +2,7 @@ import { doc, getDoc, query, collection, where, getDocs, setDoc, updateDoc, dele
 import { db } from '../other/config';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
+import { getUserByEmail as getUserByEmailFromDb } from '../db/userDbService';
 import { USER_STATUS } from '@utils/userStatus';
 import { 
   USER_ROLES, 
@@ -43,15 +44,7 @@ export const getUserById = async (userId) => {
 // Get user by email (centralized)
 export const getUserByEmail = async (email) => {
   try {
-    const q = query(collection(db, 'users'), where('email', '==', email));
-    const querySnapshot = await getDocs(q);
-    
-    if (!querySnapshot.empty) {
-      const userDoc = querySnapshot.docs[0];
-      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
-    }
-    
-    return { success: false, error: 'User not found' };
+    return await getUserByEmailFromDb(email);
   } catch (error) {
     logger.error('USER: Failed to fetch user by email', { error: error.message, email });
     return { success: false, error: error.message };
