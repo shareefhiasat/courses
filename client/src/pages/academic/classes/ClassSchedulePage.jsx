@@ -23,6 +23,8 @@ const ClassSchedulePage = () => {
   const [subjects, setSubjects] = useState([]);
   const [instructors, setInstructors] = useState({}); // Map email -> user data
   const [selectedClass, setSelectedClass] = useState(null);
+  const [viewMode, setViewMode] = useState('detailed'); // 'detailed' | 'semester'
+  const [quickSearch, setQuickSearch] = useState(''); // Quick filter for class name or instructor
 
   // Debug log to show current primaryColor
   console.log('[ClassSchedule] Primary color from ColorTheme:', primaryColor);
@@ -94,6 +96,18 @@ const ClassSchedulePage = () => {
 
   const filteredClasses = useMemo(() => {
     let result = [...classes];
+
+    // Quick search filter for class name or instructor
+    if (quickSearch.trim()) {
+      const searchLower = quickSearch.toLowerCase();
+      result = result.filter(cls => {
+        const className = (cls.name || cls.code || '').toLowerCase();
+        const instructorName = instructors[cls.ownerEmail] 
+          ? (instructors[cls.ownerEmail].realName || instructors[cls.ownerEmail].displayName || instructors[cls.ownerEmail].email || '').toLowerCase()
+          : '';
+        return className.includes(searchLower) || instructorName.includes(searchLower);
+      });
+    }
 
     // Note: Program, subject, and class filtering is now handled by ProgramsSelect
     // We only need to filter by year and term here
@@ -172,7 +186,20 @@ const ClassSchedulePage = () => {
     });
     
     return result;
-  }, [classes, yearFilter, termFilter, instructors]);
+  }, [classes, yearFilter, termFilter, instructors, quickSearch]);
+
+  // Group classes by semester for semester view
+  const classesBySemester = useMemo(() => {
+    const grouped = {};
+    filteredClasses.forEach(cls => {
+      const semester = cls.term || 'Unknown Semester';
+      if (!grouped[semester]) {
+        grouped[semester] = [];
+      }
+      grouped[semester].push(cls);
+    });
+    return grouped;
+  }, [filteredClasses]);
 
   useEffect(() => {
     if (!user) return;
@@ -353,6 +380,59 @@ const ClassSchedulePage = () => {
           gap: 12, 
           alignItems: 'center' 
         }}>
+          {/* View Toggle */}
+          <div style={{ display: 'flex', gap: 4, background: theme === 'dark' ? '#1f2937' : '#f3f4f6', padding: 4, borderRadius: 8 }}>
+            <button
+              onClick={() => setViewMode('detailed')}
+              style={{
+                padding: '0.5rem',
+                border: 'none',
+                borderRadius: 6,
+                background: viewMode === 'detailed' ? primaryColor : 'transparent',
+                color: viewMode === 'detailed' ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              {getThemedIcon('ui', 'list', 16, theme)}
+            </button>
+            <button
+              onClick={() => setViewMode('semester')}
+              style={{
+                padding: '0.5rem',
+                border: 'none',
+                borderRadius: 6,
+                background: viewMode === 'semester' ? primaryColor : 'transparent',
+                color: viewMode === 'semester' ? 'white' : (theme === 'dark' ? '#f9fafb' : '#111827'),
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              {getThemedIcon('ui', 'calendar', 16, theme)}
+            </button>
+          </div>
+
+          {/* Quick Search */}
+          <input
+            type="text"
+            placeholder={t('quick_search_class_instructor') || 'Quick search class or instructor...'}
+            value={quickSearch}
+            onChange={(e) => setQuickSearch(e.target.value)}
+            style={{
+              flex: 1,
+              minWidth: 200,
+              maxWidth: 300,
+              padding: '0.5rem 0.75rem',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              fontSize: '0.875rem',
+              background: theme === 'dark' ? '#1f2937' : '#fff',
+              color: theme === 'dark' ? '#f9fafb' : '#111827'
+            }}
+          />
+
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
@@ -390,11 +470,13 @@ const ClassSchedulePage = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
-        {/* Class List */}
-        <div style={{ padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
-          <div style={{ fontWeight: 600, marginBottom: 8, fontSize: '0.9rem' }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
-          <div style={{ display: 'grid', gap: 8 }}>
+      {/* Conditional Rendering Based on View Mode */}
+      {viewMode === 'detailed' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
+          {/* Class List - Detailed View */}
+          <div style={{ padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: '0.9rem' }}>{t('classes') || 'Classes'} ({filteredClasses.length})</div>
+            <div style={{ display: 'grid', gap: 8 }}>
             {filteredClasses.map((cls, index) => {
               const currentId = selectedClass?.docId || selectedClass?.id;
               const clsId = cls.docId || cls.id;
@@ -630,6 +712,136 @@ const ClassSchedulePage = () => {
           )}
         </div>
       </div>
+      ) : (
+        /* Semester View - Bird's Eye Overview */
+        <div style={{ padding: '1rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h2 style={{ margin: 0, fontSize: 20, color: theme === 'dark' ? '#f9fafb' : '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {getThemedIcon('ui', 'calendar', 24, theme)}
+              {t('semester_overview') || 'Semester Overview'}
+            </h2>
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: 14, color: 'var(--muted)' }}>
+              {t('bird_eye_view_classes') || 'Bird\'s eye view of all classes by semester'} ({filteredClasses.length} {t('total_classes') || 'total classes'})
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            {Object.entries(classesBySemester).map(([semester, semesterClasses]) => (
+              <div key={semester} style={{ 
+                background: theme === 'dark' ? '#1f2937' : '#fff', 
+                border: '1px solid var(--border)', 
+                borderRadius: 12, 
+                padding: '1rem',
+                transition: 'all 0.2s',
+                '&:hover': {
+                  borderColor: primaryColor,
+                  boxShadow: `0 4px 12px ${primaryColor}20`
+                }
+              }}>
+                {/* Semester Header */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginBottom: '1rem',
+                  paddingBottom: '0.75rem',
+                  borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+                }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: primaryColor }}>
+                      {semester}
+                    </h3>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: 12, color: 'var(--muted)' }}>
+                      {semesterClasses.length} {t('classes') || 'classes'}
+                    </p>
+                  </div>
+                  <div style={{ 
+                    padding: '0.25rem 0.75rem', 
+                    background: `${primaryColor}20`, 
+                    color: primaryColor, 
+                    borderRadius: 20, 
+                    fontSize: 12, 
+                    fontWeight: 500 
+                  }}>
+                    {semesterClasses.filter(cls => cls.schedule && cls.schedule.days && cls.schedule.days.length > 0).length} {t('scheduled') || 'scheduled'}
+                  </div>
+                </div>
+
+                {/* Classes Grid */}
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                  gap: '0.75rem' 
+                }}>
+                  {semesterClasses.map((cls, index) => {
+                    const clsId = cls.docId || cls.id;
+                    const hasSchedule = cls.schedule && cls.schedule.days && cls.schedule.days.length > 0;
+                    return (
+                      <div
+                        key={clsId || `semester-${index}`}
+                        onClick={() => {
+                          setSelectedClass(cls);
+                          setViewMode('detailed'); // Switch to detailed view when clicking
+                        }}
+                        style={{
+                          padding: '0.75rem',
+                          border: '1px solid var(--border)',
+                          borderRadius: 8,
+                          background: hasSchedule ? `${primaryColor}10` : (theme === 'dark' ? '#374151' : '#f9fafb'),
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          '&:hover': {
+                            background: hasSchedule ? `${primaryColor}20` : (theme === 'dark' ? '#4b5563' : '#f3f4f6'),
+                            transform: 'translateY(-1px)',
+                            boxShadow: `0 2px 8px ${primaryColor}15`
+                          }
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: '0.25rem' }}>
+                          {cls.name || cls.code}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: '0.5rem' }}>
+                          {instructors[cls.ownerEmail] 
+                            ? (instructors[cls.ownerEmail].realName || instructors[cls.ownerEmail].displayName || instructors[cls.ownerEmail].email)
+                            : `Loading... (${cls.ownerEmail})`
+                          }
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>
+                            {hasSchedule ? `${cls.schedule.frequency} • ${cls.schedule.days.join(', ')}` : (t('no_schedule') || 'No schedule')}
+                          </div>
+                          {hasSchedule && (
+                            <div style={{ 
+                              width: 8, 
+                              height: 8, 
+                              background: primaryColor, 
+                              borderRadius: '50%' 
+                            }} />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {Object.keys(classesBySemester).length === 0 && (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '3rem', 
+              color: 'var(--muted)',
+              fontSize: 14 
+            }}>
+              {getThemedIcon('ui', 'calendar', 48, theme)}
+              <div style={{ marginTop: '1rem' }}>
+                {quickSearch ? (t('no_classes_found_search') || 'No classes found matching your search') : (t('no_classes_found_filters') || 'No classes found for the selected filters')}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

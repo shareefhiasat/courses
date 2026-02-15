@@ -89,6 +89,7 @@ const ProgramsSelect = ({
               // Reset class when subject changes
               onClassChange?.('');
             }}
+            placeholder={selectedProgram ? (t('select_subject') || 'Select subject') : (t('all_subjects') || 'All Subjects')}
             disabled={disabled || !selectedProgram || filteredSubjects.length === 0}
           />
         </div>
@@ -104,6 +105,7 @@ const ProgramsSelect = ({
               const value = e?.target?.value || e?.value || '';
               onClassChange?.(value);
             }}
+            placeholder={selectedSubject ? (t('select_class') || 'Select class') : (t('all_classes') || 'All Classes')}
             disabled={disabled || !selectedSubject || filteredClasses.length === 0}
           />
         </div>
