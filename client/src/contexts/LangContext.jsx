@@ -218,6 +218,42 @@ const DICT = {
     no_penalties: 'No Penalties',
     has_penalties: 'Has Penalties',
     
+    // Statistics Tooltips
+    students: 'Students',
+    penalties: 'Penalties',
+    behaviors: 'Behaviors',
+    quizzes: 'Quizzes',
+    resources: 'Resources',
+    
+    // Quick Search
+    quick_search_class_instructor: 'Quick search class or instructor...',
+    
+    // DraggableClock
+    pin_to_navbar: 'Pin to navbar',
+    unpin_from_navbar: 'Unpin from navbar',
+    maximize: 'Maximize',
+    minimize: 'Minimize',
+    
+    // Filter View
+    minified_filters: 'Minified Filters',
+    full_filters: 'Full Filters',
+    toggle_filter_view: 'Toggle Filter View',
+    
+    // Theme Toggle
+    dark_mode: 'Dark',
+    light_mode: 'Light',
+    
+    // Density Toggle
+    normal_view: 'Normal View',
+    compact_view: 'Compact View',
+    
+    // User Roles
+    super_admin: 'Super Admin',
+    admin: 'Admin',
+    instructor: 'Instructor',
+    hr: 'HR',
+    student: 'Student',
+    
     // Dashboard Statistics Tooltips
     total_programs_system: 'Total number of programs in the system',
     total_subjects_accessible: 'Subjects in your accessible programs',
@@ -2057,6 +2093,42 @@ const DICT = {
     all_years: 'جميع السنوات',
     all_terms: 'جميع الفصول',
 
+    // Statistics Tooltips (Arabic)
+    students: 'الطلاب',
+    penalties: 'العقوبات',
+    behaviors: 'السلوكيات',
+    quizzes: 'الاختبارات',
+    resources: 'المصادر',
+
+    // Quick Search (Arabic)
+    quick_search_class_instructor: 'البحث السريع عن الفصل أو المدرب...',
+    
+    // DraggableClock (Arabic)
+    pin_to_navbar: 'تثبيت في شريط التنقل',
+    unpin_from_navbar: 'إلغاء التثبيت من شريط التنقل',
+    maximize: 'تكبير',
+    minimize: 'تصغير',
+    
+    // Filter View (Arabic)
+    minified_filters: 'فلاتر مصغرة',
+    full_filters: 'فلاتر كاملة',
+    toggle_filter_view: 'تبديل عرض الفلاتر',
+    
+    // Theme Toggle (Arabic)
+    dark_mode: 'داكن',
+    light_mode: 'فاتح',
+    
+    // Density Toggle (Arabic)
+    normal_view: 'عرض عادي',
+    compact_view: 'عرض مدمج',
+    
+    // User Roles (Arabic)
+    super_admin: 'مسؤول متميز',
+    admin: 'مسؤول',
+    instructor: 'مدرب',
+    hr: 'الموارد البشرية',
+    student: 'طالب',
+
         // QR Scanner Page
     loading: 'جاري التحميل...',
     min: 'الحد الأدنى',
@@ -3538,8 +3610,8 @@ const DICT = {
     last_activity_minutes: 'آخر نشاط كان',
     last_activity_just_now: 'آخر نشاط كان الآن',
     dismiss_message: 'تجاهل الرسالة',
-    signup_success: '✅ تم إنشاء الحساب بنجاح! سيتم التحويل...',
-    login_success: '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...',
+    signup_success: ' تم إنشاء الحساب بنجاح! سيتم التحويل...',
+    login_success: ' تم تسجيل الدخول بنجاح! سيتم التحويل...',
     registration_restricted: 'التسجيل مقيد. بريدك غير موجود في قائمة السماح. تواصل مع الإدارة.',
     allowlist_error: 'تعذر التحقق من صلاحيات التسجيل. حاول لاحقاً.',
     

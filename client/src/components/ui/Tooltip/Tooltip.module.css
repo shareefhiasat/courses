@@ -11,7 +11,7 @@
   padding: 0.5rem 0.75rem;
   background: var(--color-gray-900, #212529);
   color: white;
-  font-size: var(--font-size-xs, 0.75rem);
+  font-size: var(--font-size-sm, 0.875rem);
   border-radius: var(--radius-md, 8px);
   white-space: nowrap;
   animation: fadeIn 0.2s ease;

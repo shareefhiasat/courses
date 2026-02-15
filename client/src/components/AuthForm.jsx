@@ -343,9 +343,9 @@ const AuthForm = () => {
             document.cookie = `rememberMe=true; expires=${expiryDate.toUTCString()}; path=/`;
           }
           if (showSuccess) {
-            showSuccess(tr('login_success', 'Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
+            showSuccess(tr('login_success', 'Login successful! Redirecting...', ' تم تسجيل الدخول بنجاح! سيتم التحويل...'));
           } else {
-            setMessage(tr('login_success', 'Login successful! Redirecting...', '✅ تم تسجيل الدخول بنجاح! سيتم التحويل...'));
+            setMessage(tr('login_success', 'Login successful! Redirecting...', ' تم تسجيل الدخول بنجاح! سيتم التحويل...'));
           }
           setTimeout(() => navigate('/'), 1000);
         } else {

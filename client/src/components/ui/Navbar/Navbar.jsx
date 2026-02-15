@@ -272,7 +272,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               onMouseLeave={(e) => e.target.style.background = '#ff9800'}
               title={t('exit_impersonation') || 'Exit Impersonation'}
             >
-              {getThemedIcon('ui', 'user', 16, theme)} {t('viewing_as_student') || 'Viewing as Student'} <span style={{ marginLeft: '0.5rem' }}>✕</span>
+              {getThemedIcon('ui', 'user', 16, theme === 'light' ? 'white' : theme)} {t('viewing_as_student') || 'Viewing as Student'} <span style={{ marginLeft: '0.5rem' }}>✕</span>
             </button>
           )}
           
@@ -309,7 +309,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     fontWeight: 600
                   }}
                 >
-                  {lang === 'en' ? 'AR' : 'EN'}
+                  {lang === 'en' ? 'EN' : 'AR'}
                 </button>
 
                 <button
@@ -360,12 +360,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {getThemedIcon('ui', 'info', 18, theme)}
+                  {getThemedIcon('ui', 'info', 18, theme === 'light' ? 'var(--text-primary)' : theme)}
                 </button>
 
                 <button
                   className="nav-icon-btn"
-                  title={theme==='light'?'Dark':'Light'}
+                  title={theme==='light'?(t('dark_mode')||'Dark'):(t('light_mode')||'Light')}
                   onClick={toggleTheme}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
@@ -380,7 +380,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {theme==='light'?getThemedIcon('ui', 'moon', 16, theme):getThemedIcon('ui', 'sun', 16, theme)}
+                  {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
                 </button>
                 <button
                   className="nav-icon-btn"
@@ -395,16 +395,16 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   title={(() => {
                     try {
                       const current = localStorage.getItem('filterViewMode') || 'full';
-                      return current === 'full' ? 'Minified Filters' : 'Full Filters';
+                      return current === 'full' ? (t('minified_filters') || 'Minified Filters') : (t('full_filters') || 'Full Filters');
                     } catch {
-                      return 'Toggle Filter View';
+                      return (t('toggle_filter_view') || 'Toggle Filter View');
                     }
                   })()}
                 >
                   {(() => {
                     try {
                       const current = localStorage.getItem('filterViewMode') || 'full';
-                      return current === 'full' ? getThemedIcon('ui', 'layout_grid', 16, theme) : getThemedIcon('ui', 'list', 16, theme);
+                      return current === 'full' ? getThemedIcon('ui', 'layout_grid', 16, theme === 'light' ? 'var(--text-primary)' : theme) : getThemedIcon('ui', 'list', 16, theme === 'light' ? 'var(--text-primary)' : theme);
                     } catch {
                       return getThemedIcon('ui', 'layout_grid', 16, theme);
                     }
@@ -458,23 +458,23 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {/* Multiple role badges stacked on the right side */}
                 <div style={{ position:'absolute', right:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {isSuperAdmin && (
-                    <div title="Super Admin" style={{ background:'#f59e0b', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'crown', 10, theme)}
+                    <div title={t('super_admin') || 'Super Admin'} style={{ background:'#f59e0b', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      {getThemedIcon('ui', 'crown', 10, theme === 'light' ? 'white' : theme)}
                     </div>
                   )}
                   {isAdmin && !isSuperAdmin && (
-                    <div title="Admin" style={{ background:'#4f46e5', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'shield', 10, theme)}
+                    <div title={t('admin') || 'Admin'} style={{ background:'#4f46e5', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      {getThemedIcon('ui', 'shield', 10, theme === 'light' ? 'white' : theme)}
                     </div>
                   )}
                   {isInstructor && (
-                    <div title="Instructor" style={{ background:'#0ea5e9', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'book_open', 10, theme)}
+                    <div title={t('instructor') || 'Instructor'} style={{ background:'#0ea5e9', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      {getThemedIcon('ui', 'book_open', 10, theme === 'light' ? 'white' : theme)}
                     </div>
                   )}
                   {isHR && (
-                    <div title="HR" style={{ background:'#8b5cf6', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getThemedIcon('ui', 'users', 10, theme)}
+                    <div title={t('hr') || 'HR'} style={{ background:'#8b5cf6', color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
+                      {getThemedIcon('ui', 'users', 10, theme === 'light' ? 'white' : theme)}
                     </div>
                   )}
                 </div>
@@ -492,29 +492,29 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                           {t('student_number') || 'Student Number'}: {studentNumber}
                         </div>
                       )}
-                      <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems:'center' }}>
+                      <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
                         {isSuperAdmin && (
                           <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'crown', 14, '#f59e0b')} Super Admin
+                            {getIconWithColor('ui', 'crown', 14, '#f59e0b')} {t('super_admin') || 'Super Admin'}
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
                           <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'shield', 14, '#4f46e5')} Admin
+                            {getIconWithColor('ui', 'shield', 14, '#4f46e5')} {t('admin') || 'Admin'}
                           </span>
                         )}
                         {isInstructor && (
                           <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'book_open', 14, '#0ea5e9')} Instructor
+                            {getIconWithColor('ui', 'book_open', 14, '#0ea5e9')} {t('instructor') || 'Instructor'}
                           </span>
                         )}
                         {isHR && (
                           <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getIconWithColor('ui', 'users', 14, '#8b5cf6')} HR
+                            {getIconWithColor('ui', 'users', 14, '#8b5cf6')} {t('hr') || 'HR'}
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                          <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>Student</span>
+                          <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
                         )}
                       </div>
                     </div>
@@ -528,7 +528,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             {user ? (
               <>
                 <NavLink to="/" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
-                  <span style={{ display: 'inline-flex', alignItems:'center' }}>{getThemedIcon('ui', 'home', 18, theme)}</span>
+                  <span style={{ display: 'inline-flex', alignItems:'center' }}>{getThemedIcon('ui', 'home', 18, theme === 'light' ? 'white' : theme)}</span>
                 </NavLink>
               {!isAdmin && (
                 <>
@@ -567,13 +567,13 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               <NotificationBell />
               
               <button onClick={toggleLang} className="icon-btn" title={lang==='en'?'العربية':'English'}>
-                {lang==='en'?'AR':'EN'}
+                {lang==='en'?'EN':'AR'}
               </button>
-              <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn" title={density==='compact'?'Normal View':'Compact View'}>
-                {density==='compact'?getThemedIcon('ui', 'zoom_in', 16, theme):getThemedIcon('ui', 'ruler', 16, theme)}
+              <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn" title={density==='compact'?(t('normal_view')||'Normal View'):(t('compact_view')||'Compact View')}>
+                {density==='compact'?getThemedIcon('ui', 'zoom_in', 16, theme === 'light' ? 'var(--text-primary)' : theme):getThemedIcon('ui', 'ruler', 16, theme === 'light' ? 'var(--text-primary)' : theme)}
               </button>
-              <button onClick={toggleTheme} className="icon-btn" title={theme==='light'?'Dark':'Light'}>
-                {theme==='light'?getThemedIcon('ui', 'moon', 16, theme):getThemedIcon('ui', 'sun', 16, theme)}
+              <button onClick={toggleTheme} className="icon-btn" title={theme==='light'?(t('dark_mode')||'Dark'):(t('light_mode')||'Light')}>
+                {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
               </button>
               
               <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)} ref={menuRef}>
@@ -582,9 +582,43 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </div>
                 {showDropdown && (
                   <div className="dropdown-menu">
-                    <div className="dropdown-item user-info">
-                      <div className="user-email">{displayName || user.email}</div>
-                      {isAdmin && <div className="admin-badge">{t('admin') || 'Admin'}</div>}
+                    <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
+                      <div className="user-email" style={{ fontWeight: 600, marginBottom: 4 }}>{user.email}</div>
+                      {displayName && displayName !== user.email && (
+                        <div className="display-name" style={{ fontSize: '0.9rem', color: '#333', marginBottom: 4 }}>
+                          {t('display_name') || 'Display Name'}: {displayName}
+                        </div>
+                      )}
+                      {studentNumber && (
+                        <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
+                          {t('student_number') || 'Student Number'}: {studentNumber}
+                        </div>
+                      )}
+                      <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
+                        {isSuperAdmin && (
+                          <span style={{ color: '#f59e0b', border: '1.5px solid #f59e0b', background: 'rgba(245, 158, 11, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getIconWithColor('ui', 'crown', 14, '#f59e0b')} {t('super_admin') || 'Super Admin'}
+                          </span>
+                        )}
+                        {isAdmin && !isSuperAdmin && (
+                          <span style={{ color: '#4f46e5', border: '1.5px solid #4f46e5', background: 'rgba(79, 70, 229, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getIconWithColor('ui', 'shield', 14, '#4f46e5')} {t('admin') || 'Admin'}
+                          </span>
+                        )}
+                        {isInstructor && (
+                          <span style={{ color: '#0ea5e9', border: '1.5px solid #0ea5e9', background: 'rgba(14, 165, 233, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getIconWithColor('ui', 'book_open', 14, '#0ea5e9')} {t('instructor') || 'Instructor'}
+                          </span>
+                        )}
+                        {isHR && (
+                          <span style={{ color: '#8b5cf6', border: '1.5px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.1)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getIconWithColor('ui', 'users', 14, '#8b5cf6')} {t('hr') || 'HR'}
+                          </span>
+                        )}
+                        {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
+                          <span style={{ color: '#16a34a', border: '1.5px solid #16a34a', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
+                        )}
+                      </div>
                     </div>
                     <button className="dropdown-item" onClick={openProfile}>
                       {t('edit_profile')}

@@ -8,16 +8,33 @@ import { getAllClasses, updateClassSchedule } from '@services/business/classServ
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getUserByEmail } from '@services/business/userService';
 import { getDayNames, getCurrentLanguage } from '@utils/date';
+import { getEnrollments } from '@services/business/enrollmentService';
+import { getPenalties } from '@services/business/penaltyService';
+import { getBehaviors } from '@services/business/behaviorService';
+import { getAllQuizzes } from '@services/business/quizService';
+import { getActivities } from '@services/business/activityService';
+import { getAnnouncements } from '@services/business/announcementService';
+import { getResources } from '@services/business/resourceService';
 import { FilterSelect, useToast, Loading } from '@ui';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { getThemedIcon } from '@constants/iconTypes';
+import Tooltip from '@ui/Tooltip/Tooltip';
+import ClassCard from '@ui/ClassCard/ClassCard';
 
 const ClassSchedulePage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const { primaryColor } = useColorTheme(); // Simple! Gets color from localStorage
   const toast = useToast();
+
+  // Helper function to get localized class name
+  const getLocalizedClassName = (cls) => {
+    if (lang === 'ar' && cls.nameAr) {
+      return cls.nameAr;
+    }
+    return cls.name || cls.code || t('unnamed_class') || 'Unnamed Class';
+  };
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -25,6 +42,7 @@ const ClassSchedulePage = () => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [viewMode, setViewMode] = useState('detailed'); // 'detailed' | 'semester'
   const [quickSearch, setQuickSearch] = useState(''); // Quick filter for class name or instructor
+  const [classStats, setClassStats] = useState({}); // Statistics for each class
 
   // Debug log to show current primaryColor
   console.log('[ClassSchedule] Primary color from ColorTheme:', primaryColor);
@@ -207,6 +225,74 @@ const ClassSchedulePage = () => {
     loadClasses();
   }, [user, isAdmin, isInstructor]);
 
+  // Fetch class statistics for semester view
+  const fetchClassStats = useCallback(async (classList) => {
+    const stats = {};
+    
+    for (const cls of classList) {
+      const classId = cls.docId || cls.id;
+      try {
+        // Fetch all data in parallel for better performance
+        const [
+          enrollmentsRes,
+          penaltiesRes,
+          behaviorsRes,
+          quizzesRes,
+          activitiesRes,
+          announcementsRes,
+          resourcesRes
+        ] = await Promise.all([
+          getEnrollments().catch(() => ({ success: false, data: [] })),
+          getPenalties().catch(() => ({ success: false, data: [] })),
+          getBehaviors().catch(() => ({ success: false, data: [] })),
+          getAllQuizzes().catch(() => ({ success: false, data: [] })),
+          getActivities().catch(() => ({ success: false, data: [] })),
+          getAnnouncements().catch(() => ({ success: false, data: [] })),
+          getResources().catch(() => ({ success: false, data: [] }))
+        ]);
+
+        // Filter data for this specific class
+        const classEnrollments = enrollmentsRes.success ? enrollmentsRes.data.filter(e => e.classId === classId) : [];
+        const classPenalties = penaltiesRes.success ? penaltiesRes.data.filter(p => p.classId === classId) : [];
+        const classBehaviors = behaviorsRes.success ? behaviorsRes.data.filter(b => b.classId === classId) : [];
+        const classQuizzes = quizzesRes.success ? quizzesRes.data.filter(q => q.classId === classId) : [];
+        const classActivities = activitiesRes.success ? activitiesRes.data.filter(a => a.classId === classId) : [];
+        const classAnnouncements = announcementsRes.success ? announcementsRes.data.filter(a => a.classId === classId) : [];
+        const classResources = resourcesRes.success ? resourcesRes.data.filter(r => r.classId === classId) : [];
+
+        stats[classId] = {
+          students: classEnrollments.length,
+          penalties: classPenalties.length,
+          behaviors: classBehaviors.length,
+          quizzes: classQuizzes.length,
+          activities: classActivities.length,
+          announcements: classAnnouncements.length,
+          resources: classResources.length
+        };
+      } catch (error) {
+        console.warn(`Failed to fetch stats for class ${classId}:`, error);
+        stats[classId] = {
+          students: 0,
+          penalties: 0,
+          behaviors: 0,
+          quizzes: 0,
+          activities: 0,
+          announcements: 0,
+          resources: 0
+        };
+      }
+    }
+    
+    setClassStats(stats);
+  }, []);
+
+  // Refetch stats when classes change for semester view
+  useEffect(() => {
+    if (viewMode === 'semester' && classes.length > 0) {
+      fetchClassStats(classes);
+    }
+  }, [viewMode, classes, fetchClassStats]);
+
   const loadClasses = async () => {
     setLoading(true);
     try {
@@ -218,6 +304,9 @@ const ClassSchedulePage = () => {
       
       if (classesRes.success) {
         setClasses(classesRes.data);
+        
+        // Fetch class statistics for semester view
+        fetchClassStats(classesRes.data);
         
         // Fetch instructor data for all classes
         const instructorEmails = [...new Set(classesRes.data.map(cls => cls.ownerEmail).filter(Boolean))];
@@ -482,6 +571,18 @@ const ClassSchedulePage = () => {
               const clsId = cls.docId || cls.id;
               const isSelected = currentId === clsId;
               const hasSchedule = cls.schedule && cls.schedule.days && cls.schedule.days.length > 0;
+              
+              // Add instructor data to the class object for the ClassCard
+              const clsWithInstructor = {
+                ...cls,
+                instructorData: instructors[cls.ownerEmail] ? {
+                  firstName: instructors[cls.ownerEmail].firstName,
+                  lastName: instructors[cls.ownerEmail].lastName,
+                  displayName: instructors[cls.ownerEmail].displayName,
+                  messageColor: instructors[cls.ownerEmail].messageColor
+                } : null
+              };
+              
               return (
                 <div
                   key={clsId || `class-${index}`}
@@ -498,16 +599,18 @@ const ClassSchedulePage = () => {
                     }
                   }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{cls.name || cls.code}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>
+                    {getLocalizedClassName(cls)}
+                  </div>
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
                     {cls.term && <span>{cls.term}</span>}
-                    {cls.year && !cls.term && <span>Year {cls.year}</span>}
+                    {cls.year && !cls.term && <span>{t('year') || 'Year'} {cls.year}</span>}
                   </div>
                   {cls.ownerEmail && (
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
                       {instructors[cls.ownerEmail] 
                         ? (instructors[cls.ownerEmail].realName || instructors[cls.ownerEmail].displayName || instructors[cls.ownerEmail].email)
-                        : `Loading... (${cls.ownerEmail})`
+                        : `${t('loading') || 'Loading'}... (${cls.ownerEmail})`
                       }
                     </div>
                   )}
@@ -517,6 +620,152 @@ const ClassSchedulePage = () => {
                     return dayOption ? dayOption.label : day;
                   }).join(', ')}` : (t('no_schedule') || 'No schedule')}
                   </div>
+                  
+                  {/* Compact Statistics for detailed view */}
+                  {classStats[clsId] && (
+                    <div style={{ 
+                      display: 'flex', 
+                      flexWrap: 'wrap', 
+                      gap: '0.25rem', 
+                      marginTop: '0.5rem',
+                      fontSize: 9,
+                      color: 'var(--muted)'
+                    }}>
+                      {classStats[clsId].students > 0 && (
+                        <Tooltip content={t('students') || 'Students'}>
+                          <span 
+                            style={{ 
+                              background: `${primaryColor}15`, 
+                              color: primaryColor, 
+                              padding: '1px 4px', 
+                              borderRadius: 3,
+                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            {getThemedIcon('ui', 'users', 8, theme === 'light' ? 'white' : primaryColor)}
+                            {classStats[clsId].students}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {classStats[clsId].penalties > 0 && (
+                        <Tooltip content={t('penalties') || 'Penalties'}>
+                          <span 
+                            style={{ 
+                              background: '#ef444415', 
+                              color: '#ef4444', 
+                              padding: '1px 4px', 
+                              borderRadius: 3,
+                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            {getThemedIcon('penalty_type', 'cheating', 8, theme === 'light' ? 'white' : '#ef4444')}
+                            {classStats[clsId].penalties}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {classStats[clsId].behaviors > 0 && (
+                        <Tooltip content={t('behaviors') || 'Behaviors'}>
+                          <span 
+                            style={{ 
+                              background: '#f59e0b15', 
+                              color: '#f59e0b', 
+                              padding: '1px 4px', 
+                              borderRadius: 3,
+                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            {getThemedIcon('behavior_type', 'disruptive', 8, theme === 'light' ? 'white' : '#f59e0b')}
+                            {classStats[clsId].behaviors}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {classStats[clsId].quizzes > 0 && (
+                        <Tooltip content={t('quizzes') || 'Quizzes'}>
+                          <span 
+                            style={{ 
+                              background: '#8b5cf615', 
+                              color: '#8b5cf6', 
+                              padding: '1px 4px', 
+                              borderRadius: 3,
+                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            {getThemedIcon('ui', 'file_text', 8, theme === 'light' ? 'white' : '#8b5cf6')}
+                            {classStats[clsId].quizzes}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {classStats[clsId].activities > 0 && (
+                        <Tooltip content={t('activities') || 'Activities'}>
+                          <span 
+                            style={{ 
+                              background: '#10b98115', 
+                              color: '#10b981', 
+                              padding: '1px 4px', 
+                              borderRadius: 3,
+                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            {getThemedIcon('participation_type', 'excellent', 8, theme === 'light' ? 'white' : '#10b981')}
+                            {classStats[clsId].activities}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {classStats[clsId].announcements > 0 && (
+                        <Tooltip content={t('announcements') || 'Announcements'}>
+                          <span 
+                            style={{ 
+                              background: '#3b82f615', 
+                              color: '#3b82f6', 
+                              padding: '1px 4px', 
+                              borderRadius: 3,
+                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            {getThemedIcon('ui', 'megaphone', 8, theme === 'light' ? 'white' : '#3b82f6')}
+                            {classStats[clsId].announcements}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {classStats[clsId].resources > 0 && (
+                        <Tooltip content={t('resources') || 'Resources'}>
+                          <span 
+                            style={{ 
+                              background: '#06b6d415', 
+                              color: '#06b6d4', 
+                              padding: '1px 4px', 
+                              borderRadius: 3,
+                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            {getThemedIcon('ui', 'folder', 8, theme === 'light' ? 'white' : '#06b6d4')}
+                            {classStats[clsId].resources}
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -775,51 +1024,30 @@ const ClassSchedulePage = () => {
                 }}>
                   {semesterClasses.map((cls, index) => {
                     const clsId = cls.docId || cls.id;
-                    const hasSchedule = cls.schedule && cls.schedule.days && cls.schedule.days.length > 0;
+                    // Add instructor data to the class object for the ClassCard
+                    const clsWithInstructor = {
+                      ...cls,
+                      instructorData: instructors[cls.ownerEmail] ? {
+                        firstName: instructors[cls.ownerEmail].firstName,
+                        lastName: instructors[cls.ownerEmail].lastName,
+                        displayName: instructors[cls.ownerEmail].displayName,
+                        messageColor: instructors[cls.ownerEmail].messageColor
+                      } : null
+                    };
+                    
                     return (
-                      <div
+                      <ClassCard
                         key={clsId || `semester-${index}`}
-                        onClick={() => {
-                          setSelectedClass(cls);
+                        cls={clsWithInstructor}
+                        classStats={classStats}
+                        primaryColor={primaryColor}
+                        theme={theme}
+                        t={t}
+                        onViewClass={(classData) => {
+                          setSelectedClass(classData);
                           setViewMode('detailed'); // Switch to detailed view when clicking
                         }}
-                        style={{
-                          padding: '0.75rem',
-                          border: '1px solid var(--border)',
-                          borderRadius: 8,
-                          background: hasSchedule ? `${primaryColor}10` : (theme === 'dark' ? '#374151' : '#f9fafb'),
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            background: hasSchedule ? `${primaryColor}20` : (theme === 'dark' ? '#4b5563' : '#f3f4f6'),
-                            transform: 'translateY(-1px)',
-                            boxShadow: `0 2px 8px ${primaryColor}15`
-                          }
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: '0.25rem' }}>
-                          {cls.name || cls.code}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: '0.5rem' }}>
-                          {instructors[cls.ownerEmail] 
-                            ? (instructors[cls.ownerEmail].realName || instructors[cls.ownerEmail].displayName || instructors[cls.ownerEmail].email)
-                            : `Loading... (${cls.ownerEmail})`
-                          }
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>
-                            {hasSchedule ? `${cls.schedule.frequency} • ${cls.schedule.days.join(', ')}` : (t('no_schedule') || 'No schedule')}
-                          </div>
-                          {hasSchedule && (
-                            <div style={{ 
-                              width: 8, 
-                              height: 8, 
-                              background: primaryColor, 
-                              borderRadius: '50%' 
-                            }} />
-                          )}
-                        </div>
-                      </div>
+                      />
                     );
                   })}
                 </div>

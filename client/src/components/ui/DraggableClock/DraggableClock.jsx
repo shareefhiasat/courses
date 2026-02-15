@@ -137,9 +137,9 @@ const DraggableClock = ({
               e.stopPropagation();
               setIsPinned(!isPinned);
             }}
-            title={isPinned ? 'Unpin from navbar' : 'Pin to navbar'}
+            title={isPinned ? (t('unpin_from_navbar') || 'Unpin from navbar') : (t('pin_to_navbar') || 'Pin to navbar')}
           >
-            {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
+            {isPinned ? <PinOff size={14} color={theme === 'light' ? 'white' : 'currentColor'} /> : <Pin size={14} color={theme === 'light' ? 'white' : 'currentColor'} />}
           </button>
           <button
             className="control-btn"
@@ -147,9 +147,9 @@ const DraggableClock = ({
               e.stopPropagation();
               setIsMinimized(!isMinimized);
             }}
-            title={isMinimized ? 'Maximize' : 'Minimize'}
+            title={isMinimized ? (t('maximize') || 'Maximize') : (t('minimize') || 'Minimize')}
           >
-            {isMinimized ? <Maximize2 size={14} /> : <Minus size={14} />}
+            {isMinimized ? <Maximize2 size={14} color={theme === 'light' ? 'white' : 'currentColor'} /> : <Minus size={14} color={theme === 'light' ? 'white' : 'currentColor'} />}
           </button>
         </div>
       </div>
