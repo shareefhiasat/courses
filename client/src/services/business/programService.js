@@ -1,4 +1,4 @@
-﻿import { 
+import { 
   collection, 
   doc, 
   getDocs, 
@@ -26,42 +26,18 @@ export { getClasses, addClass, updateClass, deleteClass, getClassById } from './
  */
 export const getPrograms = async () => {
   try {
-    logger.info('PROGRAM: Fetching all programs');
-    
-    const callId = Math.random().toString(36).substr(2, 9);
-    // logger.log(`🔍 [getPrograms-${callId}] Starting fetch...`);
     const q = query(collection(db, 'programs'), orderBy('name_en', 'asc'));
-    // logger.log(`🔍 [getPrograms-${callId}] Query created:`, q);
     const qs = await getDocs(q);
-    // logger.log(`🔍 [getPrograms-${callId}] Query snapshot received:`, qs);
-    // logger.log(`🔍 [getPrograms-${callId}] Query docs count:`, qs.docs?.length || 0);
-    // logger.log(`🔍 [getPrograms-${callId}] Query empty:`, qs.empty);
-    // logger.log(`🔍 [getPrograms-${callId}] Query metadata:`, qs.metadata);
     
     const items = [];
-    qs.docs.forEach((d, index) => {
-      // logger.log(`🔍 [getPrograms-${callId}] Processing doc ${index}:`, {
-      //   id: d.id,
-      //   exists: d.exists(),
-      //   data: d.data()
-      // });
+    qs.docs.forEach((d) => {
       const programData = { docId: d.id, ...d.data() };
-      // logger.log(`🔍 [getPrograms-${callId}] Program data ${index}:`, programData);
       items.push(programData);
-      // logger.log(`🔍 [getPrograms-${callId}] Items array length after push ${index}:`, items.length);
     });
     
-    // logger.log(`🔍 [getPrograms-${callId}] Final items array:`, items);
-    // logger.log(`🔍 [getPrograms-${callId}] Final items length:`, items.length);
-    // logger.log(`🔍 [getPrograms-${callId}] Returning result:`, { success: true, data: items });
-    
-    logger.info('PROGRAM: Successfully fetched programs', { count: items.length });
     return { success: true, data: items };
   } catch (error) {
     logger.error('PROGRAM: Failed to fetch programs', { error: error.message });
-    logger.error(`❌ [getPrograms-${callId}] ERROR:`, error);
-    logger.error(`❌ [getPrograms-${callId}] Error message:`, error.message);
-    logger.error(`❌ [getPrograms-${callId}] Error stack:`, error.stack);
     return { success: false, error: error.message };
   }
 };

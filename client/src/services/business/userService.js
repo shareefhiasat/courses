@@ -1,4 +1,4 @@
-﻿import { doc, getDoc, query, collection, where, getDocs, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, query, collection, where, getDocs, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../other/config';
 import logger from '@utils/logger';
 import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
@@ -36,6 +36,24 @@ export const getUserById = async (userId) => {
   } catch (error) {
     logger.error('USER: Failed to fetch user', { error: error.message, userId });
     logger.error('Error fetching user:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get user by email (centralized)
+export const getUserByEmail = async (email) => {
+  try {
+    const q = query(collection(db, 'users'), where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const userDoc = querySnapshot.docs[0];
+      return { success: true, data: { id: userDoc.id, ...userDoc.data() } };
+    }
+    
+    return { success: false, error: 'User not found' };
+  } catch (error) {
+    logger.error('USER: Failed to fetch user by email', { error: error.message, email });
     return { success: false, error: error.message };
   }
 };

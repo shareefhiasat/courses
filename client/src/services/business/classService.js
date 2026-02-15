@@ -1,4 +1,4 @@
-﻿import { db } from '../other/config';
+import { db } from '../other/config';
 import { 
   collection, 
   doc, 
@@ -22,13 +22,10 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 // Get all classes
 export const getClasses = async () => {
   try {
-    logger.info('CLASS: Fetching all classes');
-    
     const qs = await getDocs(collection(db, "classes"));
     const items = [];
     qs.forEach((d) => items.push({ docId: d.id, ...d.data() }));
     
-    logger.info('CLASS: Successfully fetched classes', { count: items.length });
     return { success: true, data: items };
   } catch (error) {
     logger.error('CLASS: Failed to fetch classes', { error: error.message });

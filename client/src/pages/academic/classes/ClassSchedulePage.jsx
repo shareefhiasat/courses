@@ -1,24 +1,15 @@
-﻿import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import logger from '@utils/logger';
-
-// Global logger fallback to prevent ReferenceError in components
-if (typeof window !== 'undefined' && !window.logger) {
-  window.logger = {
-    error: (...args) => logger.error('[Logger]', ...args),
-    warn: (...args) => logger.warn('[Logger]', ...args),
-    info: (...args) => logger.info('[Logger]', ...args),
-    debug: (...args) => console.debug('[Logger]', ...args),
-  };
-}
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getAllClasses, updateClassSchedule } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
-import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading, FilterSelect } from '@ui';
+import { getUserByEmail } from '@services/business/userService';
+import { getDayNames, getCurrentLanguage } from '@utils/date';
+import { FilterSelect, useToast, Loading } from '@ui';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { getThemedIcon } from '@constants/iconTypes';
-import styles from './ClassSchedulePage.module.css';
 
 const ClassSchedulePage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
@@ -28,6 +19,7 @@ const ClassSchedulePage = () => {
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [instructors, setInstructors] = useState({}); // Map email -> user data
   const [selectedClass, setSelectedClass] = useState(null);
   const [programFilter, setProgramFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -48,15 +40,15 @@ const ClassSchedulePage = () => {
   const [loading, setLoading] = useState(true);
   const [classSearchTerm, setClassSearchTerm] = useState('');
 
-  const dayOptions = [
-    { value: 'SUN', label: t('sunday') || 'SUN' },
-    { value: 'MON', label: t('monday') || 'MON' },
-    { value: 'TUE', label: t('tuesday') || 'TUE' },
-    { value: 'WED', label: t('wednesday') || 'WED' },
-    { value: 'THU', label: t('thursday') || 'THU' },
-    { value: 'FRI', label: t('friday') || 'FRI' },
-    { value: 'SAT', label: t('saturday') || 'SAT' }
-  ];
+  // Get localized day names using date utility
+  const dayNames = getDayNames(t, getCurrentLanguage(t));
+  const dayOptions = dayNames.map((dayName, index) => {
+    const dayValues = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    return {
+      value: dayValues[index],
+      label: dayName
+    };
+  });
   const frequencyOptions = [
     { value: 'once', label: t('once_a_week') || 'Once a week', days: 1 },
     { value: 'twice', label: t('twice_a_week') || 'Twice a week', days: 2 },
@@ -125,11 +117,57 @@ const ClassSchedulePage = () => {
       });
     }
 
-    // Sort by name
-    result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
+    // Sort by term/year first (most recent first), then by name, then by instructor
+    result.sort((a, b) => {
+      // Extract year for comparison
+      const getYear = (cls) => {
+        if (cls.year) return Number(cls.year);
+        if (cls.term) {
+          const parts = cls.term.split(' ');
+          const yearPart = parts[parts.length - 1];
+          return !isNaN(yearPart) ? Number(yearPart) : 0;
+        }
+        return 0;
+      };
+      
+      // Extract term for comparison (Fall > Spring > Summer > Winter)
+      const getTermOrder = (cls) => {
+        if (!cls.term) return 0;
+        const term = cls.term.toLowerCase();
+        if (term.includes('fall')) return 4;
+        if (term.includes('spring')) return 3;
+        if (term.includes('summer')) return 2;
+        if (term.includes('winter')) return 1;
+        return 0;
+      };
+      
+      // Get instructor name for sorting
+      const getInstructorName = (cls) => {
+        if (!cls.ownerEmail || !instructors[cls.ownerEmail]) return '';
+        const instructor = instructors[cls.ownerEmail];
+        return (instructor.realName || instructor.displayName || instructor.email || '').toLowerCase();
+      };
+      
+      const aYear = getYear(a);
+      const bYear = getYear(b);
+      const aTermOrder = getTermOrder(a);
+      const bTermOrder = getTermOrder(b);
+      
+      // Sort by year first (descending), then by term order (descending), then by name, then by instructor
+      if (aYear !== bYear) return bYear - aYear;
+      if (aTermOrder !== bTermOrder) return bTermOrder - aTermOrder;
+      
+      const aName = (a.name || a.code || '').toLowerCase();
+      const bName = (b.name || b.code || '').toLowerCase();
+      if (aName !== bName) return aName.localeCompare(bName);
+      
+      const aInstructor = getInstructorName(a);
+      const bInstructor = getInstructorName(b);
+      return aInstructor.localeCompare(bInstructor);
+    });
     
     return result;
-  }, [classes, yearFilter, termFilter]);
+  }, [classes, yearFilter, termFilter, instructors]);
 
   useEffect(() => {
     if (!user) return;
@@ -148,6 +186,27 @@ const ClassSchedulePage = () => {
       
       if (classesRes.success) {
         setClasses(classesRes.data);
+        
+        // Fetch instructor data for all classes
+        const instructorEmails = [...new Set(classesRes.data.map(cls => cls.ownerEmail).filter(Boolean))];
+        const instructorPromises = instructorEmails.map(async (email) => {
+          try {
+            const userRes = await getUserByEmail(email);
+            return { email, data: userRes.success ? userRes.data : null };
+          } catch (error) {
+            console.warn(`Failed to fetch instructor for email: ${email}`, error);
+            return { email, data: null };
+          }
+        });
+        
+        const instructorResults = await Promise.all(instructorPromises);
+        const instructorMap = {};
+        instructorResults.forEach(({ email, data }) => {
+          if (data) {
+            instructorMap[email] = data;
+          }
+        });
+        setInstructors(instructorMap);
       } else {
         throw new Error(classesRes.error);
       }
@@ -350,7 +409,19 @@ const ClassSchedulePage = () => {
                   }}
                 >
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{cls.name || cls.code}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                    {cls.term && <span>{cls.term}</span>}
+                    {cls.year && !cls.term && <span>Year {cls.year}</span>}
+                  </div>
+                  {cls.ownerEmail && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      {instructors[cls.ownerEmail] 
+                        ? (instructors[cls.ownerEmail].realName || instructors[cls.ownerEmail].displayName || instructors[cls.ownerEmail].email)
+                        : `Loading... (${cls.ownerEmail})`
+                      }
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
                     {hasSchedule ? `${cls.schedule.frequency} • ${cls.schedule.days.map(day => {
                     const dayOption = dayOptions.find(d => d.value === day);
                     return dayOption ? dayOption.label : day;
@@ -475,7 +546,7 @@ const ClassSchedulePage = () => {
                     style={{ flex: 1, padding: '0.5rem', border: '1px solid #f59e0b', borderRadius: 6, fontSize: 13, background: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#f9fafb' : 'inherit' }}
                   />
                   <button onClick={addHoliday} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: 6, background: '#f59e0b', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {getThemedIcon('ui', 'plus', 16, theme)} Add
+                    {getThemedIcon('ui', 'add', 16, theme)} Add
                   </button>
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -502,7 +573,7 @@ const ClassSchedulePage = () => {
                     style={{ flex: 1, padding: '0.5rem', border: '1px solid #ef4444', borderRadius: 6, fontSize: 13, background: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#f9fafb' : 'inherit' }}
                   />
                   <button onClick={addAbsent} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: 6, background: '#ef4444', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {getThemedIcon('ui', 'plus', 16, theme)} Add
+                    {getThemedIcon('ui', 'add', 16, theme)} Add
                   </button>
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
