@@ -137,7 +137,6 @@ const HomePage = memo(() => {
   // Mode-specific filters
   const [activityTypeFilter, setActivityTypeFilter] = useState('all'); // For activities
   const [resourceTypeFilter, setResourceTypeFilter] = useState('all'); // For resources
-  console.log('[HomePage] resourceTypeFilter state:', resourceTypeFilter);
   const [classFilter, setClassFilter] = useState('all'); // For quizzes
 
   // Save filter view mode preference
@@ -511,14 +510,11 @@ const HomePage = memo(() => {
       else counts[RESOURCE_TYPES.DOCUMENT]++; // Default to document
     });
     
-    console.log('[HomePage] Resource type counts:', counts);
     return counts;
   };
 
   // Calculate filter counts for all chips
   const getFilterCounts = () => {
-    console.log('[HomePage] getFilterCounts called with mode:', mode, 'activityType:', activityType);
-    
     const counts = {
       bookmarked: 0,
       featured: 0,
@@ -537,80 +533,46 @@ const HomePage = memo(() => {
     if (mode === 'activities') {
       if (activityType === 'quiz') {
         itemsToCount = quizzes;
-        console.log('[HomePage] Counting from quizzes:', quizzes.length);
       } else if (activityType === 'homework') {
         itemsToCount = activities.filter(a => a.type === 'homework');
-        console.log('[HomePage] Counting homework activities:', itemsToCount.length);
       } else if (activityType === 'training') {
         itemsToCount = activities.filter(a => a.type === 'training');
-        console.log('[HomePage] Counting training activities:', itemsToCount.length);
       } else if (activityType === 'lab') {
         itemsToCount = activities.filter(a => a.type === 'lab');
-        console.log('[HomePage] Counting lab activities:', itemsToCount.length);
       } else {
         itemsToCount = activities;
-        console.log('[HomePage] Counting all activities:', activities.length);
       }
     } else if (mode === 'resources') {
       itemsToCount = resources;
-      console.log('[HomePage] Counting resources:', resources.length);
     } else if (mode === 'announcements') {
       itemsToCount = announcements;
-      console.log('[HomePage] Counting announcements:', announcements.length);
     }
     
     itemsToCount.forEach(item => {
-      console.log('[HomePage] Processing item:', item.docId || item.id, 'type:', item.type, 'featured:', item.featured);
-      
       // Bookmark counts
-      if (bookmarks[item.docId || item.id]) {
-        counts.bookmarked++;
-        console.log('[HomePage] Item is bookmarked');
-      }
+      if (bookmarks[item.docId || item.id]) counts.bookmarked++;
       
       // Featured counts
-      if (item.featured) {
-        counts.featured++;
-        console.log('[HomePage] Item is featured');
-      }
+      if (item.featured) counts.featured++;
       
       // Retakable counts (for quizzes and activities)
-      if (item.allowRetake || item.settings?.allowRetake) {
-        counts.retakable++;
-        console.log('[HomePage] Item is retakable');
-      }
+      if (item.allowRetake || item.settings?.allowRetake) counts.retakable++;
       
       // Completed counts
-      if (userProgress[item.docId || item.id]?.completed) {
-        counts.completed++;
-        console.log('[HomePage] Item is completed');
-      }
+      if (userProgress[item.docId || item.id]?.completed) counts.completed++;
       
       // Required/Optional counts (for activities only)
       if (mode === 'activities') {
-        if (item.optional === false) {
-          counts.required++;
-          console.log('[HomePage] Item is required');
-        } else if (item.optional === true) {
-          counts.optional++;
-          console.log('[HomePage] Item is optional');
-        }
+        if (item.optional === false) counts.required++;
+        else if (item.optional === true) counts.optional++;
       }
       
       // Difficulty counts (for activities and quizzes)
-      if (item.difficulty === 'beginner') {
-        counts.beginner++;
-        console.log('[HomePage] Item is beginner difficulty');
-      } else if (item.difficulty === 'intermediate') {
-        counts.intermediate++;
-        console.log('[HomePage] Item is intermediate difficulty');
-      } else if (item.difficulty === 'advanced') {
-        counts.advanced++;
-        console.log('[HomePage] Item is advanced difficulty');
-      }
+      if (item.difficulty === 'beginner') counts.beginner++;
+      else if (item.difficulty === 'intermediate') counts.intermediate++;
+      else if (item.difficulty === 'advanced') counts.advanced++;
     });
     
-    console.log('[HomePage] Final filter counts:', counts);
     return counts;
   };
 
@@ -740,10 +702,8 @@ const HomePage = memo(() => {
   };
 
   const handleResourceComplete = async (resourceId) => {
-    console.log('[HomePage] handleResourceComplete called:', { resourceId, user: !!user });
     if (!user) return;
     const isCompleted = userProgress[resourceId]?.completed || false;
-    console.log('[HomePage] Current completion status:', isCompleted);
     const newProgress = {
       ...userProgress,
       [resourceId]: {
@@ -751,16 +711,13 @@ const HomePage = memo(() => {
         completedAt: !isCompleted ? new Date() : null
       }
     };
-    console.log('[HomePage] New progress state:', newProgress[resourceId]);
     setUserProgress(newProgress);
     try {
       await setDoc(doc(db, 'users', user.uid), {
         resourceProgress: newProgress
       }, { merge: true });
-      console.log('[HomePage] Progress updated successfully in Firestore');
     } catch (error) {
       logger.error('Error updating progress:', error);
-      console.error('[HomePage] Error updating progress:', error);
       setUserProgress(userProgress); // Revert on error
     }
   };
@@ -924,16 +881,6 @@ const HomePage = memo(() => {
 
         {/* Unified Filters Section */}
         <div ref={filtersRef} data-tour="filters">
-          {console.log('[HomePage] About to render UnifiedFilterSection with:', {
-            mode,
-            resourceTypeFilter,
-            resourceTypes: mode === 'resources' ? [
-              { value: 'all', label: t('all_types') || 'All Types' },
-              { value: 'video', label: t('video') || 'Video' },
-              { value: 'link', label: t('link') || 'Link' },
-              { value: 'document', label: t('document') || 'Document' }
-            ] : []
-          })}
           <UnifiedFilterSection
             stats={stats}
             searchTerm={searchTerm}
@@ -1125,12 +1072,6 @@ const HomePage = memo(() => {
                           logger.log('Show details for:', item);
                         }}
                         onComplete={(item) => {
-                          console.log('[HomePage] onComplete called:', {
-                            item,
-                            mode,
-                            activityType,
-                            itemId: item.docId || item.id
-                          });
                           // Handle resource completion
                           handleResourceComplete(itemId);
                         }}

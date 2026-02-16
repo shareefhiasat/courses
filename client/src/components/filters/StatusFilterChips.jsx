@@ -156,7 +156,8 @@ const StatusFilterChips = ({
             color: chip.active ? chip.colors.activeText : chip.colors.text,
             borderRadius: 999,
             fontSize: '0.75rem',
-            fontWeight: 600
+            fontWeight: 600,
+            border: `1px solid ${chip.colors.border}`
           }}
         >
           {getColoredIcon('ui', chip.icon, isMinified ? 14 : 12, chip.active ? chip.colors.activeText : chip.colors.text, theme)}
