@@ -17,10 +17,11 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
-import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel } from '@utils/sharedTypes';
+import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel, MODE_TYPES, RESOURCE_TYPES } from '@utils/sharedTypes';
 import { useFilterCounts } from '@hooks/useFilterCounts';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
+import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { Loading, Card, CardBody, Modal } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
 import AuthForm from '@/components/AuthForm';
@@ -136,6 +137,7 @@ const HomePage = memo(() => {
   // Mode-specific filters
   const [activityTypeFilter, setActivityTypeFilter] = useState('all'); // For activities
   const [resourceTypeFilter, setResourceTypeFilter] = useState('all'); // For resources
+  console.log('[HomePage] resourceTypeFilter state:', resourceTypeFilter);
   const [classFilter, setClassFilter] = useState('all'); // For quizzes
 
   // Save filter view mode preference
@@ -491,7 +493,29 @@ const HomePage = memo(() => {
     classFilter, bookmarks, userProgress, submissions, enrolledClasses
   ]);
 
-  // Get available classes for quiz filter
+  // Calculate resource type counts
+  const getResourceTypeCounts = () => {
+    if (mode !== MODE_TYPES.RESOURCES) return {};
+    
+    const counts = {
+      [RESOURCE_TYPES.ALL]: resources.length,
+      [RESOURCE_TYPES.VIDEO]: 0,
+      [RESOURCE_TYPES.LINK]: 0,
+      [RESOURCE_TYPES.DOCUMENT]: 0
+    };
+    
+    resources.forEach(resource => {
+      const type = resource.type || RESOURCE_TYPES.DOCUMENT;
+      if (type === RESOURCE_TYPES.VIDEO) counts[RESOURCE_TYPES.VIDEO]++;
+      else if (type === RESOURCE_TYPES.LINK) counts[RESOURCE_TYPES.LINK]++;
+      else counts[RESOURCE_TYPES.DOCUMENT]++; // Default to document
+    });
+    
+    console.log('[HomePage] Resource type counts:', counts);
+    return counts;
+  };
+
+  const resourceTypeCounts = getResourceTypeCounts();
   const availableClasses = useMemo(() => {
     if (!(mode === 'activities' && activityType === 'quiz')) return [];
     const classes = new Set();
@@ -616,8 +640,10 @@ const HomePage = memo(() => {
   };
 
   const handleResourceComplete = async (resourceId) => {
+    console.log('[HomePage] handleResourceComplete called:', { resourceId, user: !!user });
     if (!user) return;
     const isCompleted = userProgress[resourceId]?.completed || false;
+    console.log('[HomePage] Current completion status:', isCompleted);
     const newProgress = {
       ...userProgress,
       [resourceId]: {
@@ -625,13 +651,16 @@ const HomePage = memo(() => {
         completedAt: !isCompleted ? new Date() : null
       }
     };
+    console.log('[HomePage] New progress state:', newProgress[resourceId]);
     setUserProgress(newProgress);
     try {
       await setDoc(doc(db, 'users', user.uid), {
         resourceProgress: newProgress
       }, { merge: true });
+      console.log('[HomePage] Progress updated successfully in Firestore');
     } catch (error) {
       logger.error('Error updating progress:', error);
+      console.error('[HomePage] Error updating progress:', error);
       setUserProgress(userProgress); // Revert on error
     }
   };
@@ -795,6 +824,16 @@ const HomePage = memo(() => {
 
         {/* Unified Filters Section */}
         <div ref={filtersRef} data-tour="filters">
+          {console.log('[HomePage] About to render UnifiedFilterSection with:', {
+            mode,
+            resourceTypeFilter,
+            resourceTypes: mode === 'resources' ? [
+              { value: 'all', label: t('all_types') || 'All Types' },
+              { value: 'video', label: t('video') || 'Video' },
+              { value: 'link', label: t('link') || 'Link' },
+              { value: 'document', label: t('document') || 'Document' }
+            ] : []
+          })}
           <UnifiedFilterSection
             stats={stats}
             searchTerm={searchTerm}
@@ -860,6 +899,38 @@ const HomePage = memo(() => {
               showRetakable: mode !== 'announcements',
               showGraded: false
             }}
+            // Resource type filters
+            resourceTypeFilter={mode === 'resources' ? resourceTypeFilter : undefined}
+            setResourceTypeFilter={mode === 'resources' ? setResourceTypeFilter : undefined}
+            resourceTypes={mode === MODE_TYPES.RESOURCES ? [
+              { 
+                value: RESOURCE_TYPES.ALL, 
+                label: getResourceTypeConfig(RESOURCE_TYPES.ALL, theme, lang).text, 
+                count: resourceTypeCounts[RESOURCE_TYPES.ALL] || 0,
+                icon: getResourceTypeConfig(RESOURCE_TYPES.ALL, theme, lang).icon
+              },
+              { 
+                value: RESOURCE_TYPES.VIDEO, 
+                label: getResourceTypeConfig(RESOURCE_TYPES.VIDEO, theme, lang).text, 
+                count: resourceTypeCounts[RESOURCE_TYPES.VIDEO] || 0,
+                icon: getResourceTypeConfig(RESOURCE_TYPES.VIDEO, theme, lang).icon
+              },
+              { 
+                value: RESOURCE_TYPES.LINK, 
+                label: getResourceTypeConfig(RESOURCE_TYPES.LINK, theme, lang).text, 
+                count: resourceTypeCounts[RESOURCE_TYPES.LINK] || 0,
+                icon: getResourceTypeConfig(RESOURCE_TYPES.LINK, theme, lang).icon
+              },
+              { 
+                value: RESOURCE_TYPES.DOCUMENT, 
+                label: getResourceTypeConfig(RESOURCE_TYPES.DOCUMENT, theme, lang).text, 
+                count: resourceTypeCounts[RESOURCE_TYPES.DOCUMENT] || 0,
+                icon: getResourceTypeConfig(RESOURCE_TYPES.DOCUMENT, theme, lang).icon
+              }
+            ] : []}
+            // Quiz type filter for activities
+            quizFilter={mode === 'activities' && activityType === 'quiz' ? 'quiz' : undefined}
+            showQuizFilter={mode === 'activities' && activityType === 'quiz'}
           />
         </div>
 
@@ -952,6 +1023,12 @@ const HomePage = memo(() => {
                           logger.log('Show details for:', item);
                         }}
                         onComplete={(item) => {
+                          console.log('[HomePage] onComplete called:', {
+                            item,
+                            mode,
+                            activityType,
+                            itemId: item.docId || item.id
+                          });
                           // Handle resource completion
                           handleResourceComplete(itemId);
                         }}

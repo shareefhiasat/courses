@@ -10,11 +10,26 @@ import { ABSENCE_TYPES, getAbsenceTypeById, getAbsenceLabel, getAbsenceIcon, get
 import { PENALTY_TYPES, getPenaltyTypeById, getPenaltyLabel, getPenaltyIcon, getPenaltyColor } from '../constants/penaltyTypes';
 import { ATTENDANCE_STATUS_LABELS } from '../constants/attendanceTypes';
 
+// Mode types for navigation and filtering
+export const MODE_TYPES = {
+  ACTIVITIES: 'activities',
+  RESOURCES: 'resources',
+  ANNOUNCEMENTS: 'announcements'
+};
+
+// Resource types for filtering
+export const RESOURCE_TYPES = {
+  ALL: 'all',
+  VIDEO: 'video',
+  LINK: 'link',
+  DOCUMENT: 'document'
+};
+
 // Record type constants for student logs, activities, and core entities
 export const RECORD_TYPES = {
   // Core academic records
   ATTENDANCE: 'attendance',
-  PENALTY: 'penalty', 
+  PENALTY: 'penalty',
   PARTICIPATION: 'participation',
   BEHAVIOR: 'behavior',
   ACTIVITY: 'activity',

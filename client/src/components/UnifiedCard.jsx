@@ -5,6 +5,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getWhiteIcon, getIconWithColor, getColoredIcon } from '@constants/iconTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
 import { ACTIVITY_TYPES } from '@constants/activityTypes';
+import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import logger from '@utils/logger';
 
@@ -88,31 +89,39 @@ const UnifiedCard = memo(({
   };
 
   const getTypeIcon = () => {
+    console.log('[UnifiedCard] getTypeIcon called - flavor:', flavor, 'item.type:', item.type, 'item:', item);
+    
     if (flavor === RECORD_TYPES.QUIZ) {
-      return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
+      const icon = getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
+      console.log('[UnifiedCard] Quiz icon:', icon);
+      return icon;
     }
     if (flavor === RECORD_TYPES.RESOURCE) {
-      if (item.type === 'video') {
-        return getColoredIcon('ui', 'video', 14, '#3b82f6', theme);
-      }
-      if (item.type === 'link') {
-        return getColoredIcon('ui', 'link', 14, '#3b82f6', theme);
-      }
-      return getColoredIcon('ui', 'file', 14, primaryColor, theme);
+      const resourceConfig = getResourceTypeConfig(item.type || 'document', theme, lang);
+      console.log('[UnifiedCard] Resource icon:', resourceConfig.icon, 'for item:', item);
+      return resourceConfig.icon;
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
-      return getColoredIcon('ui', 'megaphone', 14, '#dc2626', theme);
+      const icon = getColoredIcon('ui', 'megaphone', 14, '#dc2626', theme);
+      console.log('[UnifiedCard] Announcement icon:', icon);
+      return icon;
     }
     
     // For activities, use activity types constants
     const type = item.type || ACTIVITY_TYPES.TRAINING;
     if (type === ACTIVITY_TYPES.QUIZ) {
-      return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
+      const icon = getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
+      console.log('[UnifiedCard] Activity quiz icon:', icon);
+      return icon;
     }
     if (type === ACTIVITY_TYPES.HOMEWORK) {
-      return getColoredIcon('ui', 'clipboard_list', 14, '#f57c00', theme);
+      const icon = getColoredIcon('ui', 'clipboard_list', 14, '#f57c00', theme);
+      console.log('[UnifiedCard] Homework icon:', icon);
+      return icon;
     }
-    return getColoredIcon('ui', 'book_open', 14, primaryColor, theme);
+    const icon = getColoredIcon('ui', 'book_open', 14, primaryColor, theme);
+    console.log('[UnifiedCard] Default activity icon:', icon);
+    return icon;
   };
 
   const getTypeLabel = () => {
@@ -286,7 +295,7 @@ const UnifiedCard = memo(({
         {/* Title */}
         <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', paddingRight: onBookmark ? '2.5rem' : 0, color: cardText, fontSize: '1.15rem', fontWeight: '600' }}>
           <span>{getTitle()}</span>
-          {item.featured && flavor === RECORD_TYPES.ANNOUNCEMENT && (
+          {item.featured && (
               <button
                   type="button"
                   title={t('featured') || 'Featured'}
@@ -502,7 +511,7 @@ const UnifiedCard = memo(({
                   gap: 6,
                   color: '#16a34a'
                 }} title={t('completed_at') || 'Completed at'}>
-                  {getColoredIcon('ui', 'check', 14, '#16a34a', theme)}
+                  {getWhiteIcon('ui', 'check', 14)}
                   <span>{formatDate(completedAt)}</span>
                 </div>
             )}
@@ -584,12 +593,21 @@ const UnifiedCard = memo(({
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}
-                      onClick={onComplete}
+                      onClick={(e) => {
+                        console.log('[UnifiedCard] Complete button clicked:', {
+                          flavor,
+                          item,
+                          isCompleted,
+                          itemId: item.docId || item.id
+                        });
+                        e.stopPropagation();
+                        onComplete(item);
+                      }}
                       aria-label={isCompleted ? t('mark_incomplete') || 'Mark incomplete' : t('mark_complete') || 'Mark complete'}
                       title={isCompleted ? t('completed') || 'Completed' : t('mark_complete') || 'Mark complete'}
                   >
                     {isCompleted ? (
-                        getColoredIcon('ui', 'check', 14, '#16a34a', theme)
+                        getWhiteIcon('ui', 'check', 14)
                     ) : (
                         getColoredIcon('ui', 'check', 14, '#16a34a', theme)
                     )}

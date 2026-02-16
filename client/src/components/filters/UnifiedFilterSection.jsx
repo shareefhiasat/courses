@@ -103,6 +103,13 @@ const UnifiedFilterSection = ({
   setRetakableFilter,
   gradedFilter,
   setGradedFilter,
+  // Resource type filters
+  resourceTypeFilter,
+  setResourceTypeFilter,
+  resourceTypes = [],
+  // Quiz filter
+  quizFilter,
+  showQuizFilter = false,
   // Hierarchy filters
   programs = [],
   subjects = [],
@@ -149,6 +156,11 @@ const UnifiedFilterSection = ({
     showGraded: true
   }
 }) => {
+  console.log('[UnifiedFilterSection] Received props:', {
+    resourceTypeFilter,
+    resourceTypes,
+    resourceTypesLength: resourceTypes.length
+  });
   const isDark = theme === 'dark';
 
   return (
@@ -257,6 +269,89 @@ const UnifiedFilterSection = ({
             primaryColor={primaryColor}
             t={t}
           />
+        )}
+
+        {/* Resource type filter */}
+        {resourceTypes.length > 0 && (
+          <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+            {resourceTypes.map(type => {
+              const isActive = resourceTypeFilter === type.value;
+              // Define colors like difficulty chips
+              const colors = type.value === 'all' ? {
+                border: `${primaryColor}40`,
+                bg: `${primaryColor}15`,
+                activeBg: primaryColor,
+                text: primaryColor,
+                activeText: '#fff'
+              } : type.value === 'video' || type.value === 'link' ? {
+                border: '#bfdbfe',
+                bg: '#eff6ff',
+                activeBg: '#3b82f6',
+                text: '#3b82f6',
+                activeText: '#fff'
+              } : {
+                border: '#e5e7eb',
+                bg: '#f9fafb',
+                activeBg: '#6b7280',
+                text: '#6b7280',
+                activeText: '#fff'
+              };
+
+              return (
+                <button
+                  key={type.value}
+                  className="filter-button"
+                  onClick={() => setResourceTypeFilter && setResourceTypeFilter(type.value)}
+                  title={type.label}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${colors.border}`,
+                    background: isActive ? colors.activeBg : colors.bg,
+                    color: isActive ? colors.activeText : colors.text,
+                    fontSize: '0.75rem',
+                    fontWeight: type.value === 'all' ? 700 : 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {type.value !== 'all' && type.icon}
+                  <span>{type.label}</span>
+                  {type.count !== undefined && (
+                    <span style={{
+                      backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                      padding: '0.125rem 0.375rem',
+                      borderRadius: 999,
+                      fontSize: '0.7rem',
+                      fontWeight: '600',
+                      minWidth: '1.25rem',
+                      textAlign: 'center'
+                    }}>
+                      {type.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Quiz filter indicator */}
+        {showQuizFilter && (
+          <div style={{ 
+            padding: '0.25rem 0.5rem',
+            borderRadius: '0.375rem',
+            backgroundColor: '#eef2ff',
+            border: '1px solid #e0e7ff',
+            color: '#4f46e5',
+            fontSize: '0.75rem',
+            fontWeight: '500'
+          }}>
+            {t('quiz') || 'Quiz'}
+          </div>
         )}
 
         {/* Toggle filters */}

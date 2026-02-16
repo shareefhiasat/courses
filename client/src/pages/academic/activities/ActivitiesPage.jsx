@@ -958,7 +958,7 @@ const ActivitiesPage = () => {
                 {activityForm.quizId && (
                   <div>
                     <ToggleSwitch
-                      label="Override quiz settings (retake, difficulty, total marks)"
+                      label={t('override_quiz_settings') || 'Override quiz settings (retake, difficulty, total marks)'}
                       checked={activityForm.overrideQuizSettings || false}
                       onChange={(checked) => {
                         setActivityForm(prev => {
