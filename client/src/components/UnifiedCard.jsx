@@ -90,28 +90,59 @@ const UnifiedCard = memo(({
 
   const getTypeIcon = () => {
     console.log('[UnifiedCard] getTypeIcon called - flavor:', flavor, 'item.type:', item.type, 'item:', item);
+    console.log('[UnifiedCard] Theme:', theme, 'Lang:', lang);
     
     if (flavor === RECORD_TYPES.QUIZ) {
       const icon = getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
-      console.log('[UnifiedCard] Quiz icon:', icon);
+      console.log('[UnifiedCard] Quiz icon generated:', icon, 'with color #7c3aed');
       return icon;
     }
     if (flavor === RECORD_TYPES.RESOURCE) {
+      console.log('[UnifiedCard] Getting resource config for type:', item.type || 'document');
       const resourceConfig = getResourceTypeConfig(item.type || 'document', theme, lang);
-      console.log('[UnifiedCard] Resource icon:', resourceConfig.icon, 'for item:', item);
+      console.log('[UnifiedCard] Resource config:', resourceConfig);
+      console.log('[UnifiedCard] Resource icon generated:', resourceConfig.icon, 'for item:', item);
       return resourceConfig.icon;
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       const icon = getColoredIcon('ui', 'megaphone', 14, '#dc2626', theme);
-      console.log('[UnifiedCard] Announcement icon:', icon);
+      console.log('[UnifiedCard] Announcement icon generated:', icon, 'with color #dc2626');
       return icon;
     }
     
     // For activities, use activity types constants
     const type = item.type || ACTIVITY_TYPES.TRAINING;
     if (type === ACTIVITY_TYPES.QUIZ) {
+      console.log('[UnifiedCard] === QUIZ ICON DEBUG START ===');
+      console.log('[UnifiedCard] Quiz item data:', {
+        docId: item.docId,
+        type: item.type,
+        difficulty: item.difficulty,
+        flavor: flavor,
+        theme: theme
+      });
+      
       const icon = getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
-      console.log('[UnifiedCard] Activity quiz icon:', icon);
+      console.log('[UnifiedCard] Quiz icon generated:', icon);
+      console.log('[UnifiedCard] Icon type:', typeof icon);
+      console.log('[UnifiedCard] Icon props:', icon?.props);
+      console.log('[UnifiedCard] Icon props.style:', icon?.props?.style);
+      
+      // Check if the icon has fill color
+      if (icon?.props?.children) {
+        console.log('[UnifiedCard] Icon children:', icon.props.children);
+        // Look for SVG elements
+        const svgElement = icon.props.children.find?.(child => 
+          child?.type === 'svg' || child?.props?.fill
+        );
+        if (svgElement) {
+          console.log('[UnifiedCard] SVG element found:', svgElement);
+          console.log('[UnifiedCard] SVG fill:', svgElement?.props?.fill);
+          console.log('[UnifiedCard] SVG stroke:', svgElement?.props?.stroke);
+        }
+      }
+      
+      console.log('[UnifiedCard] === QUIZ ICON DEBUG END ===');
       return icon;
     }
     if (type === ACTIVITY_TYPES.HOMEWORK) {

@@ -616,6 +616,15 @@ const DICT = {
     no_deadline: 'No deadline',
     required: 'Required',
 
+    // Filter translations (flat keys)
+    status_filters: 'Status filters',
+    filter_completed: 'Completed',
+    filter_not_started: 'Not Started',
+    filter_required: 'Required',
+    filter_optional: 'Optional',
+    filter_overdue: 'Overdue',
+    filter_requires_submission: 'Requires Submission',
+
     // Dashboard specific localizations
     featured_resource: 'Featured Resource',
     student_number_required_qr: 'Student number is required to generate QR code',
@@ -2705,6 +2714,15 @@ const DICT = {
     no_deadline: 'لا يوجد موعد نهائي',
     required: 'مطلوب',
     optional: 'اختياري',
+    
+    // Filter translations (Arabic - flat keys)
+    status_filters: 'فلاتر الحالة',
+    filter_completed: 'مكتمل',
+    filter_not_started: 'لم يبدأ',
+    filter_required: 'مطلوب',
+    filter_optional: 'اختياري',
+    filter_overdue: 'متأخر',
+    filter_requires_submission: 'يتطلب التقديم',
     
     // Dashboard specific localizations (Arabic)
     featured_resource: 'مورد مميز',

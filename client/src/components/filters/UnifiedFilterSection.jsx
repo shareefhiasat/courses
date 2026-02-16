@@ -110,6 +110,8 @@ const UnifiedFilterSection = ({
   // Quiz filter
   quizFilter,
   showQuizFilter = false,
+  // Filter counts for all chips
+  filterCounts = {},
   // Hierarchy filters
   programs = [],
   subjects = [],
@@ -225,12 +227,12 @@ const UnifiedFilterSection = ({
           setOverdueFilter={setOverdueFilter}
           requiresSubmissionFilter={requiresSubmissionFilter}
           setRequiresSubmissionFilter={setRequiresSubmissionFilter}
-          completedCount={completedCount}
-          pendingCount={pendingCount}
-          requiredCount={requiredCount}
-          optionalCount={optionalCount}
-          overdueCount={overdueCount}
-          requiresSubmissionCount={requiresSubmissionCount}
+          completedCount={filterCounts.completed || completedCount}
+          pendingCount={filterCounts.pending || pendingCount}
+          requiredCount={filterCounts.required || requiredCount}
+          optionalCount={filterCounts.optional || optionalCount}
+          overdueCount={filterCounts.overdue || overdueCount}
+          requiresSubmissionCount={filterCounts.requiresSubmission || requiresSubmissionCount}
           isMinified={isMinified}
           theme={theme}
           lang={lang}
@@ -268,6 +270,9 @@ const UnifiedFilterSection = ({
             theme={theme}
             primaryColor={primaryColor}
             t={t}
+            beginnerCount={filterCounts.beginner || 0}
+            intermediateCount={filterCounts.intermediate || 0}
+            advancedCount={filterCounts.advanced || 0}
           />
         )}
 
@@ -302,7 +307,6 @@ const UnifiedFilterSection = ({
                   key={type.value}
                   className="filter-button"
                   onClick={() => setResourceTypeFilter && setResourceTypeFilter(type.value)}
-                  title={type.label}
                   style={{
                     padding: '4px 10px',
                     borderRadius: 999,
@@ -369,6 +373,7 @@ const UnifiedFilterSection = ({
             theme={theme}
             lang={lang}
             t={t}
+            filterCounts={filterCounts}
             {...toggleConfig}
           />
         )}

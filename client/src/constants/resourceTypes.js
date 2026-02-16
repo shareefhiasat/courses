@@ -24,6 +24,8 @@ export const RESOURCE_TYPE_LABELS_AR = {
 
 // Resource type configuration with colors and icons
 export const getResourceTypeConfig = (type, theme = 'light', lang = 'en') => {
+  console.log('[getResourceTypeConfig] Called with:', { type, theme, lang });
+  
   const labels = lang === 'ar' ? RESOURCE_TYPE_LABELS_AR : RESOURCE_TYPE_LABELS;
   
   const typeConfig = {
@@ -55,11 +57,17 @@ export const getResourceTypeConfig = (type, theme = 'light', lang = 'en') => {
     text: type || 'Unknown' 
   };
   
+  console.log('[getResourceTypeConfig] Config selected:', config);
+  
+  const finalIcon = config.color 
+    ? getColoredIcon('ui', config.icon, 14, config.color, theme)
+    : getThemedIcon('ui', config.icon, 14, theme);
+    
+  console.log('[getResourceTypeConfig] Final icon generated:', finalIcon, 'with color:', config.color);
+  
   return {
     ...config,
-    icon: config.color 
-      ? getColoredIcon('ui', config.icon, 14, config.color, theme)
-      : getThemedIcon('ui', config.icon, 14, theme)
+    icon: finalIcon
   };
 };
 

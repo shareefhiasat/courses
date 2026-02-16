@@ -515,6 +515,106 @@ const HomePage = memo(() => {
     return counts;
   };
 
+  // Calculate filter counts for all chips
+  const getFilterCounts = () => {
+    console.log('[HomePage] getFilterCounts called with mode:', mode, 'activityType:', activityType);
+    
+    const counts = {
+      bookmarked: 0,
+      featured: 0,
+      retakable: 0,
+      completed: 0,
+      required: 0,
+      optional: 0,
+      beginner: 0,
+      intermediate: 0,
+      advanced: 0
+    };
+    
+    // Only count items relevant to current mode/activityType
+    let itemsToCount = [];
+    
+    if (mode === 'activities') {
+      if (activityType === 'quiz') {
+        itemsToCount = quizzes;
+        console.log('[HomePage] Counting from quizzes:', quizzes.length);
+      } else if (activityType === 'homework') {
+        itemsToCount = activities.filter(a => a.type === 'homework');
+        console.log('[HomePage] Counting homework activities:', itemsToCount.length);
+      } else if (activityType === 'training') {
+        itemsToCount = activities.filter(a => a.type === 'training');
+        console.log('[HomePage] Counting training activities:', itemsToCount.length);
+      } else if (activityType === 'lab') {
+        itemsToCount = activities.filter(a => a.type === 'lab');
+        console.log('[HomePage] Counting lab activities:', itemsToCount.length);
+      } else {
+        itemsToCount = activities;
+        console.log('[HomePage] Counting all activities:', activities.length);
+      }
+    } else if (mode === 'resources') {
+      itemsToCount = resources;
+      console.log('[HomePage] Counting resources:', resources.length);
+    } else if (mode === 'announcements') {
+      itemsToCount = announcements;
+      console.log('[HomePage] Counting announcements:', announcements.length);
+    }
+    
+    itemsToCount.forEach(item => {
+      console.log('[HomePage] Processing item:', item.docId || item.id, 'type:', item.type, 'featured:', item.featured);
+      
+      // Bookmark counts
+      if (bookmarks[item.docId || item.id]) {
+        counts.bookmarked++;
+        console.log('[HomePage] Item is bookmarked');
+      }
+      
+      // Featured counts
+      if (item.featured) {
+        counts.featured++;
+        console.log('[HomePage] Item is featured');
+      }
+      
+      // Retakable counts (for quizzes and activities)
+      if (item.allowRetake || item.settings?.allowRetake) {
+        counts.retakable++;
+        console.log('[HomePage] Item is retakable');
+      }
+      
+      // Completed counts
+      if (userProgress[item.docId || item.id]?.completed) {
+        counts.completed++;
+        console.log('[HomePage] Item is completed');
+      }
+      
+      // Required/Optional counts (for activities only)
+      if (mode === 'activities') {
+        if (item.optional === false) {
+          counts.required++;
+          console.log('[HomePage] Item is required');
+        } else if (item.optional === true) {
+          counts.optional++;
+          console.log('[HomePage] Item is optional');
+        }
+      }
+      
+      // Difficulty counts (for activities and quizzes)
+      if (item.difficulty === 'beginner') {
+        counts.beginner++;
+        console.log('[HomePage] Item is beginner difficulty');
+      } else if (item.difficulty === 'intermediate') {
+        counts.intermediate++;
+        console.log('[HomePage] Item is intermediate difficulty');
+      } else if (item.difficulty === 'advanced') {
+        counts.advanced++;
+        console.log('[HomePage] Item is advanced difficulty');
+      }
+    });
+    
+    console.log('[HomePage] Final filter counts:', counts);
+    return counts;
+  };
+
+  const filterCounts = getFilterCounts();
   const resourceTypeCounts = getResourceTypeCounts();
   const availableClasses = useMemo(() => {
     if (!(mode === 'activities' && activityType === 'quiz')) return [];
@@ -604,7 +704,7 @@ const HomePage = memo(() => {
   }, [mode, activityType, category, activities, resources, quizzes, userProgress, submissions, enrolledClasses]);
 
   // Calculate filter counts using the hook
-  const filterCounts = useFilterCounts(getCurrentItems(), {
+  const hookFilterCounts = useFilterCounts(getCurrentItems(), {
     mode,
     activityType,
     userProgress,
@@ -931,6 +1031,8 @@ const HomePage = memo(() => {
             // Quiz type filter for activities
             quizFilter={mode === 'activities' && activityType === 'quiz' ? 'quiz' : undefined}
             showQuizFilter={mode === 'activities' && activityType === 'quiz'}
+            // Filter counts for all chips
+            filterCounts={filterCounts}
           />
         </div>
 

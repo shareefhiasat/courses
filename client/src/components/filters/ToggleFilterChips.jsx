@@ -55,7 +55,8 @@ const ToggleFilterChips = ({
   showBookmark = true,
   showFeatured = true,
   showRetakable = true,
-  showGraded = true
+  showGraded = true,
+  filterCounts = {}
 }) => {
   const toggleChips = [];
 
@@ -190,7 +191,20 @@ const ToggleFilterChips = ({
             ) : (
               chip.active ? getColoredIcon('ui', chip.icon, 12, '#fff', theme) : getColoredIcon('ui', chip.icon, 12, chip.colors.text, theme)
             )}
-            {chip.label}
+            <span>{chip.label}</span>
+            {filterCounts[chip.id] !== undefined && (
+              <span style={{
+                backgroundColor: chip.active ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                padding: '0.125rem 0.375rem',
+                borderRadius: 999,
+                fontSize: '0.7rem',
+                fontWeight: '600',
+                minWidth: '1.25rem',
+                textAlign: 'center'
+              }}>
+                {filterCounts[chip.id]}
+              </span>
+            )}
           </button>
         ))
       )}

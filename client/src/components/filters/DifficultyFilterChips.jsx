@@ -11,7 +11,10 @@ const DifficultyFilterChips = ({
   isMinified = false,
   theme = 'light',
   primaryColor = '#800020',
-  t = (key) => key
+  t = (key) => key,
+  beginnerCount = 0,
+  intermediateCount = 0,
+  advancedCount = 0
 }) => {
   const difficulties = [
     {
@@ -30,6 +33,7 @@ const DifficultyFilterChips = ({
       value: 'beginner',
       label: t('beginner') || 'Beginner',
       icon: 'help_circle',
+      count: beginnerCount,
       colors: {
         border: '#bbf7d0',
         bg: '#ecfdf5',
@@ -42,6 +46,7 @@ const DifficultyFilterChips = ({
       value: 'intermediate',
       label: t('intermediate') || 'Intermediate',
       icon: 'help_circle',
+      count: intermediateCount,
       colors: {
         border: '#fde68a',
         bg: '#fffbeb',
@@ -54,6 +59,7 @@ const DifficultyFilterChips = ({
       value: 'advanced',
       label: t('advanced') || 'Advanced',
       icon: 'help_circle',
+      count: advancedCount,
       colors: {
         border: '#fecaca',
         bg: '#fee2e2',
@@ -94,6 +100,19 @@ const DifficultyFilterChips = ({
               <>
                 {diff.value !== 'all' && getColoredIcon('ui', diff.icon, 12, isActive ? diff.colors.activeText : diff.colors.text, theme)}
                 <span>{diff.label}</span>
+                {diff.count !== undefined && (
+                  <span style={{
+                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                    padding: '0.125rem 0.375rem',
+                    borderRadius: 999,
+                    fontSize: '0.7rem',
+                    fontWeight: '600',
+                    minWidth: '1.25rem',
+                    textAlign: 'center'
+                  }}>
+                    {diff.count}
+                  </span>
+                )}
               </>
             )}
           </button>
