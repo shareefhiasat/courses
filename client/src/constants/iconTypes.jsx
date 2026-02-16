@@ -533,10 +533,12 @@ const deriveIconColor = (chipColor) => {
   if (chipColor === '#22c55e') return '#16a34a'; // Green chip -> darker green icon
   if (chipColor === '#16a34a') return '#16a34a'; // Dark green chip -> same dark green icon
   if (chipColor === '#ef4444') return '#dc2626'; // Red chip -> darker red icon
+  if (chipColor === '#EF4444') return '#dc2626'; // Red chip (uppercase) -> darker red icon
   if (chipColor === '#b91c1c') return '#b91c1c'; // Dark red chip -> same dark red icon
   if (chipColor === '#dc2626') return '#dc2626'; // Darker red chip -> same darker red icon
   if (chipColor === '#f57c00') return '#f57c00'; // Orange chip -> same orange icon
   if (chipColor === '#3b82f6') return '#2563eb'; // Blue chip -> darker blue icon
+  if (chipColor === '#1e40af') return '#1e40af'; // Dark blue chip -> same dark blue icon
   if (chipColor === '#8b5cf6') return '#7c3aed'; // Purple chip -> darker purple icon
   if (chipColor === '#f97316') return '#ea580c'; // Light red chip -> darker red icon
   if (chipColor === '#fbbf24') return '#f59e0b'; // Yellow chip -> darker yellow icon

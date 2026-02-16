@@ -910,7 +910,7 @@ const HomePage = memo(() => {
                     return (
                       <UnifiedCard
                         key={itemId}
-                        flavor={mode === 'activities' && activityType === 'quiz' ? 'quiz' : mode}
+                        flavor={mode === 'activities' && activityType === 'quiz' ? 'quiz' : (mode === 'resources' ? 'resource' : (mode === 'announcements' ? 'announcement' : mode))}
                         item={item}
                         isCompleted={isCompleted}
                         completedAt={completedAt}

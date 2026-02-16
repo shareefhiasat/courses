@@ -5,6 +5,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getWhiteIcon, getIconWithColor, getColoredIcon } from '@constants/iconTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
 import { ACTIVITY_TYPES } from '@constants/activityTypes';
+import { RECORD_TYPES } from '@utils/sharedTypes';
+import logger from '@utils/logger';
 
 /**
  * Unified card component for activities, quizzes, resources, and home page items
@@ -63,17 +65,17 @@ const UnifiedCard = memo(({
   };
 
   const getDescription = () => {
-    if (flavor === 'quiz') {
+    if (flavor === RECORD_TYPES.QUIZ) {
       return lang === 'ar'
           ? (item.description_ar || item.description_en || item.description || '')
           : (item.description_en || item.description_ar || item.description || '');
     }
-    if (flavor === 'resource') {
+    if (flavor === RECORD_TYPES.RESOURCE) {
       return lang === 'ar'
           ? (item.description_ar || item.description_en || item.description || '—')
           : (item.description_en || item.description_ar || item.description || '—');
     }
-    if (flavor === 'announcements') {
+    if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return lang === 'ar'
           ? (item.message_ar || item.message_en || item.message || item.description || '—')
           : (item.message_en || item.message_ar || item.message || item.description || '—');
@@ -84,55 +86,65 @@ const UnifiedCard = memo(({
   };
 
   const getTypeIcon = () => {
-    if (flavor === 'quiz') {
+    if (flavor === RECORD_TYPES.QUIZ) {
       return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
     }
-    if (flavor === 'resource') {
-      if (item.type === 'video') return getColoredIcon('ui', 'video', 14, primaryColor, theme);
-      if (item.type === 'link') return getColoredIcon('ui', 'link', 14, primaryColor, theme);
+    if (flavor === RECORD_TYPES.RESOURCE) {
+      if (item.type === 'video') {
+        return getColoredIcon('ui', 'video', 14, '#3b82f6', theme);
+      }
+      if (item.type === 'link') {
+        return getColoredIcon('ui', 'link', 14, '#3b82f6', theme);
+      }
       return getColoredIcon('ui', 'file', 14, primaryColor, theme);
     }
-    if (flavor === 'announcements') {
+    if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return getColoredIcon('ui', 'megaphone', 14, '#dc2626', theme);
     }
-    const type = item.type || 'training';
-    if (type === 'quiz') return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
-    if (type === 'homework') return getColoredIcon('ui', 'clipboard_list', 14, '#f57c00', theme);
+    
+    // For activities, use activity types constants
+    const type = item.type || ACTIVITY_TYPES.TRAINING;
+    if (type === ACTIVITY_TYPES.QUIZ) {
+      return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
+    }
+    if (type === ACTIVITY_TYPES.HOMEWORK) {
+      return getColoredIcon('ui', 'clipboard_list', 14, '#f57c00', theme);
+    }
     return getColoredIcon('ui', 'book_open', 14, primaryColor, theme);
   };
 
   const getTypeLabel = () => {
-    if (flavor === 'quiz') {
+    if (flavor === RECORD_TYPES.QUIZ) {
       return t('quiz') || 'Quiz';
     }
-    if (flavor === 'resource') {
+    if (flavor === RECORD_TYPES.RESOURCE) {
       // Use title case instead of uppercase
       const type = item.type || 'document';
       return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
     }
-    if (flavor === 'announcements') {
+    if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return t('announcement') || 'Announcement';
     }
-    const type = item.type || 'training';
+    const type = item.type || ACTIVITY_TYPES.TRAINING;
     return t(type) || type;
   };
 
   const getTypeColors = () => {
-    if (flavor === 'quiz') {
+    if (flavor === RECORD_TYPES.QUIZ) {
       return { bg: '#eef2ff', fg: '#4f46e5', border: '#e0e7ff' };
     }
-    if (flavor === 'resource') {
-      // Use primary color for all resource types to unify look
-      return { bg: `${primaryColor}15`, fg: primaryColor, border: `${primaryColor}40` };
+    if (flavor === RECORD_TYPES.RESOURCE) {
+      // Use blue colors for all resource types to match the blue icons
+      return { bg: '#dbeafe', fg: '#3b82f6', border: '#93c5fd' };
     }
-    if (flavor === 'announcements') {
+    if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return { bg: '#fee2e2', fg: '#dc2626', border: '#fecaca' };
     }
-    const type = item.type || 'training';
-    if (type === 'quiz') return { bg: '#eef2ff', fg: '#4f46e5', border: '#e0e7ff' };
-    if (type === 'homework') return { bg: '#fff3e0', fg: '#b45309', border: '#ffe0b2' };
+    const type = item.type || ACTIVITY_TYPES.TRAINING;
+    if (type === ACTIVITY_TYPES.QUIZ) return { bg: '#eef2ff', fg: '#4f46e5', border: '#e0e7ff' };
+    if (type === ACTIVITY_TYPES.HOMEWORK) return { bg: '#fff3e0', fg: '#b45309', border: '#ffe0b2' };
     // For activities, use primary color for training type to unify
-    if (type === 'training') return { bg: `${primaryColor}15`, fg: primaryColor, border: `${primaryColor}40` };
+    if (type === ACTIVITY_TYPES.TRAINING) return { bg: `${primaryColor}15`, fg: primaryColor, border: `${primaryColor}40` };
     return { bg: '#e3f2fd', fg: '#1976d2', border: '#bbdefb' };
   };
 
@@ -509,7 +521,7 @@ const UnifiedCard = memo(({
                   gap: 6,
                   color: '#16a34a'
                 }} title={t('completed_at') || 'Completed at'}>
-                  {getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)}
+                  {getColoredIcon('ui', 'check', 14, '#16a34a', theme)}
                   <span>{formatDate(completedAt)}</span>
                 </div>
             )}
@@ -597,9 +609,9 @@ const UnifiedCard = memo(({
                   title={isCompleted ? t('completed') || 'Completed' : t('mark_complete') || 'Mark complete'}
               >
                 {isCompleted ? (
-                    getColoredIcon('ui', 'check_circle', 14, '#16a34a', theme)
+                    getColoredIcon('ui', 'check', 14, '#16a34a', theme)
                 ) : (
-                    getColoredIcon('ui', 'check', 14, '#3b82f6', theme)
+                    getColoredIcon('ui', 'check', 14, '#16a34a', theme)
                 )}
               </Button>
           )}
