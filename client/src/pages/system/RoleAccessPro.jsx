@@ -1,13 +1,15 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { db } from '@services/other/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Container, Card, CardBody, Button, Input, Select, Badge, Spinner, useToast, Loading } from '@ui';
+import { Container, Card, CardBody, Button, Input, Select, Badge, useToast } from '@ui';
+import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import { USER_ROLES } from '@constants/userRoles';
-import { getAllLocalizedScreens } from '@constants/screenDefinitions';
+import { getAllLocalizedScreens, SCREEN_GROUPS } from '@constants/screenDefinitions';
 import { getThemedIcon } from '@constants/iconTypes';
 import { NOTIFICATION_CHANNELS, NOTIFICATION_TRIGGERS, SCREEN_NOTIFICATION_MAPPING } from '@constants/notificationTypes';
+import logger from '@utils/logger';
 import styles from './RoleAccessPro.module.css';
 
 export default function RoleAccessPro() {
@@ -22,9 +24,19 @@ export default function RoleAccessPro() {
   const [notificationSettings, setNotificationSettings] = useState({});
   const [message, setMessage] = useState('');
   const [activeRole, setActiveRole] = useState(USER_ROLES.ADMIN);
-  const [q, setQ] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState('all');
+  const [accessFilter, setAccessFilter] = useState('all'); // 'all', 'enabled', 'disabled'
   const [expandedGroups, setExpandedGroups] = useState({});
   const [expandedNotifications, setExpandedNotifications] = useState({});
+  
+  // Lazy loaded notification settings
+  const [loadedNotificationSettings, setLoadedNotificationSettings] = useState(new Set());
+  
+  // Refs for debouncing
+  const searchTimeoutRef = useRef(null);
+  const previousRoleScreensRef = useRef({});
 
   const roles = [USER_ROLES.ADMIN, USER_ROLES.INSTRUCTOR, USER_ROLES.HR, USER_ROLES.STUDENT];
 
@@ -41,7 +53,7 @@ export default function RoleAccessPro() {
       analytics: true, advancedAnalytics: true,
       chat: true, scheduledReports: true, smtpConfig: true,
       notifications: true,
-      profile: true, roleAccess: true
+      profile: true, roleAccess: false
     },
     instructor: { 
       home: true, dashboard: false, studentDashboard: false, studentProfile: true, activities: true, resources: true,
@@ -77,6 +89,37 @@ export default function RoleAccessPro() {
       profile: true, roleAccess: false
     },
   };
+
+  // Debounced search effect
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Track changes for save button state
+  const hasChanges = useMemo(() => {
+    const current = JSON.stringify(roleScreens);
+    const previous = JSON.stringify(previousRoleScreensRef.current);
+    return current !== previous;
+  }, [roleScreens]);
+
+  // Update previous state when saved
+  useEffect(() => {
+    if (!saving) {
+      previousRoleScreensRef.current = { ...roleScreens };
+    }
+  }, [saving, roleScreens]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -135,6 +178,19 @@ export default function RoleAccessPro() {
     }));
   };
 
+  const loadNotificationSettings = useCallback(async (screenId) => {
+    const key = `${activeRole}_${screenId}`;
+    if (loadedNotificationSettings.has(key)) return;
+    
+    try {
+      // Simulate loading or fetch from API if needed
+      // For now, we'll just mark it as loaded
+      setLoadedNotificationSettings(prev => new Set([...prev, key]));
+    } catch (error) {
+      logger.error('Error loading notification settings:', error);
+    }
+  }, [activeRole, loadedNotificationSettings]);
+
   const toggleScreen = (role, id) => {
     setRoleScreens(prev => ({
       ...prev,
@@ -143,26 +199,55 @@ export default function RoleAccessPro() {
   };
 
   const filteredScreens = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    const list = term
-      ? screens.filter(s => s.name.toLowerCase().includes(term) || s.id.toLowerCase().includes(term))
-      : screens;
-    const groups = list.reduce((acc, s) => { (acc[s.group] ||= []).push(s); return acc; }, {});
-    return Object.entries(groups).map(([group, items]) => ({ group, items }));
-  }, [q]);
+    let filtered = screens;
+    
+    // Group filter
+    if (selectedGroup !== 'all') {
+      filtered = filtered.filter(s => s.group === selectedGroup);
+    }
+    
+    // Search filter (using debounced query)
+    if (debouncedSearchQuery.trim()) {
+      const term = debouncedSearchQuery.trim().toLowerCase();
+      filtered = filtered.filter(s => 
+        s.name.toLowerCase().includes(term) || 
+        s.id.toLowerCase().includes(term) ||
+        (s.description && s.description.toLowerCase().includes(term))
+      );
+    }
+    
+    // Access filter
+    if (accessFilter !== 'all') {
+      filtered = filtered.filter(s => {
+        const hasAccess = !!(roleScreens[activeRole]?.[s.id]);
+        return accessFilter === 'enabled' ? hasAccess : !hasAccess;
+      });
+    }
+    
+    // Group by category
+    const groups = filtered.reduce((acc, s) => { 
+      (acc[s.group] ||= []).push(s); 
+      return acc; 
+    }, {});
+    
+    return Object.entries(groups).map(([group, items]) => ({ 
+      group: t(group) || group.charAt(0).toUpperCase() + group.slice(1).toLowerCase(), // Capitalize first letter only
+      items: items.sort((a, b) => a.name.localeCompare(b.name)) // Sort alphabetically
+    }));
+  }, [screens, selectedGroup, debouncedSearchQuery, accessFilter, activeRole, roleScreens, t]);
 
   if (authLoading || loading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading role access...'} />;
+    return <GlobalLoadingFallback />;
   }
   
-  if (!(isSuperAdmin || isAdmin)) {
+  if (!(isSuperAdmin)) {
     return (
       <Container maxWidth="md" className={styles.accessDenied}>
         <Card>
           <CardBody className={styles.accessDeniedContent}>
             {getThemedIcon('ui', 'shield', 56, theme)}
             <h2>Access Denied</h2>
-            <p>Only admins can access this page.</p>
+            <p>Only super admins can access this page.</p>
           </CardBody>
         </Card>
       </Container>
@@ -194,17 +279,43 @@ export default function RoleAccessPro() {
             
             <div className={styles.controls}>
               <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('search_screens') || 'Search screens...'}
                 className={styles.searchInput}
               />
+              
+              <div className={styles.filterControls}>
+                <Select
+                  value={selectedGroup}
+                  onChange={(e) => setSelectedGroup(e.target.value)}
+                  label={t('category') || 'Category'}
+                  options={[
+                    { value: 'all', label: t('all_categories') || 'All categories' },
+                    ...Object.values(SCREEN_GROUPS).map(group => ({
+                      value: group,
+                      label: t(group) || group.charAt(0).toUpperCase() + group.slice(1).toLowerCase()
+                    }))
+                  ]}
+                />
+                
+                <Select
+                  value={accessFilter}
+                  onChange={(e) => setAccessFilter(e.target.value)}
+                  label={t('access_filter') || 'Access Filter'}
+                  options={[
+                    { value: 'all', label: t('all_screens') || 'All Screens' },
+                    { value: 'enabled', label: t('enabled_only') || 'Enabled Only' },
+                    { value: 'disabled', label: t('disabled_only') || 'Disabled Only' }
+                  ]}
+                />
+              </div>
               
               <div className={styles.roleControls}>
                 <Select
                   value={activeRole}
                   onChange={(e) => setActiveRole(e.target.value)}
-                  label={t('role') || 'Role'}
+                  label={t('select_role_to_configure') || 'Select role to configure'}
                   options={roles.map(r => ({ value: r, label: r.charAt(0).toUpperCase() + r.slice(1) }))}
                 />
                 
@@ -217,7 +328,7 @@ export default function RoleAccessPro() {
                     setRoleScreens(p => ({ ...p, [activeRole]: { ...(p[activeRole] || {}), ...allOn } }));
                   }}
                 >
-                  Enable all
+                  {t('enable_all') || 'Enable all'}
                 </Button>
                 
                 <Button
@@ -229,7 +340,7 @@ export default function RoleAccessPro() {
                     setRoleScreens(p => ({ ...p, [activeRole]: { ...(p[activeRole] || {}), ...allOff } }));
                   }}
                 >
-                  Disable all
+                  {t('disable_all') || 'Disable all'}
                 </Button>
               </div>
             </div>
@@ -253,9 +364,9 @@ export default function RoleAccessPro() {
                 {expandedGroups[group] && (
                   <>
                     {/* Role Header Row */}
-                    <div className={styles.screenRow} style={{ paddingTop: '.75rem', paddingBottom: '.75rem', background: 'var(--panel-hover, #f8f9fa)' }}>
+                    <div className={styles.screenRow} style={{ paddingTop: '.5rem', paddingBottom: '.5rem', background: 'var(--panel-hover, #f8f9fa)' }}>
                       <div className={styles.screenInfo} style={{ flex: 1, minWidth: 0 }}>
-                        <div className={styles.screenName} style={{ opacity: .7, fontWeight: 600 }}>Screen</div>
+                        {/* Screen label removed */}
                       </div>
                       <div className={styles.roleToggles} style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexShrink: 0 }}>
                         {roles.map(r => (
@@ -265,8 +376,7 @@ export default function RoleAccessPro() {
                             fontSize: 12,
                             fontWeight: 600,
                             color: r === activeRole ? 'var(--color-primary, #800020)' : 'var(--text-muted, #666)',
-                            display: 'flex',
-                            justifyContent: 'center'
+                            display: 'none' // Hide role labels
                           }}>
                             {r}
                           </div>
@@ -289,7 +399,13 @@ export default function RoleAccessPro() {
                                           <Button
                                             variant="ghost"
                                             size="xs"
-                                            onClick={() => setExpandedNotifications(prev => ({ ...prev, [`${activeRole}_${s.id}`]: !isExpanded }))}
+                                            onClick={() => {
+                                              const key = `${activeRole}_${s.id}`;
+                                              setExpandedNotifications(prev => ({ ...prev, [key]: !prev[key] }));
+                                              if (!expandedNotifications[key]) {
+                                                loadNotificationSettings(s.id);
+                                              }
+                                            }}
                                             style={{ padding: '2px', height: 'auto' }}
                                             title={t('configure_notifications') || 'Configure Notifications'}
                                           >
@@ -389,7 +505,7 @@ export default function RoleAccessPro() {
             <Button
               variant="primary"
               onClick={saveRoleScreens}
-              disabled={saving}
+              disabled={saving || !hasChanges}
               loading={saving}
             >
               {saving ? (t('saving') || 'Saving...') : (t('save_role_access') || 'Save Role Access')}

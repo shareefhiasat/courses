@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
@@ -6,7 +6,8 @@ import { useLang } from '@contexts/LangContext';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
 import { getQuiz } from '@services/business/quizService';
 import { getUser } from '@services/business/userService';
-import { Container, Card, CardBody, Button, Spinner, Badge, Loading, useToast } from '@ui';
+import { Container, Card, CardBody, Button, Spinner, Badge, useToast } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import {
   Clock, CheckCircle, HelpCircle, ListChecks, Play, Edit, Circle, Shuffle, Repeat, Award, ArrowLeft
 } from 'lucide-react';
@@ -14,10 +15,11 @@ import styles from './QuizPreviewPage.module.css';
 
 export default function QuizPreviewPage() {
   const { t, lang } = useLang();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { quizId } = useParams();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   
   const [loading, setLoading] = useState(true);
   const [quizData, setQuizData] = useState(null);
@@ -132,15 +134,43 @@ export default function QuizPreviewPage() {
     navigate(`/quizzes?id=${quizId}`);
   };
 
-  if (loading) {
-    return (
-      <Loading
-        variant="overlay"
-        fullscreen
-        message={t('loading_quiz') || 'Loading quiz...'}
-      />
-    );
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial quiz data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!quizId) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadQuizData = async () => {
+      try {
+        setLoading(true);
+        await loadQuiz(); // Use existing loadQuiz function
+      } catch (error) {
+        console.error('Error loading quiz data:', error);
+      } finally {
+        setLoading(false);
+        safeStop();
+      }
+    };
+
+    loadQuizData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, quizId, startLoading]);
 
   if (error || !quizData) {
     return (

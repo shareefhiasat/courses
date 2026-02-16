@@ -1289,8 +1289,7 @@ const ActivitiesPage = () => {
           exportFileName="activities"
           showExportButton
           exportLabel={t('export') || 'Export'}
-          loadingOverlayMessage={loading ? "Loading..." : undefined} 
-          fancyVariant="dots"
+          loadingOverlayMessage={loading ? "Loading..." : undefined}
         />
       </div>
 

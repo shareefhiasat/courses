@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useSubmissionFilterCounts } from '@hooks/useFilterCounts';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Container, Card, CardBody, Loading, Tabs, Badge } from '@ui';
+import { Container, Card, CardBody, Tabs, Badge } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import iconTypes from '@constants/iconTypes';
 const { getThemedIcon, getColoredIcon, getIconWithColor } = iconTypes;
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -27,6 +28,7 @@ const ReviewResultsPage = () => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { startLoading } = useGlobalLoading();
   
   // Use global auth redirect hook
   const { isAuthenticated, authLoading: redirectLoading } = useAuthRedirect({
@@ -581,17 +583,57 @@ const ReviewResultsPage = () => {
 
   const isMinified = filterViewMode === 'minified';
 
+  // Auth loading check
   if (authLoading || redirectLoading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+    return <GlobalLoadingFallback />;
   }
 
   if (!isAuthenticated) {
-    return <Loading variant="overlay" fullscreen message={t('redirecting') || 'Redirecting...'} fancyVariant="dots" />;
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading || redirectLoading) return;
+    if (!isAuthenticated) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadSubmissions(),
+          loadPrograms(),
+          loadSubjects(),
+          loadClasses(),
+          loadActivities(),
+          loadUsers(),
+          loadCategories()
+        ]);
+      } catch (error) {
+        console.error('Error loading review data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, redirectLoading, isAuthenticated, user, loadSubmissions, loadPrograms, loadSubjects, loadClasses, loadActivities, loadUsers, loadCategories, startLoading]);
 
   return (
     <div className="review-results-page" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>
-      {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />}
+      {/* No inline loading needed - GlobalLoading handles page-level loading */}
       
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Activity Type Tabs - Main navigation for ReviewResultsPage */}
@@ -753,11 +795,7 @@ const ReviewResultsPage = () => {
         />
 
         {/* Submissions Cards Grid */}
-        {loading ? (
-          <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />
-        ) : (
-          <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-            {filteredSubmissions.length === 0 ? (
+        {filteredSubmissions.length === 0 ? (
               <div style={{
                 gridColumn: '1 / -1',
                 textAlign: 'center',

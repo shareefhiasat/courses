@@ -1,10 +1,10 @@
-﻿import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
+import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getPrograms, getSubjects, getSubject } from '@services/business/programService';
 import { getClassById } from '@services/business/classService';
@@ -1229,7 +1229,6 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           showExportButton
           exportLabel="Export"
           loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? "Loading participations..." : undefined}
-          fancyVariant="dots"
         />
       </div>
 

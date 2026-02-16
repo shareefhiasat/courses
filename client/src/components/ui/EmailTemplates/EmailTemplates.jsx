@@ -1,8 +1,8 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import EmailTemplateList from './EmailTemplateList';
 import EmailTemplateEditor from './EmailTemplateEditor';
 import {SeedDefaultTemplates} from "@ui";
-import { Loading } from '@ui';
+import { SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { collection, getDocs, query, limit } from 'firebase/firestore';
 import { db } from '@services/other/config';
@@ -63,7 +63,7 @@ const EmailTemplates = () => {
             minHeight: '200px',
             padding: '2rem'
           }}>
-            <Loading variant="overlay" message="Loading templates..." fancyVariant="dots" />
+            <SimpleLoading loading type="spinner" size="md" />
           </div>
         )}
         

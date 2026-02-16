@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import RoleGuard from './RoleGuard';
-import { Loading } from '@ui';
+import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 
 /**
  * ProtectedRoute Component
@@ -56,32 +56,12 @@ const ProtectedRoute = ({
     if (loadingComponent) {
       return loadingComponent;
     }
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        flexDirection: 'column'
-      }}>
-        <Loading variant="overlay" message="Loading..." />
-      </div>
-    );
+    return <GlobalLoadingFallback />;
   }
 
   // If not authenticated and auth is required, the hook will handle redirect
   if (!isAuthenticated && !allowPublic) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        flexDirection: 'column'
-      }}>
-        <Loading variant="overlay" message="Redirecting..." />
-      </div>
-    );
+    return <GlobalLoadingFallback />;
   }
 
   // If screenId is provided, wrap with RoleGuard for authorization

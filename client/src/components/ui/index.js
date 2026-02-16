@@ -57,9 +57,7 @@ export { default as UserSelect } from './UserSelect/UserSelect';
 export { default as Tag } from './Tag';
 export { default as EmptyState } from './EmptyState';
 export { default as Skeleton } from './Skeleton';
-export { default as FancyLoading } from './FancyLoading';
-export { default as Loading } from './Loading';
-export { default as PermissionAwareLoading } from './PermissionAwareLoading';
+export { default as SimpleLoading } from './SimpleLoading/SimpleLoading';
 export { default as AdvancedDataGrid } from './AdvancedDataGrid/AdvancedDataGrid';
 export { default as ExpandablePanel } from './ExpandablePanel/ExpandablePanel';
 export { default as CollapsibleDashboardSection } from './CollapsibleDashboardSection/CollapsibleDashboardSection';
@@ -121,8 +119,3 @@ export { default as StreakWidget } from './StreakWidget/StreakWidget';
 // Special Components
 export { default as DraggableClock } from './DraggableClock/DraggableClock';
 
-// Remove non-existent components that were referenced but don't exist
-// These will need to be created or imports will need to be updated:
-// - DeleteConfirmationModal (doesn't exist)
-// - XIcon, HistoryIcon, TypeIcon (don't exist in icons folder)
-// - EmailManager, EmailComposer, EmailSettings, EmailTemplates, EmailTemplateEditor, EmailTemplateList, EmailLogs, SmartEmailComposer (don't exist)

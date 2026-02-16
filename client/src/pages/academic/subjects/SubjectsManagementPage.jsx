@@ -8,7 +8,7 @@ import { getUsers } from '@services/business/userService';
 import { getClasses } from '@services/business/classService';
 import { getPrograms } from '@services/business/programService';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@services/business/subjectService';
-import { Loading, Button, Input, Select, useToast, AdvancedDataGrid } from '@ui';
+import { SimpleLoading, Button, Input, Select, useToast, AdvancedDataGrid } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { useTheme } from '@contexts/ThemeContext';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
@@ -233,7 +233,7 @@ const resetForm = () => {
   };
 
   if (authLoading) {
-    return <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+    return <GlobalLoadingFallback />;
   }
 
   if (!isAdmin && !isSuperAdmin && !isInstructor) {
@@ -415,7 +415,6 @@ const gridColumns = useMemo(() => [
             showExportButton
             exportLabel={t('export') || 'Export'}
             loadingOverlayMessage={loading ? (t('loading_subjects') || "Loading subjects...") : undefined}
-            fancyVariant="dots"
         />
       </div>
 

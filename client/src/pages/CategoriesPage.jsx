@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, CATEGORY_ICONS } from '@constants';
-import { Button, Select, Loading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
+import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@services/business/categoryService';
 import { 
@@ -579,7 +579,6 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           showExportButton
           exportLabel="Export"
           loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? "Loading categories..." : undefined}
-          fancyVariant="dots"
         />
       </div>
 

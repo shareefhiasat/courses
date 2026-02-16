@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
@@ -9,7 +9,8 @@ import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon } from '@constants/iconTypes';
 import { USER_ROLES } from '@constants/userRoles';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
-import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Loading, Card, CardBody, ConfirmModal } from '@ui';
+import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, ConfirmModal } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import QREmailModal, { useQREmailModal } from '@ui/QREmailModal/QREmailModal';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
@@ -29,8 +30,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const navigate = useNavigate();
   const { t, lang } = useLang();
   const { theme } = useTheme();
-  const { user, isAdmin, isSuperAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   
   // Page state
   const [pageState, setPageState] = useState(PAGE_STATES.LOADING);
@@ -84,6 +86,50 @@ const UsersPage = ({ isDashboardTab = false }) => {
   
   const { deleteModal, deleteUser, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const { isOpen: isQREmailModalOpen, student: qrEmailStudent, showQREmailModal, hideQREmailModal } = useQREmailModal(t);
+
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
+  }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!isAdmin && !isSuperAdmin) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          getUsers(),
+          getPrograms(),
+          getClasses(),
+          getSubjects(),
+          getEnrollments()
+        ]).then(([usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult]) => {
+          // Set data logic here
+        });
+      } catch (error) {
+        console.error('Error loading users data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, isAdmin, isSuperAdmin, startLoading]);
 
   // Load data function - must be defined before useEffect
   const loadData = useCallback(async () => {
@@ -1186,12 +1232,8 @@ const UsersPage = ({ isDashboardTab = false }) => {
       </form>
 
       <div style={{ marginTop: '1rem' }}>
-        {pageState === PAGE_STATES.LOADING ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <Loading />
-            <p style={{ marginTop: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>{t('loading_users') || 'Loading users...'}</p>
-          </div>
-        ) : pageState === PAGE_STATES.ERROR ? (
+        {/* No loading state needed - GlobalLoading handles initial page load */}
+        {pageState === PAGE_STATES.ERROR ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <p style={{ color: theme === 'dark' ? '#f87171' : '#ef4444' }}>{t('error_loading_users') || 'Error loading users'}</p>
             <Button onClick={loadData} style={{ marginTop: '1rem' }}>

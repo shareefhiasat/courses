@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -10,7 +10,8 @@ import {
   deleteScheduledReport 
 } from '@services/business/configService';
 import { getEmailTemplates } from '@services/business/emailService';
-import { Loading, Button, Input, Select, Textarea, useToast, Card, CardBody } from '@ui';
+import { Button, Input, Select, Textarea, useToast, Card, CardBody } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { Container } from '@ui';
 import { ToggleSwitch, RibbonTabs } from '@ui';
 import { Plus, Edit, Trash2, Calendar, Mail, FileText, X, FileDown, Search, BarChart3, Users } from 'lucide-react';
@@ -22,6 +23,7 @@ const ScheduledReportsPage = () => {
   const { t } = useLang();
   const navigate = useNavigate();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -264,9 +266,44 @@ const ScheduledReportsPage = () => {
     );
   });
 
-  if (authLoading || initialLoading) {
-    return <Loading variant="overlay" message="Loading..." fancyVariant="dots" />;
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!isAdmin && !isSuperAdmin) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadReports(),
+          loadTemplates()
+        ]);
+      } catch (error) {
+        console.error('Error loading reports data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, isAdmin, isSuperAdmin, loadReports, loadTemplates, startLoading]);
 
   if (!isAdmin && !isSuperAdmin) {
     return (
@@ -481,9 +518,7 @@ const ScheduledReportsPage = () => {
         <Card>
           <CardBody>
             <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>All Reports ({filteredReports.length})</h3>
-            {loading ? (
-              <Loading message="Loading reports..." fancyVariant="dots" />
-            ) : filteredReports.length === 0 ? (
+            {filteredReports.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
                 <Calendar size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
                 <p>No scheduled reports found</p>

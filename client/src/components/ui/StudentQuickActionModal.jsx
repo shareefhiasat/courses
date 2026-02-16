@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -33,7 +33,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { Button, Input, Card, CardBody, Loading, Select } from '@ui';
+import { Button, Input, Card, CardBody, SimpleLoading, Select } from '@ui';
 import { markAttendance } from '@services/business/attendanceService';
 import { getPerformedByFields } from '@services/business/userService';
 import { getClasses } from '@services/business/classService';

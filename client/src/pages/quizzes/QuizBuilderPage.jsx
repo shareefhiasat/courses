@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import logger from '../utils/logger';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useLang } from '../contexts/LangContext';
@@ -14,7 +14,8 @@ import { getQuiz, createQuiz, updateQuiz } from '@services/business/quizService'
 import { notifyQuizAvailable } from '@services/business/notificationService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers } from '@services/business/userService';
-import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading } from '../components/ui';
+import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor } from '../components/ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ToggleSwitch } from '../components/shared';
 import { LanguageToggle } from '../components/shared';
 import styles from './QuizBuilderPage.module.css';
@@ -74,12 +75,13 @@ function getDefaultOptions(type = QUESTION_TYPES.MULTIPLE_CHOICE) {
 
 export default function QuizBuilderPage() {
   const { t, lang } = useLang();
-  const { user, isAdmin, isInstructor } = useAuth();
+  const { user, isAdmin, isInstructor, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const quizId = searchParams.get('id');
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
 
   // If navigated from QuizManagementPage with mock/loaded quiz data
   const initialQuizFromState = location.state?.quiz || null;
@@ -539,14 +541,48 @@ export default function QuizBuilderPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <Loading
-        variant="overlay"
-        fullscreen
-        message={t('loading_quiz') || 'Loading quiz...'}
-      />
-    );
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
+  }
+
+  // Use GlobalLoading for initial quiz data load (when editing existing quiz)
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!isAdmin && !isInstructor) return;
+    if (!quizId) return; // Only load data when editing existing quiz
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadQuizData = async () => {
+      try {
+        setLoading(true);
+        await loadQuiz(); // Use existing loadQuiz function
+      } catch (error) {
+        console.error('Error loading quiz data:', error);
+      } finally {
+        setLoading(false);
+        safeStop();
+      }
+    };
+
+    loadQuizData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, isAdmin, isInstructor, quizId, startLoading]);
+
+  // For inline loading states (like saving), keep SimpleLoading
+  if (loading && !quizId) {
+    return null; // Don't show loading for new quiz creation
   }
 
   // Preview Step

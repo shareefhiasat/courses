@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@services/business/programService';
-import { Loading, Button, Input, Textarea, useToast, AdvancedDataGrid } from '@ui';
+import { SimpleLoading, Button, Input, Textarea, useToast, AdvancedDataGrid } from '@ui';
 import DeleteModal, { useDeleteModal } from '@ui/DeleteModal/DeleteModal';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -277,7 +277,7 @@ const ProgramsManagementPage = () => {
 
 
   if (authLoading) {
-    return <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+    return <GlobalLoadingFallback />;
   }
 
   if (!isAdmin && !isSuperAdmin) {
@@ -396,7 +396,6 @@ const ProgramsManagementPage = () => {
             showExportButton
             exportLabel={t('export') || 'Export'}
             loadingOverlayMessage={loading ? (t('loading_programs') || "Loading programs...") : undefined}
-            fancyVariant="dots"
         />
       </div>
 

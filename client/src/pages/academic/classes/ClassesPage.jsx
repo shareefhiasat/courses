@@ -700,7 +700,6 @@ const handleCancelEdit = useCallback(() => {
           showExportButton
           exportLabel={t('export') || 'Export'}
           loadingOverlayMessage={loading ? "Loading classes..." : undefined}
-          fancyVariant="dots"
         />
       </div>
 

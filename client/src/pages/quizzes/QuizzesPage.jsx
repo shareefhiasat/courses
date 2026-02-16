@@ -13,7 +13,7 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers, getUser } from '@services/business/userService';
 import { getAllQuizzes, getQuizzesByCreator, deleteQuiz, getQuiz, createQuiz, updateQuiz } from '@services/business/quizService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
-import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, Loading, Badge } from '@ui';
+import { Container, Button, Card, CardBody, Input, Select, Spinner, useToast, RichTextEditor, SimpleLoading, Badge } from '@ui';
 import { ToggleSwitch, LanguageToggle } from '@ui';
 import QuizBuilderPageStyles from './QuizBuilderPage.module.css';
 import QuizManagementPageStyles from './QuizManagementPage.module.css';
@@ -1021,7 +1021,7 @@ export default function QuizzesPage() {
 
   // LIST VIEW
   if (authLoading) {
-    return <Loading variant="overlay" fullscreen message="Loading..." fancyVariant="dots" />;
+    return <GlobalLoadingFallback />;
   }
 
   if (viewMode === 'list') {
@@ -1032,11 +1032,11 @@ export default function QuizzesPage() {
 
     if (loading) {
       return (
-        <Loading
-          variant="overlay"
+        <SimpleLoading
+          loading
           fullscreen
-          message={t('loading_quizzes') || 'Loading quizzes...'}
-          fancyVariant="dots"
+          type="brand"
+          size="lg"
         />
       );
     }
@@ -1281,10 +1281,11 @@ export default function QuizzesPage() {
 
   if (loading && (viewMode === 'add' || viewMode === 'edit')) {
     return (
-      <Loading
-        variant="overlay"
+      <SimpleLoading
+        loading
         fullscreen
-        message="Loading quiz..."
+        type="brand"
+        size="lg"
       />
     );
   }

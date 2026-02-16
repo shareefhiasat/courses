@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
-import { Loading, Tabs } from '@ui';
+import { Tabs } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import iconTypes from '@constants/iconTypes';
 const { getIconWithColor } = iconTypes;
 import useDashboardData from '@hooks/useDashboardData';
@@ -14,7 +15,8 @@ import './StudentDashboardPageModern.css';
 export default function StudentDashboardPageModern() {
   const { t, lang } = useLang();
   const { theme } = useTheme();
-  const { user, userProfile, isAdmin, isInstructor, isHR } = useAuth();
+  const { user, userProfile, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
+  const { startLoading } = useGlobalLoading();
   const { primaryColor } = useColorTheme();
   
   const [activeView, setActiveView] = useState('overview');
@@ -94,8 +96,44 @@ export default function StudentDashboardPageModern() {
     };
   }, [enrollments]);
 
-  if (loading || filtersLoading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
+  }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await reload(); // Use the reload function from useDashboardData
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, reload, startLoading]);
+
+  // For inline loading states (like filters), keep SimpleLoading
+  if (filtersLoading) {
+    return <SimpleLoading loading fullscreen type="brand" size="lg" />;
   }
 
   return (

@@ -6,6 +6,7 @@ import Navbar from './components/ui/Navbar/Navbar';
 import { ErrorBoundary, HelpDrawer, CollapsibleSideWindow, NotificationDrawer, RankDisplay, RankHistory, VariableHelper, StudentQRCodeDisplay, StudentQuickActionModal, ToastProvider, useToast, SideDrawer } from '@ui';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ColorThemeProvider } from './contexts/ColorThemeContext';
+import { GlobalLoadingProvider, GlobalLoadingFallback } from './contexts/GlobalLoadingContext';
 import logger from './utils/logger';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/system/LoginPage';
@@ -40,7 +41,6 @@ import ProgramsManagementPage from './pages/academic/programs/ProgramsManagement
 import SubjectsManagementPage from './pages/academic/subjects/SubjectsManagementPage';
 import ScheduledReportsPage from './pages/feedback/reports/ScheduledReportsPage';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
-import FancyLoading from './components/ui/FancyLoading/FancyLoading';
 
 // 🚀 ADD THESE IMPORTS FOR AUTHENTICATION GUARDS
 import ProtectedRoute from './components/ProtectedRoute';
@@ -157,7 +157,7 @@ const AppContent = () => {
         )}
         <HelpDrawer />
         <main className="main-content">
-        <Suspense fallback={<FancyLoading fullscreen={true} />}>
+        <Suspense fallback={<GlobalLoadingFallback />}>
         <Routes>
           {/* ============================================ */}
           {/* PUBLIC ROUTES (No authentication required) */}
@@ -434,6 +434,15 @@ const AppContent = () => {
             } 
           />
           
+          <Route 
+            path="/role-access-pro" 
+            element={
+              <ProtectedRoute screenId="roleAccess" screenName="Role Access Management">
+                <RoleAccessPro />
+              </ProtectedRoute>
+            } 
+          />
+          
           {/* ============================================ */}
           {/* REDIRECTS */}
           {/* ============================================ */}
@@ -462,11 +471,13 @@ function App() {
         <LangProvider>
           <AuthProvider>
             <ColorThemeProvider>
-              <Router>
-                <ErrorBoundary>
-                  <AppContent />
-                </ErrorBoundary>
-              </Router>
+              <GlobalLoadingProvider>
+                <Router>
+                  <ErrorBoundary>
+                    <AppContent />
+                  </ErrorBoundary>
+                </Router>
+              </GlobalLoadingProvider>
             </ColorThemeProvider>
           </AuthProvider>
         </LangProvider>

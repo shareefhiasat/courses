@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
@@ -16,7 +16,8 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@contexts/ThemeContext';
 import { formatDateTime } from '@utils/date';
-import { Button, Input, Select, Badge, Container, Loading } from '@ui';
+import { Button, Input, Select, Badge, Container } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ToggleSwitch } from '@ui';
 import { 
   NOTIFICATION_TYPES, 
@@ -34,12 +35,13 @@ import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 
 const NotificationsPage = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
   logger.log('Current lang:', lang);
   logger.log('t function test:', t('all_types'));
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { startLoading } = useGlobalLoading();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -69,15 +71,6 @@ const NotificationsPage = () => {
   const [classes, setClasses] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
   const isDark = theme === 'dark';
-
-  useEffect(() => {
-    if (!user) return;
-    const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
-      setNotifications(newNotifications);
-      setInitialLoading(false); // Initial data loaded
-    }, true);
-    return unsubscribe;
-  }, [user]);
 
   // Sync notification settings with useNotifications hook
   useEffect(() => {
@@ -345,19 +338,48 @@ const NotificationsPage = () => {
     }
   };
 
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
+  }
+
   if (!user) return null;
 
-  // Full-page loading
-  if (initialLoading) {
-    return (
-      <Loading 
-        variant="overlay" 
-        fullscreen 
-        message={t('loading_notifications') || 'Loading notifications...'} 
-        fancyVariant="dots" 
-      />
-    );
-  }
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        // Subscribe to notifications
+        const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
+          setNotifications(newNotifications);
+          safeStop(); // Stop loading when data arrives
+        }, true);
+        
+        return unsubscribe;
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+        safeStop();
+      }
+    };
+
+    const unsubscribe = loadData();
+
+    return () => {
+      safeStop();
+      if (unsubscribe) unsubscribe();
+    };
+  }, [authLoading, user, startLoading]);
 
   return (
     <Container maxWidth="xl" style={{ padding: '2rem', minHeight: '100vh', background: isDark ? '#0f0f1e' : '#f9fafb' }}>

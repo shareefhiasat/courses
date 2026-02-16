@@ -751,7 +751,6 @@ const AnnouncementsPage = () => {
           showExportButton
           exportLabel={t('export') || 'Export'}
           loadingOverlayMessage={dataLoading ? "Loading..." : undefined}
-          fancyVariant="dots"
         />
       </div>
 

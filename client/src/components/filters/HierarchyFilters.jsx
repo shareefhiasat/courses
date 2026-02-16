@@ -88,8 +88,6 @@ const HierarchyFilters = ({
             if (setSelectedClass) setSelectedClass('all');
           }}
           options={programOptions}
-          size="sm"
-          compact
         />
       )}
       
@@ -101,8 +99,6 @@ const HierarchyFilters = ({
             if (setSelectedClass) setSelectedClass('all');
           }}
           options={subjectOptions}
-          size="sm"
-          compact
         />
       )}
       
@@ -111,8 +107,6 @@ const HierarchyFilters = ({
           value={selectedClass}
           onChange={setSelectedClass}
           options={classOptions}
-          size="sm"
-          compact
         />
       )}
 
@@ -121,8 +115,6 @@ const HierarchyFilters = ({
           value={selectedStudent}
           onChange={setSelectedStudent}
           options={studentOptions}
-          size="sm"
-          compact
         />
       )}
 
@@ -135,8 +127,6 @@ const HierarchyFilters = ({
           allLabel={t('all_years') || 'All Years'}
           startYear={Number(years[0]) || 2024}
           yearsAhead={6}
-          size="sm"
-          compact
         />
       )}
 
@@ -147,8 +137,6 @@ const HierarchyFilters = ({
           onChange={setSelectedTerm}
           data={terms}
           allLabel={t('all_terms') || 'All Terms'}
-          size="sm"
-          compact
         />
       )}
     </div>

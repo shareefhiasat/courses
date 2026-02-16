@@ -42,8 +42,8 @@
 
 /* Header */
 .header {
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--border, #e0e0e0);
 }
 
@@ -82,9 +82,9 @@
 /* Controls */
 .controls {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 .searchInput {
@@ -92,18 +92,35 @@
   min-width: 250px;
 }
 
-.roleControls {
+.filterControls {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
   align-items: flex-end;
 }
 
+.roleControls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  padding: 1rem;
+  background: var(--panel-hover, #f8f9fa);
+  border-radius: 8px;
+  border: 1px solid var(--border, #e0e0e0);
+  order: -1; /* Move to top */
+}
+
+.roleControls .select {
+  flex: 1;
+  min-width: 200px;
+}
+
 /* Groups */
 .groups {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .group {
@@ -121,7 +138,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   background: var(--panel-hover, #f8f9fa);
   border-bottom: 1px solid var(--border, #e0e0e0);
 }
@@ -143,7 +160,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--border, #e0e0e0);
   transition: background 0.2s ease;
 }
@@ -230,8 +247,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--border, #e0e0e0);
 }
 
@@ -259,9 +276,15 @@
     width: 100%;
   }
   
+  .filterControls {
+    width: 100%;
+    flex-direction: column;
+  }
+  
   .roleControls {
     width: 100%;
     flex-direction: column;
+    order: -1;
   }
   
   .screenRow {

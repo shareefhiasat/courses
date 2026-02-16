@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -7,7 +7,7 @@ import { ToggleSwitch } from '@ui';
 import { formatDateTime } from '@utils/date';
 import { collection, getDocs, query, orderBy, getDoc, doc, deleteDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@services/other/config';
-import { Loading } from '@ui';
+import { SimpleLoading } from '@ui';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   const toast = useToast();
@@ -232,7 +232,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   };
 
   if (loading) {
-    return <Loading message={t('loading_email_templates') || 'Loading email templates...'} fancyVariant="dots" />;
+    return <SimpleLoading loading type="spinner" size="lg" />;
   }
 
   return (

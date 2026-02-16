@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useLayoutEffect } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -12,14 +12,16 @@ import { getUsers } from '@services/business/userService';
 import { getAttendanceByStudent } from '@services/business/attendanceService';
 import { getSubmissionsByUser } from '@services/business/submissionsService';
 import { useSearchParams } from 'react-router-dom';
-import { Container, Loading, Select } from '@ui';
+import { Container, Select } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { StudentQRCodeDisplay } from '@ui';
 import styles from './StudentProfilePage.module.css';
 
 const StudentProfilePage = () => {
-  const { user, isAdmin, isHR, isInstructor } = useAuth();
+  const { user, isAdmin, isHR, isInstructor, loading: authLoading } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
+  const { startLoading } = useGlobalLoading();
   const isDark = theme === 'dark';
   const [searchParams, setSearchParams] = useSearchParams();
   const [targetUserId, setTargetUserId] = useState(searchParams.get('uid') || user?.uid);
@@ -426,15 +428,46 @@ const StudentProfilePage = () => {
     }
   };
 
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
+  }
+
   // Authentication check
   if (!user) {
     window.location.href = '/login';
-    return <Loading variant="overlay" message={t('loading') || 'Loading...'} />;
+    return null;
   }
 
-  if (loading) {
-    return <Loading variant="overlay" message={t('loading') || 'Loading...'} />;
-  }
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await loadStudentData();
+      } catch (error) {
+        console.error('Error loading student data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, loadStudentData, startLoading]);
 
   if (!studentData) {
     return (

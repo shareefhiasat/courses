@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useMemo, useRef, memo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useRef, memo, useCallback, useLayoutEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
 import logger from '@utils/logger';
 const { getThemedIcon, getColoredIcon, deriveIconColor, getIconWithColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { Tabs } from '@ui';
 import { getActivities, getAnnouncements, getResources } from '@services/business/activityService';
 import { getCourses } from '@services/business/courseService';
@@ -22,10 +23,11 @@ import { useFilterCounts } from '@hooks/useFilterCounts';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
 import { getResourceTypeConfig } from '@constants/resourceTypes';
-import { Loading, Card, CardBody, Modal } from '@ui';
+import { Card, CardBody, Modal } from '@ui';
 import UnifiedCard from '@/components/UnifiedCard';
 import AuthForm from '@/components/AuthForm';
 import { UnifiedFilterSection } from '@/components/filters';
+import useBookmarks from '@hooks/useBookmarks';
 import './HomePage.css';
 
 const HomePage = memo(() => {
@@ -33,6 +35,7 @@ const HomePage = memo(() => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();
+  const { startLoading } = useGlobalLoading();
   const isDark = theme === 'dark';
   const location = useLocation();
   const navigate = useNavigate();
@@ -98,15 +101,22 @@ const HomePage = memo(() => {
   const [announcements, setAnnouncements] = useState([]);
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('');
   
   // User data
   const [enrolledClasses, setEnrolledClasses] = useState([]);
   const [userData, setUserData] = useState(null);
   const [submissions, setSubmissions] = useState({});
-  const [bookmarks, setBookmarks] = useState({ activities: {}, resources: {}, quizzes: {}, announcements: {} });
   const [userProgress, setUserProgress] = useState({});
+  
+  // Use the new bookmark hook
+  const { 
+    bookmarks, 
+    bookmarkCounts, 
+    loading: bookmarksLoading, 
+    toggleBookmark,
+    calculateFilterBookmarkCount 
+  } = useBookmarks({ enableRealtime: true });
   
   // Common filters (visible for all modes)
   const [searchTerm, setSearchTerm] = useState(urlSearchTerm);
@@ -185,8 +195,39 @@ const HomePage = memo(() => {
     }
   }, [searchParams]);
 
-  // Load user data
-  useEffect(() => {
+  // Load data function (defined before useEffect that uses it)
+  const loadData = useCallback(async (stopGlobalLoading) => {
+    try {
+      const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult, categoriesResult] = await Promise.all([
+        getActivities(),
+        getResources(),
+        getAllQuizzes(),
+        getAnnouncements(),
+        getCourses(),
+        getCategories()
+      ]);
+
+      if (activitiesResult.success) {
+        setActivities(activitiesResult.data || []);
+      }
+      if (resourcesResult.success) setResources(resourcesResult.data || []);
+      if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
+      if (announcementsResult.success) {
+        setAnnouncements(announcementsResult.data || []);
+      }
+      if (coursesResult.success) setCourses(coursesResult.data || []);
+      if (categoriesResult.success) setCategories(categoriesResult.data || []);
+    } catch (error) {
+      logger.error('Error loading data:', error);
+    } finally {
+      if (stopGlobalLoading) {
+        stopGlobalLoading();
+      }
+    }
+  }, []);
+
+  // Load user data with global loading to prevent flicker
+  useLayoutEffect(() => {
     if (authLoading) return;
     if (!user) {
       setActivities([]);
@@ -196,10 +237,23 @@ const HomePage = memo(() => {
       setCourses([]);
       return;
     }
-    loadData();
-  }, [authLoading, user]);
 
-  // Load user enrollments, bookmarks, progress
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    loadData(safeStop);
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, loadData, startLoading]);
+
+  // Load user enrollments and progress (bookmarks are now handled by useBookmarks hook)
   useEffect(() => {
     const loadUserData = async () => {
       if (!user) return;
@@ -207,12 +261,6 @@ const HomePage = memo(() => {
         const data = await getUserProfile(user) || {};
         setEnrolledClasses(Array.isArray(data.enrolledClasses) ? data.enrolledClasses : []);
         setUserData(data);
-        setBookmarks({
-          activities: (data.bookmarks && data.bookmarks.activities) || {},
-          resources: (data.bookmarks && data.bookmarks.resources) || {},
-          quizzes: (data.bookmarks && data.bookmarks.quizzes) || {},
-          announcements: (data.bookmarks && data.bookmarks.announcements) || {}
-        });
         setUserProgress(data.resourceProgress || {});
         
         // Load submissions
@@ -235,35 +283,8 @@ const HomePage = memo(() => {
     loadUserData();
   }, [user]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult, categoriesResult] = await Promise.all([
-        getActivities(),
-        getResources(),
-        getAllQuizzes(),
-        getAnnouncements(),
-        getCourses(),
-        getCategories()
-      ]);
-      
-      if (activitiesResult.success) {
-        setActivities(activitiesResult.data || []);
-      }
-      if (resourcesResult.success) setResources(resourcesResult.data || []);
-      if (quizzesResult.success) setQuizzes(quizzesResult.data || []);
-      if (announcementsResult.success) setAnnouncements(announcementsResult.data || []);
-      if (coursesResult.success) setCourses(coursesResult.data || []);
-      if (categoriesResult.success) setCategories(categoriesResult.data || []);
-    } catch (error) {
-        logger.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Get current items based on mode and activity type
-  const getCurrentItems = () => {
+  const getCurrentItems = useCallback(() => {
     if (mode === 'resources') {
       // Filter resources by category
       return resources.filter(r => 
@@ -306,7 +327,7 @@ const HomePage = memo(() => {
     }
     
     return [];
-  };
+  }, [mode, activityType, category, activities, resources, quizzes, announcements, enrolledClasses]);
 
   // Filter items based on mode and filters
   const filteredItems = useMemo(() => {
@@ -516,7 +537,7 @@ const HomePage = memo(() => {
   // Calculate filter counts for all chips
   const getFilterCounts = () => {
     const counts = {
-      bookmarked: 0,
+      bookmark: 0, // Changed from 'bookmarked' to 'bookmark' to match chip ID
       featured: 0,
       retakable: 0,
       completed: 0,
@@ -548,10 +569,19 @@ const HomePage = memo(() => {
       itemsToCount = announcements;
     }
     
+    // Use the new bookmark counting function
+    counts.bookmark = calculateFilterBookmarkCount(itemsToCount, mode, activityType);
+    
+    // Debug logging
+    logger.debug('[HomePage] Calculating filter counts:', {
+      mode,
+      activityType,
+      itemsToCount: itemsToCount.length,
+      bookmarkCount: counts.bookmark,
+      bookmarkCounts
+    });
+    
     itemsToCount.forEach(item => {
-      // Bookmark counts
-      if (bookmarks[item.docId || item.id]) counts.bookmarked++;
-      
       // Featured counts
       if (item.featured) counts.featured++;
       
@@ -573,10 +603,12 @@ const HomePage = memo(() => {
       else if (item.difficulty === 'advanced') counts.advanced++;
     });
     
+    // Debug final counts
+    logger.debug('[HomePage] Final filter counts:', counts);
+    
     return counts;
   };
 
-  const filterCounts = getFilterCounts();
   const resourceTypeCounts = getResourceTypeCounts();
   const availableClasses = useMemo(() => {
     if (!(mode === 'activities' && activityType === 'quiz')) return [];
@@ -670,36 +702,43 @@ const HomePage = memo(() => {
     mode,
     activityType,
     userProgress,
-    submissions
+    submissions,
+    bookmarks // Add bookmarks to the hook
   });
+
+  // Debug logging to see what the hook returns
+  logger.debug('[HomePage] Hook filter counts:', {
+    hookFilterCounts,
+    bookmarkCount: hookFilterCounts.bookmark,
+    mode,
+    activityType,
+    bookmarksAvailable: Object.keys(bookmarks).length
+  });
+
+  // Remove manual filterCounts since we're using the hook
+  // const filterCounts = getFilterCounts();
 
   const handleModeChange = (newMode) => {
     setSearchParams({ mode: newMode });
   };
 
   const handleBookmark = async (itemId, itemMode) => {
-    if (!user) return;
-    try {
-      const next = { ...bookmarks };
-      const isAdding = !next[itemMode][itemId];
-      if (next[itemMode][itemId]) {
-        delete next[itemMode][itemId];
-      } else {
-        next[itemMode][itemId] = true;
-      }
-      setBookmarks(next);
-      await setDoc(doc(db, 'users', user.uid), { 
-        bookmarks: {
-          activities: next.activities,
-          resources: next.resources,
-          quizzes: next.quizzes,
-          announcements: next.announcements
-        }
-      }, { merge: true });
-    } catch (e) {
-      logger.error('Failed to update bookmark:', e);
-    }
-  };
+  const result = await toggleBookmark(itemId, itemMode, {
+    bookmarkedAt: Date.now(),
+    mode: mode,
+    activityType: activityType
+  });
+  
+  if (!result.success) {
+    logger.error('[HomePage] Failed to toggle bookmark:', result.error);
+  } else {
+    logger.debug('[HomePage] Bookmark toggled successfully:', {
+      itemId,
+      itemMode,
+      isBookmarked: result.isBookmarked
+    });
+  }
+};
 
   const handleResourceComplete = async (resourceId) => {
     if (!user) return;
@@ -732,7 +771,7 @@ const HomePage = memo(() => {
   const primaryColor = getPrimaryColor();
 
   if (authLoading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+    return <GlobalLoadingFallback />;
   }
 
   if (!user) {
@@ -747,7 +786,6 @@ const HomePage = memo(() => {
 
   return (
     <div className="home-page" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>
-      {loading && <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />}
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Mode Switcher - Using Tabs component */}
         <div data-tour="mode-switcher" style={{ marginBottom: '0.15rem' }}>
@@ -892,23 +930,23 @@ const HomePage = memo(() => {
             }
             completedFilter={completedFilter}
             setCompletedFilter={setCompletedFilter}
-            completedCount={filterCounts.completedCount}
+            completedCount={hookFilterCounts.completedCount}
             pendingFilter={pendingFilter}
             setPendingFilter={setPendingFilter}
-            pendingCount={filterCounts.pendingCount}
+            pendingCount={hookFilterCounts.pendingCount}
             requiredFilter={requiredFilter}
             setRequiredFilter={setRequiredFilter}
-            requiredCount={filterCounts.requiredCount}
+            requiredCount={hookFilterCounts.requiredCount}
             optionalFilter={optionalFilter}
             setOptionalFilter={setOptionalFilter}
-            optionalCount={filterCounts.optionalCount}
+            optionalCount={hookFilterCounts.optionalCount}
             overdueFilter={overdueFilter}
             setOverdueFilter={setOverdueFilter}
-            overdueCount={filterCounts.overdueCount}
+            overdueCount={hookFilterCounts.overdueCount}
             // Additional status filters
             requiresSubmissionFilter={requiresSubmissionFilter}
             setRequiresSubmissionFilter={setRequiresSubmissionFilter}
-            requiresSubmissionCount={filterCounts.requiresSubmissionCount}
+            requiresSubmissionCount={hookFilterCounts.requiresSubmissionCount}
             difficultyFilter={difficultyFilter}
             setDifficultyFilter={setDifficultyFilter}
             bookmarkFilter={bookmarkFilter}
@@ -978,17 +1016,14 @@ const HomePage = memo(() => {
             // Quiz type filter for activities
             quizFilter={mode === 'activities' && activityType === 'quiz' ? 'quiz' : undefined}
             showQuizFilter={mode === 'activities' && activityType === 'quiz'}
-            // Filter counts for all chips
-            filterCounts={filterCounts}
+            // Filter counts for all chips - use hookFilterCounts which includes bookmark counting
+            filterCounts={hookFilterCounts}
           />
         </div>
 
 
         {/* Items Grid */}
-              {loading ? (
-                <Loading variant="overlay" message={t('loading') || 'Loading...'} fancyVariant="dots" />
-              ) : (
-                <div data-tour="cards-grid" style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+        <div data-tour="cards-grid" style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
             {filteredItems.length === 0 ? (
               <div style={{
                 gridColumn: '1 / -1',
@@ -1090,9 +1125,8 @@ const HomePage = memo(() => {
                       />
                     );
               })
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       
       {/* Joyride Help Tour */}

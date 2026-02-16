@@ -7,7 +7,7 @@ import { arSD } from '@mui/x-data-grid/locales';
 import { Box } from '@mui/material';
 import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
-import Loading from '../Loading';
+import { SimpleLoading } from '@ui';
 
 /**
  * AdvancedDataGrid (MUI DataGrid wrapper)
@@ -28,7 +28,6 @@ const AdvancedDataGrid = ({
   showExportButton = false,
   exportLabel = 'Export',
   loadingOverlayMessage,
-  fancyVariant = 'dots',
   direction = 'ltr', // 'ltr' or 'rtl'
   lang = 'en', // 'en' or 'ar'
   ...rest
@@ -249,7 +248,7 @@ const AdvancedDataGrid = ({
           overflow: 'hidden',
           backdropFilter: 'blur(2px)'
         }}>
-          <Loading variant="fancy" fancyVariant={fancyVariant} message={loadingOverlayMessage} />
+          <SimpleLoading loading type="spinner" size="lg" />
         </Box>
       )}
       <Box sx={{ 

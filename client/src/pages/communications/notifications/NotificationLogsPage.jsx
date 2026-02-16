@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getNotificationLogs } from '@services/business/notificationService';
 import { formatQatarStandard } from '@utils/qatarDate';
-import { Loading, Modal, Select, Button, Card, CardBody, Badge, AdvancedDataGrid, DatePicker, useToast } from '@ui';
+import { SimpleLoading, Modal, Select, Button, Card, CardBody, Badge, AdvancedDataGrid, DatePicker, useToast } from '@ui';
 import { getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS } from '@constants/notificationTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
@@ -143,7 +143,7 @@ const NotificationLogsPage = () => {
       </div>
       
       {loading ? (
-        <Loading variant="overlay" />
+        <SimpleLoading loading type="spinner" size="lg" />
       ) : (
         <AdvancedDataGrid
           data={notificationLogs}

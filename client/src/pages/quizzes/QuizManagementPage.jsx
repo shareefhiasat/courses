@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
-import { Container, Card, CardBody, Button, Loading, Spinner } from '@ui';
+import { Container, Card, CardBody, Button, Spinner } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import {
   Plus, Edit, Trash2, Play, Clock, Users, HelpCircle, ListChecks,
   CheckCircle, AlertCircle, Repeat, Award
@@ -21,6 +22,7 @@ export default function QuizManagementPage() {
   const { t, lang } = useLang();
   const { user, isAdmin, isInstructor, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { startLoading } = useGlobalLoading();
   
   const [loading, setLoading] = useState(true);
   const [quizzes, setQuizzes] = useState([]);
@@ -333,15 +335,41 @@ export default function QuizManagementPage() {
     ? Math.round(quizzes.reduce((sum, quiz) => sum + (quiz.averageScore || 0), 0) / quizzes.length)
     : 0;
 
-  if (loading) {
-    return (
-      <Loading
-        variant="overlay"
-        fullscreen
-        message={t('loading_quizzes') || 'Loading quizzes...'}
-      />
-    );
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!isAdmin && !isInstructor) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await loadQuizzes();
+      } catch (error) {
+        console.error('Error loading quizzes:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, isAdmin, isInstructor, loadQuizzes, startLoading]);
 
   return (
     <div className={styles.quizManagement}>

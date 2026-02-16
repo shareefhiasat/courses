@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Select, YearSelect, Loading, Button, Calendar } from '@ui';
+import { Select, YearSelect, Button, Calendar } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getSchedules } from '@services/business/scheduleService';
 import { transformSchedulesToCalendarEvents } from '@services/business/scheduleService';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -15,8 +16,9 @@ import './ScheduleOverviewPage.css';
 const ScheduleOverviewPage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
-  const { user, isAdmin, isInstructor } = useAuth();
+  const { user, isAdmin, isInstructor, loading: authLoading } = useAuth();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
 
   const [term, setTerm] = useState('');
   const [year, setYear] = useState('');
@@ -31,6 +33,44 @@ const ScheduleOverviewPage = () => {
   const [programFilter, setProgramFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [instructorFilter, setInstructorFilter] = useState('all');
+
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
+  }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadMetadata(),
+          loadSchedules()
+        ]);
+      } catch (error) {
+        console.error('Error loading schedule data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, loadMetadata, loadSchedules, startLoading]);
 
   useEffect(() => {
     loadMetadata();
@@ -296,13 +336,7 @@ const ScheduleOverviewPage = () => {
         )}
       </div>
 
-      {loading && (
-        <Loading 
-          variant="overlay" 
-          message={t('loading_schedules') || 'Loading schedules...'} 
-          fancyVariant="dots" 
-        />
-      )}
+      {/* No inline loading needed - GlobalLoading handles page-level loading */}
 
       {!loading && term && year && classes.length > 0 && (
         <>

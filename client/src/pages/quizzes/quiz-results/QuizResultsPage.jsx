@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { Container, Card, CardBody, Button, Select, Loading, Badge, useToast, AdvancedDataGrid, Modal, Input, Checkbox } from '@ui';
+import { Container, Card, CardBody, Button, Select, Badge, useToast, AdvancedDataGrid, Modal, Input, Checkbox } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { 
@@ -24,11 +25,12 @@ import { getThemedIcon } from '@constants/iconTypes';
 import styles from './QuizResultsPage.module.css';
 
 const QuizResultsPage = () => {
-  const { user, isAdmin, isInstructor, isHR, isSuperAdmin } = useAuth();
+  const { user, isAdmin, isInstructor, isHR, isSuperAdmin, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   
   const [loading, setLoading] = useState(true);
   const [quizResults, setQuizResults] = useState([]);
@@ -823,13 +825,46 @@ const QuizResultsPage = () => {
     };
   }, [quizResults]);
 
-  if (loading && quizResults.length === 0) {
-    return (
-      <Container>
-        <Loading message={t('loading_quiz_results') || 'Loading quiz results...'} fancyVariant="dots" />
-      </Container>
-    );
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadQuizResults(),
+          loadQuizzes(),
+          loadPrograms(),
+          loadSubjects(),
+          loadClasses()
+        ]);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, loadQuizResults, loadQuizzes, loadPrograms, loadSubjects, loadClasses, startLoading]);
 
   return (
     <Container>
@@ -1012,21 +1047,18 @@ const QuizResultsPage = () => {
         {/* Results Table */}
         <Card>
           <CardBody>
-            {loading ? (
-              <Loading message="Loading results..." fancyVariant="dots" />
-            ) : (
-              <AdvancedDataGrid
-                rows={quizResults}
-                getRowId={(row) => row.docId || row.id}
-                columns={columns}
-                pageSize={25}
-                pageSizeOptions={[10, 25, 50, 100]}
-                checkboxSelection
-                onSelectionModelChange={(newSelection) => setSelectedRows(newSelection)}
-                selectionModel={selectedRows}
-                exportFileName="quiz-results"
-              />
-            )}
+            {/* No inline loading needed - GlobalLoading handles page-level loading */}
+            <AdvancedDataGrid
+              rows={quizResults}
+              getRowId={(row) => row.docId || row.id}
+              columns={columns}
+              pageSize={25}
+              pageSizeOptions={[10, 25, 50, 100]}
+              checkboxSelection
+              onSelectionModelChange={(newSelection) => setSelectedRows(newSelection)}
+              selectionModel={selectedRows}
+              exportFileName="quiz-results"
+            />
           </CardBody>
         </Card>
 

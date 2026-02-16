@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -8,7 +8,8 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { getUserProfile, getUserDisplayName } from '@services/business/userService';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Container, Card, CardBody, Button, Input, Spinner, useToast, Loading } from '@ui';
+import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ToggleSwitch } from '@ui';
 import styles from './ProfileSettingsPage.module.css';
 import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '@utils/color';
@@ -22,6 +23,7 @@ const ProfileSettingsPage = () => {
   const { t, lang, toggleLang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   const { 
     settings: notificationSettings, 
     isInitializing: notificationsInitializing,
@@ -151,16 +153,44 @@ const ProfileSettingsPage = () => {
     setCustomColorInput(normalizeHexColor(profileData.messageColor, DEFAULT_ACCENT));
   }, [profileData.messageColor]);
 
-  if (authLoading || loading) {
-    return (
-      <Loading 
-        variant="overlay" 
-        fullscreen 
-        message={t('loading_profile') || 'Loading profile...'} 
-        fancyVariant="dots" 
-      />
-    );
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadUserProfile(),
+          initializeNotifications()
+        ]);
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, loadUserProfile, initializeNotifications, startLoading]);
+
   if (!user) return <Navigate to="/login" />;
 
   const handleCustomColorInput = (value) => {

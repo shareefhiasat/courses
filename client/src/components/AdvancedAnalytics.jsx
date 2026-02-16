@@ -14,7 +14,7 @@ import LineChart from './charts/LineChart';
 import PieChart from './charts/PieChart';
 import AreaChart from './charts/AreaChart';
 // Removed direct Lucide imports - using getThemedIcon instead
-import { Select, YearSelect, Loading, DateRangeSlider } from './ui';
+import { Select, YearSelect, SimpleLoading, DateRangeSlider } from './ui';
 import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 
@@ -780,11 +780,11 @@ export default function AdvancedAnalytics() {
 
   if (loading) {
     return (
-      <Loading 
-        variant="overlay" 
-        fullscreen 
-        message={t('loading') || 'Loading analytics...'} 
-        fancyVariant="dots" 
+      <SimpleLoading 
+        loading
+        fullscreen
+        type="brand"
+        size="lg" 
       />
     );
   }

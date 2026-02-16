@@ -50,7 +50,7 @@ const UnauthorizedPage = () => {
           <CardBody className="unauthorized-content">
             {/* Icon */}
             <div className="unauthorized-icon">
-              {getColoredIcon('ui', 'shield_off', 80, isDark ? '#ef4444' : '#dc2626', theme)}
+              {getColoredIcon('ui', 'shield', 80, isDark ? '#ef4444' : '#dc2626', theme)}
             </div>
 
             {/* Title */}
@@ -88,7 +88,6 @@ const UnauthorizedPage = () => {
                 onClick={handleGoBack}
                 style={{ minWidth: 120 }}
               >
-                {getThemedIcon('ui', 'arrow_left', 16, theme)}
                 <span style={{ marginLeft: lang === 'ar' ? 0 : 8, marginRight: lang === 'ar' ? 8 : 0 }}>
                   {t('go_back') || 'Go Back'}
                 </span>
@@ -99,7 +98,6 @@ const UnauthorizedPage = () => {
                 onClick={handleGoHome}
                 style={{ minWidth: 120 }}
               >
-                {getThemedIcon('ui', 'home', 16, theme)}
                 <span style={{ marginLeft: lang === 'ar' ? 0 : 8, marginRight: lang === 'ar' ? 8 : 0 }}>
                   {t('go_home') || 'Go Home'}
                 </span>
@@ -110,7 +108,6 @@ const UnauthorizedPage = () => {
                 onClick={handleContactAdmin}
                 style={{ minWidth: 120 }}
               >
-                {getThemedIcon('ui', 'message', 16, theme)}
                 <span style={{ marginLeft: lang === 'ar' ? 0 : 8, marginRight: lang === 'ar' ? 8 : 0 }}>
                   {t('contact_admin') || 'Contact Admin'}
                 </span>

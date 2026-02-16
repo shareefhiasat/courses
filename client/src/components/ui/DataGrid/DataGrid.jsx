@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import Loading from '../Loading';
+import { SimpleLoading } from '@ui';
 import styles from './DataGrid.module.css';
 
 /**
@@ -190,7 +190,7 @@ const DataGrid = ({
             {loading ? (
               <tr>
                 <td colSpan={columns.length + (selectable ? 1 : 0)} className={styles.loading}>
-                  <Loading variant="fancy" fancyVariant="dots" message="Loading..." />
+                  <SimpleLoading loading type="spinner" size="md" />
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (

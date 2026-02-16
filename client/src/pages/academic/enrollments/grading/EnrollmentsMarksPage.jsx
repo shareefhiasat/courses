@@ -17,7 +17,7 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.
 import { MARK_TYPES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { USER_ROLES } from '@constants/userRoles';
-import { Loading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
+import { SimpleLoading, Modal, Button, Input, Select, useToast, AdvancedDataGrid, Card, CardBody, Container } from '@ui';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -403,7 +403,7 @@ const EnrollmentsMarksPage = () => {
     }
   ], [t, marksDistribution, classes, classFilter, subjects, subjectFilter, programs, handleEditMarks, getThemedIcon, theme]);
 
-  if (authLoading) return <Loading variant="overlay" />;
+  if (authLoading) return <GlobalLoadingFallback />;
   if (!isAdmin && !isSuperAdmin && !isInstructor) return <Navigate to="/" replace />;
 
   const renderSideWindowContent = () => {
@@ -671,7 +671,6 @@ const EnrollmentsMarksPage = () => {
                 exportFileName="marks"
                 exportLabel={t('export') || 'Export'}
                 loadingOverlayMessage={loading ? (t('loading_student_marks') || 'Loading student marks...') : undefined}
-                fancyVariant="dots"
                 disableSelectionOnClick
                 disableColumnMenu
                 disableDensitySelector

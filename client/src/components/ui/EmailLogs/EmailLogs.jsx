@@ -1,10 +1,10 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
 import { db } from '@services/other/config';
 import { formatDateTime } from '@utils/date';
-import { AdvancedDataGrid, Loading, Select, Input, Badge } from '@ui';
+import { AdvancedDataGrid, SimpleLoading, Select, Input, Badge } from '@ui';
 import { 
   getEmailTypeIcon, 
   getEmailStatusOptions, 
@@ -269,7 +269,6 @@ const EmailLogs = ({ defaultTypeFilter = 'all', actionsSlot = null }) => {
             showExportButton
             exportLabel={t('export') || 'Export'}
             loadingOverlayMessage={loading ? "Loading email logs..." : undefined}
-            fancyVariant="dots"
         />
 
         {/* Preview Overlay (full-screen, highly visible) */}

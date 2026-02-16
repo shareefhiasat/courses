@@ -1,12 +1,13 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { 
-  Container, Button, Select, Tabs, useToast, Loading, Card, CardBody, Badge, EmptyState
+  Container, Button, Select, Tabs, useToast, Card, CardBody, Badge, EmptyState
 } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig } from '@utils/cardColors';
 import { TYPE_CATEGORIES, getTypeLabel, getStatusLabel, TASK_STATUS } from '@utils/sharedTypes';
@@ -28,9 +29,10 @@ import styles from './StudentDashboardPage.module.css';
 export default function StudentDashboardPage() {
   const { t, lang } = useLang();
   const { theme } = useTheme();
-  const { user, userProfile, isAdmin, isInstructor, isHR, isSuperAdmin } = useAuth();
+  const { user, userProfile, isAdmin, isInstructor, isHR, isSuperAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   const exportRef = useRef(null);
   
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -302,13 +304,40 @@ export default function StudentDashboardPage() {
     { id: 'behaviors', label: lang === 'ar' ? 'السلوك' : 'Behaviors' }
   ];
 
-  if (loading) {
-    return (
-      <Container maxWidth="xxl">
-        <Loading message={lang === 'ar' ? 'جاري تحميل لوحة التحكم...' : 'Loading dashboard...'} />
-      </Container>
-    );
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await reload(); // Use the reload function from useDashboardData
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, reload, startLoading]);
 
   return (
     <div className={styles.dashboard} ref={exportRef}>

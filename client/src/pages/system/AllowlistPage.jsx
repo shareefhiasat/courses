@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { EmailManager, useToast, Loading } from '@ui';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { EmailManager, useToast } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 import { getAllowlist, updateAllowlist } from '@services/other/config';
 import logger from '@utils/logger';
 
 const AllowlistPage = () => {
   const { t } = useLang();
+  const { user, loading: authLoading, isSuperAdmin } = useAuth();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   const [allowlist, setAllowlist] = useState({ allowedEmails: [], adminEmails: [] });
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -51,9 +54,57 @@ const AllowlistPage = () => {
     }
   };
 
-  if (loading) {
-    return <Loading variant="inline" message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Access control
+  if (!isSuperAdmin) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h3>Access Denied</h3>
+        <p>You need super admin privileges to access this page.</p>
+      </div>
+    );
+  }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!isSuperAdmin) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        const result = await getAllowlist();
+        if (result.success) {
+          setAllowlist(result.data || { allowedEmails: [], adminEmails: [] });
+        } else {
+          toast.error('Failed to load allowlist');
+        }
+      } catch (error) {
+        console.error('Error loading allowlist:', error);
+        toast.error('Error loading allowlist');
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, isSuperAdmin, startLoading, toast]);
 
   return (
     <div className="allowlist-tab">

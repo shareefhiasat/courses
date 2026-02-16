@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo, useLayoutEffect } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -32,7 +32,8 @@ import { getUsers } from '@services/business/userService';
 import { getUserProfile } from '@services/business/userService';
 import { addNotification } from '@services/business/notificationService';
 import { chatService } from '@services/business/chatService';
-import { Loading, useToast, Input } from '@ui';
+import { useToast, Input } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import logger from '@utils/logger';
 import './ChatPage.css';
 import './ChatPageEmojiStyles.css';
@@ -54,6 +55,7 @@ const ChatPage = memo(() => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   const location = useLocation();
   
   logger.componentMount('ChatPage');
@@ -1241,10 +1243,46 @@ const ChatPage = memo(() => {
     }
   };
 
-  // Avoid redirect on refresh while auth is still resolving
-  if (authLoading) return <Loading variant="overlay" fullscreen fancyVariant="dots" message={t('authenticating') || 'Authenticating...'} />;
+  // Auth loading check
+  if (authLoading) return <GlobalLoadingFallback />;
   if (!user) return <Navigate to="/login" />;
-  if (loading || !messages) return <Loading variant="overlay" fullscreen fancyVariant="dots" message={t('loading_chat') || 'Loading chat...'} />;
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        // Chat data loading is handled by the existing useEffect hooks
+        // Just wait for messages to load
+        if (messages && messages.length > 0) {
+          safeStop();
+        }
+      } catch (error) {
+        console.error('Error loading chat data:', error);
+        safeStop();
+      }
+    };
+
+    // Wait a bit for messages to load, then stop loading
+    const timeout = setTimeout(() => {
+      safeStop();
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeout);
+      safeStop();
+    };
+  }, [authLoading, user, messages, startLoading]);
 
   return (
     <>

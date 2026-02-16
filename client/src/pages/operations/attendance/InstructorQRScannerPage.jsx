@@ -21,8 +21,7 @@ import { sendStudentNotification } from '@services/business/notificationService'
 import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { Select, DatePicker, Button, Loading, Card, CardBody } from '@ui';
-import { FancyLoading } from '@ui';
+import { Select, DatePicker, Button, Card, CardBody } from '@ui';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
@@ -31,12 +30,14 @@ import StudentActionPanelNew from '@/components/qr-scanner/StudentActionPanelNew
 import '@/components/qr-scanner/ui/qr-scanner-ui.css';
 import './InstructorQRScannerPage.module.css';
 import eventBus, { EVENTS } from '@utils/eventBus';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 
 const InstructorQRScannerPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { startLoading } = useGlobalLoading();
 
   // Helper functions to save selections to localStorage
   const saveSelectedProgramId = useCallback((programId) => {
@@ -307,7 +308,18 @@ const InstructorQRScannerPage = () => {
   // Load programs on mount
   useEffect(() => {
     logger.debug('[QR Scanner] Initializing page...');
-    loadPrograms();
+    const stopLoading = startLoading();
+    
+    // Wrap loadPrograms to ensure loading stops
+    const init = async () => {
+      try {
+        await loadPrograms();
+      } finally {
+        stopLoading();
+      }
+    };
+    
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1184,17 +1196,7 @@ const InstructorQRScannerPage = () => {
 
   // Show loading while auth is initializing
   if (authLoading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: 'var(--background-secondary, #f9fafb)'
-      }}>
-        <FancyLoading fullscreen />
-      </div>
-    );
+    return <GlobalLoadingFallback />;
   }
 
   if (!user && !authLoading) {
@@ -1202,33 +1204,7 @@ const InstructorQRScannerPage = () => {
   }
 
   if (initialLoading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        background: 'var(--background-secondary, #f9fafb)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid #e5e7eb',
-            borderTop: '4px solid #8b5cf6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 1rem'
-          }}></div>
-          <p style={{ color: 'var(--text-muted, #6b7280)' }}>{t('loading_programs')}</p>
-        </div>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
+    return <GlobalLoadingFallback />;
   }
 
   if (error) {
@@ -1536,36 +1512,9 @@ const InstructorQRScannerPage = () => {
           width: isMobile ? '100%' : (isScannerMinimized ? '100%' : 'calc(100% - 300px)'),
           transition: 'width 0.3s ease' // Smooth transition
         }}>
-          {initialLoading ? (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'var(--overlay, rgba(0, 0, 0, 0.5))',
-              backdropFilter: 'blur(4px)',
-              zIndex: 9999,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <FancyLoading fullscreen />
-            </div>
-          ) : loading ? (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <FancyLoading fullscreen />
-            </div>
-          ) : !selectedClassId || selectedClassId === 'all' ? (
+          {loading && <GlobalLoadingFallback />}
+          
+          {!selectedClassId || selectedClassId === 'all' ? (
             <div style={{
               background: 'white',
               borderRadius: '0.75rem',
@@ -1579,51 +1528,6 @@ const InstructorQRScannerPage = () => {
             </div>
           ) : (
             <div style={{ width: '100%' }}>
-              {/* Refresh Button */}
-              {/* <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => loadStudents(selectedClassId, selectedDate)}
-                  disabled={loading}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    opacity: loading ? 0.6 : 1
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <div style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid white',
-                        borderTop: '2px solid transparent',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }}></div>
-                      {t('loading')}
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M23 4v6h-6"/>
-                        <path d="M1 20v-6h6"/>
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                      </svg>
-                      {t('refresh')}
-                    </>
-                  )}
-                </button>
-              </div> */}
-              
               <StudentRoster
               students={paginatedStudents}
               onStudentSelect={handleStudentSelect}
@@ -1655,22 +1559,7 @@ const InstructorQRScannerPage = () => {
         {/* Student Action Panel */}
         {selectedStudent && (
           <>
-            {gridLoading && (
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                zIndex: 1000,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <FancyLoading fullscreen />
-              </div>
-            )}
+            {gridLoading && <GlobalLoadingFallback />}
             <StudentActionPanel
               student={selectedStudent}
               onClose={handleClosePanel}

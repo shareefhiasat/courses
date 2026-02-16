@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Container, Card, CardBody, Button, Badge, Grid, ProgressBar, Loading } from '@ui';
+import { Container, Card, CardBody, Button, Badge, Grid, ProgressBar } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getAttendanceStats } from '@services/business/attendanceService';
@@ -34,8 +35,8 @@ const KPICard = ({ label, value, subtitle, icon: Icon, color = '#800020' }) => (
 export default function AnalyticsPage() {
   const { t } = useLang();
   const { theme } = useTheme();
-  const { user, isAdmin, isInstructor, isHR } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { user, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
+  const { startLoading } = useGlobalLoading();
   const [err, setErr] = useState('');
   
   // Stats
@@ -151,16 +152,40 @@ export default function AnalyticsPage() {
     a.click();
   };
 
-  if (loading) {
-    return (
-      <Loading
-        variant="overlay"
-        fullscreen
-        message={t('loading_analytics') || t('loading') || 'Loading analytics...'}
-        fancyVariant="dots"
-      />
-    );
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await loadAnalytics();
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, loadAnalytics, startLoading]);
 
   return (
     <Container maxWidth="xl" className={styles.page}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
@@ -10,7 +10,8 @@ import { ActivityLogger } from '@services/other/activityLogger';
 import { updateProgressAfterQuiz } from '@services/business/studentProgressService';
 import { useTimeTracking } from '@hooks/useTimeTracking';
 import { randomizeQuestions, randomizeOptions } from '@utils/quizRandomization';
-import { Container, Card, CardBody, Button, Badge, ProgressBar, Loading, Spinner, useToast, Tooltip, Modal } from '@ui';
+import { Container, Card, CardBody, Button, Badge, ProgressBar, Spinner, useToast, Tooltip, Modal } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import Calculator from '@/components/quiz/Calculator';
 import ScratchPad from '@/components/quiz/ScratchPad';
@@ -32,6 +33,7 @@ export default function StudentQuizPage() {
   const { quizId } = useParams();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { startLoading } = useGlobalLoading();
   
   // Track time spent taking quiz
   useTimeTracking(`quiz_${quizId}`, true);
@@ -671,14 +673,47 @@ export default function StudentQuizPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <Loading
-        variant="overlay"
-        fullscreen
-        message="Loading quiz..."
-      />
-    );
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
+  }
+
+  // Use GlobalLoading for initial quiz data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!quizId) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadQuizData = async () => {
+      try {
+        setLoading(true);
+        await loadQuiz(); // Use existing loadQuiz function
+      } catch (error) {
+        console.error('Error loading quiz data:', error);
+      } finally {
+        setLoading(false);
+        safeStop();
+      }
+    };
+
+    loadQuizData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, quizId, startLoading]);
+
+  // For inline loading states (like submitting), keep SimpleLoading
+  if (loading && !quizId) {
+    return null; // Don't show loading if no quizId
   }
 
   if (error) {

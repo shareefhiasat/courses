@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -8,14 +8,16 @@ import QRCode from 'qrcode';
 import { db } from '@services/other/config';
 import { doc, getDoc, setDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, Loading, YearSelect } from '@ui';
+import { Button, Select, YearSelect } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import styles from './AttendancePage.module.css';
 
 const AttendancePageEnhanced = () => {
-  const { user, isAdmin, isInstructor, isHR } = useAuth();
+  const { user, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
+  const { startLoading } = useGlobalLoading();
   const [classId, setClassId] = useState(() => {
     try { return localStorage.getItem('att_instructor_class') || ''; } catch { return ''; }
   });
@@ -273,13 +275,47 @@ const AttendancePageEnhanced = () => {
     } finally { setSavingCfg(false); }
   };
 
-  // Show initial loading while classes, programs, and subjects are being loaded
-  if (initialLoading) {
-    return <Loading variant="overlay" fullscreen message={t('loading_attendance_data') || 'Loading attendance data...'} fancyVariant="dots" />;
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
 
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!isAdmin && !isInstructor && !isHR) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        // Wait for initial data to load
+        if (!initialLoading) {
+          safeStop();
+        }
+      } catch (error) {
+        console.error('Error loading attendance data:', error);
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, isAdmin, isInstructor, isHR, initialLoading, startLoading]);
+
+  // For inline loading states (like creating session), keep SimpleLoading
   if (loading && !sessionId) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+    return <SimpleLoading loading fullscreen type="brand" size="lg" />;
   }
 
   return (

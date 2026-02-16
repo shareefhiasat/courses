@@ -4,8 +4,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import AuthForm from '@/components/AuthForm';
-import { Container, Spinner } from '@ui';
-import { FancyLoading } from '@ui';
+import { Container } from '@ui';
+import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import { Navbar } from '@ui';
 import styles from './LoginPage.module.css';
 
@@ -111,7 +111,7 @@ const LoginPage = () => {
   }, [t]);
 
   if (loading) {
-    return <FancyLoading fullscreen={true} />;
+    return <GlobalLoadingFallback />;
   }
 
   if (user) {

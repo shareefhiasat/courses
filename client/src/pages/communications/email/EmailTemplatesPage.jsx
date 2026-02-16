@@ -1,5 +1,5 @@
 import React from 'react';
-import { FancyLoading, EmailTemplates } from '@ui';
+import { EmailTemplates } from '@ui';
 
 const EmailTemplatesPage = () => {
   return (

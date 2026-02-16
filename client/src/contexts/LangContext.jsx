@@ -759,6 +759,18 @@ const DICT = {
     approved_results_successfully: 'Approved result(s) successfully',
     please_enter_valid_score: 'Please enter a valid score',
     score_overridden_successfully: 'Score overridden successfully',
+    contact_admin_for_access: 'Contact your administrator if you need access to this page.',
+    
+    // Access denied and unauthorized page localizations
+    access_denied: 'Access Denied',
+    this_page: 'this page',
+    your_role: 'Your Role',
+    go_back: 'Go Back',
+    go_home: 'Go Home',
+    contact_admin: 'Contact Admin',
+    unauthorized_help_text: 'If you believe this is an error, please contact your system administrator to request access to this feature.',
+    checking_permissions: 'Checking permissions...',
+    
     mid_term_exam: 'Mid-Term Exam',
     final_exam: 'Final Exam',
     labs_project_research: 'Labs/Project Research',
@@ -3918,6 +3930,17 @@ const DICT = {
     'tour.cards_grid': 'تعرض هذه البطاقات العناصر. استخدم الإجراءات للتفاعل مع العناصر',
     'tour.cards_grid_content': 'تصفح بياناتك واتخذ إجراءات باستخدام الخيارات المتاحة',
     'tour.cards_grid_content_alt': 'التنقل عبر المحتوى الخاص بك وإدارة العناصر بكفاءة',
+    
+    // Access denied and unauthorized page localizations (Arabic)
+    access_denied: 'الوصول مرفوض',
+    this_page: 'هذه الصفحة',
+    your_role: 'دورك',
+    go_back: 'العودة',
+    go_home: 'الذهاب للرئيسية',
+    contact_admin: 'تواصل مع المسؤول',
+    unauthorized_help_text: 'إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع مسؤول النظام لطلب الوصول إلى هذه الميزة.',
+    checking_permissions: 'جاري التحقق من الصلاحيات...',
+    contact_admin_for_access: 'تواصل مع مسؤول النظام إذا كنت بحاجة إلى الوصول إلى هذه الصفحة.',
   },
 };
 

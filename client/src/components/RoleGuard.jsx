@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
-import { Loading } from '@ui';
+import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import { useLang } from '@contexts/LangContext';
 import logger from '@utils/logger';
 
@@ -38,17 +38,7 @@ const RoleGuard = ({
     if (loadingComponent) {
       return loadingComponent;
     }
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        flexDirection: 'column'
-      }}>
-        <Loading variant="overlay" message={t('checking_permissions') || 'Checking permissions...'} />
-      </div>
-    );
+    return <GlobalLoadingFallback />;
   }
 
   // Check if user has access to this screen

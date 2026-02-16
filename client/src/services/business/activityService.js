@@ -283,12 +283,20 @@ export const getAnnouncements = async () => {
     logger.info('ANNOUNCEMENT: Fetching all announcements');
     
     const result = await getAnnouncementsFromDb();
+    console.log('🔍 DEBUG: Raw announcements result from DB:', result);
+    
     if (result.success) {
       logger.info('ANNOUNCEMENT: Successfully fetched announcements', { count: result.data.length });
+      console.log('🔍 DEBUG: Announcements data:', result.data);
+      console.log('🔍 DEBUG: Announcements count:', result.data.length);
+      console.log('🔍 DEBUG: First announcement sample:', result.data[0]);
+    } else {
+      console.log('🔍 DEBUG: Failed to fetch announcements:', result.error);
     }
     return result;
   } catch (error) {
     logger.error('ANNOUNCEMENT: Failed to fetch announcements', { error: error.message });
+    console.log('🔍 DEBUG: Exception in getAnnouncements:', error);
     logger.error("Error getting announcements:", error);
     return { success: false, error: error.message };
   }

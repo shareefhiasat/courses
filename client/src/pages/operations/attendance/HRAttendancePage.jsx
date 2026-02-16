@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { Button, Select, Loading, DatePicker } from '@ui';
+import { Button, Select, SimpleLoading, DatePicker } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
@@ -339,11 +339,11 @@ const HRAttendancePage = () => {
   // Show loading while auth is resolving
   if (authLoading) {
     return (
-      <Loading 
-        variant="overlay" 
-        fullscreen 
-        message="Loading..." 
-        fancyVariant="dots" 
+      <SimpleLoading 
+        loading
+        fullscreen
+        type="brand"
+        size="lg"
       />
     );
   }
@@ -351,11 +351,11 @@ const HRAttendancePage = () => {
   // Add initial loading state
   if (!initialDataLoaded && loading && sessions.length === 0 && classes.length === 0) {
     return (
-      <Loading 
-        variant="overlay" 
-        fullscreen 
-        message="Loading HR Attendance..." 
-        fancyVariant="dots" 
+      <SimpleLoading 
+        loading
+        fullscreen
+        type="brand"
+        size="lg"
       />
     );
   }
@@ -635,7 +635,7 @@ const HRAttendancePage = () => {
 
               {/* Marks Table */}
               <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-                {loading && <Loading variant="fancy" fancyVariant="dots" message="Loading attendance marks..." />}
+                {loading && <SimpleLoading loading type="spinner" size="md" />}
                 {!loading && marks.length === 0 && <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>{t('no_marks') || 'No attendance records'}</div>}
                 {!loading && (
                 <div style={{ display: 'grid', gap: 6 }}>

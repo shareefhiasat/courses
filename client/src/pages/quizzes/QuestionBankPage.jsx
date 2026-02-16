@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Question Bank Page
  * Manage reusable questions library
  */
@@ -21,7 +21,7 @@ import {
   Modal,
   useToast,
   EmptyState,
-  Loading
+  SimpleLoading
 } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import {
@@ -220,9 +220,45 @@ export default function QuestionBankPage() {
     setShowEditModal(true);
   };
 
-  if (loading) {
-    return <Loading fullscreen />;
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
   }
+
+  // Use GlobalLoading for initial data load
+  useLayoutEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+
+    let stopped = false;
+    const stopGlobalLoading = startLoading();
+    const safeStop = () => {
+      if (stopped) return;
+      stopped = true;
+      stopGlobalLoading();
+    };
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadQuestions(),
+          loadPrograms(),
+          loadSubjects(),
+          loadClasses()
+        ]);
+      } catch (error) {
+        console.error('Error loading question bank data:', error);
+      } finally {
+        safeStop();
+      }
+    };
+
+    loadData();
+
+    return () => {
+      safeStop();
+    };
+  }, [authLoading, user, loadQuestions, loadPrograms, loadSubjects, loadClasses, startLoading]);
 
   return (
     <div className={styles.questionBankPage}>

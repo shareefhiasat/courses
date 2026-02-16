@@ -770,7 +770,6 @@ const LogsActivityPage = () => {
         showExportButton
         exportLabel={t('export') || 'Export'}
         loadingOverlayMessage={loading ? "Loading login activity..." : undefined}
-        fancyVariant="dots"
       />
       {/* Delete Confirmation Modal */}
       {deleteModal.open && (

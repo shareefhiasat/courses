@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -6,16 +6,17 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getEnrolledStudents, toggleStudentAccess as toggleStudentAccessService } from '@services/business/enrollmentService';
-import { Container, Card, CardBody, Button, Input, Badge, EmptyState, useToast, Select, YearSelect, Loading } from '@ui';
-import { FancyLoading } from '@ui';
+import { Container, Card, CardBody, Button, Input, Badge, EmptyState, useToast, Select, YearSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './EnrollmentsPage.module.css';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 
 const EnrollmentsPage = () => {
   const { user, isAdmin, isInstructor } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   const [classes, setClasses] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -120,6 +121,7 @@ const EnrollmentsPage = () => {
 
   
   const loadData = async () => {
+    const stopLoading = startLoading();
     try {
       const [classesSnap, programsRes, subjectsRes] = await Promise.all([
         getClasses(),
@@ -142,6 +144,7 @@ const EnrollmentsPage = () => {
       logger.error('[EnrollmentsPage] Error loading data:', e);
     } finally {
       setInitialLoading(false);
+      stopLoading();
     }
   };
 
@@ -234,14 +237,7 @@ const EnrollmentsPage = () => {
 
   // Full-page loading
   if (initialLoading) {
-    return (
-      <Loading 
-        variant="overlay" 
-        fullscreen 
-        message={t('loading_enrollments') || 'Loading enrollments...'} 
-        fancyVariant="dots" 
-      />
-    );
+    return <GlobalLoadingFallback />;
   }
 
   return (
@@ -271,7 +267,7 @@ const EnrollmentsPage = () => {
                   alignItems: 'center', 
                   justifyContent: 'center' 
                 }}>
-                  <FancyLoading />
+                  <SimpleLoading />
                 </div>
               </div>
             )}
@@ -494,7 +490,7 @@ const EnrollmentsPage = () => {
                     justifyContent: 'center',
                     margin: '0 auto'
                   }}>
-                    <FancyLoading />
+                    <SimpleLoading />
                   </div>
                 </div>
               ) : filteredStudents.length === 0 ? (
@@ -538,7 +534,7 @@ const EnrollmentsPage = () => {
                             alignItems: 'center', 
                             justifyContent: 'center' 
                           }}>
-                            <FancyLoading standalone={true} />
+                            <SimpleLoading />
                           </div>
                         ) : (
                           student.isDisabled ? getThemedIcon('ui', 'user_check', 16, theme) : getThemedIcon('ui', 'user_x', 16, theme)

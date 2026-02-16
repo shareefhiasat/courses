@@ -1,17 +1,19 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { scanAttendance, simpleDeviceHash, getAttendanceStats } from '@services/business/attendanceService';
 import { getClasses } from '@services/business/classService';
-import { Button, Select, Loading, DatePicker, useToast } from '@ui';
+import { Button, Select, DatePicker, useToast } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { Download } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const StudentAttendancePage = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useLang();
   const toast = useToast();
+  const { startLoading } = useGlobalLoading();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
@@ -506,6 +508,11 @@ const StudentAttendancePage = () => {
     setClassId(val);
     try { localStorage.setItem('attend_class', val || ''); } catch {}
   };
+
+  // Auth loading check
+  if (authLoading) {
+    return <GlobalLoadingFallback />;
+  }
 
   return (
     <>

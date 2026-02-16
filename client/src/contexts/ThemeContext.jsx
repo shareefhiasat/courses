@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { FancyLoading } from '@ui';
+import { SimpleLoading } from '@ui';
 import './ThemeContext.css';
 import logger from '../utils/logger';
 
@@ -60,7 +60,7 @@ export const ThemeProvider = ({ children }) => {
       {children}
       {isThemeChanging && (
         <div className="theme-transition-overlay active">
-          <FancyLoading standalone={true} />
+          <SimpleLoading type="brand" />
         </div>
       )}
     </ThemeContext.Provider>

@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense, useLayoutEffect } from 'react';
 import logger from '@utils/logger';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Joyride from 'react-joyride';
-import { Loading, Modal, Button } from '@ui';
+import { Modal, Button } from '@ui';
+import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import InfoTooltip from '@ui/InfoTooltip/InfoTooltip';
 import { RibbonTabs } from '@ui';
 import './DashboardPage.css';
@@ -36,6 +37,7 @@ const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();
+  const { startLoading } = useGlobalLoading();
   
   // Joyride tour state
   const [runTour, setRunTour] = useState(false);
@@ -321,7 +323,7 @@ const DashboardPage = () => {
     }
   }, [user, isAdmin, isSuperAdmin, isInstructor, authLoading, navigate]);
   if (authLoading) {
-    return <Loading variant="overlay" fullscreen message={t('loading') || 'Loading...'} fancyVariant="dots" />;
+    return <GlobalLoadingFallback />;
   }
   if (!user || !isAdmin) {
     return (
@@ -333,9 +335,9 @@ const DashboardPage = () => {
     </div>
     );
   }
-  // Show loading while auth is initializing
+  // Auth loading check with GlobalLoading
   if (authLoading) {
-    return <Loading />;
+    return <GlobalLoadingFallback />;
   }
 
   return (
@@ -375,7 +377,7 @@ const DashboardPage = () => {
     />
   </div>
         {/* Summary Cards with Filters */}
-        <Suspense fallback={<Loading variant="inline" message={t('loading') || 'Loading...'} fancyVariant="dots" />}>
+        <Suspense fallback={<SimpleLoading loading type="spinner" size="md" />}>
            <AnalyticsDashboardPage />
          </Suspense>
 
@@ -389,7 +391,7 @@ const DashboardPage = () => {
                <InfoTooltip contentKey={`help.${activeTab}`} />
              </div>
            </div>
-        <Suspense fallback={<Loading variant="inline" message={t('loading') || 'Loading...'} fancyVariant="dots" />}>
+        <Suspense fallback={<SimpleLoading loading type="spinner" size="md" />}>
           {activeTab === 'activities' && (
             <ActivitiesPage />
           )}
@@ -413,7 +415,7 @@ const DashboardPage = () => {
           )}
         </Suspense>
         
-        <Suspense fallback={<Loading variant="inline" message={t('loading') || 'Loading...'} fancyVariant="dots" />}>
+        <Suspense fallback={<SimpleLoading loading type="spinner" size="md" />}>
           {activeTab === 'hr-penalties' && (isSuperAdmin || isAdmin || isInstructor) && (
             <PenaltiesPage />
           )}

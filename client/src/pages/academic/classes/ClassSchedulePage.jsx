@@ -15,7 +15,7 @@ import { getAllQuizzes } from '@services/business/quizService';
 import { getActivities } from '@services/business/activityService';
 import { getAnnouncements } from '@services/business/announcementService';
 import { getResources } from '@services/business/resourceService';
-import { FilterSelect, useToast, Loading } from '@ui';
+import { FilterSelect, useToast, SimpleLoading } from '@ui';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { getThemedIcon } from '@constants/iconTypes';
 import Tooltip from '@ui/Tooltip/Tooltip';
@@ -444,11 +444,11 @@ const ClassSchedulePage = () => {
   // Full-page loading
   if (loading) {
     return (
-      <Loading 
-        variant="overlay" 
-        fullscreen 
-        message={t('loading_class_schedules') || 'Loading class schedules...'} 
-        fancyVariant="dots" 
+      <SimpleLoading 
+        loading
+        fullscreen
+        type="brand"
+        size="lg"
       />
     );
   }
